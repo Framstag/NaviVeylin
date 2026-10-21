@@ -43,7 +43,7 @@ issues is attributed to it — is recorded by the falsification run, not by a pa
 
 **Owning requirement.** `gps-fix-quality` — "Re-evaluation stays off the main dispatcher while the quality
 is unchanged" (`openspec/specs/gps-fix-quality/spec.md:12-26`), refined by this change with the
-attribution clause and the bounded sequence (N ≥ 3 windows).
+attribution scenario and the bounded sequence (N ≥ 3 windows).
 
 **Owning guideline section.** `guidelines/Build.md` §6 "Test constraints" (a red run is diagnosed from the
 failure's message; wall-clock waits are refused; a thread-identity assertion compares the `Thread`, not
@@ -54,7 +54,7 @@ its name) and `Design.md` §11 "Testing".
 - `app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFixQualityTest.kt` only: the counting
   dispatcher attributes each counted dispatch (stack-based), the case asserts over three windows and
   supplies its own unrelated-traffic control. No production file changes.
-- `openspec/specs/gps-fix-quality/spec.md` gains the attribution clause and one scenario (via this
+- `openspec/specs/gps-fix-quality/spec.md` gains one scenario carrying the attribution (via this
   change's delta).
 
 Additive, no behaviour change in the app. Rollback: revert the one test file; the delta is documentation.

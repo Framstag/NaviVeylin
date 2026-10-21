@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:09.520Z" hostname="dingens" time="2.267">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:17.692Z" hostname="dingens" time="2.255">
   <properties/>
-  <testcase name="aFrameArrivingWhileSuspendedIsDiscarded" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.236"/>
-  <testcase name="theResumedMapRendersAtTheCurrentViewportNotTheFrozenOne" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.24"/>
-  <testcase name="noRenderIsRequestedWhileSuspended" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.126"/>
-  <testcase name="theOverrideIsClearedAtSessionEndAndTheNextSessionSuspendsAgain" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.894"/>
-  <testcase name="theSuspensionNeverTouchesTheSharedNativeTileDataCache" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.194"/>
-  <testcase name="theOverrideReturnsTheMapForTheRestOfTheSession" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.334"/>
-  <testcase name="aRisingEdgeSuspendsThePhoneMapAndRecordsTheReleaseOnce" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.122"/>
-  <testcase name="theSuspensionReleasesTheRenderersStorage" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.116"/>
+  <testcase name="aFrameArrivingWhileSuspendedIsDiscarded" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.255"/>
+  <testcase name="theResumedMapRendersAtTheCurrentViewportNotTheFrozenOne" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.232"/>
+  <testcase name="noRenderIsRequestedWhileSuspended" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.137"/>
+  <testcase name="theOverrideIsClearedAtSessionEndAndTheNextSessionSuspendsAgain" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.888"/>
+  <testcase name="theSuspensionNeverTouchesTheSharedNativeTileDataCache" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.192"/>
+  <testcase name="theOverrideReturnsTheMapForTheRestOfTheSession" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.332"/>
+  <testcase name="aRisingEdgeSuspendsThePhoneMapAndRecordsTheReleaseOnce" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.116"/>
+  <testcase name="theSuspensionReleasesTheRenderersStorage" classname="com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest" time="0.1"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

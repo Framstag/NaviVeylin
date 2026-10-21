@@ -6,10 +6,10 @@
 dispatch a non-test thread issues to `Dispatchers.Main`, and the case (`:315-338`) asserts that count over
 a six-tick window and prints it as the fix-quality tick's dispatch. The main dispatcher it instruments is
 the process's, not the re-evaluation's, so unrelated traffic — the `NavigationEngine` stale-speed ticker
-an earlier case in the same JVM still runs, any `viewModelScope` collector a real thread writes — is
-counted, blamed on the tick, and fails a case whose subject did nothing. One mechanism explains both the
-item's "1 times in the second window while nothing changed" and the reason its stack named
-`NavigationEngine.tickStaleness`.
+an earlier case in the same JVM still runs, any other subsystem's `Dispatchers.Main` hop from a real
+thread — is counted, blamed on the tick, and fails a case whose subject did nothing. One mechanism
+explains both the item's "1 times in the second window while nothing changed" and the reason its stack
+named `NavigationEngine.tickStaleness`.
 
 The measured red run (2026-10-21T09:37:19Z, base `2e732f0`, `tests="9" failures="1"`) supplies that traffic
 deterministically — one dispatch per window from a `Dispatchers.IO` coroutine — and reproduces the item's
@@ -21,7 +21,10 @@ Keep counting what the requirement names — main-dispatcher traffic issued from
 test's — and **attribute** it. Every counted dispatch is recorded with the stack that issued it; the
 dispatch is the re-evaluation's when that stack runs through `com.naviveylin.ui.map.MapCanvasViewModel`'s
 own code (`MapCanvasViewModel$…` frames), because coroutine frames carry the enclosing class name. The
-case then:
+limit this attribution has, stated so a later reader does not over-read it: a `Dispatchers.Main` hop a
+`MapCanvasViewModel` coroutine itself issues from a real thread carries ViewModel frames and is counted —
+that is the ViewModel's own traffic by definition, and the requirement's clause is about **another
+subsystem of the process**. The case then:
 
 1. asserts the re-evaluation's count is 0 over **three** six-tick windows ([TICK_WINDOWS]) instead of the
    second of two — a real-time window is a sample; a per-tick pattern is a property of all of them;
@@ -76,10 +79,12 @@ way.
   2026-10-21T09:37:19Z (`evidence/red-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`).
 - Green on the fix: the affected class, forced
   (`--tests "com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest"`, `-PforceTests --no-build-cache`),
-  `tests="9" failures="0"` at 2026-10-21T09:47:29.265Z
-  (`evidence/green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`); plus one
+  `tests="9" failures="0"` at 2026-10-21T09:52:22.263Z — the run after the review corrections, which
+  replaced the 09:47:29.265Z XML with the final bytes' result
+  (`evidence/green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`); plus the
   neighbouring-slice run (`--tests "com.naviveylin.ui.map.MapCanvasViewModel*"`), `tests=321 failures=0`,
-  whose 40 per-class XMLs are archived under `evidence/slice/`. Class-only repetition from the first pass
+  run once per pass — the 40 per-class XMLs archived under `evidence/slice/` are the second
+  (09:52:51.408Z–09:53:26.795Z), so they cover the final bytes. Class-only repetition from the first pass
   has no archived artifact of its own, so this change claims no repetition count.
 - Falsification: reintroduce the pre-fix per-tick `withContext(Dispatchers.Main) { }` hop inside the
   re-evaluation loop → the case fails, attributed `[window 1: 6, window 2: 6, window 3: 6]`

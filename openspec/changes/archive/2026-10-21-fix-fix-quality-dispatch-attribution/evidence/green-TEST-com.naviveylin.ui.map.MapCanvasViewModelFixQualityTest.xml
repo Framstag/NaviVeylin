@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:47:29.265Z" hostname="dingens" time="10.103">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:52:22.263Z" hostname="dingens" time="10.077">
   <properties/>
-  <testcase name="anUnchangedQualityPublishesNoNewValue" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="4.323"/>
-  <testcase name="anAgedOutFixBecomesNoneWithoutANewFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.051"/>
-  <testcase name="aGoodFixReportsGood" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.029"/>
-  <testcase name="noFixAtAllIsNone" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.027"/>
-  <testcase name="aPoorAccuracyReportsPoor" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.027"/>
-  <testcase name="aTickDoesNotDispatchOnTheMainDispatcher" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.37"/>
-  <testcase name="aDisabledSourceIsNoneWithoutANewFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.024"/>
+  <testcase name="anUnchangedQualityPublishesNoNewValue" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="4.339"/>
+  <testcase name="anAgedOutFixBecomesNoneWithoutANewFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.033"/>
+  <testcase name="aGoodFixReportsGood" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.036"/>
+  <testcase name="noFixAtAllIsNone" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.026"/>
+  <testcase name="aPoorAccuracyReportsPoor" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.028"/>
+  <testcase name="aTickDoesNotDispatchOnTheMainDispatcher" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.374"/>
+  <testcase name="aDisabledSourceIsNoneWithoutANewFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.022"/>
   <testcase name="everyConsumerReadsTheSharedQuality" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.032"/>
-  <testcase name="aNewFixRestoresTheTier" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.023"/>
+  <testcase name="aNewFixRestoresTheTier" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.022"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

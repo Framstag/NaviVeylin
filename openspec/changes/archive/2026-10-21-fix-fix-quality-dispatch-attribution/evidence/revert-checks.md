@@ -49,25 +49,30 @@ XML: `falsification-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.
 
 ## Green after the restore
 
-```
-$ ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache -PnoCoverage \
-    --tests "com.naviveylin.ui.map.MapCanvasViewModel*"
-slice: tests=321 skipped=0 failures=0 errors=0
-  (40 per-class XMLs under evidence/slice/, latest timestamp 2026-10-21T09:42:42.946Z)
-```
-
-The forced class run after the corrective pass — the narrowed KDoc and control comment, no behaviour
-change:
+The forced class run after the review corrections — the spec's attribution contract moved into the
+second scenario, the KDoc and control comment corrected, no behaviour change:
 
 ```
 $ ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache -PnoCoverage \
     --tests "com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest"
-tests="9" skipped="0" failures="0" errors="0"  timestamp="2026-10-21T09:47:29.265Z"
+tests="9" skipped="0" failures="0" errors="0"  timestamp="2026-10-21T09:52:22.263Z"
 ```
 
-XML: `green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`. The class-only repetition of
-the first pass was not archived per run, so no repetition count is claimed. The archived XMLs are the red
-run, the falsification and these two green runs, in that order.
+Then the neighbouring slice, same forced flags, so the archived green is not older than the final bytes:
+
+```
+$ ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache -PnoCoverage \
+    --tests "com.naviveylin.ui.map.MapCanvasViewModel*"
+slice: tests=321 skipped=0 failures=0 errors=0
+  (40 per-class XMLs under evidence/slice/, timestamps 2026-10-21T09:52:51.408Z – 09:53:26.795Z)
+```
+
+XML: `green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`. It supersedes the
+09:47:29.265Z run, whose XML it replaced file-for-file, so the archived green is the one every citation
+names; the slice was re-run after the same corrections (tests=321 failures=0, 09:52:51.408Z –
+09:53:26.795Z) and its 40 XMLs replaced the 09:42–09:43 set in both evidence directories. The
+class-only repetition of the first pass was not archived per run, so no repetition count is claimed. The
+archived XMLs are the red run, the falsification and these two green runs, in that order.
 
 No full `./gradlew test` gate was run: this delta touches test sources only, so `guidelines/Build.md` §2's
 scope block names the red case plus the affected cases instead — and no compiled production file changed.

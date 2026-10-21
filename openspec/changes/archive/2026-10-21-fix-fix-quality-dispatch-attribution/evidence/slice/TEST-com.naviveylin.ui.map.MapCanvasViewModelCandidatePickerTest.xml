@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:54.958Z" hostname="dingens" time="0.16">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:52:56.734Z" hostname="dingens" time="0.225">
   <properties/>
-  <testcase name="selecting candidate opens details with marker on object" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.038"/>
-  <testcase name="dismissing picker clears candidates and opens no details" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.024"/>
-  <testcase name="long press coordinate label is locale stable on a comma decimal device" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.022"/>
-  <testcase name="selecting candidate without object coords falls back to press point" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.02"/>
-  <testcase name="long press with candidates shows picker not details" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.022"/>
+  <testcase name="selecting candidate opens details with marker on object" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.047"/>
+  <testcase name="dismissing picker clears candidates and opens no details" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.032"/>
+  <testcase name="long press coordinate label is locale stable on a comma decimal device" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.036"/>
+  <testcase name="selecting candidate without object coords falls back to press point" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.05"/>
+  <testcase name="long press with candidates shows picker not details" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.033"/>
   <testcase name="long press with no candidates shows no picker" classname="com.naviveylin.ui.map.MapCanvasViewModelCandidatePickerTest" time="0.024"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

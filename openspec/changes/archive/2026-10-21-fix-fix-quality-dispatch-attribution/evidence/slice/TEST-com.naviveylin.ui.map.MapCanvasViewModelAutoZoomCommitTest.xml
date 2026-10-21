@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:47.638Z" hostname="dingens" time="0.206">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:52:55.714Z" hostname="dingens" time="0.274">
   <properties/>
-  <testcase name="first commit jumps directly to the target instead of stepping" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest" time="0.088"/>
-  <testcase name="auto zoom converges proportionally and settles inside the deadband" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest" time="0.058"/>
-  <testcase name="manual zoom suspends auto zoom and a band change re-engages with proportional convergence" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest" time="0.057"/>
+  <testcase name="first commit jumps directly to the target instead of stepping" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest" time="0.126"/>
+  <testcase name="auto zoom converges proportionally and settles inside the deadband" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest" time="0.075"/>
+  <testcase name="manual zoom suspends auto zoom and a band change re-engages with proportional convergence" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomCommitTest" time="0.068"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

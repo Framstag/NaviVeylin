@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:14.142Z" hostname="dingens" time="0.147">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:05.596Z" hostname="dingens" time="0.152">
   <properties/>
-  <testcase name="ending the session releases the camera" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.025"/>
-  <testcase name="opening a session suspends the drive preset" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.02"/>
-  <testcase name="a session opened on a route keeps the analysed camera move working" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.028"/>
+  <testcase name="ending the session releases the camera" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.026"/>
+  <testcase name="opening a session suspends the drive preset" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.023"/>
+  <testcase name="a session opened on a route keeps the analysed camera move working" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.027"/>
   <testcase name="the reported mode stays BROWSE while a session is active" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.018"/>
-  <testcase name="follow re-engage is refused while the session holds the camera" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.017"/>
-  <testcase name="a position fix does not move the camera during a session" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.017"/>
+  <testcase name="follow re-engage is refused while the session holds the camera" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.018"/>
+  <testcase name="a position fix does not move the camera during a session" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.018"/>
   <testcase name="the mode returns to BROWSE after a session opened from free drive ends" classname="com.naviveylin.ui.map.MapCanvasViewModelSessionLeaseTest" time="0.018"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

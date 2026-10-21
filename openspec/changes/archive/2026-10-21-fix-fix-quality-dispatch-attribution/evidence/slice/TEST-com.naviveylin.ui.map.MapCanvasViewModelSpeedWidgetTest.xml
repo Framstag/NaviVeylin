@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:58.471Z" hostname="dingens" time="2.203">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:23.225Z" hostname="dingens" time="2.187">
   <properties/>
-  <testcase name="maxSpeedNaNOnClientFailure" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.015"/>
+  <testcase name="maxSpeedNaNOnClientFailure" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.022"/>
   <testcase name="maxSpeedNaNWhenNoLimit" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.016"/>
-  <testcase name="currentSpeedTracksGpsFix" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.017"/>
-  <testcase name="freshFixRecoversSpeedAfterStaleness" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="1.028"/>
-  <testcase name="overspeedDeltaAppliesImmediatelyAndSurvivesReload" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.018"/>
+  <testcase name="currentSpeedTracksGpsFix" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.018"/>
+  <testcase name="freshFixRecoversSpeedAfterStaleness" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="1.026"/>
+  <testcase name="overspeedDeltaAppliesImmediatelyAndSurvivesReload" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.027"/>
   <testcase name="currentSpeedNaNWithoutGpsSpeed" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.016"/>
-  <testcase name="maxSpeedThrottledOnStationaryFixes" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.025"/>
-  <testcase name="maxSpeedResolvedFromClient" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.032"/>
-  <testcase name="maxSpeedReResolvedAfterMovement" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.019"/>
-  <testcase name="staleFixDecaysFollowSpeedToZero" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="1.015"/>
+  <testcase name="maxSpeedThrottledOnStationaryFixes" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.016"/>
+  <testcase name="maxSpeedResolvedFromClient" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.015"/>
+  <testcase name="maxSpeedReResolvedAfterMovement" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="0.015"/>
+  <testcase name="staleFixDecaysFollowSpeedToZero" classname="com.naviveylin.ui.map.MapCanvasViewModelSpeedWidgetTest" time="1.014"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

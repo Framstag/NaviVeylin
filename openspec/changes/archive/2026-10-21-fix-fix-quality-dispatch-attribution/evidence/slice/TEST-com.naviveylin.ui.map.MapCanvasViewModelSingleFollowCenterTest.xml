@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:14.292Z" hostname="dingens" time="0.05">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:05.753Z" hostname="dingens" time="0.055">
   <properties/>
-  <testcase name="display active - fix renders are anchored on the display position not the raw fix" classname="com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest" time="0.016"/>
-  <testcase name="display inactive - first fix still establishes an anchor frame" classname="com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest" time="0.016"/>
+  <testcase name="display active - fix renders are anchored on the display position not the raw fix" classname="com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest" time="0.019"/>
+  <testcase name="display inactive - first fix still establishes an anchor frame" classname="com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest" time="0.018"/>
   <testcase name="display active - a pure position move renders nothing and does not re-center" classname="com.naviveylin.ui.map.MapCanvasViewModelSingleFollowCenterTest" time="0.016"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

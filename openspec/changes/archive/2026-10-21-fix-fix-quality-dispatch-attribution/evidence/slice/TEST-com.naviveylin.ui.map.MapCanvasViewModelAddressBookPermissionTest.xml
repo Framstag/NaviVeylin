@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:42.980Z" hostname="dingens" time="4.641">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:52:51.408Z" hostname="dingens" time="4.293">
   <properties/>
-  <testcase name="grantMakesAddressBookAvailable" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="4.081"/>
-  <testcase name="laterGrantAfterDenyBecomesAvailable" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.037"/>
-  <testcase name="initReflectsCurrentlyGrantedPermission" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.029"/>
-  <testcase name="deniedPermissionHidesAddressBook" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.03"/>
-  <testcase name="showOnMapFromAddressBookDetailsStaysOnMap" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.104"/>
-  <testcase name="backFromAddressBookDetailsReturnsToAddressBook" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.049"/>
-  <testcase name="revocationAfterGrantHidesAddressBook" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.03"/>
-  <testcase name="resolvedAddressBookEntryOpensDetailsSheet" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.042"/>
+  <testcase name="grantMakesAddressBookAvailable" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="3.727"/>
+  <testcase name="laterGrantAfterDenyBecomesAvailable" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.04"/>
+  <testcase name="initReflectsCurrentlyGrantedPermission" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.03"/>
+  <testcase name="deniedPermissionHidesAddressBook" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.029"/>
+  <testcase name="showOnMapFromAddressBookDetailsStaysOnMap" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.123"/>
+  <testcase name="backFromAddressBookDetailsReturnsToAddressBook" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.029"/>
+  <testcase name="revocationAfterGrantHidesAddressBook" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.055"/>
+  <testcase name="resolvedAddressBookEntryOpensDetailsSheet" classname="com.naviveylin.ui.map.MapCanvasViewModelAddressBookPermissionTest" time="0.04"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

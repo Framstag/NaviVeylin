@@ -185,6 +185,9 @@ MUTATIONS=(
   # 37.2 — item 3 is the line that invited the suite run (issue #236): restored to "is the count a real
   # execution", the task leaves the runner as the way to answer it and the case must notice.
   '37.2@-@tools/loop/prompts/reviewer.md@prompt#reviewerIsBoundedToReading@item 3 asking for the tally the evidence carries instead of a second execution (issue #236)@s|Read the tally it carries; never reproduce it by running the gate\.|Is the count a real execution?|'
+  # 38.1 — the worker names the change's surface before it fixes the plan (issue #238): without the step, the plan
+  # is estimated against its first file, which is how a "two functions" plan landed as 292 lines over six.
+  '38.1@-@tools/loop/prompts/worker.md@prompt#workerNamesTheChangeSurfaceBeforeThePlan@the surface pass that sets the budget before the plan is fixed (issue #238)@s|Count the surface before the plan is fixed\.|Plan the change first.|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

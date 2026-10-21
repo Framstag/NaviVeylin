@@ -75,6 +75,8 @@ LOOP_SHELL_CASES=(
   'prompt#reviewerCarriesTheEightItems'
   'prompt#reviewerIsBoundedToReading'
   'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton'
+  'prompt#workerNamesTheChangeSurfaceBeforeThePlan'
+  'prompt#iterationProtocolNamesTheChangeSurface'
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
   'run#preflightRefusalStopsBeforeAnyWork'
@@ -236,6 +238,8 @@ loop_run_shell_case() {
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
     'prompt#reviewerIsBoundedToReading') fn=case_prompt_reviewerIsBoundedToReading ;;
     'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton') fn=case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton ;;
+    'prompt#workerNamesTheChangeSurfaceBeforeThePlan') fn=case_prompt_workerNamesTheChangeSurfaceBeforeThePlan ;;
+    'prompt#iterationProtocolNamesTheChangeSurface') fn=case_prompt_iterationProtocolNamesTheChangeSurface ;;
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
@@ -1876,6 +1880,41 @@ case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton() {
   case "$doc" in
     *'runs no gate'*) ;;
     *) fail "the iteration protocol does not state the bound that skeleton carries" ;;
+  esac
+}
+
+# Issue #238: the #232 change was planned as "one attribution fix plus one verdict split" — two functions in
+# `tools/loop/worktree.sh` — and landed 292 insertions over six files, ~60 % of it test surface: two cases
+# added, two rewritten, one renamed and four fixtures re-aligned. Nobody asked how many places asserted the
+# rule before the plan was fixed, and the answer was one `grep -l` away. The protocol measured the symptom and
+# the iteration levers, never the surface of the change itself, so this case holds the rule to the two surfaces
+# it needs: the worker prompt a run renders, and the guideline that owns the text.
+case_prompt_workerNamesTheChangeSurfaceBeforeThePlan() {
+  local d p prompt text
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  text=$(cat "$prompt")
+  assert_contains "$text" 'Count the surface before the plan is fixed' "the worker counts the surface before it plans"
+  assert_contains "$text" 'grep -l' "and is handed the command that counts it"
+  assert_contains "$text" 'surface:' "and the record its proposal carries"
+}
+
+# The rule has one home for its text (`guidelines/Build.md` §2, the iteration protocol) and one for the act (the
+# worker prompt above). A session that plans a change outside the loop reads the first, so both are asserted.
+case_prompt_iterationProtocolNamesTheChangeSurface() {
+  local doc
+  doc=$(cat "$LOOP_PROJECT_ROOT/guidelines/Build.md")
+  # quoted whole, so a `case` is used instead of `assert_contains`: the failure names the rule that is missing
+  # rather than dumping 131 KB.
+  case "$doc" in
+    *'count the surface'*) ;;
+    *) fail "the iteration protocol does not state the surface measurement" ;;
+  esac
+  case "$doc" in
+    *'surface:'*) ;;
+    *) fail "the iteration protocol does not state the record the change's proposal carries" ;;
   esac
 }
 

@@ -50,6 +50,14 @@ option lists, and the recorded `2` came to mean a different option).
    asserts the number, count or absence the delta requires — never "better".
 4. Name the owning capability and the owning guideline section. Route with `AGENTS.md`'s Documentation
    Map; never read a guideline in full.
+5. Count the surface before the plan is fixed. The rule you are about to change has more than one place that
+   asserts it, and the plan is only real once you know how many: `grep -l` the rule's text and its symbol over
+   the cases (`tools/*-cases.sh`), the engine, the prompts and the fixtures, and list the cases and fixtures
+   that assert the behaviour being changed. The proposal carries the count with the command that produced it
+   (`surface: 2 cases added, 2 rewritten, 4 fixtures realigned — <command>`), because the count sets the
+   budget, the review scope and the loop's floor. An estimate made before this pass is the defect this step
+   exists for: the #232 change was planned as two functions and landed as 292 insertions over six files
+   (issue #238).
 
 ## Phase B — the eligibility gate (strict)
 

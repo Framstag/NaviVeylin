@@ -18,6 +18,7 @@
 #   7  the identity the run would write as is not on the allowlist (guard)
 #   8  a sensor could not determine anything: nothing was written and the run failed
 #   9  the registry is missing, malformed, or a row is incomplete (guard, runner)
+#  75  the tracker did not answer: no verdict could be established, and none was given (guard, runner)
 #
 # Usage: `source lib.sh`, then `sensors_resolve [--profile <file>] [--registry <file>]` once, in the
 # caller's own shell — never inside `$( )`, where a failure would exit a subshell and be swallowed.
@@ -32,6 +33,9 @@ SENSORS_DIRTY=6
 SENSORS_IDENTITY=7
 SENSORS_ERROR=8
 SENSORS_REGISTRY_BAD=9
+# The tracker's outage is not a refusal: an identity nobody could read is no evidence that the author is
+# unlisted, so the guard says what it knows and gives no verdict (issue #231, the ninth site of that class).
+SENSORS_UNREACHABLE=75
 
 SENSORS_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # The issue tooling is the dependency this engine writes through, shipped beside it.

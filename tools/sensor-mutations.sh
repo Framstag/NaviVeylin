@@ -42,6 +42,7 @@ MUTATIONS=(
   '8.13@.github/workflows/sensors.yml@s/ --within 30//g@workflow#theTickDeclaresItsWindow@every scheduled tick declares the window it selects over'
   '8.14@tools/sensors/run.sh@s/sensors_die "run: --within/: "run: --within/@run#theWindowDoesNotSelectThePreviousTicksRow@a window that is not a count of minutes is refused'
   '8.15@tools/sensors/lib.sh@s|condition:\[ \]\*\\\\{.*\\\\}|condition:[ ]*[^>]*|@sensors#aRecordedConditionParsesToItsObject@the recorded condition parses to its object, not to the marker tail'
+  '8.16@tools/sensors/guard.sh@s|\[ "$status" -eq "$SENSORS_UNREACHABLE" \]|[ "$status" -eq 0 ]|@guard#eachCheckHasItsOwnReason@the identity guard reports an unread tracker instead of turning it into a verdict (issue #231)'
 )
 
 if [ "$mode" = "list" ]; then

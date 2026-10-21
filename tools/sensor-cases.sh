@@ -334,6 +334,22 @@ case_guard_eachCheckHasItsOwnReason() {
   assert_eq "7" "$status" "the identity guard's own exit code"
   assert_contains "$out" "author-not-allowlisted" "the identity reason"
 
+  # 4b. the identity could not be read: a tracker that did not answer is not a refusal, so the guard reports the
+  # outage and gives no verdict (issue #231, review round 2 — this was the ninth site of the class the change
+  # closed, on the CI gate rather than on an item). The failure is the one `policy#preflightReportsAnUnreachableTracker`
+  # records: the stub's socket-level failure on every `api user` call.
+  local outage; outage=$(scratch); : > "$outage/count"
+  out=$( (cd "$dir" && GH_STUB_DIR="$outage" GH_STUB_TRANSIENT_FAIL="api user" GH_STUB_TRANSIENT_TIMES=99 \
+          GH_STUB_TRANSIENT_STATE="$outage/count" ISSUES_GH_RETRY_DELAYS="0 0 0" sensor_engine guard.sh) 2>&1 ); status=$?
+  assert_eq "75" "$status" "an unreachable tracker is not a policy refusal: $out"
+  assert_contains "$out" "tracker-unreachable" "the guard names the outage"
+  case "$out" in *author-not-allowlisted*) fail "an outage is still reported as the allowlist verdict: $out" ;; esac
+  out=$( (cd "$dir" && GH_STUB_DIR="$outage" GH_STUB_TRANSIENT_FAIL="api user" GH_STUB_TRANSIENT_TIMES=99 \
+          GH_STUB_TRANSIENT_STATE="$outage/count" ISSUES_GH_RETRY_DELAYS="0 0 0" sensor_engine guard.sh --json) 2>&1 ); status=$?
+  # The JSON form is the first line; the refusal text follows it on the same stream, as every guard's does.
+  assert_eq "unknown" "$(printf '%s\n' "$out" | head -1 | jq -r '.decision')" "no verdict is given when none could be established"
+  assert_eq "tracker-unreachable" "$(printf '%s\n' "$out" | head -1 | jq -r '.reason')" "the reason a caller can branch on"
+
   # 5. an incomplete row.
   out=$( (cd "$dir" && sensor_engine guard.sh --registry "$(fixture registry-no-threshold.json)") 2>&1 ); status=$?
   assert_eq "9" "$status" "the registry guard's own exit code"

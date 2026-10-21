@@ -1,0 +1,5 @@
+# check-doc-routes after the last edit to any file of this change, 2026-10-22T01:20:42+02:00
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+EXIT=0
+ended 2026-10-22T01:20:43+02:00

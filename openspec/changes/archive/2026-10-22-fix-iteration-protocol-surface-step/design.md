@@ -31,8 +31,8 @@ task, so the two surfaces a change meets carry one rule:
 ## Blast radius, measured before the plan was fixed
 
 ```
-$ grep -rln 'iteration protocol\|Agent iteration protocol' tools/ .pi/skills/ AGENTS.md openspec/specs/
-tools/loop-cases.sh, .pi/skills/run-tests/SKILL.md, AGENTS.md, openspec/specs/agent-issue-loop/spec.md
+$ grep -rln 'iteration protocol\|Agent iteration protocol' tools/ .pi/skills/ AGENTS.md openspec/specs/ guidelines/
+tools/loop-cases.sh, .pi/skills/run-tests/SKILL.md, AGENTS.md, openspec/specs/agent-issue-loop/spec.md, guidelines/Build.md
 $ grep -rn 'rules 1-3\|rule 4' --include=*.md --include=*.sh tools/ .pi/skills/ AGENTS.md guidelines/ openspec/specs/
 .pi/skills/mutation-runner/SKILL.md:98, AGENTS.md:185, AGENTS.md:186
 $ grep -rn 'rule 2' --include=*.md openspec/changes/fix-mutation-harness-file-scope/

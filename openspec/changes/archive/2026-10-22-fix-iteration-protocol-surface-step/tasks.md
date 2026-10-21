@@ -54,20 +54,30 @@ Parent spec: `openspec/changes/fix-iteration-protocol-surface-step/specs/agent-i
 - [x] 5.3 `bash tools/check-doc-routes.sh` → exit 0, every section reference and skill path resolves
   (`evidence/doc-routes.log`); `openspec doctor` and the artifact-hygiene rules of
   `.github/workflows/build.yml` were run for the change's own artifacts.
-- [x] 5.4 `./tools/loop/gate.sh` run once after these corrections (2026-10-22T00:51:54+02:00 →
-  01:05:33+02:00): `LOOP-GATE: tests=195 failures=0 (./gradlew test -PforceTests --no-build-cache,
-  tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-doc-routes.sh)`, `EXIT=0` (`evidence/gate.log`;
-  per-suite tallies `evidence/gate-loop-selftest.xml` 150 cases, `gate-sensor-selftest.xml` 45,
-  `gate-doc-routes.xml`, `gate-gradle.xml` `BUILD SUCCESSFUL in 3m 28s`). This is the scope the previous round
-  left open: `guidelines/Build.md:109`'s "no build and no suite" is the build's gate for a delta that compiles
-  nothing, and inside a run the gate is `./tools/loop/gate.sh`, whose mapping of the same `tools/**` and `*.md`
-  paths at the shell suites makes the whole-suite run — never task 5.2's 10-case focused pass — the evidence.
+- [x] 5.4 The gate was run once (`./tools/loop/gate.sh`, 2026-10-22T00:51:54+02:00 → 01:05:33+02:00):
+  `LOOP-GATE: tests=195 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh,
+  tools/sensor-selftest.sh, tools/check-doc-routes.sh)`, `EXIT=0` (`evidence/gate.log`; the end time is the
+  log file's mtime, 01:05:33 — the log carries only the start; per-suite tallies
+  `evidence/gate-loop-selftest.xml` 150 cases, `gate-sensor-selftest.xml` 45, `gate-doc-routes.xml`,
+  `gate-gradle.xml` `BUILD SUCCESSFUL in 3m 28s`). That run predates the last writes to
+  `guidelines/Build.md` (round 2's paragraph at 01:07:07, re-wrapped at 01:09:37), so the two suites the delta
+  owes were re-run after the final edit (2026-10-22T01:09:48+02:00 → 01:19:31+02:00): `tools/loop-selftest.sh`
+  `all 150 cases passed`,
+  `EXIT=0`, and `tools/check-doc-routes.sh` `all 120 section references resolve, all 5 skill references
+  resolve`, `EXIT=0` (`evidence/suites-after-corrections.log`, tallies
+  `evidence/tools_loop-selftest.sh.xml` 150 cases and `evidence/tools_check-doc-routes.sh.xml`). Those are
+  the suites `gate-plan.log` names, so this delta's own roster owes no Gradle task — the gate's `*.xml`
+  compiled pattern pulls the Gradle leg in once evidence tallies are in the tree, which is the gate's mapping,
+  not a compiled path of this change — and task 5.2's
+  10-case focused pass is still not evidence.
 
 ## 6. Evidence and archive
 
 - [x] 6.1 `evidence/`: `red-before-fix.log`, `red-before-fix.xml`, `green-after-fix.log`, `mutation-38.1.log`
   (re-run after the corrections), `gate-plan.log`, `doc-routes.log`, `gate.log` and the gate's own tallies
-  `gate-loop-selftest.xml`, `gate-sensor-selftest.xml`, `gate-doc-routes.xml`, `gate-gradle.xml`; the focused
-  10-case tally `loop-selftest.xml` stays as the record of task 5.2, not as gate evidence.
+  `gate-loop-selftest.xml`, `gate-sensor-selftest.xml`, `gate-doc-routes.xml`, `gate-gradle.xml`, plus the
+  post-correction suite run `suites-after-corrections.log` with its tallies `tools_loop-selftest.sh.xml` and
+  `tools_check-doc-routes.sh.xml`; the focused 10-case tally `loop-selftest.xml` stays as the record of task
+  5.2, not as gate evidence.
 - [x] 6.2 Archive the change and confirm the requirement reached
   `openspec/specs/agent-issue-loop/spec.md`.

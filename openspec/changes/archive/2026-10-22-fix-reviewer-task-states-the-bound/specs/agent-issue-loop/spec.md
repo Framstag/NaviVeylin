@@ -7,8 +7,7 @@
 The task a review round is given SHALL state, before the items it judges: the inputs the round reads, the acts
 it SHALL NOT perform — running the gate and running a test suite among them — the wall-clock bound it runs
 under, and the shape of its answer. A green gate result SHALL be quoted from the evidence the change carries,
-never reproduced. A diff review SHALL be stated to be a reading task, which is what the model for it is chosen
-on.
+never reproduced. A diff review SHALL be stated to be a reading task.
 
 #### Scenario: The round's task names the gate and the suite it may not run
 
@@ -22,6 +21,6 @@ on.
 #### Scenario: A reviewer a session starts itself is handed the same task text
 
 - **WHEN** a session that changes this project spawns its own reviewer, outside the loop
-- **THEN** the project's iteration protocol names the loop's reviewer task as the text to hand over, and states
-  the bound that task carries — so the same round is bounded whether the run or a session started it
+- **THEN** the project's iteration protocol names the loop's reviewer task as the text to hand over, and repeats
+  the prohibitions that text carries — so the same round is bounded whether the run or a session started it
 - **Case**: `prompt#iterationProtocolHandsTheReviewerTheSameSkeleton`

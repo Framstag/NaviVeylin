@@ -45,8 +45,8 @@ State the bound in the one place a reviewer is handed its task, in the order it 
   from a free-form task; the loop's own reviewer is already bounded by the wrapper's read-only comparison. The
   protocol is the only text a session reads before it writes such a task.
 - **Choose the model at render time.** Not available: the child's model is the adapter's business
-  (`LOOP_AGENT_CMD`), and the engine may name no agent command or mode flag (issue #211). The skeleton can only
-  state the *kind* of task, which is what the model choice is made from.
+  (`LOOP_AGENT_CMD`), and the engine may name no agent command or mode flag (issue #211). The skeleton can
+  state the *kind* of task it is; it names no model, and the guideline states no selection act either.
 
 ## Blast radius
 
@@ -75,4 +75,23 @@ visible rather than silent.
   `tools/loop-selftest.sh`, `tools/sensor-selftest.sh` and `tools/check-doc-routes.sh`. No compiled *source*
   file changes (`guidelines/Build.md` §2, "no compiled file changed"); the build's own gate was selected
   anyway, because the gate measures the diff from the run's base `80df3a3` and one path it matches is an
-  archived `*.xml`. The per-suite tallies are `evidence/gate-*.xml`.
+  archived `*.xml`. The per-suite tallies are `evidence/gate-*.xml` — including `evidence/gate-gradle.xml`,
+  the build's own tally, which carries `tests="0"` and passes by exit status, so 193 is 148 + 45 + 0.
+
+### Round 2, after the first review
+
+The review's one blocking finding was a scenario clause no case read; the round-2 correction adds that
+assertion and corrects the pointers the review graded as notes. The gate is **not** re-run: a second run would
+replace the one measurement the change owns rather than extend it, and the round-2 edits touch no compiled
+file.
+
+- `bash tools/loop-selftest.sh --case 'prompt#reviewerIsBoundedToReading'` — green with the item-3 assertion
+  and with the wall clock set to `8100` in the case's own configuration (`evidence/round2-reviewer-bound.log`).
+- `bash tools/loop-selftest.sh --case 'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton'` and
+  `--case 'prompt#reviewerCarriesTheEightItems'` — green (`evidence/round2-iterationProtocolHandsTheReviewerTheSameSkeleton.log`,
+  `evidence/round2-reviewerCarriesTheEightItems.log`).
+- `bash tools/loop-mutations.sh --only '37.1 37.2'` — `red-when-mutated: 2 · not-noticed: 0 ·
+  restore-failures: 0` (`evidence/mutation-37.log`); `37.2` restores item 3's invitation and the case notices.
+- `bash tools/loop-selftest.sh` — `all 148 cases passed` (`evidence/round2-loop-selftest.log`).
+- `bash tools/check-doc-routes.sh` — `all 120 section references resolve`
+  (`evidence/round2-doc-routes.log`).

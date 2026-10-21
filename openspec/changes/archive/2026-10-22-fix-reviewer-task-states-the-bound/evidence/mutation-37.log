@@ -1,0 +1,7 @@
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.uYih76
+RED    37.1  prompt#reviewerIsBoundedToReading   (the gate named in the read-only list the reviewer is given (issue #236))
+restore 37.1 prompt#reviewerIsBoundedToReading green again
+RED    37.2  prompt#reviewerIsBoundedToReading   (item 3 asking for the tally the evidence carries instead of a second execution (issue #236))
+restore 37.2 prompt#reviewerIsBoundedToReading green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

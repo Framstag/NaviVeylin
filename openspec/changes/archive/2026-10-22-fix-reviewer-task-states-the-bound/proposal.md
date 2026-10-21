@@ -28,12 +28,14 @@ question the evidence already answers.
 $ bash tools/loop-selftest.sh --case 'prompt#reviewerIsBoundedToReading'
   the reviewer is told what it is given: 'Your inputs are' not found in: # Reviewer — the fixed contract
 FAIL prompt#reviewerIsBoundedToReading
-EXIT=1                                    # evidence/red-reviewer-bound.log, 2026-10-21T22:07:10Z
+EXIT=1                                    # evidence/red-reviewer-bound.log, run copy written
+                                          # 2026-10-22T00:07:18+02:00 (branch marker loop-20261021-220712)
 
 $ bash tools/loop-selftest.sh --case 'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton'
   the iteration protocol does not name the skeleton a session-spawned reviewer is handed
 FAIL prompt#iterationProtocolHandsTheReviewerTheSameSkeleton
-EXIT=1                                    # evidence/red-iteration-protocol.log, 2026-10-21T22:07:21Z
+EXIT=1                                    # evidence/red-iteration-protocol.log, run copy written
+                                          # 2026-10-22T00:07:20+02:00
 ```
 
 The first case also asserts the four clauses that follow the inputs — the gate, the suite, the network, the
@@ -45,7 +47,10 @@ Both green halves of the same two commands are beside them (`green-reviewer-boun
 prints one `PASS`/`FAIL` line per case and exits 0/1; there is no Gradle task behind it. The gate the change
 owes is `./tools/loop/gate.sh`, which writes its own JUnit-shaped tally per suite it ran
 (`app/build/test-results/loop-gate/`), so `LOOP-GATE` carries that file's numbers and the red and green halves
-are quoted as the harness prints them, with their exit status and timestamp.
+are quoted as the harness prints them, with their exit status; the logs carry no clock of their own, so the
+timestamp quoted for one is the write time of the run's copy. The build's own tally is copied into
+`evidence/gate-gradle.xml` — it carries `tests="0"` and passes by exit status, which is why the 193 is
+148 + 45.
 
 **Owning capability:** `agent-issue-loop` — requirement "Each item is worked by a fresh process, reviewed by
 a different one" (`openspec/specs/agent-issue-loop/spec.md:372`), which this delta extends with the task text a
@@ -60,7 +65,7 @@ and by `AGENTS.md`'s own sentence "an independent read-only reviewer before arch
   before the eight items and after the identity paragraph: the four inputs (the diff, the project's rules, the
   evidence by path, this task), the read-only list extended with **the gate, the test suite and the network**,
   the statement that a green gate is *quoted from the evidence* and never reproduced, the wall-clock bound the
-  run enforces (`{{REVIEW_WALL_CLOCK}}`), and that a diff review is a **reading** task — the model choice.
+  run enforces (`{{REVIEW_WALL_CLOCK}}`), and that a diff review is a **reading** task.
   Item 3's own text is narrowed to the same rule, because that line is what invited the suite run.
 - `tools/loop/run.sh` — `render_reviewer_prompt` passes `REVIEW_WALL_CLOCK=$child_max`, the value the run
   already bounds the child by (`run.sh:94`). Nothing else in the engine changes; the number stays a recorded
@@ -84,7 +89,8 @@ rollback for the invariant itself: with the clause removed the case goes red aga
 - `tools/loop-cases.sh` (two cases, two registration lines)
 - `tools/loop-mutations.sh` (one record)
 - Verification: the two cases, mutation `37.1`, and `./tools/loop/gate.sh` run once — `tests=193 failures=0`
-  over four suites (`evidence/gate.log`, `evidence/gate-*.xml`). No compiled *source* file changes
+  over four suites (`evidence/gate.log`, `evidence/gate-*.xml`; the build's own tally is
+  `evidence/gate-gradle.xml`). No compiled *source* file changes
   (`guidelines/Build.md` §2, "no compiled file changed"), but the run's gate still ran the build's own gate:
   the diff it measures is taken from the run's base `80df3a3`, which carries three commits of an earlier item,
   and one of the paths it matched is an archived `*.xml`. The build was green; it was not owed. Named here

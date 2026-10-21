@@ -41,8 +41,8 @@ task, with the paths substituted:
 > capability keys you cited, one per line.
 
 Do the same for each `<area id>.notes.json`, writing `<area id>.notes.md` into the same sections directory. The
-two roles differ in what they cover: the catalogue section covers every user-visible capability of its area,
-the note section covers only the changed ones the bundle lists.
+two roles differ in what they cover: the catalogue section covers the shortlisted capabilities of its area —
+the highlights the bundle carries — while the note section covers only the changed ones the bundle lists.
 
 A child that writes nothing, or writes a bullet without a `<!-- cap: … -->` marker, is not a failure to hide:
 the next step fails loudly and names it.
@@ -57,7 +57,7 @@ Exit 0 means the documents were written and every gate passed. Anything else mea
 read the report:
 
 - `gen-feature-list: the prose gates failed:` on stderr — a bullet with no key, a key that does not resolve, a
-  figure no cited spec contains, or a user-visible spec no bullet reaches. Fix the section named and re-run.
+  figure no cited spec contains, or a selling point no entry reaches. Fix the section named and re-run.
 - `gen-feature-list: prose worth a reviewer's eye (not a failure):` on stdout — words the run could not find in
   the specs a bullet cites. Read them and judge; they are the only place a wrong claim can hide, because a claim
   made of true words in the wrong order passes every gate.

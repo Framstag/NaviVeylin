@@ -1833,8 +1833,16 @@ case_prompt_reviewerCarriesTheEightItems() {
 # 4 h 40 m change and the parent had to steer it back to reading. The case asserts the bound the task states,
 # because "read-only" alone was not enough to stop it: the gate and the suite have to be named.
 case_prompt_reviewerIsBoundedToReading() {
-  local d p prompt text cap
+  local d p conf prompt text cap
   d=$(scratch); p=$(new_project)
+  # The bound in the text is the run's own recorded value, so the case writes a value of its own: a template
+  # that hardcoded today's 2700 s default would satisfy an assertion read from `loop.conf` and still be wrong.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=8100/' "$LOOP_CONF" > "$conf" ||
+    fail "could not write the loop configuration"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=8100' "$conf" ||
+    fail "this case could not set the child cap in loop.conf"
+  export LOOP_CONF="$conf"
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
   prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
   [ -f "$prompt" ] || fail "the reviewer prompt was not rendered"
@@ -1844,9 +1852,12 @@ case_prompt_reviewerIsBoundedToReading() {
   assert_contains "$text" "do not run a test suite" "and the suite beside it"
   assert_contains "$text" "do not use the network" "and the network"
   assert_contains "$text" "quoted from the evidence" "a green gate is quoted from the evidence, not reproduced"
-  assert_contains "$text" "reading task" "a diff review is a reading task, which is the model choice"
+  # Item 3 is the line that invited the suite run (issue #236): it asks for the tally the evidence already
+  # carries, not for a second execution of it.
+  assert_contains "$text" "never reproduce it by running the gate" "item 3 asks for the tally in the evidence, not a re-run"
+  assert_contains "$text" "reading task" "a diff review is stated to be a reading task"
   # the bound is the number the run itself enforces, so the two cannot drift
-  cap=${LOOP_CHILD_MAX_SECONDS:-2700}
+  cap=8100
   assert_contains "$text" "$cap" "the wall-clock bound named in the task is the run's own ($cap s)"
 }
 

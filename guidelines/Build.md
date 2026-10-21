@@ -141,9 +141,9 @@ habit of running everything:
    project's rules, the evidence by path — and it edits nothing, runs no gate and no suite, uses no network,
    and quotes a green result from the evidence instead of reproducing it. The text is
    `tools/loop/prompts/reviewer.md`, and a session that spawns its own reviewer hands it that same text: a
-   review is the session's idle time, and a reviewer that ran a suite to answer a question the evidence
-   already answers held one tool call open for **4 min 1 s** of a **4 h 40 m** change — 20 min in total, ~7 %
-   of it (issue #236). A diff review is a reading task, which is how the model for it is chosen.
+   review is the session's idle time, and the item records one reviewer that ran a suite to answer a question
+   the evidence already answered — one suite held open for **4 min 1 s** of a **4 h 40 m** change, 20 min in
+   total, ~7 % of it (issue #236). A diff review is a reading task.
 
 ### Liveness guard and shell recipes
 

@@ -182,6 +182,9 @@ MUTATIONS=(
   # 37.1 — the reviewer's task states what the round may run (issue #236): without the gate in the read-only
   # list, item 3 is answered by running the suite again, which is the 4 min 1 s the item measured.
   '37.1@-@tools/loop/prompts/reviewer.md@prompt#reviewerIsBoundedToReading@the gate named in the read-only list the reviewer is given (issue #236)@s|do not run the gate|do not run that|'
+  # 37.2 — item 3 is the line that invited the suite run (issue #236): restored to "is the count a real
+  # execution", the task leaves the runner as the way to answer it and the case must notice.
+  '37.2@-@tools/loop/prompts/reviewer.md@prompt#reviewerIsBoundedToReading@item 3 asking for the tally the evidence carries instead of a second execution (issue #236)@s|Read the tally it carries; never reproduce it by running the gate\.|Is the count a real execution?|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

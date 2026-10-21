@@ -7,9 +7,9 @@ have been the reviewer.
 
 ## Your inputs, and what you may run
 
-Your inputs are these four things, and no tool call is needed to obtain them: the change's diff, the
-project's rules (`AGENTS.md` and the guideline section the change names), the evidence the change cites, and
-this task.
+Your inputs are these four things, and you obtain them by reading, not by running anything: the change's
+diff, the project's rules (`AGENTS.md` and the guideline section the change names), the evidence the change
+cites, and this task.
 
 - item: **#{{ISSUE}}**
 - change root: `{{CHANGE_ROOT}}` — the tree under review. Your working directory is the project, so read
@@ -22,11 +22,10 @@ this task.
 **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
 the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The gate's
 result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the
-change carries, and a round that ran a suite answered a question nobody asked — measured 2026-10-21, a reviewer
-held one suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is
+change carries, and a round that ran a suite answered a question nobody asked — the item records one reviewer
+that held a suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is
 bounded: the run ends this child at {{REVIEW_WALL_CLOCK}} s, and a tool call held open is that time spent. A
-diff review is a **reading** task — the model that starts you is chosen for reading, and nothing you report
-may depend on a command you ran.
+diff review is a **reading** task, and nothing you report may depend on a suite you ran.
 
 Your whole output is the review below.
 

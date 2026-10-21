@@ -1,0 +1,6 @@
+command: bash tools/check-doc-routes.sh
+tree: worktree loop, d86fde6 + uncommitted round-3 correction
+timestamp: 2026-10-21T11:17:23Z
+---
+check-doc-routes: all 89 section references resolve
+exit=0

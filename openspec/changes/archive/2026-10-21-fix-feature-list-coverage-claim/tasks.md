@@ -25,8 +25,8 @@
 - [x] 2.1 §6: the coverage row refuses `a selling point that no entry reaches`; the `source marker` row is left
       as it is.
       — `guidelines/FeatureList.md`, gate table row 2.
-- [x] 2.2 §4: the `userVisible` bullet says what the shortlist decides and that the run fails only on a named
-      selling point; the coverage case leaves §4's case list (it is named in §1, where the rule lives).
+- [x] 2.2 §4: the `userVisible` bullet says what the shortlist decides and that the coverage gate fails only on a
+      named selling point; the coverage case leaves §4's case list (it is named in §1, where the rule lives).
       — `guidelines/FeatureList.md` §4, bullet 3 and the case list below it.
 - [x] 2.3 §1: delete the second `Cases:` block — the three `density:` names and the density report have no
       check behind them in the tool or in the spec; the length sentence above keeps the cases that exist.
@@ -51,8 +51,9 @@
       backticked `areas.json` had been counted as a case name and the real case replaces it.
 - [x] 3.2 `bash tools/gen-feature-list-selftest.sh`.
       — 2026-10-21T11:09:36Z: **105 passed, 0 failed**, exit 0;
-      `evidence/gen-feature-list-selftest-after-fix.txt`. The suite is untouched by this change, so this run
-      confirms the names the prose now states are the names it prints.
+      `evidence/gen-feature-list-selftest-after-fix.txt`. The suite prints the names; it does not read this
+      guideline, so it confirms the names exist, not that the prose states them — that comparison is the probe's
+      (1.3/3.1), which checks each stated name against the suites that carry it.
 - [x] 3.3 `bash tools/check-doc-routes.sh` — the Documentation Map still resolves after the edits.
       — 2026-10-21T11:09:48Z: `all 89 section references resolve`, exit 0;
       `evidence/doc-routes-after-fix.txt`.
@@ -94,5 +95,28 @@
       0 failed, exit 0, 2026-10-21T11:13:33Z (`evidence/gen-feature-list-selftest-after-correction.txt`); the
       probe → exit 0, `stated cases: 35, without a carrying case: 0`, 2026-10-21T11:13:18Z
       (`evidence/probe-after-correction.txt`).
+      `./gradlew test -PforceTests --no-build-cache` again not run and not claimed — the delta is still two
+      Markdown files and this change's artifacts.
+
+## 7. Round 3 — the reviewer's single blocking correction
+
+- [x] 7.1 §4's added sentence no longer claims the whole run fails only on an unreached selling point. The
+      claim is scoped to the gate that owns it — "the coverage gate fails only when a selling point the
+      shortlist does name reaches no entry" (`guidelines/FeatureList.md:109-111`) — because the other prose
+      gates refuse their own shapes: a keyless entry, an invented figure and an over-long paragraph all exit
+      1 (`gates: an invented figure fails the run`, `length: an over-long paragraph fails the run`,
+      `tools/gen-feature-list-selftest.sh`). The matching clause is narrowed in `proposal.md`'s "What Changes"
+      and in task 2.2 above. Subtractively: no new claim, no new case, no tool, no spec, no compiled file.
+- [x] 7.2 Task 3.2's attribution corrected: `tools/gen-feature-list-selftest.sh` never reads
+      `guidelines/FeatureList.md`. It prints the case names; the comparison of a stated name against a
+      carrying suite is the probe's job (1.3/3.1), and only the probe reads the guideline.
+- [x] 7.3 Structural re-check after the edit, prose only, no build owed (`guidelines/Build.md` §2 scope block,
+      as in 4.1 and 6.2):
+      — 2026-10-21T11:17:10Z: probe exit 0, `stated cases: 35, without a carrying case: 0`
+      (`evidence/probe-after-round3-correction.txt`);
+      — 2026-10-21T11:17:12Z: `bash tools/gen-feature-list-selftest.sh` → 105 passed, 0 failed, exit 0
+      (`evidence/gen-feature-list-selftest-after-round3-correction.txt`);
+      — 2026-10-21T11:17:23Z: `bash tools/check-doc-routes.sh` → all 89 section references resolve, exit 0
+      (`evidence/doc-routes-after-round3-correction.txt`).
       `./gradlew test -PforceTests --no-build-cache` again not run and not claimed — the delta is still two
       Markdown files and this change's artifacts.

@@ -53,7 +53,8 @@ would fail every run on 39 shipped user-visible specs and would contradict the s
 - **`guidelines/FeatureList.md` §6** — the coverage row of the gate table refuses "a selling point that no entry
   reaches"; the `source marker` row keeps its meaning (a bullet, one key per line).
 - **`guidelines/FeatureList.md` §4** — the `userVisible` bullet no longer promises spec-level coverage; it says
-  what the shortlist decides and that the run fails only when a named selling point reaches no entry. The
+  what the shortlist decides and that the coverage gate fails only when a named selling point reaches no entry.
+  The
   coverage case leaves §4's case list: it belongs to §1, where the shortlist rule is stated, and it is named
   there as `gates: an unreached selling point fails the run`.
 - **`guidelines/FeatureList.md` §1** — the second `Cases:` block is removed: it repeated the keyword cases and

@@ -10,8 +10,7 @@ re-evaluation itself nor the value it publishes SHALL reach the main dispatcher 
 quality that differs from the published one SHALL still reach every consumer through the single
 publication path, so the re-evaluation stays observable without a new fix. A main-dispatcher dispatch
 that another subsystem of the process issues from a background thread during that period is that
-subsystem's traffic: it SHALL NOT be attributed to the re-evaluation, and it SHALL still be counted and
-reported, never silently dropped.
+subsystem's traffic: it SHALL NOT be attributed to the re-evaluation.
 
 #### Scenario: Unchanged quality causes no main-dispatcher dispatch
 
@@ -28,7 +27,8 @@ reported, never silently dropped.
   nor the re-evaluation's while the re-evaluation runs with an unchanged quality
 - **THEN** that dispatch SHALL be attributed to that subsystem and SHALL NOT fail the re-evaluation's
   guarantee
-- **AND** the dispatch SHALL be reported, so an attribution that stopped discriminating is visible
+- **AND** if that guarantee fails, the dispatches the case counted SHALL be reported with the stack that
+  issued each, so a misattribution is visible in the failure
 - **Case**: `MapCanvasViewModelFixQualityTest.aTickDoesNotDispatchOnTheMainDispatcher`
 
 #### Scenario: A change still reaches the consumers

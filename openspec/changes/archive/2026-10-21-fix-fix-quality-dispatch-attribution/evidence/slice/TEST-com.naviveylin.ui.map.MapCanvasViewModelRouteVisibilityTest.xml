@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelRouteVisibilityTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:56.923Z" hostname="dingens" time="0.282">
+  <properties/>
+  <testcase name="showRouteOnMap_redrawsRoute" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteVisibilityTest" time="0.148"/>
+  <testcase name="routeDrawnWhenVisible" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteVisibilityTest" time="0.038"/>
+  <testcase name="clearRouteFromMap_hidesRouteFromRenderer" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteVisibilityTest" time="0.046"/>
+  <testcase name="reEntry_doesNotRedrawHiddenRoute" classname="com.naviveylin.ui.map.MapCanvasViewModelRouteVisibilityTest" time="0.047"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

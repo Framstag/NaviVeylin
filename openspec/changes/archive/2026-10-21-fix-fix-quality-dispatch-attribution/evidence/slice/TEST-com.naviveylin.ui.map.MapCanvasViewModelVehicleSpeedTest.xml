@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelVehicleSpeedTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:01.949Z" hostname="dingens" time="0.049">
+  <properties/>
+  <testcase name="aSliderChangeSurvivesARestart" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleSpeedTest" time="0.017"/>
+  <testcase name="defaultsAreRestoredFromSettings" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleSpeedTest" time="0.015"/>
+  <testcase name="movingABicycleSliderPersistsTheValue" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleSpeedTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

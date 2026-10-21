@@ -21,22 +21,27 @@
   noise.
 - [x] 2.2 The case asserts the re-evaluation's count is 0 over three six-tick windows (`TICK_WINDOWS`, the
   bounded sequence of the first scenario) and names the window honestly in its message. Verification: the
-  scenario "Unchanged quality causes no main-dispatcher dispatch" is exercised by the case (5 forced runs,
-  `tests="9" failures="0"`).
+  scenario "Unchanged quality causes no main-dispatcher dispatch" is exercised by the case, forced green
+  at `tests="9" failures="0"` (`evidence/green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`).
 - [x] 2.3 The case provokes unrelated traffic per window and asserts the counter attributed it
-  (`elsewhere >= 1`), so the attribution cannot stop discriminating unnoticed. Verification: the scenario
-  "Unrelated main-dispatcher traffic is not attributed to the re-evaluation" is exercised by the same case
-  — with the noise present the case is green; on HEAD the same noise made it red (task 1.1).
+  (`elsewhere >= 1`). That control closes two failure directions on a passing run: an attribution that
+  counted everything trips the zero assertion, and one that counted nothing trips the control. It does
+  not close the third — a predicate that never matches the ViewModel passes both — which the recorded
+  falsification run exercises. Verification: with the noise present the case is green; on HEAD the same
+  noise made it red (task 1.1); with the pre-fix per-tick hop the ViewModel attribution fires
+  (task 3.3).
 - [x] 2.4 Spec delta: one MODIFIED requirement, the attribution clause and the two scenarios above, each
   naming its case. Verification: `openspec validate fix-fix-quality-dispatch-attribution --strict`.
 
 ## 3. Verify
 
-- [x] 3.1 Affected cases, forced, five times: `./gradlew :app:testMobileDebugUnitTest -PforceTests
-  --no-build-cache -PnoCoverage --tests "com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest"` —
-  `tests="9" failures="0"` each run. Evidence: `evidence/green-run*-…xml`.
+- [x] 3.1 Affected case, forced: `./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
+  -PnoCoverage --tests "com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest"` — `tests="9"
+  failures="0"`, 2026-10-21T09:47:29.265Z. Evidence:
+  `evidence/green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`.
 - [x] 3.2 Neighbouring slice once, to show the class passes in company: `--tests
-  "com.naviveylin.ui.map.MapCanvasViewModel*"` — green, no failures in the slice's XMLs.
+  "com.naviveylin.ui.map.MapCanvasViewModel*"` — `tests=321 failures=0`; its 40 per-class XMLs are
+  archived under `evidence/slice/`.
 - [x] 3.3 Revert-check (the falsification the change owes): reintroduce the pre-fix per-tick
   `withContext(Dispatchers.Main) { }` inside the re-evaluation loop → `aTickDoesNotDispatchOnTheMainDispatcher`
   must fail with `[window 1: 6, window 2: 6, window 3: 6]`; restore the loop, forced green again.

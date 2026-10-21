@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:54.745Z" hostname="dingens" time="0.204">
+  <properties/>
+  <testcase name="reCenterButtonPredicateMatrix" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" time="0.029"/>
+  <testcase name="userZoomInFreeDriveSuspendsDrivePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" time="0.025"/>
+  <testcase name="exitFreeDriveClearsSuspensionAndReturnsToBrowse" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" time="0.023"/>
+  <testcase name="manualPanSuspendsDrivePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" time="0.023"/>
+  <testcase name="manualRotateSuspendsDrivePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" time="0.023"/>
+  <testcase name="buttonZoomSuspendsDrivePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" time="0.023"/>
+  <testcase name="resetDrivePresetRestoresStandardValues" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" time="0.02"/>
+  <testcase name="zoomInBrowseDoesNotSuspendTheDrivePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelAutoZoomPauseTest" time="0.033"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

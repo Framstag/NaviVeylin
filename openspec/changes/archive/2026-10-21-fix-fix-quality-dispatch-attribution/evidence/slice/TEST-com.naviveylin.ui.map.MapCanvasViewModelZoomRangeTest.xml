@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:01.999Z" hostname="dingens" time="0.101">
+  <properties/>
+  <testcase name="gestureClampKeepsFourFloor" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest" time="0.014"/>
+  <testcase name="zoomButtonsSnapFromFractionalMagnification" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest" time="0.015"/>
+  <testcase name="updateMagnificationClampsToControlRange" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest" time="0.018"/>
+  <testcase name="zoomOutStopsAtFourFloor" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest" time="0.02"/>
+  <testcase name="updateMagnificationKeepsFractionalValues" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest" time="0.017"/>
+  <testcase name="zoomInAtMaxIsNoOp" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomRangeTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

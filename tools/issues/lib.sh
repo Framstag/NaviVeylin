@@ -5,7 +5,8 @@
 # drifts (design D8, D11):
 #
 #   * the exit codes are the contract — 0 acted or a deliberate no-op, 2 usage/malformed input,
-#     3 policy refusal, 4 a duplicate or an already-present marker (reported, not an error);
+#     3 policy refusal, 4 a duplicate or an already-present marker (reported, not an error),
+#     75 the tracker could not be reached, so no answer exists (#231);
 #   * the project is discovered, never told: the root from the working tree, the repository from the
 #     authenticated `gh` (with a git fallback), the profile from `<root>/tools/tooling.json`. No script
 #     takes a project name, a repository or a path as a required argument, and `--profile <path>` is the
@@ -61,6 +62,62 @@ issues_note() {
   printf '%s\n' "$*" >&2
 }
 
+# A failure that is the transport's, not the tracker's answer: the request never arrived, or its reply was
+# cut off. What `gh` prints for those — a TCP timeout, a DNS failure, a reset or refused connection, a TLS
+# or response timeout, a 5xx, GitHub's secondary rate limit — is retried. Everything else (400, 401, 403
+# policy, 404, a validation refusal) is the tracker *answering*, and retrying it would only repeat the
+# answer, so it is passed straight through (issue #231).
+ISSUES_GH_TRANSIENT_RE='i/o timeout|dial tcp|no such host|temporary failure in name resolution|network is unreachable|connection reset|connection refused|unexpected EOF|TLS handshake timeout|timeout awaiting response|context deadline exceeded|HTTP 50[0-9]|502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout|secondary rate limit'
+
+issues_gh_transient() { # <the failed call's stderr>
+  printf '%s' "$1" | grep -qE "$ISSUES_GH_TRANSIENT_RE"
+}
+
+# Every `gh` call the tooling makes goes through this one seam (issue #231). A transient failure is retried
+# with the backoff `ISSUES_GH_RETRY_DELAYS` names — three retries after the first attempt by default (5 s,
+# 20 s, 60 s) — and a failure that survives them is reported as *unknown*: exit `ISSUES_EXIT_UNREACHABLE`
+# with `tracker-unreachable` on stderr, which a caller can branch on, rather than the empty answer a caller
+# used to read as "the tracker says no" (that is what turned one 182-minute run's timeout into a policy
+# verdict about an item).
+#
+# It is a shell *function* named `gh`, so the seam cannot be forgotten by a new call site and no existing
+# call site had to be edited; the real CLI is reached by `command gh`, which skips functions. One call is
+# exempt: `gh issue comment` is an append that may have landed before the socket died, so a retry would post
+# the same comment twice.
+ISSUES_GH_RETRY_DELAYS="${ISSUES_GH_RETRY_DELAYS-5 20 60}"
+ISSUES_EXIT_UNREACHABLE=75
+
+gh() {
+  local errfile status err delay attempt=1
+  case " $* " in *" issue comment "*) command gh "$@"; return $? ;; esac
+  errfile=$(mktemp) || { command gh "$@"; return $?; }
+  while :; do
+    if command gh "$@" 2>"$errfile"; then
+      rm -f "$errfile"
+      return 0
+    else
+      status=$?
+    fi
+    err=$(cat "$errfile")
+    if ! issues_gh_transient "$err"; then
+      printf '%s\n' "$err" >&2
+      rm -f "$errfile"
+      return "$status"
+    fi
+    delay=$(printf '%s\n' $ISSUES_GH_RETRY_DELAYS | sed -n "${attempt}p")
+    if [ -z "$delay" ]; then
+      printf 'tracker-unreachable: gh %s did not answer after %s attempt(s) — %s\n' \
+        "${1:-}" "$attempt" "${err##*$'\n'}" >&2
+      rm -f "$errfile"
+      return "$ISSUES_EXIT_UNREACHABLE"
+    fi
+    printf 'tracker: gh %s failed transiently, retrying in %ss — %s\n' \
+      "${1:-}" "$delay" "${err##*$'\n'}" >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+  done
+}
+
 # The repository: asked of `gh`, with `git remote get-url origin` as the fallback, so the tooling works
 # with no network and no token for everything that does not need GitHub.
 issues_repo_of() {
@@ -96,9 +153,20 @@ issues_resolve() {
   fi
 }
 
-# The identity the tooling runs as — the attributable term of the gate.
+# The identity the tooling runs as — the attributable term of the gate. It has three outcomes, and the
+# first two used to be the same empty string: a login (the tracker answered), an empty string with status 0
+# (the tracker answered and names no identity — a refusal), and `ISSUES_EXIT_UNREACHABLE` (the tracker did
+# not answer at all, so no policy verdict may be given). `policy.sh` reads the third (#231).
 issues_login() {
-  gh api user --jq .login 2>/dev/null || true
+  local login status
+  login=$(gh api user --jq .login 2>/dev/null)
+  status=$?
+  if [ "$status" -eq 0 ]; then
+    printf '%s\n' "$login"
+    return 0
+  fi
+  [ "$status" -eq "$ISSUES_EXIT_UNREACHABLE" ] && return "$ISSUES_EXIT_UNREACHABLE"
+  return 0
 }
 
 # Run one of the core's classes. The core is Java with no Gradle source set and no build system (design D1),

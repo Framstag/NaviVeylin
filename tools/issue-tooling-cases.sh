@@ -18,7 +18,11 @@ ISSUES_SHELL_CASES=(
   'lib#exitCodeConstants'
   'lib#statusPrefixNeedsTheProfile'
   'lib#coreIsCompiledNotLaunched'
+  'lib#retriesATransientFailure'
+  'lib#reportsAnUnreachableTrackerAfterTheLastRetry'
+  'lib#doesNotRetryAnAuthoritativeFailure'
   'policy#preflightRefusesUnknownLogin'
+  'policy#preflightReportsAnUnreachableTracker'
   'create#duplicateRefusesAndNamesTheIssue'
   'create#writesMarkerAndLabels'
   'create#refusesTwoValuesOfOneNamespace'
@@ -113,7 +117,11 @@ issues_run_shell_case() {
     'lib#exitCodeConstants') case_lib_exitCodeConstants ;;
     'lib#statusPrefixNeedsTheProfile') case_lib_statusPrefixNeedsTheProfile ;;
     'lib#coreIsCompiledNotLaunched') case_lib_coreIsCompiledNotLaunched ;;
+    'lib#retriesATransientFailure') case_lib_retriesATransientFailure ;;
+    'lib#reportsAnUnreachableTrackerAfterTheLastRetry') case_lib_reportsAnUnreachableTrackerAfterTheLastRetry ;;
+    'lib#doesNotRetryAnAuthoritativeFailure') case_lib_doesNotRetryAnAuthoritativeFailure ;;
     'policy#preflightRefusesUnknownLogin') case_policy_preflightRefusesUnknownLogin ;;
+    'policy#preflightReportsAnUnreachableTracker') case_policy_preflightReportsAnUnreachableTracker ;;
     'create#duplicateRefusesAndNamesTheIssue') case_create_duplicateRefusesAndNamesTheIssue ;;
     'create#writesMarkerAndLabels') case_create_writesMarkerAndLabels ;;
     'create#refusesTwoValuesOfOneNamespace') case_create_refusesTwoValuesOfOneNamespace ;;
@@ -369,9 +377,59 @@ case_lib_exitCodeConstants() {
   values=$(
     # shellcheck source=tools/issues/lib.sh
     source "$ISSUES_ENGINE/lib.sh"
-    printf '%s %s %s %s\n' "$ISSUES_EXIT_OK" "$ISSUES_EXIT_USAGE" "$ISSUES_EXIT_POLICY" "$ISSUES_EXIT_DUPLICATE"
+    printf '%s %s %s %s %s\n' "$ISSUES_EXIT_OK" "$ISSUES_EXIT_USAGE" "$ISSUES_EXIT_POLICY" "$ISSUES_EXIT_DUPLICATE" \
+      "$ISSUES_EXIT_UNREACHABLE"
   )
-  assert_eq "0 2 3 4" "$values" "the exit-code contract"
+  assert_eq "0 2 3 4 75" "$values" "the exit-code contract"
+}
+
+# One TCP timeout used to end a whole 480-minute run, because no `gh` call was retried (#231). The seam
+# classifies the failure and retries it, so a single timeout is invisible to the caller: the third attempt's
+# answer is the one that arrives.
+case_lib_retriesATransientFailure() {
+  local dir out
+  dir=$(scratch); : > "$dir/count"
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_TRANSIENT_FAIL="api user" GH_STUB_TRANSIENT_TIMES=2 \
+         GH_STUB_TRANSIENT_STATE="$dir/count" ISSUES_GH_RETRY_DELAYS="0 0 0"
+  out=$(
+    # shellcheck source=tools/issues/lib.sh
+    source "$ISSUES_ENGINE/lib.sh"
+    gh api user --jq .login 2>/dev/null
+  )
+  assert_eq "$(cat "$ISSUES_FIXTURES/login.txt")" "$out" "the retried call returns the answer, not the outage"
+  assert_eq "2" "$(cat "$dir/count")" "the stub failed exactly twice before it answered"
+}
+
+# …and a failure that outlasts the retries is reported as *unknown*, so a caller can tell an outage from a
+# tracker that answered "no" — the distinction `issues_login` used to lose.
+case_lib_reportsAnUnreachableTrackerAfterTheLastRetry() {
+  local dir out
+  dir=$(scratch); : > "$dir/count"
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_TRANSIENT_FAIL="api user" GH_STUB_TRANSIENT_TIMES=99 \
+         GH_STUB_TRANSIENT_STATE="$dir/count" ISSUES_GH_RETRY_DELAYS="0 0 0"
+  out=$(
+    # shellcheck source=tools/issues/lib.sh
+    source "$ISSUES_ENGINE/lib.sh"
+    gh api user --jq .login >/dev/null 2>&1
+    printf 'status:%s' "$?"
+  )
+  assert_contains "$out" "status:75" "an exhausted transient failure is unknown, not an empty answer"
+  assert_eq "4" "$(cat "$dir/count")" "the first attempt and the three the seam allows"
+}
+
+# The retry is for the transport only: an authoritative refusal is the tracker answering, and repeating it
+# would spend three delays to hear the same thing.
+case_lib_doesNotRetryAnAuthoritativeFailure() {
+  local out status
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_TRANSIENT_FAIL="" ISSUES_GH_RETRY_DELAYS="0 0 0"
+  out=$(
+    # shellcheck source=tools/issues/lib.sh
+    source "$ISSUES_ENGINE/lib.sh"
+    gh repo clone some/repo 2>&1 >/dev/null
+    printf 'status:%s' "$?"
+  )
+  assert_contains "$out" "status:1" "a refusal is passed through at once"
+  assert_contains "$out" "unsupported invocation" "with the tracker's own message, unchanged"
 }
 
 # The status prefix is the state namespace *with* its separator, and it is only answerable once the profile is
@@ -406,6 +464,24 @@ case_policy_preflightRefusesUnknownLogin() {
   out=$(GH_STUB_DIR="$ISSUES_FIXTURES" run_tool policy.sh preflight 2>&1)
   status=$?
   assert_eq "0" "$status" "preflight allows the authenticated actor: $out"
+}
+
+# The incident #231 records: the API could not be reached, `issues_login` answered an empty string, and the
+# policy core — which can only read an empty login as "nobody is authorised" — produced `author-not-allowlisted`
+# for a network outage. The run then recorded that as the item's verdict.
+case_policy_preflightReportsAnUnreachableTracker() {
+  local dir out status
+  dir=$(scratch); : > "$dir/count"
+  export GH_STUB_TRANSIENT_FAIL="api user" GH_STUB_TRANSIENT_TIMES=99 \
+         GH_STUB_TRANSIENT_STATE="$dir/count" ISSUES_GH_RETRY_DELAYS="0 0 0"
+  out=$(GH_STUB_DIR="$ISSUES_FIXTURES" run_tool policy.sh preflight --json 2>/dev/null); status=$?
+  assert_eq "75" "$status" "an unreachable tracker is not a policy refusal: $out"
+  assert_eq "unknown" "$(jq -r '.decision' <<< "$out")" "no verdict is given when none could be established"
+  assert_eq "tracker-unreachable" "$(jq -r '.reason' <<< "$out")" "the reason a caller can branch on"
+  out=$(GH_STUB_DIR="$ISSUES_FIXTURES" run_tool policy.sh preflight 2>&1); status=$?
+  assert_eq "75" "$status" "the text form reports it too: $out"
+  assert_contains "$out" "tracker-unreachable" "and names the reason"
+  case "$out" in *author-not-allowlisted*) fail "a network outage is still reported as a policy refusal" ;; esac
 }
 
 case_create_duplicateRefusesAndNamesTheIssue() {

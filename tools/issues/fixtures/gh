@@ -54,6 +54,25 @@ fixture_path() {
   if [ -f "$stub/$1" ]; then printf '%s\n' "$stub/$1"; else printf '%s\n' "$here/$1"; fi
 }
 
+# The transport's failure, which is not the tracker's answer (issue #231). A case exports
+# GH_STUB_TRANSIENT_FAIL (a substring of an invocation), GH_STUB_TRANSIENT_TIMES (how many of the matching
+# invocations fail) and GH_STUB_TRANSIENT_STATE (a file in the case's own scratch directory holding the
+# count), and the stub fails those calls the way a socket does — so a case can watch the tooling retry
+# instead of reading the outage as an answer. The counter lives in the caller's scratch file, never in the
+# fixture tree.
+if [ -n "${GH_STUB_TRANSIENT_FAIL:-}" ] &&
+   printf 'gh %s\n' "$*" | grep -qF -- "$GH_STUB_TRANSIENT_FAIL"; then
+  transient_state="${GH_STUB_TRANSIENT_STATE:-${TMPDIR:-/tmp}/gh-stub-transient.$$}"
+  transient_seen=0
+  [ -f "$transient_state" ] && transient_seen=$(cat "$transient_state" 2>/dev/null || printf '0')
+  case "$transient_seen" in ''|*[!0-9]*) transient_seen=0 ;; esac
+  if [ "$transient_seen" -lt "${GH_STUB_TRANSIENT_TIMES:-1}" ]; then
+    printf '%s\n' "$((transient_seen + 1))" > "$transient_state" 2>/dev/null || true
+    printf 'Post "https://api.github.com/graphql": dial tcp 20.250.119.72:443: i/o timeout\n' >&2
+    exit 1
+  fi
+fi
+
 # The real CLI's vocabulary for a closure reason, and it is not the API's: `gh issue close --reason` takes
 # `completed`, `not planned` (a space) or `duplicate`, while the API record spells the second `not_planned`.
 # A stub that recorded any value let an argument the real tool refuses pass the self-test (#195).

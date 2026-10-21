@@ -269,6 +269,16 @@ identity that authorises it), as that login's noreply address — never the mach
 an invented one, because a fresh container or CI runner has neither and the item would block on its own
 commit (`fix-loop-git-identity`, issue #167).
 
+The branch is the whole of an item's fix until the base has it, so the run merges the branch it committed
+before it closes the item: the branch's commits are fast-forwarded onto the base the run recorded, the base
+advances to that merge, and the closure names the branch. A merge the run cannot take — the project tree the
+base branch is checked out in is not clean, or the branch does not descend from the recorded base — blocks the
+item with its branch as the evidence rather than closing it, because `status/fixed-by` and "the fix is in the
+tree" have to be one claim: measured 2026-10-20, a run closed #201 with its two commits still on
+`fix/issue-201-…` and the base at the run's base, and a person fast-forwarded `main` 35 minutes later (#229).
+No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s
+decision, taken on what a stranger to the run can check.
+
 What it does with an answer that arrived cut: the report a review round is decided from is the file the child's
 answer reached, and what reaches that file can be short. On 2026-10-20 an item's round-2 report stopped
 mid-word — `… and the post-restore gre`, 6 067 bytes, ending on the newline the adapter adds — while its own

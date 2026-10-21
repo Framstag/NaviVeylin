@@ -1,0 +1,4 @@
+# 2026-10-21T07:40:35Z · /home/tim/projects/NaviVeylin/.pi/worktrees/loop · 3681a4b
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 89 section references resolve
+exit 0

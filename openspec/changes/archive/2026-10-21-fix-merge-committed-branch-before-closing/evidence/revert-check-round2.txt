@@ -1,0 +1,52 @@
+# Revert-check, round 2 — the assertions the review found missing
+# tree: 3681a4b on fix/issue-229-a-loop-run-closes-the-item-it-finished-b at 2026-10-21T07:51:01Z
+
+## Mutation 1 — a refused merge no longer blocks the closure (run.sh:957)
+   the merge still runs and still refuses; only the outcome line is removed, so the closure proceeds
+  if [ "$outcome" = "closed" ]; then
+    merge_committed_branch "$issue" "fix/issue-$issue-$slug" || {
+      : # the refusal no longer blocks
+      blocked_reason="the branch fix/issue-$issue-$slug could not be merged onto the base, so the item is not closed on a fix the tree does not have — $merge_refusal"
+    }
+--- run#doesNotCloseOnAMergeTheBaseCannotTake with the mutation:
+  a closure whose merge the base cannot take is blocked, not settled: expected 'blocked', got 'closed'
+FAIL run#doesNotCloseOnAMergeTheBaseCannotTake
+run.sh identical to HEAD: yes
+
+## Mutation 2 — the closure no longer records the merge (run.sh:970, :988)
+   the state write no longer carries the merged branch or its commits; the closure's evidence no longer names it
+      evidence_paths="$item_dir, $worktree/openspec/changes/archive/$change, ${gate_xmls:-no gate evidence}"
+      : # the closure no longer names the merge
+      close_reason="${root_cause:-closed by the run}"
+      if loop_labels close "${close_args[@]}"; then closure="$(if [ "$may_close" = yes ]; then printf yes; else printf skipped; fi)"; fi
+      loop_state done "$issue" --result done --verdict closed --change "$change" \
+        --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --gate "$gate_field" \
+        --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
+        --wall "$wall" >/dev/null
+        --events "$events_file" --note "$note_field" >/dev/null
+      ;;
+--- run#mergesItsCommittedBranchBeforeClosing with the mutation:
+  the run recorded no merged commits
+FAIL run#mergesItsCommittedBranchBeforeClosing
+run.sh identical to HEAD: yes
+
+## Mutation 3 — a branch the base does not descend from is replayed (worktree.sh:295-296)
+mutation 3 applied
+    loop_refuse "there is no branch $branch to merge"
+  commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
+  [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
+  gitr merge-base --is-ancestor "$base" "$branch" || : # the refusal is gone; the merge below decides
+  # Over uncommitted work the merge would attribute that work to itself, which `create` already refuses for.
+  dirty=$(gitr status --porcelain)
+  [ -z "$dirty" ] || loop_refuse "the project tree is not clean — refusing to merge $branch onto the base:
+--- worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom with the mutation:
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+  a branch the base does not descend from is refused: expected '5', got '2'
+FAIL worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
+worktree.sh identical to HEAD: yes
+
+## Restored tree — the three cases green, one after another
+PASS run#mergesItsCommittedBranchBeforeClosing
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake
+PASS worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
+# end 2026-10-21T07:51:36Z

@@ -61,6 +61,8 @@ LOOP_SHELL_CASES=(
   'worktree#setsAsideABlockedAttemptAndStartsFresh'
   'worktree#doesNotAdoptAChangeCreditedToAnotherIssue'
   'worktree#refusesABranchWhoseReviewFailed'
+  'worktree#refusesToMergeOverADirtyProjectTree'
+  'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom'
   'labels#verdictToLabelMatrix'
   'labels#holdCarriesItsReason'
   'labels#trapRemovesInProgressOnSignal'
@@ -99,6 +101,8 @@ LOOP_SHELL_CASES=(
   'run#branchThatAppearsWhileTheRunIsOpenIsSetAside'
   'run#mergesAFinishedAttemptAndClosesTheItem'
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
+  'run#mergesItsCommittedBranchBeforeClosing'
+  'run#doesNotCloseOnAMergeTheBaseCannotTake'
   'run#recordsAFailedReviewOnTheBranch'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
@@ -211,6 +215,8 @@ loop_run_shell_case() {
     'worktree#setsAsideABlockedAttemptAndStartsFresh') fn=case_worktree_setsAsideABlockedAttemptAndStartsFresh ;;
     'worktree#doesNotAdoptAChangeCreditedToAnotherIssue') fn=case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue ;;
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
+    'worktree#refusesToMergeOverADirtyProjectTree') fn=case_worktree_refusesToMergeOverADirtyProjectTree ;;
+    'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom') fn=case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
     'labels#holdCarriesItsReason') fn=case_labels_holdCarriesItsReason ;;
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
@@ -248,6 +254,8 @@ loop_run_shell_case() {
     'run#branchThatAppearsWhileTheRunIsOpenIsSetAside') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside ;;
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
+    'run#mergesItsCommittedBranchBeforeClosing') fn=case_run_mergesItsCommittedBranchBeforeClosing ;;
+    'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
@@ -1485,7 +1493,11 @@ case_worktree_keepsByDefaultAndRemovesOnRequest() {
   [ -d "$p/.pi/worktrees/loop" ] || fail "the worktree was removed although nothing asked for it"
   run_one_item "$p" "$d" --clean-worktree >/dev/null || fail "the second run failed"
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "the worktree survived --clean-worktree"
-  if git -C "$p" worktree list | grep -q 'worktrees/loop'; then
+  # The check is the worktree git lists, not the substring: the loop runs its own suite from
+  # `.pi/worktrees/loop`, so every scratch project's path contains `worktrees/loop` and the old match failed on
+  # the run's own root rather than on a leftover entry (measured 2026-10-21, issue #229 — reproduced on HEAD at
+  # a copy whose path held that segment, green at one whose path did not).
+  if git -C "$p" worktree list --porcelain | grep -qxF "worktree $p/.pi/worktrees/loop"; then
     fail "git still lists the worktree that was removed"
   fi
   return 0
@@ -2522,6 +2534,142 @@ case_run_mergesAFinishedAttemptAndClosesTheItem() {
   assert_not_contains "$log" "agent/needs-decision" "and no decision is left on it"
 }
 
+# The success path's merge is a fast-forward in the project's own tree, where the base branch is checked out,
+# so it is refused when that tree is not clean — merging over uncommitted work would attribute it to the item —
+# and when the branch does not descend from the base the run recorded. A refusal moves nothing, and a run that
+# read the refusal as a closure would say `status/fixed-by` about a fix only a branch has; the same command on a
+# clean tree is the merge the run's own success path takes (issue #229).
+case_worktree_refusesToMergeOverADirtyProjectTree() {
+  local p w base out status branch tip
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  base=$(run_state "$p" get run.base)
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the item did not start"
+  branch=fix/issue-21-demo
+  printf 'the fix\n' > "$w/demo-fix.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: demo (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the fix"
+  tip=$(git -C "$p" rev-parse "$branch")
+
+  printf 'the work left behind\n' > "$p/stray.txt"
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a project tree that is not clean refuses the merge"
+  assert_contains "$out" "not clean" "the refusal says why"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
+  [ ! -f "$p/demo-fix.txt" ] || fail "the fix reached the base although the merge was refused"
+  rm -f "$p/stray.txt"
+
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1) || fail "the merge was refused on a clean tree: $out"
+  assert_contains "$out" "merged: branch $branch" "the merge names the branch it landed"
+  assert_contains "$out" "· commits " "and the commits it carried"
+  assert_eq "$tip" "$(git -C "$p" rev-parse main)" "the base is the branch, fast-forwarded"
+}
+
+# The refusal's other arm: a branch whose commits are not on top of the base the run recorded is a tree nobody
+# reviewed. The recorded base is what decides, so a base that moved under the branch — a person's commit, a
+# hand-merged attempt — refuses it instead of replaying the change onto the moved tree (issue #229).
+case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom() {
+  local p w moved out status branch tip
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the item did not start"
+  branch=fix/issue-21-demo
+  printf 'the fix\n' > "$w/demo-fix.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: demo (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the fix"
+  tip=$(git -C "$p" rev-parse "$branch")
+
+  # the base moves after the run recorded it, and the record follows the tree — which is what the run itself
+  # does after a merge, so the branch is measured against the base that is actually checked out
+  printf 'the owner\n' > "$p/owner.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "the owner's commit" >/dev/null 2>&1 ||
+    fail "could not move the base"
+  moved=$(git -C "$p" rev-parse main)
+  run_state "$p" set-base "$moved" >/dev/null || fail "could not record the moved base"
+
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a branch the base does not descend from is refused"
+  assert_contains "$out" "does not descend" "the refusal says why"
+  assert_eq "$moved" "$(git -C "$p" rev-parse main)" "the base did not move"
+  [ ! -f "$p/demo-fix.txt" ] || fail "the branch was replayed onto a tree nobody reviewed"
+  if git -C "$p" merge-base --is-ancestor "$tip" main; then
+    fail "the refused branch's commit reached the base"
+  fi
+  assert_eq "$moved" "$(run_state "$p" get run.base)" \
+    "and the run's record still names the base it compared the branch against"
+}
+
+# A run's success path commits the item's work on the item's own branch and then closes the item; the only
+# merge in the loop was the adoption of a *previous* attempt, which needs the item to be visited again, so a
+# closed item's fix stayed on `fix/issue-N-…` while the tracker read `status/fixed-by` — measured 2026-10-20 on
+# #201, whose two commits a person fast-forwarded onto `main` by hand 35 minutes later (issue #229). The run
+# merges the branch it committed before it closes the item.
+case_run_mergesItsCommittedBranchBeforeClosing() {
+  local d p runlog branch commits c log
+  d=$(scratch); p=$(new_project)
+  runlog="$d/run.txt"
+  run_one_item "$p" "$d" --review on >"$runlog" 2>&1 || fail "the run itself failed: $(cat "$runlog")"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the reviewed item is closed"
+  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
+  [ -n "$branch" ] || fail "the run left no item branch"
+  git -C "$p" merge-base --is-ancestor "$branch" main ||
+    fail "the item was closed with its fix on $branch, which the base does not have"
+  [ -f "$p/demo-fix.txt" ] || fail "the fix the run committed did not reach the base"
+  assert_eq "$(git -C "$p" rev-parse "$branch")" "$(git -C "$p" rev-parse main)" \
+    "the base is the merge of the branch, not a second commit of its own"
+  # The closure's own account of the merge, which is what a reader has left once the run's state is replaced by
+  # the next run's: the branch it merged, the commits it carried, and the closure's evidence naming both.
+  commits=$(jq -r '.items[0].merged.commits' "$(state_file "$p")")
+  [ -n "$commits" ] && [ "$commits" != "null" ] || fail "the run recorded no merged commits"
+  assert_eq "$branch" "$(jq -r '.items[0].merged.branch' "$(state_file "$p")")" \
+    "the run records the branch it merged"
+  assert_eq "$(git -C "$p" rev-parse "$branch")" "$(printf '%s' "$commits" | awk -F, '{print $NF}')" \
+    "and the commits it recorded end at the branch's tip"
+  for c in ${commits//,/ }; do
+    git -C "$p" merge-base --is-ancestor "$c" main || fail "the recorded commit $c is not on the base"
+  done
+  assert_eq "$(git -C "$p" rev-parse main)" "$(run_state "$p" get run.base)" \
+    "and the base the run recorded is the merge, so the next item builds on it"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "merged $branch (commits $commits) onto the base" \
+    "the closure's evidence names the merge, so the tracker's fixed-by claim carries what backs it"
+}
+
+# The merge lands in the project's own tree, where the base branch is checked out, so a tree that is not clean at
+# the moment of the closure refuses it. A run that read that refusal as a closure would write `status/fixed-by`
+# about a fix only the branch has — the defect #229 reported, with the run's own child as the cause of the dirt.
+# Here the dirt is a person's and is there before the run starts, so no write of the run's is being blamed: the
+# tree is simply not one the merge may land in, and the item stays open with its branch named (issue #229).
+case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
+  local d p base branch log
+  d=$(scratch); p=$(new_project)
+  printf 'work in progress\n' > "$p/uncommitted.txt"
+  base=$(git -C "$p" rev-parse main)
+  run_one_item "$p" "$d" --review on >/dev/null 2>&1 || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "a closure whose merge the base cannot take is blocked, not settled"
+  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
+  [ -n "$branch" ] || fail "the run left no item branch"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not clean" \
+    "the reason names the tree the merge would have landed in"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "$branch" \
+    "and the branch it could not merge"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
+  [ ! -f "$p/demo-fix.txt" ] || fail "the fix reached the base although the merge was refused"
+  assert_eq "" "$(jq -r '.items[0].merged.branch // ""' "$(state_file "$p")")" \
+    "no merge is recorded for an item whose merge was refused"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" \
+    "the item is not closed on a fix the base does not have"
+  assert_contains "$log" "agent/needs-decision" "it is escalated instead"
+  assert_contains "$log" "$branch" "and the escalation names the branch a person must merge"
+}
+
 # The merge is only taken on a verification that is green: a branch whose archived change carries no passing
 # verification record — a blocked attempt carries only the red-on-HEAD XML — keeps its refusal, its escalation
 # and the person who owns the decision, and nothing is merged (issue #176).
@@ -3038,7 +3186,7 @@ case_run_commitsWithoutAnAmbientIdentity() {
   # A container or a CI runner has no `user.name`/`user.email` anywhere: git then refuses every commit, and
   # the run would block on its own commit (measured 2026-10-18, issue #167). The throwaway repository's local
   # identity is removed as well, so the case is the runner's environment and not the developer's.
-  local d p login branch count author
+  local d p login branch count author base_before
   d=$(scratch); p=$(new_project)
   git -C "$p" config --unset user.name >/dev/null 2>&1 || true
   git -C "$p" config --unset user.email >/dev/null 2>&1 || true
@@ -3046,6 +3194,7 @@ case_run_commitsWithoutAnAmbientIdentity() {
   mkdir -p "$d/nohome"
   export GIT_CONFIG_GLOBAL="$d/nohome.gitconfig" GIT_CONFIG_SYSTEM=/dev/null HOME="$d/nohome"
 
+  base_before=$(git -C "$p" rev-parse main)
   run_one_item "$p" "$d" >/dev/null || fail "a machine without an ambient git identity could not run an item"
   assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item completed"
 
@@ -3054,8 +3203,10 @@ case_run_commitsWithoutAnAmbientIdentity() {
   login=$(tr -d '\n' < "$LOOP_ISSUE_FIXTURES/login.txt")
   branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/*' | head -n 1)
   [ -n "$branch" ] || fail "the item's branch does not exist"
-  count=$(git -C "$p" rev-list --count "$branch" "^$(git -C "$p" rev-parse main)" 2>/dev/null || printf '0')
-  [ "$count" -eq 2 ] || fail "the run did not commit twice on $branch (commits since main: $count)"
+  # The two commits are counted from the base the run started on, not from the base branch: the run merges the
+  # item's branch before it closes the item, so `main` is the item's own head by the time this is read (#229).
+  count=$(git -C "$p" rev-list --count "$base_before..$branch" 2>/dev/null || printf '0')
+  [ "$count" -eq 2 ] || fail "the run did not commit twice on $branch (commits since the run's base: $count)"
   author=$(git -C "$p" log -n 2 --format='%an <%ae>' "$branch" | sort -u)
   assert_eq "$login <$login@users.noreply.github.com>" "$author" "both commits are attributed to the run's identity"
 }

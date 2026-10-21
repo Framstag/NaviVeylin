@@ -21,6 +21,7 @@
 #   worktree.sh end-item <issue> <slug>
 #   worktree.sh adopt-item <issue> <branch>
 #   worktree.sh branch-state <issue> <branch>
+#   worktree.sh merge-item <issue> <branch>
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
@@ -343,6 +344,35 @@ $dirty"
     "$branch" "$(gitr rev-parse --short HEAD)" "$(printf '%s' "$commits" | sed 's/ /,/g')" "$change" "$evidence"
 }
 
+# The run's own item, merged onto the base before the run closes it (#229). `end-item` commits on the item's
+# branch and nothing merged it, so a closed item read `status/fixed-by` while its fix lived only on
+# `fix/issue-N-…`: measured 2026-10-20 on #201, whose two commits a person fast-forwarded onto the base by hand
+# 35 minutes after the run reported the closure. The branch descends from the base the run recorded —
+# `start-item` cut it there and `end-item` only added commits — so this is a fast-forward or it is nothing. A
+# branch the base cannot fast-forward is *not* replayed here: that is the adoption of a previous attempt
+# (`cmd_adopt_item`), which decides on evidence a stranger to the run can see, and its decision is not this one.
+cmd_merge_item() { # <issue> <branch>
+  local issue="${1:-}" branch="${2:-}" base commits dirty
+  case "$issue" in ''|*[!0-9]*) loop_die "merge-item: usage: worktree.sh merge-item <issue> <branch>" ;; esac
+  [ -n "$branch" ] || loop_die "merge-item: usage: worktree.sh merge-item <issue> <branch>"
+  # The merge lands in the project's own tree, where the base branch is checked out.
+  check_base
+  base=$(state_base)
+  gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
+    loop_refuse "there is no branch $branch to merge"
+  commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
+  [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
+  gitr merge-base --is-ancestor "$base" "$branch" ||
+    loop_refuse "branch $branch does not descend from the base ${base:0:12} — refusing to replay it onto a tree nobody reviewed"
+  # Over uncommitted work the merge would attribute that work to itself, which `create` already refuses for.
+  dirty=$(gitr status --porcelain)
+  [ -z "$dirty" ] || loop_refuse "the project tree is not clean — refusing to merge $branch onto the base:
+$dirty"
+  gitr merge --ff-only "$branch" >&2 || loop_die "merge-item: the fast-forward failed"
+  printf 'merged: branch %s -> %s · commits %s\n' \
+    "$branch" "$(gitr rev-parse --short HEAD)" "$(printf '%s' "$commits" | sed 's/ /,/g')"
+}
+
 # The reviewer's verdict is evidence, and evidence travels with the change (#185): a branch whose only record of
 # the refusal is this run's machine-local item directory looks finished to the next run, which reads one archived
 # change and a green XML and adopts exactly the change the reviewer refused. Recording it writes one file into
@@ -420,10 +450,11 @@ case "$cmd" in
   record-review-failure) cmd_record_review_failure "$@" ;;
   adopt-item) cmd_adopt_item "$@" ;;
   branch-state) cmd_branch_state "$@" ;;
+  merge-item) cmd_merge_item "$@" ;;
   head) cmd_head "$@" ;;
   status) cmd_status "$@" ;;
   strip-scratch) cmd_strip_scratch "$@" ;;
   remove) cmd_remove "$@" ;;
-  ""|-h|--help) sed -n '2,25p' "$0" ;;
+  ""|-h|--help) sed -n '2,28p' "$0" ;;
   *) loop_die "unknown command '$cmd'" ;;
 esac

@@ -1,0 +1,7 @@
+# Red test on HEAD (base 2e732f0e00fa771d04569483ffe80bc2ca3fa974), issue #229
+# case: run#mergesItsCommittedBranchBeforeClosing (tools/loop-cases.sh)
+# command: bash tools/loop-selftest.sh --case 'run#mergesItsCommittedBranchBeforeClosing'
+# at: 2026-10-21T06:51:30Z
+  the item was closed with its fix on fix/issue-21-an-eligible-bug-whose-cited-path-still-e, which the base does not have
+FAIL run#mergesItsCommittedBranchBeforeClosing
+exit=1

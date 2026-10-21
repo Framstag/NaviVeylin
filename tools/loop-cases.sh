@@ -2051,7 +2051,7 @@ case_run_refusesARepositoryThatIsNotAWorkTree() {
   out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
   git -C "$p" config core.bare false
   assert_eq "5" "$status" "a repository that is not a work tree refuses the run: $out"
-  assert_contains "$out" "records core.bare=true" "the refusal names the setting behind it"
+  assert_contains "$out" "core.bare=true" "the refusal names the setting behind it"
   assert_contains "$out" "git config core.bare false" "and the one command that repairs it"
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although the run refused"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"

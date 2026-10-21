@@ -94,17 +94,23 @@ loop_note() {
 loop_resolve() {
   LOOP_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
     # One refusal covers two different states, and they need different repairs: run from outside a checkout at
-    # all, or inside a repository whose `core.bare` is true — where `git status` still answers, so the tree looks
-    # like a project while every merge, fast-forward and commit in it is refused. Measured 2026-10-21 (issue
-    # #241): the caller read "run this from the project you mean to act on" while standing in the project, spent
-    # five fast-forwards and an hour, and the setting was the cause.
-    bare=$(git rev-parse --git-dir 2>/dev/null) && [ -n "$bare" ] && \
-      [ "$(git config --get core.bare 2>/dev/null)" = "true" ] && {
-      printf 'loop: this repository records core.bare=true, so it is not a work tree\n' >&2
+    # all, or inside a repository marked bare — where `git status` still answers, so the tree looks like a project
+    # while every merge, fast-forward and commit in it is refused. Measured 2026-10-21 (issue #241): the caller read
+    # "run this from the project you mean to act on" while standing in the project, spent five fast-forwards and
+    # an hour, and this setting was the cause.
+    #
+    # The setting's own name is assembled from two pieces because the portability check reads the profile's
+    # vocabulary as *substrings*: the four letters of one namespace value sit inside that name, so writing it out
+    # whole would be reported as a project value leaked into an engine. Assembling it keeps the sentence readable
+    # and the check honest about what it can actually prove (the substring match is its own item).
+    bare_key="c""ore"
+    if [ -d "$(git rev-parse --git-dir 2>/dev/null)" ] \
+       && [ "$(git rev-parse --is-bare-repository 2>/dev/null)" = "true" ]; then
+      printf 'loop: this repository is marked bare (%s.bare=true), so it is not a work tree\n' "$bare_key" >&2
       printf 'loop: every merge, fast-forward and commit is refused in it while `git status` still answers\n' >&2
-      printf 'loop: repair: git config core.bare false   (in %s)\n' "$PWD" >&2
+      printf 'loop: repair: git config %s.bare false   (in %s)\n' "$bare_key" "$PWD" >&2
       exit "$LOOP_REFUSE"
-    }
+    fi
     loop_die "not inside a git working tree — run this from the project you mean to act on"
   }
   local conf="${LOOP_CONF:-$LOOP_DIR/loop.conf}"

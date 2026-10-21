@@ -1,0 +1,4 @@
+gate: tools/sensor-selftest.sh
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=0 failures=1 (tools/sensor-selftest.sh, tools/check-doc-routes.sh) — failing: tools/sensor-selftest.sh
+attempt 1: tools/sensor-selftest.sh was committed 100644, and gate.sh executes the suite command directly -> bash: keine Berechtigung: ./tools/sensor-selftest.sh. The suite never ran (tests=0). Fixed by chmod +x on the file (core.fileMode=true, so the run records 100755, as its three sibling suites already are); attempt 2 is the executed gate.

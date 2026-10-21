@@ -12,26 +12,30 @@ The run in the item report showed the first gate to fire; the second was hidden 
   condition is the same one, and it is not fixed.
 - **Root cause**: the unprompted mode prints text the gates measure and never measures it itself.
   `render_mechanical` (`tools/gen-feature-list.sh:485`) clips the joined requirement names to `$maxpara`
-  (`:499`) and only then puts the `— ` lead-in in front of them and a full stop behind them, and the gate
+  (`:500`) and only then puts the `— ` lead-in in front of them and a full stop behind them, and the gate
   measures the paragraph *including* those (`tools/feature-list/gate.awk`, `length(para)` after the keyword's
   closing `**`), so the result is 321 or 322 characters whenever the clip lands near the bound. The release
   note is the same mode with a worse shape: it printed the whole requirement name as the bold keyword, which
   the six-word rule refuses. Both sites compose from a requirement name and neither asks what shape the gates
-  hold that name to.
+  hold that name to; a note entry wraps the name the same way — `— ` before it, a full stop after it — so the
+  length bound is measured over that wrapper there too.
 - **The second site was hidden by the gate order, measured**: with the catalogue clip fixed and nothing else,
-  the same run reaches the note gate and fails 99 times with `entry keyword is 7 words, more than six`
-  (`evidence/real-run-after-catalogue-fix.log`). The catalogue gate runs first (`tools/gen-feature-list.sh:665`)
-  and exits before the note gate (`:817`), so a fix that stops at the observed symptom still leaves the run
-  writing nothing.
-- **Red test** (2026-10-21T12:21:06+02:00, `tools/gen-feature-list-selftest.sh`, its own tally — a shell suite has
-  no JUnit XML): `tests=107 failures=2` on HEAD, `tests=107 failures=0` with the fix. The two cases assert on the
-  *written documents*, so each one names the site it covers:
+  the same run writes the catalogue and then fails 99 times with `entry keyword is N words, more than six`, the
+  first of them 8 words (`evidence/real-run-after-catalogue-fix.log`: exit 1, no release notes written). The
+  catalogue gate runs first (`tools/gen-feature-list.sh:687`) and exits before the note gate (`:828`), so a fix
+  that stops at the observed symptom still leaves the run writing nothing.
+- **Red test** (2026-10-21T12:31:55+02:00, `tools/gen-feature-list-selftest.sh`, its own tally — a shell suite has
+  no JUnit XML): `tests=108 failures=2` on HEAD, `tests=108 failures=0` with the fix. The two failing cases assert
+  on the *written documents*, so each one names the site it covers:
   `length: a mechanical catalogue entry is composed inside the bound` — HEAD: `exit 1: entry paragraph is 322
-  characters, more than the 320 allowed (line 32)` (`evidence/red-on-HEAD.log`);
-  `length: a mechanical release-note entry is composed inside the bound` — HEAD fails in the same run, at the
-  catalogue gate that runs first; its own reason is the 99 refused keywords above.
+  characters, more than the 320 allowed (line 32)`;
+  `length: a mechanical release-note entry is composed inside the bound` — HEAD fails at the note gate with its own
+  reason, `note gate: exit 1: entry keyword is 32 words, more than six (line 11)` (`evidence/red-on-HEAD.log`).
+  The note case also holds the reserve the note entry needs: with the fix's helper reserving only the full stop it
+  fails at `entry paragraph is 322 characters … (line 11)` (`evidence/red-on-half-fixed.log`, tests=108,
+  failures=1), which is why the helper reserves the wrapper and not the full stop alone.
 - **Owning requirement**: `feature-list-generation` — "A paragraph stays short"
-  (`openspec/specs/feature-list-generation/spec.md:170`) and "Every entry leads with a keyword and a paragraph"
+  (`openspec/specs/feature-list-generation/spec.md:183`) and "Every entry leads with a keyword and a paragraph"
   (`:77`), whose six-word rule the note entry breaks. Owning guideline: `guidelines/FeatureList.md` §1 "The
   catalogue presents only user-visible capabilities" carries both bounds and their cases (line 42, "One entry is
   one selling point, and it is short"); §6 "The prose gates, not a reviewer's memory" owns the gate mechanics and
@@ -45,17 +49,23 @@ The run in the item report showed the first gate to fire; the second was hidden 
 
 - `render_mechanical` (`tools/gen-feature-list.sh:485`) composes the paragraph to the
   bound the gate measures: the names are clipped with the lead-in and the full stop reserved
-  (`clip($max - 5)`, `:499`), the reserve being the widest form of `— ` (three bytes where the gate counts bytes
-  in a C locale) plus the full stop.
-- Two helpers, `entry_keyword` and `entry_paragraph` (`:524`, `:527`), shape a requirement name into the entry
+  (`clip($max - 5)`, `:500`), the reserve being the widest form of the text the entry adds around the names —
+  `— ` is three characters, five bytes under a byte-counting locale, plus one for the full stop.
+- Two helpers, `entry_keyword` and `entry_paragraph` (`:526`, `:529`), shape a requirement name into the entry
   shape the gates enforce, and the three places the unprompted mode composes an entry use them: the mechanical
   catalogue entry keeps its own jq clip (it composes many names, not one), the changed capability's note entry
-  (`:820`) and the removed capability's note entry (`:802`).
+  (`:822`) and the removed capability's note entry (`:804`). `entry_paragraph` shortens one name by the same
+  reserve as the clip (`$max - 5`): a note entry prints `— ` in front of the name and a full stop after it, and
+  the gate measures that wrapper, so reserving the full stop alone leaves a name of 318 to 319 characters at
+  321 to 322.
 - `tools/gen-feature-list-selftest.sh` gains `within_bound`, an assertion over a written document measured the
-  way `gate.awk` measures it, and two cases that fail on HEAD and pass with the fix, the second one needing a
-  real delta (a baseline run, then a lost requirement) so that both note branches are exercised.
-- `guidelines/FeatureList.md` §1 names the two cases and states that the bounds hold for the entries the run
-  composes without a model.
+  way `gate.awk` measures it, and three cases: the baseline run the note case needs, and the two that fail on
+  HEAD. The note case puts the long name where only the note can see it — a requirement added to a user-visible
+  capability no highlight names, which `select_notes` writes as a `changed` entry — so the note gate is reached
+  instead of being hidden behind the catalogue gate; the same run drops one requirement of `beta`, because an
+  empty removal list trips the `pair.awk` defect recorded below.
+- `guidelines/FeatureList.md` §1 names the two failing cases and states that the bounds hold for the entries the
+  run composes without a model.
 
 No gate is weakened and no bound is raised: the gates are unchanged, and the mechanical mode is now held to
 them. Additive in the sense that prose from `--phrase-cmd` is untouched; a run in the degraded mode produces
@@ -65,14 +75,17 @@ the change, and the snapshot format is unchanged.
 ## Impact
 
 - Modified: `tools/gen-feature-list.sh` (three composing sites, two helpers), `tools/gen-feature-list-selftest.sh`
-  (one helper, two cases), `guidelines/FeatureList.md` §1.
+  (one helper, three cases), `guidelines/FeatureList.md` §1.
 - Affected specs: `feature-list-generation` — two MODIFIED requirements, each gaining one scenario.
 - No compiled file, so no Gradle task runs: the structural check is `bash tools/gen-feature-list-selftest.sh`
-  (107 cases) plus a real mechanical run over the shipped specs, which is what `guidelines/Build.md` §2 asks for
-  a delta that touches no Kotlin, Java, C++ or resource file.
+  (108 cases) plus a real mechanical run over the shipped specs, which is what `guidelines/Build.md` §2 asks for
+  a delta that touches no Kotlin, Java, C++ or resource file; `bash tools/check-doc-routes.sh`,
+  `bash tools/check-portability.sh` and `openspec validate --all` (176 passed, 0 failed) are carried in the
+  evidence as well.
 - Scope: tooling only — no phone, car or AAOS behaviour, no UI, no rendering, no native boundary.
 - Not addressed, measured, and left for a separate item: `tools/feature-list/pair.awk` reads the first line of
   its *second* file as a removal when the removal list is empty (`NR == FNR` with an empty first file), so an
   additions-only release reports the first added capability as `— no longer available.`
   (`evidence/pair-awk-empty-removed.log`). That is a separate root cause with its own symptom, and this change
-  neither touches nor claims it; the second case's fixture keeps a real removal so it does not stand on it.
+  neither touches nor claims it; the note case's fixture keeps a real removal in the same run so the case does not
+  stand on it.

@@ -77,6 +77,7 @@ ok   length: an over-long paragraph fails the run
 ok   length: the paragraph and its length are named
 ok   length: a short paragraph passes
 ok   length: a mechanical catalogue entry is composed inside the bound
+ok   length: the baseline run for the release note is green
 ok   length: a mechanical release-note entry is composed inside the bound
 ok   regeneration: nothing changed means no dirty area
 ok   regeneration: two runs produce the same file
@@ -106,4 +107,4 @@ ok   version: a run without a version writes nothing
 ok   version: the version-state file is never read
 ok   version: the run works where the version-state file is absent
 
-gen-feature-list-selftest: 107 passed, 0 failed
+gen-feature-list-selftest: 108 passed, 0 failed

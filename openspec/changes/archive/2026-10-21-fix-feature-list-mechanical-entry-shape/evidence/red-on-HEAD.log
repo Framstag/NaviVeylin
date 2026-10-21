@@ -83,13 +83,14 @@ FAIL length: a mechanical catalogue entry is composed inside the bound
        stale classification entries: 0
        prompt files: 2
        baseline: none
+ok   length: the baseline run for the release note is green
 FAIL length: a mechanical release-note entry is composed inside the bound
-     exit 1:   entry paragraph is 322 characters, more than the 320 allowed (line 32): **Paragraph paragraph paragraph paragraph paragraph paragraph** — Paragraph paragraph paragraph paragraph paragraph para
-     last run: run --release 1-0-0-2
-       unclassified spec ids: 0
-       stale classification entries: 0
+     note gate: exit 1:   entry keyword is 32 words, more than six (line 11): Paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph
+     last run: run --release 1-0-1-2
        prompt files: 2
-       baseline: none
+       baseline: /tmp/tmp.AaE1VCbpqv/data/snapshots/1-0-1-1.json
+       catalogue: /tmp/tmp.AaE1VCbpqv/out/FEATURES.md (3 entries for 3 selling points, 3 areas, about 53 chars per entry)
+       note: 1-0-1-2 carries 1 changed and 1 removed user-visible capabilities (0 renames)
 ok   regeneration: nothing changed means no dirty area
 ok   regeneration: two runs produce the same file
 ok   regeneration: an instruction change dirties every area
@@ -118,4 +119,4 @@ ok   version: a run without a version writes nothing
 ok   version: the version-state file is never read
 ok   version: the run works where the version-state file is absent
 
-gen-feature-list-selftest: 105 passed, 2 failed
+gen-feature-list-selftest: 106 passed, 2 failed

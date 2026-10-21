@@ -439,6 +439,14 @@ that stopped reaching something, a scheduled run that stopped happening — beco
 of a surprise (`stale-citation-resolution`, D6). The repair itself is a pipeline step, not a row: a row files,
 comments on or closes *the issue it owns*, and a citation repair edits other items.
 
+One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so
+a file nobody touches scores nothing however large it is. `source-size` measures **lines per tracked file**
+over `*.kt` and `*.java`, tests included and the native sources out, and files one item per path over the
+bound — the path is the identity, so an item closes when that file drops under it. The number, the unit and
+the scope are the owner's recorded decision (2026-10-21: 1 500 lines, file level, C++ out); the bound is the
+row's, so retuning it is one edit in `sensors.json`. It bounds a *file* and not a class: a file carrying
+several classes is one condition here, and separating them needs a counter this tooling does not have.
+
 ## 10. Portability
 
 The mechanism is meant to be used in another project, so the boundary between **the engine** and **the

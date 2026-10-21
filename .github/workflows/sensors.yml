@@ -148,13 +148,13 @@ jobs:
 
       # Every other row runs for any record, none of them reading an output a red build cannot produce:
       # `broken-main` reads the result record the publisher always writes, `pr-conflicts` the API, `hotspot`
-      # the repository's history and `stale-citations` the tracker. This is also the half that keeps a red
-      # build visible as exactly one row's verdict.
+      # and `source-size` the repository's own files and its history, and `stale-citations` the tracker. This
+      # is also the half that keeps a red build visible as exactly one row's verdict.
       - name: Run the condition rows and the repository rows
         if: steps.record.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: bash tools/sensors/run.sh --due --within 30 --rows broken-main,pr-conflicts,hotspot,stale-citations "$SENSORS_MODE"
+        run: bash tools/sensors/run.sh --due --within 30 --rows broken-main,pr-conflicts,hotspot,source-size,stale-citations "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

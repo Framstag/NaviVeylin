@@ -47,6 +47,7 @@ SENSOR_CASES=(
   'hotspot#ranksBySizeTimesChanges'
   'sensors#packageSizeConsumesAnArtifact'
   'sensors#coverageRow'
+  'sensors#sourceSizeRow'
   'sensors#brokenMainFingerprintDistinguishesCauses'
   'sensors#prConflictsOnlyOwnPRs'
   'sensors#brokenMainGreenReportsClear'
@@ -99,6 +100,7 @@ sensor_run_case() {
     'hotspot#ranksBySizeTimesChanges') case_hotspot_ranksBySizeTimesChanges ;;
     'sensors#packageSizeConsumesAnArtifact') case_sensors_packageSizeConsumesAnArtifact ;;
     'sensors#coverageRow') case_sensors_coverageRow ;;
+    'sensors#sourceSizeRow') case_sensors_sourceSizeRow ;;
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
     'sensors#prConflictsOnlyOwnPRs') case_sensors_prConflictsOnlyOwnPRs ;;
     'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
@@ -1131,6 +1133,71 @@ case_hotspot_ranksBySizeTimesChanges() {
   hits=$(grep -nE 'threshold=[0-9]|threshold="?[0-9]' "$SENSORS_ENGINE/hotspot-report.sh" || true)
   assert_empty "$hits" "the script holds no threshold constant"
   assert_contains "$(cat "$SENSORS_ENGINE/hotspot-report.sh")" 'SENSORS_THRESHOLD' "the bound comes from the row"
+}
+
+# The size row: one condition per tracked source file, in the unit and scope the item's recorded decision
+# named — lines per file, Kotlin and Java, tests included, the native sources out. The bound is the row's, so
+# the case reads it from the registry and proves the script applies it rather than restating it (issue #196,
+# design D9/D10).
+case_sensors_sourceSizeRow() {
+  local dir row out findings status hits
+
+  row=$(jq -c '.rows[] | select(.id == "source-size")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no source-size row"
+  assert_eq "1500" "$(jq -r '.threshold' <<< "$row")" "the row's bound is the 1500 lines the decision recorded"
+  assert_eq "greater-than" "$(jq -r '.comparison' <<< "$row")" "the row fires above its bound"
+  assert_eq '["path"]' "$(jq -c '.fingerprint.fields' <<< "$row")" "the condition's identity is the path"
+  assert_eq "improvement" "$(jq -r '.class' <<< "$row")" "the row files an improvement"
+
+  # A fixture repository: one Kotlin file past the bound, one Java file inside it, and two files that are
+  # past every bound and are not the row's business — the native sources and prose.
+  dir=$(scratch)
+  mkdir -p "$dir/app/src/main/java" "$dir/app/src/main/cpp" "$dir/docs"
+  seq 1 1600 | sed 's/^/\/\/ line /' > "$dir/app/src/main/java/Big.kt"
+  seq 1 10 | sed 's/^/\/\/ line /' > "$dir/app/src/main/java/Small.java"
+  seq 1 5000 | sed 's/^/\/\/ line /' > "$dir/app/src/main/cpp/native_thing.cpp"
+  seq 1 4000 | sed 's/^/a line of prose /' > "$dir/docs/NOTES.md"
+  git -C "$dir" init -q -b main >/dev/null 2>&1 || fail "could not create the fixture repository"
+  git_commit "$dir" one
+
+  out=$(cd "$dir" && SENSORS_ID=source-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=1500 \
+    SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the measurement runs: $out"
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"path":"app/src/main/java/Big.kt"' "the file past the bound is its own condition"
+  assert_contains "$findings" '"measurement":"1600"' "the measurement is the file's own line count"
+  assert_contains "$findings" '"verdict":"violation"' "a file past the bound is a violation"
+  assert_not_contains "$findings" 'Small.java' "a file inside the bound is no condition"
+  assert_not_contains "$findings" 'native_thing.cpp' "the native sources are outside the row's scope"
+  assert_not_contains "$findings" 'NOTES.md' "a file that is neither Kotlin nor Java is outside the row"
+
+  # The bound is the registry's, not the script's: retuning the check is one edit in `sensors.json`.
+  hits=$(grep -nE 'threshold=[0-9]|threshold="?[0-9]' "$SENSORS_ENGINE/metrics/source-size.sh" || true)
+  assert_empty "$hits" "the script holds no threshold constant"
+  assert_contains "$(cat "$SENSORS_ENGINE/metrics/source-size.sh")" 'SENSORS_THRESHOLD' \
+    "the bound comes from the row"
+
+  # A tree with nothing past the bound still reaches a verdict: the runner reads a row that printed no
+  # finding as a failed check, so the clear has to be printed (`backlog-sensors`, three outcomes).
+  git -C "$dir" rm -q app/src/main/java/Big.kt
+  git_commit "$dir" two
+  out=$(cd "$dir" && SENSORS_ID=source-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=1500 \
+    SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"verdict":"clear"' "a tree inside the bound reports a clear: $out"
+  assert_not_contains "$findings" '"verdict":"violation"' "nothing is past the bound"
+
+  # A tree git cannot list is the third outcome, never a clean one: an unreadable source list would otherwise
+  # reach the tracker as "no file is past the bound" ("The check itself failed").
+  dir=$(scratch)
+  out=$(cd "$dir" && GIT_CEILING_DIRECTORIES="$SENSORS_TMP" SENSORS_ID=source-size SENSORS_ROOT="$dir" \
+    SENSORS_THRESHOLD=1500 SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
+  assert_contains "$out" '"verdict":"error"' "a tree git cannot list is a failed check, not a clear: $out"
 }
 
 case_sensors_packageSizeConsumesAnArtifact() {

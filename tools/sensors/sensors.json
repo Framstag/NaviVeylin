@@ -64,6 +64,18 @@
       "fingerprint": { "fields": ["module"] }
     },
     {
+      "id": "source-size",
+      "cmd": "tools/sensors/metrics/source-size.sh",
+      "cron": "0 8 * * *",
+      "threshold": 1500,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "fingerprint": { "fields": ["path"] }
+    },
+    {
       "id": "broken-main",
       "cmd": "tools/sensors/conditions/broken-main.sh",
       "cron": "0 */2 * * *",

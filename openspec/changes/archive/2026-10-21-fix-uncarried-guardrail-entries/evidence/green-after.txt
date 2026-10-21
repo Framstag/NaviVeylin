@@ -1,0 +1,7 @@
+STATED  §134.64  guidelines/Build.md:172-193  "--max-workers=1"
+STATED  §134.65  guidelines/Build.md:304-325  "--continue"
+STATED  §134.73  guidelines/Design.md:660-703  "KotlinNothingValueException"
+STATED  §134.76  guidelines/Design.md:660-703  "PartiallyExpanded"
+
+entries=4 missing=0
+PASS record-carriage#eachRecordedRuleIsStatedInItsSection (exit 0)

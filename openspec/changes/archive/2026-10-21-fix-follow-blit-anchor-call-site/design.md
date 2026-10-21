@@ -34,12 +34,10 @@ One new production file and one call-site rewrite:
   ```
 
   It reads `ui.resolvedAnchor.fx/fy` itself and calls `FollowPrediction.displayOffsetPx`. Taking the whole
-  state — not an `anchor` argument — is the fix, not a style choice: no caller can pass the raw preset as a
-  fraction. A caller that rebuilds the state around it
-  (`ui.copy(resolvedAnchor = ResolvedAnchor(ui.activeFollowAnchor.fx, ui.activeFollowAnchor.fy))`) is refused
-  by the call-site guard, which reads the code around the seam call. `frame` is `PanWindowRules.Frame` (pure
-  data: viewport + bitmap dimensions), so the seam needs no Android or Compose types and its geometry case
-  needs no bitmap.
+  state — not an `anchor` argument — is the fix, not a style choice: the raw preset is then not expressible
+  at any call site, so the class of defect the item names cannot be reintroduced by passing the wrong
+  variable. `frame` is `PanWindowRules.Frame` (pure data: viewport + bitmap dimensions), so the seam needs
+  no Android or Compose types and its geometry case needs no bitmap.
 - `MapCanvasScreen.kt:817` — the inline call becomes `FollowBlitRules.offsetFor(ui, PanWindowRules.Frame(vp.lat,
   vp.lon, vp.mag, vp.angle, bitmap.width, bitmap.height), followDisplayLat, followDisplayLon,
   canvasSize.width, canvasSize.height, dpi)`. The surrounding guard (`bitmap != null && vp != null &&
@@ -48,20 +46,16 @@ One new production file and one call-site rewrite:
 Two cases hold the tree to it:
 
 1. `FollowBlitCallSiteTest` (plain JUnit, reads the two sources the way `QualifierUseSiteTargetTest` reads
-   the module's sources): the screen calls the seam exactly once, calls `displayOffsetPx` zero times, and
-   the code around the seam call names `activeFollowAnchor` zero times (the screen legitimately reads the
-   preset elsewhere, in the settings sheet's mirror); the seam reads `resolvedAnchor` once,
-   `activeFollowAnchor` zero times and still calls the shared helper. The needles are assembled from parts
-   so the file's own text is not a hit if the surface ever grows.
+   the module's sources): the screen calls the seam exactly once and calls `displayOffsetPx` zero times;
+   the seam reads `resolvedAnchor` once, `activeFollowAnchor` zero times and still calls the shared helper.
+   The needles are assembled from parts so the file's own text is not a hit if the surface ever grows.
 2. `MapCanvasViewModelVehicleAnchorTest#followBlitOffsetTakesTheResolvedAnchorNotTheRawPreset`: a real
    ViewModel with `BOTTOM_CENTER` (raw `fy = 0.9`) and the navigation overlay insets measured
-   (`setMapOverlayInsets(top = 400, bottom = 400, right = 80)`) publishes `resolvedAnchor.fy ≈ 0.76`; the
-   case asserts the persisted preset (`activeFollowAnchor.fy == 0.9`, so a lost settings file's `0.5`
-   fallback cannot make the two anchors collapse), takes the frame from the production
-   `followRenderTarget(...)` rather than constructing it, and with the display drifted 40 m north the
-   seam's offset is unclamped and equals the resolved-anchor computation, while the raw-preset computation
-   of the same geometry is clamped — the per-500 ms churn the item names. It prints both numbers, so the
-   XML's `system-out` carries them.
+   (`setMapOverlayInsets(top = 400, bottom = 400, right = 80)`) publishes `resolvedAnchor.fy ≈ 0.76`;
+   with the frame rendered anchor-centered on the *resolved* fraction (what `followRenderTarget` does) and
+   the display drifted 40 m north, the seam's offset is unclamped and equals the resolved-anchor
+   computation, while the raw-preset computation of the same geometry is clamped — the per-500 ms churn
+   the item names. It prints both numbers, so the XML's `system-out` carries them.
 
 `guidelines/MapRendering.md` §1.1 gains the seam's name and the guard, next to the statement it already
 carries.
@@ -95,6 +89,4 @@ framing.
   caller still chooses, and the regression remains expressible. Eliminated by the same measurement that
   motivates the item.
 - **Assert the anchor through `followRenderTarget()`.** It already uses the resolved anchor and is covered;
-  the blit is a separate call site, which is exactly the gap. The geometry case does take its frame from
-  `followRenderTarget()`, so the WHEN is production code; but the render target alone cannot prove the blit
-  consumes that same value, because a test can still hand the helper a different fraction.
+  the blit is a separate call site, which is exactly the gap.

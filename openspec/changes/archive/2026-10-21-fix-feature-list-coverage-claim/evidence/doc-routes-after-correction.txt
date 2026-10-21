@@ -1,0 +1,3 @@
+run: 2026-10-21T11:13:18Z
+check-doc-routes: all 89 section references resolve
+exit=0

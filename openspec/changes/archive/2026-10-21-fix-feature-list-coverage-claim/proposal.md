@@ -59,9 +59,9 @@ would fail every run on 39 shipped user-visible specs and would contradict the s
 - **`guidelines/FeatureList.md` §1** — the second `Cases:` block is removed: it repeated the keyword cases and
   named three `density:` cases and a density report that neither the tool nor the spec has. The length bound
   sentence above it keeps the cases that do exist.
-- **`guidelines/FeatureList.md` §5** — the case list names the two cases that exist
+- **`guidelines/FeatureList.md` §5** — the case list names the cases that exist
   (`catalogue: a dual-surface capability tags both surfaces`, `catalogue: the car-only area is rendered under
-  its own heading`) instead of two that never existed.
+  its own heading`, `catalogue: a dual-surface capability appears once`) instead of two that never existed.
 - **`guidelines/FeatureList.md` §6** — `gates: the keyless bullet is named` becomes the case the suite actually
   prints, `gates: the keyless entry is named`.
 - **`.pi/skills/feature-list/SKILL.md`** — §3 says a catalogue section covers the shortlisted capabilities of

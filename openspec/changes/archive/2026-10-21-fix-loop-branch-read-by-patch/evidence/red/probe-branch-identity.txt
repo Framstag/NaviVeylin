@@ -1,0 +1,8 @@
+3	3	fix/issue-126-spec-line-bound
+5	5	fix/issue-191-the-run-prints-nothing-while-the-pre-scr
+1	1	fix/issue-198-sensor-case-record-gate
+4	4	fix/issue-230-condition-marker-parse
+5	5	fix/issue-64-pre-existing-kotlin-deprecation-warning
+4	4	fix/issue-78-test-harness-searchhistoryrepository-is
+
+branches the report names: 6 · of them carrying no unlanded patch: 0

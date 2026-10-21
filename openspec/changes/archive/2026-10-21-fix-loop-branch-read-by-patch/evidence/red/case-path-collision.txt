@@ -1,0 +1,6 @@
+# is `worktree#keepsByDefaultAndRemovesOnRequest` red on HEAD too, when the checkout path contains
+# `worktrees/loop`? yes (below). Pre-existing, not this change.
+path of the checkout: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/case-path-head
+item #21: closed (merged fix/issue-21-an-eligible-bug-whose-cited-path-still-e — a finished attempt the base did not have) · 0 review round(s)
+  git still lists the worktree that was removed
+FAIL worktree#keepsByDefaultAndRemovesOnRequest

@@ -1,0 +1,142 @@
+# full mutation set, run from the loop worktree (2026-10-21). One configuration line was changed for the run:
+# LOOP_TMP_DIR moved one level out, because this checkout's path contains `worktrees/loop` and
+# `worktree#keepsByDefaultAndRemovesOnRequest` greps exactly that in `git worktree list` — a pre-existing
+# collision, reproduced on HEAD in evidence/red/case-path-collision.txt. The file was restored afterwards.
+2026-10-21T06:13:52Z
+RED    9.1  state#secondRunRefusesWithExit5   (the lock that keeps one run per repository)
+restore 9.1 state#secondRunRefusesWithExit5 green again
+RED    9.2  worktree#refusesWhenMainAdvanced   (the stale-base refusal)
+restore 9.2 worktree#refusesWhenMainAdvanced green again
+RED    9.3  labels#writesOnlyBetweenChildren   (one writer per tree: the child runs while the wrapper writes state)
+restore 9.3 labels#writesOnlyBetweenChildren green again
+RED    9.4  labels#trapRemovesInProgressOnSignal   (the signal trap that removes the in-progress label)
+restore 9.4 labels#trapRemovesInProgressOnSignal green again
+RED    9.5  run#childClaimWithoutCommitIsBlocked   (the run verifying instead of trusting the child)
+restore 9.5 run#childClaimWithoutCommitIsBlocked green again
+RED    9.6  run#decisionCapRefusesToStart   (the decision cap that stops a run)
+restore 9.6 run#decisionCapRefusesToStart green again
+RED    9.7  run#mayCloseNoLeavesTheIssueOpen   (the closure opt-out)
+restore 9.7 run#mayCloseNoLeavesTheIssueOpen green again
+RED    9.8  worktree#oneBranchPerItemOffTheBase   (one branch per item)
+restore 9.8 worktree#oneBranchPerItemOffTheBase green again
+RED    9.9  state#agentCommandIsTheOnlyIndirection   (the single agent-command indirection)
+restore 9.9 state#agentCommandIsTheOnlyIndirection green again
+RED    9.10  run#reviewerWriteInvalidatesTheRound   (the reviewer read-only comparison)
+restore 9.10 run#reviewerWriteInvalidatesTheRound green again
+RED    9.11  state#projectKeysAreReadFromLoopConf   (the project facts living in loop.conf)
+restore 9.11 state#projectKeysAreReadFromLoopConf green again
+RED    12.1  run#commitsWithoutAnAmbientIdentity   (the commit is attributed to the run's own identity)
+restore 12.1 run#commitsWithoutAnAmbientIdentity green again
+RED    12.2  run#childStartsInTheProjectRoot   (the child started in the project, where the project's own policy is resolved)
+restore 12.2 run#childStartsInTheProjectRoot green again
+RED    12.3  run#childWriteOutsideTheWorktreeIsBlocked   (the run catching a child write left outside the worktree)
+restore 12.3 run#childWriteOutsideTheWorktreeIsBlocked green again
+RED    12.4  run#reviewerWriteInTheProjectIsDiscarded   (the reviewer comparison reading the project tree as well)
+restore 12.4 run#reviewerWriteInTheProjectIsDiscarded green again
+RED    12.5  worktree#reusesABranchThatCarriesNoWorkOfItsOwn   (the reuse of a branch that carries nothing of its own)
+restore 12.5 worktree#reusesABranchThatCarriesNoWorkOfItsOwn green again
+RED    12.6  worktree#refusesABranchCarryingAPreviousAttempt   (the refusal of a branch that carries a previous attempt)
+restore 12.6 worktree#refusesABranchCarryingAPreviousAttempt green again
+MUTATION-DID-NOT-APPLY 12.7  /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/run.sh (the pattern no longer matches — fix the mutation, not the case)
+RED    13.1  prescreen#previousAttemptBranchIsADecision   (the pre-screen asking git for a previous attempt on the item branch prefix)
+restore 13.1 prescreen#previousAttemptBranchIsADecision green again
+RED    13.2  run#leftoverBranchIsRecordedNotDropped   (the pre-screen verdicts that need a decision being escalated by the run)
+restore 13.2 run#leftoverBranchIsRecordedNotDropped green again
+RED    13.3  run#dirtyKeptWorktreeIsARecordedRefusal   (the start-time pre-flight on a kept worktree a previous run left dirty)
+restore 13.3 run#dirtyKeptWorktreeIsARecordedRefusal green again
+RED    13.4  run#dirtyKeptWorktreeIsARecordedRefusal   (the refusal being recorded under the item its branch marker names)
+restore 13.4 run#dirtyKeptWorktreeIsARecordedRefusal green again
+RED    13.5  run#resetWorktreeDiscardsWhatItNames   (the start-time repair discarding what it named)
+restore 13.5 run#resetWorktreeDiscardsWhatItNames green again
+RED    13.6  state#secondRunRefusesWithExit5   (the lock telling a live run's tree from a previous run's leftovers)
+restore 13.6 state#secondRunRefusesWithExit5 green again
+RED    13.7  worktree#keepsByDefaultAndRemovesOnRequest   (the end-of-run form honoured wherever the run ends)
+restore 13.7 worktree#keepsByDefaultAndRemovesOnRequest green again
+RED    12.8  run#aSkipClearsTheInProgressMark   (the skip exit path clearing the in-progress mark)
+restore 12.8 run#aSkipClearsTheInProgressMark green again
+RED    14.1  report#escalatedSkipNamesTheLabelWritten   (the decision list read from the label the escalation recorded, not the verdict)
+restore 14.1 report#escalatedSkipNamesTheLabelWritten green again
+RED    14.2  report#escalatedSkipNamesTheLabelWritten   (the skip escalation recording the label it wrote)
+restore 14.2 report#escalatedSkipNamesTheLabelWritten green again
+RED    14.3  report#failedReviewEscalationIsNamed   (the blocked exit path recording the label its escalation wrote)
+restore 14.3 report#failedReviewEscalationIsNamed green again
+RED    14.5  run#blockedItemIsEscalatedWithItsReason   (the blocked exit path escalating the reason the run holds)
+restore 14.5 run#blockedItemIsEscalatedWithItsReason green again
+RED    14.4  report#aVerdictAloneIsNoEscalation   (the list naming only the items this run escalated)
+restore 14.4 report#aVerdictAloneIsNoEscalation green again
+RED    15.1  prescreen#refusalLeavesATraceInTheTracker   (the pre-screen writing its refusal to the tracker instead of only to the run)
+restore 15.1 prescreen#refusalLeavesATraceInTheTracker green again
+RED    16.1  run#stopReasonIsPrintedAndReported   (the run recording the stop condition `next` named, on every path that leaves the loop)
+restore 16.1 run#stopReasonIsPrintedAndReported green again
+RED    16.2  run#stopReasonIsPrintedAndReported   (the run printing the stop condition it was given)
+restore 16.2 run#stopReasonIsPrintedAndReported green again
+RED    16.3  run#stopReasonIsPrintedAndReported   (the report repeating the recorded stop reason)
+restore 16.3 run#stopReasonIsPrintedAndReported green again
+RED    17.1  prescreen#itemAwaitingADecisionIsNotQueued   (the clause that leaves an item awaiting a decision to its owner)
+restore 17.1 prescreen#itemAwaitingADecisionIsNotQueued green again
+RED    17.2  run#awaitingDecisionIsNotEscalatedAgain   (the run not re-escalating an item that already carries the escalation label)
+restore 17.2 run#awaitingDecisionIsNotEscalatedAgain green again
+RED    18.1  worktree#refusesABranchWhoseReviewFailed   (adoption reading the verdict the reviewer left on the branch)
+restore 18.1 worktree#refusesABranchWhoseReviewFailed green again
+MUTATION-DID-NOT-APPLY 18.2  /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/run.sh (the pattern no longer matches — fix the mutation, not the case)
+RED    25.1  worktree#keepsSourcesNotBuildOutput   (the symlink refusal that keeps the cleanup inside a kept worktree)
+restore 25.1 worktree#keepsSourcesNotBuildOutput green again
+RED    25.2  clean#reportsWithoutApplyAndRemovesWithIt   (the age gate that keeps a scratch tree a live suite may be writing into)
+restore 25.2 clean#reportsWithoutApplyAndRemovesWithIt green again
+RED    19.1  run#reviewBudgetIsARecordedValue   (the round budget coming from the recorded value instead of a literal)
+restore 19.1 run#reviewBudgetIsARecordedValue green again
+RED    19.2  run#aCorrectiveRefusalEarnsOneMoreRound   (the extra round a corrective refusal earns)
+restore 19.2 run#aCorrectiveRefusalEarnsOneMoreRound green again
+RED    19.3  run#escalationCarriesTheDecision   (the escalation carrying the reviewer decision)
+restore 19.3 run#escalationCarriesTheDecision green again
+RED    20.1  prescreen#itemAwaitingADecisionIsNotQueued   (`alreadyEscalated` following the label rather than the hold)
+restore 20.1 prescreen#itemAwaitingADecisionIsNotQueued green again
+RED    20.2  prescreen#escalatedItemKeepsItsBranchAsEvidence   (the awaiting clause not overwriting the branch the adoption path reads)
+restore 20.2 prescreen#escalatedItemKeepsItsBranchAsEvidence green again
+RED    21.1  prescreen#aHoldWithNoDecisionIsNotADecision   (a hold with no recorded decision reported as a hold rather than as a decision)
+restore 21.1 prescreen#aHoldWithNoDecisionIsNotADecision green again
+RED    21.2  labels#holdCarriesItsReason   (the reason a hold writes travelling with the state as a comment)
+restore 21.2 labels#holdCarriesItsReason green again
+RED    22.1  prescreen#harnessItemsLeadTheQueue   (the category key ranking a leading category ahead of every other category)
+restore 22.1 prescreen#harnessItemsLeadTheQueue green again
+RED    20.3  run#stopReasonIsPrintedAndReported   (the run recording the reason it stopped on every exit path)
+restore 20.3 run#stopReasonIsPrintedAndReported green again
+RED    20.4  run#aZeroRoundBudgetIsRefused   (the refusal of a review budget that never runs)
+restore 20.4 run#aZeroRoundBudgetIsRefused green again
+RED    23.1  run#childOutlastingTheWallClockIsBlocked   (the wall-clock that ends a child instead of waiting for it for ever)
+restore 23.1 run#childOutlastingTheWallClockIsBlocked green again
+RED    24.1  run#hostBelowTheFloorBlocksTheItemAndStops   (the host read that records a starved item instead of starting it (issue #209))
+restore 24.1 run#hostBelowTheFloorBlocksTheItemAndStops green again
+RED    26.1  adapter#modeFlagIsItsOwnArgument   (the mode flag handed to the child as two argv words, not one (measured 2026-10-20))
+restore 26.1 adapter#modeFlagIsItsOwnArgument green again
+RED    26.2  state#inheritedStatePathOutsideTheTreeIsIgnored   (the guard that ignores a run identity named from outside this tree (issue #214))
+restore 26.2 state#inheritedStatePathOutsideTheTreeIsIgnored green again
+RED    27.1  run#childThatNeverStartedIsTheRunsFault   (the classification that keeps a child which never started off the item (issue #212))
+restore 27.1 run#childThatNeverStartedIsTheRunsFault green again
+RED    28.1  clean#interruptedSuiteEndsItsProcessGroup   (the one implementation of ending a process group a layer of the loop started)
+restore 28.1 clean#interruptedSuiteEndsItsProcessGroup green again
+RED    28.2  clean#reportsAndEndsAProcessLeftInAScratchTree   (the report reading a process working directory inside a tree it removes)
+restore 28.2 clean#reportsAndEndsAProcessLeftInAScratchTree green again
+RED    28.3  run#interruptedRunEndsTheChildItStarted   (the run trap ending the child it started, not only the run)
+restore 28.3 run#interruptedRunEndsTheChildItStarted green again
+RED    29.1  run#blockedItemAsksItsOwnQuestion   (the question a block asks when the reviewer wrote none (issue #225))
+restore 29.1 run#blockedItemAsksItsOwnQuestion green again
+RED    29.2  labels#closeRemovesTheDecisionLabel   (the closure taking the decision label off the item it ends (issue #225))
+restore 29.2 labels#closeRemovesTheDecisionLabel green again
+RED    30.1  run#falsifiedSkipClosesWithItsMeasurement   (the verdict that tells a measured falsification from an ordinary skip)
+restore 30.1 run#falsifiedSkipClosesWithItsMeasurement green again
+RED    30.2  run#falsificationWithAChangedTreeIsBlocked   (the second read of the tree after the review of a falsification)
+restore 30.2 run#falsificationWithAChangedTreeIsBlocked green again
+RED    31.1  run#aCutReportIsRetriedInsteadOfRefused   (the retry of a report that arrived cut on its way to the file (issue #224))
+restore 31.1 run#aCutReportIsRetriedInsteadOfRefused green again
+RED    32.1  run#staleBaseStopsTheRunWithItsReason   (the stop that records why a stale base ended the run)
+restore 32.1 run#staleBaseStopsTheRunWithItsReason green again
+RED    33.1  worktree#reusesABranchWhoseWorkAlreadyLanded   (the patch identity a branch is read by, instead of its commit objects)
+restore 33.1 worktree#reusesABranchWhoseWorkAlreadyLanded green again
+RED    33.2  prescreen#landedBranchIsNotADecision   (the pre-screen asking what a branch carries by patch)
+restore 33.2 prescreen#landedBranchIsNotADecision green again
+RED    33.3  report#landedBranchIsNoAction   (the report counting what a branch carries by patch)
+restore 33.3 report#landedBranchIsNoAction green again
+
+red-when-mutated: 66 · not-noticed: 2 · restore-failures: 0
+exit=1

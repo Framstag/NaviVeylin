@@ -1,0 +1,7 @@
+# mutations 12.7 and 18.2 do not apply on HEAD either — their sed patterns in run.sh are stale there.
+# Measured by pointing the harness at a throwaway export of HEAD (`--engine`), 2026-10-21.
+2026-10-21T06:27:50Z
+MUTATION-DID-NOT-APPLY 12.7  /home/tim/projects/NaviVeylin/.pi/tmp/head-engine/tools/loop/run.sh (the pattern no longer matches — fix the mutation, not the case)
+MUTATION-DID-NOT-APPLY 18.2  /home/tim/projects/NaviVeylin/.pi/tmp/head-engine/tools/loop/run.sh (the pattern no longer matches — fix the mutation, not the case)
+
+red-when-mutated: 0 · not-noticed: 2 · restore-failures: 0

@@ -41,6 +41,10 @@ MUTATIONS=(
   '8.12@tools/sensors/lib.sh@s/ minutes="${3:-1}" back=0/ minutes=1 back=0/@run#aDelayedTickSelectsTheRowsItWasScheduledFor@the window reaches back over the minutes since the previous tick'
   '8.13@.github/workflows/sensors.yml@s/ --within 30//g@workflow#theTickDeclaresItsWindow@every scheduled tick declares the window it selects over'
   '8.14@tools/sensors/run.sh@s/sensors_die "run: --within/: "run: --within/@run#theWindowDoesNotSelectThePreviousTicksRow@a window that is not a count of minutes is refused'
+  # The clear half of a condition row: a green build closes every condition the row still shows open, and the
+  # identity it clears with is the issue's own (#230, measured on #198 — the clear fell through to its own
+  # identity because no condition parsed, and the item stayed open).
+  '8.15@tools/sensors/conditions/broken-main.sh@s/select(.state == "OPEN")/select(.state == "open")/@sensors#brokenMainGreenClosesTheItemItsConditionNames@the clear iterates every condition the row still shows open'
 )
 
 if [ "$mode" = "list" ]; then

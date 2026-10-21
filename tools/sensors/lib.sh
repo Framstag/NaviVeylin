@@ -402,11 +402,16 @@ sensors_marker_field() { # <marker> <name>
 sensors_conditions_json() { # <issues-json> → a JSON array
   # Read with `scan`, never with a named capture: a marker missing one field must degrade to an empty value
   # rather than error, because an error here would silently empty the whole conditions list.
+  #
+  # The condition is the marker's **object**, not everything up to the marker's `>`: the tail `[^>]*` keeps the
+  # two dashes that close `-->`, which is not JSON, so `fromjson?` returned null and every condition became
+  # `{}` — the green arm then iterated nothing and reported its own identity, leaving the item it was filed
+  # against open for ever (#230, measured on #198). A marker that carries no object still degrades to `{}`.
   jq -c '[.[]? | . as $issue | {
       number: $issue.number,
       state: ($issue.state // "OPEN"),
       fingerprint: (((($issue.body // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; "")),
-      condition: ((((($issue.body // "") | [scan("condition:[ ]*[^>]*")] | .[0]) // "") | sub("^condition:[ ]*"; "") | fromjson?) // {}),
+      condition: ((((($issue.body // "") | [scan("condition:[ ]*\\{[^}]*\\}")] | .[0]) // "") | sub("^condition:[ ]*"; "") | fromjson?) // {}),
       measurement: (((($issue.body // "") | [scan("measurement=[^ ]+")] | .[0]) // "") | sub("^measurement="; ""))
     }]' <<< "$1"
 }

@@ -50,6 +50,7 @@ SENSOR_CASES=(
   'sensors#brokenMainFingerprintDistinguishesCauses'
   'sensors#prConflictsOnlyOwnPRs'
   'sensors#brokenMainGreenReportsClear'
+  'sensors#brokenMainGreenClosesTheItemItsConditionNames'
   'sensors#prConflictsNothingReportsClear'
   'workflow#onlyTwoTriggers'
   'workflow#aRedRecordRunsNoRecordRow'
@@ -101,6 +102,7 @@ sensor_run_case() {
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
     'sensors#prConflictsOnlyOwnPRs') case_sensors_prConflictsOnlyOwnPRs ;;
     'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
+    'sensors#brokenMainGreenClosesTheItemItsConditionNames') case_sensors_brokenMainGreenClosesTheItemItsConditionNames ;;
     'sensors#prConflictsNothingReportsClear') case_sensors_prConflictsNothingReportsClear ;;
     'workflow#onlyTwoTriggers') case_workflow_onlyTwoTriggers ;;
     'workflow#aRedRecordRunsNoRecordRow') case_workflow_aRedRecordRunsNoRecordRow ;;
@@ -1172,6 +1174,31 @@ case_sensors_brokenMainGreenReportsClear() {
   assert_contains "$out" '"row":"broken-main"' "the finding is the row's own"
   assert_eq "0" "$(recorded "$log" 'issue create')" "a green build files nothing"
   assert_eq "0" "$(recorded "$log" 'issue close')" "and closes nothing, because no condition is recorded"
+}
+
+case_sensors_brokenMainGreenClosesTheItemItsConditionNames() {
+  # The clear half of the row's lifecycle, and the half no case covered: a green build closes the item its
+  # own condition marker names. The identity a clear carries is read from that marker —
+  # `<!-- condition: {"job":"build","case":"apk"} -->` — and a capture that keeps the marker's closing
+  # dashes is not JSON: `fromjson?` returns null, every condition becomes `{}`, the green arm iterates
+  # nothing and reports its own identity instead, so the item stays open for ever (#230, measured on #198).
+  #
+  # The green build's record is a *different* identity — `gate`/`the-build` against the red record's
+  # `build`/`apk` — so the item can only be found through its marker and never through the run's input,
+  # which is what makes the parse the whole of the path.
+  local dir log artifact out fp body
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of job build case apk)
+  body=$(printf 'the build failed: build / apk\n\n<!-- sensor: broken-main fingerprint=%s verdict=violation measurement=failure baseline= -->\n<!-- condition: {"job":"build","case":"apk"} -->\n<!-- fingerprint: %s -->\n<!-- occurrence: 1 -->\n<!-- violation-run: 1 -->' "$fp" "$fp")
+  issues_fixture "$dir" "[$(issue_record 198 OPEN "" broken-main "$body" \
+    "[$(marker_comment 2026-10-20T12:04:42Z broken-main "$fp" violation 2)]")]"
+  artifact="$dir/gate-result.json"
+  jq -n '{result: "success", job: "gate", case: "the-build"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-main --apply --input "$artifact" --json 2>&1)
+  assert_contains "$out" "\"fingerprint\":\"$fp\"" "the clear carries the item's own identity: $out"
+  assert_eq "1" "$(recorded "$log" 'issue close')" "and closes the item: $out"
+  assert_contains "$(cat "$log")" "issue close 198" "the closure names the item its condition describes"
 }
 
 case_sensors_prConflictsNothingReportsClear() {

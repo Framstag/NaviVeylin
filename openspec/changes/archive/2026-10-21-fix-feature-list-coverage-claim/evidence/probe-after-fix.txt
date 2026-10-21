@@ -1,0 +1,5 @@
+# the same probe against this change's tree (re-taken after the final prose edit)
+# taken 2026-10-21T11:09:36Z
+# command: bash openspec/changes/archive/2026-10-21-fix-feature-list-coverage-claim/evidence/red-probe.sh --root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+stated cases: 35, without a carrying case: 0
+exit=0

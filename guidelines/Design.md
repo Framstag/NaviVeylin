@@ -657,7 +657,7 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   (2026-10-10, `car-favorites-group-level` task 4.2) and `NotificationHostSendLoggingTest` (2026-10-11,
   `fix-browse-recenter-dwell` task 5.7), issue #115, change `fix-diagnostics-sink-attribution`.
 
-### Kotlin / Compose / Robolectric traps (§40.13–§40.21, §40.28, §40.31, §40.33)
+### Kotlin / Compose / Robolectric traps (§40.13–§40.21, §40.28, §40.31, §40.33; §134.73, §134.76)
 
 - **`while (isActive)` needs the explicit `kotlinx.coroutines.isActive` import** (§40.13).
 - **`KProperty0.isInitialized` works only for `lateinit`** (§40.14); for `by lazy` state use a nullable `var`
@@ -685,6 +685,20 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 - **In ViewModel tests, assert pre-state through an entry path that does not mutate the snapshot field**
   (§40.60): a path that writes the field before the collector resumes makes the pre-state assertion
   self-defeating.
+- **Never mock a class that bears `native` methods or returns Kotlin flows** (§134.73): `native` cannot be
+  relaxed or intercepted (`UnsatisfiedLinkError`), a relaxed mock of a `StateFlow`-returning member throws
+  `KotlinNothingValueException` on `collect`, and a relaxed `Boolean` or object answer is `false`/`null` —
+  stub `isValid = true` for a surface a renderer draws on. Use the module's fakes (`FakeOSMScoutClient`,
+  `FakeMapScreenClient`, `FakeAutoRenderClient`, `FakeClientWithBbox`, `FakeStyleLoadClient`) and real
+  `MutableStateFlow`s, and expect to grow a fake one native call at a time.
+- **A car-app or sheet test drives and asserts the surface the way the host does** (§134.76): drive
+  `LifecycleRegistry` through the states a host would (`INITIALIZED` → `CREATED` → `DESTROYED`, never straight
+  to `DESTROYED`); `androidx.car.app.Screen`'s constructor is protected (subclass it);
+  `ShadowDialog.getLatestDialog()` is null for a `Box` overlay (dispatch the back through the activity
+  instead); Material3 `PartiallyExpanded` is a fraction of *content*, so keep the anchor state in the state
+  owner; a node inside a `verticalScroll` in Robolectric's 320×470 dp window fails `assertIsDisplayed` —
+  assert existence and re-check the product consequence; and Compose test symbols are either rule members
+  (`onAllNodes`) or extensions (`assertIsDisplayed`) — read the whole error list before importing.
 
 ## 12. General engineering principles
 

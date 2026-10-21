@@ -10,14 +10,16 @@ a rule that already exists* (§40, a `guidelines/*` section, a skill).
 Audited entry by entry against the tree at base `44b673f424a75dbfae97e704f7e8ece03f3670b2`
 (`evidence/audit.md`, one row per entry with the carrier's `file:line`): 33 entries are carried as claimed
 (e.g. §134.62 → `guidelines/Build.md:141` "Liveness guard and shell recipes"; §134.77 →
-`guidelines/UI.md:156` "Drag surface checklist"; §134.98 → `guidelines/Regulatory.md:277`). **Four entries state
-a rule that no guideline section, skill or CI step states**, and three of them cross-reference a *neighbouring*
-§40 trap instead of the rule:
+`guidelines/UI.md:156` "Drag surface checklist"; §134.98 → `guidelines/Regulatory.md:277`). **Four entries
+state a rule that no guideline section, skill or CI step states**, and three of them cross-reference a
+*neighbouring* §40 trap instead of the rule — for §134.65 the absent thing is the *rule* (a whole-suite run
+adds `--continue`), not the flag: the skill the entry names uses `--continue` incidentally and states neither
+the condition nor the executed-task reading:
 
 | entry | rule the entry states | what the tree has today |
 |---|---|---|
 | §134.64 | recovery order after a killed run: `--status` → `--stop` → per module/variant → `free -m` → kill orphan test workers by PID (confirm `-Djava.library.path` points at this repo) → retry with `--max-workers=1` | `Build.md:172-177` carries "split per module", the `rm -rf` of the dead results and `--status`/`--stop`; `grep -n 'max-workers' guidelines/*.md` and `grep -n 'free -m' guidelines/*.md` return nothing, so the memory check, the orphan-worker kill and the single-worker retry are nowhere |
-| §134.65 | add `--continue` to any run meant to cover the whole suite, and read the executed-task list rather than the flavors you expect | the task names are carried (`Build.md:311`, `:210-221`) and the executed-task rule is carried (`openspec/specs/build-test-gate/spec.md:50`); `grep -n -- --continue guidelines/*.md .pi/skills/*/SKILL.md openspec/specs/*/spec.md` returns nothing |
+| §134.65 | add `--continue` to any run meant to cover the whole suite, and read the executed-task list rather than the flavors you expect | the task names are carried (`Build.md:311`, `:210-221`) and the executed-task rule is carried (`openspec/specs/build-test-gate/spec.md:50`), but the rule itself is stated nowhere. The flag occurs only incidentally — `Build.md:211` inside a recorded baseline invocation, `.pi/skills/run-tests/SKILL.md:50` (re-run one failing module) and `:133` (a measured coverage invocation), `guidelines/Backlog.md:34` (a different flag, `tools/issues/answer.sh --continue`) — and no artifact says a whole-suite run adds it |
 | §134.73 | never mock a class that bears `native` methods or returns Kotlin flows — `native` cannot be relaxed, a relaxed `StateFlow`-returning member throws `KotlinNothingValueException` on `collect`, a relaxed `Boolean`/object answer is `false`/`null`; use the module's fakes and real `MutableStateFlow`s | `grep -rn 'KotlinNothingValueException' guidelines/` → 0 hits; the entry's only named artifact is "(Cross-ref §40.24)", and §40.24 (`guidelines/Design.md:338`) is the `@JvmStatic`-object rule — a different trap |
 | §134.76 | car-app / Compose / lifecycle test traps: drive `LifecycleRegistry` through `INITIALIZED` → `CREATED` → `DESTROYED` (never straight to `DESTROYED`), `androidx.car.app.Screen`'s constructor is protected (subclass it), `ShadowDialog.getLatestDialog()` is null for a `Box` overlay, Material3 `PartiallyExpanded` is a fraction of *content*, `assertIsDisplayed` fails for content inside a `verticalScroll`, Compose test symbols are rule members or extensions | §40.20/§40.21 (the 320×470 dp clamp and the shadow canvas) are carried at `Design.md:676-680` and `Build.md:669-681`; `grep -rn 'PartiallyExpanded\|getLatestDialog\|LifecycleRegistry' guidelines/` → 0 hits for every one of the remaining five clauses |
 
@@ -34,7 +36,9 @@ neighbouring §40 trap and one names only two of its six clauses — so four gua
 while nothing in the tree states them.
 
 **Red test on HEAD** — `evidence/red-probe.sh` (text-only: no build, no device, no network), which asks, per
-entry, whether the *section that owns the concern* states the entry's rule:
+entry, whether the *section that owns the concern* carries one distinguishing token of the entry's rule (one
+token per entry — a multi-clause bullet can lose a clause and still pass, which is why the bullets state every
+clause while the guard checks one):
 
 ```
 $ bash openspec/changes/fix-uncarried-guardrail-entries/evidence/red-probe.sh
@@ -45,14 +49,15 @@ MISSING §134.76  guidelines/Design.md:660-689 ("### Kotlin / Compose / Robolect
 
 entries=4 missing=4
 FAIL record-carriage#eachRecordedRuleIsStatedInItsSection — 4 of 4 recorded rules are stated only in the tracker (exit 1)
-EXIT=1
 ```
 
-Recorded `evidence/red-HEAD.txt`, **entries=4 missing=4, exit 1 (2026-10-21T11:41:24Z)**. No JUnit XML exists for
-this probe: the delta touches no compiled file, so no Gradle gate is owed (`guidelines/Build.md` §2, the scope
-block). After the four rules are carried the same probe prints `entries=4 missing=0`, `PASS
-record-carriage#eachRecordedRuleIsStatedInItsSection`, exit 0 (`evidence/green-after.txt`,
-2026-10-21T11:42:28Z).
+Recorded `evidence/red-HEAD.txt` (captured 2026-10-21T11:41:24Z; the file carries that time in its own
+header): **entries=4 missing=4**, the probe's `FAIL … (exit 1)` line. The exit code is the branch that line
+announces rather than a separately observed code; `evidence/revert-mutation.txt` records an observed `EXIT=`
+line for the same branch. No JUnit XML exists for this probe: the delta touches no compiled file, so no Gradle
+gate is owed (`guidelines/Build.md` §2, the scope block). After the four rules are carried the same probe
+prints `entries=4 missing=0`, `PASS record-carriage#eachRecordedRuleIsStatedInItsSection (exit 0)`
+(`evidence/green-after.txt`, captured 2026-10-21T11:42:28Z by the same header convention).
 
 Owning requirement: `openspec/specs/documentation-ownership/spec.md` — this change ADDS "A recorded guardrail
 is stated in the section that owns it", next to the shipped "A concern has one owning document" and "A

@@ -1,3 +1,6 @@
+# green after the four rules were carried — capture 2026-10-21T11:42:28Z (this file's own capture time, taken
+# from its mtime before any copy; the header was added afterwards so the time survives copying). The "(exit 0)"
+# below is the probe's own printed verdict; evidence/revert-mutation.txt records observed EXIT= lines.
 STATED  §134.64  guidelines/Build.md:172-193  "--max-workers=1"
 STATED  §134.65  guidelines/Build.md:304-325  "--continue"
 STATED  §134.73  guidelines/Design.md:660-703  "KotlinNothingValueException"

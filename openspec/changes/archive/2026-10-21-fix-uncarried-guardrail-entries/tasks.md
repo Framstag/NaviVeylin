@@ -15,9 +15,13 @@ scenario → case: `record-carriage#eachRecordedRuleIsStatedInItsSection`.
 ## 2. The red case on HEAD
 
 - [x] 2.1 Write `evidence/red-probe.sh`: per entry, locate the owning section by its heading text and require
-      the rule's distinguishing token inside it; text only, no build, no device, no network. Verify: on HEAD
-      it prints `entries=4 missing=4` and `FAIL record-carriage#eachRecordedRuleIsStatedInItsSection`, exit 1,
-      recorded as `evidence/red-HEAD.txt` (2026-10-21T11:41:24Z) with no JUnit XML — the delta compiles nothing.
+      the rule's **one distinguishing token** inside it (one token per entry — the guard shows the rule reached
+      the section, not that every clause of a multi-clause bullet survived); text only, no build, no device, no
+      network. Verify: on HEAD it prints `entries=4 missing=4` and the `FAIL
+      record-carriage#eachRecordedRuleIsStatedInItsSection … (exit 1)` line, recorded as `evidence/red-HEAD.txt`
+      with the capture time (2026-10-21T11:41:24Z) in its own header. The `(exit 1)` text is the probe's printed
+      verdict rather than a separately observed code — `evidence/revert-mutation.txt` records an observed
+      `EXIT=1` for the same branch. No JUnit XML: the delta compiles nothing.
 
 ## 3. Carry the two rules owned by `guidelines/Design.md`
 
@@ -42,8 +46,10 @@ scenario → case: `record-carriage#eachRecordedRuleIsStatedInItsSection`.
 
 ## 5. Green and falsified
 
-- [x] 5.1 Re-run the probe on the fixed tree. Verify: `entries=4 missing=0`, `PASS
-      record-carriage#eachRecordedRuleIsStatedInItsSection`, exit 0, recorded as `evidence/green-after.txt`.
+- [x] 5.1 Re-run the probe on the fixed tree. Verify: `entries=4 missing=0`, the `PASS
+      record-carriage#eachRecordedRuleIsStatedInItsSection (exit 0)` line, recorded as
+      `evidence/green-after.txt` with its capture time (2026-10-21T11:42:28Z) in the file's header; the round-2
+      re-run after the review's corrections prints the same four `STATED` lines (task 6.3).
 - [x] 5.2 Falsify the probe with exactly one mutation (`guidelines/Build.md` §4 "One mutation per revert
       check"): delete the §134.76 bullet. Verify: the probe fails naming `§134.76`; restore the bullet and the
       probe passes again — recorded verbatim in `evidence/revert-mutation.txt`.
@@ -55,6 +61,11 @@ scenario → case: `record-carriage#eachRecordedRuleIsStatedInItsSection`.
 - [x] 6.2 Run `tools/check-doc-routes.sh` and `openspec validate --all`. Verify: both exit 0; the section
       references the edited lines touch still resolve, and the change's delta validates. Record all three in
       `evidence/checks.txt`.
+- [x] 6.3 Re-run the same four commands after the review's corrections (the §134.65 row's evidence, the probe's
+      stated scope, the capture headers, the scenario's probe path): probe `entries=4 missing=0` with the four
+      `STATED` lines; `tools/check-todo-references.sh` and `tools/check-doc-routes.sh` exit 0;
+      `openspec validate --all` exit 0. Verify: appended under `## round-2 structural checks` in
+      `evidence/checks.txt`, nothing red and nothing `FROM-CACHE` (nothing compiles).
 
 ## 7. Archive
 

@@ -1,3 +1,6 @@
+# red on HEAD — capture 2026-10-21T11:41:24Z (this file's own capture time, taken from its mtime before any
+# copy; the header was added afterwards so the time survives copying). The "(exit 1)" below is the probe's own
+# printed verdict; evidence/revert-mutation.txt records observed EXIT= lines for the same case.
 MISSING §134.64  guidelines/Build.md:172-190 ("A suite run that died mid-flight") does not state "--max-workers=1"
 MISSING §134.65  guidelines/Build.md:301-318 ("## 3. Commands reference") does not state "--continue"
 MISSING §134.73  guidelines/Design.md:660-689 ("### Kotlin / Compose / Robolectric traps") does not state "KotlinNothingValueException"

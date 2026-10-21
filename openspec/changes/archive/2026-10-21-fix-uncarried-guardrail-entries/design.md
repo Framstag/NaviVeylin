@@ -7,7 +7,7 @@ when that artifact states the rule. Three of the four affected entries therefore
 trap (§40.24 is the `@JvmStatic`-object rule, not the native/flow mock rule; §40.20/§40.21 are the 320×470 dp
 clamp and the shadow canvas, not the five other car-app test traps), and one entry (§134.64) was carried by a
 rule that states only its first half. Evidence: `evidence/audit.md` (37 rows, one per entry) and
-`evidence/red-HEAD.txt` (4 of 4 rules absent from their owning section, `entries=4 missing=4`, exit 1,
+`evidence/red-HEAD.txt` (4 of 4 rules absent from their owning section, `entries=4 missing=4`, captured
 2026-10-21T11:41:24Z).
 
 ## The single fix
@@ -62,12 +62,15 @@ applies; nothing in the app's behaviour, its build inputs or its test suite is a
 
 ## Verification
 
-- Red on HEAD: `evidence/red-probe.sh` → `entries=4 missing=4`, exit 1
-  (`evidence/red-HEAD.txt`, 2026-10-21T11:41:24Z), no JUnit XML — the delta touches no compiled file, so no
-  Gradle gate is owed (`guidelines/Build.md` §2, scope block).
+- Red on HEAD: `evidence/red-probe.sh` → `entries=4 missing=4`, the probe's `FAIL … (exit 1)` line
+  (`evidence/red-HEAD.txt`, captured 2026-10-21T11:41:24Z), no JUnit XML — the delta touches no compiled file,
+  so no Gradle gate is owed (`guidelines/Build.md` §2, scope block). The probe's guard is **one distinguishing
+  token per entry**, not every clause of a multi-clause bullet: it shows the rule reached the owning section,
+  and a partial deletion of a bullet can still pass it.
 - Green after the edits: the same probe → `entries=4 missing=0`, `PASS
-  record-carriage#eachRecordedRuleIsStatedInItsSection`, exit 0 (`evidence/green-after.txt`,
-  2026-10-21T11:42:28Z, re-run from the archived change).
+  record-carriage#eachRecordedRuleIsStatedInItsSection`, the `(exit 0)` branch (`evidence/green-after.txt`,
+  captured 2026-10-21T11:42:28Z, before the archive commit; the copies in both evidence directories carry the
+  capture time in their header).
 - Falsification (`revert-check` discipline, one mutation): delete the §134.76 bullet → the probe must fail
   naming §134.76 → restore → green again (`evidence/revert-mutation.txt`). The mutation is a text deletion,
   so it is reachable at run time and the probe is the case it protects.

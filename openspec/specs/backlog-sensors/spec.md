@@ -33,7 +33,8 @@ and area its issues carry, and whether it owns the issue's closing.
 
 A check's run SHALL end in exactly one of three outcomes — the condition is present, the condition has
 cleared, or the check failed to determine anything — and SHALL NOT close an issue unless the condition has
-demonstrably cleared.
+demonstrably cleared. A clearing finding SHALL carry the identity the item's own body record declares, and
+SHALL name the check's own identity only when no item records a condition.
 
 #### Scenario: The condition is present
 
@@ -44,7 +45,9 @@ demonstrably cleared.
 
 - **WHEN** a check measures inside its bound for the required number of consecutive runs
 - **THEN** the measurement is recorded on the issue and the issue is closed, naming the clearing
-  measurement as its evidence
+  measurement as its evidence, and the finding's identity is the one the issue's own condition record
+  declares rather than the identity of the measurement that found it green
+- **Case**: `sensors#aRecordedConditionParsesToItsObject`
 
 #### Scenario: A row whose condition is simply absent says so
 

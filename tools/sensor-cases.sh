@@ -50,6 +50,7 @@ SENSOR_CASES=(
   'sensors#brokenMainFingerprintDistinguishesCauses'
   'sensors#prConflictsOnlyOwnPRs'
   'sensors#brokenMainGreenReportsClear'
+  'sensors#aRecordedConditionParsesToItsObject'
   'sensors#prConflictsNothingReportsClear'
   'workflow#onlyTwoTriggers'
   'workflow#aRedRecordRunsNoRecordRow'
@@ -101,6 +102,7 @@ sensor_run_case() {
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
     'sensors#prConflictsOnlyOwnPRs') case_sensors_prConflictsOnlyOwnPRs ;;
     'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
+    'sensors#aRecordedConditionParsesToItsObject') case_sensors_aRecordedConditionParsesToItsObject ;;
     'sensors#prConflictsNothingReportsClear') case_sensors_prConflictsNothingReportsClear ;;
     'workflow#onlyTwoTriggers') case_workflow_onlyTwoTriggers ;;
     'workflow#aRedRecordRunsNoRecordRow') case_workflow_aRedRecordRunsNoRecordRow ;;
@@ -1172,6 +1174,44 @@ case_sensors_brokenMainGreenReportsClear() {
   assert_contains "$out" '"row":"broken-main"' "the finding is the row's own"
   assert_eq "0" "$(recorded "$log" 'issue create')" "a green build files nothing"
   assert_eq "0" "$(recorded "$log" 'issue close')" "and closes nothing, because no condition is recorded"
+}
+
+case_sensors_aRecordedConditionParsesToItsObject() {
+  # The body record the engine writes ends with the marker's own `-->` tail, so the parser must take the object
+  # between the braces and not everything up to the next `>`: the tail-tolerant pattern swallows ` --`, every
+  # condition then parses to `{}`, and a green build's clear lands on a finding that owns no issue (#230).
+  local dir log artifact body fp out parsed
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+
+  # 1. The parse itself: the marker's object, and no condition at all for a body that carries no marker.
+  parsed=$(
+    # shellcheck source=tools/sensors/lib.sh
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_conditions_json '[{"number":198,"state":"OPEN","body":"red\n\n<!-- condition: {\"job\":\"build\",\"case\":\"apk\"} -->"}]' |
+      jq -c '.[0].condition'
+  )
+  assert_eq '{"job":"build","case":"apk"}' "$parsed" "a marker with its --> tail parses to its object"
+  parsed=$(
+    # shellcheck source=tools/sensors/lib.sh
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_conditions_json '[{"number":1,"state":"OPEN","body":"no marker in this body"}]' |
+      jq -c '.[0].condition'
+  )
+  assert_eq '{}' "$parsed" "a body with no marker carries no condition"
+
+  # 2. The consequence: the green run closes the issue the *recorded* condition belongs to, rather than
+  # reporting a clear that names the green record's own identity and so owns nothing.
+  fp=$(fingerprint_of job build case apk)
+  body=$(printf 'the main build is red\n\n<!-- fingerprint: %s -->\n<!-- condition: {"job":"build","case":"apk"} -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 198 OPEN null broken-main "$body")]"
+  artifact="$dir/gate-result.json"
+  jq -n '{result: "success", job: "gate", case: "the-build"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-main --apply --input "$artifact" --json 2>&1)
+  assert_contains "$out" "\"verdict\":\"clear\"" "a green build reports a clear"
+  assert_contains "$out" "\"fingerprint\":\"$fp\"" "the clear names the recorded condition's identity"
+  assert_eq "1" "$(recorded "$log" 'issue close')" \
+    "the issue the recorded condition identifies is the one a green build closes"
 }
 
 case_sensors_prConflictsNothingReportsClear() {

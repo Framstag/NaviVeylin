@@ -1,0 +1,7 @@
+MISSING §134.64  guidelines/Build.md:172-190 ("A suite run that died mid-flight") does not state "--max-workers=1"
+MISSING §134.65  guidelines/Build.md:301-318 ("## 3. Commands reference") does not state "--continue"
+MISSING §134.73  guidelines/Design.md:660-689 ("### Kotlin / Compose / Robolectric traps") does not state "KotlinNothingValueException"
+MISSING §134.76  guidelines/Design.md:660-689 ("### Kotlin / Compose / Robolectric traps") does not state "PartiallyExpanded"
+
+entries=4 missing=4
+FAIL record-carriage#eachRecordedRuleIsStatedInItsSection — 4 of 4 recorded rules are stated only in the tracker (exit 1)

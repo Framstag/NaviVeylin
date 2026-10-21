@@ -1,0 +1,19 @@
+# revert-check — one mutation, 2026-10-21T11:42:07Z
+# mutation: delete the §134.76 bullet (8 lines) from guidelines/Design.md §11
+STATED  §134.64  guidelines/Build.md:172-193  "--max-workers=1"
+STATED  §134.65  guidelines/Build.md:304-325  "--continue"
+STATED  §134.73  guidelines/Design.md:660-695  "KotlinNothingValueException"
+MISSING §134.76  guidelines/Design.md:660-695 ("### Kotlin / Compose / Robolectric traps") does not state "PartiallyExpanded"
+
+entries=4 missing=1
+FAIL record-carriage#eachRecordedRuleIsStatedInItsSection — 1 of 4 recorded rules are stated only in the tracker (exit 1)
+EXIT=1
+# restored, 2026-10-21T11:42:08Z — same command, forced by re-running the probe
+STATED  §134.64  guidelines/Build.md:172-193  "--max-workers=1"
+STATED  §134.65  guidelines/Build.md:304-325  "--continue"
+STATED  §134.73  guidelines/Design.md:660-703  "KotlinNothingValueException"
+STATED  §134.76  guidelines/Design.md:660-703  "PartiallyExpanded"
+
+entries=4 missing=0
+PASS record-carriage#eachRecordedRuleIsStatedInItsSection (exit 0)
+EXIT=0

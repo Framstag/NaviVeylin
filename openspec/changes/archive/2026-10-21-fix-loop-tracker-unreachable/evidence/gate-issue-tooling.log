@@ -23,8 +23,11 @@ PASS lib#coreIsCompiledNotLaunched
 PASS lib#retriesATransientFailure
 PASS lib#reportsAnUnreachableTrackerAfterTheLastRetry
 PASS lib#doesNotRetryAnAuthoritativeFailure
+PASS lib#doesNotRetryAnAppend
+PASS lib#onlyTheSeamCallsTheRealCli
 PASS policy#preflightRefusesUnknownLogin
 PASS policy#preflightReportsAnUnreachableTracker
+PASS policy#checkAnswersWithoutAnIdentityRead
 PASS create#duplicateRefusesAndNamesTheIssue
 PASS create#writesMarkerAndLabels
 PASS create#refusesTwoValuesOfOneNamespace
@@ -33,6 +36,7 @@ PASS create#refusesAClassItsLabelsContradict
 PASS create#refusesADoubledCitation
 PASS create#bareValueFlagNeedsAValue
 PASS update#refusesUnknownLabel
+PASS update#reportsAnUnreachableTrackerInsteadOfARefusal
 PASS close#requiresReasonAndEvidence
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -106,4 +110,4 @@ PASS check#incompleteMarkerFails
 PASS check#labelWithoutMarkerFails
 PASS check#unrankedIsNotAViolation
 PASS check#selfCheckIsGreen
-issue-tooling-selftest: all 106 cases passed (JDK 27, offline, no token)
+issue-tooling-selftest: all 110 cases passed (JDK 27, offline, no token, HEAD 17f6b8d, tools 3dc9c089213a, 2026-10-21T08:40:50Z)

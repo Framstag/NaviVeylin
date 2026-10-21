@@ -3,7 +3,7 @@
 A network failure between the host and GitHub was consumed as an *answer*: the run stopped on its first
 attempt, and the identity read turned the outage into a policy refusal written onto an item.
 
-- **Verified in the tree today** ✗ at the base commit `2e732f0e00fa771d04569483ffe80bc2ca3fa974`:
+- **Verified in the tree today** at the base commit `2e732f0e00fa771d04569483ffe80bc2ca3fa974`:
   - `tools/issues/lib.sh:100-102` — `issues_login()` is
     `gh api user --jq .login 2>/dev/null || true`. An unreachable API and an unauthenticated one both yield
     the empty string, so the caller cannot tell them apart.
@@ -28,6 +28,18 @@ attempt, and the identity read turned the outage into a policy refusal written o
   (they assert the retry, the `75` exit and the `tracker-unreachable` reason, none of which exist there);
   `lib#doesNotRetryAnAuthoritativeFailure` is green there by construction and is the guard against
   over-retrying. The transcripts are `evidence/red-on-HEAD.log`.
+
+  The second round added four cases and drove them against the first round's tree
+  (`evidence/red-on-HEAD-round2.log`):
+
+  | probe | result on the first round's tree |
+  |---|---|
+  | `gh issue create` fails transiently, seam called directly | `status:75` — the filing was retried, so a lost reply files the same finding twice |
+  | `policy.sh check <issue.json>` while `gh api user` fails | exit `75`, `tracker-unreachable` — a decision the record answers was made to depend on the tracker |
+  | `update.sh 7 --label class/bug` while `gh api user` fails | exit `3`, `author-not-allowlisted: (no authenticated login)` — the incident reproduced through a second entry point |
+
+  `lib#onlyTheSeamCallsTheRealCli` is the fourth: a guard, green on both trees, that turns red when a call
+  site writes `command gh` instead of using the seam.
 - **Root cause**: a `gh` failure is never classified by *what kind* of failure it is, so every call site reads
   a transport failure as the tracker's answer — an empty login, an empty item list, a stop.
 - **One fix**: one retry seam through which every `gh` call passes, which retries only what the transport
@@ -46,17 +58,25 @@ attempt, and the identity read turned the outage into a policy refusal written o
 - `tools/issues/lib.sh` gains `ISSUES_EXIT_UNREACHABLE=75`, one transient-failure classifier
   (`ISSUES_GH_TRANSIENT_RE`, `issues_gh_transient`) and one seam defined as the shell function `gh`, which
   wraps `command gh` and retries a classified transient failure with `ISSUES_GH_RETRY_DELAYS` (default
-  `5 20 60`, i.e. three retries). `gh issue comment` is exempt because a retried append can post twice.
+  `5 20 60`, i.e. three retries). `gh issue comment` and `gh issue create` are exempt because a retried
+  append posts or files twice.
 - `issues_login` returns `75` when the read was unreachable and keeps returning the empty string, at status
-  0, when the tracker answered and named no identity.
+  0, when the tracker answered and named no identity. The read itself moves into `issues_preflight`, which
+  every write path already calls, so no call site repeats the assignment whose status it used to drop.
 - `policy.sh` answers `tracker-unreachable` (decision `unknown`, exit 75) rather than passing an empty login
-  to the core, in both the JSON and the text form.
+  to the core, in both the JSON and the text form — in the `preflight` branch only, because `check` needs no
+  identity read and must keep answering from the issue record during an outage.
+- `tools/issues/update.sh`, `create.sh`, `close.sh`, `answer.sh`, `reopen.sh`, `import.sh`,
+  `resolve-stale.sh` and `tools/sensors/run.sh` lose their `login=$(issues_login)` line.
 - `tools/issues/fixtures/gh` gains `GH_STUB_TRANSIENT_FAIL` / `_TIMES` / `_STATE`, so a case can fail the
   first N matching invocations the way a socket does.
+- `tools/issue-tooling-selftest.sh` names the tree and the instant in its footer, so a captured gate log
+  dates itself.
 
 ## Impact
 
-- Affected specs: `agent-issue-loop` (one added requirement).
-- Affected code: `tools/issues/lib.sh`, `tools/issues/policy.sh`, `tools/issues/fixtures/gh`,
-  `tools/issue-tooling-cases.sh` (three new cases plus one extended).
+- Affected specs: `agent-issue-loop` (two added requirements).
+- Affected code: `tools/issues/lib.sh`, `tools/issues/policy.sh`, the eight entry points named above,
+  `tools/issues/fixtures/gh`, `tools/issue-tooling-cases.sh` (eight new cases) and
+  `tools/issue-tooling-selftest.sh` (the footer).
 - Not affected: no Kotlin, Java or C++ file; no Gradle gate is owed by this change.

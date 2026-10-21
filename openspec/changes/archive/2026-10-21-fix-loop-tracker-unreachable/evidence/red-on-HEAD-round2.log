@@ -1,0 +1,27 @@
+# Red on HEAD — item #231, worker round 2
+#
+# HEAD of the change root: 17f6b8d108fe1f86f35fa83f5b99e3510dc915a5
+# Probe date: 2026-10-21T08:25:03Z
+# The tree under test is a read-only copy of the change root at that commit: the ten production files
+# (tools/issues/lib.sh, policy.sh, update.sh, create.sh, close.sh, answer.sh, reopen.sh, import.sh,
+# resolve-stale.sh, tools/sensors/run.sh) were rewritten from `git show 17f6b8d:<path>`, while
+# tools/issue-tooling-cases.sh and tools/issue-tooling-selftest.sh are this round's. The project tree and the
+# change root were not modified by this probe.
+
+## lib#doesNotRetryAnAppend
+  a filing's dead socket is passed through too: 'status:1' not found in: status:75
+FAIL lib#doesNotRetryAnAppend
+
+## policy#checkAnswersWithoutAnIdentityRead
+  "reason": "tracker-unreachable",
+  "detail": "(the tracker API did not answer — no identity could be read)"
+}: expected '0', got '75'
+FAIL policy#checkAnswersWithoutAnIdentityRead
+
+## update#reportsAnUnreachableTrackerInsteadOfARefusal
+  an unreachable tracker is not a policy refusal on a write path: author-not-allowlisted: (no authenticated login): expected '75', got '3'
+FAIL update#reportsAnUnreachableTrackerInsteadOfARefusal
+
+## lib#onlyTheSeamCallsTheRealCli
+PASS lib#onlyTheSeamCallsTheRealCli
+

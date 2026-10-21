@@ -46,7 +46,7 @@ loop_resolve
 compiled_cmd=$(loop_conf_value LOOP_GATE_COMPILED_CMD)
 compiled_patterns=$(loop_conf_value LOOP_GATE_COMPILED_PATTERNS)
 suites=$(loop_conf_value LOOP_GATE_SUITES)
-tally_root="${LOOP_GATE_TALLY_DIR:-app/build/test-results/loop-gate}"
+tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
 
 say() { [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
 
@@ -120,13 +120,16 @@ while IFS= read -r cmd; do
   case "$f" in ''|*[!0-9]*) [ "$rc" -eq 0 ] || f=1 ;; esac
   cases=$((cases + n))
   failures=$((failures + f))
-  # One tally per suite, under a path the run's own check finds (`*test-results*`): the numbers are the suite's.
-  mkdir -p "$tally_root" 2>/dev/null || true
-  name=$(printf '%s' "$cmd" | tr '/ ' '__' | cut -c1-80)
-  [ "$rc" -eq 0 ] || [ "$n" -gt 0 ] || n=1
-  printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="0">\n  <system-out>%s</system-out>\n</testsuite>\n' \
-    "$cmd" "$n" "$f" "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
-    > "$tally_root/$name.xml" 2>/dev/null || true
+  # One tally per suite, under the directory the profile names (`*test-results*`, so the run's own check finds
+  # it) and only when it names one: the engine may hold no project path, and the portability check is what says so.
+  if [ -n "$tally_root" ]; then
+    mkdir -p "$tally_root" 2>/dev/null || true
+    name=$(printf '%s' "$cmd" | tr '/ ' '__' | cut -c1-80)
+    [ "$rc" -eq 0 ] || [ "$n" -gt 0 ] || n=1
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="0">\n  <system-out>%s</system-out>\n</testsuite>\n' \
+      "$cmd" "$n" "$f" "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
+      > "$tally_root/$name.xml" 2>/dev/null || true
+  fi
 done <<< "$owed"
 
 if [ -n "$failed_suites" ]; then

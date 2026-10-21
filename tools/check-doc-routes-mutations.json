@@ -1,0 +1,14 @@
+{
+  "comment": "The revert-check of `documentation-ownership`'s skill-path requirement (issue #13): one mutation, the resolution of a named skill path removed, so the documentation may again route a reader to a skill that does not exist. Run it with `bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the documentation routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. The case command runs the whole self-test because three of its cases assert the same guard from three sides (a path that no longer exists, a directory left without its `SKILL.md`, and a name that only prefixes an existing skill); the search is a single line and unique in its file, because the runner's replacement is literal and line-based.",
+  "case-cmd": "bash tools/check-doc-routes-selftest.sh",
+  "mutations": [
+    {
+      "label": "skill-path",
+      "case": "routes#aSkillPathThatNoLongerResolvesIsReported",
+      "file": "tools/check-doc-routes.sh",
+      "search": "    if ! printf '%s\\n' $skills | grep -qx -- \"$name\"; then",
+      "replace": "    if false; then",
+      "why": "a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it"
+    }
+  ]
+}

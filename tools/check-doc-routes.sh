@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Resolve every guideline section reference in AGENTS.md's "Documentation Map".
+# Resolve every guideline section reference in AGENTS.md's "Documentation Map", and every skill path the
+# documentation names.
 #
 # A reference is written as `<File>.md` §<number> "<heading text>" — the heading text is optional, and a
 # number may carry a letter suffix (`§15a`). The number must be a `## ` heading number of that document;
@@ -11,6 +12,12 @@
 # document added later is covered without editing the check. A document that the routing table does not name
 # at all is reported as unrouted.
 #
+# A skill path (`.pi/skills/<name>`) named by `AGENTS.md` or by a guideline resolves against the skills under
+# `.pi/skills/`, taken from the directories that carry a `SKILL.md` at run time. A path whose skill no longer
+# exists — renamed, deleted, or left without its `SKILL.md` — is reported, so a document cannot keep routing a
+# reader to a skill that is gone. The rule this serves is `openspec/specs/documentation-ownership/spec.md`,
+# "A document that names a skill resolves to a skill that exists".
+#
 # Reads text files only: no build, no device, no network. Exit 0 when every reference resolves and every
 # document is routed, 1 when one does not, 2 on a usage or layout error.
 #
@@ -21,7 +28,7 @@ root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,18p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "check-doc-routes: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -115,8 +122,38 @@ sed -E "s/($named)\\.md/@@&@@/g" "$tmp/region" | awk -F'@@' -v pat="$named" '
     }
   }' > "$tmp/refs"
 
-# 5. resolve them
-awk -F'\t' -v unrouted="$unrouted" -v missingdocs="$missing_docs" '
+# 5. the skills: derived from the directories under `.pi/skills/` that carry a SKILL.md, not from a list
+#    inside this script, so a skill added later is covered without editing the check.
+sdir="$root/.pi/skills"
+skills=""
+if [ -d "$sdir" ]; then
+  for path in "$sdir"/*/SKILL.md; do
+    [ -f "$path" ] || continue
+    dir=$(dirname "$path")
+    skills="$skills $(basename "$dir")"
+  done
+fi
+skills=$(printf '%s\n' $skills | sed '/^$/d' | sort)
+
+# 6. every skill path the documentation names resolves to one of them. The path is matched as a whole name,
+#    so `.pi/skills/pixel-check` is not satisfied by a directory `pixel-check-extra`.
+skill_total=0
+skill_fail=0
+for doc in "$agents" "$gdir"/*.md; do
+  [ -f "$doc" ] || continue
+  for ref in $(grep -oE '\.pi/skills/[A-Za-z0-9._-]+' "$doc" | sort -u); do
+    skill_total=$((skill_total + 1))
+    name=${ref#.pi/skills/}
+    if ! printf '%s\n' $skills | grep -qx -- "$name"; then
+      printf "::error file=%s::%s — no such skill: `.pi/skills/%s` is not a skill directory carrying a SKILL.md (renamed, deleted, or left without its contract)\n" \
+        "${doc#$root/}" "$ref" "$name"
+      skill_fail=$((skill_fail + 1))
+    fi
+  done
+done
+
+# 7. resolve the section references
+awk -F'\t' -v unrouted="$unrouted" -v missingdocs="$missing_docs" -v skillfail="$skill_fail" -v skilltotal="$skill_total" '
   FNR == NR {
     key = $1 SUBSEP $2
     count[key]++
@@ -140,13 +177,16 @@ awk -F'\t' -v unrouted="$unrouted" -v missingdocs="$missing_docs" '
     }
   }
   END {
-    if (fail > 0 || unrouted > 0 || missingdocs > 0) {
+    if (fail > 0 || unrouted > 0 || missingdocs > 0 || skillfail > 0) {
       printf "check-doc-routes: %d of %d references do not resolve", fail, total
+      if (skillfail > 0) printf ", %d of %d skill references do not resolve", skillfail, skilltotal
       if (unrouted > 0) printf ", %d document(s) unrouted", unrouted
       if (missingdocs > 0) printf ", %d referenced document(s) missing", missingdocs
       printf "\n"
       exit 1
     }
     if (total == 0) { print "check-doc-routes: the Documentation Map makes no section reference"; exit 2 }
-    printf "check-doc-routes: all %d section references resolve\n", total
+    printf "check-doc-routes: all %d section references resolve", total
+    if (skilltotal > 0) printf ", all %d skill references resolve", skilltotal
+    printf "\n"
   }' "$tmp/headings" "$tmp/refs"

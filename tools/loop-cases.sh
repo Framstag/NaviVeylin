@@ -56,6 +56,7 @@ LOOP_SHELL_CASES=(
   'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
   'worktree#refusesABranchCarryingAPreviousAttempt'
   'worktree#refusesABranchWhoseReviewFailed'
+  'worktree#refusesToMergeOverADirtyProjectTree'
   'labels#verdictToLabelMatrix'
   'labels#holdCarriesItsReason'
   'labels#trapRemovesInProgressOnSignal'
@@ -91,6 +92,7 @@ LOOP_SHELL_CASES=(
   'run#branchThatAppearsWhileTheRunIsOpenIsRecorded'
   'run#mergesAFinishedAttemptAndClosesTheItem'
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
+  'run#mergesItsCommittedBranchBeforeClosing'
   'run#recordsAFailedReviewOnTheBranch'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
@@ -197,6 +199,7 @@ loop_run_shell_case() {
     'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
+    'worktree#refusesToMergeOverADirtyProjectTree') fn=case_worktree_refusesToMergeOverADirtyProjectTree ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
     'labels#holdCarriesItsReason') fn=case_labels_holdCarriesItsReason ;;
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
@@ -231,6 +234,7 @@ loop_run_shell_case() {
     'run#branchThatAppearsWhileTheRunIsOpenIsRecorded') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded ;;
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
+    'run#mergesItsCommittedBranchBeforeClosing') fn=case_run_mergesItsCommittedBranchBeforeClosing ;;
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
@@ -1273,7 +1277,11 @@ case_worktree_keepsByDefaultAndRemovesOnRequest() {
   [ -d "$p/.pi/worktrees/loop" ] || fail "the worktree was removed although nothing asked for it"
   run_one_item "$p" "$d" --clean-worktree >/dev/null || fail "the second run failed"
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "the worktree survived --clean-worktree"
-  if git -C "$p" worktree list | grep -q 'worktrees/loop'; then
+  # The check is the worktree git lists, not the substring: the loop runs its own suite from
+  # `.pi/worktrees/loop`, so every scratch project's path contains `worktrees/loop` and the old match failed on
+  # the run's own root rather than on a leftover entry (measured 2026-10-21, issue #229 — reproduced on HEAD at
+  # a copy whose path held that segment, green at one whose path did not).
+  if git -C "$p" worktree list --porcelain | grep -qxF "worktree $p/.pi/worktrees/loop"; then
     fail "git still lists the worktree that was removed"
   fi
   return 0
@@ -2219,6 +2227,58 @@ case_run_mergesAFinishedAttemptAndClosesTheItem() {
   assert_not_contains "$log" "agent/needs-decision" "and no decision is left on it"
 }
 
+# The success path's merge is a fast-forward in the project's own tree, where the base branch is checked out,
+# so it is refused when that tree is not clean — merging over uncommitted work would attribute it to the item —
+# and when the branch does not descend from the base the run recorded. A refusal moves nothing, and a run that
+# read the refusal as a closure would say `status/fixed-by` about a fix only a branch has; the same command on a
+# clean tree is the merge the run's own success path takes (issue #229).
+case_worktree_refusesToMergeOverADirtyProjectTree() {
+  local p w base out status branch tip
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  base=$(run_state "$p" get run.base)
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the item did not start"
+  branch=fix/issue-21-demo
+  printf 'the fix\n' > "$w/demo-fix.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: demo (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the fix"
+  tip=$(git -C "$p" rev-parse "$branch")
+
+  printf 'the work left behind\n' > "$p/stray.txt"
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a project tree that is not clean refuses the merge"
+  assert_contains "$out" "not clean" "the refusal says why"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
+  [ ! -f "$p/demo-fix.txt" ] || fail "the fix reached the base although the merge was refused"
+  rm -f "$p/stray.txt"
+
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1) || fail "the merge was refused on a clean tree: $out"
+  assert_contains "$out" "merged: branch $branch" "the merge names the branch it landed"
+  assert_contains "$out" "· commits " "and the commits it carried"
+  assert_eq "$tip" "$(git -C "$p" rev-parse main)" "the base is the branch, fast-forwarded"
+}
+
+# A run's success path commits the item's work on the item's own branch and then closes the item; the only
+# merge in the loop was the adoption of a *previous* attempt, which needs the item to be visited again, so a
+# closed item's fix stayed on `fix/issue-N-…` while the tracker read `status/fixed-by` — measured 2026-10-20 on
+# #201, whose two commits a person fast-forwarded onto `main` by hand 35 minutes later (issue #229). The run
+# merges the branch it committed before it closes the item.
+case_run_mergesItsCommittedBranchBeforeClosing() {
+  local d p out branch
+  d=$(scratch); p=$(new_project)
+  out=$(run_one_item "$p" "$d" --review on 2>&1) || fail "the run itself failed: $out"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the reviewed item is closed"
+  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
+  [ -n "$branch" ] || fail "the run left no item branch"
+  git -C "$p" merge-base --is-ancestor "$branch" main ||
+    fail "the item was closed with its fix on $branch, which the base does not have"
+  [ -f "$p/demo-fix.txt" ] || fail "the fix the run committed did not reach the base"
+  assert_eq "$(git -C "$p" rev-parse "$branch")" "$(git -C "$p" rev-parse main)" \
+    "the base is the merge of the branch, not a second commit of its own"
+}
+
 # The merge is only taken on a verification that is green: a branch whose archived change carries no passing
 # verification record — a blocked attempt carries only the red-on-HEAD XML — keeps its refusal, its escalation
 # and the person who owns the decision, and nothing is merged (issue #176).
@@ -2735,7 +2795,7 @@ case_run_commitsWithoutAnAmbientIdentity() {
   # A container or a CI runner has no `user.name`/`user.email` anywhere: git then refuses every commit, and
   # the run would block on its own commit (measured 2026-10-18, issue #167). The throwaway repository's local
   # identity is removed as well, so the case is the runner's environment and not the developer's.
-  local d p login branch count author
+  local d p login branch count author base_before
   d=$(scratch); p=$(new_project)
   git -C "$p" config --unset user.name >/dev/null 2>&1 || true
   git -C "$p" config --unset user.email >/dev/null 2>&1 || true
@@ -2743,6 +2803,7 @@ case_run_commitsWithoutAnAmbientIdentity() {
   mkdir -p "$d/nohome"
   export GIT_CONFIG_GLOBAL="$d/nohome.gitconfig" GIT_CONFIG_SYSTEM=/dev/null HOME="$d/nohome"
 
+  base_before=$(git -C "$p" rev-parse main)
   run_one_item "$p" "$d" >/dev/null || fail "a machine without an ambient git identity could not run an item"
   assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item completed"
 
@@ -2751,8 +2812,10 @@ case_run_commitsWithoutAnAmbientIdentity() {
   login=$(tr -d '\n' < "$LOOP_ISSUE_FIXTURES/login.txt")
   branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/*' | head -n 1)
   [ -n "$branch" ] || fail "the item's branch does not exist"
-  count=$(git -C "$p" rev-list --count "$branch" "^$(git -C "$p" rev-parse main)" 2>/dev/null || printf '0')
-  [ "$count" -eq 2 ] || fail "the run did not commit twice on $branch (commits since main: $count)"
+  # The two commits are counted from the base the run started on, not from the base branch: the run merges the
+  # item's branch before it closes the item, so `main` is the item's own head by the time this is read (#229).
+  count=$(git -C "$p" rev-list --count "$base_before..$branch" 2>/dev/null || printf '0')
+  [ "$count" -eq 2 ] || fail "the run did not commit twice on $branch (commits since the run's base: $count)"
   author=$(git -C "$p" log -n 2 --format='%an <%ae>' "$branch" | sort -u)
   assert_eq "$login <$login@users.noreply.github.com>" "$author" "both commits are attributed to the run's identity"
 }

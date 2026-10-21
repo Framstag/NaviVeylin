@@ -196,6 +196,34 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
     "$issue" "$merged_branch" 0
 }
 
+# The branch the success path just committed on is the fix's only home until it is merged: `end-item` commits on
+# `fix/issue-<n>-<slug>`, and the loop's only merge, `adopt-item`, is reached for a *previous* attempt's branch —
+# which needs the item to be visited again, and a closed item is never picked (#229). Measured 2026-10-20 on
+# item #201: the run closed it with its two commits still on the branch and the base at the run's base, and a
+# person fast-forwarded `main` 35 minutes later. So the run merges what it committed, before it closes, and a
+# refused merge blocks the item instead: a closure the tree does not back is what `status/fixed-by` must never
+# mean. The line the merge prints is the run's record of it; the refusal is left in `merge_refusal` for the
+# block's reason.
+merge_refusal=""
+merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed, 5 refused (the reason in merge_refusal)
+  local issue="$1" branch="$2" out base
+  merge_refusal=""
+  out=$(bash "$LOOP_DIR/worktree.sh" merge-item "$issue" "$branch" 2>&1) || {
+    merge_refusal="$out"
+    printf '%s\n' "$out" >&2
+    return "$LOOP_REFUSE"
+  }
+  printf '%s\n' "$out"
+  # The merge moved the base branch itself, so the base the run recorded is the commit every later item must
+  # descend from — without this the next `start-item` would refuse the run's own merge as a stale base.
+  base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${LOOP_BASE_REF:-main}") || base=""
+  [ -z "$base" ] || loop_state set-base "$base" >/dev/null 2>&1 || true
+  # The branch and its commits are what a later reader checks the closure against: git lists the branch, nothing
+  # else does once the run's state is replaced by the next run's.
+  merged_branch=$(printf '%s\n' "$out" | sed -n 's/^merged: branch \([^ ]*\) .*/\1/p')
+  merged_commits=$(printf '%s\n' "$out" | sed -n 's/.* · commits \([^ ·]*\)$/\1/p')
+}
+
 # The pre-screen asks git for a previous attempt's branch and records it as a decision (#175), and the start's
 # own check refuses one that appears while the run is open (#163). Both are the *same* decision this function
 # makes once, before anything is escalated for them, so an item whose attempt finished is merged and closed
@@ -919,6 +947,18 @@ while true; do
     fi
   fi
 
+  # A finished item is not closed until the fix is in the tree: the branch the run committed on is merged onto
+  # the base here, and a merge the run cannot take leaves the item blocked with its branch (#229). This runs
+  # before the outcome is written, so a refusal takes the same blocked path every other refusal takes.
+  merged_branch=""
+  merged_commits=""
+  if [ "$outcome" = "closed" ]; then
+    merge_committed_branch "$issue" "fix/issue-$issue-$slug" || {
+      outcome="blocked"
+      blocked_reason="the branch fix/issue-$issue-$slug could not be merged onto the base, so the item is not closed on a fix the tree does not have — $merge_refusal"
+    }
+  fi
+
   # The wall time is recorded in milliseconds-derived seconds: a stub run finishes inside one second, and
   # a "positive duration" that rounds to zero would make the metric unassertable (D11).
   wall_ms=$(( $(date +%s%3N) - started ))
@@ -927,6 +967,7 @@ while true; do
   case "$outcome" in
     closed)
       evidence_paths="$item_dir, $worktree/openspec/changes/archive/$change, ${gate_xmls:-no gate evidence}"
+      [ -z "$merged_branch" ] || evidence_paths="$evidence_paths, merged $merged_branch (commits $merged_commits) onto the base"
       close_reason="${root_cause:-closed by the run}"
       note_field=""
       if [ -n "$review_notes_text" ]; then
@@ -944,6 +985,7 @@ $review_notes_text"
       loop_state done "$issue" --result done --verdict closed --change "$change" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --gate "$gate_field" \
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
+        --merged-branch "$merged_branch" --merged-commits "$merged_commits" \
         --events "$events_file" --note "$note_field" >/dev/null
       ;;
     falsified)

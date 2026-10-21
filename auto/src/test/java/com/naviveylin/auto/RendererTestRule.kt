@@ -61,7 +61,7 @@ class RendererTestRule : TestRule {
      * `renderers.track(spyk(AutoMapRenderer(client, initialProjectionDpi = 240.0)))`)
      * so the teardown covers it too.
      */
-    fun <T : AutoMapRenderer> track(renderer: T): T {
+    fun track(renderer: AutoMapRenderer): AutoMapRenderer {
         tracked += renderer
         return renderer
     }

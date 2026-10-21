@@ -1,0 +1,12 @@
+Recount of the gate's per-module numbers, taken 2026-10-20T23:29Z from the run's own XML trees
+(`<module>/build/test-results/<task>/TEST-*.xml`, `testsuite/@tests` summed; Python `xml.etree`):
+
+app/build/test-results/testAutomotiveDebugUnitTest: xmls=280 tests=2075 failures=0 errors=0 window=2026-10-20T23:21:03.700Z..2026-10-20T23:22:42.644Z
+auto/build/test-results/testDebugUnitTest:            xmls=85  tests=866  failures=0 errors=0 window=2026-10-20T23:19:11.561Z..2026-10-20T23:19:46.616Z
+core/build/test-results/testDebugUnitTest:            xmls=60  tests=642  failures=0 errors=0 window=2026-10-20T23:19:10.963Z..2026-10-20T23:19:21.455Z
+osmscout-client-java/build/test-results/test:          xmls=8   tests=48   failures=0 errors=0 window=2026-10-20T23:19:10.865Z..2026-10-20T23:19:11.481Z
+
+The fifth tree, `app/build/test-results/testMobileDebugUnitTest`, is a per-task output directory: the later
+focused `revert-check` runs on this task replaced its 280 XMLs with the guard's own, so the mobile
+2075/0/0 survives only in `gate-tally.txt` and in the gate's versioned `gate-mobile-…xml`. The four trees above
+still reproduce their `gate-tally.txt` lines exactly.

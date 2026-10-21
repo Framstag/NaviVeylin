@@ -350,6 +350,9 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
     are neither, 7 are the family above and 2 are a deprecation of a different family from production source
     (`LocationMarkerOverlay.kt:165` — `quadraticBezierTo`, which the compiler names in its own message
     rather than as `Deprecated in Java`), the remaining 9 being pre-existing non-deprecation warnings.
+  - **The `:auto` unit-test source set carries none of its three non-opt-in diagnostics** — a final-class type
+    parameter, an always-true condition, an unchecked cast — swept by change `fix-auto-test-source-warnings`;
+    `AutoTestSourceWarningBaselineTest` (an `:app` unit test) now holds that set to this bullet.
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
 - **Per-flavor test tasks**: `:app` has one task per flavor —

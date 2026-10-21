@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.AutoTestSourceWarningBaselineTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T23:19:13.221Z" hostname="dingens" time="1.144">
+  <properties/>
+  <testcase name="no auto test source casts to a parameterized type unchecked" classname="com.naviveylin.build.AutoTestSourceWarningBaselineTest" time="0.676"/>
+  <testcase name="a runIteration comparison against null names the block type" classname="com.naviveylin.build.AutoTestSourceWarningBaselineTest" time="0.113"/>
+  <testcase name="no type parameter is bounded by a class that cannot be extended" classname="com.naviveylin.build.AutoTestSourceWarningBaselineTest" time="0.342"/>
+  <system-out><![CDATA[sources=92 findings=0
+sources=92 throwingCalls=3 findings=0
+sources=92 finalClasses=270 findings=0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

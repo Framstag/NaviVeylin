@@ -155,9 +155,17 @@ jobs:
       # section that owns it (the rule and its rationale: guidelines/Build.md §4/§6). A route that
       # points at a section which no longer exists is silent — the reader lands on the wrong part of
       # a correct document — so it is checked here instead of being discovered by whoever follows it.
+      # A skill path the documentation names is resolved the same way (`documentation-ownership`,
+      # "A document that names a skill resolves to a skill that exists", issue #13), and the check's own
+      # self-test runs here because a check nothing runs is the same silence one level down. The mutation
+      # set is listed for the same reason as the others: a set that no longer parses fails this step
+      # instead of rotting.
       # Text files only: no build, no device, seconds of run time.
       - name: Check documentation routes
-        run: bash tools/check-doc-routes.sh
+        run: |
+          bash tools/check-doc-routes.sh
+          bash tools/check-doc-routes-selftest.sh
+          bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
 
       # ── issue tooling ──────────────────────────────────────────
       # The gate for `tools/issues/**`: the Java core's cases and the shell wrappers driven against a stub

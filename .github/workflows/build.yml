@@ -96,7 +96,11 @@ jobs:
       #   2. an operations.*.guidance list entry containing ': ' that is not
       #      quoted — it parses as a YAML mapping, the array fails the
       #      array-of-strings check and the CLI drops that operation's guidance
-      #      with only a warning.
+      #      with only a warning;
+      #   3. a capability spec whose '## Purpose' is still the sentence
+      #      'openspec archive' writes for a capability it creates — `openspec
+      #      validate --type spec` only warns and exits 0, and no delta can
+      #      repair it, so nothing else would ever report it (issue §171).
       - name: Check OpenSpec artifact hygiene
         run: |
           set -euo pipefail
@@ -116,6 +120,12 @@ jobs:
           if [ -n "$bad" ]; then
             echo "::error file=openspec/config.yaml::unquoted guidance entry containing ': ' (parses as a mapping; the operation's guidance is dropped)"
             printf '%s\n' "$bad"
+            fail=1
+          fi
+          spec_bad=$(awk '/^## Purpose/{inp=1;next} inp&&/^## /{inp=0} inp&&/TBD - created by archiving/{printf "%s:%d\n", FILENAME, FNR}' openspec/specs/*/spec.md)
+          if [ -n "$spec_bad" ]; then
+            echo "::error::a capability spec's '## Purpose' is still the archive placeholder — write what the capability is for (a delta's Purpose is read only when the capability is created)"
+            printf '%s\n' "$spec_bad"
             fail=1
           fi
           [ "$fail" -eq 0 ] || exit 1

@@ -1,7 +1,10 @@
 # navigation-ongoing-notification Specification
 
 ## Purpose
-TBD - created by archiving change fix-host-crash-residual-paths. Update Purpose after archive.
+The ongoing, silent notification that a driving session posts from the shade: its identity (distinct from the
+car map-style failure notice), when NAVIGATION and FREE_DRIVE show it and BROWSE does not, the guidance and
+free-driving content it carries, the stop action, the background process survival it buys, and how it
+degrades when notification permission is denied.
 
 ## Requirements
 

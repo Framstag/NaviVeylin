@@ -389,3 +389,62 @@ exit=0
   ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
 Totals: 176 passed, 0 failed (176 items)
 exit=0
+
+
+# round-2 structural checks — 2026-10-21T11:48:22Z (no compiled file touched: no Gradle gate owed, guidelines/Build.md §2 scope block)
+
+## evidence/red-probe.sh (green after the corrections)
+STATED  §134.64  guidelines/Build.md:172-193  "--max-workers=1"
+STATED  §134.65  guidelines/Build.md:304-325  "--continue"
+STATED  §134.73  guidelines/Design.md:660-703  "KotlinNothingValueException"
+STATED  §134.76  guidelines/Design.md:660-703  "PartiallyExpanded"
+
+entries=4 missing=0
+PASS record-carriage#eachRecordedRuleIsStatedInItsSection (exit 0)
+EXIT=0
+
+## --help (the probe's stated scope)
+# Usage: red-probe.sh [--root <dir>]        # default root: the nearest directory above this script that
+#                                            # holds guidelines/Build.md
+# Case: record-carriage#eachRecordedRuleIsStatedInItsSection (the record's shorthand; the assertion is the
+#        one token per entry, described above)
+HELP_EXIT=0
+
+## tools/check-todo-references.sh
+check-todo-references: excluded, and why:
+  openspec/changes/archive/*                               history: the artifacts of a change record what was known when they landed
+  .pi/tmp/*                                                machine-local state, never a project document
+  openspec/specs/compass-button/spec.md                    provenance: names where an item came from
+  openspec/specs/osmscout-jni/spec.md                      provenance: names where an item came from
+  openspec/specs/route-analysis/spec.md                    provenance: names where an item came from
+  openspec/specs/route-planning-session/spec.md            provenance: names where an item came from
+  tools/check-todo-references.sh                           the check itself: it names the file in order to look for it
+  tools/check-todo-references-selftest.sh                  the fixtures of that check: the citations it must resolve and refuse live in it
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 191 line(s) scanned, 62 distinct citation(s), 162 in the recorded table
+check-todo-references: 62 citation(s) resolve through the recorded table; 2995 file(s) excluded by the allowlist above
+exit=0
+
+## tools/check-doc-routes.sh
+check-doc-routes: all 89 section references resolve
+exit=0
+
+## openspec validate --all
+✓ spec/zoom-transition-scaling
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 176 passed, 0 failed (176 items)
+PIPE_EXIT=0
+
+## final re-run after the last prose edits — 2026-10-21T11:49:00Z
+entries=4 missing=0
+PASS record-carriage#eachRecordedRuleIsStatedInItsSection (exit 0)
+probe_exit=0
+check-todo-references: 191 line(s) scanned, 62 distinct citation(s), 162 in the recorded table
+check-todo-references: 62 citation(s) resolve through the recorded table; 2995 file(s) excluded by the allowlist above
+todo_exit=0
+check-doc-routes: all 89 section references resolve
+routes_exit=0
+Totals: 176 passed, 0 failed (176 items)

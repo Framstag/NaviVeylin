@@ -13,6 +13,7 @@ skill or CI step states, the owning section gains the rule and the record keeps 
 - **WHEN** the record's entries are audited against the tree and an entry states a rule that no guideline
   section, skill or CI step states
 - **THEN** the guideline section that owns the concern states the rule, and the text-only probe
-  `evidence/red-probe.sh` finds it there without a build, a device or a network call, so a reader reaches
-  it from the section rather than from the tracker
+  `openspec/changes/archive/2026-10-21-fix-uncarried-guardrail-entries/evidence/red-probe.sh` finds its
+  distinguishing token there without a build, a device or a network call, so a reader reaches it from the
+  section rather than from the tracker
   (case `record-carriage#eachRecordedRuleIsStatedInItsSection`)

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh" tests="150" failures="0" errors="0">
+  <system-out>PASS usage#noUnguardedValueFlagRemains loop-selftest: all 150 cases passed (JDK 27, offline, no token, no sandbox) ended 1399210 — its working directory is inside loop-selftest.8UmG7s</system-out>
+</testsuite>

@@ -15,14 +15,17 @@ Parent spec: `openspec/changes/fix-iteration-protocol-surface-step/specs/agent-i
   'prompt#iterationProtocolNamesTheChangeSurface'` → `FAIL`, `EXIT=1`, the same log.
 - [x] 1.3 Confirm both are red against HEAD's text, not against a half-applied edit: revert the fix from
   `guidelines/Build.md` and `tools/loop/prompts/worker.md` by hand, run both cases (`FAIL`, `EXIT=1`), restore
-  from the copies kept in `evidence/` and confirm the restore is byte-identical (`diff -q`).
+  and run them again (`PASS`, `EXIT=0`). Verification: `evidence/red-before-fix.log`
+  (2026-10-22T00:44:20+02:00) and `evidence/green-after-fix.log` (00:44:35); the pre-fix text of both files is
+  `git show 80df3a3:<path>`, and the change's diff shows the restore — step 5 present in `worker.md`, the
+  mutation record's replacement string absent.
 
 ## 2. The rule, at its one home
 
 - [x] 2.1 `guidelines/Build.md` §2 rule 1: append the surface measurement — `grep -l` over the cases, the
-  engine, the prompts and the fixtures; the count sets the budget, the review scope and the loop's floor; the
-  proposal carries `surface: … — <command>`. Verification: task 1.2's case goes green; the section still
-  carries rules 1-5 in one sequence (`grep -n '^[0-9]\. \*\*' guidelines/Build.md`).
+  engine, the prompts and the fixtures; the count, not the first file the plan names, is what the plan's
+  estimate is set against; the proposal carries `surface: … — <command>`. Verification: task 1.2's case goes
+  green; the section still carries rules 1-5 in one sequence (`grep -n '^[0-9]\. \*\*' guidelines/Build.md`).
 - [x] 2.2 `tools/loop/prompts/worker.md` Phase A: a fifth step stating the same pass, its search and its
   record, with the #232 measurement as the reason. Verification: task 1.1's case goes green.
 
@@ -30,8 +33,9 @@ Parent spec: `openspec/changes/fix-iteration-protocol-surface-step/specs/agent-i
 
 - [x] 3.1 `openspec/changes/fix-iteration-protocol-surface-step/specs/agent-issue-loop/spec.md`: the
   requirement and its two scenarios, one case per scenario. Verification: `openspec validate
-  fix-iteration-protocol-surface-step --strict` → valid; the delta merges into
-  `openspec/specs/agent-issue-loop/spec.md` on archive.
+  fix-iteration-protocol-surface-step --strict` → valid while the change was open; the delta merged into
+  `openspec/specs/agent-issue-loop/spec.md` on archive, and now lives only under
+  `openspec/changes/archive/2026-10-22-fix-iteration-protocol-surface-step/specs/agent-issue-loop/spec.md`.
 
 ## 4. The invariant is falsifiable by a mutation
 
@@ -50,14 +54,20 @@ Parent spec: `openspec/changes/fix-iteration-protocol-surface-step/specs/agent-i
 - [x] 5.3 `bash tools/check-doc-routes.sh` → exit 0, every section reference and skill path resolves
   (`evidence/doc-routes.log`); `openspec doctor` and the artifact-hygiene rules of
   `.github/workflows/build.yml` were run for the change's own artifacts.
-- [x] 5.4 No build and no Gradle suite was run, and none is owed: the delta touches no compiled file
-  (`guidelines/Build.md:109`). Named exclusion: the full `tools/loop-selftest.sh`, which the run's own gate
-  runs once.
+- [x] 5.4 `./tools/loop/gate.sh` run once after these corrections (2026-10-22T00:51:54+02:00 →
+  01:05:33+02:00): `LOOP-GATE: tests=195 failures=0 (./gradlew test -PforceTests --no-build-cache,
+  tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-doc-routes.sh)`, `EXIT=0` (`evidence/gate.log`;
+  per-suite tallies `evidence/gate-loop-selftest.xml` 150 cases, `gate-sensor-selftest.xml` 45,
+  `gate-doc-routes.xml`, `gate-gradle.xml` `BUILD SUCCESSFUL in 3m 28s`). This is the scope the previous round
+  left open: `guidelines/Build.md:109`'s "no build and no suite" is the build's gate for a delta that compiles
+  nothing, and inside a run the gate is `./tools/loop/gate.sh`, whose mapping of the same `tools/**` and `*.md`
+  paths at the shell suites makes the whole-suite run — never task 5.2's 10-case focused pass — the evidence.
 
 ## 6. Evidence and archive
 
-- [x] 6.1 `evidence/`: `red-before-fix.log`, `green-after-fix.log`, `mutation-38.1.log`, `gate-plan.log`,
-  `doc-routes.log`, `loop-selftest.xml` (the tally derived from the suite's own summary lines, as
-  `tools/loop/gate.sh` derives one; its `system-out` records the derivation).
+- [x] 6.1 `evidence/`: `red-before-fix.log`, `red-before-fix.xml`, `green-after-fix.log`, `mutation-38.1.log`
+  (re-run after the corrections), `gate-plan.log`, `doc-routes.log`, `gate.log` and the gate's own tallies
+  `gate-loop-selftest.xml`, `gate-sensor-selftest.xml`, `gate-doc-routes.xml`, `gate-gradle.xml`; the focused
+  10-case tally `loop-selftest.xml` stays as the record of task 5.2, not as gate evidence.
 - [x] 6.2 Archive the change and confirm the requirement reached
   `openspec/specs/agent-issue-loop/spec.md`.

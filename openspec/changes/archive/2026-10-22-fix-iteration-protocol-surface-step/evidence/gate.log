@@ -1,0 +1,8 @@
+# the loop gate, run once after the round-2 corrections, 2026-10-22T00:51:54+02:00
+$ ./tools/loop/gate.sh
+gate: ./gradlew test -PforceTests --no-build-cache
+gate: tools/loop-selftest.sh
+gate: tools/sensor-selftest.sh
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=195 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-doc-routes.sh)
+EXIT=0

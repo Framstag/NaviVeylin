@@ -1,4 +1,6 @@
-RED    38.1  prompt#workerNamesTheChangeSurfaceBeforeThePlan   (the surface pass that sets the budget before the plan is fixed (issue #238))
+# mutation 38.1, re-run after the round-2 corrections, 2026-10-22T01:06:40+02:00
+$ bash tools/loop-mutations.sh --only 38.1
+RED    38.1  prompt#workerNamesTheChangeSurfaceBeforeThePlan   (the surface pass that sets the plan estimate (issue #238))
 restore 38.1 prompt#workerNamesTheChangeSurfaceBeforeThePlan green again
 
 red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

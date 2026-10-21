@@ -23,8 +23,8 @@ archive-less branch in the run case). ≈55 min planned against ≈100 min reali
 was made before anyone asked how many places assert the old rule; the answer was one `grep -l` away.
 
 **Root cause, one sentence:** the iteration protocol measures a change's symptom and its iteration levers but
-never its surface, so the plan — and with it the budget, the review scope and the loop's floor — is fixed before
-anyone counts the cases and fixtures that assert the behaviour being changed.
+never its surface, so the plan — and the estimate it is made against — is fixed before anyone counts the
+cases and fixtures that assert the behaviour being changed.
 
 **Red tests on HEAD, before the fix.** Two cases in `tools/loop-cases.sh`, run one at a time with
 `bash tools/loop-selftest.sh --case '<case>'`; both fail on HEAD because the text they assert is absent:
@@ -33,7 +33,7 @@ anyone counts the cases and fixtures that assert the behaviour being changed.
 $ bash tools/loop-selftest.sh --case 'prompt#workerNamesTheChangeSurfaceBeforeThePlan'
   the worker counts the surface before it plans: 'count the surface' not found in: # Worker — one item, phases A–D
 FAIL prompt#workerNamesTheChangeSurfaceBeforeThePlan
-EXIT=1                       # evidence/red-before-fix.log, run copy written 2026-10-22T00:42:41+02:00
+EXIT=1                       # evidence/red-before-fix.log, run copy written 2026-10-22T00:44:20+02:00
 
 $ bash tools/loop-selftest.sh --case 'prompt#iterationProtocolNamesTheChangeSurface'
   the iteration protocol does not state the surface measurement
@@ -41,17 +41,30 @@ FAIL prompt#iterationProtocolNamesTheChangeSurface
 EXIT=1                       # same log, same run
 ```
 
-Both are green after the fix (`evidence/green-after-fix.log`, 2026-10-22T00:43:12+02:00), together with the two
-neighbouring prompt cases the changed text sits beside.
+Both are green after the fix (`evidence/green-after-fix.log`, 2026-10-22T00:44:35+02:00), together with the eight
+other cases of the prompt group the changed text sits beside.
 
-**The project's gate produces no JUnit XML for this delta, and none is owed.** No compiled file changed: the
-delta touches `guidelines/Build.md`, `tools/loop/prompts/worker.md`, `tools/loop-cases.sh`,
-`tools/loop-mutations.sh` and `openspec/**`, all of them in the protocol's "no compiled file" class
-(`Build.md:109`). `bash tools/loop/gate.sh --plan --base HEAD` names exactly the two structural suites the
-change owes — `tools/loop-selftest.sh` and `tools/check-doc-routes.sh` — and no Gradle task
-(`evidence/gate-plan.log`). Their own summary lines are the numbers quoted; `tools/loop-selftest.sh` is a shell
-harness that prints one `PASS`/`FAIL` per case, so a JUnit-shaped tally is derived from its summary exactly as
-`tools/loop/gate.sh` derives one (`evidence/loop-selftest.xml`, derivation recorded in its `system-out`).
+**The gate was run, whole, once — after these corrections.** `guidelines/Build.md:109`'s "no build and no suite"
+is the build's own gate for a delta that compiles nothing; inside a run the gate is `./tools/loop/gate.sh`
+(`LOOP_GATE_CMD`, `tools/loop/loop.conf`), which maps the same `tools/**` and `*.md` paths at the shell suites the
+pipeline runs (`LOOP_GATE_SUITES`). The two do not collide here: no Gradle suite is owed by this delta's own
+files, and the suites the mapping names are the verification — run whole, because `Build.md:137` says a
+declared-cases pass is never gate evidence. Run 2026-10-22T00:51:54+02:00 → 01:05:33+02:00
+(`evidence/gate.log`):
+
+```
+LOOP-GATE: tests=195 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-doc-routes.sh)
+EXIT=0
+```
+
+`tools/loop-selftest.sh` ran whole — `loop-selftest: all 150 cases passed`
+(`evidence/gate-loop-selftest.xml`); `tools/sensor-selftest.sh`, `all 45 cases passed`
+(`evidence/gate-sensor-selftest.xml`), owed because `tools/sensors/*` and `.github/workflows/sensors.yml` are in
+this worktree's diff from a sibling change; `check-doc-routes: all 120 section references resolve, all 5 skill
+references resolve` (`evidence/gate-doc-routes.xml`). The Gradle gate also ran — `BUILD SUCCESSFUL in 3m 28s`
+(`evidence/gate-gradle.xml`) — because the compiled pattern set includes `*.xml` and the archived JUnit evidence
+of this and neighbouring changes matches it; that is the gate's mapping, not this delta's roster, and its tally
+carries `tests="0"` because `gate.sh` derives numbers only from a suite's shell summary line.
 
 **Surface — the record the new rule asks for, measured before this plan was fixed:**
 
@@ -62,16 +75,24 @@ tools/loop-cases.sh
 .pi/skills/run-tests/SKILL.md
 AGENTS.md
 openspec/specs/agent-issue-loop/spec.md
-$ grep -rn '§2, rule\|§2 rule\|rules 1-3\|rule 4' --include=*.md --include=*.sh tools/ .pi/skills/ AGENTS.md guidelines/ openspec/specs/ | wc -l
-3
+$ grep -rn 'rules 1-3\|rule 4' --include=*.md --include=*.sh tools/ .pi/skills/ AGENTS.md guidelines/ openspec/specs/
+.pi/skills/mutation-runner/SKILL.md:98   … `guidelines/Build.md` §2, rule 4
+AGENTS.md:185                            … rules 1-3
+AGENTS.md:186                            … rule 4
+$ grep -rn 'rule 2' --include=*.md openspec/changes/fix-mutation-harness-file-scope/
+openspec/changes/fix-mutation-harness-file-scope/proposal.md:29
+openspec/changes/fix-mutation-harness-file-scope/proposal.md:60
+openspec/changes/fix-mutation-harness-file-scope/tasks.md:40
 ```
 
-Four files assert the protocol's text; three places cite a protocol rule **by number** (`AGENTS.md:185`
-"rules 1-3", `.pi/skills/mutation-runner/SKILL.md:98` "rule 4", and the open change
-`fix-mutation-harness-file-scope` naming "rule 2"). That count is what the fix's shape was chosen against: the
-step is written **inside rule 1** rather than appended as rule 6, because a plan-time rule appended after the
-reviewer rule would put the plan after the gate, and inserting a new number before rule 5 would falsify the two
-live "rule N" citations. Two cases were added (one per surface) and none rewritten.
+Four files assert the protocol's text; three sites cite a protocol rule **by number** — two documents
+(`.pi/skills/mutation-runner/SKILL.md:98` "rule 4", `AGENTS.md:185-186` "rules 1-3" and "rule 4") and one open
+change (`fix-mutation-harness-file-scope` naming "rule 2" at `proposal.md:29`, `:60` and `tasks.md:40`). The first
+search's path set does not cover `openspec/changes/`, so the open change is looked up by its own command rather
+than counted as a fourth hit of the first. That count is what the fix's shape was chosen against: the step is
+written **inside rule 1**, because rule 1 already governs measuring before code changes, a new number ahead of
+the cited rules would renumber what the two documents cite, and a rule appended after rule 5 would put a
+plan-time rule behind the reviewer rule. Two cases were added (one per surface) and none rewritten.
 
 ## What changes
 
@@ -89,10 +110,12 @@ live "rule N" citations. Two cases were added (one per surface) and none rewritt
 
 ## Impact
 
-No compiled file changed: no Gradle task, no native build, no device. `bash tools/loop/gate.sh --plan --base HEAD`
-names the two structural suites the delta owes (`tools/loop-selftest.sh`, `tools/check-doc-routes.sh`) and no
-Gradle task. Protocol rule numbers are unchanged — three live citations name one by number — so no other document
-is edited. Five files touched, 2 cases added, 0 rewritten, 0 fixtures re-aligned; rollback is the revert of those
+No compiled file changed by this delta: no Gradle suite is owed by its own roster, no native build, no device.
+`bash tools/loop/gate.sh --plan --base HEAD` names the two structural suites the delta owes
+(`tools/loop-selftest.sh`, `tools/check-doc-routes.sh`) and no Gradle task (`evidence/gate-plan.log`); the gate
+run itself is `evidence/gate.log`. Protocol rule numbers are unchanged — two documents and one open change cite
+one by number — so no other document is edited. Five source files touched plus this change's own artifacts, 2
+cases added, 0 rewritten, 0 fixtures re-aligned; rollback is the revert of those
 five files.
 
 **Owning capability:** `agent-issue-loop` — this delta adds the requirement "A change names its surface before

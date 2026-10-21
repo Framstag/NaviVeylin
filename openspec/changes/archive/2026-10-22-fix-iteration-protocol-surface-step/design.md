@@ -16,8 +16,8 @@ One sentence added inside rule 1 of `guidelines/Build.md` §2, and the same pass
 task, so the two surfaces a change meets carry one rule:
 
 1. `guidelines/Build.md` §2 rule 1 — after the symptom measurement: **count the surface** before the plan is
-   fixed, by `grep -l` over the cases (`tools/*-cases.sh`), the engine, the prompts and the fixtures; the count
-   sets the budget, the review scope and the loop's floor; the proposal carries it as
+   fixed, by `grep -l` over the cases (`tools/*-cases.sh`), the engine, the prompts and the fixtures; the count,
+   not the first file the plan names, is what the plan's estimate is set against; the proposal carries it as
    `surface: … — <command>` so the next reader repeats it rather than trusting it.
 2. `tools/loop/prompts/worker.md` Phase A — a fifth step, "Count the surface before the plan is fixed", with the
    search, the `surface:` record and the #232 measurement as the reason it exists.
@@ -33,17 +33,19 @@ task, so the two surfaces a change meets carry one rule:
 ```
 $ grep -rln 'iteration protocol\|Agent iteration protocol' tools/ .pi/skills/ AGENTS.md openspec/specs/
 tools/loop-cases.sh, .pi/skills/run-tests/SKILL.md, AGENTS.md, openspec/specs/agent-issue-loop/spec.md
-$ grep -rn '§2, rule\|§2 rule\|rules 1-3\|rule 4' --include=*.md --include=*.sh tools/ .pi/skills/ AGENTS.md guidelines/ openspec/specs/ | wc -l
-3
+$ grep -rn 'rules 1-3\|rule 4' --include=*.md --include=*.sh tools/ .pi/skills/ AGENTS.md guidelines/ openspec/specs/
+.pi/skills/mutation-runner/SKILL.md:98, AGENTS.md:185, AGENTS.md:186
+$ grep -rn 'rule 2' --include=*.md openspec/changes/fix-mutation-harness-file-scope/
+proposal.md:29, proposal.md:60, tasks.md:40
 ```
 
 Files edited: 5 (`guidelines/Build.md`, `tools/loop/prompts/worker.md`, `tools/loop-cases.sh`,
 `tools/loop-mutations.sh`, `openspec/specs/agent-issue-loop/spec.md`) plus this change's artifacts. Cases
 added: 2. Cases rewritten: 0. Fixtures re-aligned: 0. Rule numbers changed: 0 — which is the point of the
-measurement, because three places cite a protocol rule by number (`AGENTS.md:185` "rules 1-3",
-`.pi/skills/mutation-runner/SKILL.md:98` "rule 4", and the open change `fix-mutation-harness-file-scope`, which
-names "rule 2"), and a new number inserted before rule 5 would have falsified two of them without any test
-noticing.
+measurement, because two documents and one open change cite a protocol rule by number (`AGENTS.md:185-186`
+"rules 1-3" and "rule 4", `.pi/skills/mutation-runner/SKILL.md:98` "rule 4", and the open change
+`fix-mutation-harness-file-scope`, which names "rule 2"), and a new number ahead of the cited rules would
+renumber them with no case noticing.
 
 ## The alternatives the evidence eliminated
 

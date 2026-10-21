@@ -1,0 +1,6 @@
+# the two new prompt cases, after the round-2 corrections, 2026-10-22T01:06:11+02:00
+$ bash tools/loop-selftest.sh --case 'prompt#workerNamesTheChangeSurfaceBeforeThePlan'
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerNamesTheChangeSurfaceBeforeThePlan
+$ bash tools/loop-selftest.sh --case 'prompt#iterationProtocolNamesTheChangeSurface'
+PASS prompt#iterationProtocolNamesTheChangeSurface

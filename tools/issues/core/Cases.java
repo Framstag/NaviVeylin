@@ -46,6 +46,9 @@ public final class Cases {
         cases.put("Policy#gateMatrix", Cases::policyGateMatrix);
         cases.put("WorkPackage#bodyCannotBreakOutOfTheDataBlock", Cases::workPackageBodyCannotBreakOut);
         cases.put("WorkPackage#oversizedBodyRefuses", Cases::workPackageOversizedBodyRefuses);
+        cases.put("WorkPackage#recordedDecisionIsCarried", Cases::workPackageRecordedDecisionIsCarried);
+        cases.put("WorkPackage#noDecisionIsRecorded", Cases::workPackageNoDecisionIsRecorded);
+        cases.put("WorkPackage#questionIsNotTheVerdictWord", Cases::workPackageQuestionIsNotTheVerdictWord);
         cases.put("Fingerprint#stableAcrossWhitespaceAndLineNumbers", Cases::fingerprintStable);
         cases.put("Fingerprint#separatesDistinctEntries", Cases::fingerprintSeparates);
         cases.put("Bands#coversTheWholeRange", Cases::bandsCoversTheWholeRange);
@@ -98,6 +101,30 @@ public final class Cases {
             return Files.readString(path, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new AssertionError("cannot read " + path + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * One comment per body, in order, with a timestamp derived from its position: `2026-10-20T00:00:00Z`,
+     * `2026-10-21T00:00:00Z`, … so a case can name the entry it expects the reader to pick.
+     */
+    private static Object withComments(Object issue, String... bodies) {
+        Map<String, Object> map = Json.object(issue);
+        List<Object> comments = new ArrayList<>();
+        for (int i = 0; i < bodies.length; i++) {
+            Map<String, Object> comment = new LinkedHashMap<>();
+            comment.put("body", bodies[i]);
+            comment.put("createdAt", "2026-10-" + (20 + i) + "T00:00:00Z");
+            comment.put("author", Map.of("login", "Framstag"));
+            comments.add(comment);
+        }
+        map.put("comments", comments);
+        return map;
+    }
+
+    private static void assertContains(String text, String needle, String what) {
+        if (!text.contains(needle)) {
+            throw new AssertionError(what + " — expected to find '" + needle + "' in:\n" + text);
         }
     }
 
@@ -306,6 +333,75 @@ public final class Cases {
         } catch (WorkPackage.Refusal refusal) {
             equals("input-nul", refusal.reason, "the refusal reason code for a NUL byte");
         }
+    }
+
+    /**
+     * The answer a person recorded has to reach the next worker, or a fresh process re-derives the question it
+     * settles (issue #196: `Decision: 2` recorded at 04:52, re-asked at 08:48 with a different option list).
+     * The question is taken from the answer's own `<!-- answers: … -->` marker, so a later comment cannot
+     * change what the decision answered.
+     */
+    private static void workPackageRecordedDecisionIsCarried() {
+        Profile profile = profile();
+        String question = "**The decision:** which bound — options in order: (1) 1000 lines, (2) 1500, (3) 2500";
+        Object issue = withComments(issue("someone", List.of("class/bug"), "a title",
+                        "a body that also names the closing marker\n" + "ITEM_DECISION" + "\n"),
+                question,
+                "Decision: 2\n<!-- answers: " + question + " -->",
+                "a later note that answers nothing");
+        String rendered = WorkPackage.render(profile, issue, "fp", "source/agent");
+
+        assertContains(rendered, "<<<ITEM_DECISION", "the package carries a decision block of its own");
+        assertContains(rendered, "recorded: 2026-10-21T00:00:00Z", "the recorded decision's own timestamp");
+        assertContains(rendered, "question: **The decision:** which bound", "the question the answer answered");
+        assertContains(rendered, "decision: 2", "and the answer itself");
+        assertContains(rendered, "(1) 1000 lines", "the option the bare answer refers to travels with it");
+        expect(!rendered.contains("a later note that answers nothing"),
+                "a comment after the answer does not stand in for the question it answered");
+        // The body's own copy of the closing marker is neutralised, so a reader counts one closer, not two.
+        equals(1L, rendered.lines().filter(line -> line.strip().equals("ITEM_DECISION")).count(),
+                "exactly one closing marker for the decision block");
+        equals(1L, rendered.lines().filter(line -> line.contains("<<<ITEM_DECISION")).count(),
+                "exactly one opening marker for the decision block");
+    }
+
+    /**
+     * An item nobody has answered says so. The field is present rather than omitted: a worker that finds no
+     * decision block would have to guess whether the package was built by a version that cannot carry one.
+     */
+    private static void workPackageNoDecisionIsRecorded() {
+        Profile profile = profile();
+        String none = WorkPackage.render(profile, issue("someone", List.of("class/bug"), "t", "b"),
+                "fp", "source/agent");
+        assertContains(none, "<<<ITEM_DECISION", "the block is present even with no comments");
+        assertContains(none, "recorded: none", "and states that nothing is recorded");
+
+        String unAnswered = WorkPackage.render(profile,
+                withComments(issue("someone", List.of("class/bug"), "t", "b"),
+                        "**The decision:** merge or keep?",
+                        "skipped: the read already runs off the main thread"),
+                "fp", "source/agent");
+        assertContains(unAnswered, "recorded: none",
+                "an escalation with no answer leaves the item undecided");
+        expect(!unAnswered.contains("decision: "), "no answer is invented from the question");
+    }
+
+    /**
+     * The run's escalation comment opens with its verdict word (`needs-decision`), then the question. So the
+     * question is the first line marked `**The decision:**`, and only a comment without that marker falls back to
+     * its first non-empty line (issue #243: the answer's own marker read `<!-- answers: needs-decision -->`).
+     * Restated from `tools/issues/lib.sh` because this core is standalone Java; the shell case asserts the same
+     * fixture.
+     */
+    private static void workPackageQuestionIsNotTheVerdictWord() {
+        Profile profile = profile();
+        Object issue = withComments(issue("someone", List.of("class/bug"), "t", "b"),
+                "needs-decision\n\n**The decision:** ship the fixed cut at 800 lines, or ratchet above the worst file?",
+                "Decision: 2");
+        String rendered = WorkPackage.render(profile, issue, "fp", "source/agent");
+        assertContains(rendered, "question: **The decision:** ship the fixed cut",
+                "the question the answer addressed");
+        expect(!rendered.contains("question: needs-decision"), "the run's verdict word is not the question");
     }
 
     private static void fingerprintStable() {

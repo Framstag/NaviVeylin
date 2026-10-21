@@ -1074,6 +1074,7 @@ anything is mutated, and a restore SHALL never write a backup that is empty or m
   mutated after that point
 - **Case**: `tools/loop-mutations-selftest.sh` (`a restore from an empty backup exits 2`, via
   `tools/loop-mutations.sh --probe empty-backup`)
+
 ### Requirement: A tracker failure the transport caused is not an answer
 
 Every call the tooling makes to the tracker SHALL pass one seam that classifies the failure. A failure the
@@ -1140,6 +1141,7 @@ which judges the issue's own author from the record it is handed — SHALL NOT r
 - **THEN** it decides from the record — an allowlisted author with the opt-in label allowed, a foreign author
   refused — and reads no identity at all
 - **Case**: `policy#checkAnswersWithoutAnIdentityRead`
+
 ### Requirement: The run names its phases and the live view into it
 
 A run SHALL print one line wherever it crosses a boundary it can observe itself, and its header SHALL name the
@@ -1176,6 +1178,7 @@ report.
 - **AND** none of these lines is written to the state file, parsed back into a field, or carried into the
   report's text, so a heartbeated run and a quiet one are the same run
 - **Case**: `run#everyPhaseBoundaryIsPrinted`
+
 ### Requirement: The item is closed on a base that carries its fix
 
 A run SHALL merge the branch it committed an item on onto the base it recorded before closing that item, and a
@@ -1206,3 +1209,54 @@ claim, so a closure the tree does not back is a blocked item with its branch nam
 - **THEN** the action refuses with the reason it found and the base stays where it was: it does not replay the
   branch onto a tree nobody reviewed, so the branch's commits stay off the base
 - **Case**: `worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom`
+
+### Requirement: The package carries the last recorded decision and its question
+
+A work package SHALL carry the item's last recorded decision together with the question that decision answered,
+inside a delimited data field of its own. The item's body keeps stating a settled question as open, so a package
+that omits the answer leaves a fresh process to re-derive it.
+
+#### Scenario: The last recorded decision travels with the question it answered
+
+- **WHEN** a work package is rendered for an item whose last answer comment exists
+- **THEN** the package names the answer, the question it answered and the timestamp the answer was recorded at,
+  in a block a reader can tell apart from the item's claim
+- **Case**: `WorkPackage#recordedDecisionIsCarried`
+
+#### Scenario: The run asks the tracker for the comments
+
+- **WHEN** the run prepares an item's package
+- **THEN** it reads the item with its comments, so the block has something to carry — the pre-screen keeps
+  reading candidates without them
+- **Case**: `run#workPackageCarriesTheRecordedDecision`
+
+#### Scenario: An answer names the question it answers
+
+- **WHEN** an answer is recorded on an item
+- **THEN** the comment carries the question that stood when the answer was written, so a later escalation that
+  numbers its own options from 1 cannot re-point a bare answer at a different option
+- **Case**: `answer#theAnswerNamesTheQuestion`
+
+### Requirement: An unanswered item says so
+
+A work package SHALL state that no decision is recorded when the item carries none, and SHALL NOT infer an
+answer from a question. The field is present rather than omitted, so a reader does not have to tell an empty
+decision from a package that cannot carry one.
+
+#### Scenario: No answer, no inference
+
+- **WHEN** a work package is rendered for an item with no answer comment, or nothing but escalations
+- **THEN** the package states that no decision is recorded and derives no answer from the question it carries
+- **Case**: `WorkPackage#noDecisionIsRecorded`
+
+### Requirement: A recorded decision is settled for the worker
+
+A worker SHALL treat a recorded decision as the owner's settled policy — implement it rather than re-derive the
+fork — and an escalation that follows one SHALL name that decision and say what it leaves open.
+
+#### Scenario: The prompt says what a decision means
+
+- **WHEN** a worker reads its prompt
+- **THEN** it is told that a recorded decision is settled, where that decision is delimited in the package, and
+  that an escalation following one names it and what it leaves open
+- **Case**: `prompt#workerTreatsARecordedDecisionAsSettled`

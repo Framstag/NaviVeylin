@@ -1,0 +1,13 @@
+FAIL WorkPackage#recordedDecisionIsCarried: the package carries a decision block of its own — expected to find '<<<ITEM_DECISION' in:
+---- issue work package ----
+fingerprint: fp
+provenance: source/agent
+issue: #7
+title: a title
+<<<ISSUE_TEXT
+a body that also names the closing marker
+ITEM_DECISION
+
+ISSUE_TEXT
+---- end issue work package ----
+

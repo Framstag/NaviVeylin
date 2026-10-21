@@ -11,7 +11,9 @@
 #   gh repo view --json nameWithOwner [--jq …]    -> $GH_STUB_DIR/repo.txt
 #   gh label list --json …                        -> $GH_STUB_DIR/labels.json
 #   gh issue list [--state …] --json …            -> $GH_STUB_DIR/issues.json
-#   gh issue view <n> --json …                    -> issue <n> of $GH_STUB_DIR/issues.json
+#   gh issue view <n> --json …                    -> issue <n> of $GH_STUB_DIR/issues.json, carrying only the
+#                                                    fields named after --json (as the real CLI does, so a
+#                                                    reader that forgets a field is red here)
 #   gh pr list [--state …] --json …               -> $GH_STUB_DIR/prs.json (the sensor tooling's open
 #                                                    pull requests; a scenario may carry its own)
 #   gh run list --workflow … --commit … --status … --json …
@@ -224,11 +226,21 @@ case "$group" in
       view)
         number="${1:-}"; shift || true
         case "$number" in ''|*[!0-9]*) refuse "issue view $number" ;; esac
+        fields=""
         while [ $# -gt 0 ]; do
-          case "$1" in --json) shift 2 ;; *) refuse "issue view $*" ;; esac
+          case "$1" in --json) fields="${2:-}"; shift 2 ;; *) refuse "issue view $*" ;; esac
         done
         need_file issues.json
-        jq --argjson n "$number" '[.[] | select(.number == $n)] | if length == 1 then .[0] else error("no fixture issue #\($n)") end' "$(fixture_path issues.json)"
+        # `--json a,b` selects fields on the real CLI, and it is the only thing that makes a caller's field list
+        # observable: a reader that forgets one (issue #196: `comments`, so the recorded answer never reached the
+        # worker) must be red here rather than silently served everything by the stub.
+        jq --argjson n "$number" --arg fields "$fields" '
+          [.[] | select(.number == $n)]
+          | if length != 1 then error("no fixture issue #\($n)") else .[0] end
+          | if $fields == "" then . else
+              . as $issue
+              | reduce ($fields | split(",")[]) as $k ({}; if ($issue | has($k)) then . + {($k): $issue[$k]} else . end)
+            end' "$(fixture_path issues.json)"
         ;;
       create|edit|close|comment|delete|reopen)
         [ "$sub" = "close" ] && check_close_reason "$@"

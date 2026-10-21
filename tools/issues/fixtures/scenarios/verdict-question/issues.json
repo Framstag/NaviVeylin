@@ -1,0 +1,41 @@
+[
+  {
+    "number": 76,
+    "state": "OPEN",
+    "title": "§76 An item whose escalation comment opens with its verdict word",
+    "updatedAt": "2026-10-21T08:48:45Z",
+    "body": "<!-- nvid: 76 -->\n\n- **Observed** ✗: the bound is unsettled.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/improvement"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/on-hold"
+      },
+      {
+        "name": "source/todo-import"
+      },
+      {
+        "name": "agent/eligible"
+      },
+      {
+        "name": "agent/needs-decision"
+      }
+    ],
+    "comments": [
+      {
+        "author": {
+          "login": "Framstag"
+        },
+        "createdAt": "2026-10-21T08:48:45Z",
+        "body": "needs-decision\n\n**The decision:** ship the fixed cut at 800 lines, or ratchet above the current worst file?\nThe fixed cut files 26 items; the ratchet files none."
+      }
+    ]
+  }
+]

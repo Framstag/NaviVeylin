@@ -1,0 +1,2 @@
+  quoting the escalation's question sentence: 'The\ decision' not found in: gh issue comment 76 --body $'Decision: ratchet above the current worst file\n<!-- answers: needs-decision -->'
+FAIL answer#theAnswerQuotesTheQuestionNotTheVerdictWord

@@ -1,0 +1,27 @@
+[
+  {
+    "number": 22,
+    "title": "§22 An eligible item whose question a person has already answered",
+    "body": "<!-- nvid: 22 -->\n\n- **Observed** ✗: the bound is unset.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/car" },
+      { "name": "status/open" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" }
+    ],
+    "comments": [
+      {
+        "author": { "login": "Framstag" },
+        "createdAt": "2026-10-20T21:49:35Z",
+        "body": "**The decision:** which bound does the row ship with — options in order: (1) 1000 lines, (2) 1500 lines, (3) 2500 lines"
+      },
+      {
+        "author": { "login": "Framstag" },
+        "createdAt": "2026-10-21T04:52:39Z",
+        "body": "Decision: 2"
+      }
+    ]
+  }
+]

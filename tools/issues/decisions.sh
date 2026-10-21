@@ -57,7 +57,8 @@ selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" '
         updatedAt: (.updatedAt // ""),
         question: (
           ((.comments // []) | last // {})
-          | (.body // "") | split("\n") | map(select(length > 0)) | (.[0] // "")
+          | (.body // "")
+          | '"$ISSUES_QUESTION_JQ"'
         )
       }
   ]

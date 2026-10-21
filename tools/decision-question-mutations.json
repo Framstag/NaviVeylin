@@ -1,0 +1,22 @@
+{
+  "comment": "The revert-checks of the question predicate (issue #243): every reader takes the escalation's `**The decision:**` line, and only a comment without that marker falls back to its first non-empty line. The escalation comment opens with its verdict word, so the fallback alone answers `needs-decision` and an answer binds to `<!-- answers: needs-decision -->` — measured on #196's own answer. One mutation per implementation, because the shell readers share one jq program and the Java core restates it: A1.1 mutates the program in `tools/issues/lib.sh` (read by `decisions.sh` and `answer.sh`), A1.2 the restatement in `WorkPackage.java`. Run it with `bash tools/mutate.sh --mutations tools/decision-question-mutations.json`; `.pi/skills/mutation-runner` owns how and `.pi/skills/revert-check` owns the rule.",
+  "case-cmd": "bash tools/issue-tooling-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "A1.1",
+      "case": "decisions#theQuestionIsNotTheVerdictWord",
+      "file": "tools/issues/lib.sh",
+      "search": "  | (map(select(startswith(\"**The decision:**\"))) | .[0]) // .[0] // \"\"'",
+      "replace": "  | .[0] // \"\"'",
+      "why": "the marker line being the question — without it the first non-empty line is the escalation's verdict word"
+    },
+    {
+      "label": "A1.2",
+      "case": "WorkPackage#questionIsNotTheVerdictWord",
+      "file": "tools/issues/core/WorkPackage.java",
+      "search": "            if (stripped.startsWith(QUESTION_MARKER)) {",
+      "replace": "            if (stripped.startsWith(QUESTION_MARKER) && false) {",
+      "why": "the same rule in the work package's fallback, which the answer's marker now makes rare but not absent"
+    }
+  ]
+}

@@ -192,6 +192,11 @@ jobs:
           # authorisation rule, the candidate filter and the dedupe marker each have a mutation. Listed for the
           # same reason as the sets above — a set that no longer parses fails this step instead of rotting.
           bash tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+          # The question a decision answers (#243): the run's escalation comment opens with its verdict word, so
+          # the queue and the answer path read the escalation's `**The decision:**` line instead, and the work
+          # package restates that rule. Listed for the same reason as the sets above — a set that no longer
+          # parses fails this step instead of rotting.
+          bash tools/mutate.sh --mutations tools/decision-question-mutations.json --list
 
       # ── priority metadata ──────────────────────────────────────
       # The gate for the priority invariant (`issue-metadata-loop`, D7): the profile's bands are total, the

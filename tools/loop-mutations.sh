@@ -173,6 +173,11 @@ MUTATIONS=(
   # whatever its patches say. Patch identity still has an owning case and mutation in `lib.sh` (35.1) and in the
   # report (35.3).
   '35.3@-@tools/loop/report.sh@report#landedBranchIsNoAction@the report counting what a branch carries by patch@s|loop_unlanded_commits "\$LOOP_ROOT" "\$base" "\$branch"|git -C "$LOOP_ROOT" log --format="+ %h %s" "$base..$branch" 2>/dev/null|'
+  # 36.1 — the item's comments are asked for, so the recorded decision can reach the worker (issue #196). The
+  # mutation asks for the six fields the runner asked for before, and the package then states `recorded: none`
+  # for an item nobody left undecided. The fixture `gh` filters by `--json` exactly as the real CLI does, which is
+  # what makes the omission observable at all.
+  '36.1@-@tools/loop/run.sh@run#workPackageCarriesTheRecordedDecision@the comments the run asks the tracker for, so the recorded decision reaches the package@s|loop_issue_json "\$issue" --comments|loop_issue_json "$issue"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

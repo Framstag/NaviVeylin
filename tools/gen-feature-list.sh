@@ -480,7 +480,7 @@ highlights_in_area() {
 }
 
 # The degraded mode: no model, one entry per highlight — every capability of the highlight in one paragraph,
-# truncated at the length bound, led by a keyword taken from the first capability's own name. The entry still
+# truncated to the length bound, led by a keyword taken from the first capability's own name. The entry still
 # carries its keys and still leads with a keyword, so the gates below hold in this mode too.
 render_mechanical() {
   jq -r --arg id "$1" --argjson max "$maxpara" --slurpfile h "$highlights_file" --slurpfile s "$specs_file" '
@@ -493,7 +493,11 @@ render_mechanical() {
     | ($caps | caps($hl.specs) | sort_by(.value.spec, .value.name)) as $sel
     | select(($sel | length) > 0)
     | ($sel[0].value.name | tokens | .[0:6] | join(" ")) as $kw
-    | "- **\($kw)** — " + (($sel | map(.value.name) | join("; ")) | clip($max)) + ".\n"
+    # The names are clipped to the bound less what the entry puts around them, because the gate measures the
+    # whole paragraph and not the names: the `— ` lead-in is three characters (five bytes under a byte-counting
+    # locale, which is its widest form) and the full stop is one more. `clip` counts characters, so the reserve of
+    # five keeps the paragraph inside the bound under either count.
+    | "- **\($kw)** — " + (($sel | map(.value.name) | join("; ")) | clip($max - 5)) + ".\n"
       + ($sel | map("  <!-- cap: \(.key) -->") | join("\n"))
   ' "$work/caps.json"
 }
@@ -512,6 +516,19 @@ needs_render() {
   fi
   printf '%s\n' "$dirty_areas" | grep -qx "$area_id" && return 0
   return 1
+}
+
+# The shape an entry has to have when no model composed it, because the prose gates hold every entry to it: a
+# keyword of six tokens at most, and a paragraph inside the length bound. The paragraph the entry prints is not the
+# name alone — it is the name between the `— ` lead-in and a full stop, and the gate measures that wrapper too, so
+# it is reserved here exactly as it is in `render_mechanical`'s clip. The unprompted modes have only a requirement
+# name to compose with, so they shape that name rather than print it whole.
+entry_keyword() {
+  jq -rn --arg n "$1" '$n | gsub("[^A-Za-z0-9]+"; " ") | split(" ") | map(select(. != "")) | .[0:6] | join(" ")'
+}
+entry_paragraph() {
+  jq -rn --arg n "$1" --argjson max "$maxpara" '
+    $n | if length <= ($max - 5) then . else (.[0:($max - 5)] | rindex(" ") // ($max - 6)) as $c | .[0:$c] end'
 }
 
 # Selection for a release note: which capabilities moved, and how a vanished key is accounted for. Writes
@@ -783,7 +800,8 @@ else
       continue
     fi
     if [ "$kind" = "removed" ]; then
-      printf -- '- **%s** — no longer available.\n  <!-- cap: %s -->\n' "${key#*#}" "$key" >> "$entry"
+      printf -- '- **%s** — no longer available.\n  <!-- cap: %s -->\n' \
+        "$(entry_keyword "${key#*#}")" "$key" >> "$entry"
     elif [ -n "$phrase_cmd" ]; then
       jq -n --arg id "$area" --arg v "$release" --arg pf "$prompts_dir/notes-section.md" \
             --slurpfile a "$areas_file" --slurpfile t "$work/texts.json" --slurpfile c "$work/caps.json" \
@@ -796,8 +814,12 @@ else
       GEN_FEATURE_LIST_ROLE=notes $phrase_cmd < "$work/notes-bundle.json" >> "$entry" \
         || fail "the phrasing command failed for the release note of area '$area'"
     else
-      printf -- '- **%s** — %s.\n  <!-- cap: %s -->\n' "$(jq -r --arg k "$key" '$k as $key | .[$key].name' "$work/caps.json")" \
-        "$(jq -r --arg k "$key" '$k as $key | .[$key].name' "$work/caps.json")" "$key" >> "$entry"
+      # The mechanical note repeats the capability's own name, shaped like a catalogue entry so that the same
+      # gates hold for it. A name longer than either bound is shortened, never refused: a note that is not
+      # written is a note the reader does not get.
+      note_name=$(jq -r --arg k "$key" '$k as $key | .[$key].name' "$work/caps.json")
+      printf -- '- **%s** — %s.\n  <!-- cap: %s -->\n' \
+        "$(entry_keyword "$note_name")" "$(entry_paragraph "$note_name")" "$key" >> "$entry"
     fi
   done < <(sort -n "$work/notes.tsv")
 

@@ -1,0 +1,22 @@
+version: 2026-10-10-1
+specs read: 176
+capability keys: 1197
+added: 271
+changed: 76
+removed: 3
+unchanged: 850
+dirty areas: 13
+areas: 13
+unclassified spec ids: 0
+stale classification entries: 0
+prompt files: 3
+baseline: /tmp/fl-h/snapshots/2026-10-08-4.json
+gen-feature-list: the prose gates failed:
+  entry paragraph is 321 characters, more than the 320 allowed (line 183): **Degenerate route geometry degrades safely** — Degenerate route geometry degrades safely; Route fit is suppressed while
+  entry paragraph is 322 characters, more than the 320 allowed (line 302): **A POI search keeps its own** — A POI search keeps its own slot and is abandoned when its view is left; Category and ra
+  entry paragraph is 321 characters, more than the 320 allowed (line 316): **Decision is remembered** — Decision is remembered; First-use rationale dialog before permission request; Permission st
+  entry paragraph is 322 characters, more than the 320 allowed (line 361): **Group card renders with color shading** — Group card renders with color shading; Group color can be set via card menu;
+  entry paragraph is 321 characters, more than the 320 allowed (line 548): **Car stop navigation reflected on phone** — Car stop navigation reflected on phone; Car-only navigation start; Connect 
+  entry paragraph is 321 characters, more than the 320 allowed (line 570): **AAOS launch entry point** — AAOS launch entry point; Android Auto projection declarations intact in the mobile build; 
+  entry paragraph is 322 characters, more than the 320 allowed (line 652): **A failure from native code is** — A failure from native code is worded by the surface; All user-facing text is transla
+gen-feature-list: the catalogue was not written; fix the report above and run again

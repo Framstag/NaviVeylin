@@ -1,0 +1,119 @@
+version: 2026-10-10-1
+specs read: 176
+capability keys: 1197
+added: 271
+changed: 76
+removed: 3
+unchanged: 850
+dirty areas: 13
+areas: 13
+unclassified spec ids: 0
+stale classification entries: 0
+prompt files: 3
+baseline: /tmp/fl-corr/data2/snapshots/2026-10-08-4.json
+catalogue: /tmp/fl-corr/out2/FEATURES.md (19 entries for 19 selling points, 12 areas, about 302 chars per entry)
+gen-feature-list: renamed, reported as a change: auto-favorites#PlaceListTemplate displays favorites -> auto-favorites#ListTemplate displays favorites
+gen-feature-list: renamed, reported as a change: fav-starred-chip-bar#Chip order follows the stored favorite order -> fav-starred-chip-bar#Chip bar follows the stored starred order
+gen-feature-list: renamed, reported as a change: navigation-status-details#Route progress lines in routing status card -> navigation-status-details#Route progress rings on the routing status row
+note: 2026-10-10-1 carries 144 changed and 0 removed user-visible capabilities (3 renames)
+gen-feature-list: the release-note gates failed:
+  entry keyword is 8 words, more than six (line 183): A roundabout exit is identified by its ordinal
+  entry keyword is 8 words, more than six (line 185): Current and next step in host instruction panel
+  entry keyword is 9 words, more than six (line 187): Navigation ends when the car session ends after arrival
+  entry keyword is 7 words, more than six (line 189): Next turn maneuver in host instruction panel
+  entry keyword is 9 words, more than six (line 191): Reroute keeps the navigation view live under the notice
+  entry keyword is 10 words, more than six (line 195): Current road info shown in free driving (no active route)
+  entry keyword is 12 words, more than six (line 197): One free-driving road/speed status feeds every surface and the notification
+  entry keyword is 9 words, more than six (line 201): Free-driving content comes from the free-driving status
+  entry keyword is 8 words, more than six (line 205): Unknown free-driving values leave no empty fragment
+  entry keyword is 8 words, more than six (line 209): Route progress rings on the routing status row
+  entry keyword is 8 words, more than six (line 215): Solid red tint on status card during rerouting
+  entry keyword is 7 words, more than six (line 217): Analysed segment is highlighted on the map
+  entry keyword is 7 words, more than six (line 219): Analysed step is locatable on the map
+  entry keyword is 11 words, more than six (line 221): An analysis is created only by the selector that owns it
+  entry keyword is 11 words, more than six (line 223): A step's values are its own, never a neighbour's
+  entry keyword is 8 words, more than six (line 225): Step values describe the step's own leg
+  entry keyword is 10 words, more than six (line 227): A superseded calculation never clears the live calculation's state
+  entry keyword is 9 words, more than six (line 229): Cancelling a calculation aborts it and releases its resources
+  entry keyword is 9 words, more than six (line 231): Car wait notice while a route is being calculated
+  entry keyword is 11 words, more than six (line 233): In-flight route calculation is part of the shared navigation state
+  entry keyword is 8 words, more than six (line 237): Route calculation progress is exposed as a percentage
+  entry keyword is 7 words, more than six (line 239): The car notice never outlives its calculation
+  entry keyword is 7 words, more than six (line 245): Planning card content and its pinned actions
+  entry keyword is 7 words, more than six (line 249): A failed route calculation reports a reason
+  entry keyword is 12 words, more than six (line 251): A reason that concerns one end of the route identifies that end
+  entry keyword is 12 words, more than six (line 253): A reason whose cause the user can act on offers the action
+  entry keyword is 7 words, more than six (line 255): Each reason is worded by the surface
+  entry keyword is 13 words, more than six (line 257): A missing or unusable maximum speed falls back to the built-in profile
+  entry keyword is 9 words, more than six (line 259): A per-vehicle maximum speed is a persisted setting
+  entry keyword is 8 words, more than six (line 261): A speed change does not restart a calculation
+  entry keyword is 9 words, more than six (line 263): Every calculation path carries the vehicle's maximum speed
+  entry keyword is 10 words, more than six (line 265): The setting is shared by the phone and the car
+  entry keyword is 8 words, more than six (line 274): Car region scope follows the car's movement
+  entry keyword is 9 words, more than six (line 278): Search scoped by the car position's admin region
+  entry keyword is 14 words, more than six (line 280): The car search screen stops its own search when it leaves its started period
+  entry keyword is 7 words, more than six (line 282): Transliterated name matching parity with phone search
+  entry keyword is 8 words, more than six (line 284): A repeated query text still runs the search
+  entry keyword is 7 words, more than six (line 286): Search suggestions follow the newest query text
+  entry keyword is 15 words, more than six (line 288): A POI search keeps its own slot and is abandoned when its view is left
+  entry keyword is 8 words, more than six (line 290): Embedded result map fit never clips a result
+  entry keyword is 8 words, more than six (line 299): AA place list follows the stored group order
+  entry keyword is 7 words, more than six (line 305): Starred favorites render as one ordered list
+  entry keyword is 7 words, more than six (line 307): The all-favorites mode lists groups first
+  entry keyword is 11 words, more than six (line 309): The favourites list distinguishes a loading store from an empty one
+  entry keyword is 8 words, more than six (line 315): Favorite row offers a "Move to group" action
+  entry keyword is 10 words, more than six (line 319): A favorite can be moved from one group into another
+  entry keyword is 8 words, more than six (line 321): Favorite position within a group is user-defined
+  entry keyword is 9 words, more than six (line 323): Move-to-group semantics for invalid or refused targets
+  entry keyword is 9 words, more than six (line 325): Reordering persists with a single write per committed move
+  entry keyword is 7 words, more than six (line 327): Chip bar follows the stored starred order
+  entry keyword is 7 words, more than six (line 329): Chip bar supports drag-and-drop reordering
+  entry keyword is 11 words, more than six (line 333): Starring enters the favorite at the end of the starred order
+  entry keyword is 9 words, more than six (line 335): Move semantics for invalid or out-of-range targets
+  entry keyword is 9 words, more than six (line 337): Order is recovered from a file that carries none
+  entry keyword is 7 words, more than six (line 339): Other operations leave the starred order alone
+  entry keyword is 9 words, more than six (line 341): Reordering persists with a single write per committed move
+  entry keyword is 9 words, more than six (line 343): Starred order is user-defined and spans all groups
+  entry keyword is 7 words, more than six (line 345): Starring and unstarring change the starred order
+  entry keyword is 8 words, more than six (line 362): An unencrypted repository source is marked as such
+  entry keyword is 10 words, more than six (line 364): A repository base URL is normalised before it is used
+  entry keyword is 10 words, more than six (line 366): A source switch unregisters, reloads and records what it deletes
+  entry keyword is 10 words, more than six (line 368): Base URL of the repository source is validated before use
+  entry keyword is 9 words, more than six (line 370): Installed map data records the source it came from
+  entry keyword is 7 words, more than six (line 372): Map source is a registered, persisted choice
+  entry keyword is 12 words, more than six (line 374): Switching source is gated by a confirmation naming what will be deleted
+  entry keyword is 13 words, more than six (line 376): The repository URL field is presented as URL input with its format shown
+  entry keyword is 11 words, more than six (line 378): An installed repository database is compared with its own version slot
+  entry keyword is 9 words, more than six (line 380): An installed update is rendered without an app restart
+  entry keyword is 10 words, more than six (line 382): An update replaces the installation only when it is complete
+  entry keyword is 13 words, more than six (line 384): Data left by an interrupted update is recognised, not mistaken for a map
+  entry keyword is 7 words, more than six (line 386): Each compared item carries one update state
+  entry keyword is 11 words, more than six (line 388): Leftover staging data is removed on the app-start path only
+  entry keyword is 11 words, more than six (line 390): The app checks for newer repository map data once a day
+  entry keyword is 8 words, more than six (line 392): The check covers the active repository source only
+  entry keyword is 8 words, more than six (line 396): The updates section belongs to the repository source
+  entry keyword is 8 words, more than six (line 398): The updates section lists what can be updated
+  entry keyword is 7 words, more than six (line 400): The updates surface is the phone's
+  entry keyword is 8 words, more than six (line 402): The user can run the check on demand
+  entry keyword is 7 words, more than six (line 404): Updating every listed item is a queue
+  entry keyword is 9 words, more than six (line 409): Car surface follows the shared preference without a control
+  entry keyword is 9 words, more than six (line 411): Icon-versus-symbol preference is a persisted phone setting
+  entry keyword is 9 words, more than six (line 415): Preference decides which rendering is drawn when both exist
+  entry keyword is 8 words, more than six (line 417): Preference is applied at start and on change
+  entry keyword is 8 words, more than six (line 419): Style load failure is visible on both surfaces
+  entry keyword is 9 words, more than six (line 426): Entry transition is bounded in time and render requests
+  entry keyword is 8 words, more than six (line 428): Compass colors follow the resolved day/night presentation
+  entry keyword is 7 words, more than six (line 436): The car exposes no maximum speed control
+  entry keyword is 8 words, more than six (line 438): Vehicle maximum speed sliders in the options sheet
+  entry keyword is 10 words, more than six (line 442): The render pin lives only as long as the walk
+  entry keyword is 7 words, more than six (line 444): Zoom animation never exposes uncovered map area
+  entry keyword is 7 words, more than six (line 451): Shared follow bounds on the car surface
+  entry keyword is 14 words, more than six (line 453): A frame from the previous orientation yields a zero offset instead of an error
+  entry keyword is 9 words, more than six (line 457): Follow frame refresh before the overrun margin is exhausted
+  entry keyword is 8 words, more than six (line 461): Single resolved anchor across render, blit and marker
+  entry keyword is 7 words, more than six (line 470): Deep-link activity forwards to phone app
+  entry keyword is 12 words, more than six (line 474): A map link with no coordinate falls back to its place name
+  entry keyword is 9 words, more than six (line 476): An unreadable shared map link is reported, never searched
+  entry keyword is 8 words, more than six (line 482): Shared map link is read for its coordinate
+  entry keyword is 10 words, more than six (line 487): A failure from native code is worded by the surface
+gen-feature-list: the release note was not written; fix the report above and run again

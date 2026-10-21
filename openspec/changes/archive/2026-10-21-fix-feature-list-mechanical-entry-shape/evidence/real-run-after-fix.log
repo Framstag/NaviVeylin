@@ -1,0 +1,20 @@
+version: 2026-10-10-1
+specs read: 176
+capability keys: 1197
+added: 271
+changed: 76
+removed: 3
+unchanged: 850
+dirty areas: 13
+areas: 13
+unclassified spec ids: 0
+stale classification entries: 0
+prompt files: 3
+baseline: /tmp/fl-corr/data3/snapshots/2026-10-08-4.json
+catalogue: /tmp/fl-corr/out3/FEATURES.md (19 entries for 19 selling points, 12 areas, about 302 chars per entry)
+gen-feature-list: renamed, reported as a change: auto-favorites#PlaceListTemplate displays favorites -> auto-favorites#ListTemplate displays favorites
+gen-feature-list: renamed, reported as a change: fav-starred-chip-bar#Chip order follows the stored favorite order -> fav-starred-chip-bar#Chip bar follows the stored starred order
+gen-feature-list: renamed, reported as a change: navigation-status-details#Route progress lines in routing status card -> navigation-status-details#Route progress rings on the routing status row
+note: 2026-10-10-1 carries 144 changed and 0 removed user-visible capabilities (3 renames)
+release notes: /tmp/fl-corr/out3/RELEASE-NOTES.md (1 entries, newest 2026-10-10-1)
+snapshot: /tmp/fl-corr/data3/snapshots/2026-10-10-1.json

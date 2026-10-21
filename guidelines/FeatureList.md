@@ -43,11 +43,16 @@ not published`.
 keyword is six tokens or fewer, and its paragraph is **at most 320 characters** — one or two sentences, read in one
 glance. The run fails above the bound and names the length, which is what stopped the first attempt at this
 document from turning into 239 one-line entries, and the second from turning into 19 paragraphs of nine hundred
-characters.
+characters. Both bounds hold for the entries a run composes **without** a model as well: that mode builds an entry
+out of the capabilities' own requirement names, so it shortens a name to the keyword and paragraph shape rather
+than printing it whole and being refused by the same gate.
 
 Cases: `length: an over-long paragraph fails the run`, `length: a short paragraph passes`,
+`length: a mechanical catalogue entry is composed inside the bound`,
+`length: a mechanical release-note entry is composed inside the bound`,
 `gates: an entry with no bold keyword fails the run`, `gates: a keyword longer than six words fails the run`,
-`gates: a keyword word the cited specs lack fails the run`.
+`gates: a keyword word the cited specs lack fails the run`, `density: one entry per capability fails the run`,
+`density: a merged area passes`, `catalogue: the report states the density it achieved`.
 
 **The two documents themselves:**
 

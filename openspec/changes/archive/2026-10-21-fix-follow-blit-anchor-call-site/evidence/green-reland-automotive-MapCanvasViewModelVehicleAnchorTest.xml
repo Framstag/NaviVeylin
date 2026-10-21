@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-21T18:30:08.889Z" hostname="dingens" time="7.366">
+  <properties/>
+  <testcase name="followCommitUsesTheAnchorCenteredRenderTarget" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="6.232"/>
+  <testcase name="overlayInsetsResolveTheAnchorIntoTheVisibleArea" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.063"/>
+  <testcase name="routingAndFreeDrivingResolveTheirOwnAnchorsWithInsets" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.095"/>
+  <testcase name="freeDrivingAnchorAppliedWithoutGuidance" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.055"/>
+  <testcase name="browseRecenterCentersTheVehicleIgnoringTheAnchorPreset" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.066"/>
+  <testcase name="gestureAfterFollowKeepsTheCommittedFrameWithoutAnchorJump" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.042"/>
+  <testcase name="renderTargetHelperKeepsCenterAnchorIdentical" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.036"/>
+  <testcase name="routingAnchorAppliedWhileNavigating" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.039"/>
+  <testcase name="headingUpFollowKeepsTheVehicleAtTheAnchor" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.03"/>
+  <testcase name="defaultCenterStaysExactlyCenteredUnderNavigationInsets" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.028"/>
+  <testcase name="renderTargetHelperShiftsForOffCenterAnchor" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.031"/>
+  <testcase name="defaultAnchorsAreCenter" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.03"/>
+  <testcase name="guidanceStateSelectsTheAnchorUsedForTheRenderTarget" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.037"/>
+  <testcase name="reEngagingFollowCommitsTheAnchorCenteredFrame" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.031"/>
+  <testcase name="followBlitOffsetTakesTheResolvedAnchorNotTheRawPreset" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.041"/>
+  <testcase name="unchangedOverlayInsetsDoNotEmitState" classname="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" time="0.039"/>
+  <system-out><![CDATA[followBlitAnchor presetFy=0.9 resolvedFy=0.7333333333333333 activeFy=0.9 seamRawY=5.968558980384842E-11 resolvedRawY=5.968558980384842E-11 presetRawY=-319.9999999999404 seamClamped=false presetClamped=true
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

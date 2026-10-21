@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.FollowBlitCallSiteTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:14:08.557Z" hostname="dingens" time="0.045">
+  <properties/>
+  <testcase name="the follow blit offset is computed by the seam and not inline in the frame loop" classname="com.naviveylin.ui.map.FollowBlitCallSiteTest" time="0.041"/>
+  <testcase name="the follow offset path cannot read the raw preset" classname="com.naviveylin.ui.map.FollowBlitCallSiteTest" time="0.003"/>
+  <system-out><![CDATA[followBlitCallSite seamCalls=1 inlineCalls=0 callSiteRawReads=0
+followBlitSeam readsResolved=1 readsRawPreset=0 callsOffset=1
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

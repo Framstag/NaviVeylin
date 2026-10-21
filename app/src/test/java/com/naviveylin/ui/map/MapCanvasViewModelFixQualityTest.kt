@@ -329,9 +329,12 @@ class MapCanvasViewModelFixQualityTest {
      * runner's unrelated traffic can no longer turn the case red.
      *
      * The case provokes the unrelated traffic itself, one dispatch per window from a thread that is
-     * neither the test thread nor the re-evaluation's, and asserts the counter saw it: the
-     * discrimination is exercised on every run instead of waiting for a loaded machine to supply noise,
-     * and an attribution that silently stopped discriminating would fail here rather than pass quietly.
+     * neither the test thread nor the re-evaluation's, and asserts the counter attributed it to another
+     * subsystem. That control closes two failure directions on every run: an attribution that counted
+     * everything would trip the zero assertion instead, and one that counted nothing would trip the
+     * control. It does not close a third — a predicate that never matches the ViewModel passes both —
+     * which the recorded falsification run exercises instead (a per-tick main-dispatcher hop attributed
+     * to the ViewModel's own `invokeSuspend`), not a passing run.
      *
      * Asserted over [TICK_WINDOWS] windows, not over one (a rate needs N ≥ 3): the tick period is real
      * time, so a single window is a sample, and a per-tick pattern is a property of all of them.
@@ -376,8 +379,8 @@ class MapCanvasViewModelFixQualityTest {
             0,
             fromTheViewModel
         )
-        // The control: the unrelated traffic was really dispatched onto this instrumented dispatcher
-        // while the windows ran — the counter is not blind, it attributes.
+        // The control: the unrelated traffic was really dispatched onto this instrumented dispatcher in
+        // every window — the counter is not blind, it attributes.
         assertTrue(
             "no main dispatch from another thread was attributed to another subsystem at all, so this " +
                 "case cannot show that it tells the re-evaluation's traffic from the rest: " +

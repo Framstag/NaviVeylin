@@ -1,0 +1,17 @@
+# 2026-10-22T01:49:26+02:00
+specs read: 177
+classified: 177
+unclassified: 0
+stale: 0
+car-only areas: 1
+highlights: 19
+EXIT=0
+build-tooling	ci-action-runtimes	internal		ci-action-runtimes#A workflow pin names a major that declares Node 24
+build-tooling	ci-action-runtimes	internal		ci-action-runtimes#An action the check has no recorded runtime for is a defect
+build-tooling	ci-action-runtimes	internal		ci-action-runtimes#The check decides offline and names what it cannot resolve
+# gen-feature-list self-test, 2026-10-22T01:49:47+02:00 (the specs.json edit)
+ok   version: the version-state file is never read
+ok   version: the run works where the version-state file is absent
+
+gen-feature-list-selftest: 108 passed, 0 failed
+EXIT=

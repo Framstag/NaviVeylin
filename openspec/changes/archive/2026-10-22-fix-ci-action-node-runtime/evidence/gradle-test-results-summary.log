@@ -1,0 +1,5 @@
+# Gradle's own JUnit XMLs from the gate run (app/build/test-results/test*), 2026-10-22T01:48:57+02:00
+app/build/test-results/testMobileDebugUnitTest suites=286 tests=2096 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest suites=286 tests=2096 failures=0 errors=0
+-rw-r--r-- 1 tim tim  972 22. Okt 01:38 app/build/test-results/testMobileDebugUnitTest/TEST-com.framstag.libosmscout.client.FakeOSMScoutClientSearchRequestTest.xml
+-rw-r--r-- 1 tim tim  535 22. Okt 01:38 app/build/test-results/testMobileDebugUnitTest/TEST-com.naviveylin.AutomotiveDeviceTest.xml

@@ -1,0 +1,19 @@
+# post-archive suites, 2026-10-22T01:49:07+02:00
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+doc-routes EXIT=0
+action runtimes: 10 action pins across 2 workflow files target Node 24.
+checker EXIT=0
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+selftest EXIT=
+Specification 'ci-action-runtimes' is valid
+Root
+  OpenSpec root: ok
+# final pass after the reviewer-facing wording fixes in the archived proposal/design, 2026-10-22T01:50:18+02:00
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+doc-routes EXIT=0
+action runtimes: 10 action pins across 2 workflow files target Node 24.
+checker EXIT=0
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+specs read: 177
+classified: 177
+unclassified: 0

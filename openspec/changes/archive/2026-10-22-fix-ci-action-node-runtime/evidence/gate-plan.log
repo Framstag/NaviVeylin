@@ -1,0 +1,6 @@
+# 2026-10-22T01:34:30+02:00
+./gradlew test -PforceTests --no-build-cache
+tools/loop-selftest.sh
+tools/sensor-selftest.sh
+tools/check-doc-routes.sh
+EXIT=0

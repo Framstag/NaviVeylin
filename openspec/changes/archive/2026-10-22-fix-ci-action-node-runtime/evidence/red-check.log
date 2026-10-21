@@ -1,0 +1,8 @@
+# red: the checker against the base commit's workflows (git show 80df3a3:.github/workflows/{build,sensors}.yml into .pi/tmp/prefix-root), 2026-10-22T01:34:27+02:00
+::error file=.github/workflows/build.yml,line=506::'uses: actions/upload-artifact@v5' targets Node 20 — the first Node 24 major is v6 (https://raw.githubusercontent.com/actions/upload-artifact/v6/action.yml)
+::error file=.github/workflows/build.yml,line=529::'uses: actions/upload-artifact@v5' targets Node 20 — the first Node 24 major is v6 (https://raw.githubusercontent.com/actions/upload-artifact/v6/action.yml)
+::error file=.github/workflows/build.yml,line=540::'uses: actions/upload-artifact@v5' targets Node 20 — the first Node 24 major is v6 (https://raw.githubusercontent.com/actions/upload-artifact/v6/action.yml)
+::error file=.github/workflows/build.yml,line=547::'uses: actions/upload-artifact@v5' targets Node 20 — the first Node 24 major is v6 (https://raw.githubusercontent.com/actions/upload-artifact/v6/action.yml)
+::error file=.github/workflows/build.yml,line=557::'uses: actions/upload-artifact@v5' targets Node 20 — the first Node 24 major is v6 (https://raw.githubusercontent.com/actions/upload-artifact/v6/action.yml)
+::error file=.github/workflows/sensors.yml,line=59::'uses: actions/checkout@v4' targets Node 20 — the first Node 24 major is v5 (https://raw.githubusercontent.com/actions/checkout/v5/action.yml)
+EXIT=1

@@ -1,0 +1,8 @@
+# gate run (the run's own configuration), started 2026-10-22T01:35:13+02:00
+gate: ./gradlew test -PforceTests --no-build-cache
+gate: tools/loop-selftest.sh
+gate: tools/sensor-selftest.sh
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=195 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-doc-routes.sh)
+EXIT=0
+# finished 2026-10-22T01:48:46+02:00

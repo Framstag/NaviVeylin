@@ -1,0 +1,7 @@
+# 2026-10-22T01:35:05+02:00 — with the worktree's own loop.conf (the run exports LOOP_CONF pointing at the project tree's copy, which predates this change)
+./gradlew test -PforceTests --no-build-cache
+tools/loop-selftest.sh
+tools/sensor-selftest.sh
+tools/check-action-runtimes-selftest.sh
+tools/check-doc-routes.sh
+EXIT=0

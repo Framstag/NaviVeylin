@@ -1,0 +1,3 @@
+# 2026-10-22T01:34:30+02:00
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+EXIT=0

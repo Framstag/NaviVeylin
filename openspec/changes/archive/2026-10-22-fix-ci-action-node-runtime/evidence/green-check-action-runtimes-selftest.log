@@ -1,0 +1,13 @@
+# 2026-10-22T01:34:28+02:00
+ok: this repository's workflows pin a Node 24 major
+ok: pins at or above the Node 24 floor pass
+ok: a Node 20 upload-artifact pin fails
+ok: a Node 20 checkout pin fails
+ok: a subpath of a recorded action resolves to the action's floor
+ok: an action with no recorded runtime fails
+ok: an unverifiable ref fails
+ok: a container action and a local action are skipped
+ok: a workflow with no action pin passes
+ok: a tree with no workflow directory is a layout error
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+EXIT=0

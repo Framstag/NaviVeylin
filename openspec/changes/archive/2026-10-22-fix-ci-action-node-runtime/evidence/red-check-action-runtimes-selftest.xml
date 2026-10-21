@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/check-action-runtimes-selftest.sh" tests="10" failures="1" errors="0" timestamp="2026-10-22T01:33:31+02:00">
+  <system-out>ok: a workflow with no action pin passes ok: a tree with no workflow directory is a layout error check-action-runtimes-selftest: 1 of 10 cases failed </system-out>
+</testsuite>

@@ -83,8 +83,16 @@ that owns the engine, so a set that no longer parses fails the pipeline instead 
 ```bash
 tools/loop-mutations.sh --list            # what the invariants are, and which case owns each
 tools/loop-mutations.sh --only 9.1        # one mutation, while iterating
+tools/loop-mutations.sh --files tools/loop/run.sh       # the records this change's files own
+tools/loop-mutations.sh --from-git <base>               # …taken from the diff, plus the working tree
 tools/loop-mutations.sh --out <file>      # the whole set, with the transcript recorded
 ```
+
+A record's file is its third field, so an iteration is bounded by the change instead of by hand-picked labels:
+`--files` names paths (space-separated, repeatable), `--from-git <base>` takes them from `git diff --name-only
+<base>` plus `git status`, the harness prints the selection against the declared set (`7 of 75 records
+selected`), and a selection that names no record exits 2 instead of reporting a pass for having done nothing.
+The whole set stays the pass before a change that owns `tools/loop/**` is archived (issue #235).
 
 ## Procedure
 

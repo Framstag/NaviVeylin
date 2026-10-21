@@ -8,7 +8,10 @@
 #     silent pass;
 #   * a mutation that lands but that no case notices is `the case did not notice the mutation`, exit 1;
 #   * a mutation that lands and whose case notices it is `RED`, the restore is `green again`, and the copy is
-#     byte-identical to the pristine one when the harness is done.
+#     byte-identical to the pristine one when the harness is done;
+#   * a selection by file scopes the run to the records that file owns, a selection no record owns is refused
+#     with exit 2 instead of passing for having done nothing, and `--from-git` derives the set from a diff
+#     (issue #235).
 #
 # Usage: bash tools/loop-mutations-selftest.sh
 # Exit:  0 all three hold; 1 one of them does not; 2 the environment is unusable.
@@ -40,7 +43,9 @@ ln -s "$root/tools/issues" "$scratch/engine/tools/issues"
 copy_dir="$scratch/engine/tools/loop"
 
 fail=0
-check() { if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1: expected [$2] got [$3]"; fail=1; fi; }
+checks=0
+failed_checks=0
+check() { checks=$((checks + 1)); if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1: expected [$2] got [$3]"; fail=1; failed_checks=$((failed_checks + 1)); fi; }
 
 # 1. a mutation whose pattern no longer matches must be reported, not swallowed
 out=$(timeout 300 bash "$harness" --probe no-apply --engine "$copy_dir" 2>&1)
@@ -129,9 +134,59 @@ declared=$(sed -n '/^MUTATIONS=(/,/^)/p' "$root/tools/loop-mutations.sh" | grep 
 out=$(bash "$harness" --list 2>&1)
 check "the mutation set lists what it declares" "$declared" "$(printf '%s\n' "$out" | grep -c .)"
 
+# 7. the scope of a run follows the files it touches. A record's third `@`-separated field is its file, so a
+# selection may name files and run exactly the records those files own — the bound an iteration needs, since
+# naming labels by hand is derived by grepping the set (issue #235). `prompts/worker.md` owns exactly one
+# record, so the count line and the single RED are both observable.
+out=$(timeout 300 bash "$harness" --files tools/loop/prompts/worker.md --list 2>&1)
+check "a file set lists exactly the record its file owns" "9.11" "$(printf '%s\n' "$out" | awk -F'\t' '{print $1}')"
+out=$(timeout 600 bash "$harness" --files tools/loop/prompts/worker.md --engine "$copy_dir" 2>&1)
+status=$?
+check "a file set runs the record its file owns" "0" "$status"
+case "$out" in
+  *"1 of $declared records selected"*) echo "ok   and it says how much of the declared set it ran";;
+  *) echo "FAIL the selection line: [$out]"; fail=1;;
+esac
+check "exactly one record ran" "1" "$(printf '%s\n' "$out" | grep -c '^RED ')"
+case "$out" in
+  *"RED    9.11"*) echo "ok   and it is the record that file owns";;
+  *) echo "FAIL the RED line of the selected record: [$out]"; fail=1;;
+esac
+diff -r "$scratch/pristine" "$copy_dir" >/dev/null 2>&1 ||
+  { echo "FAIL the copy was not restored after the scoped run"; fail=1; }
+
+# 8. a selection no record owns names nothing to do: it must be refused, not reported as a pass, because a
+# harness that passes by doing nothing is the silent lie the whole runner exists to prevent.
+out=$(timeout 300 bash "$harness" --files tools/loop/prompts/no-such-file.md --engine "$copy_dir" 2>&1)
+status=$?
+check "a file set no record owns exits 2" "2" "$status"
+case "$out" in
+  *"names no record of"*) echo "ok   and it says the selection selected nothing";;
+  *) echo "FAIL the empty-selection guard message: [$out]"; fail=1;;
+esac
+case "$out" in
+  *"RED    9.11"*|*"restore 9.11"*) echo "FAIL a record ran although the file set names none"; fail=1;;
+  *) echo "ok   and no record ran";;
+esac
+
+# 9. `--from-git <base>` takes the set from the diff, which is what the caller actually changed — the
+# committed range plus the working tree, the same two sources the loop's gate reads. A synthetic repository
+# keeps the measurement independent of this checkout's state.
+diff_repo="$scratch/diff-repo"
+mkdir -p "$diff_repo/tools/loop/prompts" || { echo "FAIL cannot create $diff_repo"; fail=1; }
+cp "$root/tools/loop/prompts/worker.md" "$diff_repo/tools/loop/prompts/worker.md"
+git -C "$diff_repo" init -q >/dev/null 2>&1
+git -C "$diff_repo" add -A >/dev/null 2>&1
+git -C "$diff_repo" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm base >/dev/null 2>&1
+printf '\n<!-- the working tree touched this file -->\n' >> "$diff_repo/tools/loop/prompts/worker.md"
+out=$(cd "$diff_repo" && timeout 300 bash "$harness" --from-git HEAD --list 2>&1)
+check "a git diff names the record its file owns" "9.11" "$(printf '%s\n' "$out" | awk -F'\t' '{print $1}')"
+out=$(cd "$diff_repo" && timeout 300 bash "$harness" --from-git HEAD --list 2>&1 | grep -c .)
+check "and nothing else" "1" "$out"
+
 if [ "$fail" -ne 0 ]; then
-  echo "loop-mutations-selftest: the mutation harness does not hold its own guards"
+  echo "loop-mutations-selftest: the mutation harness does not hold its own guards — $failed_checks of $checks cases failed"
   exit 1
 fi
-echo "loop-mutations-selftest: the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project and it refuses a backup that did not land"
+echo "loop-mutations-selftest: all $checks cases passed (the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land, and it scopes a run to the files a change touched)"
 exit 0

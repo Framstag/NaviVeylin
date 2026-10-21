@@ -12,22 +12,32 @@
 # It restores every file it touches, restores the current one even when it is killed (EXIT trap), and refuses to
 # restore from a backup that did not land: the backups live under the project's own `.pi/tmp` unless `TMPDIR`
 # says otherwise, because a full `/tmp` (a tmpfs on the measured host) once emptied six engine files — measured
-# 2026-10-21, issue #234. Run the full set before a change that owns `tools/loop/**` is archived; run one with
-# `--only` while iterating.
+# 2026-10-21, issue #234. Scope: a record's file is its third `@`-separated field, so a run can be bounded by
+# the change instead of by hand-picked labels — `--files` names paths, `--from-git <base>` takes them from the
+# diff plus the working tree, the selection is printed against the declared set (`7 of 77 records selected`),
+# and a selection that names no record exits 2, because a run that does nothing must not read as a pass —
+# issue #235. Run the full set before a change that owns `tools/loop/**` is archived.
 #
 # Exit: 0 every selected mutation went red and its restore went green; 1 a mutation did not apply, was not
-#       noticed, or its restore stayed red; 2 usage, a missing prerequisite, or a backup/restore that could not
-#       be taken safely (nothing is mutated in that case).
+#       noticed, or its restore stayed red; 2 usage, a missing prerequisite, an empty selection, or a
+#       backup/restore that could not be taken safely (nothing is mutated in that case).
 #
-# Usage: tools/loop-mutations.sh [--list] [--only <labels>] [--engine <dir>] [--out <file>]
-#                                [--timeout <seconds>]
+# Usage: tools/loop-mutations.sh [--list] [--only <labels>] [--files <paths>] [--from-git <base>]
+#                                [--engine <dir>] [--out <file>] [--timeout <seconds>]
 #                                [--probe no-apply|stays-green|empty-backup]
+#
+#   --only <labels>    the records with these labels (a space-separated list, repeatable)
+#   --files <paths>    the records whose file is one of these paths (space-separated, repeatable)
+#   --from-git <base>  the records whose file the diff against <base> and the working tree touch
+#   --list             print label, case and reason of the selected records, and exit
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 list_only=0
 only=""
+files=""
+from_git=""
 engine="$root/tools/loop"
 out=""
 case_timeout=240
@@ -36,11 +46,13 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --list) list_only=1; shift ;;
     --only) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only="${2:-}"; shift 2 ;;
+    --files) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; files="$files"$'\n'"${2:-}"; shift 2 ;;
+    --from-git) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; from_git="${2:-}"; shift 2 ;;
     --engine) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; engine="${2:-}"; shift 2 ;;
     --out) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; out="${2:-}"; shift 2 ;;
     --timeout) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; case_timeout="${2:-}"; shift 2 ;;
     --probe) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; probe="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,/^set -uo pipefail$/{/^set -uo pipefail$/d;p}' "$0"; exit 0 ;;
     *) echo "loop-mutations: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -56,6 +68,18 @@ done
   exit 2
 }
 [ -f "$root/tools/loop-selftest.sh" ] || { echo "loop-mutations: the gate tools/loop-selftest.sh is missing" >&2; exit 2; }
+
+# The file set the run is scoped to: paths named by `--files` and the ones a diff against `--from-git` touches.
+# The two sources of that diff are the gate's own — what the branch committed since the base and what is still
+# uncommitted — so "the files this change touched" means the same thing in both places.
+if [ -n "$from_git" ]; then
+  git rev-parse --verify --quiet "$from_git^{commit}" >/dev/null 2>&1 || {
+    printf 'loop-mutations: --from-git %s is not a commit this tree knows\n' "$from_git" >&2
+    exit 2
+  }
+  files="$files"$'\n'"$( { git diff --name-only "$from_git" 2>/dev/null; git status --porcelain 2>/dev/null | sed 's/^...//'; } | sort -u )"
+fi
+file_set=$(printf '%s\n' "$files" | tr ' ' '\n' | sed '/^$/d' | sort -u)
 
 # The mutations. Fields are `@`-separated (no sed expression below contains one), and one record's sed
 # expressions are separated by `;;`:
@@ -189,14 +213,35 @@ PROBE_RECORDS=(
   'probe-stays-green@-@tools/loop/report.sh@report#headerAndTableShape@a real edit no case in the set asserts@s|^set -uo pipefail$|&\n# a probe as a second line|'
 )
 
-selected() { # selected <label>
-  [ -z "$only" ] && return 0
-  case " $only " in *" $1 "*) return 0 ;; *) return 1 ;; esac
+selected() { # selected <label> <file>
+  if [ -n "$only" ]; then
+    case " $only " in *" $1 "*) ;; *) return 1 ;; esac
+  fi
+  [ -z "$file_set" ] && return 0
+  printf '%s\n' "$file_set" | grep -qxF -- "$2"
 }
+
+# What the selection came to, before anything is mutated: the caller sees that it ran a subset against the
+# declared set, and a selection that names no record stops the harness instead of reporting a pass for having
+# done nothing (issue #235).
+total_records=${#MUTATIONS[@]}
+chosen=0
+for record in "${MUTATIONS[@]}"; do
+  IFS='@' read -r label _fifo file _case_name _desc _exprs <<< "$record"
+  selected "$label" "$file" && chosen=$((chosen + 1))
+done
+if [ "$chosen" -eq 0 ]; then
+  named=""
+  [ -z "$file_set" ] || named=" (files: $(printf '%s' "$file_set" | tr '\n' ' ' | sed 's/ $//'))"
+  printf 'loop-mutations: the selection names no record of the %s declared%s — refusing to report a run that did nothing (fix the selection, not the harness)\n' \
+    "$total_records" "$named" >&2
+  exit 2
+fi
 
 if [ "$list_only" -eq 1 ]; then
   for record in "${MUTATIONS[@]}"; do
-    IFS='@' read -r label _fifo _file case_name desc _exprs <<< "$record"
+    IFS='@' read -r label _fifo file case_name desc _exprs <<< "$record"
+    selected "$label" "$file" || continue
     printf '%s\t%s\t%s\n' "$label" "$case_name" "$desc"
   done
   exit 0
@@ -305,7 +350,7 @@ one_mutation() { # one_mutation <record>
   local record="$1"
   local label fifo file case_name desc exprs backup
   IFS='@' read -r label fifo file case_name desc exprs <<< "$record"
-  selected "$label" || return 0
+  selected "$label" "$file" || return 0
 
   # The mutation is applied to the *engine* directory, which is this repository's `tools/loop` by default and
   # a throwaway copy when the harness's own self-test drives it (`--engine`). The case then runs against the
@@ -380,6 +425,9 @@ for record in "${MUTATIONS[@]}"; do
   one_mutation "$record"
 done
 
+if [ -z "$probe" ]; then
+  printf 'loop-mutations: %s of %s records selected\n' "$chosen" "$total_records"
+fi
 printf '\nred-when-mutated: %s · not-noticed: %s · restore-failures: %s\n' "$red" "$not_noticed" "$failed"
 [ "$failed" -eq 0 ] || exit 1
 [ "$not_noticed" -eq 0 ] || exit 1

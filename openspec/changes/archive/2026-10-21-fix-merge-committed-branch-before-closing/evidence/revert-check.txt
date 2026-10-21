@@ -1,0 +1,15 @@
+# Revert-check for the invariant this fix introduces (the closure follows the merge)
+# case: run#mergesItsCommittedBranchBeforeClosing, tree base 2e732f0e00fa771d04569483ffe80bc2ca3fa974 + the change
+# mutation: the `merge_committed_branch "$issue" "fix/issue-$issue-$slug"` call on the `closed` outcome
+#           replaced by a no-op (`true "$merge_refusal"`), nothing else touched
+# at: 2026-10-21T07:20Z
+
+$ bash tools/loop-selftest.sh --case 'run#mergesItsCommittedBranchBeforeClosing'
+  the item was closed with its fix on fix/issue-21-an-eligible-bug-whose-cited-path-still-e, which the base does not have
+FAIL run#mergesItsCommittedBranchBeforeClosing
+# exit=1
+
+$ cp /tmp/a229-run.sh.bak tools/loop/run.sh       # the call restored, `diff` clean
+$ bash tools/loop-selftest.sh --case 'run#mergesItsCommittedBranchBeforeClosing'
+PASS run#mergesItsCommittedBranchBeforeClosing
+# exit=0

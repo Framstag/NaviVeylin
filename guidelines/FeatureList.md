@@ -128,8 +128,7 @@ Consequence: `auto-search` belongs under *Search & Destinations*, not under *In 
 belongs under *In Your Car*, not under *Settings*.
 
 Cases: `catalogue: a dual-surface capability tags both surfaces`, `catalogue: the car-only area is rendered under
-its own heading`. The rule needs no case of its own beyond these two: one capability one area is a property of
-`areas.json`, not a check that could fail.
+its own heading`, `catalogue: a dual-surface capability appears once`.
 
 ## 6. The prose gates, not a reviewer's memory
 

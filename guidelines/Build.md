@@ -129,9 +129,9 @@ habit of running everything:
    engine, the prompts and the fixtures, and list the cases that assert the behaviour being changed. The
    count, not the first file the plan names, is what the plan's estimate is set against, and the change's
    proposal carries it with the command that produced it (`surface: 2 cases added, 2 rewritten, 4 fixtures
-   realigned — <command>`) so the next reader can repeat it instead of trusting it. A plan made before this pass is the estimate that cost
-   one change a factor of two: 292 insertions over six files, ~60 % of it test surface, against a plan of two
-   functions (issue #238).
+   realigned — <command>`) so the next reader can repeat it instead of trusting it. One change's plan made
+   before this pass cost a factor of two: 292 insertions over six files, ~60 % of it test surface, against
+   a plan of two functions (issue #238).
 2. **Iterate with focused suites, gate once.** Run the change's own declared cases first
    (`tools/declared-cases.sh`, §4), then the module suite of the flavor the change can affect, and the
    full both-flavor gate once before the commit. A declared-cases pass is never gate evidence.

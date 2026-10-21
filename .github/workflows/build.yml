@@ -101,6 +101,9 @@ jobs:
       #      'openspec archive' writes for a capability it creates — `openspec
       #      validate --type spec` only warns and exits 0, and no delta can
       #      repair it, so nothing else would ever report it (issue §171).
+      #      The pass is a `find` over openspec/specs/ because 7 capability
+      #      specs sit one level deeper (auto/*, share/*) and a flat glob
+      #      cannot see them.
       - name: Check OpenSpec artifact hygiene
         run: |
           set -euo pipefail
@@ -122,13 +125,14 @@ jobs:
             printf '%s\n' "$bad"
             fail=1
           fi
-          spec_bad=$(awk '/^## Purpose/{inp=1;next} inp&&/^## /{inp=0} inp&&/TBD - created by archiving/{printf "%s:%d\n", FILENAME, FNR}' openspec/specs/*/spec.md)
+          spec_bad=$(find openspec/specs -name spec.md -exec awk '/^## Purpose/{inp=1;next} inp&&/^## /{inp=0} inp&&/TBD - created by archiving/{printf "%s:%d\n", FILENAME, FNR}' {} +)
           if [ -n "$spec_bad" ]; then
             echo "::error::a capability spec's '## Purpose' is still the archive placeholder — write what the capability is for (a delta's Purpose is read only when the capability is created)"
             printf '%s\n' "$spec_bad"
             fail=1
           fi
           [ "$fail" -eq 0 ] || exit 1
+          echo "Every capability spec states its Purpose."
           echo "OpenSpec artifacts are consistent."
 
       # ── capability classification ──────────────────────────────

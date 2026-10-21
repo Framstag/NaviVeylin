@@ -240,10 +240,12 @@ Three artifact rules are CI-gated (`.github/workflows/build.yml`, step "Check Op
   Run `openspec doctor` and `openspec instructions apply --change <name> --json | jq .operationGuidance`
   after editing the config.
 - a capability spec's `## Purpose` is a sentence its author wrote, not the `TBD - created by archiving …`
-  sentence `openspec archive` writes for a capability it creates. `openspec validate <id> --type spec` only
-  warns and exits 0, and a delta's `## Purpose` is read only when the capability is created, so the
-  placeholders of `navigation-ongoing-notification` and `render-mode-switch` had to be repaired by hand
-  (2026-10-21). The requirement that owns this is `openspec/specs/documentation-ownership/spec.md`.
+  sentence `openspec archive` writes for a capability it creates. The check reads every `spec.md` under
+  `openspec/specs/`, nested capabilities (`auto/*`, `share/*`) included, because `openspec validate <id>
+  --type spec` only warns and exits 0, and a delta's `## Purpose` is read only when the capability is
+  created. The placeholders of `navigation-ongoing-notification` and `render-mode-switch` had to be repaired
+  by hand (2026-10-21). The requirement that owns this is
+  `openspec/specs/documentation-ownership/spec.md`.
 
 ## Build & Test
 

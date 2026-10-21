@@ -379,8 +379,9 @@ class MapCanvasViewModelFixQualityTest {
             0,
             fromTheViewModel
         )
-        // The control: the unrelated traffic was really dispatched onto this instrumented dispatcher in
-        // every window — the counter is not blind, it attributes.
+        // The control: an unrelated dispatch really reached this instrumented dispatcher in every window
+        // (issued and awaited before that window's ticks) — the counter is not blind, it attributes by
+        // stack.
         assertTrue(
             "no main dispatch from another thread was attributed to another subsystem at all, so this " +
                 "case cannot show that it tells the re-evaluation's traffic from the rest: " +
@@ -456,8 +457,8 @@ class MapCanvasViewModelFixQualityTest {
         const val TICK_MS = 20L
 
         /**
-         * A tick window, in completed ticks: six at [SETUP_TICK_MS] (≈ 300 ms) — the window a case needs,
-         * and the unit the main-dispatcher case counts in, so no case asserts on a wall-clock span.
+         * A tick window, in completed ticks: six at [SETUP_TICK_MS] (≈ 300 ms), six at [TICK_MS]
+         * (≈ 120 ms) — the unit each case counts in, so no case asserts on a wall-clock span.
          */
         const val TICK_WATCH_TICKS = 6L
 

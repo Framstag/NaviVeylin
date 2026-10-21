@@ -82,6 +82,7 @@ LOOP_SHELL_CASES=(
   'run#falsificationWithAChangedTreeIsBlocked'
   'run#decisionCapRefusesToStart'
   'run#refusesARepositoryThatIsNotAWorkTree'
+  'gate#theDeltaSelectsTheSuitesItTouches'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
   'run#blockedItemIsEscalatedWithItsReason'
@@ -238,6 +239,7 @@ loop_run_shell_case() {
     'run#falsificationWithAChangedTreeIsBlocked') fn=case_run_falsificationWithAChangedTreeIsBlocked ;;
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
+    'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
@@ -2016,6 +2018,40 @@ case_run_refusesARepositoryThatIsNotAWorkTree() {
   assert_contains "$out" "git config core.bare false" "and the one command that repairs it"
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although the run refused"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+}
+
+# The gate a delta owes is the one its pathspec asks for (issue #242). A change that only touches a note runs the
+# check that reads notes; a change that touches a compiled path runs the build's gate. The profile owns the
+# mapping — `LOOP_GATE_COMPILED_PATTERNS` and `LOOP_GATE_SUITES` in `loop.conf` — and the engine names neither a
+# project path nor a suite of its own.
+case_gate_theDeltaSelectsTheSuitesItTouches() {
+  local d p conf plan base
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=compiled-gate\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS="*.kt *.cpp"\n'
+    printf 'LOOP_GATE_SUITES="notes/*|notes-check;tools/*|tools-check"\n'
+  } >> "$conf"
+
+  mkdir -p "$p/notes" && printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a note' >/dev/null 2>&1
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "notes-check" "a note runs the check that reads notes: $plan"
+  assert_not_contains "$plan" "compiled-gate" "and asks nothing of the build"
+
+  printf 'fun main() {}\n' > "$p/Main.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a compiled change' >/dev/null 2>&1
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "compiled-gate" "a compiled path runs the build's gate: $plan"
+
+  # …and a delta the profile gates nothing for says so, instead of reporting an empty gate as a pass.
+  base=$(git -C "$p" rev-parse HEAD)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  assert_contains "$plan" "nothing owed" "a delta no pattern covers owes nothing: $plan"
 }
 
 case_run_oneItemOrderIsFixed() {

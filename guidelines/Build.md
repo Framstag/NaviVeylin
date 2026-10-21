@@ -311,6 +311,7 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
 | Build single ABI (fastest iteration) | `./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a` |
 | Run all unit tests | `./gradlew test` |
 | Run all unit tests — the **full gate** (all modules, both `:app` flavors, forced) | `./gradlew test -PforceTests --no-build-cache` |
+| Run the gate a change owes, by its own pathspec (what the loop's gate command names) | `tools/loop/gate.sh --base <sha>` — the Gradle gate when a compiled path changed, else the shell suite that covers the touched paths; `--plan` prints the selection without running it |
 | Run app unit tests only (one flavor — there is no `:app:testDebugUnitTest`) | `./gradlew :app:testMobileDebugUnitTest` (or `:app:testAutomotiveDebugUnitTest`) |
 | Run single test class | `./gradlew :app:testMobileDebugUnitTest --tests "<FQCN>"` |
 | Run instrumented tests (device required) | `./gradlew connectedAndroidTest` |

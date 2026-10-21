@@ -54,10 +54,10 @@ option lists, and the recorded `2` came to mean a different option).
    asserts it, and the plan is only real once you know how many: `grep -l` the rule's text and its symbol over
    the cases (`tools/*-cases.sh`), the engine, the prompts and the fixtures, and list the cases and fixtures
    that assert the behaviour being changed. The proposal carries the count with the command that produced it
-   (`surface: 2 cases added, 2 rewritten, 4 fixtures realigned — <command>`), because the count sets the
-   budget, the review scope and the loop's floor. An estimate made before this pass is the defect this step
-   exists for: the #232 change was planned as two functions and landed as 292 insertions over six files
-   (issue #238).
+   (`surface: 2 cases added, 2 rewritten, 4 fixtures realigned — <command>`), because the count, not the first
+   file the plan names, is what the estimate is set against. An estimate made before this pass is the defect
+   this step exists for: the #232 change was planned as two functions and landed as 292 insertions over six
+   files (issue #238).
 
 ## Phase B — the eligibility gate (strict)
 

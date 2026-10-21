@@ -127,9 +127,9 @@ habit of running everything:
    rather than an artifact owes the same measurement on a second axis, and it comes before the plan is fixed:
    **count the surface** — `grep -l` the rule's text and its symbol over the cases (`tools/*-cases.sh`), the
    engine, the prompts and the fixtures, and list the cases that assert the behaviour being changed. The
-   count sets the budget, the review scope and the loop's floor, and the change's proposal carries it with the
-   command that produced it (`surface: 2 cases added, 2 rewritten, 4 fixtures realigned — <command>`) so the
-   next reader can repeat it instead of trusting it. A plan made before this pass is the estimate that cost
+   count, not the first file the plan names, is what the plan's estimate is set against, and the change's
+   proposal carries it with the command that produced it (`surface: 2 cases added, 2 rewritten, 4 fixtures
+   realigned — <command>`) so the next reader can repeat it instead of trusting it. A plan made before this pass is the estimate that cost
    one change a factor of two: 292 insertions over six files, ~60 % of it test surface, against a plan of two
    functions (issue #238).
 2. **Iterate with focused suites, gate once.** Run the change's own declared cases first

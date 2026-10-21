@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:12.551Z" hostname="dingens" time="0.138">
+  <properties/>
+  <testcase name="searchCallPassesQueryAndLimitToClient" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest" time="0.02"/>
+  <testcase name="freeTextAndStructuredResultsPassThroughInOrder" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest" time="0.03"/>
+  <testcase name="repeatedQueryTextRunsAgain" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest" time="0.024"/>
+  <testcase name="noTextIndexFallsBackToEmptyResultsWithoutCrash" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest" time="0.022"/>
+  <testcase name="freeTextPoiResultSurfacesWithCoordinates" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest" time="0.019"/>
+  <testcase name="nullClientResultFallsBackToEmptyList" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -36,9 +36,10 @@ rooted in the case's own noise coroutine. That is the item's message, reproduced
 
 **The single fix.** Attribute every counted dispatch by the stack that issued it: frames of
 `com.naviveylin.ui.map.MapCanvasViewModel`'s own code are the re-evaluation's traffic (asserted zero,
-over three tick windows rather than two), everything else is another subsystem's, reported in the
-control assertion and never blamed on the re-evaluation. The case supplies its own unrelated traffic so
-the discrimination is exercised on every run, and asserts the counter saw it.
+over three tick windows rather than two), everything else is another subsystem's and is never blamed on
+the re-evaluation. The case supplies its own unrelated traffic so the control runs on every pass and
+asserts the counter attributed it to another subsystem; the positive direction — a dispatch the ViewModel
+issues is attributed to it — is recorded by the falsification run, not by a passing run.
 
 **Owning requirement.** `gps-fix-quality` — "Re-evaluation stays off the main dispatcher while the quality
 is unchanged" (`openspec/specs/gps-fix-quality/spec.md:12-26`), refined by this change with the

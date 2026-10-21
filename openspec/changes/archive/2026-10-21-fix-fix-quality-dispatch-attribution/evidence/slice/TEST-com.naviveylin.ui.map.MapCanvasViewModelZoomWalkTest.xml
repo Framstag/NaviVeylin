@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:15.953Z" hostname="dingens" time="0.1">
+  <properties/>
+  <testcase name="a manual commit during a walk replaces the pending target" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest" time="0.013"/>
+  <testcase name="a descending change walks too" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest" time="0.013"/>
+  <testcase name="a change inside the window keeps the single frame path" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest" time="0.013"/>
+  <testcase name="a new request mid-walk wins and ends on the newest value" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest" time="0.016"/>
+  <testcase name="a programmatic camera fit lands directly" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest" time="0.014"/>
+  <testcase name="a cold start with no frame lands directly" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest" time="0.014"/>
+  <testcase name="a large change walks and lands exactly on the target" classname="com.naviveylin.ui.map.MapCanvasViewModelZoomWalkTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

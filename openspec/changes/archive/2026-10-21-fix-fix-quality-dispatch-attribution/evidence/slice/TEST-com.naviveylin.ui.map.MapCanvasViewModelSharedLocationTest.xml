@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:57.487Z" hostname="dingens" time="0.977">
+  <properties/>
+  <testcase name="shared address repeating the committed query still runs the search" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.118"/>
+  <testcase name="shared coordinate with no candidates opens details on raw coordinate" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.102"/>
+  <testcase name="shared place name ranks the candidates" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.104"/>
+  <testcase name="request consumed after processing" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.083"/>
+  <testcase name="shared address opens search panel with query" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.099"/>
+  <testcase name="request waits for map ready" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.095"/>
+  <testcase name="long press single candidate still shows the picker" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.096"/>
+  <testcase name="shared coordinate with candidates shows picker" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.097"/>
+  <testcase name="shared coordinate with a single candidate opens the details sheet directly" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.092"/>
+  <testcase name="unreadable shared link shows the hint and keeps the search untouched" classname="com.naviveylin.ui.map.MapCanvasViewModelSharedLocationTest" time="0.088"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

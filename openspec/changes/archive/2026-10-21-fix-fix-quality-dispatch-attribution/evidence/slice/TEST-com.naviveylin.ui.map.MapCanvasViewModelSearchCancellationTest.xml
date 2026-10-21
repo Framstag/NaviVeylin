@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:13.917Z" hostname="dingens" time="0.102">
+  <properties/>
+  <testcase name="newerTextAbortsTheRunningSearch" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest" time="0.016"/>
+  <testcase name="oneCharacterQueryShowsNoResults" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest" time="0.017"/>
+  <testcase name="aSupersededSearchNeverPublishes" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest" time="0.017"/>
+  <testcase name="switchingToPoiModeAbandonsThePlacesSearch" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest" time="0.016"/>
+  <testcase name="shorteningTheQueryToOneCharacterClearsAndAborts" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest" time="0.018"/>
+  <testcase name="dismissingTheDialogAbandonsTheSearch" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchCancellationTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

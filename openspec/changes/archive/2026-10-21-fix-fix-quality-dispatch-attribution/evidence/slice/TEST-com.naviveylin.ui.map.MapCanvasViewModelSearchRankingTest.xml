@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:57.306Z" hostname="dingens" time="0.168">
+  <properties/>
+  <testcase name="rankingUsesTheLastGpsFixAsReference" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" time="0.026"/>
+  <testcase name="rankingFallsBackToTheMapCenterWithoutAFix" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" time="0.018"/>
+  <testcase name="perfectMatchBeyondTheBackendPageIsDisplayedFirst" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" time="0.022"/>
+  <testcase name="displayedListIsCappedAtTheDisplayLimit" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" time="0.02"/>
+  <testcase name="orderFollowsTheFixNotThePannedMapCenter" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" time="0.021"/>
+  <testcase name="outOfScopeCloseMatchRanksBelowAnInScopeOne" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" time="0.018"/>
+  <testcase name="anEntryWhoseBridgeDoesNotSetTheVerdictIsTreatedAsInScope" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" time="0.018"/>
+  <testcase name="favoriteHitsStayAboveThePerfectNativeMatch" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchRankingTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

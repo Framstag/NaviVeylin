@@ -35,7 +35,7 @@ kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { }
 ```
 $ ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache -PnoCoverage \
     --tests "com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.aTickDoesNotDispatchOnTheMainDispatcher"
-BUILD FAILED  (2026-10-21T09:38Z)
+BUILD FAILED  (XML timestamp 2026-10-21T09:42:21.072Z)
 tests="1" failures="1"
 java.lang.AssertionError: the fix-quality tick dispatched on the main dispatcher from another thread 18
 times over 3 windows of 6 ticks (20ms each) while nothing changed ([window 1: 6, window 2: 6, window 3: 6])
@@ -43,7 +43,7 @@ times over 3 windows of 6 ticks (20ms each) while nothing changed ([window 1: 6,
 ```
 
 The attribution puts every one of the 18 dispatches on the re-evaluation, one per tick, in every window
-(`tests="1" failures="1"`, 2026-10-21T09:42:21Z).
+(`tests="1" failures="1"`, 2026-10-21T09:42:21.072Z).
 Line restored; `git status --porcelain` shows only the test file modified.
 XML: `falsification-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`.
 
@@ -52,13 +52,22 @@ XML: `falsification-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.
 ```
 $ ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache -PnoCoverage \
     --tests "com.naviveylin.ui.map.MapCanvasViewModel*"
-BUILD SUCCESSFUL in 40s  (2026-10-21T09:42:42Z)
 slice: tests=321 skipped=0 failures=0 errors=0
-MapCanvasViewModelFixQualityTest: tests="9" skipped="0" failures="0" errors="0"
+  (40 per-class XMLs under evidence/slice/, latest timestamp 2026-10-21T09:42:42.946Z)
 ```
 
-Five forced runs of the affected class before it (`tests="9" failures="0"` each) and this slice run after
-the restore. XML: `green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`.
+The forced class run after the corrective pass — the narrowed KDoc and control comment, no behaviour
+change:
+
+```
+$ ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache -PnoCoverage \
+    --tests "com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest"
+tests="9" skipped="0" failures="0" errors="0"  timestamp="2026-10-21T09:47:29.265Z"
+```
+
+XML: `green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`. The class-only repetition of
+the first pass was not archived per run, so no repetition count is claimed. The archived XMLs are the red
+run, the falsification and these two green runs, in that order.
 
 No full `./gradlew test` gate was run: this delta touches test sources only, so `guidelines/Build.md` §2's
 scope block names the red case plus the affected cases instead — and no compiled production file changed.

@@ -26,9 +26,10 @@ case then:
 1. asserts the re-evaluation's count is 0 over **three** six-tick windows ([TICK_WINDOWS]) instead of the
    second of two — a real-time window is a sample; a per-tick pattern is a property of all of them;
 2. provokes one dispatch from a thread that is neither the test thread nor the re-evaluation's, per
-   window, and asserts the counter attributed it to another subsystem. That control is what makes the
-   attribution falsifiable: a filter that stopped discriminating (counting everything, or counting
-   nothing) fails the case instead of letting it pass quietly;
+   window, and asserts the counter attributed it to another subsystem. On a passing run the control closes
+   two failure directions: a filter that counted everything would trip the zero assertion, and one that
+   counted nothing would trip the control. It does not close a third — a filter that never matches the
+   ViewModel passes both — which the recorded falsification run exercises instead;
 3. names the window honestly in its message — three windows of six ticks of 20 ms — instead of the
    "300 ms" that described a constant the case no longer measured by.
 
@@ -73,11 +74,13 @@ way.
 
 - Red on HEAD, recorded: `tests="9" failures="1"`, `aTickDoesNotDispatchOnTheMainDispatcher`,
   2026-10-21T09:37:19Z (`evidence/red-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`).
-- Green on the fix: the affected class, eight forced runs
+- Green on the fix: the affected class, forced
   (`--tests "com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest"`, `-PforceTests --no-build-cache`),
-  `tests="9" failures="0"` each — five with the unrelated dispatch launched, three with it awaited so the
-  window provably contains it — plus one neighbouring-slice run (`--tests
-  "com.naviveylin.ui.map.MapCanvasViewModel*"`, `tests=321 failures=0`). Final XMLs in `evidence/`.
+  `tests="9" failures="0"` at 2026-10-21T09:47:29.265Z
+  (`evidence/green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`); plus one
+  neighbouring-slice run (`--tests "com.naviveylin.ui.map.MapCanvasViewModel*"`), `tests=321 failures=0`,
+  whose 40 per-class XMLs are archived under `evidence/slice/`. Class-only repetition from the first pass
+  has no archived artifact of its own, so this change claims no repetition count.
 - Falsification: reintroduce the pre-fix per-tick `withContext(Dispatchers.Main) { }` hop inside the
   re-evaluation loop → the case fails, attributed `[window 1: 6, window 2: 6, window 3: 6]`
   (`evidence/falsification-…xml`), restore, forced green again.

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelStructuredAddressSearchTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:14.859Z" hostname="dingens" time="0.052">
+  <properties/>
+  <testcase name="non-address query keeps raw results only" classname="com.naviveylin.ui.map.MapCanvasViewModelStructuredAddressSearchTest" time="0.017"/>
+  <testcase name="structured results dedup against raw results" classname="com.naviveylin.ui.map.MapCanvasViewModelStructuredAddressSearchTest" time="0.018"/>
+  <testcase name="full formatted address runs structured form search first" classname="com.naviveylin.ui.map.MapCanvasViewModelStructuredAddressSearchTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

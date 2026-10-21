@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelRoadInfoTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:56.852Z" hostname="dingens" time="0.067">
+  <properties/>
+  <testcase name="currentRoadThrottledOnStationaryFixes" classname="com.naviveylin.ui.map.MapCanvasViewModelRoadInfoTest" time="0.015"/>
+  <testcase name="currentRoadNullWhenNoRoadFound" classname="com.naviveylin.ui.map.MapCanvasViewModelRoadInfoTest" time="0.015"/>
+  <testcase name="currentRoadReResolvedAfterMovement" classname="com.naviveylin.ui.map.MapCanvasViewModelRoadInfoTest" time="0.016"/>
+  <testcase name="currentRoadResolvedFromClient" classname="com.naviveylin.ui.map.MapCanvasViewModelRoadInfoTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

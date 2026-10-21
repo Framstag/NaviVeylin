@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelStartMapRecordingTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:14.343Z" hostname="dingens" time="0.513">
+  <properties/>
+  <testcase name="a container path is recorded as the database below it" classname="com.naviveylin.ui.map.MapCanvasViewModelStartMapRecordingTest" time="0.088"/>
+  <testcase name="opening a map records it as the last opened map" classname="com.naviveylin.ui.map.MapCanvasViewModelStartMapRecordingTest" time="0.092"/>
+  <testcase name="an open that does not go through the map manager is recorded" classname="com.naviveylin.ui.map.MapCanvasViewModelStartMapRecordingTest" time="0.084"/>
+  <testcase name="the most recently opened map is the recorded one" classname="com.naviveylin.ui.map.MapCanvasViewModelStartMapRecordingTest" time="0.166"/>
+  <testcase name="the recording goes through the settings dispatcher" classname="com.naviveylin.ui.map.MapCanvasViewModelStartMapRecordingTest" time="0.081"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

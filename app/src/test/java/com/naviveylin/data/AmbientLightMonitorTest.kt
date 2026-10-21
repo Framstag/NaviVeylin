@@ -32,7 +32,7 @@ class AmbientLightMonitorTest {
 
     private fun addLightSensor(sm: SensorManager): Sensor {
         val sensor = newSensor(Sensor.TYPE_LIGHT)
-        shadowOf(sm).addSensor(Sensor.TYPE_LIGHT, sensor)
+        shadowOf(sm).addSensor(sensor)
         return sensor
     }
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.data.AmbientLightMonitorTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-20T22:19:38.810Z" hostname="dingens" time="5.954">
+  <properties/>
+  <testcase name="sensorEventFeedsClassification" classname="com.naviveylin.data.AmbientLightMonitorTest" time="5.256"/>
+  <testcase name="setSensitivityRepipelinesAndReclassifiesLastReading" classname="com.naviveylin.data.AmbientLightMonitorTest" time="0.041"/>
+  <testcase name="startIsIdempotent" classname="com.naviveylin.data.AmbientLightMonitorTest" time="0.035"/>
+  <testcase name="noLightSensorIsSafeNoOp" classname="com.naviveylin.data.AmbientLightMonitorTest" time="0.026"/>
+  <testcase name="pendingFlipCompletesWithoutFurtherEvents" classname="com.naviveylin.data.AmbientLightMonitorTest" time="0.084"/>
+  <testcase name="startRegistersListenerAndStopUnregisters" classname="com.naviveylin.data.AmbientLightMonitorTest" time="0.027"/>
+  <testcase name="stopWithoutStartIsNoOp" classname="com.naviveylin.data.AmbientLightMonitorTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.UnitTestSourceDeprecationBaselineTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-20T22:32:56.431Z" hostname="dingens" time="0.794">
+  <properties/>
+  <testcase name="no unit test reads the pending-intent kind through the deprecated predicates" classname="com.naviveylin.build.UnitTestSourceDeprecationBaselineTest" time="0.683"/>
+  <testcase name="no unit test registers a sensor through the deprecated type-and-sensor overload" classname="com.naviveylin.build.UnitTestSourceDeprecationBaselineTest" time="0.057"/>
+  <testcase name="no unit test asserts notification silence through the deprecated defaults bitmask" classname="com.naviveylin.build.UnitTestSourceDeprecationBaselineTest" time="0.039"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,265 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:compileKotlin
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :auto:checkHardcodedStrings
+> Task :core:kspDebugKotlin UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :core:writeDebugAarMetadata UP-TO-DATE
+> Task :core:extractDeepLinksDebug UP-TO-DATE
+> Task :core:processDebugManifest UP-TO-DATE
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :core:preDebugUnitTestBuild
+> Task :core:generateDebugUnitTestStubRFile UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
+> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
+> Task :auto:generateDebugUnitTestResources UP-TO-DATE
+> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
+> Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestResources UP-TO-DATE
+> Task :app:checkHardcodedStrings
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preMobileDebugBuild
+> Task :app:generateMobileDebugBuildConfig UP-TO-DATE
+> Task :app:generateMobileDebugResources UP-TO-DATE
+> Task :app:packageMobileDebugResources UP-TO-DATE
+> Task :app:processMobileDebugNavigationResources UP-TO-DATE
+> Task :app:parseMobileDebugLocalResources UP-TO-DATE
+> Task :app:generateMobileDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileMobileDebug UP-TO-DATE
+> Task :app:checkMobileDebugAarMetadata UP-TO-DATE
+> Task :app:mapMobileDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileMobileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeMobileDebugResources UP-TO-DATE
+> Task :app:createMobileDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksMobileDebug UP-TO-DATE
+> Task :app:processMobileDebugMainManifest UP-TO-DATE
+> Task :app:processMobileDebugManifest UP-TO-DATE
+> Task :app:processMobileDebugManifestForPackage UP-TO-DATE
+> Task :app:processMobileDebugResources UP-TO-DATE
+> Task :app:preMobileDebugUnitTestBuild
+> Task :app:preAutomotiveDebugBuild
+> Task :app:generateAutomotiveDebugBuildConfig UP-TO-DATE
+> Task :app:generateAutomotiveDebugResources UP-TO-DATE
+> Task :app:packageAutomotiveDebugResources UP-TO-DATE
+> Task :app:processAutomotiveDebugNavigationResources UP-TO-DATE
+> Task :app:parseAutomotiveDebugLocalResources UP-TO-DATE
+> Task :app:generateAutomotiveDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileAutomotiveDebug UP-TO-DATE
+> Task :app:checkAutomotiveDebugAarMetadata UP-TO-DATE
+> Task :app:mapAutomotiveDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileAutomotiveDebugNavigationResources UP-TO-DATE
+> Task :app:mergeAutomotiveDebugResources UP-TO-DATE
+> Task :app:createAutomotiveDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksAutomotiveDebug UP-TO-DATE
+> Task :app:processAutomotiveDebugMainManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugManifestForPackage UP-TO-DATE
+> Task :app:processAutomotiveDebugResources UP-TO-DATE
+> Task :app:preAutomotiveDebugUnitTestBuild
+> Task :core:compileDebugKotlin
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
+> Task :core:createFullJarDebug UP-TO-DATE
+> Task :core:kspDebugUnitTestKotlin UP-TO-DATE
+> Task :core:compileDebugUnitTestKotlin
+> Task :auto:compileDebugKotlin
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :auto:createFullJarDebug UP-TO-DATE
+> Task :app:kspMobileDebugKotlin UP-TO-DATE
+> Task :app:kspAutomotiveDebugKotlin UP-TO-DATE
+
+> Task :auto:compileDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/CarStyleLoadNotifierTest.kt:88:54 'field defaults: Int' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt:136:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt:144:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt:170:13 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt:178:13 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt:196:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt:204:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt:208:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt:217:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/RenderLoopSupervisorTest.kt:40:9 Condition is always 'true'.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/RendererTestRule.kt:64:14 Type 'AutoMapRenderer' is final, so the value of the type parameter is predetermined.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:140:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:153:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:166:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:179:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:185:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:186:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:201:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:204:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:205:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:230:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:233:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:234:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:253:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:256:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:257:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:263:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:277:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:280:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:281:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:297:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:301:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:305:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:306:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:320:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:323:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:324:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:336:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:340:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:351:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:355:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:367:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:370:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:371:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:387:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:394:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:395:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:413:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:418:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/SearchScreenTest.kt:419:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/TemplateFaultIsolationTest.kt:266:21 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/TemplateFaultIsolationTest.kt:291:21 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/TestCarContext.kt:26:25 Unchecked cast of 'Any?' to 'Array<Any?>'.
+
+> Task :app:compileAutomotiveDebugKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:36:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+
+> Task :app:compileMobileDebugKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:36:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+
+> Task :app:compileAutomotiveDebugJavaWithJavac UP-TO-DATE
+> Task :app:compileMobileDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncMobileDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebug UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:hiltSyncAutomotiveDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsAutomotiveDebug UP-TO-DATE
+> Task :app:hiltJavaCompileAutomotiveDebug UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspAutomotiveDebugUnitTestKotlin
+
+> Task :app:compileMobileDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/AmbientLightMonitorTest.kt:35:22 'fun addSensor(p0: Int, p1: Sensor!): Unit' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:118:78 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:51:20 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/service/NavigationNotificationServiceTapTargetTest.kt:40:20 'fun isBroadcastIntent(): Boolean' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/service/NavigationNotificationServiceTapTargetTest.kt:69:20 'fun isActivityIntent(): Boolean' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelAutoZoomCommitTest.kt:162:15 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelAutoZoomCommitTest.kt:163:15 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelAutoZoomCommitTest.kt:254:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFreeTextSearchTest.kt:160:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFreeTextSearchTest.kt:161:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFreeTextSearchTest.kt:165:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFreeTextSearchTest.kt:166:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelRoadInfoTest.kt:103:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:127:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:128:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:135:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:143:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:144:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:167:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSingleFollowCenterTest.kt:129:15 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSingleFollowCenterTest.kt:130:15 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:86:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:97:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:118:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:129:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:145:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+
+> Task :app:compileAutomotiveDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/AmbientLightMonitorTest.kt:35:22 'fun addSensor(p0: Int, p1: Sensor!): Unit' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:118:78 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:51:20 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/service/NavigationNotificationServiceTapTargetTest.kt:40:20 'fun isBroadcastIntent(): Boolean' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/service/NavigationNotificationServiceTapTargetTest.kt:69:20 'fun isActivityIntent(): Boolean' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelAutoZoomCommitTest.kt:162:15 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelAutoZoomCommitTest.kt:163:15 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelAutoZoomCommitTest.kt:254:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFreeTextSearchTest.kt:160:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFreeTextSearchTest.kt:161:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFreeTextSearchTest.kt:165:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelFreeTextSearchTest.kt:166:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelRoadInfoTest.kt:103:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:127:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:128:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:135:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:143:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:144:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSearchHistoryTest.kt:167:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSingleFollowCenterTest.kt:129:15 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelSingleFollowCenterTest.kt:130:15 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:86:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:97:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:118:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:129:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/ui/route/RoutePanelViewModelSearchRankingTest.kt:145:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+
+BUILD SUCCESSFUL in 22s
+115 actionable tasks: 20 executed, 95 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

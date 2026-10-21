@@ -1,8 +1,34 @@
-# revert-check for issue §171 (2026-10-21T11:24:10Z) — shipped form of the check
-# 1. mutation: render-mode-switch '## Purpose' set back to the archive placeholder
+# revert-check for openspec/specs/render-mode-switch/spec.md
+# 2026-10-21T11:29:45Z
+
+$ sed -n '/^## Purpose/,+2p' openspec/specs/render-mode-switch/spec.md   # before
+## Purpose
+The user setting that selects how the map is rendered — the `TILES` geographic tile cache or a `DIRECT`
+full-viewport native render — and what follows from that choice: which path the pipeline takes, that a switch
+
+$ sed -n '/^## Purpose/,+2p' openspec/specs/render-mode-switch/spec.md   # mutated
+## Purpose
+TBD - created by archiving change revert-check. Update Purpose after archive.
+full-viewport native render — and what follows from that choice: which path the pipeline takes, that a switch
+
+$ old flat-glob pass: awk ... openspec/specs/*/spec.md
+openspec/specs/render-mode-switch/spec.md:4
+RED=yes
+
+$ bash hygiene-step.sh   # shipped step body, mutated tree
 ::error::a capability spec's '## Purpose' is still the archive placeholder — write what the capability is for (a delta's Purpose is read only when the capability is created)
 openspec/specs/render-mode-switch/spec.md:4
 EXIT=1 (expect 1)
-# 2. restored
+
+$ sed -n '/^## Purpose/,+2p' openspec/specs/render-mode-switch/spec.md   # restored
+## Purpose
+The user setting that selects how the map is rendered — the `TILES` geographic tile cache or a `DIRECT`
+full-viewport native render — and what follows from that choice: which path the pipeline takes, that a switch
+
+$ bash hygiene-step.sh   # shipped step body, restored tree
 Every capability spec states its Purpose.
+OpenSpec artifacts are consistent.
 EXIT=0 (expect 0)
+
+$ git diff --stat -- openspec/specs/render-mode-switch/spec.md
+(empty = the mutation is gone; other paths carry this item's fix)

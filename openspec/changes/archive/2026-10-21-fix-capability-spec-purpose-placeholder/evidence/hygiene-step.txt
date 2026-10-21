@@ -1,12 +1,6 @@
-# CI step 'Check OpenSpec artifact hygiene' body, shipped state, 2026-10-21T11:24:13Z
-spec_bad=$(awk '/^## Purpose/{inp=1;next} inp&&/^## /{inp=0} inp&&/TBD - created by archiving/{printf "%s:%d\n", FILENAME, FNR}' openspec/specs/*/spec.md)
-if [ -n "$spec_bad" ]; then
-  echo "::error::a capability spec's '## Purpose' is still the archive placeholder — write what the capability is for (a delta's Purpose is read only when the capability is created)"
-  printf '%s\n' "$spec_bad"
-  fail=1
-fi
-[ "$fail" -eq 0 ] || exit 1
-echo "OpenSpec artifacts are consistent."
---- run:
+# Shipped body of the CI step 'Check OpenSpec artifact hygiene', extracted verbatim from .github/workflows/build.yml by hygiene-step.sh
+# 2026-10-21T11:29:33Z
+$ bash hygiene-step.sh
+Every capability spec states its Purpose.
 OpenSpec artifacts are consistent.
 EXIT=0

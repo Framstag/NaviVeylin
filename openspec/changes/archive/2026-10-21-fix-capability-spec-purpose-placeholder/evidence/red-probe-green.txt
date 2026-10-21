@@ -1,3 +1,4 @@
-# 2026-10-21T11:24:10Z — shipped form of the check (Purpose section only)
+# 2026-10-21T11:29:33Z
+$ bash red-probe.sh
 Every capability spec states its Purpose.
 EXIT=0

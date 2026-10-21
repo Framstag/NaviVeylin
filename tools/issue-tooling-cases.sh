@@ -21,8 +21,11 @@ ISSUES_SHELL_CASES=(
   'lib#retriesATransientFailure'
   'lib#reportsAnUnreachableTrackerAfterTheLastRetry'
   'lib#doesNotRetryAnAuthoritativeFailure'
+  'lib#doesNotRetryAnAppend'
+  'lib#onlyTheSeamCallsTheRealCli'
   'policy#preflightRefusesUnknownLogin'
   'policy#preflightReportsAnUnreachableTracker'
+  'policy#checkAnswersWithoutAnIdentityRead'
   'create#duplicateRefusesAndNamesTheIssue'
   'create#writesMarkerAndLabels'
   'create#refusesTwoValuesOfOneNamespace'
@@ -31,6 +34,7 @@ ISSUES_SHELL_CASES=(
   'create#refusesADoubledCitation'
   'create#bareValueFlagNeedsAValue'
   'update#refusesUnknownLabel'
+  'update#reportsAnUnreachableTrackerInsteadOfARefusal'
   'close#requiresReasonAndEvidence'
   'close#recordsStateReason'
   'close#refusesOnPolicyFailure'
@@ -120,8 +124,11 @@ issues_run_shell_case() {
     'lib#retriesATransientFailure') case_lib_retriesATransientFailure ;;
     'lib#reportsAnUnreachableTrackerAfterTheLastRetry') case_lib_reportsAnUnreachableTrackerAfterTheLastRetry ;;
     'lib#doesNotRetryAnAuthoritativeFailure') case_lib_doesNotRetryAnAuthoritativeFailure ;;
+    'lib#doesNotRetryAnAppend') case_lib_doesNotRetryAnAppend ;;
+    'lib#onlyTheSeamCallsTheRealCli') case_lib_onlyTheSeamCallsTheRealCli ;;
     'policy#preflightRefusesUnknownLogin') case_policy_preflightRefusesUnknownLogin ;;
     'policy#preflightReportsAnUnreachableTracker') case_policy_preflightReportsAnUnreachableTracker ;;
+    'policy#checkAnswersWithoutAnIdentityRead') case_policy_checkAnswersWithoutAnIdentityRead ;;
     'create#duplicateRefusesAndNamesTheIssue') case_create_duplicateRefusesAndNamesTheIssue ;;
     'create#writesMarkerAndLabels') case_create_writesMarkerAndLabels ;;
     'create#refusesTwoValuesOfOneNamespace') case_create_refusesTwoValuesOfOneNamespace ;;
@@ -130,6 +137,7 @@ issues_run_shell_case() {
     'create#refusesADoubledCitation') case_create_refusesADoubledCitation ;;
     'create#bareValueFlagNeedsAValue') case_create_bareValueFlagNeedsAValue ;;
     'update#refusesUnknownLabel') case_update_refusesUnknownLabel ;;
+    'update#reportsAnUnreachableTrackerInsteadOfARefusal') case_update_reportsAnUnreachableTrackerInsteadOfARefusal ;;
     'close#requiresReasonAndEvidence') case_close_requiresReasonAndEvidence ;;
     'close#recordsStateReason') case_close_recordsStateReason ;;
     'close#refusesOnPolicyFailure') case_close_refusesOnPolicyFailure ;;
@@ -383,9 +391,9 @@ case_lib_exitCodeConstants() {
   assert_eq "0 2 3 4 75" "$values" "the exit-code contract"
 }
 
-# One TCP timeout used to end a whole 480-minute run, because no `gh` call was retried (#231). The seam
-# classifies the failure and retries it, so a single timeout is invisible to the caller: the third attempt's
-# answer is the one that arrives.
+# One TCP timeout ended a run 182 minutes into a 480-minute budget, because no `gh` call was retried (#231).
+# The seam classifies the failure and retries it, so a single timeout is invisible to the caller: the third
+# attempt's answer is the one that arrives.
 case_lib_retriesATransientFailure() {
   local dir out
   dir=$(scratch); : > "$dir/count"
@@ -430,6 +438,46 @@ case_lib_doesNotRetryAnAuthoritativeFailure() {
   )
   assert_contains "$out" "status:1" "a refusal is passed through at once"
   assert_contains "$out" "unsupported invocation" "with the tracker's own message, unchanged"
+}
+
+# An append is never retried: the tracker may have accepted it before the socket died, so a retry files the
+# same finding or posts the same comment a second time. Both append shapes are exempt, and the exemption is
+# what this case watches — the real CLI is reached once and its failure is passed straight through.
+case_lib_doesNotRetryAnAppend() {
+  local dir out
+  dir=$(scratch); : > "$dir/comment"; : > "$dir/create"
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_TRANSIENT_TIMES=99 ISSUES_GH_RETRY_DELAYS="0 0 0"
+
+  export GH_STUB_TRANSIENT_STATE="$dir/comment" GH_STUB_TRANSIENT_FAIL="issue comment"
+  out=$(
+    # shellcheck source=tools/issues/lib.sh
+    source "$ISSUES_ENGINE/lib.sh"
+    gh issue comment 7 --body "a comment that may have landed" >/dev/null 2>&1
+    printf 'status:%s' "$?"
+  )
+  assert_contains "$out" "status:1" "a comment's dead socket is the tracker's own failure, passed through"
+  assert_eq "1" "$(cat "$dir/comment")" "a comment is attempted once, because it may already have landed"
+
+  export GH_STUB_TRANSIENT_STATE="$dir/create" GH_STUB_TRANSIENT_FAIL="issue create"
+  out=$(
+    # shellcheck source=tools/issues/lib.sh
+    source "$ISSUES_ENGINE/lib.sh"
+    gh issue create --title t --body b >/dev/null 2>&1
+    printf 'status:%s' "$?"
+  )
+  assert_contains "$out" "status:1" "a filing's dead socket is passed through too"
+  assert_eq "1" "$(cat "$dir/create")" "a new issue is filed once, because a retry would file it twice"
+}
+
+# The seam is a shell function, so `command gh` is the only door around it — and a new call site can write
+# that door just as easily as it can forget a wrapper. This case is the mechanism's own guard: it is red the
+# moment a call site reaches the real CLI instead of the seam.
+case_lib_onlyTheSeamCallsTheRealCli() {
+  local hits
+  hits=$(grep -rn 'command gh' "$ISSUES_ENGINE"/*.sh "$ISSUES_REPO_ROOT"/tools/sensors/*.sh \
+           "$ISSUES_REPO_ROOT"/tools/loop/*.sh 2>/dev/null |
+           grep -v "^$ISSUES_ENGINE/lib.sh:" || true)
+  [ -z "$hits" ] || fail "a call site reaches the real CLI instead of the seam: $hits"
 }
 
 # The status prefix is the state namespace *with* its separator, and it is only answerable once the profile is
@@ -482,6 +530,46 @@ case_policy_preflightReportsAnUnreachableTracker() {
   assert_eq "75" "$status" "the text form reports it too: $out"
   assert_contains "$out" "tracker-unreachable" "and names the reason"
   case "$out" in *author-not-allowlisted*) fail "a network outage is still reported as a policy refusal" ;; esac
+}
+
+# `check` judges the issue's own author from the record it is handed, so it needs no identity read at all: a
+# tracker outage must not make it answer "unknown" to a question the file answers (issue #231).
+case_policy_checkAnswersWithoutAnIdentityRead() {
+  local dir issue out status
+  dir=$(scratch)
+  issue="$dir/issue.json"
+  : > "$dir/count"
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_TRANSIENT_FAIL="api user" GH_STUB_TRANSIENT_TIMES=99 \
+         GH_STUB_TRANSIENT_STATE="$dir/count" ISSUES_GH_RETRY_DELAYS="0 0 0"
+
+  jq -n '{number: 7, title: "a fixture item", body: "b", author: {login: "Framstag"},
+          labels: [{name: "agent/eligible"}, {name: "class/bug"}]}' > "$issue"
+  out=$(run_tool policy.sh check "$issue" --json 2>&1); status=$?
+  assert_eq "0" "$status" "an allowlisted record is allowed while the tracker is unreachable: $out"
+  assert_eq "allow" "$(jq -r '.decision' <<< "$out")" "the decision comes from the record, not from the tracker"
+  [ ! -s "$dir/count" ] ||
+    fail "check read the identity ($(cat "$dir/count") attempt(s)), so an outage reaches a decision the file answers"
+
+  # …and the refusal `check` still owes — an author outside the allowlist — is unaffected by the outage.
+  jq -n '{number: 8, title: "a foreign item", body: "b", author: {login: "someone"},
+          labels: [{name: "agent/eligible"}, {name: "class/bug"}]}' > "$issue"
+  out=$(run_tool policy.sh check "$issue" --json 2>&1); status=$?
+  assert_eq "3" "$status" "a foreign author is still refused: $out"
+  assert_eq "author-not-allowlisted" "$(jq -r '.reason' <<< "$out")" "with the policy's own reason code"
+}
+
+# The incident's own shape, through a second entry point: the identity read cannot reach the tracker, and a
+# write path must say that rather than hand `Policy.preflight` an empty login and report the item as
+# unauthorised. The reader used to be repeated in each caller, which is how it got lost (#231).
+case_update_reportsAnUnreachableTrackerInsteadOfARefusal() {
+  local dir out status
+  dir=$(scratch); : > "$dir/count"
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_TRANSIENT_FAIL="api user" GH_STUB_TRANSIENT_TIMES=99 \
+         GH_STUB_TRANSIENT_STATE="$dir/count" ISSUES_GH_RETRY_DELAYS="0 0 0"
+  out=$(run_tool update.sh 7 --label class/bug 2>&1); status=$?
+  assert_eq "75" "$status" "an unreachable tracker is not a policy refusal on a write path: $out"
+  assert_contains "$out" "tracker-unreachable" "the reason a caller can branch on"
+  case "$out" in *author-not-allowlisted*) fail "the outage is still reported as a policy refusal: $out" ;; esac
 }
 
 case_create_duplicateRefusesAndNamesTheIssue() {

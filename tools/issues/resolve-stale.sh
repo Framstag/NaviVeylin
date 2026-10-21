@@ -97,8 +97,7 @@ printf '%s' "$issues" | jq -e 'type == "array"' >/dev/null 2>&1 ||
   issues_die "resolve-stale: the tracker answer is not an issue array"
 
 # The gate: this script writes through the tooling, so it runs as an allowlisted identity or not at all.
-login=$(issues_login)
-issues_preflight "$profile" "$login"
+issues_preflight "$profile"
 
 read_count=$(printf '%s' "$issues" | jq 'length')
 due=0; repaired=0; parked=0; ambiguous=0; skipped=0; waiting=0

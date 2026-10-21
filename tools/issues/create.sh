@@ -58,8 +58,7 @@ issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
 separator=$(issues_profile_value namespaceSeparator)
 
-login=$(issues_login)
-issues_preflight "$profile" "$login"
+issues_preflight "$profile"
 
 if [ "$finding_file" = "-" ]; then
   finding=$(cat)

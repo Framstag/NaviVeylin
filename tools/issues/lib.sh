@@ -80,16 +80,22 @@ issues_gh_transient() { # <the failed call's stderr>
 # used to read as "the tracker says no" (that is what turned one 182-minute run's timeout into a policy
 # verdict about an item).
 #
-# It is a shell *function* named `gh`, so the seam cannot be forgotten by a new call site and no existing
-# call site had to be edited; the real CLI is reached by `command gh`, which skips functions. One call is
-# exempt: `gh issue comment` is an append that may have landed before the socket died, so a retry would post
-# the same comment twice.
+# It is a shell *function* named `gh`, so no existing call site had to be edited; the real CLI is reached by
+# `command gh`, which skips functions. A *new* call site can still bypass the seam by writing `command gh`
+# itself, so the tooling keeps the rule rather than a mechanism: no call site does, and the self-test's
+# `lib#onlyTheSeamCallsTheRealCli` is what notices a new one that does.
+#
+# Two calls are exempt because each one is an *append*: the tracker may have accepted it before the socket
+# died, so a retry would file the same finding or post the same comment a second time. Their failure is
+# therefore passed straight to the caller, which must not read it as "nothing happened".
 ISSUES_GH_RETRY_DELAYS="${ISSUES_GH_RETRY_DELAYS-5 20 60}"
 ISSUES_EXIT_UNREACHABLE=75
 
 gh() {
   local errfile status err delay attempt=1
-  case " $* " in *" issue comment "*) command gh "$@"; return $? ;; esac
+  case " $* " in
+    *" issue comment "*|*" issue create "*) command gh "$@"; return $? ;;
+  esac
   errfile=$(mktemp) || { command gh "$@"; return $?; }
   while :; do
     if command gh "$@" 2>"$errfile"; then
@@ -156,7 +162,8 @@ issues_resolve() {
 # The identity the tooling runs as — the attributable term of the gate. It has three outcomes, and the
 # first two used to be the same empty string: a login (the tracker answered), an empty string with status 0
 # (the tracker answered and names no identity — a refusal), and `ISSUES_EXIT_UNREACHABLE` (the tracker did
-# not answer at all, so no policy verdict may be given). `policy.sh` reads the third (#231).
+# not answer at all, so no policy verdict may be given). `issues_preflight` and `policy.sh` read the third
+# (#231); a call site that captures the login itself would fold it back into the first, so none does.
 issues_login() {
   local login status
   login=$(gh api user --jq .login 2>/dev/null)
@@ -248,9 +255,19 @@ issues_check_labels() {
 }
 
 # The gate's preflight: refuse to run at all when the identity is not on the allowlist.
+#
+# The login is read *here*, not by the caller, because this is the one path where the read has a policy
+# meaning: an assignment in the caller (`login=$(issues_login)`) captures the empty string of an outage and
+# discards the status that says so, and every write path then reported `author-not-allowlisted` for a network
+# failure (#231). Reading it here makes the distinction unlosable by a call site.
 issues_preflight() {
-  local profile="$1" login="$2"
-  local out status
+  local profile="$1" login out status
+  login=$(issues_login)
+  status=$?
+  if [ "$status" -eq "$ISSUES_EXIT_UNREACHABLE" ]; then
+    printf 'tracker-unreachable: the tracker API did not answer — no identity could be read, so no policy verdict is available\n' >&2
+    exit "$ISSUES_EXIT_UNREACHABLE"
+  fi
   out=$(issues_core Policy preflight --profile "$profile" --login "$login" 2>&1)
   status=$?
   if [ "$status" -eq 3 ]; then

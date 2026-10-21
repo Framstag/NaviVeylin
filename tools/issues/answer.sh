@@ -58,8 +58,7 @@ device_status=$(jq -r '.roles.deviceStatus // empty' "$profile")
 [ -n "$open_status" ] || issues_die "answer: the profile's roles section declares no openStatus"
 decision_label="agent${separator}${decision_agent}"
 
-login=$(issues_login)
-issues_preflight "$profile" "$login"
+issues_preflight "$profile"
 
 # Only an item that carries the decision label awaits one. Answering anything else is a different write — closing
 # a fixed item, re-opening a refuted one — and this verb must not become a way around those gates.

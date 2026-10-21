@@ -40,22 +40,25 @@ done
 
 issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
-# An unreadable identity is not a refusal (#231). `issues_login` answers `ISSUES_EXIT_UNREACHABLE` when the
-# tracker did not answer at all; this script then says exactly that, instead of handing the policy core an
-# empty login, which the core can only read as "nobody is authorised" — the verdict that turned a 20-minute
-# network outage into `author-not-allowlisted` on the tracker.
-if [ -z "$login" ] && ! login=$(issues_login); then
-  if [ "$json" -eq 1 ]; then
-    jq -n --arg login "" --arg reason "tracker-unreachable" \
-      --arg detail "(the tracker API did not answer — no identity could be read)" \
-      '{login: $login, decision: "unknown", reason: $reason, detail: $detail}'
-  else
-    printf 'tracker-unreachable: the tracker API did not answer — no identity could be read, so no policy verdict is available\n'
-  fi
-  exit "$ISSUES_EXIT_UNREACHABLE"
-fi
 
 if [ "$mode" = "preflight" ]; then
+  # An unreadable identity is not a refusal (#231). `issues_login` answers `ISSUES_EXIT_UNREACHABLE` when
+  # the tracker did not answer at all; this script then says exactly that, instead of handing the policy
+  # core an empty login, which the core can only read as "nobody is authorised" — the verdict that turned a
+  # 20-minute network outage into `author-not-allowlisted` on the tracker. Only `preflight` asks who is
+  # running: `check` judges the issue's own author from the record it was handed, and needs no identity read
+  # at all, so an outage must not make it answer a question it can answer (issue #231).
+  if [ -z "$login" ] && ! login=$(issues_login); then
+    if [ "$json" -eq 1 ]; then
+      jq -n --arg login "" --arg reason "tracker-unreachable" \
+        --arg detail "(the tracker API did not answer — no identity could be read)" \
+        '{login: $login, decision: "unknown", reason: $reason, detail: $detail}'
+    else
+      printf 'tracker-unreachable: the tracker API did not answer — no identity could be read, so no policy verdict is available\n'
+    fi
+    exit "$ISSUES_EXIT_UNREACHABLE"
+  fi
+
   out=$(issues_core Policy preflight --profile "$profile" --login "$login" 2>&1)
   status=$?
   if [ "$json" -eq 1 ]; then

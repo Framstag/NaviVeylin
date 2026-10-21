@@ -33,8 +33,7 @@ done
 
 issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
-login=$(issues_login)
-issues_preflight "$profile" "$login"
+issues_preflight "$profile"
 
 if [ "$findings_file" = "-" ]; then
   document=$(cat)

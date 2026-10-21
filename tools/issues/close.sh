@@ -80,8 +80,7 @@ if [ -n "$sensor_id" ]; then
     "sensor/$sensor_id is not a declared check — the registry declares: $(issues_sensor_ids | tr '\n' ' ')"
 fi
 
-login=$(issues_login)
-issues_preflight "$profile" "$login"
+issues_preflight "$profile"
 
 issue=$(gh issue view "$number" --json number,title,labels,body,author 2>/dev/null) \
   || issues_die "close: gh could not read issue #$number"

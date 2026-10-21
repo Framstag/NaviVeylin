@@ -66,8 +66,7 @@ profile="$ISSUES_PROFILE"
 # The prefix is resolved once here: reading the profile starts a JVM, and both the target label and the scan
 # below need it (`lib.sh`, "the state namespace").
 status_prefix=$(issues_status_prefix)
-login=$(issues_login)
-issues_preflight "$profile" "$login"
+issues_preflight "$profile"
 
 # The state can be named either way: `--status <value>`, or the namespaced label itself. A check's escalation
 # writes the second form — the registry declares `status/on-hold` among `escalation.labels` and `sensors/run.sh`

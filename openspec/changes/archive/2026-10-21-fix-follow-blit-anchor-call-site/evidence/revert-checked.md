@@ -33,3 +33,44 @@ Skill: `revert-check` (one mutation per invariant, production code only, every c
 `2026-10-21T09:02:32.026Z`), both timestamps after the restore. `FollowAnchorFramingTest` (the geometry the
 seam reuses) is green: `tests=10 failures=0` (`green-FollowAnchorFramingTest.xml`,
 `2026-10-21T09:01:36.429Z`).
+
+## Round 2 — the call-site mutation the seam's state parameter admits
+
+The seam has no anchor parameter, but a caller can rebuild the state. The exact spelling quoted in the
+round-1 review, `ui.copy(resolvedAnchor = ui.activeFollowAnchor)`, **does not compile** (the field is
+`ResolvedAnchor`, the preset is `VehicleAnchorPosition`):
+
+```
+e: MapCanvasScreen.kt:826:54 Argument type mismatch: actual type is 'VehicleAnchorPosition',
+  but 'ResolvedAnchor' was expected.
+```
+
+A compiling form does reintroduce the preset, and the call-site guard refuses it:
+
+```diff
+-                            ui,
++                            ui.copy(
++                                resolvedAnchor = ResolvedAnchor(
++                                    ui.activeFollowAnchor.fx, ui.activeFollowAnchor.fy
++                                )
++                            ), // REVERT-CHECK MUTATION
+```
+
+**Mutated run** — `./gradlew :app:testMobileDebugUnitTest --tests
+"com.naviveylin.ui.map.FollowBlitCallSiteTest" -PforceTests --no-build-cache` → `2 tests completed,
+1 failed`, `BUILD FAILED in 10s`; XML `tests=2 failures=1`, `2026-10-21T09:11:38.809Z`
+(`red-revert-check-callsite-FollowBlitCallSiteTest.xml`): `followBlitCallSite seamCalls=1
+inlineCalls=0 callSiteRawReads=2` — `the offset call site must not reconstruct the state with the raw
+preset … expected:<0> but was:<2>`.
+
+**Restore** — `grep -c 'REVERT-CHECK MUTATION' MapCanvasScreen.kt` → `0`; green re-run of both cases,
+`2026-10-21T09:11:51.331Z` / `09:11:52.035Z`, `failures=0` (`green-round2-*.xml`).
+
+## Round 2 — the count assertions exercised red on HEAD's call-site shape
+
+With `MapCanvasScreen.kt` restored to HEAD's inline `FollowPrediction.displayOffsetPx(…,
+ui.resolvedAnchor.fx, ui.resolvedAnchor.fy)` call (the seam file still present, so the file-existence
+assertion passes), the guard's count assertions fail for the right reason: XML `tests=2 failures=1`,
+`2026-10-21T09:11:05.548Z` (`red-head-callsite-FollowBlitCallSiteTest.xml`), `followBlitCallSite
+seamCalls=0 inlineCalls=1 callSiteRawReads=0`, `expected:<1> but was:<0>` at the seam-call assertion.
+

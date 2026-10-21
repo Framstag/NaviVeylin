@@ -1,7 +1,10 @@
 # render-mode-switch Specification
 
 ## Purpose
-TBD - created by archiving change render-mode-switch. Update Purpose after archive.
+The user setting that selects how the map is rendered — the `TILES` geographic tile cache or a `DIRECT`
+full-viewport native render — and what follows from that choice: which path the pipeline takes, that a switch
+invalidates the cache and re-renders from scratch, and that the removed direct-render tile-splitting
+remnants stay out of the codebase.
 
 ## Requirements
 

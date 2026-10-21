@@ -1,0 +1,4 @@
+2026-10-21T23:03:12+02:00
+MUTATION 8.17: sensors#sourceSizeRow red under the mutation, green after the restore — a file past the row bound is a violation
+
+sensor-mutations: 1 behaved, 0 did not

@@ -32,7 +32,10 @@ Add the size row:
   must not read as cleared.
 
 Scope, unit and bound are the owner's recorded decision of 2026-10-21: 1 500 lines, Kotlin and Java, tests
-included, file level, C++ out.
+included, file level, C++ out. The bound is the row's (`sensors.json`, `threshold`); the unit (lines per file)
+and the language scope (`*.kt`, `*.java`) are constants of the measurement itself, named in its header with the
+decision they come from. Retuning is therefore one edit in the registry, while changing the unit or the scope is
+changing the decision, not the row.
 
 ## Blast radius
 
@@ -58,8 +61,7 @@ exactly as before the change.
 
 - **Reuse `hotspot` by lowering its bound.** Impossible: its score is `size × changes`, so the files this row
   is for — large and static — score zero however low the bound goes. The metric is not a bound away from the
-  answer; it is a different quantity (measured: `MapCanvasViewModel.kt` has 5 094 lines and would need three
-  thousand commits in the 200-commit window to reach any bound that also leaves small files alone).
+  answer; it is a different quantity, and no bound repairs a factor of zero.
 - **Measure per class rather than per file.** Eliminated by the recorded decision, not by preference: it needs
   a Kotlin/Java brace-matching counter that exists nowhere under `tools/`, which is a second mechanism and a
   second change. The item names it as the later refinement; the row is file level until then.
@@ -80,8 +82,11 @@ exactly as before the change.
 ## Verification
 
 - The red case `sensors#sourceSizeRow` fails on HEAD (suite: 1 of 45 cases failed) and passes after the change.
+- The case drives all four outcomes: the violation, the row-level `{"path":"none"}` clear, the clear for a
+  recorded open condition now inside the bound (naming that path and its line count), and the `error`.
 - `bash tools/sensor-selftest.sh` — the sensor tooling's gate, 45 cases.
-- `bash tools/sensor-mutations.sh --only 8.17` — the comparison inverted must redden the case, restore, green.
+- `bash tools/sensor-mutations.sh --only 8.17` — the comparison inverted must redden the case, restore, green;
+  re-run on the shipping bytes after the review round (`evidence/mutation-8.17-round2.log`).
 - `bash tools/check-portability.sh`, `bash tools/check-doc-routes.sh`, `bash tools/build-inputs-selftest.sh`.
 - No Gradle gate: no compiled file is touched (`guidelines/Build.md` §2, scope block). The loop's own
   `./tools/loop/gate.sh` selects `tools/sensor-selftest.sh` and `tools/check-doc-routes.sh` from the changed

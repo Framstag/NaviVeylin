@@ -42,8 +42,9 @@ The suite's own summary line is the tally the loop's gate derives its JUnit reco
 `tests=45 failures=1` (evidence: `evidence/red-suite-on-head.log`, copied beside the run's own
 `red-on-head.log`). The case asserts the row's bound, comparison, fingerprint and class, then drives the real
 script over a fixture repository: a 1 600-line `Big.kt` is a violation measured at 1 600, a 10-line
-`Small.java` is no condition, a 5 000-line `.cpp` and a 4 000-line `.md` are outside the row's scope, the script
-holds no threshold constant, and a tree inside the bound still prints a clear instead of nothing.
+`Small.java` is no condition, a 5 000-line `.cpp` and a 4 000-line `.md` are outside the measured languages, the script
+holds no threshold constant, a tree inside the bound still prints a clear keyed `{"path":"none"}`, and a recorded
+open condition whose path is now inside the bound clears under that path.
 
 **The owning requirement and its guideline section.** Capability `backlog-sensors` ("A check is a declared
 row, not a script"; "A check reports one of three outcomes, and only clearing closes"); guideline
@@ -59,8 +60,9 @@ grew past its bound" as one of the checks' verdicts.
   git cannot list the tree, because an unreadable source list must not read as a clean one.
 - **`tools/sensors/sensors.json`** — the `source-size` row: `cron "0 8 * * *"`, `threshold 1500`,
   `comparison greater-than`, `consecutive 2`, `class improvement`, `category build-and-harness`,
-  `lifecycle file+close`, fingerprint `["path"]`. The bound and the unit live in the row, never in the script
-  (design D9/D10), so retuning is one edit here.
+  `lifecycle file+close`, fingerprint `["path"]`. The bound lives in the row, never in the script (design D9/D10),
+  so retuning is one edit here; the unit (lines per file) and the language scope (`*.kt`, `*.java`) are the
+  measurement's own constants, fixed by the recorded decision and named in `source-size.sh`'s header.
 - **`.github/workflows/sensors.yml`** — `source-size` joins the second row step's `--rows` list (the half that
   runs for any record, because it reads the repository and not a build output); the two lists still cover the
   registry exactly once, which `workflow#aRedRecordRunsNoRecordRow` proves.
@@ -72,7 +74,7 @@ grew past its bound" as one of the checks' verdicts.
   worked under `bash …` made the gate refuse to run the suite at all (`tests=0`, "keine Berechtigung"). Its
   three sibling suites already carry 100755; this is the same one-bit correction, found by this change's first
   gate run and recorded as `evidence/gate-attempt-1-permission.log`.
-- **`backlog-sensors`** — one ADDED requirement with three scenarios, each naming
+- **`backlog-sensors`** — one ADDED requirement with four scenarios, each naming
   `sensors#sourceSizeRow`.
 - **Cases and falsification** — `tools/sensor-cases.sh` gains `sensors#sourceSizeRow` (registered in the array
   and the dispatcher); `tools/sensor-mutations.sh` gains mutation 8.17 (the comparison inverted must redden
@@ -93,7 +95,7 @@ grew past its bound" as one of the checks' verdicts.
 
 ### Modified Capabilities
 
-- `backlog-sensors`: one ADDED requirement ("A source unit's size is a declared check") with three scenarios,
+- `backlog-sensors`: one ADDED requirement ("A source file's size is a declared check") with four scenarios,
   no shipped text or scenario removed. The delta lives at `specs/backlog-sensors/spec.md`.
 
 ## Impact

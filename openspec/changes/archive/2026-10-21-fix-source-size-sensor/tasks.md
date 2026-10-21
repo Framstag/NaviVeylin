@@ -5,8 +5,9 @@
 - [x] 1.1 Add case `sensors#sourceSizeRow` to `tools/sensor-cases.sh` (array and dispatcher): it reads the row's
   bound, comparison, fingerprint and class from the registry, then drives the real script over a fixture
   repository — a 1 600-line `Big.kt` is a violation measured at 1 600, a 10-line `Small.java` is no condition,
-  a 5 000-line `.cpp` and a 4 000-line `.md` are outside the row's scope, the script holds no threshold
-  constant, and a tree inside the bound prints a clear. Verify: on HEAD the case fails with "the registry
+  a 5 000-line `.cpp` and a 4 000-line `.md` are outside the measured languages, the script holds no threshold
+  constant, a tree inside the bound prints a clear keyed `{"path":"none"}`, and a recorded open condition whose
+  path is now inside the bound clears under that path. Verify: on HEAD the case fails with "the registry
   declares no source-size row" and the suite reports `1 of 45 cases failed`
   (`evidence/red-suite-on-head.log`).
 
@@ -22,7 +23,8 @@
   `comparison greater-than`, `consecutive 2`, `class improvement`, `category build-and-harness`,
   `lifecycle file+close`, fingerprint `["path"]`, `cron "0 8 * * *"`. Verify: case `Registry#everyRowIsComplete`
   passes, the row's minute is covered by the pipeline's `0,30 * * * *` tick (`inputs#tickMinutesCoverTheRegistryCrons`),
-  and `tools/build-inputs.sh --check` still accepts a registry whose rows declare no unpublished input.
+  and `tools/build-inputs.sh --check` still accepts a registry whose rows declare no unpublished input
+  (`evidence/build-inputs-check.log`).
 - [x] 2.3 Add `source-size` to the second row step's `--rows` list in `.github/workflows/sensors.yml` and to
   that step's comment. Verify: case `workflow#aRedRecordRunsNoRecordRow` passes, which asserts the two lists
   together are exactly the registry's ids, selected once each.
@@ -37,7 +39,8 @@
 
 - [x] 4.1 Add mutation 8.17 to `tools/sensor-mutations.sh` (the violation comparison inverted). Verify:
   `bash tools/sensor-mutations.sh --only 8.17` reports the case red under the mutation and green after the
-  restore.
+  restore (`evidence/mutation-8.17.log`, re-run on the shipping bytes as
+  `evidence/mutation-8.17-round2.log`).
 - [x] 4.2 Run the gate the changed pathspec asks for and copy its result into this change's `evidence/`:
   `./tools/loop/gate.sh` (selects `tools/sensor-selftest.sh` and `tools/check-doc-routes.sh`) —
   `tests=45 failures=0`. Its first invocation was refused outright because `tools/sensor-selftest.sh` is
@@ -49,6 +52,27 @@
   more on the tree that ships: `tests=45 failures=0` (`evidence/gate.log`), the superseded run kept as
   `evidence/gate-attempt-2-pre-review.log`. No Gradle build and no Kotlin suite: no compiled file is touched
   (`guidelines/Build.md` §2, scope block) — named here as the exclusion, not as a promise for later.
-- [ ] 4.3 Owed after the merge, by the owner: the first scheduled run of `sensors.yml` (`0 8 * * *`) files the
+
+## 5. The review's blocking correction
+
+- [x] 5.1 Narrow the ADDED requirement and its four scenarios to what the implementation declares: the
+  **bound** is the row's, the **unit** and the **language scope** are the measurement's own constants fixed by
+  the recorded decision (`source-size.sh:9-13`), and the path is the identity. The earlier text said the
+  registry declared unit and scope, which it does not. Verify:
+  `jq -r '.rows[] | select(.id == "source-size") | keys[]' tools/sensors/sensors.json` names no unit and no scope
+  field, and the requirement's wording is the one `guidelines/Backlog.md` §9 already carries.
+- [x] 5.2 Assert the two claims that were prose-only: the row-level clear carries `"path":"none"`, and a
+  recorded open condition inside the bound clears under its path with its own line count (the fourth scenario).
+  Verify: case `sensors#sourceSizeRow` passes with the added assertions
+  (`evidence/gate-round2-sensor-selftest.xml`, `evidence/case-focused.log`).
+- [x] 5.3 Re-gate the corrected tree once: `./tools/loop/gate.sh` → `tests=45 failures=0`
+  (`evidence/gate.log`, tallies `evidence/gate-round2-sensor-selftest.xml`,
+  `evidence/gate-round2-doc-routes.xml`; the Gradle half's 2 × 2096 tests, 0 failures, in
+  `evidence/gradle-flavours.log`).
+- [x] 5.4 Re-run mutation 8.17 on the shipping bytes: red under the mutation, green after the restore
+  (`evidence/mutation-8.17-round2.log`).
+
+## 6. After the merge
+- [ ] 6.1 Owed after the merge, by the owner: the first scheduled run of `sensors.yml` (`0 8 * * *`) files the
   four items the bound produces on today's tree. Not runnable here — the pipeline's guard refuses every ref
   but `main`, so a dispatch from this worktree writes nothing by design.

@@ -1,0 +1,12 @@
+# The gate's compiled half: `./gradlew test -PforceTests --no-build-cache`, run by ./tools/loop/gate.sh on
+# 2026-10-21 between 22:55:40+02:00 and 23:02:11+02:00, on the tree this change ships.
+# gate.sh counts only the shell suites' summary lines, so the Gradle half contributes 0 to its `tests=` tally;
+# the numbers below are summed from the JUnit XML that run left behind (newest TEST-*.xml 2026-10-21T21:01Z).
+# The command is reproducible as written:
+$ for d in testAutomotiveDebugUnitTest testMobileDebugUnitTest; do
+    grep -h '<testsuite ' app/build/test-results/$d/TEST-*.xml \
+      | grep -o ' tests="[0-9]*"\| failures="[0-9]*"\| errors="[0-9]*"' \
+      | awk -F'"' '{k=$1; gsub(/[ =]/,"",k); S[k]+=$2} END{printf "tests=%d failures=%d errors=%d\n",S["tests"],S["failures"],S["errors"]}'
+  done
+testAutomotiveDebugUnitTest tests=2096 failures=0 errors=0
+testMobileDebugUnitTest tests=2096 failures=0 errors=0

@@ -1,3 +1,4 @@
+gate: ./gradlew test -PforceTests --no-build-cache
 gate: tools/sensor-selftest.sh
 gate: tools/check-doc-routes.sh
-LOOP-GATE: tests=45 failures=0 (tools/sensor-selftest.sh, tools/check-doc-routes.sh)
+LOOP-GATE: tests=45 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/sensor-selftest.sh, tools/check-doc-routes.sh)

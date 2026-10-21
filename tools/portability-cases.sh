@@ -662,7 +662,12 @@ case_foreign_emptyGateCommandStillRunsThePhases() {
   # the scaffolding a run needs in any project: a worktree source, an archive, the skills the loop copies
   mkdir -p "$p/.pi/skills/fix-loop" "$p/.pi/skills/openspec-apply-change" \
            "$p/app/src/main/cpp/libosmscout" "$p/openspec/changes/archive"
-  printf '.pi/\napp/build/\n' > "$p/.gitignore"
+  # The stub `gh` and the stub `pi` keep their record inside the fixture — `gh/issues.json` it rewrites,
+  # `gh.log` and `pi.log` they append to, and the worker's two files the case writes. Those are the suite's
+  # instruments, not the project's state, and since the run merges the branch it closes (#229) it refuses to
+  # close on a dirty project tree: an un-ignored instrument made every closure block with "the project tree is
+  # not clean" while the engine was right (measured 2026-10-21, the CI failure of this case).
+  printf '.pi/\napp/build/\ngh/\ngh.log\npi.log\nworker-action.sh\nworker-report.txt\n' > "$p/.gitignore"
   printf 'cmake_minimum_required(VERSION 3.22)\n' > "$p/app/src/main/cpp/libosmscout/CMakeLists.txt"
   printf -- '---\nname: fix-loop\n---\nfixture skill\n' > "$p/.pi/skills/fix-loop/SKILL.md"
   printf 'fixture skill\n' > "$p/.pi/skills/openspec-apply-change/SKILL.md"
@@ -673,6 +678,10 @@ case_foreign_emptyGateCommandStillRunsThePhases() {
      body: "- **Observed**: the fixture is eligible.", author: {login: "ada"},
      labels: [{name: "class/bug"}, {name: "category/core"}, {name: "status/open"},
               {name: "source/agent"}, {name: "agent/eligible"}], comments: []}]')"
+  # …and the stub's tracker stops being a tracked file: every `gh` call rewrites it, so tracking it leaves the
+  # project tree dirty and the run will not merge-and-close on a tree another writer owns (#229).
+  git -C "$p" rm -r --cached -q gh >/dev/null 2>&1 || true
+  git_commit "$p" "the stub tracker under gh/ is the suite's instrument, not project state"
 
   # the stub child: it archives a change with its evidence, so the wrapper's own commit and verification run
   {

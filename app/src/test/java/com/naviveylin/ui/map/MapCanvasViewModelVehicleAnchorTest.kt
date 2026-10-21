@@ -613,6 +613,16 @@ class MapCanvasViewModelVehicleAnchorTest {
             advanceUntilIdle()
             val ui = viewModel.uiState.value
             val preset = VehicleAnchorPosition.BOTTOM_CENTER
+            assertEquals(
+                "the preset must come from persisted settings, not the default fallback — otherwise the " +
+                    "raw and resolved fractions collapse and the case proves nothing",
+                preset.fx, ui.activeFollowAnchor.fx, 1e-9
+            )
+            assertEquals(
+                "the preset must come from persisted settings, not the default fallback — otherwise the " +
+                    "raw and resolved fractions collapse and the case proves nothing",
+                preset.fy, ui.activeFollowAnchor.fy, 1e-9
+            )
             assertTrue(
                 "the bottom-center preset must resolve up into the visible map area",
                 ui.resolvedAnchor.fy < preset.fy - 0.05
@@ -621,11 +631,16 @@ class MapCanvasViewModelVehicleAnchorTest {
             val mag = 15.0
             val displayLat = 52.51 + 40.0 / FollowPrediction.METERS_PER_DEG_LAT
             val displayLon = 13.40
-            val (frameLat, frameLon) = anchorCenter(
+            // The WHEN, read from the production render target rather than constructed here: the frame is
+            // rendered anchor-centered on the resolved fraction.
+            val (frameLat, frameLon) = viewModel.followRenderTarget(displayLat, displayLon, mag, 0.0)
+            val (expectedLat, expectedLon) = anchorCenter(
                 displayLat, displayLon,
                 ui.resolvedAnchor.fx, ui.resolvedAnchor.fy,
                 mag, SCREEN_W, SCREEN_H, dpi, 0.0
             )
+            assertEquals(expectedLat, frameLat, 1e-9)
+            assertEquals(expectedLon, frameLon, 1e-9)
             val frame = PanWindowRules.Frame(
                 frameLat, frameLon, mag, 0.0,
                 (SCREEN_W * 1.2).toInt(), (SCREEN_H * 1.2).toInt()

@@ -31,6 +31,11 @@ import java.io.File
  */
 class FollowBlitCallSiteTest {
 
+    private companion object {
+        /** Code lines on either side of the seam call that make up the offset call site. */
+        const val CALL_SITE_RADIUS = 20
+    }
+
     private val repoRoot = File("..").canonicalFile
     private val mapPackage = "app/src/main/java/com/naviveylin/ui/map"
     private val screenFile = File(repoRoot, "$mapPackage/MapCanvasScreen.kt")
@@ -55,6 +60,16 @@ class FollowBlitCallSiteTest {
         }
         .joinToString("\n")
 
+    /** The [radius] code lines on either side of the first [needle] — the call site that matters. */
+    private fun windowAround(text: String, needle: String, radius: Int): String {
+        val at = text.indexOf(needle)
+        if (at < 0) return ""
+        val lines = text.lines()
+        val line = text.substring(0, at).count { it == '\n' }
+        return lines.subList(maxOf(0, line - radius), minOf(lines.size, line + radius + 1))
+            .joinToString("\n")
+    }
+
     @Test
     fun `the follow blit offset is computed by the seam and not inline in the frame loop`() {
         assertTrue("the map screen must exist at ${screenFile.absolutePath}", screenFile.isFile)
@@ -65,7 +80,16 @@ class FollowBlitCallSiteTest {
         val screen = codeOnly(screenFile.readText())
         val seamCalls = occurrences(screen, seamCall)
         val inlineCalls = occurrences(screen, inlineCall)
-        println("followBlitCallSite seamCalls=$seamCalls inlineCalls=$inlineCalls")
+        // The screen legitimately reads the raw preset elsewhere (the settings sheet mirrors it), so the
+        // guard is scoped to the statement that calls the seam: a caller that reconstructs the state with
+        // `ui.copy(resolvedAnchor = ui.activeFollowAnchor)` would otherwise reintroduce the old anchor
+        // without touching the seam file.
+        val callSite = windowAround(screen, seamCall, CALL_SITE_RADIUS)
+        val callSiteRawReads = occurrences(callSite, rawPreset)
+        println(
+            "followBlitCallSite seamCalls=$seamCalls inlineCalls=$inlineCalls " +
+                "callSiteRawReads=$callSiteRawReads"
+        )
 
         assertEquals(
             "the follow display block must get its offset from the seam, which owns the anchor " +
@@ -78,6 +102,12 @@ class FollowBlitCallSiteTest {
                 "handed any anchor, which is how the raw preset reached it before (issue #18)",
             0,
             inlineCalls
+        )
+        assertEquals(
+            "the offset call site must not reconstruct the state with the raw preset " +
+                "(`ui.copy(resolvedAnchor = ui.$rawPreset)`) — the seam's state parameter is the guard",
+            0,
+            callSiteRawReads
         )
     }
 

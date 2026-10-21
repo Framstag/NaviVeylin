@@ -2443,27 +2443,31 @@ case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside() {
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
   # the first item's worker leaves a previous attempt's branch behind for the second item: the two fixture
   # titles slug to the same tail on purpose, so the case can name the second item's branch without
-  # duplicating the run's own slugify
+  # duplicating the run's own slugify. The branch points at the base — every patch it carries is the base's —
+  # so #228 reads it as a leftover to reuse rather than as work, and the guarantee this case owns is that the
+  # run works #22 instead of parking it (the set-aside path for an unarchived *unlanded* attempt is
+  # `worktree#setsAsideABlockedAttemptAndStartsFresh`'s). Each worker also writes a branch-named file, so the
+  # two items' patches differ: `merge-item` (#229) reads patch identity, and two byte-identical changes would
+  # otherwise be one patch the base already carries.
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in worker*)
        current=$(git rev-parse --abbrev-ref HEAD)
+       printf "%s\n" "$current" > "branch-$(printf %s "$current" | tr / _).txt"
        case "$current" in
          fix/issue-21-*)
-           next=fix/issue-22-${current#fix/issue-21-}
-           attempt=$(git -c user.name=selftest -c user.email=selftest@example.invalid commit-tree HEAD^{tree} -p HEAD -m "fix: the previous attempt (#22)")
-           git branch "$next" "$attempt"
+           git branch "fix/issue-22-${current#fix/issue-21-}" HEAD
            ;;
        esac
        ;; esac'
-  run_loop "$p" --items 2 --minutes 90 >/dev/null 2>&1 || fail "the run itself failed"
+  out=$(run_loop "$p" --items 2 --minutes 90 2>&1) || { printf '%s\n' "$out" | tail -25 >&2; fail "the run itself failed"; }
   assert_eq "2" "$(jq -r '.items | length' "$(state_file "$p")")" "both items were recorded"
   assert_eq "done" "$(jq -r '.items[] | select(.issue == 22) | .result' "$(state_file "$p")")" \
-    "the item whose blocked attempt appeared while the run was open is worked, not parked"
-  assert_eq "1" "$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/loop/leftover/issue-22-*' | wc -l | tr -d ' ')" \
-    "and the blocked attempt's branch is kept under the name the run gives it"
+    "the item whose leftover branch appeared while the run was open is worked, not parked"
+  assert_eq "0" "$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/loop/leftover/issue-22-*' | wc -l | tr -d ' ')" \
+    "a branch whose patches the base carries needs no set-aside"
   log=$(cat "$GH_STUB_RECORD")
   assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
-    "no decision is stated for a branch that carries no archived change of its own"
+    "no decision is stated for a branch that carries no patch of its own"
   assert_contains "$log" "issue close 22" "the item is closed on its own work"
 }
 

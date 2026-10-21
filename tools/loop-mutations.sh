@@ -83,7 +83,7 @@ MUTATIONS=(
   '12.5@-@tools/loop/worktree.sh@worktree#reusesABranchThatCarriesNoWorkOfItsOwn@the reuse of a branch that carries nothing of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if false; then|'
   '12.6@-@tools/loop/worktree.sh@worktree#refusesABranchCarryingAPreviousAttempt@the refusal of a branch that carries an archived change of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if true; then|'
   '12.7@-@tools/loop/worktree.sh@worktree#setsAsideABlockedAttemptAndStartsFresh@the blocked attempt branch renamed aside so the item is worked@s|^    elif \[ "\$state" = "unfinished" \]; then$|    elif false; then|'
-  '13.1@-@tools/loop/prescreen.sh@prescreen#aFinishedAttemptBranchIsADecision@the pre-screen asking git for a previous attempt on the item branch prefix@s|^    if ! git -C "$LOOP_ROOT" merge-base --is-ancestor "$branch" "$run_base" 2>/dev/null; then|    if false; then|'
+  '13.1@-@tools/loop/prescreen.sh@prescreen#aFinishedAttemptBranchIsADecision@the pre-screen asking git for a previous attempt on the item branch prefix@s|^  while IFS= read -r branch; do$|  while false; do|'
   '13.2@-@tools/loop/run.sh@run#leftoverBranchIsRecordedNotDropped@the pre-screen verdicts that need a decision being escalated by the run@s|^  \[ -n "$decision_agent" \] \|\| return 0$|  return 0|'
   '13.3@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the start-time pre-flight on a kept worktree a previous run left dirty@s|^if \[ -d "$worktree" \] && \[ ! -e "$run_lock" \] && worktree_is_dirty; then$|if false; then|'
   '13.4@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the refusal being recorded under the item its branch marker names@s|^    if \[ "$dry_run" -eq 0 \] && \[ -n "$owner_item" \]; then$|    if false; then|'
@@ -168,7 +168,10 @@ MUTATIONS=(
   # question in the one helper all three sites ask, which is the defect itself: a branch landed as a commit of
   # the loop's own becomes "1 commit the base does not have" again and the item is refused for ever.
   '35.1@-@tools/loop/lib.sh@worktree#reusesABranchWhoseWorkAlreadyLanded@the patch identity a branch is read by, instead of its commit objects@s|git -C "\$repo" cherry "\$base" "\$branch" 2>/dev/null|git -C "$repo" log --format="+ %h %s" "$base..$branch" 2>/dev/null|'
-  '35.2@-@tools/loop/prescreen.sh@prescreen#landedBranchIsNotADecision@the pre-screen asking what a branch carries by patch@s|loop_unlanded_commits "\$LOOP_ROOT" "\$run_base" "\$branch"|git -C "$LOOP_ROOT" log --format="+ %h %s" "$run_base..$branch" 2>/dev/null|'
+  # 35.2 — removed with #232's verdict split: the case it named (`prescreen#landedBranchIsNotADecision`) can
+  # no longer notice it, because a branch that carries commits and no archived change of its own is *work* now,
+  # whatever its patches say. Patch identity still has an owning case and mutation in `lib.sh` (35.1) and in the
+  # report (35.3).
   '35.3@-@tools/loop/report.sh@report#landedBranchIsNoAction@the report counting what a branch carries by patch@s|loop_unlanded_commits "\$LOOP_ROOT" "\$base" "\$branch"|git -C "$LOOP_ROOT" log --format="+ %h %s" "$base..$branch" 2>/dev/null|'
 )
 

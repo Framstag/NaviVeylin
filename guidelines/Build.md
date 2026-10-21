@@ -561,6 +561,14 @@ flavors one expects (§134.65).
   --print-errorlogs` there, list the real names with `meson test -C hostbuild --list | grep -i <topic>`
   first, and spend one throwaway `ninja` invocation after a `meson.build` edit so the regeneration lands
   before the target lookup.
+- **The host JNI target exists only where `pkg-config` finds a `jni` module** (§202, issue #38): the pinned
+  submodule's `libosmscout/meson.build` takes the JNI include path from `dependency('jni')`, so a machine
+  without `jni.pc` configures *no* JNI target at all — the first symptom is
+  `fatal error: jni.h: Datei oder Verzeichnis nicht gefunden` in a build directory that was configured before.
+  Provision one for an installed JDK (`~/.local/share/pkgconfig/jni.pc` with
+  `cflags: -I/usr/lib/jvm/java-27-openjdk/include -I/usr/lib/jvm/java-27-openjdk/include/linux`), keep
+  `PKG_CONFIG_PATH` pointing at that directory, and re-run `meson setup --reconfigure hostbuild`. The durable
+  alternative — a `JAVA_HOME` fallback inside the submodule — is issue #216.
 - **`System.loadLibrary` needs the plain-name `.so`** (§40.49) — a versioned `.so.1` symlink is not found.
 - **Plain `openDatabase(containerRoot)` wipes the DBThread** (§40.50) — the root has no `types.dat`; load a
   container of maps through the builder's map-lookup scan.

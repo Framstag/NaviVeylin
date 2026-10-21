@@ -1,3 +1,4 @@
+2026-10-21T12:09:44Z
 mutation: the ambiguity refusal disabled (`count[key] > 1` -> `count[key] > 99`) in tools/check-doc-routes.sh
 command: bash tools/check-doc-routes-selftest.sh
 
@@ -11,7 +12,7 @@ PASS  an AGENTS.md without a Documentation Map is reported (exit 2)
 PASS  an extra guideline that no route names is reported (exit 1)
 PASS  an extra guideline that is routed and resolves passes without editing the check (exit 0)
 PASS  an extra guideline whose section does not exist is reported (exit 1)
-FAIL  a bare duplicated number in a guideline body is reported as ambiguous: expected exit 1 containing 'ambiguous', got exit 0:
+FAIL  a bare duplicated number in a guideline body is reported as ambiguous: expected exit 1 containing 'file=guidelines/Build.md ambiguous', got exit 0:
         check-doc-routes: all 6 section references resolve
 PASS  a heading text in a guideline body resolves its duplicated number (exit 0)
 PASS  a reference inside a fenced block is not a reference (exit 0)
@@ -20,3 +21,7 @@ PASS  a reference in a change artifact is not checked (exit 0)
 PASS  the repository's AGENTS.md is untouched by every case
 check-doc-routes-selftest: 13 passed, 2 failed
 exit=1
+
+restored: diff against the pre-mutation copy
+identical
+timestamp: 2026-10-21T12:09:44Z (after restore)

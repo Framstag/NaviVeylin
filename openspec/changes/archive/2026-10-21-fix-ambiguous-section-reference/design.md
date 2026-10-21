@@ -3,11 +3,13 @@
 ## Root cause
 
 `tools/check-doc-routes.sh` implements the "a bare number its document uses twice is ambiguous" refusal over
-one text region: the `## Documentation Map` section of `AGENTS.md` (`:66` extracted the region, `:95` piped
-only that region through the reference parser, `:130`/`:134`/`:138` stamped every error `file=AGENTS.md`).
-A guideline body is where a citation is actually written, and it was never read — so `guidelines/Design.md:503`
-carries a bare `§14` of `guidelines/MapRendering.md`, whose two `## 14.` headings (`:612` rotation handoff,
-`:689` AA renderer) make that reference unresolvable, and no check refuses the next one.
+one text region: before this change, the script extracted the `## Documentation Map` section of `AGENTS.md`
+(`:66`), piped only that region through the reference parser (`:95`), and stamped every error
+`file=AGENTS.md` (`:130`/`:134`/`:138`). The check opened every `guidelines/*.md` to collect its `## `
+headings, but no path extracted *references* from a body — and a body is where a citation is actually written
+— so `guidelines/Design.md:503` carries a bare `§14` of `guidelines/MapRendering.md`, whose two `## 14.`
+headings (`:612` rotation handoff, `:689` AA renderer) make that reference unresolvable, and no check refuses
+the next one.
 
 One mechanism, one fix: the extraction is factored into `extract_refs` and run over the map region **and**
 every `guidelines/*.md` body, with fenced code blocks skipped and every error naming the file it was written
@@ -24,12 +26,18 @@ in. The one reference the widened check then flags is repaired to carry its head
   `$gdir/$f.md` (reported as `guidelines/<file>.md`).
 - the resolve step prints `file=%s` from that fourth field instead of the literal `AGENTS.md`.
 
+The requirement the change lands is scoped to the documents the check can name: its `$named` alternation is
+built from `guidelines/*.md`, so a body reference to a spec path or the retired `TODO.md` stays prose and is
+not resolved (measured: 36 of the 66 `<File>.md §N` references in guideline bodies name `TODO.md`).
+
 `guidelines/Design.md:503`: `§14` → `§14 "Android Auto renderer"`, the form `AGENTS.md:28` already uses.
 
 `guidelines/Backlog.md` §14: the bullet that documents the check names the body-reference rule beside the
 unrouted rule.
 
-`tools/check-doc-routes-selftest.sh`: five fixture cases plus the header's case list.
+`tools/check-doc-routes-selftest.sh`: five fixture cases plus the header's case list, and an `expect` helper
+that takes every substring a case requires — so the two error cases assert the reported `file=` as well as
+the message, which is what makes the `file=%s` change load-bearing.
 
 ## Alternatives the evidence eliminates
 
@@ -46,10 +54,11 @@ unrouted rule.
    `openspec/specs/`, `.pi/skills/` and `README.md`, of which exactly the same one is ambiguous. The extra
    readers buy nothing measurable and cost an exemption rule for `openspec/changes/**` (history and open
    artifacts) whose boundary would then be the thing to police.
-3. **Extend it to a document's bare `§N` self-references.** 233 of those exist, and the ones that matter name
-   `TODO.md`'s retired numbering — a dangling document, not an ambiguous number, and a different item. In the
-   document that carries the duplicate, `guidelines/MapRendering.md`, none of its 18 self-references is `§14`,
-   so this half of the surface has no defect to fix here.
+3. **Extend it to a document's bare `§N` self-references.** 234 of those exist
+   (`grep -ohE '§[0-9]+[a-z]?' guidelines/*.md | wc -l`), and the ones that matter name `TODO.md`'s retired
+   numbering — a dangling document, not an ambiguous number, and a different item. In the document that
+   carries the duplicate, `guidelines/MapRendering.md`, none of its 18 self-references is `§14`, so this half
+   of the surface has no defect to fix here.
 
 No viable option remains: (1) is a silent repoint of recorded history plus a reversal of a shipped decision,
 (2) and (3) widen the change without removing a single unresolvable reference.
@@ -69,8 +78,8 @@ naming a `.md` that is not a guideline (`TODO.md`, a spec path) is prose and is 
 what keeps this change from failing on the retired backlog's citations. `tools/check-portability.sh` reads the same configuration as before; the check
 still derives its documents from `guidelines/*.md` and names no project value, so it stays portable.
 
-Runtime: the check now reads 21 more small text files (the guideline bodies) — it ran on the repository in
-under a second, and it still touches no network, no device and no build.
+Runtime: the check opens no file it did not already open — every `guidelines/*.md` was read for its `## `
+headings — and gains one `sed | awk` pass over each; it still touches no network, no device and no build.
 
 ## Rollback
 
@@ -83,12 +92,16 @@ consumes `extract_refs`, and no data or state is migrated.
 - Red on HEAD (`git show 44b673f:tools/check-doc-routes.sh` + this change's case file):
   `check-doc-routes-selftest: 12 passed, 3 failed`, `evidence/red/selftest.txt`.
 - Green after the fix: `15 passed, 0 failed`, and `check-doc-routes: all 120 section references resolve`,
-  `evidence/green/selftest.txt` (2026-10-21T12:05:23Z).
+  `evidence/green/selftest.txt` (2026-10-21T12:09:48Z).
 - Two revert-checks, one mutation each, both restored (identical file, `diff`): disabling the ambiguity
   refusal (`count[key] > 1` → `count[key] > 99`) fails the two ambiguity cases (13 passed, 2 failed);
   disabling the missing-section branch (`if (!(key in headings))` → `if (0)`) fails the new body-dangling case
   and no other (14 passed, 1 failed) — the counter-example that the body scan is what makes that case
   load-bearing. `evidence/green/mutation-*.txt`.
+- A third mutation covers the report: a body reference's fourth field forced back to `AGENTS.md`
+  (`extract_refs "$gdir/$f.md" "guidelines/$f.md" 1` → `... AGENTS.md 1`) fails both body error cases and no
+  other (13 passed, 2 failed), so neither the assertion nor the `$4` argument is decorative.
+  `evidence/green/mutation-report-file.txt`.
 - The fenced-block and change-artifact cases are green on HEAD for the wrong reason and green after the fix
   for the right one; they are recorded as counter-cases, not red cases, in the proposal.
 - No device measurement applies: nothing here renders, and no compiled file is touched — the check's own

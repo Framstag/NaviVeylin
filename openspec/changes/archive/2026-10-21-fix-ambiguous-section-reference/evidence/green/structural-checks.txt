@@ -1,0 +1,27 @@
+2026-10-21T12:10:04Z
+structural checks after the round-2 corrections (shell gate: no compiled file is touched, so no Gradle run is owed — guidelines/Build.md §2, the scope block)
+
+--- bash -n ---
+both scripts parse (exit 0)
+
+--- tools/check-doc-routes.sh ---
+check-doc-routes: all 120 section references resolve
+check_exit=0
+
+--- openspec validate --specs ---
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 176 passed, 0 failed (176 items)
+
+--- tools/check-portability.sh ---
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:60:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 44 engines and 2 templates name no project value (103 value(s) read from the project)
+portability_exit=0
+
+--- tools/gen-feature-list.sh --check-classification ---
+specs read: 176
+classified: 176
+unclassified: 0
+
+--- delta and merged requirement are identical ---
+identical

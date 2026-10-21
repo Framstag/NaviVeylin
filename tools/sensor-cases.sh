@@ -1137,8 +1137,8 @@ case_hotspot_ranksBySizeTimesChanges() {
 
 # The size row: one condition per tracked source file, in the unit and scope the item's recorded decision
 # named — lines per file, Kotlin and Java, tests included, the native sources out. The bound is the row's, so
-# the case reads it from the registry and proves the script applies it rather than restating it (issue #196,
-# design D9/D10).
+# the case reads it from the registry and proves the script applies it rather than restating it; the unit and
+# the scope are the measurement's own constants, named in its header (issue #196, design D9/D10).
 case_sensors_sourceSizeRow() {
   local dir row out findings status hits
 
@@ -1170,7 +1170,7 @@ case_sensors_sourceSizeRow() {
   assert_contains "$findings" '"measurement":"1600"' "the measurement is the file's own line count"
   assert_contains "$findings" '"verdict":"violation"' "a file past the bound is a violation"
   assert_not_contains "$findings" 'Small.java' "a file inside the bound is no condition"
-  assert_not_contains "$findings" 'native_thing.cpp' "the native sources are outside the row's scope"
+  assert_not_contains "$findings" 'native_thing.cpp' "a file outside the measured languages is no condition"
   assert_not_contains "$findings" 'NOTES.md' "a file that is neither Kotlin nor Java is outside the row"
 
   # The bound is the registry's, not the script's: retuning the check is one edit in `sensors.json`.
@@ -1188,7 +1188,22 @@ case_sensors_sourceSizeRow() {
     bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
   findings=$(printf '%s\n' "$out" | grep '^{' || true)
   assert_contains "$findings" '"verdict":"clear"' "a tree inside the bound reports a clear: $out"
+  assert_contains "$findings" '"path":"none"' "the row-level clear carries the row's own identity: $out"
   assert_not_contains "$findings" '"verdict":"violation"' "nothing is past the bound"
+
+  # A recorded open condition whose path has dropped under the bound clears under that path: the issue that
+  # carries the condition closes on the identity it holds (design D4), so the clear has to name the path and
+  # measure it, rather than fall through to the row-level `none`.
+  out=$(cd "$dir" && SENSORS_ID=source-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=1500 \
+    SENSORS_CONDITIONS='[{"state":"OPEN","condition":{"path":"app/src/main/java/Small.java"}}]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"path":"app/src/main/java/Small.java"' \
+    "a recorded condition inside the bound clears under its own path: $out"
+  assert_contains "$findings" '"measurement":"10"' "the clear measures the path it names: $out"
+  assert_contains "$findings" '"verdict":"clear"' "a recorded condition inside the bound is a clear: $out"
+  assert_not_contains "$findings" '"path":"none"' "a cleared condition is not the row-level clear: $out"
 
   # A tree git cannot list is the third outcome, never a clean one: an unreadable source list would otherwise
   # reach the tracker as "no file is past the bound" ("The check itself failed").

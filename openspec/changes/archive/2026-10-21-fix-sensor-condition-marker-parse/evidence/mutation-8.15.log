@@ -1,0 +1,5 @@
+date=2026-10-21T11:00:04Z
+MUTATION 8.15: sensors#aRecordedConditionParsesToItsObject red under the mutation, green after the restore — the recorded condition parses to its object, not to the marker tail
+
+sensor-mutations: 1 behaved, 0 did not
+EXIT=0

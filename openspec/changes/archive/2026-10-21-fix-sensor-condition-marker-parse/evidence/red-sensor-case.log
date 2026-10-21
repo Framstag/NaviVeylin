@@ -1,0 +1,5 @@
+412:      condition: ((((($issue.body // "") | [scan("condition:[ ]*[^>]*")] | .[0]) // "") | sub("^condition:[ ]*"; "") | fromjson?) // {}),
+date=2026-10-21T10:59:08Z
+  a marker with its --> tail parses to its object: expected '{"job":"build","case":"apk"}', got '{}'
+FAIL sensors#aRecordedConditionParsesToItsObject
+EXIT=1

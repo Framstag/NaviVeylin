@@ -1,0 +1,9 @@
+date=2026-10-21T10:59:42Z
+base commit: 44b673f424a75dbfae97e704f7e8ece03f3670b2
+case function untouched by this change: 0 deletions in tools/sensor-cases.sh
+gated steps in .github/workflows/sensors.yml: 5
+last commit touching that workflow: c891ba3 feat(tools): the tracker's mechanical hygiene runs on the schedule
+
+  the labels, the repair and both row steps are all gated on the record: expected '4', got '5'
+FAIL workflow#onlyTwoTriggers
+EXIT=1

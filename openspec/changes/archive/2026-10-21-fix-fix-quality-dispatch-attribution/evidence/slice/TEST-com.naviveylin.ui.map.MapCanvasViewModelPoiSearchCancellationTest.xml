@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:12.910Z" hostname="dingens" time="0.052">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:04.502Z" hostname="dingens" time="0.061">
   <properties/>
-  <testcase name="aPlacesSearchDoesNotAbortThePoiSearch" classname="com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest" time="0.017"/>
-  <testcase name="aNewerPoiSearchAbortsTheRunningOne" classname="com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest" time="0.016"/>
-  <testcase name="closingThePoiViewAbandonsThePoiSearch" classname="com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest" time="0.018"/>
+  <testcase name="aPlacesSearchDoesNotAbortThePoiSearch" classname="com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest" time="0.02"/>
+  <testcase name="aNewerPoiSearchAbortsTheRunningOne" classname="com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest" time="0.018"/>
+  <testcase name="closingThePoiViewAbandonsThePoiSearch" classname="com.naviveylin.ui.map.MapCanvasViewModelPoiSearchCancellationTest" time="0.021"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

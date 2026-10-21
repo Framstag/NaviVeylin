@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:57.208Z" hostname="dingens" time="0.093">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:22.091Z" hostname="dingens" time="0.098">
   <properties/>
-  <testcase name="closeSearchInPoisModeRestoresViewport" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.015"/>
-  <testcase name="enteringPoisModeResetsPoiState" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.018"/>
-  <testcase name="openSearchOpensDialogInPlacesMode" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.015"/>
-  <testcase name="closeSearchClosesDialog" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.014"/>
-  <testcase name="modeSwitchPreservesPlacesQuery" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.015"/>
+  <testcase name="closeSearchInPoisModeRestoresViewport" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.022"/>
+  <testcase name="enteringPoisModeResetsPoiState" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.015"/>
+  <testcase name="openSearchOpensDialogInPlacesMode" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.018"/>
+  <testcase name="closeSearchClosesDialog" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.012"/>
+  <testcase name="modeSwitchPreservesPlacesQuery" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.013"/>
   <testcase name="openSearchResetsToPlacesMode" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchDialogTest" time="0.014"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

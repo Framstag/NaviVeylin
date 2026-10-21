@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:14.023Z" hostname="dingens" time="0.111">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:05.482Z" hostname="dingens" time="0.105">
   <properties/>
   <testcase name="historyChipReplayAfterSelectionPublishesResults" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.022"/>
-  <testcase name="typingAloneRecordsNothing" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.015"/>
-  <testcase name="historyEntrySelectionFillsSearchQuery" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.019"/>
-  <testcase name="committingTheSameSearchThreeTimesYieldsOneChip" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.02"/>
+  <testcase name="typingAloneRecordsNothing" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.016"/>
+  <testcase name="historyEntrySelectionFillsSearchQuery" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.013"/>
+  <testcase name="committingTheSameSearchThreeTimesYieldsOneChip" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.016"/>
   <testcase name="selectingResultRecordsHistoryEntry" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.017"/>
-  <testcase name="currentLocationSelectionRecordsNothing" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.017"/>
+  <testcase name="currentLocationSelectionRecordsNothing" classname="com.naviveylin.ui.map.MapCanvasViewModelSearchHistoryTest" time="0.018"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

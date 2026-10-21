@@ -8,9 +8,7 @@ The re-evaluation of the fix quality that runs while the location source is sile
 onto the main dispatcher as long as the derived quality equals the published one: neither the
 re-evaluation itself nor the value it publishes SHALL reach the main dispatcher in that case. A derived
 quality that differs from the published one SHALL still reach every consumer through the single
-publication path, so the re-evaluation stays observable without a new fix. A main-dispatcher dispatch
-that another subsystem of the process issues from a background thread during that period is that
-subsystem's traffic: it SHALL NOT be attributed to the re-evaluation.
+publication path, so the re-evaluation stays observable without a new fix.
 
 #### Scenario: Unchanged quality causes no main-dispatcher dispatch
 
@@ -23,12 +21,14 @@ subsystem's traffic: it SHALL NOT be attributed to the re-evaluation.
 
 #### Scenario: Unrelated main-dispatcher traffic is not attributed to the re-evaluation
 
-- **WHEN** another subsystem dispatches onto the main dispatcher from a thread that is neither the test's
-  nor the re-evaluation's while the re-evaluation runs with an unchanged quality
-- **THEN** that dispatch SHALL be attributed to that subsystem and SHALL NOT fail the re-evaluation's
-  guarantee
-- **AND** if that guarantee fails, the dispatches the case counted SHALL be reported with the stack that
-  issued each, so a misattribution is visible in the failure
+- **WHEN** another subsystem of the process dispatches onto the main dispatcher from a background thread
+  that is neither the test's nor the re-evaluation's, while the re-evaluation runs with an unchanged
+  quality
+- **THEN** that dispatch SHALL be attributed to that subsystem, as that subsystem's traffic, and SHALL
+  NOT fail the re-evaluation's guarantee
+- **AND** if that guarantee fails, a dispatch the case attributed to the re-evaluation SHALL be reported
+  with the stack that issued it, alongside the per-window counts, so a misattribution is visible in the
+  failure
 - **Case**: `MapCanvasViewModelFixQualityTest.aTickDoesNotDispatchOnTheMainDispatcher`
 
 #### Scenario: A change still reaches the consumers

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:12.464Z" hostname="dingens" time="0.083">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:04.077Z" hostname="dingens" time="0.078">
   <properties/>
-  <testcase name="followOnActivatesPhoneVote" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" time="0.02"/>
-  <testcase name="manualPanSuspendsButStaysFreeDriving" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" time="0.019"/>
-  <testcase name="explicitExitToBrowseClearsVote" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" time="0.023"/>
-  <testcase name="startsBrowseInactive" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" time="0.018"/>
+  <testcase name="followOnActivatesPhoneVote" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" time="0.023"/>
+  <testcase name="manualPanSuspendsButStaysFreeDriving" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" time="0.018"/>
+  <testcase name="explicitExitToBrowseClearsVote" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" time="0.019"/>
+  <testcase name="startsBrowseInactive" classname="com.naviveylin.ui.map.MapCanvasViewModelFreeDrivingPublishTest" time="0.016"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -30,18 +30,27 @@
   falsification run exercises. Verification: with the noise present the case is green; on HEAD the same
   noise made it red (task 1.1); with the pre-fix per-tick hop the ViewModel attribution fires
   (task 3.3).
-- [x] 2.4 Spec delta: one MODIFIED requirement, the attribution clause and the two scenarios above, each
-  naming its case. Verification: `openspec validate fix-fix-quality-dispatch-attribution --strict`.
+- [x] 2.4 Spec delta: one MODIFIED requirement plus three scenarios — the new attribution scenario and
+  the two pre-existing ones above, each naming its case. Verification, run against the merged spec
+  after the archive:
+  `openspec validate gps-fix-quality --strict` exits **1** with one long-requirement warning —
+  `requirements[1]` ("Fix availability and quality tiers", 680 characters), pre-existing on base
+  `2e732f0` and untouched by this change. `requirements[0]` measures 470 characters, under the
+  validator's 500-character limit: the attribution contract lives in the scenario bullets
+  (`specs/gps-fix-quality/spec.md`, "Unrelated main-dispatcher traffic is not attributed to the
+  re-evaluation"), not in the requirement body.
 
 ## 3. Verify
 
 - [x] 3.1 Affected case, forced: `./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
   -PnoCoverage --tests "com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest"` — `tests="9"
-  failures="0"`, 2026-10-21T09:47:29.265Z. Evidence:
+  failures="0"`, 2026-10-21T09:52:22.263Z (the run after the review corrections; it supersedes the
+  09:47:29.265Z run, whose XML it replaced, so every green citation points at one artifact). Evidence:
   `evidence/green-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml`.
-- [x] 3.2 Neighbouring slice once, to show the class passes in company: `--tests
-  "com.naviveylin.ui.map.MapCanvasViewModel*"` — `tests=321 failures=0`; its 40 per-class XMLs are
-  archived under `evidence/slice/`.
+- [x] 3.2 Neighbouring slice, to show the class passes in company: `--tests
+  "com.naviveylin.ui.map.MapCanvasViewModel*"` — `tests=321 failures=0`, run once per pass (the archived
+  40 per-class XMLs under `evidence/slice/` are the second, 09:52:51.408Z–09:53:26.795Z, so they cover the
+  final bytes).
 - [x] 3.3 Revert-check (the falsification the change owes): reintroduce the pre-fix per-tick
   `withContext(Dispatchers.Main) { }` inside the re-evaluation loop → `aTickDoesNotDispatchOnTheMainDispatcher`
   must fail with `[window 1: 6, window 2: 6, window 3: 6]`; restore the loop, forced green again.

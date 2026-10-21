@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:42:56.104Z" hostname="dingens" time="0.656">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:21.198Z" hostname="dingens" time="0.46">
   <properties/>
-  <testcase name="initializationRunsItsNativeAndFileWorkOffTheMainThread" classname="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" time="0.175"/>
-  <testcase name="coldStartKeepsTheLoadingStateAndTheMainThreadAlive" classname="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" time="0.14"/>
-  <testcase name="aRejectedPathStillReachesTheUiOffMain" classname="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" time="0.144"/>
-  <testcase name="aSupersededInitializationStopsBeforeTheNextClientMutation" classname="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" time="0.193"/>
+  <testcase name="initializationRunsItsNativeAndFileWorkOffTheMainThread" classname="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" time="0.093"/>
+  <testcase name="coldStartKeepsTheLoadingStateAndTheMainThreadAlive" classname="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" time="0.096"/>
+  <testcase name="aRejectedPathStillReachesTheUiOffMain" classname="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" time="0.102"/>
+  <testcase name="aSupersededInitializationStopsBeforeTheNextClientMutation" classname="com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest" time="0.166"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

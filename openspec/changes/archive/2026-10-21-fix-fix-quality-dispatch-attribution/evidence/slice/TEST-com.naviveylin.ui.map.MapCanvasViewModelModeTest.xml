@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelModeTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:12.700Z" hostname="dingens" time="0.208">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelModeTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:04.291Z" hostname="dingens" time="0.208">
   <properties/>
-  <testcase name="navigationEndRestoresBrowseMode" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.035"/>
-  <testcase name="enterFreeDriveAppliesDrivePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.02"/>
-  <testcase name="resetDrivePresetRestoresStandardDriveValues" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.018"/>
-  <testcase name="suspendedDriveStillDerivesFreeDrive" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.015"/>
-  <testcase name="navigationEndRestoresFreeDriveMode" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.025"/>
-  <testcase name="cardStopRestoresBrowseMode" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.033"/>
-  <testcase name="exitFreeDriveAppliesBrowsePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.019"/>
-  <testcase name="modeDefaultsToBrowse" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.026"/>
-  <testcase name="followModeDerivesFreeDrive" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.013"/>
+  <testcase name="navigationEndRestoresBrowseMode" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.034"/>
+  <testcase name="enterFreeDriveAppliesDrivePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.015"/>
+  <testcase name="resetDrivePresetRestoresStandardDriveValues" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.016"/>
+  <testcase name="suspendedDriveStillDerivesFreeDrive" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.017"/>
+  <testcase name="navigationEndRestoresFreeDriveMode" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.027"/>
+  <testcase name="cardStopRestoresBrowseMode" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.034"/>
+  <testcase name="exitFreeDriveAppliesBrowsePreset" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.027"/>
+  <testcase name="modeDefaultsToBrowse" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.018"/>
+  <testcase name="followModeDerivesFreeDrive" classname="com.naviveylin.ui.map.MapCanvasViewModelModeTest" time="0.018"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

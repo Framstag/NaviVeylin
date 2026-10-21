@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:43:00.676Z" hostname="dingens" time="0.274">
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-21T09:53:25.413Z" hostname="dingens" time="0.378">
   <properties/>
-  <testcase name="the analysed manoeuvre stays in the free band above the overlay" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.039"/>
-  <testcase name="a closer user zoom is kept when a step is analysed" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.036"/>
-  <testcase name="clearing the analysed step leaves the camera where it is" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.034"/>
-  <testcase name="clearing the route does not move the camera after an analysis" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.031"/>
-  <testcase name="a standing manoeuvre focus survives the overlay growing" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.033"/>
-  <testcase name="a card growing under the focused step keeps the segment in the band" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.031"/>
-  <testcase name="analysing a step fits that segment into the free area" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.035"/>
-  <testcase name="a step without a position does not move the camera" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.032"/>
+  <testcase name="the analysed manoeuvre stays in the free band above the overlay" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.053"/>
+  <testcase name="a closer user zoom is kept when a step is analysed" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.053"/>
+  <testcase name="clearing the analysed step leaves the camera where it is" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.038"/>
+  <testcase name="clearing the route does not move the camera after an analysis" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.043"/>
+  <testcase name="a standing manoeuvre focus survives the overlay growing" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.051"/>
+  <testcase name="a card growing under the focused step keeps the segment in the band" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.051"/>
+  <testcase name="analysing a step fits that segment into the free area" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.04"/>
+  <testcase name="a step without a position does not move the camera" classname="com.naviveylin.ui.map.MapCanvasViewModelStepFocusTest" time="0.045"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

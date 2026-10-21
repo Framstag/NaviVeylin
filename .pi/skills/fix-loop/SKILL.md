@@ -315,7 +315,10 @@ before, and says `-` in all three columns.
 
 Every action names what to do, where (issue, branch, log, worktree) and why. A decision whose question the
 state does not hold says where the question is (`gh issue view <n>`) instead of paraphrasing it, the branch
-lines are read from git by what each branch *carries*, and `none` is printed only when all five sources were
+lines are read from git by what each branch *carries* — by patch identity (`git cherry`), never by ancestry: the
+run lands work as a commit of its own (`fix: … (#N)`), so a landed branch is not an ancestor of the base
+(measured 2026-10-21: one branch at `1` commit ahead and `0` unlanded, issue #228) — and `none` is printed only
+when all five sources were
 read and empty.
 
 A finished run's state is not lost when the next run starts: `state.sh init` keeps the file it replaces under

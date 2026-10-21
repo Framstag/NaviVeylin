@@ -133,20 +133,24 @@ cmd_start_item() {
   dirty=$(gitw status --porcelain)
   [ -z "$dirty" ] || loop_refuse "the worktree is not clean — refusing to start #$issue:
 $dirty"
-  # An earlier run's branch for the same item. When every commit on it is already in the base's history it
-  # carries no work of its own — a blocked run that committed nothing leaves exactly that — so the item
-  # starts on it again. When it carries a commit the base does not have, that commit *is* the previous
-  # attempt's work and the only place the run recorded it, so starting over would throw it away: refused
-  # with the branch and its commits named, and a person decides (D4, D7, D9).
-  local branch="fix/issue-$issue-$slug" base
+  # An earlier run's branch for the same item. When the base's history already carries every patch on it, it
+  # carries no work of its own — a blocked run that committed nothing leaves exactly that, and so does a branch
+  # whose work landed as a commit of the loop's own — so the item starts on it again. When it carries a patch
+  # the base does not have, that commit *is* the previous attempt's work and the only place the run recorded
+  # it, so starting over would throw it away: refused with the branch and its commits named, and a person
+  # decides (D4, D7, D9). Patch identity, never ancestry: the loop lands work as `fix: … (#N)`, so a landed
+  # branch is not an ancestor of the base and ancestry would refuse a leftover for ever (issue #228).
+  local branch="fix/issue-$issue-$slug" base carried
   base=$(state_base)
   if gitw rev-parse --verify --quiet "refs/heads/$branch" >/dev/null; then
-    if gitw merge-base --is-ancestor "$branch" "$base"; then
+    carried=$(loop_unlanded_commits "$LOOP_ROOT" "$base" "$branch") ||
+      loop_refuse "start-item: git cannot say what branch $branch carries — refusing to start #$issue on a branch nobody could read"
+    if [ -z "$carried" ]; then
       gitw switch -C "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
       printf 'item #%s on branch %s (reused — the branch carries no commit of its own)\n' "$issue" "$branch"
     else
       loop_refuse "branch $branch already exists and carries commits the base does not — a previous attempt's work is on it:
-$(gitw log --oneline "$base".."$branch" | head -5)"
+$(printf '%s\n' "$carried" | head -5)"
     fi
   else
     gitw switch -c "$branch" "$base" >&2 || loop_die "start-item: git switch failed"

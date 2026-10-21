@@ -304,6 +304,14 @@ item that owns it, the kept worktree, an item whose gate never completed with it
 the pre-screen still refuses. A count is not an answer, so `none` is printed only when all five sources were
 read and empty — it never hides a branch that carries work.
 
+What a branch carries is asked by **patch identity**, never by ancestry — `git cherry`, the same question the
+item's start and the pre-screen ask. The run lands an item's work as a commit of its own (`fix: … (#N)`), so a
+branch whose work was landed, or re-landed, is not an ancestor of the base while its patch is on it: ancestry read
+such a branch as unlanded work, refused its item for ever and spent a decision slot on it every run (measured
+2026-10-21: one branch at `1` commit ahead and `0` unlanded, issue #228). A branch is a leftover only while it
+carries a patch the base does not have, and a landed one is reused by the next start rather than named as work
+to land.
+
 An item whose citation nothing accounts for is *not* worked, and it must not be re-decided in silence either:
 `tools/issues/resolve-stale.sh` repairs what the repository's own records state (the full tracked path, a
 rename, a single surviving declaration, an archived change's new directory) and parks the rest with the

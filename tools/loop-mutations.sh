@@ -76,10 +76,10 @@ MUTATIONS=(
   '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1 < /dev/null &$|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$1" ) > "$2" 2>\&1 \&|'
   '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsBlocked@the run catching a child write left outside the worktree@s|^    printf '"'"'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran\\n'"'"' >> "$2"$|    : # the mutation carries the write instead|'
   '12.4@-@tools/loop/run.sh@run#reviewerWriteInTheProjectIsDiscarded@the reviewer comparison reading the project tree as well@s|git -C "$worktree" diff; project_state; }|git -C "$worktree" diff; }|'
-  '12.5@-@tools/loop/worktree.sh@worktree#reusesABranchThatCarriesNoWorkOfItsOwn@the reuse of a branch that carries nothing of its own@s|^    if gitw merge-base --is-ancestor "$branch" "$base"; then$|    if false; then|'
-  '12.6@-@tools/loop/worktree.sh@worktree#refusesABranchCarryingAPreviousAttempt@the refusal of a branch that carries a previous attempt@s|^    if gitw merge-base --is-ancestor "$branch" "$base"; then$|    if true; then|'
+  '12.5@-@tools/loop/worktree.sh@worktree#reusesABranchThatCarriesNoWorkOfItsOwn@the reuse of a branch that carries nothing of its own@s|^    if \[ -z "\$carried" \]; then$|    if false; then|'
+  '12.6@-@tools/loop/worktree.sh@worktree#refusesABranchCarryingAPreviousAttempt@the refusal of a branch that carries a previous attempt@s|^    if \[ -z "\$carried" \]; then$|    if true; then|'
   '12.7@-@tools/loop/run.sh@run#branchThatAppearsWhileTheRunIsOpenIsRecorded@the refusal on a leftover branch being recorded and escalated@s|loop_state done "$issue" --result blocked --verdict blocked --note "$start_out" >/dev/null|: # the mutation drops the recorded item|'
-  '13.1@-@tools/loop/prescreen.sh@prescreen#previousAttemptBranchIsADecision@the pre-screen asking git for a previous attempt on the item branch prefix@s|^    if ! git -C "$LOOP_ROOT" merge-base --is-ancestor "$branch" "$run_base" 2>/dev/null; then|    if false; then|'
+  '13.1@-@tools/loop/prescreen.sh@prescreen#previousAttemptBranchIsADecision@the pre-screen asking git for a previous attempt on the item branch prefix@s|^    if \[ -n "\$carried" \]; then$|    if false; then|'
   '13.2@-@tools/loop/run.sh@run#leftoverBranchIsRecordedNotDropped@the pre-screen verdicts that need a decision being escalated by the run@s|^  \[ -n "$decision_agent" \] \|\| return 0$|  return 0|'
   '13.3@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the start-time pre-flight on a kept worktree a previous run left dirty@s|^if \[ -d "$worktree" \] && \[ ! -e "$run_lock" \] && worktree_is_dirty; then$|if false; then|'
   '13.4@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the refusal being recorded under the item its branch marker names@s|^    if \[ "$dry_run" -eq 0 \] && \[ -n "$owner_item" \]; then$|    if false; then|'
@@ -147,6 +147,14 @@ MUTATIONS=(
   '31.1@-@tools/loop/run.sh@run#aCutReportIsRetriedInsteadOfRefused@the retry of a report that arrived cut on its way to the file (issue #224)@s|^      if \[ -z "\$(report_field "\$reviewer_report" LOOP-TIMEOUT)" \] &&$|      if false \&\&|'
   # 32.1 — a base that moved under the run stops it with a reason; the silent exit is what the case catches.
   '32.1@-@tools/loop/run.sh@run#staleBaseStopsTheRunWithItsReason@the stop that records why a stale base ended the run@s|^      \*"base moved"\*) stop_run "the base moved: main advanced|      *"base moved"*) : "the base moved: main advanced|'
+  # 33.1–33.3 — a branch is read by patch identity, not by ancestry (issue #228). 33.1 restores the ancestry
+  # question in the one helper all three sites ask, which is the defect itself: a branch landed as a commit of
+  # the loop's own becomes "1 commit the base does not have" again and the item is refused for ever.
+  '33.1@-@tools/loop/lib.sh@worktree#reusesABranchWhoseWorkAlreadyLanded@the patch identity a branch is read by, instead of its commit objects@s|git -C "\$repo" cherry "\$base" "\$branch" 2>/dev/null|git -C "$repo" log --format="+ %h %s" "$base..$branch" 2>/dev/null|'
+  # 33.2 — the pre-screen's own question, restored to ancestry: a landed leftover is a decision again.
+  '33.2@-@tools/loop/prescreen.sh@prescreen#landedBranchIsNotADecision@the pre-screen asking what a branch carries by patch@s|loop_unlanded_commits "\$LOOP_ROOT" "\$run_base" "\$branch"|git -C "$LOOP_ROOT" log --format="+ %h %s" "$run_base..$branch" 2>/dev/null|'
+  # 33.3 — the report's own count, restored to ancestry: a leftover is named as a branch to land again.
+  '33.3@-@tools/loop/report.sh@report#landedBranchIsNoAction@the report counting what a branch carries by patch@s|loop_unlanded_commits "\$LOOP_ROOT" "\$base" "\$branch"|git -C "$LOOP_ROOT" log --format="+ %h %s" "$base..$branch" 2>/dev/null|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

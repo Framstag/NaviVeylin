@@ -127,15 +127,21 @@ run_base=$(loop_state get run.base 2>/dev/null || true)
 # The repository sensor: does the item already have an attempt behind it? Whether an item was attempted is
 # held by git and not by the tracker — a run that died before it could label anything leaves its branch and
 # nothing else (#175) — so the pre-screen asks the same question the start asks: a commit on the item's
-# branch that the run's base does not have *is* the previous attempt's work. It is asked on the branch name's
-# *prefix*, because the slug is not known before the title is read, and only the start creates the branch, so
-# the start's own check stays the authoritative one.
+# branch whose *patch* the run's base does not carry *is* the previous attempt's work. Patch identity, never
+# ancestry (issue #228): a branch the base landed as a commit of the loop's own is a leftover, and a leftover is
+# not a decision. It is asked on the branch name's *prefix*, because the slug is not known before the title is
+# read, and only the start creates the branch, so the start's own check stays the authoritative one.
 previous_attempt_branch_of() { # <issue> → the branch that carries work the run's base does not, or nothing
   [ -n "$run_base" ] || return 0
-  local branch
+  local branch carried
   while IFS= read -r branch; do
     [ -n "$branch" ] || continue
-    if ! git -C "$LOOP_ROOT" merge-base --is-ancestor "$branch" "$run_base" 2>/dev/null; then
+    # a branch git cannot compare is read as carrying work: the refusal is the safe side of that answer
+    if ! carried=$(loop_unlanded_commits "$LOOP_ROOT" "$run_base" "$branch"); then
+      printf '%s\n' "$branch"
+      return 0
+    fi
+    if [ -n "$carried" ]; then
       printf '%s\n' "$branch"
       return 0
     fi

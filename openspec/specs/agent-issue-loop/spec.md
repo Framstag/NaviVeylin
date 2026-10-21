@@ -254,7 +254,10 @@ can make the run's own report false, so it is worked before a defect in the ship
 The run SHALL create and manage the working tree and the branch of each item itself, and no phase of an
 item SHALL be able to invoke version control on its own behalf. A previous attempt's branch SHALL be decided
 by what it carries: a branch whose attempt finished SHALL be merged and its item closed by the run, and only
-a branch that carries no finished change SHALL be refused and escalated as a decision.
+a branch that carries no finished change SHALL be refused and escalated as a decision. What a branch carries
+SHALL be read by **patch identity**, not by ancestry: the run lands an item's work as a commit of its own
+(`fix: … (#N)`), so a branch whose work is already on the base is not an ancestor of it and ancestry reads a
+finished branch as unlanded work for ever (issue #228).
 
 #### Scenario: One working tree per run
 
@@ -285,6 +288,15 @@ a branch that carries no finished change SHALL be refused and escalated as a dec
   blocked can be taken up again
 - **Case**: `worktree#reusesABranchThatCarriesNoWorkOfItsOwn`
 
+#### Scenario: A branch whose work already landed is reused
+
+- **WHEN** an item starts and a branch of that item's name already exists, and the base carries every patch
+  on it although the branch is not an ancestor of the base — the loop's own landing shape, where the work
+  arrived as a new commit
+- **THEN** the item is worked on that branch, started from the run's base, because a leftover is not a
+  previous attempt: nothing on the branch is work the base would lose
+- **Case**: `worktree#reusesABranchWhoseWorkAlreadyLanded`
+
 #### Scenario: A branch that carries a previous attempt is refused, named and recorded
 
 - **WHEN** an item's branch carries a commit the run's base does not have — whether the run learns it when the
@@ -295,6 +307,14 @@ a branch that carries no finished change SHALL be refused and escalated as a dec
   with the branch as the evidence — because a previous attempt's work is never thrown away and a refusal is
   never silent
 - **Case**: `prescreen#previousAttemptBranchIsADecision`, `run#leftoverBranchIsRecordedNotDropped`
+
+#### Scenario: A landed leftover is not a decision
+
+- **WHEN** the pre-screen meets a branch of the item's name whose every patch the run's base already carries
+- **THEN** the item is left eligible: no verdict, no exclusion and no decision slot is spent on a branch that
+  holds no unlanded work — and a branch git cannot compare is still read as carrying work, because the
+  refusal is the safe side of that answer
+- **Case**: `prescreen#landedBranchIsNotADecision`
 
 #### Scenario: A finished attempt's branch is merged and its item closed
 
@@ -988,3 +1008,18 @@ allowed; a falsification without a measurement, and every other skip, SHALL keep
 - **THEN** the review still happens, and a measurement that does not cover the blamed mechanism is a
   blocking finding, which returns the item to the escalation path instead of closing it
 - **Case**: `run#falsificationWithAChangedTreeIsBlocked`
+
+### Requirement: The action list reads a branch by what it carries, not by its commit objects
+
+The report SHALL name a branch in the caller's action list only while that branch carries a patch the run's base
+does not have, so a branch whose work landed as a commit of the loop's own is not named as something to land. The
+count it prints SHALL be the number of such patches. A range git cannot answer SHALL be named rather than counted
+as zero, and `none` SHALL keep its existing meaning: every source was read and empty.
+
+#### Scenario: A branch whose patches are in the base is not an action
+
+- **WHEN** a run ends and one of the item branches it sees carries no patch the base does not have — every one of
+  its commits was landed, or re-landed, as a new commit
+- **THEN** the action list does not name that branch, and its `none` line is printed when nothing else is owed, so
+  a leftover cannot be read as work a caller has to land
+- **Case**: `report#landedBranchIsNoAction`

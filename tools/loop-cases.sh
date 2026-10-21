@@ -37,6 +37,7 @@ LOOP_SHELL_CASES=(
   'prescreen#deviceItemIsAVerdictNotWork'
   'prescreen#readsTheVerdictsFromTheProfile'
   'prescreen#previousAttemptBranchIsADecision'
+  'prescreen#landedBranchIsNotADecision'
   'prescreen#itemAwaitingADecisionIsNotQueued'
   'prescreen#aHoldWithNoDecisionIsNotADecision'
   'prescreen#harnessItemsLeadTheQueue'
@@ -54,6 +55,7 @@ LOOP_SHELL_CASES=(
   'worktree#keepsSourcesNotBuildOutput'
   'worktree#noPushWithoutTheFlag'
   'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
+  'worktree#reusesABranchWhoseWorkAlreadyLanded'
   'worktree#refusesABranchCarryingAPreviousAttempt'
   'worktree#refusesABranchWhoseReviewFailed'
   'labels#verdictToLabelMatrix'
@@ -136,6 +138,7 @@ LOOP_SHELL_CASES=(
   'report#wallTimeAndReasonInTheTable'
   'report#zeroUsagePrintsDashNotZero'
   'report#actionsNameDecisionAndBranch'
+  'report#landedBranchIsNoAction'
   'report#emptyRunSaysNone'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
@@ -178,6 +181,7 @@ loop_run_shell_case() {
     'prescreen#deviceItemIsAVerdictNotWork') fn=case_prescreen_deviceItemIsAVerdictNotWork ;;
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
     'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
+    'prescreen#landedBranchIsNotADecision') fn=case_prescreen_landedBranchIsNotADecision ;;
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
     'prescreen#harnessItemsLeadTheQueue') fn=case_prescreen_harnessItemsLeadTheQueue ;;
@@ -195,6 +199,7 @@ loop_run_shell_case() {
     'worktree#keepsSourcesNotBuildOutput') fn=case_worktree_keepsSourcesNotBuildOutput ;;
     'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
     'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
+    'worktree#reusesABranchWhoseWorkAlreadyLanded') fn=case_worktree_reusesABranchWhoseWorkAlreadyLanded ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
@@ -279,6 +284,7 @@ loop_run_shell_case() {
     'report#wallTimeAndReasonInTheTable') fn=case_report_wallTimeAndReasonInTheTable ;;
     'report#zeroUsagePrintsDashNotZero') fn=case_report_zeroUsagePrintsDashNotZero ;;
     'report#actionsNameDecisionAndBranch') fn=case_report_actionsNameDecisionAndBranch ;;
+    'report#landedBranchIsNoAction') fn=case_report_landedBranchIsNoAction ;;
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
@@ -909,6 +915,24 @@ case_prescreen_readsTheVerdictsFromTheProfile() {
     "the device verdict is the value the profile's roles section declares"
 }
 
+# A branch whose work landed as a *new* commit. The loop lands an item's work as `fix: … (#N)`, and a branch
+# that was landed by hand is re-landed as a fresh commit, so the branch is never an ancestor of the base while
+# its patch is in it. What decides whether the work is there is the patch, not the commit object (#228).
+landed_branch() { # <repo> <issue> <slug> → the branch the base's history carries by patch, not by ancestry
+  local p="$1" branch="fix/issue-$2-$3" base
+  base=$(git -C "$p" rev-parse HEAD)
+  git -C "$p" checkout -q -b "$branch" "$base" || fail "could not create the attempt branch"
+  printf 'the landed work\n' > "$p/landed.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "the attempt's own work" >/dev/null 2>&1 || fail "could not commit the attempt"
+  git -C "$p" checkout -q main || fail "could not return to the base branch"
+  git -C "$p" cherry-pick "$branch" >/dev/null 2>&1 || fail "could not land the attempt's patch as a new commit"
+  # a landing is its own commit: `fix: <slug> (#N)`. Amending the message is what makes the object differ from
+  # the attempt's commit while its patch stays the same — the case is about identity, not about content.
+  git -C "$p" commit -q --amend -m "fix: the landed work (#$2)" >/dev/null 2>&1 || fail "could not amend the landing"
+  printf '%s\n' "$branch"
+}
+
 # Whether an item was already attempted is held by git, not by the tracker, so the pre-screen asks git the
 # same question `worktree.sh start-item` asks — asked on the branch *prefix*, because the slug is not known
 # before the title is read (issue #175). The decision is then recorded where a person reads it, before any
@@ -944,6 +968,24 @@ case_prescreen_previousAttemptBranchIsADecision() {
   assert_eq "fix/issue-21-a-previous-attempt" \
     "$(jq -r '.excluded[] | select(.issue == 21) | .evidence' "$(state_file "$p")")" \
     "with the branch carried beside it"
+}
+
+# The same question is asked of *patch* identity. A branch the base's history carries by patch is a leftover,
+# and a leftover is not a decision: the item is startable, and a run's own branch that was landed by hand stops
+# spending one of the run's decision slots (#228).
+case_prescreen_landedBranchIsNotADecision() {
+  local p out base branch
+  p=$(new_project)
+  init_state "$p" 2 90
+  branch=$(landed_branch "$p" 21 landed)
+  base=$(git -C "$p" rev-parse main)
+  run_state "$p" init --items 2 --minutes 90 --base "$base" >/dev/null || fail "init failed"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .verdict')" \
+    "a branch whose every patch the base carries is not a previous attempt"
+  assert_eq "0" "$(jq -r '[.excluded[]? | select(.issue == 21)] | length' "$(state_file "$p")")" \
+    "and nothing about $branch is recorded as awaiting a decision"
 }
 
 # An item the loop itself escalated is its owner's until a person decides: the run writes
@@ -1226,6 +1268,22 @@ case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn() {
   out=$(run_worktree "$p" start-item 21 demo 2>&1) || fail "a branch carrying no work was refused: $out"
   assert_contains "$out" "reused" "the run says the branch was reused"
   assert_eq "$base" "$(git -C "$w" rev-parse HEAD)" "the item starts exactly at the new base"
+}
+
+# The reuse is decided by patch identity too: a branch whose every commit the base carries by patch carries no
+# work of its own, however it was landed, so the item starts instead of blocking for ever (#228).
+case_worktree_reusesABranchWhoseWorkAlreadyLanded() {
+  local p w base out
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  landed_branch "$p" 21 demo >/dev/null
+  base=$(git -C "$p" rev-parse main)
+  run_state "$p" init --items 1 --minutes 90 --base "$base" >/dev/null || fail "init failed"
+  out=$(run_worktree "$p" start-item 21 demo 2>&1) ||
+    fail "a branch whose work the base already carries was refused: $out"
+  assert_contains "$out" "reused" "the run says the branch was reused"
+  assert_eq "$base" "$(git -C "$w" rev-parse HEAD)" "the item starts exactly at the base"
 }
 
 case_worktree_refusesABranchCarryingAPreviousAttempt() {
@@ -3313,6 +3371,21 @@ case_report_actionsNameDecisionAndBranch() {
   assert_contains "$block" "1 commit(s)" "with what it carries"
   assert_contains "$block" "item #21" "and the item that owns it"
   assert_not_contains "$block" "none — no decision" "a branch carrying a commit is never hidden behind none"
+}
+
+# The action list is read from what a branch carries, and a branch whose every patch the base carries carries
+# nothing to land: naming it sends a person to delete a leftover that needs no decision at all (#228).
+case_report_landedBranchIsNoAction() {
+  local p out block branch base
+  p=$(new_project)
+  init_state "$p" 1 90
+  branch=$(landed_branch "$p" 21 landed)
+  base=$(git -C "$p" rev-parse main)
+  run_state "$p" init --items 1 --minutes 90 --base "$base" >/dev/null || fail "init failed"
+  out=$(run_report "$p") || fail "the report failed"
+  block=$(actions_block "$out")
+  assert_not_contains "$block" "land $branch" "a branch whose patches are in the base is not an action"
+  assert_contains "$block" "none — no decision" "the action list says none, because there is nothing to land"
 }
 
 # An action list is empty only when the state and git say so — and it says it, rather than leaving the

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" tests="9" skipped="0" failures="1" errors="0" timestamp="2026-10-21T09:37:19.253Z" hostname="dingens" time="10.248">
+  <properties/>
+  <testcase name="anUnchangedQualityPublishesNoNewValue" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="4.602"/>
+  <testcase name="anAgedOutFixBecomesNoneWithoutANewFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.033"/>
+  <testcase name="aGoodFixReportsGood" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.029"/>
+  <testcase name="noFixAtAllIsNone" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.024"/>
+  <testcase name="aPoorAccuracyReportsPoor" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="0.025"/>
+  <testcase name="aTickDoesNotDispatchOnTheMainDispatcher" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.251">
+    <failure message="java.lang.AssertionError: the fix-quality tick dispatched on the main dispatcher from another thread 1 times in the second 300ms window while nothing changed (first window: 1) — it must stay off the main dispatcher; first dispatch:&#10;&#9;at com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest$CountingMainDispatcher.dispatch(MapCanvasViewModelFixQualityTest.kt:379)&#10;&#9;at kotlinx.coroutines.test.internal.TestMainDispatcher.dispatch(TestMainDispatcher.kt:25)&#10;&#9;at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWith(DispatchedContinuation.kt:302)&#10;&#9;at kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt:26)&#10;&#9;at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:169)&#10;&#9;at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)&#10;&#9;at com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest$aTickDoesNotDispatchOnTheMainDispatcher$2.invokeSuspend(MapCanvasViewModelFixQualityTest.kt:336)&#10;&#9;at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)&#10;&#9;at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)&#10;&#9;at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)&#10;&#9;at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)&#10;&#9;at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)&#10;&#9;at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)&#10;&#9;at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)&#10;&#9;at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707) expected:&lt;0&gt; but was:&lt;1&gt;" type="java.lang.AssertionError">java.lang.AssertionError: the fix-quality tick dispatched on the main dispatcher from another thread 1 times in the second 300ms window while nothing changed (first window: 1) — it must stay off the main dispatcher; first dispatch:
+	at com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest$CountingMainDispatcher.dispatch(MapCanvasViewModelFixQualityTest.kt:379)
+	at kotlinx.coroutines.test.internal.TestMainDispatcher.dispatch(TestMainDispatcher.kt:25)
+	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWith(DispatchedContinuation.kt:302)
+	at kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt:26)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:169)
+	at kotlinx.coroutines.BuildersKt.withContext(Unknown Source)
+	at com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest$aTickDoesNotDispatchOnTheMainDispatcher$2.invokeSuspend(MapCanvasViewModelFixQualityTest.kt:336)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707) expected:&lt;0&gt; but was:&lt;1&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.aTickDoesNotDispatchOnTheMainDispatcher(MapCanvasViewModelFixQualityTest.kt:340)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.rules.TestWatcher$1.evaluate(TestWatcher.java:61)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+</failure>
+  </testcase>
+  <testcase name="aDisabledSourceIsNoneWithoutANewFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.024"/>
+  <testcase name="everyConsumerReadsTheSharedQuality" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.031"/>
+  <testcase name="aNewFixRestoresTheTier" classname="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" time="1.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

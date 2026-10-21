@@ -11,7 +11,8 @@ which is a **new** commit. A landed branch is then never an ancestor of the base
 base does not have", so the item is refused for ever at the start and spent as a decision slot by the pre-screen,
 and the report names the leftover as work to land.
 
-Measured (`probe-landed-branch.sh`, 2026-10-21T05:52:12Z): one branch, `rev-list --count main..branch` → 1,
+Measured (`probe-landed-branch.sh`, which prints no timestamp; its run is
+`.pi/issue-loop/items/228/probe-landed-branch.txt`): one branch, `rev-list --count main..branch` → 1,
 `merge-base --is-ancestor` → not an ancestor, `git cherry main branch` → **0 unlanded**. The three cases in
 `evidence/red/` show each reader's symptom: exit 5 at the start, `needs-decision` from the pre-screen, and a
 `land …  1 commit(s)` action in the report.
@@ -34,10 +35,10 @@ fails, so "git cannot say" never reads as "nothing to land".
   guess.
 - `previous_attempt_branch_of`: the prefix's branch is the previous attempt only while it carries an unlanded
   patch; a branch git cannot compare is still read as carrying work, which keeps the pre-screen's refusal on the
-  safe side.
-- The report's branch loop: the count is the number of unlanded patches; a branch with none is skipped, and the
-  existing "a range git cannot answer is named rather than counted as zero" rule is kept by leaving `ahead=1` on
-  the failure path.
+  safe side. That second answer is code, not a scenario: no case asserts it.
+- The report's branch loop: the count is the number of unlanded patches; a branch with none is skipped. The
+  failure path keeps the `ahead=1` it had, so a branch git cannot read is still named rather than counted as
+  zero; that path is code too, and no scenario asserts it either.
 
 Blast radius: three call sites, one helper, no signature, flag, exit code, state field, label or report line
 changes. The adoption path (`cmd_merge_previous_attempt`), the review-failure refusal, the stale-base refusal, the

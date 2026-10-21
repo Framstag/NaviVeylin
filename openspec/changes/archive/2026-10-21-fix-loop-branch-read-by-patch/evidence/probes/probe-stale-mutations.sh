@@ -2,7 +2,8 @@
 # Probe: are mutations 12.7 and 18.2 already stale on HEAD? The harness is pointed at a throwaway copy of HEAD's
 # engine (`--engine`), which is what its own self-test does.
 set -uo pipefail
-root=$(cd "$(dirname "$0")/../.." && pwd)
+root=$(cd "$(dirname "$0")" && pwd)
+while [ ! -e "$root/.git" ]; do root=$(dirname "$root"); [ "$root" != "/" ] || exit 2; done
 dest="$root/.pi/tmp/head-engine"
 rm -rf "$dest"
 mkdir -p "$dest"

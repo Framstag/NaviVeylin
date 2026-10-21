@@ -2,7 +2,10 @@
 # Probe (repeatable, throwaway repo under .pi/tmp): the shape the loop lands work in — a branch whose patch the
 # base carries as a *new* commit — read by ancestry and by patch identity.
 set -eu
-cd "$(dirname "$0")"
+root=$(cd "$(dirname "$0")" && pwd)
+while [ ! -e "$root/.git" ]; do root=$(dirname "$root"); [ "$root" != "/" ] || exit 2; done
+mkdir -p "$root/.pi/tmp"
+cd "$root/.pi/tmp"
 rm -rf cb
 mkdir cb
 cd cb

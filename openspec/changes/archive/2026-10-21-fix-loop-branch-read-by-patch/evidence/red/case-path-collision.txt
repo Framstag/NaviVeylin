@@ -1,6 +1,8 @@
-# is `worktree#keepsByDefaultAndRemovesOnRequest` red on HEAD too, when the checkout path contains
+# is `worktree#keepsByDefaultAndRemovesOnRequest` red on the run's base too, when the checkout path contains
 # `worktrees/loop`? yes (below). Pre-existing, not this change.
-path of the checkout: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/case-path-head
+run 2026-10-21T06:45:11Z · engine 2e732f0e00fa771d04569483ffe80bc2ca3fa974 · HEAD e1bc4fa84c2b37c17c9064481400abedfda5cd91
+path of the checkout: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/worktrees/loop/.pi/tmp/case-path-base
 item #21: closed (merged fix/issue-21-an-eligible-bug-whose-cited-path-still-e — a finished attempt the base did not have) · 0 review round(s)
   git still lists the worktree that was removed
 FAIL worktree#keepsByDefaultAndRemovesOnRequest
+exit=1

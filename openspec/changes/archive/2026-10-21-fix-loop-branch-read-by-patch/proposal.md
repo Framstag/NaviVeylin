@@ -23,8 +23,8 @@ The evidence, in the tree at HEAD:
   into a `needs-decision` exclusion *before* the start ever asks, so the item spends one of the run's decision
   slots each run.
 
-Measured on this host (probe `probe-landed-branch.sh`, `.pi/issue-loop/items/228/probe-landed-branch.txt`,
-2026-10-21T05:52:12Z): in a throwaway repository, a branch whose patch was landed as `fix: the landed work (#21)`
+Measured on this host (probe `probe-landed-branch.sh`, `.pi/issue-loop/items/228/probe-landed-branch.txt` — the probe prints
+no timestamp): in a throwaway repository, a branch whose patch was landed as `fix: the landed work (#21)`
 reads `rev-list --count main..fix/issue-21-demo` → **1** and `merge-base --is-ancestor` → **not an ancestor**,
 while `git cherry main fix/issue-21-demo` → **0 unlanded**. Two readers of the same branch disagree by exactly
 the landing commit.
@@ -42,13 +42,16 @@ against this change's cases file, 2026-10-21T05:50:29Z…05:50:35Z):
 The population the tracker measured (`git cherry` on the branches of one 2026-10-20 report) is no longer in this
 repository: the six `fix/issue-*` branches it holds today all carry unlanded patches
 (`1·1`, `3·3`, `4·4`, `4·4`, `5·5`, `5·5` — `probe-branch-identity.sh`,
-`.pi/issue-loop/items/228/probe-branch-identity.txt`), because the branch of every landed item was deleted by
-hand. What is measured here is therefore the mechanism and the three cases, not the population.
+`.pi/issue-loop/items/228/probe-branch-identity.txt`). What the probe does not show is who deleted the landed
+ones — nothing in this tree records that, and `tools/` holds no delete path by design — so the population the
+tracker measured cannot be reached from here at all. What is measured is the mechanism and the three cases, not
+the population.
 
 **The owning requirement and the owning rule.** Capability `agent-issue-loop` — the requirement "Version control
 belongs to the run's script, not to the agent" (its scenarios "A branch that carries no work of its own is
-reused" and "A branch that carries a previous attempt is refused, named and recorded") and the requirement "The
-report names the actions the caller owes" (its scenario for a branch that carries commits). The behaviour this
+reused", "A branch whose work already landed is reused", "A branch that carries a previous attempt is refused,
+named and recorded" and "A landed leftover is not a decision") and the scenario "The report names the actions the
+caller owes" inside the requirement "One command starts a budgeted run, with no dialogue". The behaviour this
 contradicts is stated as *what a branch carries*; the tree implemented it as *which commit objects it holds*. The
 guideline that owns the loop's prose is `guidelines/Backlog.md` §7 "The loop" (the report's named action list and
 the branch "that carries commits the base does not have"), and the loop's own facts are
@@ -91,15 +94,19 @@ None.
 
 - `agent-issue-loop`: "Version control belongs to the run's script, not to the agent" — a branch's work is asked
   by patch identity, so a landed branch is reused rather than refused, and a refusal names the unlanded commits.
-- `agent-issue-loop`: "The report names the actions the caller owes" — a branch is named as an action only while
-  it carries a patch the base does not have.
+- `agent-issue-loop`: "One command starts a budgeted run, with no dialogue" — its action-list scenarios read a
+  branch by what it carries, and one scenario is added: a branch whose patches are in the base is not an action.
 
 ## Previous specifications changed
 
-- `openspec/specs/agent-issue-loop/spec.md` — both requirements above are **MODIFIED** (their requirement text
-  and the scenarios that ask about a branch's commits). No other requirement, scenario or case is touched: the
-  adoption path ("A finished attempt's branch is merged and its item closed"), the review-failure refusal, the
-  stale-base refusal and the empty-action-list rule keep their wording and their cases.
+- `openspec/specs/agent-issue-loop/spec.md` — both requirements above are **MODIFIED**, and no requirement is
+  added: the action list keeps the requirement that already owned it, its scenarios "The report names the actions
+  the caller owes" and "An action list is empty only when the state says so" are reworded to patch identity, and
+  the landed-leftover case is its own scenario beside them. Neither requirement loses a scenario: the delta
+  restates all eleven of the first and all fifteen of the second, and the rest are unchanged word for word. No
+  other requirement, scenario or case is touched: the adoption path ("A finished attempt's branch is merged and
+  its item closed"), the review-failure refusal, the stale-base refusal and the empty-action-list rule keep their
+  wording and their cases.
 
 ## Impact
 

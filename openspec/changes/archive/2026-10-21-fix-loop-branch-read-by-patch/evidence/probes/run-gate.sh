@@ -5,7 +5,8 @@
 # (`probe-case-path-collision.sh HEAD`). The run therefore keeps its scratch trees one level out, which is the
 # only thing this file changes about the configuration.
 set -uo pipefail
-root=$(cd "$(dirname "$0")/../.." && pwd)
+root=$(cd "$(dirname "$0")" && pwd)
+while [ ! -e "$root/.git" ]; do root=$(dirname "$root"); [ "$root" != "/" ] || exit 2; done
 conf="$root/.pi/tmp/gate-loop.conf"
 sed "s|^LOOP_TMP_DIR=\"\"$|LOOP_TMP_DIR=\"$(cd "$root/../.." && pwd)/tmp\"|" \
   "$root/tools/loop/loop.conf" > "$conf"

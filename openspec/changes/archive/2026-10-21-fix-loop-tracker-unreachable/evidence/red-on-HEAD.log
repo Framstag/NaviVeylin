@@ -1,0 +1,44 @@
+# Red probe — the base commit's engine (2e732f0e00fa771d04569483ffe80bc2ca3fa974), 2026-10-20
+#
+# The engine was extracted read-only (`git archive HEAD tools/issues | tar -x -C /tmp/red231`) so the
+# worktree's fix could not be involved, and driven from the repository root so `issues_resolve` sees a git
+# tree. The stub `gh` (this change's transient injection) is first on PATH; delays are irrelevant here
+# because the base commit has no retry.
+
+## 1. The identity read fails the way a socket does — policy.sh answers a refusal it never established
+
+$ GH_STUB_TRANSIENT_FAIL="api user" GH_STUB_TRANSIENT_TIMES=99 ... bash /tmp/red231/tools/issues/policy.sh preflight --json
+{
+  "login": "",
+  "decision": "refuse",
+  "reason": "author-not-allowlisted",
+  "detail": "(no authenticated login)"
+}
+exit=3
+
+## 2. One read fails transiently twice, a third attempt would answer — the outage becomes an empty set
+
+$ GH_STUB_TRANSIENT_FAIL="issue list" GH_STUB_TRANSIENT_TIMES=2 ... bash /tmp/red231/tools/issues/list.sh --json --limit 1
+exit=0
+attempts made by HEAD: 1
+Post "https://api.github.com/graphql": dial tcp 20.250.119.72:443: i/o timeout
+
+## The same two probes against the fixed engine
+
+1. `policy.sh preflight --json` -> {"login":"","decision":"unknown","reason":"tracker-unreachable",
+   "detail":"(the tracker API did not answer — no identity could be read)"}, exit 75
+   (case `policy#preflightReportsAnUnreachableTracker`)
+2. `lib#retriesATransientFailure` — the third attempt's answer arrives, the stub counted two failures.
+
+## 3. The change's own cases, run against the base commit's engine (2026-10-20)
+
+$ bash /tmp/red231/redcases.sh     # only ISSUES_ENGINE points at the base commit's extracted tree
+RED-OK   case_lib_exitCodeConstants failed on the base commit: the exit-code contract: expected '0 2 3 4 75', got ''
+RED-OK   case_lib_retriesATransientFailure failed on the base commit: the retried call returns the answer, not the outage: expected 'Framstag', got ''
+RED-OK   case_lib_reportsAnUnreachableTrackerAfterTheLastRetry failed on the base commit: 'status:75' not found in: status:1
+RED-MISS case_lib_doesNotRetryAnAuthoritativeFailure passed on the base commit
+RED-OK   case_policy_preflightReportsAnUnreachableTracker failed on the base commit: expected '75', got '3'
+
+Four of the five are red on the base commit. The fifth is the guard the fix must not break — the base commit
+never retries anything, so "an authoritative refusal is not retried" holds there vacuously; it goes red if
+the seam ever retries a refusal.

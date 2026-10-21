@@ -15,12 +15,16 @@ import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -35,6 +39,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -297,20 +302,39 @@ class MapCanvasViewModelFixQualityTest {
     }
 
     /**
-     * The tick must not read the main dispatcher while the quality is unchanged (spec: `gps-fix-quality`
-     * — Fix-quality re-evaluation stays off the main thread). It used to hop back onto the main
-     * dispatcher once per tick (`withContext(fixQualityTickDispatcher) { delay(...) }` returns into the
-     * dispatcher that owns the loop), so a ViewModel that outlives its test — every case that replaces
-     * its instance, every class that builds one without cancelling it — kept reading the main dispatcher
-     * every second from a real thread pool, and a *later* test then failed in `MainDispatcherRule` with
-     * `Dispatchers.Main is used concurrently with setting it` (TODO.md §121).
+     * The re-evaluation must not dispatch onto the main dispatcher while the quality is unchanged (spec:
+     * `gps-fix-quality` — Re-evaluation stays off the main dispatcher while the quality is unchanged).
+     * It used to hop back onto the main dispatcher once per tick
+     * (`withContext(fixQualityTickDispatcher) { delay(...) }` returns into the dispatcher that owns the
+     * loop), so a ViewModel that outlives its test — every case that replaces its instance, every class
+     * that builds one without cancelling it — kept reading the main dispatcher every second from a real
+     * thread pool, and a *later* test then failed in `MainDispatcherRule` with `Dispatchers.Main is used
+     * concurrently with setting it` (TODO.md §121).
      *
-     * Real-time case on purpose: the tick runs on the production dispatcher with the real clock while
-     * the main dispatcher is instrumented, and the case pumps the main dispatcher the way a following
-     * test would — so every tick is evaluated. Counted are only dispatches from **another** thread:
-     * what this case's own pumping queues comes from the test thread, and the construction-time I/O of
-     * the ViewModel's collaborators settles before the counted window. Asserted is the **second** window
-     * of two: a single late arrival of that construction work is tolerated, a per-tick pattern is not.
+     * Real-time case on purpose: the tick runs on the production dispatcher with the real clock while the
+     * main dispatcher is instrumented, and the case pumps the main dispatcher the way a following test
+     * would — so every tick is evaluated.
+     *
+     * **What a counted dispatch is attributed to.** The dispatcher this case instruments is the main
+     * dispatcher of the whole process, so a count of "dispatches from another thread" is not the same
+     * thing as "main-dispatcher traffic of the re-evaluation": any other subsystem that resumes a
+     * main-collector from a background thread lands in the same count. It did, twice on 2026-10-06, in a
+     * focused run of this class's neighbours: the failing stack was `NavigationEngine.tickStaleness` →
+     * `runStaleSpeedTicker` — an unrelated ticker — while the message blamed the fix-quality tick, which
+     * is what issue #87 records. [CountingMainDispatcher] therefore attributes every counted dispatch by
+     * the stack that issued it: the frames of `MapCanvasViewModel`'s own code are the re-evaluation's
+     * traffic, everything else is another subsystem's and is reported, not asserted. A dispatch the
+     * ViewModel's own coroutine issues from a real thread carries its `invokeSuspend` frame, so the guard
+     * the case exists for — a per-tick hop onto the main dispatcher — is still caught, while a loaded
+     * runner's unrelated traffic can no longer turn the case red.
+     *
+     * The case provokes the unrelated traffic itself, one dispatch per window from a thread that is
+     * neither the test thread nor the re-evaluation's, and asserts the counter saw it: the
+     * discrimination is exercised on every run instead of waiting for a loaded machine to supply noise,
+     * and an attribution that silently stopped discriminating would fail here rather than pass quietly.
+     *
+     * Asserted over [TICK_WINDOWS] windows, not over one (a rate needs N ≥ 3): the tick period is real
+     * time, so a single window is a sample, and a per-tick pattern is a property of all of them.
      */
     @Test
     fun aTickDoesNotDispatchOnTheMainDispatcher() {
@@ -319,55 +343,106 @@ class MapCanvasViewModelFixQualityTest {
         viewModel.fixQualityTickMs = TICK_MS
         settleConstruction()
 
-        countingMain.reset()
-        watchTicks()
-        val firstWindow = countingMain.count
+        // Stand-in for the unrelated main-dispatcher traffic of a loaded run: one dispatch per window,
+        // issued from a thread that is neither the test thread nor the re-evaluation's.
+        val noiseScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val windows = mutableListOf<Pair<Int, Int>>()
+        try {
+            repeat(TICK_WINDOWS) {
+                countingMain.reset()
+                // Awaited, so the window is known to contain the unrelated dispatch: the noise block runs
+                // on the pumped main dispatcher, and its coroutine completes on the IO thread after it.
+                val noiseIssued = CompletableDeferred<Unit>()
+                noiseScope.launch {
+                    withContext(Dispatchers.Main) { }
+                    noiseIssued.complete(Unit)
+                }
+                pumpUntil { noiseIssued.isCompleted }
+                watchTicks()
+                windows += countingMain.fromTheViewModel to countingMain.fromElsewhere
+            }
+        } finally {
+            runBlocking { noiseScope.coroutineContext[Job]?.cancelAndJoin() }
+        }
 
-        countingMain.reset()
-        watchTicks()
-        val secondWindow = countingMain.count
-
+        val fromTheViewModel = windows.sumOf { it.first }
         assertEquals(
             "the fix-quality tick dispatched on the main dispatcher from another thread " +
-                "${secondWindow} times in the second ${TICK_WATCH_MS}ms window while nothing changed " +
-                "(first window: $firstWindow) — it must stay off the main dispatcher; " +
-                "first dispatch:\n${countingMain.firstDispatchStack()}",
+                "$fromTheViewModel times over $TICK_WINDOWS windows of $TICK_WATCH_TICKS ticks " +
+                "(${TICK_MS}ms each) while nothing changed " +
+                "(${windows.mapIndexed { index, counts -> "window ${index + 1}: ${counts.first}" }})" +
+                " — it must stay off the main dispatcher; first dispatch from the ViewModel:\n" +
+                countingMain.firstViewModelDispatchStack(),
             0,
-            secondWindow
+            fromTheViewModel
+        )
+        // The control: the unrelated traffic was really dispatched onto this instrumented dispatcher
+        // while the windows ran — the counter is not blind, it attributes.
+        assertTrue(
+            "no main dispatch from another thread was attributed to another subsystem at all, so this " +
+                "case cannot show that it tells the re-evaluation's traffic from the rest: " +
+                "${windows.mapIndexed { index, counts -> "window ${index + 1}: ${counts.second}" }}; " +
+                "counted stacks:\n${countingMain.elsewhereDispatchStacks()}",
+            windows.all { it.second >= 1 }
         )
     }
 
     /**
-     * The main dispatcher under test. Counts the dispatches **another thread** sends to it, with the
-     * stack of the first one for the failure message; dispatches made by the thread that owns this
-     * wrapper (the case's own scheduler pumping) are passed through without counting.
+     * The main dispatcher under test. Counts the dispatches **another thread** sends to it and
+     * attributes each one by the stack that issued it: a dispatch the ViewModel's own code makes from a
+     * real thread is the re-evaluation's traffic ([fromTheViewModel]), anything else is another
+     * subsystem's ([fromElsewhere]) and is reported, never blamed on the re-evaluation. Dispatches made
+     * by the thread that owns this wrapper (the case's own scheduler pumping) are passed through without
+     * counting. Stacks are kept because the failure message is the diagnosis (`guidelines/Build.md` §6).
      */
     private class CountingMainDispatcher(
         private val delegate: CoroutineDispatcher
     ) : CoroutineDispatcher() {
 
         private val ownerThread = Thread.currentThread()
-        private val dispatches = AtomicInteger(0)
-        private val firstDispatch = AtomicReference<Throwable?>(null)
+        private val dispatches = ConcurrentLinkedQueue<CountedDispatch>()
 
-        val count: Int get() = dispatches.get()
+        val fromTheViewModel: Int get() = dispatches.count { it.fromTheViewModel }
+
+        val fromElsewhere: Int get() = dispatches.count { !it.fromTheViewModel }
+
+        private class CountedDispatch(val fromTheViewModel: Boolean, val stack: Throwable)
 
         fun reset() {
-            dispatches.set(0)
-            firstDispatch.set(null)
+            dispatches.clear()
         }
 
-        /** Where the first counted dispatch came from, for the failure message. */
-        fun firstDispatchStack(): String =
-            firstDispatch.get()?.stackTrace?.joinToString("\n") { "\tat $it" } ?: "(none)"
+        /** Where the first counted dispatch the ViewModel's own code issued came from, for a failure. */
+        fun firstViewModelDispatchStack(): String = dispatches
+            .firstOrNull { it.fromTheViewModel }
+            ?.stack?.stackTrace?.joinToString("\n") { "\tat $it" } ?: "(none)"
+
+        /** Where the counted dispatches of other subsystems came from, for the control's failure. */
+        fun elsewhereDispatchStacks(): String = dispatches
+            .filterNot { it.fromTheViewModel }
+            .joinToString("\n---\n") { dispatch ->
+                dispatch.stack.stackTrace.joinToString("\n") { "\tat $it" }
+            }.ifEmpty { "(none)" }
 
         override fun dispatch(context: CoroutineContext, block: Runnable) {
             if (Thread.currentThread() !== ownerThread) {
-                firstDispatch.compareAndSet(null, Throwable("main dispatch from another thread"))
-                dispatches.incrementAndGet()
+                val issuer = Throwable("main dispatch from another thread")
+                dispatches.add(CountedDispatch(issuer.issuedByTheViewModel(), issuer))
             }
             delegate.dispatch(context, block)
         }
+
+        /**
+         * Whether the stack that issued a dispatch runs through the ViewModel's own code — the
+         * re-evaluation loop, the collectors it resumes, the state it publishes. `Thread` frames carry the
+         * class name of the enclosing class, so the ViewModel's own coroutines appear as
+         * `MapCanvasViewModel$…` and this test's frames as `MapCanvasViewModelFixQualityTest…`.
+         */
+        private fun Throwable.issuedByTheViewModel(): Boolean =
+            stackTrace.any { frame ->
+                frame.className == VIEW_MODEL_CLASS ||
+                    frame.className.startsWith("$VIEW_MODEL_CLASS\$")
+            }
     }
 
     private companion object {
@@ -377,11 +452,17 @@ class MapCanvasViewModelFixQualityTest {
         /** Tick period of the main-dispatcher case. */
         const val TICK_MS = 20L
 
-        /** How long a case watches real ticks. */
-        const val TICK_WATCH_MS = 300L
-
-        /** [TICK_WATCH_MS] expressed in ticks of [SETUP_TICK_MS] — the window a case actually needs. */
+        /**
+         * A tick window, in completed ticks: six at [SETUP_TICK_MS] (≈ 300 ms) — the window a case needs,
+         * and the unit the main-dispatcher case counts in, so no case asserts on a wall-clock span.
+         */
         const val TICK_WATCH_TICKS = 6L
+
+        /** How many windows the main-dispatcher case asserts; a rate needs N ≥ 3, not one sample. */
+        const val TICK_WINDOWS = 3
+
+        /** The subject of [CountingMainDispatcher]'s attribution. */
+        const val VIEW_MODEL_CLASS = "com.naviveylin.ui.map.MapCanvasViewModel"
 
         /** Time the main-dispatcher case gives the construction-time work to settle. */
         const val SETTLE_MS = 600L

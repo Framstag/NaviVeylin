@@ -60,8 +60,7 @@ fi
 
 issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
-login=$(issues_login)
-issues_preflight "$profile" "$login"
+issues_preflight "$profile"
 
 issue=$(gh issue view "$number" --json number,title,labels,body,author,state,stateReason 2>/dev/null) \
   || issues_die "reopen: gh could not read issue #$number"

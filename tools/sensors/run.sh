@@ -89,8 +89,7 @@ epoch=$(sensors_epoch "$SENSORS_NOW") || sensors_die "run: --now '$SENSORS_NOW' 
 
 # The identity the run would write as is the gate's only attributable term, so it is checked before any
 # row is selected — a run that may not write must not report a working set either (design D2).
-login=$(issues_login)
-issues_preflight "$SENSORS_PROFILE" "$login"
+issues_preflight "$SENSORS_PROFILE"
 
 # --------------------------------------------------------------------------- selection
 

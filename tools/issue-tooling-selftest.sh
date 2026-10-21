@@ -114,9 +114,18 @@ if [ "$total" -eq 0 ]; then
   exit 0
 fi
 
+# The footer dates the artefact and names the tree it came from: a gate log whose only timestamp is the file's
+# mtime cannot be told apart from one copied out of an earlier tree, and a review round had to compare mtimes
+# to place it (#231). The digest covers `tools/`, the tree the gate measures, and not the evidence file that
+# carries the log — otherwise copying the log would change the tree it just recorded.
+head=$(git -C "$root" rev-parse --short HEAD 2>/dev/null || echo "no-git")
+state=$( { git -C "$root" status --porcelain -- tools; git -C "$root" diff -- tools; } 2>/dev/null |
+         { sha256sum 2>/dev/null || cksum | tr -d ' '; } | cut -c1-12)
+[ -n "$state" ] || state="no-git"
+stamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 if [ "$failed" -gt 0 ]; then
-  echo "issue-tooling-selftest: $failed of $total cases failed"
+  echo "issue-tooling-selftest: $failed of $total cases failed (HEAD $head, tools $state, $stamp)"
   exit 1
 fi
-echo "issue-tooling-selftest: all $total cases passed (JDK $feature, offline, no token)"
+echo "issue-tooling-selftest: all $total cases passed (JDK $feature, offline, no token, HEAD $head, tools $state, $stamp)"
 exit 0

@@ -1,0 +1,4 @@
+# documentation routes, 2026-10-22T00:46:25+02:00
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+EXIT=0

@@ -1,0 +1,12 @@
+# green after the fix, 2026-10-22T00:44:35+02:00
+# command: bash tools/loop-selftest.sh --case '<case>', one case per run — the whole prompt group
+PASS prompt#workerNamesEveryPhaseAndSkill  EXIT=0
+PASS prompt#workerNamesTheDecisionField  EXIT=0
+PASS prompt#workerTreatsARecordedDecisionAsSettled  EXIT=0
+PASS prompt#reviewerCarriesTheEightItems  EXIT=0
+PASS prompt#reviewerIsBoundedToReading  EXIT=0
+PASS prompt#iterationProtocolHandsTheReviewerTheSameSkeleton  EXIT=0
+PASS prompt#workerNamesTheChangeSurfaceBeforeThePlan  EXIT=0
+PASS prompt#iterationProtocolNamesTheChangeSurface  EXIT=0
+PASS prompt#packageIsAFileAndNotInlined  EXIT=0
+PASS prompt#inlineInjectionCannotReachTheInstructionPosition  EXIT=0

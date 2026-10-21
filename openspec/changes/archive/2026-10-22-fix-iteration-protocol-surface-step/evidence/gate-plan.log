@@ -1,0 +1,5 @@
+# what this delta owes, 2026-10-22T00:46:23+02:00
+$ bash tools/loop/gate.sh --plan --base HEAD
+tools/loop-selftest.sh
+tools/check-doc-routes.sh
+EXIT=0

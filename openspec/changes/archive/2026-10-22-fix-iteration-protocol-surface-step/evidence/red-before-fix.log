@@ -1,0 +1,13 @@
+# red on HEAD — the fix reverted from the tree by hand, 2026-10-22T00:44:20+02:00
+# command: bash tools/loop-selftest.sh --case '<case>', one case per run
+$ bash tools/loop-selftest.sh --case 'prompt#workerNamesTheChangeSurfaceBeforeThePlan'
+  the worker counts the surface before it plans: 'Count the surface before the plan is fixed' not found in: # Worker — one item, phases A–D
+FAIL prompt#workerNamesTheChangeSurfaceBeforeThePlan
+EXIT=1
+$ bash tools/loop-selftest.sh --case 'prompt#iterationProtocolNamesTheChangeSurface'
+  the iteration protocol does not state the surface measurement
+FAIL prompt#iterationProtocolNamesTheChangeSurface
+EXIT=1
+# restore: both files copied back from the pre-revert copies, then `diff -q` against them printed nothing for
+# either file ("restore byte-identical"), and the prompt-group run that follows is 10/10 green
+# (green-after-fix.log, 2026-10-22T00:44:35+02:00).

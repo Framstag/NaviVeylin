@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case &lt;the two new prompt cases&gt;" tests="2" failures="2" errors="0" timestamp="2026-10-22T00:44:20+02:00">
+  <system-out>Two focused case runs on HEAD with the fix reverted by hand: prompt#workerNamesTheChangeSurfaceBeforeThePlan and prompt#iterationProtocolNamesTheChangeSurface, both EXIT=1. tests/failures counted from the FAIL lines of red-before-fix.log, the way tools/loop/gate.sh derives its per-suite tally.</system-out>
+</testsuite>

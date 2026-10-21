@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case prompt#*" tests="10" failures="0" errors="0" timestamp="2026-10-22T00:46:35+02:00">
+  <system-out>10 focused case runs of the prompt group, 2026-10-22T00:44:35+02:00; tests/failures counted from the suite summary the way tools/loop/gate.sh derives its per-suite tally (here: the PASS/FAIL lines of green-after-fix.log, 10 PASS / 0 FAIL). The whole-suite summary line ("loop-selftest: all N cases passed") is produced by the run the gate runs, not by this focused pass.</system-out>
+</testsuite>

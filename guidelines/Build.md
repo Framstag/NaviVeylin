@@ -329,6 +329,31 @@ same JBR the criteria would name). And the daemon JVM is not the only JVM the bu
 compiles with a Java 17 toolchain that must be detectable locally — a second requirement, tracked as
 `TODO.md` §146.
 
+### The actions' Node runtime
+
+A workflow's `uses:` pin, not the runner, decides which Node runtime an action runs on: a major that predates
+Node 24 makes the runner print `Node.js 20 is deprecated` on every step and force the action onto Node 24
+anyway (GitHub's deprecation changelog, 2025-09-19). Six pins in this repository did — five
+`actions/upload-artifact@v5` steps in `.github/workflows/build.yml` and `actions/checkout@v4` in
+`.github/workflows/sensors.yml` — and the notice is a warning, so nothing failed and no test could see it
+(issue #240). Two rules follow.
+
+1. **Pin the first major whose committed `action.yml` declares `runs.using: node24`, or a later one.** The
+   declaration is the fact, not the release note: read it at the tag
+   (`raw.githubusercontent.com/actions/upload-artifact/v6/action.yml` → `using: 'node24'`, where `v5` says
+   `node20`).
+2. **A new action is recorded before it is pinned.** `tools/check-action-runtimes.sh` holds the floor table —
+   action → first Node 24 major → the `action.yml` URL it was read from — and fails on an action it does not
+   record, on a pin below its action's floor (naming file and line), and on a ref it cannot resolve offline
+   (`@main`, a SHA). What carries no Node runtime of its own is skipped: a local action and a `docker://` one.
+
+CI enforces both in the step `Check action runtimes` (`.github/workflows/build.yml`, text only: no build, no
+device, no network; its cases are `tools/check-action-runtimes-selftest.sh`, of which the case that checks this
+repository's own pins is the one issue #240 failed). The recorded floor is a memory, not a fact: when an action
+publishes a major or the runner retires Node 24, the table and the URLs beside it are what a reader re-reads.
+The check fetches nothing on purpose — a gate that needs egress fails on a runner without it and passes on a
+workstation with it.
+
 ## 3. Commands reference
 
 | Goal | Command |

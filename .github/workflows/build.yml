@@ -284,6 +284,18 @@ jobs:
           bash tools/resolve-stale-selftest.sh
           bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list
 
+      # ── action runtimes ────────────────────────────────────────
+      # A workflow's `uses:` pin carries the runtime: an action major that predates Node 24 makes the
+      # runner print a deprecation notice on every step and force the action onto Node 24 anyway
+      # (`actions/upload-artifact@v5` declares `runs.using: node20`; five steps warned until issue #240
+      # moved them to v7). Nothing else in the tree reads an action version — the workflow parses and the
+      # run is green — so the pin is checked here, against the floor table in the checker itself.
+      # Text files only: no build, no device, no network.
+      - name: Check action runtimes
+        run: |
+          bash tools/check-action-runtimes.sh
+          bash tools/check-action-runtimes-selftest.sh
+
       # ── Compose sandbox rule ───────────────────────────────────
       # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
       # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has
@@ -503,7 +515,7 @@ jobs:
         run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverHtmlReport :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-reports
           path: |
@@ -526,7 +538,7 @@ jobs:
       # build still carries the result record `broken-main` reads.
       - name: Upload the sensor inputs
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: sensor-inputs
           path: |
@@ -537,14 +549,14 @@ jobs:
           if-no-files-found: error
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: naviveylin-debug-apk
           path: app/build/outputs/apk/mobile/debug/*.apk
           if-no-files-found: error
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: naviveylin-sbom
           path: app/build/outputs/sbom/mobileDebug/bom.json
@@ -554,7 +566,7 @@ jobs:
       # with identifiers, distribution scopes and evidence. Uploaded so a
       # reviewer can read the license inventory without unpacking the APK.
       - name: Upload license inventory
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: naviveylin-license-inventory
           path: app/build/generated/assets-licenses/mobileDebug/licenses/**

@@ -49,6 +49,7 @@
     "car-host-fault-isolation": { "area": "car-only", "userVisible": false, "surfaces": ["car"] },
     "car-list-row-limit": { "area": "car-only", "userVisible": false, "surfaces": ["car"] },
     "car-session-presence": { "area": "car-only", "userVisible": true, "surfaces": ["car"] },
+    "ci-action-runtimes": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "ci-unit-test-jni": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "ci-vcpkg-cache": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "compass-button": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },

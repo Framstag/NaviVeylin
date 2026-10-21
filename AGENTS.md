@@ -30,7 +30,7 @@ which also lists the sections this table does not route.
 | search, favourites, settings, persistence | `Design.md` §9 "Data, persistence & search", `UI.md` §6a "Phone search surface" |
 | logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `Build.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
 | route data and the numbers derived from it | `MapRendering.md` §19 |
-| build, run, force a rerun, read a gate result | `Build.md` §2 — its "Agent iteration protocol" subsection is the iteration loop —, §3, §4 |
+| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §2 — its "Agent iteration protocol" subsection is the iteration loop, its "The actions' Node runtime" subsection owns a `uses:` pin and the check that gates one —, §3, §4 |
 | the native build — CMake sources, the ABI→triplet selection, vcpkg dependencies, stylesheet packaging | `Build.md` §12 |
 | writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `Build.md` §6 "Test constraints", §7 "Code coverage", `Design.md` §11 "Testing" |
 | release, versioning, SBOM, licence inventory | `Build.md` §5, §8, §9 |

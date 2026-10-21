@@ -494,8 +494,9 @@ render_mechanical() {
     | select(($sel | length) > 0)
     | ($sel[0].value.name | tokens | .[0:6] | join(" ")) as $kw
     # The names are clipped to the bound less what the entry puts around them, because the gate measures the
-    # whole paragraph and not the names: the `— ` lead-in is three bytes where the gate counts bytes in a C
-    # locale, which is its widest form, and the full stop is one more.
+    # whole paragraph and not the names: the `— ` lead-in is three characters (five bytes under a byte-counting
+    # locale, which is its widest form) and the full stop is one more. `clip` counts characters, so the reserve of
+    # five keeps the paragraph inside the bound under either count.
     | "- **\($kw)** — " + (($sel | map(.value.name) | join("; ")) | clip($max - 5)) + ".\n"
       + ($sel | map("  <!-- cap: \(.key) -->") | join("\n"))
   ' "$work/caps.json"
@@ -518,15 +519,16 @@ needs_render() {
 }
 
 # The shape an entry has to have when no model composed it, because the prose gates hold every entry to it: a
-# keyword of six tokens at most, and a paragraph inside the length bound with room for the full stop the entry
-# appends. The unprompted modes have only a requirement name to compose with, so they shape that name rather
-# than print it whole.
+# keyword of six tokens at most, and a paragraph inside the length bound. The paragraph the entry prints is not the
+# name alone — it is the name between the `— ` lead-in and a full stop, and the gate measures that wrapper too, so
+# it is reserved here exactly as it is in `render_mechanical`'s clip. The unprompted modes have only a requirement
+# name to compose with, so they shape that name rather than print it whole.
 entry_keyword() {
   jq -rn --arg n "$1" '$n | gsub("[^A-Za-z0-9]+"; " ") | split(" ") | map(select(. != "")) | .[0:6] | join(" ")'
 }
 entry_paragraph() {
   jq -rn --arg n "$1" --argjson max "$maxpara" '
-    $n | if length <= ($max - 1) then . else (.[0:($max - 1)] | rindex(" ") // ($max - 2)) as $c | .[0:$c] end'
+    $n | if length <= ($max - 5) then . else (.[0:($max - 5)] | rindex(" ") // ($max - 6)) as $c | .[0:$c] end'
 }
 
 # Selection for a release note: which capabilities moved, and how a vanished key is accounted for. Writes

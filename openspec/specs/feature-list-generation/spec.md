@@ -105,8 +105,9 @@ that shape.
 
 - **WHEN** no phrasing command is given and a capability's requirement name is longer than six words, so that it
   would lead an entry of the release note
-- **THEN** the entry leads with a keyword of at most six words taken from that name, and the run writes the
-  release note instead of failing its own gate
+- **THEN** the entry leads with a keyword of at most six words taken from that name, its paragraph counted with
+  the lead-in and the full stop the entry prints stays inside the length bound, and the run writes the release note
+  instead of failing its own gate
 - **Case**: `length: a mechanical release-note entry is composed inside the bound`
 
 ### Requirement: Every entry carries the capabilities it came from
@@ -185,7 +186,7 @@ An entry's paragraph, excluding its bold keyword, SHALL be at most 320 character
 longer paragraph SHALL name the entry and its length, fail, and SHALL NOT overwrite the catalogue, so that an entry
 can be read in one glance and the catalogue reads as a set of selling points rather than as a specification. A run
 that composes an entry without a phrasing command SHALL stay inside that bound as well: the text it wraps around
-the capability names is measured too.
+the capability names is measured too, so a name it shortens is shortened by the width of that text.
 
 #### Scenario: An over-long paragraph fails the run
 

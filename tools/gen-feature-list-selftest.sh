@@ -502,9 +502,18 @@ is "length: a short paragraph passes" "0" "$last_rc"
 # bound and then adds the lead-in and the full stop the gate measures, and it leads the entry with a keyword of
 # six tokens at most. A name of nine-character words puts the 320th character on a space, so a clip that forgets
 # what it prefixes and appends overshoots by two characters, and such a name is far more than six tokens, so a
-# keyword taken whole from it is refused as well. The catalogue and the release note are asserted separately:
-# the catalogue gate runs first, and it used to hide the note gate behind it. The note case needs a real delta,
-# so the run that establishes the baseline carries a second requirement which the second run then loses.
+# keyword taken whole from it is refused as well.
+#
+# The catalogue and the release note are asserted separately, because the catalogue gate runs first and used to
+# hide the note gate behind it: a note case whose fixture leaves the catalogue over the bound can only ever show
+# the catalogue's failure. The note case therefore puts the long name where only the note can see it, in `delta` —
+# user-visible, but named by no highlight, so the catalogue never composes it. The second run adds it, and an
+# addition is written as a `changed` note entry (`select_notes` selects `.added + .changed`), so the case reaches
+# the note's composing branch. That run also drops a requirement of `beta`, so that the removal list is not empty:
+# `pair.awk` reads the first line of its second file as a removal when it has no removals to pair (recorded as a
+# separate defect and not this change's), and this case must not stand on it. At 319 characters the long name
+# measures 322 once the `— ` lead-in and the full stop are around it: an entry that reserves only the full stop
+# fails, one that reserves both stays inside the bound.
 zeta_name="Paragraph"
 i=1; while [ "$i" -lt 40 ]; do zeta_name="$zeta_name paragraph"; i=$((i + 1)); done
 spec zeta "$zeta_name" "Zeta secondary requirement whose name is longer than six tokens"
@@ -520,16 +529,26 @@ else
   bad "length: a mechanical catalogue entry is composed inside the bound" \
     "exit $last_rc: $(grep 'entry paragraph is' "$work/g.err" | head -1)"
 fi
-spec zeta "$zeta_name"
+
+note_long="Paragraph"
+i=1; while [ "$i" -lt 32 ]; do note_long="$note_long paragraph"; i=$((i + 1)); done
+rm -rf "$repo/openspec/specs/zeta" "$data/cache" "$data/snapshots/1-0-0-1.json"
+specs_; highlights_
+run_split --release 1-0-1-1
+is "length: the baseline run for the release note is green" "0" "$last_rc"
+spec beta "Beta sole capability"
+spec delta "Delta car capability" "$note_long"
 rm -rf "$data/cache"
-run_split --release 1-0-0-2
+run_split --release 1-0-1-2
 if [ "$last_rc" -eq 0 ] && [ -f "$out/RELEASE-NOTES.md" ] && within_bound "$out/RELEASE-NOTES.md"; then
   ok "length: a mechanical release-note entry is composed inside the bound"
 else
   bad "length: a mechanical release-note entry is composed inside the bound" \
-    "exit $last_rc: $(grep -E 'entry (paragraph|keyword) is' "$work/g.err" | head -1)"
+    "$(grep -q 'the release-note gates failed' "$work/g.err" && echo 'note gate:' || echo 'catalogue gate:') exit $last_rc: $(grep -m1 'entry keyword is' "$work/g.err" || grep -m1 'entry paragraph is' "$work/g.err")"
 fi
-rm -rf "$repo/openspec/specs/zeta" "$data/snapshots/1-0-0-1.json" "$data/snapshots/1-0-0-2.json" "$data/cache"
+spec beta "Beta sole capability" "Beta paired capability"
+spec delta "Delta car capability"
+rm -rf "$data/snapshots/1-0-1-1.json" "$data/snapshots/1-0-1-2.json" "$data/cache"
 specs_; highlights_
 
 # ---------------------------------------------------------------------------

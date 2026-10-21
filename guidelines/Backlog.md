@@ -299,7 +299,7 @@ their count, the tokens it used and what they cost, the largest context it reach
 reported rather than a zero that reads as a measurement (#211) — beside the run-level `spent`; and **what the
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
-where the state does not hold it, where it is), a branch that carries commits the base does not have with the
+where the state does not hold it, where it is), a branch that carries a patch the base does not have with the
 item that owns it, the kept worktree, an item whose gate never completed with its transcript, and a citation
 the pre-screen still refuses. A count is not an answer, so `none` is printed only when all five sources were
 read and empty — it never hides a branch that carries work.

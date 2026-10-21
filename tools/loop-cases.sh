@@ -3345,7 +3345,7 @@ JSONL
 }
 
 # The tail is what the caller acts on (#208): an owed decision with the question the run wrote, and every
-# branch that carries commits the base does not have, named with the item that owns it. `none` may not stand
+# branch that carries a patch the base does not have, named with the item that owns it. `none` may not stand
 # in for a branch that carries work.
 case_report_actionsNameDecisionAndBranch() {
   local p out block

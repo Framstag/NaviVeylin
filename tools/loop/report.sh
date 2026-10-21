@@ -173,10 +173,16 @@ while IFS=$'\t' read -r kind issue verdict reason extra; do
 done < <(decisions)
 
 # The branches are read from git, and a branch is an action because of what it *carries*, not because it
-# exists: `none` must never hide commits. A range git cannot answer is named rather than counted as zero.
+# exists: `none` must never hide commits. What it carries is asked by patch identity — the loop lands work as
+# `fix: … (#N)`, so a branch whose work is already on the base is not an ancestor of it, and ancestry named
+# leftovers as landings for ever (issue #228). A range git cannot answer is named rather than counted as zero.
 while IFS= read -r branch; do
   [ -n "$branch" ] || continue
-  if ahead=$(git -C "$LOOP_ROOT" rev-list --count "$base..$branch" 2>/dev/null); then :; else ahead=1; fi
+  if unlanded=$(loop_unlanded_commits "$LOOP_ROOT" "$base" "$branch"); then
+    ahead=$(printf '%s\n' "$unlanded" | grep -c . || true)
+  else
+    ahead=1
+  fi
   case "$ahead" in ''|*[!0-9]*) ahead=1 ;; esac
   [ "$ahead" -gt 0 ] || continue
   owner=$(printf '%s' "$branch" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1)

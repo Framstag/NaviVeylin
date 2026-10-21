@@ -114,20 +114,31 @@ that was made.
 
 The report is read instead of the tracker, so a list of ids is not an answer: a decision without its question,
 a branch without its owner, a gate without its log and a kept worktree without its path send the caller back
-to `gh` to reconstruct what the run already knew (issue #208).
+to `gh` to reconstruct what the run already knew (issue #208). A branch is named here by what it **carries**:
+the loop lands an item's work as a commit of its own, so a branch whose patches the base already holds has
+nothing to land (issue #228).
 
-- **WHEN** a run ends holding a decision it escalated, a branch that carries commits the run's base does not
+- **WHEN** a run ends holding a decision it escalated, a branch that carries a patch the run's base does not
   have, a kept worktree, an item whose gate never completed, or a citation the pre-screen refused
 - **THEN** the report prints one named action for each: the decision with the question the run wrote beside
   it — or, where the state does not hold that text, where the question is (`gh issue view <n>`) rather than an
-  invented one — the branch with what it carries and the item that owns it, the kept worktree with its path,
-  the item's transcript for the gate that never completed, and the repair command for the refused citation
+  invented one — the branch with the patches it carries and the item that owns it, the kept worktree with its
+  path, the item's transcript for the gate that never completed, and the repair command for the refused
+  citation
 - **Case**: `report#actionsNameDecisionAndBranch`
+
+#### Scenario: A branch whose patches are in the base is not an action
+
+- **WHEN** a run ends and one of the item branches it sees carries no patch the base does not have — every one
+  of its commits was landed, or re-landed, as a commit of the loop's own
+- **THEN** the action list does not name that branch, and its `none` line is printed when nothing else is owed,
+  so a leftover cannot be read as work a caller has to land
+- **Case**: `report#landedBranchIsNoAction`
 
 #### Scenario: An action list is empty only when the state says so
 
-- **WHEN** no decision, no branch carrying commits, no kept worktree, no incomplete gate and no refused
-  citation is recorded — or when the state names any one of them
+- **WHEN** no decision, no branch carrying an unlanded patch, no kept worktree, no incomplete gate and no
+  refused citation is recorded — or when the state names any one of them
 - **THEN** the report prints the action list heading with `none` and what that covers in the first case, and
   never prints `none` in the second, so an empty list cannot hide a branch that carries work
 - **Case**: `report#emptyRunSaysNone`
@@ -253,10 +264,12 @@ can make the run's own report false, so it is worked before a defect in the ship
 
 The run SHALL create and manage the working tree and the branch of each item itself, and no phase of an
 item SHALL be able to invoke version control on its own behalf. A previous attempt's branch SHALL be decided by
-what it *carries*: a branch whose attempt **finished** — one archived change of its own, added by a commit that
-names its issue — SHALL be merged and its item closed by the run, or, when it is not admissible for adoption,
-SHALL be refused and escalated as a decision; a branch that carries commits and no archived change of its own
-SHALL NOT be a decision: its commits SHALL be kept under a name the run gives them and the item SHALL be worked.
+what it *carries*, read by **patch identity** and not by ancestry — the run lands work as `fix: … (#N)`, so such
+a branch is not an ancestor of the base: a branch whose attempt **finished** — one archived change of its own,
+added by a commit that names its issue — SHALL be merged and its item closed by the run, or, when it is not
+admissible for adoption, SHALL be refused and escalated as a decision; a branch that carries commits and no
+archived change of its own SHALL NOT be a decision: its commits SHALL be kept under a name the run gives them
+and the item SHALL be worked.
 
 #### Scenario: One working tree per run
 
@@ -282,10 +295,19 @@ SHALL NOT be a decision: its commits SHALL be kept under a name the run gives th
 #### Scenario: A branch that carries no work of its own is reused
 
 - **WHEN** an item starts and a branch of that item's name already exists, and every commit on it is
-  already in the run's base history
+  already in the run's base history, so the base is an ancestor of it
 - **THEN** the item is worked on that branch, started from the run's base, so an item a previous run left
   blocked can be taken up again
 - **Case**: `worktree#reusesABranchThatCarriesNoWorkOfItsOwn`
+
+#### Scenario: A branch whose work already landed is reused
+
+- **WHEN** an item starts and a branch of that item's name already exists, and the base carries every patch
+  on it although the branch is not an ancestor of the base — the loop's own landing shape, where the work
+  arrived as a new commit
+- **THEN** the item is worked on that branch, started from the run's base, because a leftover is not a
+  previous attempt: nothing on the branch is work the base would lose
+- **Case**: `worktree#reusesABranchWhoseWorkAlreadyLanded`
 
 #### Scenario: A branch that carries a previous attempt is refused, named and recorded
 
@@ -299,6 +321,13 @@ SHALL NOT be a decision: its commits SHALL be kept under a name the run gives th
   never silent
 - **Case**: `prescreen#aFinishedAttemptBranchIsADecision`, `worktree#refusesABranchCarryingAPreviousAttempt`,
   `run#leftoverBranchIsRecordedNotDropped`
+
+#### Scenario: A landed leftover is not a decision
+
+- **WHEN** the pre-screen meets a branch of the item's name whose every patch the run's base already carries
+- **THEN** the item is left eligible: no verdict, no exclusion and no decision slot is spent on a branch that
+  holds no unlanded work
+- **Case**: `prescreen#landedBranchIsNotADecision`
 
 #### Scenario: A finished attempt's branch is merged and its item closed
 

@@ -1,0 +1,9 @@
+objects:
+* 31f7b4b the attempt's own work
+| * c10399b fix: the landed work (#21)
+|/  
+* 67ec3ae init
+
+ancestry      : git rev-list --count main..fix/issue-21-demo  → 1
+merge-base     : git merge-base --is-ancestor fix/issue-21-demo main → not an ancestor
+patch identity : git cherry main fix/issue-21-demo               → 0 unlanded

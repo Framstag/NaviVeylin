@@ -248,6 +248,29 @@ loop_end_pid() {
   return 0
 }
 
+# ── git: what a branch carries ──────────────────────────────────────────────────────────
+
+# What a branch carries, asked by *patch* identity rather than by ancestry. The loop lands work as a commit of
+# its own (`fix: … (#N)`), and a branch whose work was landed — by hand, or re-landed — is never an ancestor of
+# the base while its patch is in it, so ancestry reads a finished branch as a previous attempt and blocks the
+# item for ever (measured 2026-10-20, issue #228: of 16 `land` lines in one report, every branch of the first
+# group read N ahead / 0 unlanded under `git cherry` and was a leftover already on `main`).
+#
+# Prints one `<sha> <subject>` line per commit whose patch <base> does not carry, and returns 0 when git could
+# answer. Returns 1 when it could not, so a caller never reads "git cannot say" as "nothing to land".
+loop_unlanded_commits() { # <repo> <base> <branch>
+  local repo="$1" base="$2" branch="$3" out line sha
+  out=$(git -C "$repo" cherry "$base" "$branch" 2>/dev/null) || return 1
+  while IFS= read -r line; do
+    # `git cherry` marks a commit `-` when the base already carries an equivalent patch, `+` when it does not
+    case "$line" in
+      '+ '*) sha=${line#+ }
+             git -C "$repo" log -1 --format='%h %s' "$sha" 2>/dev/null || printf '%s\n' "$sha" ;;
+    esac
+  done <<< "$out"
+  return 0
+}
+
 # ── the issue tooling, as the loop uses it ───────────────────────────────────────────────────────
 
 loop_profile() {

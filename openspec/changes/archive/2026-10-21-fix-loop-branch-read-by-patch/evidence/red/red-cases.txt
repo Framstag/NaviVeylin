@@ -1,0 +1,11 @@
+== worktree#reusesABranchWhoseWorkAlreadyLanded
+  a branch whose work the base already carries was refused: loop: branch fix/issue-21-demo already exists and carries commits the base does not — a previous attempt's work is on it:
+FAIL worktree#reusesABranchWhoseWorkAlreadyLanded
+== prescreen#landedBranchIsNotADecision
+  a branch whose every patch the base carries is not a previous attempt: expected 'eligible', got 'needs-decision'
+FAIL prescreen#landedBranchIsNotADecision
+== report#landedBranchIsNoAction
+  a branch whose patches are in the base is not an action: 'land fix/issue-21-landed' should not appear in: actions the caller owes:
+  1. land fix/issue-21-landed — 1 commit(s) the base does not have — item #21
+FAIL report#landedBranchIsNoAction
+2026-10-21T05:50:35Z

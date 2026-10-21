@@ -43,6 +43,13 @@ The worktree is **kept** at the end of a run — it is the next run's warm check
 `--clean-worktree`. One branch per item is created from the run's recorded base
 (`fix/issue-<N>-<slug>`), and the wrapper refuses the next item when `main` has advanced past that base.
 
+An item whose branch already exists is decided by what that branch **carries**, asked by patch identity
+(`git cherry`): a branch with nothing unlanded is reset onto the base and reused, and only a branch that carries
+an unlanded patch is refused and escalated as a decision — at the start *and* in the pre-screen, which asks the
+same question on the branch-name prefix. Ancestry cannot answer it: the run lands work as a commit of its own
+(`fix: … (#N)`), so a landed branch is not an ancestor of the base and ancestry refuses a leftover for ever
+(measured 2026-10-21: `1` commit ahead, `0` unlanded, issue #228).
+
 Five facts shape verification in a worktree:
 
 - `openspec/changes/*/` is **gitignored** (only `archive/` is versioned), so the worktree sees **no** in-flight

@@ -1,22 +1,41 @@
-# Structural checks for issue §171 — docs-only delta, no compiled file, so no Gradle gate (guidelines/Build.md §2 scope block)
-# 2026-10-21T11:24:48Z
+# Structural checks for issue #11 (§171) — docs-only delta, no compiled file, so no Gradle gate (guidelines/Build.md §2 scope block)
+# 2026-10-21T11:29:48Z
 
 $ openspec validate --all
 Totals: 176 passed, 0 failed (176 items)
+EXIT=0
 
 $ openspec validate --all | grep -c "overview: Purpose section"
 0
 
+$ openspec validate --all | grep -c "WARNING"   # the pre-existing "Requirement text is very long" class, counted not classified
+170
+
 $ bash tools/check-doc-routes.sh
 check-doc-routes: all 89 section references resolve
+EXIT=0
 
 $ bash tools/gen-feature-list.sh --check-classification
+specs read: 176
+classified: 176
+unclassified: 0
 stale: 0
 car-only areas: 1
 highlights: 19
+EXIT=0
 
-$ bash <shipped check body>  (CI step Check OpenSpec artifact hygiene)
-OpenSpec artifacts are consistent.
-
-$ bash /home/tim/projects/NaviVeylin/.pi/issue-loop/items/11/red-probe.sh
+$ bash hygiene-step.sh   # shipped CI step body, extracted verbatim from .github/workflows/build.yml
 Every capability spec states its Purpose.
+OpenSpec artifacts are consistent.
+EXIT=0
+
+$ bash red-probe.sh
+Every capability spec states its Purpose.
+EXIT=0
+
+$ grep -c "the case" (scenarios naming a case), delta vs merged
+openspec/changes/archive/2026-10-21-fix-capability-spec-purpose-placeholder/specs/documentation-ownership/spec.md:3
+openspec/specs/documentation-ownership/spec.md:3
+
+$ git diff --stat -- openspec/specs/render-mode-switch/spec.md openspec/specs/share/location-receiving/spec.md
+(empty = the revert-check mutations are gone)

@@ -1,10 +1,10 @@
-# 2026-10-21T11:24:13Z, after the fix and the archive
-$ openspec validate --all 2>&1 | grep -c 'overview: Purpose section'
-0
-$ openspec validate --all | tail -1
+# 2026-10-21T11:29:59Z
+$ openspec validate --all
 Totals: 176 passed, 0 failed (176 items)
-$ openspec validate documentation-ownership --type spec
-Specification 'documentation-ownership' is valid
-$ bash red-probe.sh
-Every capability spec states its Purpose.
 EXIT=0
+
+$ openspec validate --all | grep -c "overview: Purpose section"
+0
+
+$ openspec validate --all | grep -c "WARNING"   # the pre-existing "Requirement text is very long" class, counted not classified
+170

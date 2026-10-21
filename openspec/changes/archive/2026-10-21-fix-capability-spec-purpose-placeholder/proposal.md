@@ -16,8 +16,9 @@ the main spec can.
 
 **Root cause.** The section is written by the archive and read by nobody: no check in `tools/`, no CI step
 and no validator exit status looks at a spec's `## Purpose`, so the placeholder survives indefinitely. Two
-capability specs still carry it, and `highlight-measurement` carried it until it was repaired by hand
-during the `fix-highlight-longest-run` archive — the same workaround that has now failed twice.
+capability specs still carry it, and `highlight-measurement` carried it until commit `b3dfc78` wrote that one
+by hand (`git log --oneline -1 -- openspec/specs/highlight-measurement/spec.md`) — the same workaround that has
+now failed twice.
 
 **Red test.** No compiled file is in this delta, so there is no JUnit XML: the cases are a structural check
 (`guidelines/Build.md` §2, its scope block). The diagnosis probe, on base `44b673f`, 2026-10-21T11:22:13Z:
@@ -34,11 +35,15 @@ Two offending specs: the property was false on HEAD. After the fix, no path and 
 
 The check that ships is that probe narrowed to the lines between a `## Purpose` heading and the next `## `
 heading, because this change's own requirement quotes the sentence in its prose and a whole-file grep then
-reports the spec that states the rule. Its red half is therefore the revert-check in
-`evidence/revert-check.txt`: the placeholder put back under `render-mode-switch`'s `## Purpose` makes the
-check print `openspec/specs/render-mode-switch/spec.md:4` and exit 1; restored, it exits 0.
-`evidence/red-probe.sh` is the check's body (`evidence/hygiene-step.txt` shows the same block inside the CI
-step).
+reports the spec that states the rule. It is a `find openspec/specs -name spec.md` pass, not a
+`openspec/specs/*/spec.md` glob: 7 of the 176 capability specs sit one level deeper, in `auto/*` and
+`share/*`, and a flat glob cannot see them (`evidence/nested-spec-coverage.txt`: `ls
+openspec/specs/*/spec.md | wc -l` = 169, `find openspec/specs -name spec.md | wc -l` = 176). Its red half is
+therefore the revert-check in `evidence/revert-check.txt`: the placeholder put back under `render-mode-switch`'s
+`## Purpose` makes the check print `openspec/specs/render-mode-switch/spec.md:4` and exit 1; the placeholder put
+back under the nested `share/location-receiving`'s `## Purpose` makes it print
+`openspec/specs/share/location-receiving/spec.md:4` and exit 1 (`evidence/revert-check-nested.txt`); restored,
+it prints `Every capability spec states its Purpose.` and exits 0.
 
 **Owning requirement.** `openspec/specs/documentation-ownership/spec.md` — the capability that owns the
 project's documents and the properties of them that a command can check. This change adds one requirement
@@ -57,8 +62,9 @@ block.
 - `openspec/changes/fix-capability-spec-purpose-placeholder/specs/documentation-ownership/spec.md` — one
   ADDED requirement: a capability spec's `## Purpose` is a written sentence, and the artifact-hygiene check
   names every spec that still carries the archive placeholder.
-- `.github/workflows/build.yml` — the step `Check OpenSpec artifact hygiene` gains that check, so the
-  mechanism is reported instead of waiting for a reader.
+- `.github/workflows/build.yml` — the step `Check OpenSpec artifact hygiene` gains that check over every
+  `spec.md` under `openspec/specs/` at any depth, and prints `Every capability spec states its Purpose.` when
+  the tree passes, so the mechanism is reported instead of waiting for a reader.
 - `AGENTS.md` — its "OpenSpec Workflow" section says **two** artifact rules are CI-gated; it names three
   once this check exists.
 

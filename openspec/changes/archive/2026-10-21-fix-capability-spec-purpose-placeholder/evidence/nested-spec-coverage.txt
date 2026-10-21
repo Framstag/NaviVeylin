@@ -1,0 +1,14 @@
+# Coverage of the artifact-hygiene '## Purpose' pass (a flat glob vs every depth)
+# 2026-10-21T11:29:33Z
+$ ls openspec/specs/*/spec.md | wc -l
+169
+$ find openspec/specs -name spec.md | wc -l
+176
+$ find openspec/specs -mindepth 3 -name spec.md | sort   # the specs a flat glob cannot see
+openspec/specs/auto/browse/spec.md
+openspec/specs/auto/free-driving/spec.md
+openspec/specs/auto/map-pan/spec.md
+openspec/specs/auto/navigation-view/spec.md
+openspec/specs/auto/preferences/spec.md
+openspec/specs/auto/screen-observation/spec.md
+openspec/specs/share/location-receiving/spec.md

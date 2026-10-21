@@ -1328,12 +1328,38 @@ case_workflow_onlyTwoTriggers() {
   { [ "$fetch_line" -lt "$token_line" ] && [ "$token_line" -lt "$tracker_line" ]; } ||
     fail "the workflow's own token is used outside the record fetch"
 
-  # Everything that writes to the tracker — the labels, the citation repair and both row steps — waits for
-  # the record, so a scheduled run whose build has not finished writes nothing at all rather than creating
-  # labels and repairing citations for a measurement it cannot make (spec `backlog-sensors`). Which rows each
-  # step then runs is that step's own gate: `workflow#aRedRecordRunsNoRecordRow` holds the red build's half.
-  assert_eq "4" "$(grep -cF -- "if: steps.record.outputs.ready == 'true'" "$file" || true)" \
-    "the labels, the repair and both row steps are all gated on the record"
+  # Everything that writes to the tracker waits for the record, so a scheduled run whose build has not
+  # finished writes nothing at all rather than creating labels, repairing a citation or closing a duplicate
+  # for a measurement it cannot make (spec `backlog-sensors`). Which rows each step then runs is that step's
+  # own gate: `workflow#aRedRecordRunsNoRecordRow` holds the red build's half.
+  #
+  # The rule is stated over the steps that write, not over how many gates the file carries: the count was
+  # pinned at four and the scheduled hygiene step (#198) made it five, so the case failed for a step that did
+  # carry its gate — and a count is blind in the direction this invariant cares about anyway, because a step
+  # added *without* a gate leaves it unchanged.
+  out=$(awk '
+    function flush() {
+      if (name != "" && writes) printf "%s|%s\n", (gated ? "gated" : "ungated"), name
+      name = ""; gated = 0; writes = 0; running = 0; body = ""
+    }
+    /^[[:space:]]*- name:/ { flush(); name = $0; sub(/^[[:space:]]*- name:[[:space:]]*/, "", name); next }
+    name != "" {
+      if ($0 ~ /steps\.record\.outputs\.ready == .true./) gated = 1
+      if ($0 ~ /^[[:space:]]+run:/) running = 1
+      if (running) body = body " " $0
+      if (body ~ /tools\/(issues\/(labels|resolve-stale|duplicates|create|update|close)\.sh|sensors\/run\.sh)/) writes = 1
+    }
+    END { flush() }
+  ' "$file")
+  assert_empty "$(printf '%s\n' "$out" | grep '^ungated' || true)" \
+    "no step writes to the tracker before the record is ready"
+  # …and the parse may not pass vacuously: the writers the workflow has are named, so a step that stops being
+  # recognised as one fails here instead of silently narrowing the rule.
+  for step in 'Create the declared labels' 'Repair the stale citations' \
+              'Close what the tracker says about itself' 'Run the rows that measure the build' \
+              'Run the condition rows and the repository rows'; do
+    assert_contains "$out" "gated|$step" "the step '$step' writes to the tracker and is gated"
+  done
 
   # The dispatch's `apply` is a boolean input, and a boolean is not a string: `inputs.apply == 'true'` is
   # false for every value (the runner coerces the boolean to a number and the string to NaN), so a dispatch

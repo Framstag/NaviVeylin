@@ -1003,11 +1003,19 @@ claim, so a closure the tree does not back is a blocked item with its branch nam
   to the merge, and the branch with its commits is named in the run's record and in the closure's evidence
 - **Case**: `run#mergesItsCommittedBranchBeforeClosing`
 
-#### Scenario: A merge the base cannot take is refused rather than forced
+#### Scenario: A merge over a project tree that is not clean is refused, and nothing is closed
 
-- **WHEN** the merge of an item's branch cannot be taken — the project tree the base branch is checked out in is
-  not clean, or the branch does not descend from the base the run recorded
-- **THEN** the action refuses with the reason it found and the base stays where it was: it does not merge over
-  work it would attribute to itself, and it does not replay the branch onto a tree nobody reviewed, so the
-  branch's commits stay off the base and the closure that follows a merge is never reached
-- **Case**: `worktree#refusesToMergeOverADirtyProjectTree`
+- **WHEN** an item passed its review and the run is about to close it, and the project tree the base branch is
+  checked out in is not clean
+- **THEN** the merge is refused with the reason it found and the base stays where it was: it does not merge over
+  work it would attribute to itself, the item is blocked with its branch named instead of closed, and the
+  closure that follows a merge is never reached
+- **Case**: `run#doesNotCloseOnAMergeTheBaseCannotTake`
+
+#### Scenario: A branch the base does not descend from is not replayed
+
+- **WHEN** the merge of an item's branch is asked for and the branch's commits are not on top of the base the
+  run recorded
+- **THEN** the action refuses with the reason it found and the base stays where it was: it does not replay the
+  branch onto a tree nobody reviewed, so the branch's commits stay off the base
+- **Case**: `worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom`

@@ -20,6 +20,7 @@
 #   worktree.sh start-item <issue> <slug>
 #   worktree.sh end-item <issue> <slug>
 #   worktree.sh adopt-item <issue> <branch>
+#   worktree.sh branch-state <issue> <branch>
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
@@ -133,17 +134,29 @@ cmd_start_item() {
   dirty=$(gitw status --porcelain)
   [ -z "$dirty" ] || loop_refuse "the worktree is not clean — refusing to start #$issue:
 $dirty"
-  # An earlier run's branch for the same item. When every commit on it is already in the base's history it
-  # carries no work of its own — a blocked run that committed nothing leaves exactly that — so the item
-  # starts on it again. When it carries a commit the base does not have, that commit *is* the previous
-  # attempt's work and the only place the run recorded it, so starting over would throw it away: refused
-  # with the branch and its commits named, and a person decides (D4, D7, D9).
-  local branch="fix/issue-$issue-$slug" base
+  # An earlier run's branch for the same item. What the branch *carries* decides what happens to it (#232):
+  #   · nothing of its own (every commit is in the base) — the item starts on it again, because a blocked run
+  #     that committed nothing leaves exactly that;
+  #   · a blocked attempt (commits, no archived change of its own) — nothing on it states a question, and its
+  #     commits are kept by renaming the branch aside, so the item is *worked* instead of being parked forever;
+  #   · a finished attempt (an archived change of its own) — its change and evidence are the attempt's verdict
+  #     and starting over would discard them, so it is refused with the branch and its commits named: `run.sh`
+  #     adopts what is adoptable and escalates the rest (D4, D7, D9).
+  local branch="fix/issue-$issue-$slug" base state set_aside
   base=$(state_base)
   if gitw rev-parse --verify --quiet "refs/heads/$branch" >/dev/null; then
-    if gitw merge-base --is-ancestor "$branch" "$base"; then
+    state=$(branch_state_of "$issue" "$branch" "$base")
+    if [ "$state" = "landed" ] || gitw merge-base --is-ancestor "$branch" "$base"; then
       gitw switch -C "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
       printf 'item #%s on branch %s (reused — the branch carries no commit of its own)\n' "$issue" "$branch"
+    elif [ "$state" = "unfinished" ]; then
+      set_aside="loop/leftover/issue-$issue-$slug-$(date -u +%Y%m%dT%H%M%SZ)"
+      gitw branch -m "$branch" "$set_aside" >&2 ||
+        loop_die "start-item: could not set the blocked attempt's branch aside"
+      printf 'set-aside: branch %s carries a blocked attempt (no archived change of its own) — renamed to %s, its commits are kept\n' \
+        "$branch" "$set_aside"
+      gitw switch -c "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
+      printf 'item #%s on branch %s (fresh — the blocked attempt was set aside)\n' "$issue" "$branch"
     else
       loop_refuse "branch $branch already exists and carries commits the base does not — a previous attempt's work is on it:
 $(gitw log --oneline "$base".."$branch" | head -5)"
@@ -190,14 +203,23 @@ cmd_end_item() {
 # branch: one archived change the base does not have (one root cause), and a verification record inside that
 # change that is green. A branch a blocked attempt left behind carries neither, so the refusal, its escalation
 # and the person who owns the decision stay exactly where they were (issue #176).
-carried_change() { # <branch> <base> → the one archived change the branch adds, or nothing
-  local branch="$1" base="$2" dirs count
+#
+# The change must be this branch's **own** work, and that is what the commit subject decides: the run lands work
+# as `fix: <slug> (#<issue>)` (`end-item` below), so a change whose adding commit names another issue came in on
+# history the branch shares with somebody else's attempt. Counting it credits the branch with work it never did —
+# measured on #230, whose four-commit branch held #126's commit and was refused for
+# `2026-10-19-fix-i18n-gate-state-field-text`, a change that has nothing to do with the item (issue #232).
+carried_change() { # <issue> <branch> <base> → the one archived change the branch is credited with, or nothing
+  local issue="$1" branch="$2" base="$3" dirs count added
   dirs=$(gitr diff --name-only --diff-filter=A "$base".."$branch" -- openspec/changes/archive 2>/dev/null |
     awk -F/ 'NF > 3 {print $4}' | sort -u)
   count=$(printf '%s' "$dirs" | grep -c . || true)
   [ "$count" -eq 1 ] || return 0
   # A change the base archived itself is not this branch's work, and cannot make it adoptable.
   [ -z "$(gitr ls-tree --name-only "$base" -- "openspec/changes/archive/$dirs")" ] || return 0
+  added=$(gitr log --reverse --format=%H --diff-filter=A "$base".."$branch" -- "openspec/changes/archive/$dirs" | head -1)
+  [ -n "$added" ] || return 0
+  gitr log -1 --format=%s "$added" 2>/dev/null | grep -qF "(#$issue)" || return 0
   printf '%s\n' "$dirs"
 }
 
@@ -222,6 +244,54 @@ carried_verification() { # <branch> <base> <change> → the evidence it carries,
   printf '%s\n' "$files" | sed "s#^openspec/changes/archive/$change/evidence/##" | paste -sd, -
 }
 
+# The reviewer's verdict is evidence too, and it is the one fact that makes a finished-looking branch the
+# owner's: a branch whose archived change and green XML are all a later run can see was refused by the reviewer
+# that read the diff, so adopting it would close the item on a decision a person had just refused (#185).
+carried_review_refusal() { # <branch> <change> → the last round the reviewer refused, or nothing
+  gitr ls-tree -r --name-only "$1" -- "openspec/changes/archive/$2/evidence" 2>/dev/null |
+    sed -n 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' | sort -n | tail -1
+}
+
+# What a branch is, as one value, because three callers ask the same question and must not answer it
+# differently: `adopt-item` merges what finished, the pre-screen records what a person must decide, and
+# `start-item` may only set aside what carries nothing of its own (#232).
+#
+#   adoptable          one archived change of its own, a green verification, no reviewer's refusal
+#   review-refused     the same, and the reviewer refused it — the owner's (#185)
+#   archived-not-green the change is there and never verified — the owner's (#176)
+#   unfinished         commits and no archived change of its own: a blocked attempt, so work rather than a question
+#   landed             every commit is already in the base — the item is startable on that branch again
+#   absent             there is no such branch
+branch_state_of() { # <issue> <branch> <base> → the state, one word
+  local issue="$1" branch="$2" base="$3" change evidence
+  gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null || { printf 'absent\n'; return 0; }
+  if gitr merge-base --is-ancestor "$branch" "$base" 2>/dev/null; then
+    printf 'landed\n'
+    return 0
+  fi
+  change=$(carried_change "$issue" "$branch" "$base")
+  [ -n "$change" ] || { printf 'unfinished\n'; return 0; }
+  evidence=$(carried_verification "$branch" "$base" "$change")
+  [ -n "$evidence" ] || { printf 'archived-not-green\n'; return 0; }
+  [ -z "$(carried_review_refusal "$branch" "$change")" ] || { printf 'review-refused\n'; return 0; }
+  printf 'adoptable\n'
+}
+
+cmd_branch_state() { # <issue> <branch> → <state> TAB <change> TAB <evidence>
+  local issue="${1:-}" branch="${2:-}" base="" state="" change="" evidence=""
+  case "$issue" in ''|*[!0-9]*) loop_die "branch-state: usage: worktree.sh branch-state <issue> <branch>" ;; esac
+  [ -n "$branch" ] || loop_die "branch-state: usage: worktree.sh branch-state <issue> <branch>"
+  base=$(state_base)
+  state=$(branch_state_of "$issue" "$branch" "$base")
+  case "$state" in
+    adoptable|review-refused|archived-not-green)
+      change=$(carried_change "$issue" "$branch" "$base")
+      evidence=$(carried_verification "$branch" "$base" "$change")
+      ;;
+  esac
+  printf '%s\t%s\t%s\n' "$state" "$change" "$evidence"
+}
+
 # The branch of a finished attempt is merged onto the run's base and the item is closed by the run's own
 # closure path (run.sh calls this, then `labels.sh close`) — no loop path merged one before, so an item whose
 # earlier attempt finished but was never merged was permanently ineligible (issue #176). The merge is one
@@ -238,18 +308,13 @@ cmd_adopt_item() {
   base=$(state_base)
   gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
     loop_refuse "there is no branch $branch to adopt"
-  change=$(carried_change "$branch" "$base")
+  change=$(carried_change "$issue" "$branch" "$base")
   [ -n "$change" ] ||
     loop_refuse "branch $branch is not adopted — it adds no single archived change of its own"
   evidence=$(carried_verification "$branch" "$base" "$change")
   [ -n "$evidence" ] ||
     loop_refuse "branch $branch is not adopted — the change $change carries no green verification record"
-  # The reviewer's refusal is evidence too, and it is the one fact that makes a finished-looking branch the
-  # owner's: a branch whose archived change and green XML are all a later run can see was refused by the
-  # reviewer that read the diff, so adopting it would close the item on a decision a person had just refused
-  # (#185).
-  refused_round=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
-    sed -n 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' | sort -n | tail -1)
+  refused_round=$(carried_review_refusal "$branch" "$change")
   [ -z "$refused_round" ] ||
     loop_refuse "branch $branch is not adopted — the reviewer refused $change in round $refused_round (evidence/review-failed-round-$refused_round.md); apply the reviewer's corrections and merge it by hand, or delete that file deliberately if the verdict no longer applies"
   commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
@@ -349,6 +414,7 @@ case "$cmd" in
   end-item) cmd_end_item "$@" ;;
   record-review-failure) cmd_record_review_failure "$@" ;;
   adopt-item) cmd_adopt_item "$@" ;;
+  branch-state) cmd_branch_state "$@" ;;
   head) cmd_head "$@" ;;
   status) cmd_status "$@" ;;
   strip-scratch) cmd_strip_scratch "$@" ;;

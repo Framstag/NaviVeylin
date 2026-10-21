@@ -646,10 +646,11 @@ while true; do
       # "ended without recording a reason" and its numbers unattributable (#184, measured 2026-10-20).
       *"base moved"*) stop_run "the base moved: main advanced while this run was open — $(printf '%s' "$start_out" | head -1)"; break ;;
       *"carries commits the base does not"*)
-        # A previous attempt left work on the item's branch. What it carries decides: a finished change with a
-        # green verification is merged and the item closed, and only a branch without that evidence is the
+        # A previous attempt left a *finished* change on the item's branch — `start-item` has already set a
+        # blocked attempt aside, so what reaches here carries one. What it carries decides: a finished change
+        # with a green verification is merged and the item closed, and only a branch without that evidence is the
         # owner's — recorded and escalated rather than dropped, because an unrecorded refusal is how a run ends
-        # with "nothing processed" and no reason (D7, D9). The run then takes the next candidate.
+        # with "nothing processed" and no reason (D7, D9, issue #232). The run then takes the next candidate.
         if adopt_finished_attempt "$issue" "fix/issue-$issue-$slug"; then
           in_progress=""
           continue
@@ -667,6 +668,11 @@ while true; do
       *) stop_run "the item could not be started: $(printf '%s' "$start_out" | head -1)"; break ;;
     esac
   fi
+  # A blocked attempt's branch is kept under a name of its own instead of being overwritten (issue #232), and
+  # the run says so: the rename is the only record of where that attempt's commits went.
+  case "$start_out" in
+    *set-aside:*) printf '%s\n' "$start_out" ;;
+  esac
   loop_labels pick "$issue" || {
     printf 'run: could not mark #%s in progress\n' "$issue" >&2
     stop_run "the in-progress label could not be written on #$issue"

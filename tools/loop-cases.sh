@@ -36,7 +36,8 @@ LOOP_SHELL_CASES=(
   'prescreen#settledItemIsDropped'
   'prescreen#deviceItemIsAVerdictNotWork'
   'prescreen#readsTheVerdictsFromTheProfile'
-  'prescreen#previousAttemptBranchIsADecision'
+  'prescreen#aFinishedAttemptBranchIsADecision'
+  'prescreen#aBlockedAttemptBranchIsWork'
   'prescreen#itemAwaitingADecisionIsNotQueued'
   'prescreen#aHoldWithNoDecisionIsNotADecision'
   'prescreen#harnessItemsLeadTheQueue'
@@ -55,6 +56,8 @@ LOOP_SHELL_CASES=(
   'worktree#noPushWithoutTheFlag'
   'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
   'worktree#refusesABranchCarryingAPreviousAttempt'
+  'worktree#setsAsideABlockedAttemptAndStartsFresh'
+  'worktree#doesNotAdoptAChangeCreditedToAnotherIssue'
   'worktree#refusesABranchWhoseReviewFailed'
   'labels#verdictToLabelMatrix'
   'labels#holdCarriesItsReason'
@@ -88,7 +91,7 @@ LOOP_SHELL_CASES=(
 
   'run#reviewerWriteInTheProjectIsDiscarded'
   'run#leftoverBranchIsRecordedNotDropped'
-  'run#branchThatAppearsWhileTheRunIsOpenIsRecorded'
+  'run#branchThatAppearsWhileTheRunIsOpenIsSetAside'
   'run#mergesAFinishedAttemptAndClosesTheItem'
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
   'run#recordsAFailedReviewOnTheBranch'
@@ -177,7 +180,8 @@ loop_run_shell_case() {
     'prescreen#settledItemIsDropped') fn=case_prescreen_settledItemIsDropped ;;
     'prescreen#deviceItemIsAVerdictNotWork') fn=case_prescreen_deviceItemIsAVerdictNotWork ;;
     'prescreen#readsTheVerdictsFromTheProfile') fn=case_prescreen_readsTheVerdictsFromTheProfile ;;
-    'prescreen#previousAttemptBranchIsADecision') fn=case_prescreen_previousAttemptBranchIsADecision ;;
+    'prescreen#aFinishedAttemptBranchIsADecision') fn=case_prescreen_aFinishedAttemptBranchIsADecision ;;
+    'prescreen#aBlockedAttemptBranchIsWork') fn=case_prescreen_aBlockedAttemptBranchIsWork ;;
     'prescreen#itemAwaitingADecisionIsNotQueued') fn=case_prescreen_itemAwaitingADecisionIsNotQueued ;;
     'prescreen#aHoldWithNoDecisionIsNotADecision') fn=case_prescreen_aHoldWithNoDecisionIsNotADecision ;;
     'prescreen#harnessItemsLeadTheQueue') fn=case_prescreen_harnessItemsLeadTheQueue ;;
@@ -196,6 +200,8 @@ loop_run_shell_case() {
     'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
     'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
+    'worktree#setsAsideABlockedAttemptAndStartsFresh') fn=case_worktree_setsAsideABlockedAttemptAndStartsFresh ;;
+    'worktree#doesNotAdoptAChangeCreditedToAnotherIssue') fn=case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue ;;
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
     'labels#holdCarriesItsReason') fn=case_labels_holdCarriesItsReason ;;
@@ -228,7 +234,7 @@ loop_run_shell_case() {
     'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
     'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
-    'run#branchThatAppearsWhileTheRunIsOpenIsRecorded') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded ;;
+    'run#branchThatAppearsWhileTheRunIsOpenIsSetAside') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside ;;
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
@@ -911,17 +917,24 @@ case_prescreen_readsTheVerdictsFromTheProfile() {
 
 # Whether an item was already attempted is held by git, not by the tracker, so the pre-screen asks git the
 # same question `worktree.sh start-item` asks — asked on the branch *prefix*, because the slug is not known
-# before the title is read (issue #175). The decision is then recorded where a person reads it, before any
-# item is picked and before a budget slot is spent on it; the start's own check stays the authoritative one.
-case_prescreen_previousAttemptBranchIsADecision() {
-  local p out base
+# before the title is read (issue #175). A branch that carries a **finished** attempt — one archived change of
+# its own plus a green verification record — is the owner's decision: the run may adopt it, and redoing it
+# would throw a reviewed change away. The decision is recorded where a person reads it, before any item is
+# picked and before a budget slot is spent on it; the start's own check stays the authoritative one.
+case_prescreen_aFinishedAttemptBranchIsADecision() {
+  local p out base branch
   p=$(new_project)
   init_state "$p" 3 90
   base=$(git -C "$p" rev-parse HEAD)
-  git -C "$p" checkout -q -b fix/issue-21-a-previous-attempt "$base"
+  branch="fix/issue-21-a-finished-attempt"
+  git -C "$p" checkout -q -b "$branch" "$base"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-attempted/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-attempted/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-attempted/evidence/TEST-attempted.xml"
   printf 'the previous attempt\n' > "$p/attempt.txt"
   git -C "$p" add -A >/dev/null 2>&1
-  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt" >/dev/null 2>&1 ||
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt (#21)" >/dev/null 2>&1 ||
     fail "could not commit the previous attempt"
   git -C "$p" checkout -q main
   # …and one whose branch carries nothing of its own: the verdict is about the commits, not about the name
@@ -930,10 +943,10 @@ case_prescreen_previousAttemptBranchIsADecision() {
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
   out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
   assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .verdict')" \
-    "a branch that carries a previous attempt is a decision, not a candidate"
+    "a branch that carries a finished attempt is a decision, not a candidate"
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .reason')" \
-    "fix/issue-21-a-previous-attempt" "the verdict names the branch that carries the work"
-  assert_eq "fix/issue-21-a-previous-attempt" \
+    "$branch" "the verdict names the branch that carries the work"
+  assert_eq "$branch" \
     "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .evidence')" \
     "the branch is the verdict's own clause of evidence"
   assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 22) | .verdict')" \
@@ -941,9 +954,51 @@ case_prescreen_previousAttemptBranchIsADecision() {
   assert_eq "3" "$(jq -r '.queue | length' "$(state_file "$p")")" "the decision is not queued as work"
   assert_eq "needs-decision" "$(jq -r '.excluded[] | select(.issue == 21) | .verdict' "$(state_file "$p")")" \
     "the decision is recorded in the run's exclusion list"
-  assert_eq "fix/issue-21-a-previous-attempt" \
+  assert_eq "$branch" \
     "$(jq -r '.excluded[] | select(.issue == 21) | .evidence' "$(state_file "$p")")" \
     "with the branch carried beside it"
+}
+
+# A branch that carries commits but no archived change of *its own* is a blocked attempt, not a finished one:
+# nothing on it states a question a person could answer, and the work it holds is not thrown away by starting
+# over because the run renames the branch aside (`start-item`). The pre-screen therefore queues the item.
+# #230 is the measured shape (issue #232): its branch carried four commits, nothing in `openspec/changes/archive`
+# of its own — and the one archived change its history did add came in on an unrelated item's commit, which made
+# the adoption refusal name a change with no relation to the item.
+case_prescreen_aBlockedAttemptBranchIsWork() {
+  local p out base branch state
+  p=$(new_project)
+  init_state "$p" 3 90
+  base=$(git -C "$p" rev-parse HEAD)
+  branch="fix/issue-23-a-blocked-attempt"
+  git -C "$p" checkout -q -b "$branch" "$base"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-foreign/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-foreign/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-foreign/evidence/TEST-foreign.xml"
+  printf 'another item\n' > "$p/foreign.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: another item's change (#99)" >/dev/null 2>&1 ||
+    fail "could not commit the foreign change"
+  printf 'the blocked attempt\n' > "$p/attempt.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the blocked attempt (#23)" >/dev/null 2>&1 ||
+    fail "could not commit the blocked attempt"
+  git -C "$p" checkout -q main
+
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  state=$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .verdict')
+  assert_eq "eligible" "$state" \
+    "a branch carrying no archived change of its own is work, not a decision"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .reason')" \
+    "$branch" "and the record names the branch the run sets aside"
+  assert_eq "$branch" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .evidence')" \
+    "with the branch as the record's evidence"
+  assert_eq "0" "$(jq -r '[.excluded[] | select(.issue == 23)] | length' "$(state_file "$p")")" \
+    "so it is not recorded as awaiting a decision"
+  assert_eq "23" "$(jq -r '.queue[] | select(.issue == 23) | .issue' "$(state_file "$p")")" \
+    "it is queued as work instead"
 }
 
 # An item the loop itself escalated is its owner's until a person decides: the run writes
@@ -1020,9 +1075,16 @@ case_prescreen_escalatedItemKeepsItsBranchAsEvidence() {
   base=$(git -C "$p" rev-parse HEAD)
   branch="fix/issue-41-an-escalated-item"
   git -C "$p" checkout -q -b "$branch" "$base"
+  # an escalated item whose branch carries a *finished* attempt: one archived change of its own plus a green
+  # verification, so the branch is what the adoption path would read (#176). A blocked attempt's branch is not
+  # a decision at all and is set aside by `start-item` instead (#232).
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-escalated/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-escalated/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-escalated/evidence/TEST-escalated.xml"
   printf 'the earlier attempt\n' > "$p/attempt.txt"
   git -C "$p" add -A >/dev/null 2>&1
-  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the earlier attempt" >/dev/null 2>&1 ||
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the earlier attempt (#41)" >/dev/null 2>&1 ||
     fail "could not commit the earlier attempt"
   git -C "$p" checkout -q main
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
@@ -1228,24 +1290,86 @@ case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn() {
   assert_eq "$base" "$(git -C "$w" rev-parse HEAD)" "the item starts exactly at the new base"
 }
 
+# A branch that carries an archived change of its own is the one `start-item` must not overwrite: the change
+# and whatever evidence it holds are an attempt's verdict, and only a finished change may be adopted — a blocked
+# one (no green verification, or a reviewer's refusal in the change) is the owner's decision.
 case_worktree_refusesABranchCarryingAPreviousAttempt() {
   local p w out status
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
   run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
   run_worktree "$p" start-item 21 demo >/dev/null || fail "the first item did not start"
-  # the previous attempt committed before it was blocked: that commit is the run's only record of the
-  # work, so starting over would throw it away and the item is refused instead
+  # the previous attempt archived its change and never verified it: that commit is the attempt's only record,
+  # so starting over would throw the change away and the item is refused instead
+  mkdir -p "$w/openspec/changes/archive/2026-01-01-fix-attempted"
+  printf 'archived\n' > "$w/openspec/changes/archive/2026-01-01-fix-attempted/proposal.md"
   printf 'the previous attempt\n' > "$w/attempt.txt"
   git -C "$w" add -A >/dev/null 2>&1
-  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt" >/dev/null 2>&1 ||
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt (#21)" >/dev/null 2>&1 ||
     fail "could not commit the previous attempt"
   out=$(run_worktree "$p" start-item 21 demo 2>&1); status=$?
-  assert_eq "5" "$status" "a branch that carries work refuses the item"
+  assert_eq "5" "$status" "a branch that carries an archived change refuses the item"
   assert_contains "$out" "carries commits the base does not" "the refusal says why"
   assert_contains "$out" "the previous attempt" "and names the commit it would throw away"
   assert_eq "$(git -C "$w" rev-parse fix/issue-21-demo)" "$(git -C "$p" rev-parse fix/issue-21-demo)" \
     "the branch is left where it was"
+}
+
+# A branch that carries commits and no archived change of its own is a *blocked* attempt: starting over throws
+# nothing away, because the branch is renamed aside rather than deleted — so the item is worked instead of being
+# parked on a decision nobody stated (#232). #230 was parked this way from 2026-10-21 and its fix stayed on the
+# branch while `main` kept the defect.
+case_worktree_setsAsideABlockedAttemptAndStartsFresh() {
+  local p w out status attempt left_branch base
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the first item did not start"
+  printf 'the blocked attempt\n' > "$w/attempt.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the blocked attempt (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the blocked attempt"
+  attempt=$(git -C "$w" rev-parse HEAD)
+  base=$(run_state "$p" get run.base)
+
+  out=$(run_worktree "$p" start-item 21 demo 2>&1); status=$?
+  assert_eq "0" "$status" "a blocked attempt's branch does not park the item: $out"
+  assert_contains "$out" "set-aside:" "the run says what it did with the branch"
+  assert_eq "$base" "$(git -C "$w" rev-parse HEAD)" "the item starts at the run's base instead"
+  left_branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/loop/leftover/issue-21-*')
+  [ -n "$left_branch" ] || fail "the blocked attempt's branch was not kept: $(git -C "$p" branch --list 'fix/issue-21-*')"
+  assert_eq "$attempt" "$(git -C "$p" rev-parse "$left_branch")" \
+    "the commits are kept under the name the run gives them"
+  assert_eq "$base" "$(git -C "$p" rev-parse fix/issue-21-demo)" \
+    "and the item's own branch was recreated from the base"
+}
+
+# `carried_change` asks which archived change the branch is *credited* with. A stale branch inherits the files
+# another item's commits added, so counting every archive directory the base does not have credits the branch
+# with work it never did — and the refusal then names a change that belongs to another issue. Measured on #230:
+# its branch held #126's commit, and the adoption refusal named 2026-10-19-fix-i18n-gate-state-field-text
+# (issue #232).
+case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue() {
+  local p out status branch
+  p=$(new_project)
+  init_state "$p" 1 90
+  branch="fix/issue-23-a-blocked-attempt"
+  git -C "$p" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the blocked attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-foreign/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-foreign/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-foreign/evidence/TEST-foreign.xml"
+  printf 'another item\n' > "$p/foreign.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: another item's change (#99)" >/dev/null 2>&1 ||
+    fail "could not commit the foreign change"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
+
+  out=$(run_worktree "$p" adopt-item 23 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a change credited to another issue does not make the branch adoptable"
+  assert_contains "$out" "adds no single archived change of its own" "the refusal names what the branch lacks"
+  assert_not_contains "$out" "fix-foreign" "and it names no change the branch did not add"
+  [ ! -f "$p/foreign.txt" ] || fail "another item's change was merged onto the base"
 }
 
 case_worktree_refusesWhenMainAdvanced() {
@@ -1356,7 +1480,7 @@ case_worktree_refusesABranchWhoseReviewFailed() {
     > "$p/openspec/changes/archive/2026-01-01-fix-refused/evidence/TEST-refused.xml"
   printf 'the refused change\n' > "$p/refused-fix.txt"
   git -C "$p" add -A >/dev/null 2>&1
-  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the refused change" >/dev/null 2>&1 ||
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the refused change (#21)" >/dev/null 2>&1 ||
     fail "could not commit the refused change"
   git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
 
@@ -2121,10 +2245,10 @@ ACTION
 }
 
 # The pre-screen cannot see a branch that did not exist when it ran, so the start's own check stays the
-# authoritative one: a branch that appears while the run is open is still refused, recorded and escalated
-# rather than dropped, and the run takes the next candidate. An item this run has already recorded is not
-# escalated a second time when the queue empties and the pre-screen runs again.
-case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded() {
+# authoritative one — and what that check does with the branch is decided by what the branch carries: a blocked
+# attempt (commits, no archived change of its own) is renamed aside and the item worked, so an attempt that
+# appears while the run is open cannot park the item on a decision nobody stated (#232).
+case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside() {
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -2134,22 +2258,24 @@ case_run_branchThatAppearsWhileTheRunIsOpenIsRecorded() {
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in worker*)
        current=$(git rev-parse --abbrev-ref HEAD)
-       next=fix/issue-22-${current#fix/issue-21-}
-       attempt=$(git -c user.name=selftest -c user.email=selftest@example.invalid commit-tree HEAD^{tree} -p HEAD -m "fix: the previous attempt")
-       git branch "$next" "$attempt"
+       case "$current" in
+         fix/issue-21-*)
+           next=fix/issue-22-${current#fix/issue-21-}
+           attempt=$(git -c user.name=selftest -c user.email=selftest@example.invalid commit-tree HEAD^{tree} -p HEAD -m "fix: the previous attempt (#22)")
+           git branch "$next" "$attempt"
+           ;;
+       esac
        ;; esac'
   run_loop "$p" --items 2 --minutes 90 >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "2" "$(jq -r '.items | length' "$(state_file "$p")")" "both items were recorded"
-  assert_eq "blocked" "$(jq -r '.items[] | select(.issue == 22) | .result' "$(state_file "$p")")" \
-    "the item whose branch appeared while the run was open is blocked"
-  assert_contains "$(jq -r '.items[] | select(.issue == 22) | .note' "$(state_file "$p")")" \
-    "carries commits the base does not" "the reason names the branch's work"
+  assert_eq "done" "$(jq -r '.items[] | select(.issue == 22) | .result' "$(state_file "$p")")" \
+    "the item whose blocked attempt appeared while the run was open is worked, not parked"
+  assert_eq "1" "$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/loop/leftover/issue-22-*' | wc -l | tr -d ' ')" \
+    "and the blocked attempt's branch is kept under the name the run gives it"
   log=$(cat "$GH_STUB_RECORD")
-  assert_contains "$log" "agent/needs-decision" "the previous attempt's work is escalated, not thrown away"
-  assert_contains "$log" "fix/issue-22-" "and the comment names the branch"
-  assert_eq "0" "$(grep -c 'issue close 22' "$GH_STUB_RECORD" || true)" "the refused item is not closed"
-  assert_eq "1" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
-    "it is escalated once, not again when the pre-screen runs a second time"
+  assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "no decision is stated for a branch that carries no archived change of its own"
+  assert_contains "$log" "issue close 22" "the item is closed on its own work"
 }
 
 # An item whose earlier attempt *finished* — its branch carries one archived change the base does not have
@@ -2193,7 +2319,7 @@ case_run_mergesAFinishedAttemptAndClosesTheItem() {
     > "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted.xml"
   printf 'the previous attempt\n' > "$p/adopted-fix.txt"
   git -C "$p" add -A >/dev/null 2>&1
-  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt" >/dev/null 2>&1 ||
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt (#21)" >/dev/null 2>&1 ||
     fail "could not commit the previous attempt"
   git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
   base=$(git -C "$p" rev-parse main)
@@ -2235,7 +2361,7 @@ case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
     > "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted-red-on-HEAD.xml"
   printf 'the previous attempt\n' > "$p/adopted-fix.txt"
   git -C "$p" add -A >/dev/null 2>&1
-  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt" >/dev/null 2>&1 ||
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt (#21)" >/dev/null 2>&1 ||
     fail "could not commit the previous attempt"
   git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
   base=$(git -C "$p" rev-parse main)

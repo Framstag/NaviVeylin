@@ -62,7 +62,11 @@ Five facts shape verification in a worktree:
   item instead of being committed.
 - The worktree stays after the run **by design** (it is the next run's warm checkout), and the branches stay
   until the run's commits are merged. Delete a branch then, not before: the run's report names the branches
-  it created.
+  it created. A branch a *blocked* attempt left behind — commits and no archived change of its own — is not an
+  item's branch any more once an item starts: `start-item` renames it to
+  `loop/leftover/issue-<N>-<slug>-<utc>` and works the item on a fresh `fix/issue-<N>-<slug>`, because nothing on
+  such a branch states a question a person could answer (issue #232). The prefix belongs to no item, so no
+  later run reads it as an attempt; the commits stay reachable under it until a person removes them.
 
 ## What a kept worktree keeps, and what the loop leaves on disk
 

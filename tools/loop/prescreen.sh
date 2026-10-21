@@ -226,6 +226,13 @@ while [ "$i" -lt "$count" ]; do
   # asked before the citation sensor, because it names a decision for a person rather than a repair. The
   # verdict is a value of the profile's vocabulary, read here as the device verdict is (D16).
   #
+  # What the branch *carries* decides the verdict (#232). A finished attempt — one archived change of its own
+  # plus a green verification, or the reviewer's refusal of exactly that change — is a question for its owner
+  # (#176, #185). A **blocked** attempt carries commits and no archived change of its own: nothing on it states
+  # a question a person could answer, and `start-item` keeps its commits by renaming the branch aside, so the
+  # item is queued as work. Before this, any commit parked the item forever — measured on #230, whose branch
+  # held an unmerged fix and whose refusal named an unrelated change (issue #232).
+  #
   # It is asked before the awaiting-decision clause as well, and that ordering is load-bearing: an item the run
   # escalated *and* whose branch carries a finished attempt is the one #176 exists to adopt, and the branch is
   # the evidence `adopt_finished_exclusions` reads. An escalated item whose branch is unadoptable records the
@@ -233,12 +240,23 @@ while [ "$i" -lt "$count" ]; do
   if [ "$verdict" = "$queued_verdict" ]; then
     attempt_branch=$(previous_attempt_branch_of "$number")
     if [ -n "$attempt_branch" ]; then
-      verdict="$decision_verdict"
-      reason="branch $attempt_branch carries a commit the run's base does not — a previous attempt's work is on it"
-      evidence="$attempt_branch"
-      # The label still suppresses a second escalation comment: the branch is the new *evidence*, not a new
-      # decision, and the item was already escalated when the label was written.
-      [ "$awaiting_label" -eq 1 ] && already_escalated=1
+      # A branch this run cannot classify is treated as the owner's, never as work: the failure mode of a
+      # misread is a discarded attempt, and that is the one thing the branch rule exists to prevent.
+      attempt_state=$(bash "$LOOP_DIR/worktree.sh" branch-state "$number" "$attempt_branch" 2>/dev/null | cut -f1)
+      case "$attempt_state" in
+        unfinished)
+          reason="branch $attempt_branch carries a blocked attempt — no archived change of its own, so the run sets the branch aside at the start and works the item"
+          evidence="$attempt_branch"
+          ;;
+        *)
+          verdict="$decision_verdict"
+          reason="branch $attempt_branch carries a commit the run's base does not — a previous attempt's work is on it"
+          evidence="$attempt_branch"
+          # The label still suppresses a second escalation comment: the branch is the new *evidence*, not a new
+          # decision, and the item was already escalated when the label was written.
+          [ "$awaiting_label" -eq 1 ] && already_escalated=1
+          ;;
+      esac
     fi
   fi
 

@@ -6,8 +6,7 @@
 
 Every section reference a guideline body makes to another guideline document SHALL resolve against that
 guideline, the way a reference in the routing table does: a reference that does not resolve SHALL be reported
-as a defect, and a bare number its document uses twice SHALL be reported as ambiguous. A reference naming a
-document that is not a guideline — a spec path, the retired backlog — is prose and is not resolved. The check
+as a defect, and a bare number its document uses twice SHALL be reported as ambiguous. The check
 SHALL need no build, no test run, no device and no network access.
 
 #### Scenario: A bare number a guideline body writes is ambiguous

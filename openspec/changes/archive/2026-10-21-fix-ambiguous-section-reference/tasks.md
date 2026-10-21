@@ -69,7 +69,9 @@ exists here: the structural check that stands in is `bash tools/check-doc-routes
 ## 5. Archive
 
 - [x] 5.1 Verify the change against `openspec/specs/documentation-ownership/spec.md`, archive it, and confirm
-      the delta merged into the capability spec — including the round-2 narrowing, which is applied to the
-      delta and the merged spec alike. Verify: the requirement is in
+      the delta merged into the capability spec — including the round-3 correction, which deletes the exclusion
+      sentence from the requirement and the matching over-claim from `design.md` and `proposal.md`, applied to
+      the delta and the merged spec alike. Verify: the requirement is in
       `openspec/specs/documentation-ownership/spec.md` and `openspec validate --specs` reports
-      `176 passed, 0 failed`; the archived delta is textually identical to the merged requirement.
+      `176 passed, 0 failed`; the archived delta is textually identical to the merged requirement;
+      `evidence/green/round3-correction.txt`.

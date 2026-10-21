@@ -27,8 +27,9 @@ in. The one reference the widened check then flags is repaired to carry its head
 - the resolve step prints `file=%s` from that fourth field instead of the literal `AGENTS.md`.
 
 The requirement the change lands is scoped to the documents the check can name: its `$named` alternation is
-built from `guidelines/*.md`, so a body reference to a spec path or the retired `TODO.md` stays prose and is
-not resolved (measured: 36 of the 66 `<File>.md §N` references in guideline bodies name `TODO.md`).
+built from `guidelines/*.md`, so a reference is resolved only against a guideline document named before it
+on the same line (measured: 30 of the 66 `<File>.md §N` references in guideline bodies name a guideline, all
+30 resolve; the other 36 name `TODO.md`, on 36 lines that name no guideline, so none is counted).
 
 `guidelines/Design.md:503`: `§14` → `§14 "Android Auto renderer"`, the form `AGENTS.md:28` already uses.
 
@@ -73,9 +74,7 @@ Four files, two mechanisms:
 
 Not touched: any Kotlin, Java, C++ or JNI source, any manifest, resource, Gradle or CMake file, any
 archived change, any open change artifact, and `AGENTS.md` (its `§14 "Android Auto renderer"` row already
-resolved and still does). The rule that a *document* name exists stays the routing table's: a guideline body
-naming a `.md` that is not a guideline (`TODO.md`, a spec path) is prose and is not resolved, which is also
-what keeps this change from failing on the retired backlog's citations. `tools/check-portability.sh` reads the same configuration as before; the check
+resolved and still does). The rule that a *document* name exists stays the routing table's. `tools/check-portability.sh` reads the same configuration as before; the check
 still derives its documents from `guidelines/*.md` and names no project value, so it stays portable.
 
 Runtime: the check opens no file it did not already open — every `guidelines/*.md` was read for its `## `

@@ -63,9 +63,10 @@ requirement "A section reference a guideline body writes is resolved", which is 
 shipped requirement "A route resolves to a section that exists" — that one is scoped to a *route*, and the
 defect lives in a reference that is not a route. The requirement is scoped to a reference a body makes to
 another **guideline**, because that is what the check implements: its document alternation is built from
-`guidelines/*.md`, so a reference naming a spec path or the retired `TODO.md` is prose and is not resolved —
-measured today, 30 of the 66 `<File>.md §N` references in `guidelines/*.md` bodies name a guideline (all 30
-resolve) and the other 36 name `TODO.md`, which no longer exists. The guideline section that owns the check's
+`guidelines/*.md`, so a reference is resolved only against a guideline document named before it on the same
+line — measured today, 30 of the 66 `<File>.md §N` references in `guidelines/*.md` bodies name a guideline
+(all 30 resolve) and the other 36 name `TODO.md`, on 36 lines that name no guideline, so none is counted.
+The guideline section that owns the check's
 own description is `guidelines/Backlog.md` §14 "Keeping this document honest", whose bullet "The routing
 table must name this document" named only the unrouted rule; a sibling bullet now states the body-reference
 rule.

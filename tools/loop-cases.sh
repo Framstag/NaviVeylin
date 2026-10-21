@@ -2211,6 +2211,12 @@ case_run_everyPhaseBoundaryIsPrinted() {
   assert_line_count "$out" '^loop: pre-screen · [0-9]+(m[0-9]{2})?s · ' 2 "the pre-screen is announced and reported"
   assert_line_count "$out" '^loop: worktree · [0-9]+(m[0-9]{2})?s · ' 1 "the worktree coming ready"
   assert_line_count "$out" '^loop: item · [0-9]+(m[0-9]{2})?s · ' 1 "the item being picked"
+  # The item's line is the live view the item was filed for, so its second half is asserted as well: the phase and
+  # the elapsed field alone stay green if the report path is dropped from `run.sh:728`, and the one artifact an
+  # operator is told to tail while the item is worked stops being named (issue #191, review round 2, mutation
+  # 34.5).
+  assert_matches "$out" '^loop: item · [0-9]+(m[0-9]{2})?s · picked #[0-9]+ — its report is written to .*/worker-report\.md$' \
+    "the item's line names the report a person can read while the item is worked"
   assert_line_count "$out" '^loop: gate · [0-9]+(m[0-9]{2})?s · ' 1 "the gate's evidence being read"
   assert_line_count "$out" '^loop: commit · [0-9]+(m[0-9]{2})?s · ' 1 "the item's work being committed"
   sf=$(state_file "$p")

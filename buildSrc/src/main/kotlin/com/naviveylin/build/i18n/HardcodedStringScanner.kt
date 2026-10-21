@@ -35,6 +35,14 @@ data class HardcodedStringFinding(
  *    description)` was matched by no pattern, although the name and description
  *    are user-visible text (Android shows them in Settings and re-applies them on
  *    every `createNotificationChannel`).
+ * 4. **A rendered state field is assigned, not called.** The positions above are call names, so
+ *    `error = "Could not open map database"`, `snackbarMessage = "…"`, `statusText = "Starting"`
+ *    and a report call's message were display text the scan never examined (`TODO.md` §192) —
+ *    see `DISPLAY_FIELD`.
+ *
+ * The scan stays line-based: a position and its literal must share a line, so `Text(\n "…")` and
+ * a multi-line `reportError(\n "…", …)` remain invisible. Widening that means paren-balanced
+ * scanning across lines for every position, a change of its own.
  *
  * The remaining exemptions are the ones the replaced tasks carried on purpose —
  * `%`-format templates, pure-symbol separators, and a single camelCase identifier
@@ -47,10 +55,24 @@ data class HardcodedStringFinding(
  */
 object HardcodedStringScanner {
 
-    /** Text positions whose next literal is display text. */
+    /**
+     * The display words a *field or parameter name* ends in — the text a surface renders.
+     *
+     * A sink can be named rather than called: `error = "Could not open map database"` (the
+     * `MapCanvasViewModel` state), `snackbarMessage = "…"`, `poiSearchError = "…"` are rendered
+     * by a surface and matched no call-shaped position at all (TODO.md §192). `detail` is
+     * deliberately absent: it is the diagnostics log's payload field, and logcat-only wording is
+     * exempt (spec: i18n-l10n).
+     */
+    private val DISPLAY_NAME = "(?:text|title|label|description|hint|placeholder|message|error)"
+
+    /** A rendered field's assignment, whatever qualifier its name carries. */
+    private val DISPLAY_FIELD = Regex("(?i)$DISPLAY_NAME\\s*=")
+
+    /** Call positions whose next literal is display text. */
     private val TEXT_POSITION = Regex(
-        """(?:Text\(|text\s*=|label\s*=|title\s*=|contentDescription\s*=|placeholder\s*=|hint\s*=|""" +
-            """\.setTitle\(|\.addText\(|\.setText\(|\.setContentTitle\(|\.setContentText\(|description\s*=)"""
+        """(?:Text\(|\.setTitle\(|\.addText\(|\.setText\(|\.setContentTitle\(|""" +
+            """\.setContentText\(|reportError\()"""
     )
 
     /** `NotificationChannel(` — its name/description arguments are display text. */
@@ -92,12 +114,22 @@ object HardcodedStringScanner {
     /** The offending literals of one source line: literal to reason. */
     private fun lineFindings(line: String): List<Pair<String, String>> {
         val found = mutableListOf<Pair<String, String>>()
+        val spans = literalSpans(line)
+        fun startsInALiteral(index: Int) = spans.any { index in it }
         for (position in TEXT_POSITION.findAll(line)) {
+            if (startsInALiteral(position.range.first)) continue
+            val literal = literalAfter(line, position.range.last + 1) ?: continue
+            if (isExempt(literal)) continue
+            found += literal to reasonFor(literal)
+        }
+        for (position in DISPLAY_FIELD.findAll(line)) {
+            if (startsInALiteral(position.range.first)) continue
             val literal = literalAfter(line, position.range.last + 1) ?: continue
             if (isExempt(literal)) continue
             found += literal to reasonFor(literal)
         }
         for (position in CHANNEL_POSITION.findAll(line)) {
+            if (startsInALiteral(position.range.first)) continue
             val arguments = line.substring(position.range.last + 1)
             for (argument in topLevelArguments(arguments).drop(1)) {
                 val literal = firstLiteral(argument) ?: continue
@@ -114,6 +146,33 @@ object HardcodedStringScanner {
         rest = rest.trimStart()
         CONDITIONAL.find(rest)?.let { rest = rest.substring(it.range.last + 1).trimStart() }
         return LITERAL.find(rest)?.groupValues?.get(1)
+    }
+
+    /**
+     * The character ranges [line] spends inside a string literal. A text position cannot *begin*
+     * inside one: `" labelHint=" + (if (…) "present" else "none")` is a diagnostics message, and the
+     * `Hint=` inside it is no assignment — matching it reported a fragment of prose as a literal.
+     */
+    private fun literalSpans(line: String): List<IntRange> {
+        val spans = mutableListOf<IntRange>()
+        var open = -1
+        var i = 0
+        while (i < line.length) {
+            when (line[i]) {
+                '\\' -> i++
+                '"' -> {
+                    if (open < 0) {
+                        open = i
+                    } else {
+                        spans += open..i
+                        open = -1
+                    }
+                }
+            }
+            i++
+        }
+        if (open >= 0) spans += open until line.length
+        return spans
     }
 
     /**

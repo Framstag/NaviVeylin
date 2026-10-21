@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeMapDownloadManager
 import com.framstag.libosmscout.client.MapProvider
+import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.mapsource.DatabaseMetadataParser
 import com.naviveylin.core.mapsource.MapSourceKind
@@ -134,7 +135,8 @@ class MapManagerDeleteRepositoryMapTest {
         )
         assertEquals(
             "the refusal stands, so the map manager shows the failure banner",
-            "Failed to delete map: $name",
+            ApplicationProvider.getApplicationContext<Application>()
+                .getString(R.string.map_delete_failed, name),
             viewModel.uiState.value.error
         )
     }

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.i18n.HardcodedStringScannerTest" tests="20" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.163Z" hostname="dingens" time="0.04">
+  <properties/>
+  <testcase name="logPayloadFieldIsNotFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.016"/>
+  <testcase name="proseAndLogsAreNotFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="stateFieldIsFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.002"/>
+  <testcase name="reportCallMessageIsFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="camelCaseIdentifierIsExempt" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="interpolatedDisplayTextIsFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.001"/>
+  <testcase name="notificationChannelNameAndDescriptionAreFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="hardcodedTemplateTitleIsFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.001"/>
+  <testcase name="templateCarryingAWordIsFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="everyTextPositionIsCovered" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.009"/>
+  <testcase name="symbolSeparatorsAreExempt" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="aPositionInsideALiteralIsNotAnAssignment" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="lineNumberIsReported" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="reportNamesFileLineAndLiteral" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.006"/>
+  <testcase name="conditionalAssignmentIsFlaggedOnce" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="formatTemplatesAreExempt" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.001"/>
+  <testcase name="prefixedStateFieldIsFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.001"/>
+  <testcase name="pureTemplateIsExempt" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="channelDescriptionAssignmentIsFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <testcase name="resourcesAndComputedTextAreNotFlagged" classname="com.naviveylin.build.i18n.HardcodedStringScannerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -47,6 +47,7 @@
     <string name="version">Version</string>
     <string name="map_data">Kartendaten</string>
     <string name="osm_licence_statement">© OpenStreetMap-Mitwirkende, verfügbar unter der Open Database License (ODbL).</string>
+    <string name="osm_attribution">© OpenStreetMap-Mitwirkende</string>
     <string name="osm_licence_link" translatable="false">openstreetmap.org/copyright</string>
     <string name="whats_here">Was ist hier?</string>
     <string name="no_results_found">Keine Ergebnisse gefunden</string>
@@ -103,5 +104,7 @@
     <!-- Ein geteilter Kartenlink ohne Koordinate und ohne Ortsnamen: die Session meldet ihn,
          statt den Linktext zu geocodieren (spec: auto-deep-links). -->
     <string name="deep_link_unreadable">Geteilter Link konnte nicht gelesen werden</string>
+    <string name="deep_link_no_match">Kein passender Ort für „%1$s" gefunden</string>
+    <string name="poi_search_failed">POI-Suche fehlgeschlagen: %1$s</string>
     <string name="car_failure_maps_on_phone">Prüfen Sie Ihre Karten auf dem Telefon.</string>
 </resources>

@@ -2449,7 +2449,7 @@ class MapCanvasViewModel @Inject constructor(
                 mapReady.value = true
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Could not open map database"
+                    error = context.getString(R.string.map_open_failed)
                 )
                 return@launch
             }
@@ -2920,7 +2920,10 @@ class MapCanvasViewModel @Inject constructor(
                         poiSearchError = null
                     )
                 } else {
-                    _uiState.value.copy(isPoiSearching = false, poiSearchError = "POI search failed")
+                    _uiState.value.copy(
+                        isPoiSearching = false,
+                        poiSearchError = context.getString(R.string.poi_search_failed)
+                    )
                 }
             }
         }
@@ -3560,13 +3563,17 @@ class MapCanvasViewModel @Inject constructor(
             // silently add the favorite to the existing group.
             if (isNewGroup && groupName in favoriteRepository.getGroupNames()) {
                 _uiState.value = _uiState.value.copy(
-                    snackbarMessage = "Group \"$groupName\" already exists"
+                    snackbarMessage = context.getString(R.string.group_already_exists, groupName)
                 )
                 return@launch
             }
             val success = favoriteRepository.addFavorite(groupName, favName, loc.lat, loc.lon)
             _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (success) "Added to $groupName" else "Failed to add favorite"
+                snackbarMessage = if (success) {
+                    context.getString(R.string.favorite_added_to_group, groupName)
+                } else {
+                    context.getString(R.string.favorite_add_failed)
+                }
             )
         }
     }
@@ -3578,7 +3585,11 @@ class MapCanvasViewModel @Inject constructor(
         viewModelScope.launch {
             val success = favoriteRepository.deleteFavorite(existing.first, existing.second.name)
             _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (success) "Removed from favorites" else "Failed to remove"
+                snackbarMessage = if (success) {
+                    context.getString(R.string.favorite_removed)
+                } else {
+                    context.getString(R.string.favorite_remove_failed)
+                }
             )
         }
     }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.testing.CoverageInstrumentationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.387Z" hostname="dingens" time="0.001">
+  <properties/>
+  <testcase name="theAgentStaysAttachedByDefault" classname="com.naviveylin.build.testing.CoverageInstrumentationTest" time="0.001"/>
+  <testcase name="anUnreadableValueIsRefusedWithActionableText" classname="com.naviveylin.build.testing.CoverageInstrumentationTest" time="0.0"/>
+  <testcase name="theOptOutDetachesTheAgent" classname="com.naviveylin.build.testing.CoverageInstrumentationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

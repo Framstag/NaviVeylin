@@ -1189,10 +1189,20 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   message in `buildSrc` (`com.naviveylin.build.i18n.HardcodedStringScanner`,
   unit-tested) — fails the build on a literal in a UI text position. The scan
   covers, in every module:
-  - a text position (`Text(`, `text =`, `title =`, `label =`,
-    `contentDescription =`, `placeholder =`, `hint =`, `description =`,
-    `.setTitle(`, `.setText(`, `.addText(`, `.setContentTitle/Text(`),
-    including a conditional assignment (`text = if (x) "A" else "B"`);
+  - a call position (`Text(`, `.setTitle(`, `.setText(`, `.addText(`,
+    `.setContentTitle/Text(`, `reportError(`);
+  - **a field whose name ends in a display word** — `text`, `title`, `label`,
+    `description`, `hint`, `placeholder`, `message`, `error` — whatever qualifier
+    the name carries: a rendered state field is *assigned*, not called, so
+    `error = "Could not open map database"`, `snackbarMessage = "…"`,
+    `statusText = "Starting"` and `poiSearchError = "…"` are text positions in
+    every module (they were display text the scan never examined, `TODO.md` §192),
+    including a conditional argument (`text = if (x) "A" else "B"`).
+    `detail` is not one: it is the diagnostics log's payload, and logcat-only
+    wording is exempt;
+  - a position that begins **inside** an already-open string literal is not a text
+    position — a diagnostics message may contain a word that looks like one
+    (`" labelHint=" + …` is prose, not an assignment);
   - **interpolated display text** — a literal whose text *outside* its `${...}`
     carries a word (`"$favCount favorite"` fails; a pure value template such as
     `"$zoomLevel"` or `"${a}-${b}"` stays exempt). Hand-rolled pluralization
@@ -1200,6 +1210,10 @@ Source: spec `i18n-l10n` (change `i18n-l10n-support`).
   - a `NotificationChannel(id, name, description)` name/description argument
     (user-visible in Settings; re-applying them on start updates an existing
     channel).
+
+  The scan is line-based: a position and its literal must share a line, so `Text(`
+  with its sentence on the next line is still invisible. Widening that means
+  paren-balanced scanning across lines for every position — a change of its own.
 
   Deliberate exemptions (kept small on purpose): `%`-format templates,
   symbol-only separators (`"|"`, `" · "`) and a single camelCase identifier

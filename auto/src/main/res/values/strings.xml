@@ -47,6 +47,10 @@
     <string name="version">Version</string>
     <string name="map_data">Map data</string>
     <string name="osm_licence_statement">© OpenStreetMap contributors, available under the Open Database License (ODbL).</string>
+    <!-- The notice the car map surface draws (spec: osm-attribution). Same wording as the phone's
+         osm_attribution, resolved from this module's own resources so it follows the device
+         language (spec: i18n-l10n — All user-facing text is translatable). -->
+    <string name="osm_attribution">© OpenStreetMap contributors</string>
     <string name="osm_licence_link" translatable="false">openstreetmap.org/copyright</string>
     <string name="whats_here">What\'s here?</string>
     <string name="no_results_found">No results found</string>
@@ -108,6 +112,8 @@
          session reports it instead of geocoding the link text (spec: auto-deep-links — Short
          link does not resolve). -->
     <string name="deep_link_unreadable">Shared link could not be read</string>
+    <string name="deep_link_no_match">No matching location found for "%1$s"</string>
+    <string name="poi_search_failed">POI search failed: %1$s</string>
     <!-- Stated where a failure's cause is missing or unreadable map data: a car session must not open a
          phone screen, so the notice names where the action is (spec: `routing-failure-reporting` —
          A reason whose cause the user can act on offers the action). -->

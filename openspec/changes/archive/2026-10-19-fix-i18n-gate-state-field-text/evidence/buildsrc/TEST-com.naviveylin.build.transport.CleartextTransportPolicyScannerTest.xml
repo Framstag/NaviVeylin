@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.397Z" hostname="dingens" time="0.001">
+  <properties/>
+  <testcase name="refusesABaseConfigurationCarryingNothing" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.0"/>
+  <testcase name="refusesAFlavourLocalConfig" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.0"/>
+  <testcase name="refusesAManifestWithoutTheReference" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.0"/>
+  <testcase name="refusesAPermissionOnADomainInsteadOfTheBaseConfig" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.0"/>
+  <testcase name="refusesABaseConfigurationWithoutTheAttribute" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.0"/>
+  <testcase name="acceptsTheShippedPolicy" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.0"/>
+  <testcase name="reportNamesEveryViolationAndTheRule" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.001"/>
+  <testcase name="refusesAMissingConfig" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.0"/>
+  <testcase name="refusesADeniedBaseConfiguration" classname="com.naviveylin.build.transport.CleartextTransportPolicyScannerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

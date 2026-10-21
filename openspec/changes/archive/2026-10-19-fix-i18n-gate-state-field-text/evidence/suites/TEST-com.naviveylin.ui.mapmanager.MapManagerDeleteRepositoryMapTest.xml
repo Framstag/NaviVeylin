@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.mapmanager.MapManagerDeleteRepositoryMapTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:39:37.446Z" hostname="dingens" time="0.101">
+  <properties/>
+  <testcase name="theDeleteIsRepeatedSoTheMapManagerDropsTheRegistration" classname="com.naviveylin.ui.mapmanager.MapManagerDeleteRepositoryMapTest" time="0.045"/>
+  <testcase name="deletingARepositoryInstallationRemovesItsDirectory" classname="com.naviveylin.ui.mapmanager.MapManagerDeleteRepositoryMapTest" time="0.025"/>
+  <testcase name="aDirectoryOutsideTheMapsRootIsNotSwept" classname="com.naviveylin.ui.mapmanager.MapManagerDeleteRepositoryMapTest" time="0.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -218,6 +218,7 @@
     <string name="basemap_variant_prompt">Available on server — choose a variant:</string>
     <string name="download_basemap">Download Basemap</string>
     <string name="basemap_unavailable">Basemap unavailable</string>
+    <string name="basemap_delete_failed">Failed to delete basemap</string>
     <string name="basemap_repository_version">Basemap version %1$d on this repository</string>
     <string name="installed_from_source">from %1$s</string>
     <string name="source_repository_label">Repository</string>
@@ -243,6 +244,16 @@
     <string name="map_download_not_published">This source publishes no map for this app version</string>
     <string name="map_download_http_failed">The server answered with error %1$d</string>
     <string name="map_download_failed">The map could not be downloaded</string>
+    <!-- Map-manager state text: the view model resolves it, so the list rows read in the device
+         language (spec: i18n-l10n — All user-facing text is translatable). -->
+    <string name="map_refresh_failed">Failed to refresh installed maps: %1$s</string>
+    <string name="map_delete_failed">Failed to delete map: %1$s</string>
+    <string name="map_open_failed">Could not open map database</string>
+    <string name="repository_region_index_unreadable">The repository\'s region index could not be read</string>
+    <string name="download_status_starting">Starting</string>
+    <string name="download_status_cancelled">Cancelled</string>
+    <string name="download_status_error">Error: %1$s</string>
+    <string name="poi_search_failed">POI search failed</string>
     <string name="basemap_downloading">Downloading world basemap…</string>
     <string name="back">Back</string>
     <string name="search_maps">Search maps…</string>
@@ -285,6 +296,25 @@
     <string name="favorite_move_failed">Failed to move "%1$s"</string>
     <string name="group_move_failed">Failed to move group "%1$s"</string>
     <string name="star_move_failed">Failed to reorder starred favorite "%1$s"</string>
+    <!-- Snackbar results of a favorite/group write (spec: i18n-l10n — All user-facing text is
+         translatable). The view model resolves them; none of these sentences is a Compose
+         position, which is why they used to be Kotlin literals. -->
+    <string name="group_created">Group "%1$s" created</string>
+    <string name="group_already_exists">Group "%1$s" already exists</string>
+    <string name="group_deleted">Group "%1$s" deleted</string>
+    <string name="group_delete_failed">Failed to delete group</string>
+    <string name="group_renamed">Group renamed to "%1$s"</string>
+    <string name="group_rename_conflict">Group name "%1$s" already exists</string>
+    <string name="favorite_added">Added "%1$s"</string>
+    <string name="favorite_add_failed">Failed to add favorite</string>
+    <string name="favorite_deleted">Deleted "%1$s"</string>
+    <string name="favorite_delete_failed">Failed to delete</string>
+    <string name="favorite_renamed">Renamed to "%1$s"</string>
+    <string name="favorite_rename_failed">Failed to rename</string>
+    <string name="favorite_reorder_failed">Failed to reorder "%1$s"</string>
+    <string name="favorite_added_to_group">Added to %1$s</string>
+    <string name="favorite_removed">Removed from favorites</string>
+    <string name="favorite_remove_failed">Failed to remove</string>
     <string name="name">Name</string>
     <string name="latitude">Latitude</string>
     <string name="longitude">Longitude</string>

@@ -17,9 +17,12 @@ class SurfaceAttributionTest {
 
     private val density = 1.0f
 
+    /** The notice the screens pass in; the drawer itself owns no wording (spec: i18n-l10n). */
+    private val notice = "© OpenStreetMap contributors"
+
     @Test
     fun geometrySitsInBottomRightCorner() {
-        val rect = SurfaceAttribution.geometry(Rect(), 1920, 1080, density)!!
+        val rect = SurfaceAttribution.geometry(Rect(), 1920, 1080, density, notice)!!
         assertEquals(1920 - 8, rect.right)
         assertEquals(1080 - 8, rect.bottom)
         assertTrue(rect.left > 0)
@@ -29,19 +32,19 @@ class SurfaceAttributionTest {
     @Test
     fun geometryAnchorsToStableBoundsBottom() {
         val stable = Rect(0, 0, 1920, 1000)
-        val rect = SurfaceAttribution.geometry(stable, 1920, 1080, density)!!
+        val rect = SurfaceAttribution.geometry(stable, 1920, 1080, density, notice)!!
         assertEquals(1000 - 8, rect.bottom)
     }
 
     @Test
     fun geometryNullWhenSurfaceTooSmall() {
-        assertNull(SurfaceAttribution.geometry(Rect(), 10, 10, density))
+        assertNull(SurfaceAttribution.geometry(Rect(), 10, 10, density, notice))
     }
 
     @Test
     fun geometryScalesWithDensity() {
-        val low = SurfaceAttribution.geometry(Rect(), 1920, 1080, 1.0f)!!
-        val high = SurfaceAttribution.geometry(Rect(), 1920, 1080, 2.0f)!!
+        val low = SurfaceAttribution.geometry(Rect(), 1920, 1080, 1.0f, notice)!!
+        val high = SurfaceAttribution.geometry(Rect(), 1920, 1080, 2.0f, notice)!!
         assertTrue(high.width() > low.width())
         assertTrue(high.height() > low.height())
     }

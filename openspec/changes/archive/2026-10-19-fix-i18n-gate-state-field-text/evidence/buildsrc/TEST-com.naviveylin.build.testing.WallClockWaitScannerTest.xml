@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.testing.WallClockWaitScannerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.390Z" hostname="dingens" time="0.005">
+  <properties/>
+  <testcase name="cleanSourceHasNoFindings" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.001"/>
+  <testcase name="reportNamesTheRunsEveryWaitAndTheNoAllowlistRule" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.001"/>
+  <testcase name="leavesACommentMentioningASleepAlone" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.0"/>
+  <testcase name="refusesAnElapsedRealtimeLoop" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.001"/>
+  <testcase name="leavesAWallClockReadUsedAsDataAlone" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.0"/>
+  <testcase name="leavesAStringMentioningASleepAlone" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.0"/>
+  <testcase name="refusesAWallClockDeadlineLoop" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.001"/>
+  <testcase name="reportsOneFindingPerWaitNotPerMatch" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.0"/>
+  <testcase name="refusesAFixedSleep" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.0"/>
+  <testcase name="refusesAWhileHeaderThatSpansLines" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.0"/>
+  <testcase name="refusesATimeUnitSleep" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.0"/>
+  <testcase name="refusesAClockDerivedDeadlineBinding" classname="com.naviveylin.build.testing.WallClockWaitScannerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

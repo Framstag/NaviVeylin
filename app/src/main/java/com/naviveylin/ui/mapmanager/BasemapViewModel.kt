@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.framstag.libosmscout.client.BasemapManager
 import com.framstag.libosmscout.client.MapDownloadListener
+import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.mapsource.BasemapAvailability as RepositoryAvailability
 import com.naviveylin.core.mapsource.BasemapUpdate
@@ -348,7 +349,9 @@ class BasemapViewModel @Inject constructor(
                 applyBasemapChange("")
                 refresh()
             } else {
-                _uiState.value = _uiState.value.copy(error = "Failed to delete basemap")
+                _uiState.value = _uiState.value.copy(
+                    error = application.getString(R.string.basemap_delete_failed)
+                )
             }
         }
     }

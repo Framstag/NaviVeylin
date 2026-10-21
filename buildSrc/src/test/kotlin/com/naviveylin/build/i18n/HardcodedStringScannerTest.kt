@@ -87,6 +87,62 @@ class HardcodedStringScannerTest {
         positions.forEach { assertEquals("missed: $it", listOf("Hello"), literals(it)) }
     }
 
+    // --- flagged: text that reaches a surface through a state field or a report call --------
+
+    @Test
+    fun stateFieldIsFlagged() {
+        // A ViewModel's error field is rendered by the surface, and `error =` is no Compose
+        // text position — the gate never saw it (TODO.md §192).
+        assertEquals(
+            listOf("Could not open map database"),
+            literals("""error = "Could not open map database"""")
+        )
+    }
+
+    @Test
+    fun prefixedStateFieldIsFlagged() {
+        assertEquals(
+            listOf("Group ${'$'}groupName already exists"),
+            literals("""snackbarMessage = "Group ${'$'}groupName already exists"""")
+        )
+        assertEquals(
+            listOf("POI search failed"),
+            literals("""poiSearchError = "POI search failed"""")
+        )
+    }
+
+    @Test
+    fun reportCallMessageIsFlagged() {
+        assertEquals(
+            listOf("No matching location found"),
+            literals(
+                """navigationViewModel.reportError("No matching location found", SurfaceOrigin.CAR)"""
+            )
+        )
+    }
+
+    @Test
+    fun logPayloadFieldIsNotFlagged() {
+        // `detail` is the diagnostics log's payload, not a surface's text: the gate is a
+        // user-facing-string gate, and logcat-only wording is exempt (spec: i18n-l10n).
+        assertEquals(
+            emptyList<String>(),
+            literals("""detail = "avail=512MB threshold=256MB"""")
+        )
+    }
+
+    @Test
+    fun aPositionInsideALiteralIsNotAnAssignment() {
+        // The diagnostics message in MainActivity built a word that *looks* like an assignment;
+        // a position cannot begin inside an already-open literal (TODO.md §192).
+        assertEquals(
+            emptyList<String>(),
+            literals(
+                """" labelHint=" + (if (outcome.request.label != null) "present" else "none")""""
+            )
+        )
+    }
+
     @Test
     fun lineNumberIsReported() {
         val source = "package x\n\nfun f() {\n    Text(\"Hello\")\n}\n"

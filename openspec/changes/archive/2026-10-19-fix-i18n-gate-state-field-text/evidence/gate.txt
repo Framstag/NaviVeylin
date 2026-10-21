@@ -1,0 +1,44 @@
+# The project gate
+
+`guidelines/Build.md` §3 defines the gate as `./gradlew test -PforceTests --no-build-cache`. The run's
+configured command, `./gradlew test -PforceTests --rerun-tasks`, is **not** that form — `--rerun-tasks`
+re-executes the whole task graph, while `-PforceTests --no-build-cache` forces only the test tasks (§3,
+"How to force it").
+
+Round 1 attempted the gate twice on a host under memory pressure and neither attempt completed: one attempt
+never reached a test task and was stopped by hand, the other got through the compiles and was killed inside
+`:app:testAutomotiveDebugUnitTest` with no test-worker JVM alive. Neither produced a suite result directory,
+so round 1 ran the four aggregated test tasks one at a time. Those per-suite result directories were
+overwritten by round 2's gate run, so the tallies archived with this change are the gate's own.
+
+Round 2, after the reviewer's corrections, the gate ran once in its documented form:
+
+    $ JAVA_HOME=/usr/lib/jvm/java-21-openjdk ./gradlew test -PforceTests --no-build-cache
+    BUILD SUCCESSFUL in 3m 47s
+    189 actionable tasks: 22 executed, 167 up-to-date
+
+Result directories, times as recorded in the suites themselves (UTC; local = +02:00):
+
+    auto/build/test-results/testDebugUnitTest            20:45:49Z .. 20:46:25Z
+    core/build/test-results/testDebugUnitTest            20:45:48Z .. 20:45:58Z
+    osmscout-client-java/build/test-results/test         20:45:48Z .. 20:45:48Z
+    app/build/test-results/testAutomotiveDebugUnitTest   20:45:50Z .. 20:47:41Z
+    app/build/test-results/testMobileDebugUnitTest       20:47:45Z .. 20:49:25Z
+
+The tallies summed from those directories — and a digest of each directory, so a later run that overwrites
+them is detectable — are `gate-results.txt`; the five Gradle aggregate reports are `gate-reports/`.
+
+`./gradlew test` does not reach `buildSrc`: that module's result timestamps were unchanged by the gate run
+above (`20:41Z` before it, `20:49Z` after the separate run below). The module whose code this change edits
+was therefore run on its own, after the mutation below was restored:
+
+    $ ./gradlew -p buildSrc test        # BUILD SUCCESSFUL in 1s
+    buildSrc/build/test-results/test    11 files, tests=127, failures=0   (20:49:56Z)
+
+The eleven per-class files are `evidence/buildsrc/`, the scanner's own suite `evidence/buildsrc-green.xml`
+(`tests="20" failures="0"`).
+
+Environment obstacle, unrelated to the change: the build's daemon JVM resolved to a JRE under
+`~/.vscode/extensions/redhat.java-*/jre` that has no `jlink`, so `:core:compileDebugJavaWithJavac` failed
+with `jlink executable … does not exist` until every invocation was run with
+`JAVA_HOME=/usr/lib/jvm/java-21-openjdk`.

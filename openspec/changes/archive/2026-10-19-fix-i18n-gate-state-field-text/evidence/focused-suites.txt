@@ -1,0 +1,17 @@
+# Focused suites of the changed classes, before the full run (round 1)
+
+    ./gradlew :auto:testDebugUnitTest --tests "*SurfaceAttributionTest" \
+        --tests "*PoiResultsScreenSearchLifecycleTest" --tests "*GermanTranslationCompletenessTest"
+    BUILD SUCCESSFUL in 47s
+
+    ./gradlew :app:testMobileDebugUnitTest --tests "*FavoritesViewModelTest" \
+        --tests "*MapCanvasViewModelFavAddTest" --tests "*MapCanvasViewModelDatabaseOpenTest" \
+        --tests "*MapCanvasViewModelInitThreadingTest" --tests "*MapManagerDeleteRepositoryMapTest" \
+        --tests "*GermanTranslationCompletenessTest"
+    BUILD SUCCESSFUL in 36s
+
+The per-class XMLs are under `suites/`: the seven `:auto`/`:app` classes these two commands produced
+(`20:38–20:41`), plus `MapCanvasViewModelDatabaseOpenTest`, `MapCanvasViewModelInitThreadingTest` and
+`RoutingFailureNoticeTest` copied from the full gate run (`20:46–20:48`; the `:auto` focused command above did
+not include `RoutingFailureNoticeTest`, so its green is carried by the gate's `:auto` suite, tallied in
+`gate-results.txt`).

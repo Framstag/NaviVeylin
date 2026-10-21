@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" tests="25" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.207Z" hostname="dingens" time="0.02">
+  <properties/>
+  <testcase name="leavesALabelOnlyMessageAlone" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.009"/>
+  <testcase name="reportNamesTheFileLineReasonAndCall" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="leavesAVariableThatMerelyReceivesAPositionAlone" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="flagsAnInterpolatedCarDestination" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsACarrierTypedLocalEvenUnderAnotherName" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsTheMultiLineFixLine" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="flagsTheCarRenderEntryVerbatim" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsInterpolatedIntentData" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="leavesIdentityValuesDeclaredAsLocalsAlone" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="leavesScalarInterpolationsAlone" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="leavesAllowedIdentityInterpolationsAlone" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="leavesASchemeReadOffTheUriAlone" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsANoArgumentCoordinateGetter" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsAOneHopAliasOfACoordinateLocal" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="aCleanFileReportsNothing" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsAnInterpolatedRequestObject" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="handlesNestedParenthesesInALogCall" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="leavesCoordinateComputationOutsideLoggingAlone" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="leavesLowercaseCoordinateLookalikesAlone" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsDiagnosticsLogThrowableToo" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="doesNotFlagWordsThatMerelyStartLikeCoordinates" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="flagsACoordinateShapedFormatWithoutAnIdentifier" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsALocalInitializedFromAPositionMember" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <testcase name="flagsAMultiLineDiagnosticsPayload" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.001"/>
+  <testcase name="flagsAWholeUriEvenWithAFallbackOrToString" classname="com.naviveylin.build.diagnostics.CoordinateLogScannerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

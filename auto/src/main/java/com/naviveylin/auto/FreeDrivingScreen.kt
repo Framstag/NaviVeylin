@@ -450,7 +450,8 @@ class FreeDrivingScreen(
                 surfaceWidth = w,
                 surfaceHeight = h,
                 density = density,
-                usableBounds = stableArea
+                usableBounds = stableArea,
+                text = carContext.getString(R.string.osm_attribution)
             )
             // The map is gone (design D5): a NavigationTemplate has no content slot for this text,
             // so the app draws it on the surface, which keeps the last frame.

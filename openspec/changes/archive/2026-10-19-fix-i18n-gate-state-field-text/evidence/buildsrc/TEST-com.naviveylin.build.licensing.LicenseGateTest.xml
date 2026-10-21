@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.licensing.LicenseGateTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.375Z" hostname="dingens" time="0.006">
+  <properties/>
+  <testcase name="review required license is reported as a warning" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.002"/>
+  <testcase name="multiple violations are all reported" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.002"/>
+  <testcase name="review required entry scoping matches the plain component name" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="unscoped review required entry warns every carrier" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="conjunction with all identifiers permitted passes" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="choice satisfied by a permitted alternative passes" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="empty review required list yields no decision warnings" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="application license passes for shipped components once permitted" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.001"/>
+  <testcase name="permitted license passes" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="every identifier of a conjunction must be permitted" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="shipped license is not permitted for a build time component" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="missing license value fails" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="choice without election fails listing the alternatives" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="unresolved non spdx license fails" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="declared license ref passes" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="build time license is not permitted for a shipped component" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.001"/>
+  <testcase name="non permitted license fails naming component and license" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="license ref that is not declared fails" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="scoped review required entry warns only the named component" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="application license not permitted for shipped scope fails the gate" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <testcase name="caveat is reported as a warning not a violation" classname="com.naviveylin.build.licensing.LicenseGateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

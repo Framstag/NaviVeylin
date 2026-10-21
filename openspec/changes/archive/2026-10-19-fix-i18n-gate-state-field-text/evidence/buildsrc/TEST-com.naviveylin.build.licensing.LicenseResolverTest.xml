@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.licensing.LicenseResolverTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-19T20:49:56.383Z" hostname="dingens" time="0.001">
+  <properties/>
+  <testcase name="application license spdx identifier resolves for first party components" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="declared license ref identifier resolves when declared in the policy" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="election covering one branch of a nested alternative is applied" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="spdx identifier resolves to itself" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="declared license ref identifier that the policy does not define is unresolved" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="election that the declaration does not offer is rejected" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="alternative without an election needs one" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.001"/>
+  <testcase name="non spdx name without a declaration is unresolved" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="non spdx name resolves through a declared license ref" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="missing license value is unresolved" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="license ref name matching ignores case and surrounding whitespace" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <testcase name="recorded election is applied" classname="com.naviveylin.build.licensing.LicenseResolverTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

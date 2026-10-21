@@ -47,7 +47,7 @@ issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,c
 # The question is the last comment's first non-empty line: the escalation writes its question there and the
 # options below it, and a later comment (a person's own note) is the more recent statement, so "last" is
 # deliberate — first line, because that is the sentence, not the option list under it.
-selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" '
+selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" "$(issues_question_defs)"' 
   [ .[]
     | select((.state // "OPEN") != "CLOSED")
     | select([(.labels // [])[] | if type == "string" then . else .name end] | index($label) != null)
@@ -55,10 +55,7 @@ selected=$(printf '%s' "$issues" | jq -c --arg label "$decision_label" '
         issue: .number,
         title: (.title // ""),
         updatedAt: (.updatedAt // ""),
-        question: (
-          ((.comments // []) | last // {})
-          | (.body // "") | split("\n") | map(select(length > 0)) | (.[0] // "")
-        )
+        question: (((.comments // []) | last // {}) | (.body // "") | question_of)
       }
   ]
   | sort_by(.issue)')

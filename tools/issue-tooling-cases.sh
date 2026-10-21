@@ -800,8 +800,13 @@ case_decisions_listsTheQueueAndItsQuestions() {
   assert_eq "0" "$status" "the queue is a read: $out"
   assert_eq "2" "$(printf '%s' "$out" | jq 'length')" "only the items carrying the decision label are queued"
   assert_eq "71 73" "$(printf '%s' "$out" | jq -r '[.[].issue] | join(" ")')" "in issue order"
+  # The question is the run's own `**The decision:** …` line, not the comment's first non-empty line: the
+  # escalation puts the verdict word or a heading above it, so reading the first line bound the answer to
+  # `needs-decision` (#243). Item 71's escalation carries both shapes — the statement above, the decision line
+  # below it — and the decision line is what a person is being asked.
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 71) | .question')" \
-    "merge the two rows into one" "the question is the item's own recorded statement"
+    "merge the two rows into one, or keep both and mark the newer authoritative?" \
+    "the question is the decision line the run wrote"
   assert_eq "" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 73) | .question')" \
     "an escalation that left no statement reports none rather than inventing one"
   assert_eq "0" "$(printf '%s' "$out" | jq -r '[.[] | select(.issue == 72)] | length')" \
@@ -814,7 +819,7 @@ case_decisions_listsTheQueueAndItsQuestions() {
 
   out=$(run_tool decisions.sh 2>&1); status=$?
   assert_eq "0" "$status" "the human form exits 0 as well"
-  assert_contains "$out" "#71  **The decision:** merge the two rows into one" "the human form prints the question line"
+  assert_contains "$out" "#71  merge the two rows into one, or keep both and mark the newer authoritative?" "the human form prints the question line"
   assert_contains "$out" "no question recorded" "and names an item whose escalation left none"
   assert_contains "$out" "2 item(s) await a decision" "with a count and the way to answer one"
 }

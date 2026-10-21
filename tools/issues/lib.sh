@@ -62,6 +62,23 @@ issues_note() {
   printf '%s\n' "$*" >&2
 }
 
+# The one predicate for "the question in this comment" (issue #243). The run writes its escalation with a
+# `**The decision:** …` line — `tools/loop/run.sh` in three places — and a reader that takes the first non-empty
+# line instead binds an answer to the run's *verdict word*: on #196 the escalation comment begins `needs-decision`,
+# so the queue listed that word as the question and the answer was recorded against it. The definition is a jq
+# program string and not a shell helper because the queue reads the question inside one `jq` call over every
+# candidate; a reader that needs it prepends `issues_question_defs` to its own program, so there is one rule and
+# not one per caller.
+issues_question_defs() {
+  cat <<'JQ'
+def question_of:
+  ((. // "") | split("\n")
+   | (map(select(startswith("**The decision:**"))) | .[0] // null) as $asked
+   | if $asked != null then ($asked | sub("^\\*\\*The decision:\\*\\*[ ]*"; ""))
+     else (map(select(test("^[[:space:]]*$") | not)) | .[0] // "") end);
+JQ
+}
+
 # A failure that is the transport's, not the tracker's answer: the request never arrived, or its reply was
 # cut off. What `gh` prints for those — a TCP timeout, a DNS failure, a reset or refused connection, a TLS
 # or response timeout, a 5xx, GitHub's secondary rate limit — is retried. Everything else (400, 401, 403

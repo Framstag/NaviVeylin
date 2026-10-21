@@ -174,7 +174,10 @@ habit of running everything:
   delete the dead run's results (`rm -rf app/build/test-results/<flavor>`) — otherwise the next invocation
   can abort with `java.nio.file.NoSuchFileException: …/in-progress-results-generic.bin` *after* printing its
   tallies, losing the per-test detail. A killed run also leaves its daemon `BUSY`: `./gradlew --status`,
-  `./gradlew --stop`, then re-run (extends §40.4).
+  `./gradlew --stop`, then re-run (extends §40.4). Free the machine before that re-run: `free -m` shows the
+  RAM the dead run still holds, and an orphan test worker is killed by PID (`ps -eo pid,rss,args --sort=-rss`,
+  confirming the worker's `-Djava.library.path` points at this repository) rather than by name; a run that
+  died with several workers in flight is retried at `--max-workers=1` (§134.64).
 
 - **The allowlist is not a planning assumption — probe it** (§40.1). `python3` (3.14.7), `perl` and `tesseract`
   (5.5.3) all **run** in this shell (verified 2026-10-03; `TODO.md` §106's device pass used `tesseract`), so
@@ -314,6 +317,10 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
 | Release build (both AABs, bumps version) | `./gradlew release` |
 | Generate SBOM for one variant | `./gradlew :app:generateSbom<MobileDebug|MobileRelease|AutomotiveRelease>` |
 | Generate only the native SBOM section | `./gradlew :app:mergeNativeSbom` |
+
+A run meant to cover the whole suite adds `--continue`, or the first failing module ends the invocation and
+the remaining suites never execute; read the executed-task list in the output for what actually ran, not the
+flavors one expects (§134.65).
 
 ## 4. Result evaluation
 

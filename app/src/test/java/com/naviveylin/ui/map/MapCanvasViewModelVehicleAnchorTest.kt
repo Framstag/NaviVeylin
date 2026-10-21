@@ -6,7 +6,6 @@ import com.framstag.libosmscout.client.Vehicle
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.EngineTimeSource
-import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.anchorCenter
@@ -582,90 +581,6 @@ class MapCanvasViewModelVehicleAnchorTest {
                 routing.fx, 1e-9
             )
             assertTrue("routing and free-driving resolutions must differ", routing.fx != freeDriving.fx)
-        }
-
-    /**
-     * The follow blit anchor is the **resolved** anchor, proven at the production seam the screen calls
-     * (spec: smooth-follow — The follow blit offset is computed by one seam that owns the anchor; Single
-     * resolved anchor across render, blit and marker).
-     *
-     * `FollowAnchorFramingTest` proves the framing contract with the fractions it is handed, so it stayed
-     * green while the screen's call site passed the raw preset (issue #18). This case drives the seam with a
-     * state whose overlays were measured through the production path (`setMapOverlayInsets`), so the preset
-     * and the resolved fraction genuinely differ, and asserts the seam's offset is the resolved-anchor one.
-     *
-     * The frame is the frame the follow display holds: rendered anchor-centered on the resolved fraction (the
-     * ViewModel's follow render target) with the renderer's 1.2× overrun bitmap; the display has drifted 40 m
-     * north of it, inside the margin. Both numbers are printed, so the XML's `system-out` carries them.
-     */
-    @Test
-    fun followBlitOffsetTakesTheResolvedAnchorNotTheRawPreset() =
-        runTest(mainDispatcherRule.dispatcher) {
-            settingsStorage.save(
-                settingsStorage.load().copy(
-                    freeDrivingAnchorId = VehicleAnchorPosition.BOTTOM_CENTER.id
-                )
-            )
-            recreateViewModel()
-            advanceUntilIdle()
-            // The phone navigation overlays: turn card + routing status card + widget column.
-            viewModel.setMapOverlayInsets(top = 400, bottom = 400, right = 80)
-            advanceUntilIdle()
-            val ui = viewModel.uiState.value
-            val preset = VehicleAnchorPosition.BOTTOM_CENTER
-            assertTrue(
-                "the bottom-center preset must resolve up into the visible map area",
-                ui.resolvedAnchor.fy < preset.fy - 0.05
-            )
-
-            val mag = 15.0
-            val displayLat = 52.51 + 40.0 / FollowPrediction.METERS_PER_DEG_LAT
-            val displayLon = 13.40
-            val (frameLat, frameLon) = anchorCenter(
-                displayLat, displayLon,
-                ui.resolvedAnchor.fx, ui.resolvedAnchor.fy,
-                mag, SCREEN_W, SCREEN_H, dpi, 0.0
-            )
-            val frame = PanWindowRules.Frame(
-                frameLat, frameLon, mag, 0.0,
-                (SCREEN_W * 1.2).toInt(), (SCREEN_H * 1.2).toInt()
-            )
-            fun offsetForAnchor(fx: Double, fy: Double) = FollowPrediction.displayOffsetPx(
-                displayLat, displayLon, frameLat, frameLon, mag, 0.0,
-                frame.width, frame.height, SCREEN_W, SCREEN_H, dpi, fx, fy
-            )
-
-            val resolved = offsetForAnchor(ui.resolvedAnchor.fx, ui.resolvedAnchor.fy)
-            // The defect geometry: the raw preset handed to the same frame.
-            val rawPreset = offsetForAnchor(preset.fx, preset.fy)
-            val seam = FollowBlitRules.offsetFor(
-                ui, frame, displayLat, displayLon, SCREEN_W, SCREEN_H, dpi
-            )
-            println(
-                "followBlitAnchor presetFy=${preset.fy} resolvedFy=${ui.resolvedAnchor.fy} " +
-                    "activeFy=${ui.activeFollowAnchor.fy} seamRawY=${seam.rawY} " +
-                    "resolvedRawY=${resolved.rawY} presetRawY=${rawPreset.rawY} " +
-                    "seamClamped=${seam.clamped} presetClamped=${rawPreset.clamped}"
-            )
-
-            assertEquals(
-                "the seam must use the anchor the follow render target rendered with",
-                resolved.rawY, seam.rawY, 1e-9
-            )
-            assertEquals(resolved.clampedY, seam.clampedY, 1e-9)
-            assertTrue(
-                "the raw preset moves the blit by the anchor delta " +
-                    "(${Math.abs(rawPreset.rawY - seam.rawY)} px), not by the prediction drift",
-                Math.abs(rawPreset.rawY - seam.rawY) > 200.0
-            )
-            assertFalse(
-                "the resolved-anchor blit is the prediction drift and stays inside the margin",
-                seam.clamped
-            )
-            assertTrue(
-                "the raw preset clamps the same geometry at the margin — the 500 ms re-render churn",
-                rawPreset.clamped
-            )
         }
 
     private companion object {

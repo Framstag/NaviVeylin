@@ -814,22 +814,21 @@ fun MapCanvasScreen(
                     val vp = ui.renderViewport
                     if (bitmap != null && vp != null && canvasSize.width > 0) {
                         val dpi = context.resources.displayMetrics.densityDpi.toDouble()
-                        // Single resolved anchor (spec: smooth-follow — Single resolved
-                        // anchor across render, blit and marker): FollowBlitRules takes the whole
-                        // state and reads `resolvedAnchor` itself, so the raw preset
-                        // (activeFollowAnchor) cannot reach this call site — it differs from the
-                        // resolved fraction whenever navigation overlays move the anchor
-                        // (bottom-center above the routing card), and a blit against it places the
-                        // displayed content at a different fraction than the marker and keeps the
-                        // offset outside the overrun margin (500 ms re-render churn).
-                        val offset = FollowBlitRules.offsetFor(
-                            ui,
-                            PanWindowRules.Frame(
-                                vp.lat, vp.lon, vp.mag, vp.angle,
-                                bitmap.width, bitmap.height
-                            ),
+                        val offset = FollowPrediction.displayOffsetPx(
                             followDisplayLat, followDisplayLon,
-                            canvasSize.width, canvasSize.height, dpi
+                            vp.lat, vp.lon, vp.mag, vp.angle,
+                            bitmap.width, bitmap.height,
+                            canvasSize.width, canvasSize.height, dpi,
+                            // Single resolved anchor (spec: smooth-follow — Single
+                            // resolved anchor across render, blit and marker): the SAME
+                            // fraction followRenderTarget renders the frame with and the
+                            // marker projects against. The raw preset (activeFollowAnchor)
+                            // differs from it whenever navigation overlays resolve the
+                            // anchor away from the preset (bottom-center above the routing
+                            // card), and a mismatch here places the displayed content at
+                            // the raw fraction while the marker draws at the resolved one
+                            // — the marker rides ahead of the track by the anchor delta.
+                            ui.resolvedAnchor.fx, ui.resolvedAnchor.fy
                         )
                         // The frame is rendered anchor-centered (spec: smooth-follow —
                         // Anchor-centered follow framing), so the blit offset carries the

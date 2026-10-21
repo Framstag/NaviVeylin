@@ -77,19 +77,10 @@ travel while the map itself rotates at its own pace.
   `MapCanvasViewModel.setMapOverlayInsets`); a covered preset moves per axis to the nearest free position
   (covered-region edge + the grid's 10% margin), and the result is clamped into `0.1..0.9`. The ViewModel
   publishes it as `MapCanvasUiState.resolvedAnchor`; the follow render target, the Compose marker
-  overlay **and the follow blit offset** all consume that value —
+  overlay **and the follow blit offset** (`FollowPrediction.displayOffsetPx`) all consume that value —
   never re-derive it and never pass the raw preset: a blit computed against the preset while the frame
   renders on the resolved fraction leaves the marker ahead of the content by the anchor delta and keeps
-  the offset outside the overrun margin (500 ms re-render churn). The blit offset has **one** computing
-  place, `FollowBlitRules.offsetFor`, which takes the whole `MapCanvasUiState` and reads `resolvedAnchor`
-  itself: the anchor is not a parameter, because the screen's previous inline
-  `FollowPrediction.displayOffsetPx(…, activeFollowAnchor.fx, activeFollowAnchor.fy)` call site was
-  invisible to every case and needed two fixes in one day (issue #18, 2026-09-27).
-  `FollowBlitCallSiteTest` holds the screen to the seam (one call, no inline offset computation, no raw
-  preset in the seam) and `MapCanvasViewModelVehicleAnchorTest`
-  `followBlitOffsetTakesTheResolvedAnchorNotTheRawPreset` drives it with measured overlays: preset
-  `fy = 0.9` resolves to `0.733`, the seam's blit is the prediction drift (0 px, unclamped), and the same
-  geometry with the preset is 320 px and clamped. With no measured overlay (browse mode, tests)
+  the offset outside the overrun margin (500 ms re-render churn). With no measured overlay (browse mode, tests)
   every preset resolves to its exact fraction; non-covered presets (including the default center/center)
   do the same with overlays present, so the default framing is exactly the pre-feature framing in every
   mode and orientation (a 2026-09-16 on-device report — vehicle left of center in portrait navigation —

@@ -84,7 +84,42 @@ else
   fail=1
 fi
 
-# 4. the set is listed, so a change can see what it owes — and the listing is checked against the set the
+# 4. the scratch tree the backups live in: the project's own `.pi/tmp` unless `TMPDIR` moves it, and gone
+# afterwards. A backup on the host's tmpfs is how a full /tmp emptied six engine files on 2026-10-21 (#234).
+default_scratch=$(unset TMPDIR; timeout 300 bash "$harness" --probe no-apply --engine "$copy_dir" 2>&1 |
+  sed -n 's/^loop-mutations: scratch //p' | head -1)
+case "$default_scratch" in
+  "$root/.pi/tmp/loop-mutations."*) echo "ok   the scratch tree is the project's, not the host's tmpfs";;
+  *) echo "FAIL the scratch tree is '$default_scratch', not under $root/.pi/tmp"; fail=1;;
+esac
+[ ! -d "$default_scratch" ] || { echo "FAIL the scratch tree $default_scratch was not removed"; fail=1; }
+moved_tmp="$scratch/moved-tmp"; mkdir -p "$moved_tmp"
+moved_scratch=$(TMPDIR="$moved_tmp" timeout 300 bash "$harness" --probe no-apply --engine "$copy_dir" 2>&1 |
+  sed -n 's/^loop-mutations: scratch //p' | head -1)
+case "$moved_scratch" in
+  "$moved_tmp/loop-mutations."*) echo "ok   and TMPDIR still moves it";;
+  *) echo "FAIL TMPDIR was ignored: the scratch tree is '$moved_scratch'"; fail=1;;
+esac
+
+# 5. a backup that did not land must not be copied over the file it protects: the harness stops, and the file
+# still holds what it held. The full /tmp on 2026-10-21 produced exactly this shape and emptied six engine
+# files, so the guard is asserted rather than assumed (#234).
+victim="$scratch/empty-backup-victim.txt"
+out=$(LOOP_MUTATIONS_PROBE_VICTIM="$victim" timeout 120 bash "$harness" --probe empty-backup --engine "$copy_dir" 2>&1)
+status=$?
+check "a restore from an empty backup exits 2" "2" "$status"
+case "$out" in
+  *"refusing to restore"*) echo "ok   and it says it refused";;
+  *) echo "FAIL the empty-backup guard message: [$out]"; fail=1;;
+esac
+case "$out" in
+  *"the restore was NOT refused"*) echo "FAIL the empty backup was copied over the file it protects"; fail=1;;
+  *) echo "ok   and nothing was copied over it";;
+esac
+check "the file the empty backup would have replaced still holds its content" \
+  "the tree" "$(cat "$victim" 2>/dev/null)"
+
+# 6. the set is listed, so a change can see what it owes — and the listing is checked against the set the
 # harness *declares*, not against a number spelled here. A hard number goes stale on every change that adds
 # a mutation (it was bumped twice: to twelve by the identity change, to nineteen by the loop-start change),
 # and a stale guard reports the change rather than the harness. What this catches is the real fault: a
@@ -98,5 +133,5 @@ if [ "$fail" -ne 0 ]; then
   echo "loop-mutations-selftest: the mutation harness does not hold its own guards"
   exit 1
 fi
-echo "loop-mutations-selftest: the harness reports an unapplied mutation, an unnoticed one and a real red, and it restores what it touches"
+echo "loop-mutations-selftest: the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project and it refuses a backup that did not land"
 exit 0

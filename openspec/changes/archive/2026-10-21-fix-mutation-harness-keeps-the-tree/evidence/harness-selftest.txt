@@ -1,0 +1,20 @@
+command: bash tools/loop-mutations-selftest.sh
+started: 2026-10-21T11:09:00Z
+ok   a non-matching mutation exits non-zero
+ok   and it is named as such
+ok   an unnoticed mutation exits non-zero
+ok   and it says the case did not notice
+ok   a real mutation exits zero
+ok   the case noticed it
+ok   and the restore went green
+ok   the mutated copy is byte-identical to the pristine one again
+ok   the scratch tree is the project's, not the host's tmpfs
+ok   and TMPDIR still moves it
+ok   a restore from an empty backup exits 2
+ok   and it says it refused
+ok   and nothing was copied over it
+ok   the file the empty backup would have replaced still holds its content
+ok   the mutation set lists what it declares
+loop-mutations-selftest: the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project and it refuses a backup that did not land
+exit: 0
+finished: 2026-10-21T11:09:20Z

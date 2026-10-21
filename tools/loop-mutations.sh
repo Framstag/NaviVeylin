@@ -9,15 +9,19 @@
 # matches the line) and **the case did not notice** (an assertion adjacent to the invariant). Both are
 # reported as failures of this harness, never as a pass.
 #
-# It restores every file it touches, and restores the current one even when it is killed (EXIT trap). Run the
-# full set before a change that owns `tools/loop/**` is archived; run one with `--only` while iterating.
+# It restores every file it touches, restores the current one even when it is killed (EXIT trap), and refuses to
+# restore from a backup that did not land: the backups live under the project's own `.pi/tmp` unless `TMPDIR`
+# says otherwise, because a full `/tmp` (a tmpfs on the measured host) once emptied six engine files — measured
+# 2026-10-21, issue #234. Run the full set before a change that owns `tools/loop/**` is archived; run one with
+# `--only` while iterating.
 #
 # Exit: 0 every selected mutation went red and its restore went green; 1 a mutation did not apply, was not
-#       noticed, or its restore stayed red; 2 usage or a missing prerequisite.
+#       noticed, or its restore stayed red; 2 usage, a missing prerequisite, or a backup/restore that could not
+#       be taken safely (nothing is mutated in that case).
 #
 # Usage: tools/loop-mutations.sh [--list] [--only <labels>] [--engine <dir>] [--out <file>]
 #                                [--timeout <seconds>]
-#                                [--probe no-apply|stays-green]
+#                                [--probe no-apply|stays-green|empty-backup]
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -175,17 +179,52 @@ if [ "$list_only" -eq 1 ]; then
   exit 0
 fi
 
-scratch=$(mktemp -d "${TMPDIR:-/tmp}/loop-mutations.XXXXXX") || { echo "loop-mutations: cannot create a scratch directory" >&2; exit 2; }
+scratch_root="${TMPDIR:-$root/.pi/tmp}"
+mkdir -p -- "$scratch_root" 2>/dev/null || { echo "loop-mutations: cannot create the scratch root $scratch_root" >&2; exit 2; }
+scratch=$(mktemp -d "$scratch_root/loop-mutations.XXXXXX") || { echo "loop-mutations: cannot create a scratch directory under $scratch_root" >&2; exit 2; }
+# Named once, so a caller can see where the backups of the files it is about to mutate went (issue #234).
+printf 'loop-mutations: scratch %s\n' "$scratch" >&2
 # The transcript goes to stdout and, with `--out`, to a file as well: `exec > >(tee …)` keeps this shell
 # the one that counts (a pipeline per report would increment the counters in a subshell and lose them).
 if [ -n "$out" ]; then exec > >(tee -a "$out"); fi
 current_backup=""
 current_file=""
+
+# The two directions of the one thing this harness must not get wrong: the tree it mutates is the tree that
+# proves a change, so a backup that did not land (a full filesystem is the measured cause, 2026-10-21) stops the
+# harness *before* anything is mutated, and a restore refuses a backup that is empty or does not match what it
+# wrote (issue #234).
+backup_file() { # backup_file <file> <backup>
+  cp -- "$1" "$2" 2>/dev/null || true
+  if [ ! -s "$2" ]; then
+    printf 'loop-mutations: could not back up %s into %s (a full filesystem is the measured cause) — nothing was mutated\n' \
+      "$1" "$2" >&2
+    exit 2
+  fi
+}
+restore_file() { # restore_file <backup> <file>
+  if [ ! -s "$1" ]; then
+    printf 'loop-mutations: refusing to restore %s from a backup that is empty or missing (%s) — the backup did not land, so the file it protects is left alone\n' \
+      "$2" "$1" >&2
+    exit 2
+  fi
+  cp -- "$1" "$2" 2>/dev/null || { printf 'loop-mutations: could not restore %s from %s\n' "$2" "$1" >&2; exit 2; }
+  cmp -s "$1" "$2" || { printf 'loop-mutations: %s does not match %s after the restore\n' "$2" "$1" >&2; exit 2; }
+}
+
 cleanup() {
   # A killed harness must not leave a mutation in the tree: the case that would catch it is the one this
-  # file runs, and the next suite run would fail for a reason nobody is looking for.
+  # file runs, and the next suite run would fail for a reason nobody is looking for. A backup that did not
+  # land cannot restore anything, and saying so is all this path may do (issue #234).
   if [ -n "$current_backup" ] && [ -n "$current_file" ]; then
-    cp "$current_backup" "$current_file"
+    if [ -s "$current_backup" ]; then
+      cp -- "$current_backup" "$current_file" 2>/dev/null ||
+        printf 'loop-mutations: the interrupted mutation could not be restored into %s — its backup is %s\n' \
+          "$current_file" "$current_backup" >&2
+    else
+      printf 'loop-mutations: the interrupted mutation has no backup for %s — check it by hand against git\n' \
+        "$current_file" >&2
+    fi
   fi
   rm -rf "$scratch"
 }
@@ -230,7 +269,7 @@ run_case() { # run_case <case> <fifo|->  → 0 the case passed, non-zero it fail
 
 apply_mutation() { # apply_mutation <file> <backup> <expressions separated by ;;>
   local file="$1" backup="$2" exprs="$3" expr
-  cp "$file" "$backup"
+  backup_file "$file" "$backup"
   while IFS= read -r expr; do
     [ -n "$expr" ] || continue
     sed -i "$expr" "$file"
@@ -265,7 +304,7 @@ one_mutation() { # one_mutation <record>
   if cmp -s "$path" "$backup"; then
     printf 'MUTATION-DID-NOT-APPLY %s  %s (the pattern no longer matches — fix the mutation, not the case)\n' "$label" "$path"
     not_noticed=$((not_noticed + 1))
-    cp "$backup" "$path"; current_file=""; current_backup=""
+    restore_file "$backup" "$path"; current_file=""; current_backup=""
     return 0
   fi
 
@@ -277,7 +316,7 @@ one_mutation() { # one_mutation <record>
     red=$((red + 1))
   fi
 
-  cp "$backup" "$path"
+  restore_file "$backup" "$path"
   current_file=""; current_backup=""
   if run_case "$case_name" "-"; then
     printf 'restore %s %s green again\n' "$label" "$case_name"
@@ -293,6 +332,19 @@ if [ -n "$probe" ]; then
   case "$probe" in
     no-apply) record="${PROBE_RECORDS[0]}" ;;
     stays-green) record="${PROBE_RECORDS[1]}" ;;
+    empty-backup)
+      # A backup that did not land must not be copied over the file it protects: this probe has the shape the
+      # full /tmp gave the harness on 2026-10-21 (issue #234), and must end the harness with exit 2. The file it
+      # protects is the caller's when `LOOP_MUTATIONS_PROBE_VICTIM` names one, so a test can look at it after
+      # the harness has exited.
+      victim="${LOOP_MUTATIONS_PROBE_VICTIM:-$scratch/empty-backup.victim}"
+      printf 'the tree\n' > "$victim" || { echo "loop-mutations: the probe cannot write $victim" >&2; exit 2; }
+      : > "$scratch/empty-backup.backup"
+      restore_file "$scratch/empty-backup.backup" "$victim"
+      printf 'probe empty-backup: the restore was NOT refused (the victim now holds %s bytes)\n' \
+        "$(wc -c < "$victim" | tr -d ' ')"
+      exit 0
+      ;;
     *) echo "loop-mutations: unknown probe $probe" >&2; exit 2 ;;
   esac
   one_mutation "$record"

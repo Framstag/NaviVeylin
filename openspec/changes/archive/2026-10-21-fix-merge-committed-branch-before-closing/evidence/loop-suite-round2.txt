@@ -1,0 +1,359 @@
+# 2026-10-21T07:40:38Z · /home/tim/projects/NaviVeylin/.pi/worktrees/loop · 3681a4b + round-2 corrections
+$ bash tools/loop-selftest.sh
+PASS state#initAndShowRoundTrips
+PASS state#nextHonoursEveryStopCondition
+PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+PASS state#secondRunRefusesWithExit5
+PASS state#initKeepsTheStateItReplaces
+PASS state#initAnnouncesARunWithoutAStop
+PASS state#defaultsComeFromLoopConf
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074049')
+HEAD ist jetzt bei 253e39e init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS state#projectKeysAreReadFromLoopConf
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074057')
+HEAD ist jetzt bei 4600003 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS state#agentCommandIsTheOnlyIndirection
+PASS state#agentCommandRefusesAnEmptyValue
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+PASS prescreen#ranksBugsFirstAndDropsFeatures
+PASS prescreen#missingPathYieldsStale
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+PASS prescreen#doesNotClaimJudgementGates
+PASS prescreen#refusesReservedLabelInSelection
+PASS prescreen#withoutTheOptInIsNeverQueued
+PASS prescreen#settledItemIsDropped
+PASS prescreen#deviceItemIsAVerdictNotWork
+PASS prescreen#readsTheVerdictsFromTheProfile
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+PASS prescreen#previousAttemptBranchIsADecision
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS prescreen#harnessItemsLeadTheQueue
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+PASS prescreen#priorityDoesNotBypassTheGate
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+PASS prescreen#refusalLeavesATraceInTheTracker
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 76a1d8f init
+PASS worktree#seedsAllFourInputs
+PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 76a1d8f init
+Zu neuem Branch 'fix/issue-22-other' gewechselt
+PASS worktree#oneBranchPerItemOffTheBase
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 76a1d8f init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesWhenMainAdvanced
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074120')
+HEAD ist jetzt bei 0127c01 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+Zu neuem Branch 'loop-20261021-074127' gewechselt
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+unpick #21
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+escalate #21
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#keepsByDefaultAndRemovesOnRequest
+PASS worktree#keepsSourcesNotBuildOutput
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074139')
+HEAD ist jetzt bei d86e6f7 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#noPushWithoutTheFlag
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 024743d init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rH0bPO/case.T5vnDf/repo/.pi/issue-loop/runs/2026-10-21T07:41:45Z.json
+PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 024743d init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesABranchCarryingAPreviousAttempt
+PASS worktree#refusesABranchWhoseReviewFailed
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei cb3236f init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesToMergeOverADirtyProjectTree
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei cb3236f init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
+PASS labels#verdictToLabelMatrix
+PASS labels#holdCarriesItsReason
+PASS labels#trapRemovesInProgressOnSignal
+PASS labels#neverWritesReservedLabel
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074153')
+HEAD ist jetzt bei 9e3bf84 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS labels#writesOnlyBetweenChildren
+PASS labels#closeRemovesTheDecisionLabel
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074200')
+HEAD ist jetzt bei a81e63a init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerNamesEveryPhaseAndSkill
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074208')
+HEAD ist jetzt bei d4263dc init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerNamesTheDecisionField
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074215')
+HEAD ist jetzt bei 0b17419 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#reviewerCarriesTheEightItems
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074222')
+HEAD ist jetzt bei 50a9347 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#packageIsAFileAndNotInlined
+PASS prompt#inlineInjectionCannotReachTheInstructionPosition
+PASS run#preflightRefusalStopsBeforeAnyWork
+PASS run#blockedItemAsksItsOwnQuestion
+PASS run#falsifiedSkipClosesWithItsMeasurement
+PASS run#falsificationWithoutAMeasurementIsEscalated
+PASS run#mayCloseNoKeepsAFalsificationOpen
+PASS run#falsificationWithAChangedTreeIsBlocked
+PASS run#decisionCapRefusesToStart
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074311')
+HEAD ist jetzt bei 50d8e16 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#oneItemOrderIsFixed
+PASS run#childClaimWithoutCommitIsBlocked
+PASS run#blockedItemIsEscalatedWithItsReason
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074327')
+HEAD ist jetzt bei e2af1d8 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#childStartsInTheProjectRoot
+PASS run#childReportsWhileItWaits
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childThatNeverStartedIsTheRunsFault
+PASS run#hostBelowTheFloorBlocksTheItemAndStops
+PASS run#hostAboveTheFloorRunsTheItem
+PASS run#hostWithoutTheReadingPasses
+PASS run#childWriteOutsideTheWorktreeIsBlocked
+PASS run#reviewerWriteInTheProjectIsDiscarded
+PASS run#leftoverBranchIsRecordedNotDropped
+PASS run#branchThatAppearsWhileTheRunIsOpenIsRecorded
+PASS run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
+PASS run#mergesItsCommittedBranchBeforeClosing
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake
+PASS run#recordsAFailedReviewOnTheBranch
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074457')
+HEAD ist jetzt bei 467b19e init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#dirtyKeptWorktreeIsARecordedRefusal
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074505')
+HEAD ist jetzt bei ac30820 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#resetWorktreeDiscardsWhatItNames
+PASS run#aSkipClearsTheInProgressMark
+PASS run#skipEscalationCarriesTheDecision
+PASS run#claimedGateWithoutEvidenceIsBlocked
+PASS run#citedEvidenceMustTravelWithTheChange
+PASS run#needsDecisionIsEscalatedWithTheWork
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074537')
+HEAD ist jetzt bei 28082d3 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#noGateStillRuns
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rH0bPO/case.nJ9Ywi/repo/.pi/issue-loop/runs/2026-10-21T07:45:43Z.json
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei c998d65 init
+PASS run#dryRunTouchesNothing
+PASS run#reviewRoundsCapAtTwo
+PASS run#reviewBudgetIsARecordedValue
+PASS run#aZeroRoundBudgetIsRefused
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aReportCutTwiceBlocksAsTheTransportsFault
+PASS run#escalationCarriesTheDecision
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074715')
+HEAD ist jetzt bei 47bf764 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#mayCloseNoLeavesTheIssueOpen
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074722')
+HEAD ist jetzt bei 11db902 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#metricsRecordedPerItem
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074729')
+HEAD ist jetzt bei af45a8d init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074734')
+HEAD ist jetzt bei 48a70da init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#childUsageIsRecordedPerItem
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074741')
+HEAD ist jetzt bei dd3497f init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#plainTextChildStillReports
+PASS run#emptyQueueIsNotAFailure
+PASS run#stopReasonIsPrintedAndReported
+PASS run#staleBaseStopsTheRunWithItsReason
+PASS run#awaitingDecisionIsNotEscalatedAgain
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074805')
+HEAD ist jetzt bei 3cb05a3 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#commitsWithoutAnAmbientIdentity
+PASS run#reviewerWriteInvalidatesTheRound
+PASS run#reviewReadOnlyOffOnlyForDiagnosis
+PASS run#reviewDiffExcludesTheEvidenceArchive
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074833')
+HEAD ist jetzt bei 5985aef init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#engineNamesNoProjectFact
+PASS adapter#modeFlagIsItsOwnArgument
+PASS state#inheritedStatePathOutsideTheTreeIsIgnored
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074840')
+HEAD ist jetzt bei 9e6bfdb init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS report#headerAndTableShape
+PASS report#yieldIsCountedFromState
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#aVerdictAloneIsNoEscalation
+PASS report#misdiagnosedIsCountedApart
+PASS report#archivedStateIsReported
+PASS report#impossibleBudgetNamesAnotherRun
+PASS report#wallTimeAndReasonInTheTable
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.rH0bPO/case.rv1eLc/repo/.pi/issue-loop/runs/2026-10-21T07:49:04Z.json
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#actionsNameDecisionAndBranch
+PASS report#emptyRunSaysNone
+PASS clean#interruptedSuiteRemovesItsScratchTree
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-074908')
+HEAD ist jetzt bei 7b64b9f init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS clean#reportsWithoutApplyAndRemovesWithIt
+PASS clean#interruptedSuiteEndsItsProcessGroup
+PASS clean#reportsAndEndsAProcessLeftInAScratchTree
+PASS run#interruptedRunEndsTheChildItStarted
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+PASS usage#bareValueFlagDoesNotSwallowTheNextFlag
+PASS usage#bareValueFlagInASingleShotHarnessIsAUsageError
+PASS usage#noUnguardedValueFlagRemains
+loop-selftest: all 132 cases passed (JDK 27, offline, no token, no sandbox)
+exit 0

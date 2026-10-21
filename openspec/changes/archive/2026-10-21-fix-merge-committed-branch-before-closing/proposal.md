@@ -67,13 +67,16 @@ None.
 ### Modified Capabilities
 
 - `agent-issue-loop`: adds one requirement — the item is closed on a base that carries its fix — with two
-  scenarios (`run#mergesItsCommittedBranchBeforeClosing`, `worktree#refusesToMergeOverADirtyProjectTree`).
+  scenarios (`run#mergesItsCommittedBranchBeforeClosing`, `worktree#refusesToMergeOverADirtyProjectTree`);
+  review round 1 added the record/evidence assertions and the two cases
+  `run#doesNotCloseOnAMergeTheBaseCannotTake` and `worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom`.
 
 ## Impact
 
 - `tools/loop/worktree.sh` — one command (`merge-item`) and its dispatch entry.
 - `tools/loop/run.sh` — one helper (`merge_committed_branch`) and its call on the `closed` outcome.
-- `tools/loop-cases.sh` — the red case and the command-level refusal case.
+- `tools/loop-cases.sh` — four cases: the red case, the command-level refusal, the run-level refusal at closure
+  and the non-descendant arm.
 - `guidelines/Backlog.md` §7 — what the run does with the branch it committed.
 - `openspec/specs/agent-issue-loop/spec.md` — merged at archive.
 - No compiled file, no Android component, no native boundary: the change is shell tooling plus its suite.

@@ -500,7 +500,7 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   within `RENDER_FAULT_WINDOW_MS`) re-create the renderer through the gate (bounded by
   `MAX_RENDERER_RECOVERIES_PER_PERIOD` per started screen period, re-armed in `onStart`), and
   when the budget is spent the map says so instead of drawing nothing — see
-  `guidelines/MapRendering.md` §14. A loop iteration **must not swallow
+  `guidelines/MapRendering.md` §14 "Android Auto renderer". A loop iteration **must not swallow
   `CancellationException`**: a cancelled scope has to end the loop, or nothing can stop it.
   The **process-scoped navigation engine** the
   session shares its process with is part of this rule (change

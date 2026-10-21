@@ -5,8 +5,11 @@
 # Cases: a map that resolves (including a duplicate section number resolved by its heading text), a
 # dangling number, a bare number that is ambiguous, a heading text that matches nothing, a document the
 # table references but that does not exist, an AGENTS.md with no Documentation Map, a guideline document
-# that no route names, an extra guideline that is routed and resolves, and an extra guideline that is routed
-# but whose section does not exist.
+# that no route names, an extra guideline that is routed and resolves, an extra guideline that is routed
+# but whose section does not exist, and the same three reference forms written in a guideline *body*
+# rather than in the table — a bare duplicated number, a heading text that resolves it, and a section the
+# document does not have — plus a reference inside a fenced code block, which is an example, and a reference
+# inside a change artifact, which is history.
 #
 # The check derives its documents from the fixture's own `guidelines/` directory, so a fixture carries the
 # four base documents plus whichever extra one a case adds — and its table must name every document present.
@@ -89,7 +92,8 @@ expect() { # $1 name, $2 expected exit, $3 fixture dir, $4 expected substring
 
 agents_before=$(md5sum "$root/AGENTS.md" | awk '{print $1}')
 
-for d in good dangling ambiguous mismatch missing noregion extra-unrouted extra-routed extra-dangling; do
+for d in good dangling ambiguous mismatch missing noregion extra-unrouted extra-routed extra-dangling \
+         body-ambiguous body-text body-fenced body-dangling artifacts; do
   mk_fixture "$tmp/$d"
 done
 
@@ -128,6 +132,45 @@ add_doc "$tmp/extra-dangling" Logging
 write_agents "$tmp/extra-dangling" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |
 | logging | `Logging.md` §42 "Unused" |'
 expect "an extra guideline whose section does not exist is reported" 1 "$tmp/extra-dangling" "Logging.md §42"
+
+# a reference a guideline body writes is resolved the same way the table's rows are
+write_body() { # $1 = directory, $2 = body text of guidelines/Build.md
+  cat > "$1/guidelines/Build.md" <<FIXTURE
+# Build Specification
+
+## 99. Unused
+
+$2
+FIXTURE
+}
+
+write_body "$tmp/body-ambiguous" 'The renderer rules live in `UI.md` §14.'
+write_agents "$tmp/body-ambiguous" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect "a bare duplicated number in a guideline body is reported as ambiguous" 1 "$tmp/body-ambiguous" "ambiguous"
+
+write_body "$tmp/body-text" 'The renderer rules live in `UI.md` §14 "Android Auto renderer".'
+write_agents "$tmp/body-text" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect "a heading text in a guideline body resolves its duplicated number" 0 "$tmp/body-text" "all 6 section references resolve"
+
+write_body "$tmp/body-fenced" 'An example, quoted:
+
+```
+The renderer rules live in `UI.md` §14.
+```'
+write_agents "$tmp/body-fenced" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect "a reference inside a fenced block is not a reference" 0 "$tmp/body-fenced" "all 5 section references resolve"
+
+write_body "$tmp/body-dangling" 'The renderer rules live in `UI.md` §42.'
+write_agents "$tmp/body-dangling" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect "a guideline body naming a section its document lacks is reported" 1 "$tmp/body-dangling" "UI.md §42"
+
+# an archived change and an open change artifact are history: their references are not resolved
+mkdir -p "$tmp/artifacts/openspec/changes/archive/2026-01-01-old" "$tmp/artifacts/openspec/changes/open-thing"
+for d in openspec/changes/archive/2026-01-01-old openspec/changes/open-thing; do
+  printf 'The renderer rules live in `UI.md` §14.\n' > "$tmp/artifacts/$d/proposal.md"
+done
+write_agents "$tmp/artifacts" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect "a reference in a change artifact is not checked" 0 "$tmp/artifacts" "all 5 section references resolve"
 
 agents_after=$(md5sum "$root/AGENTS.md" | awk '{print $1}')
 if [ "$agents_before" = "$agents_after" ]; then

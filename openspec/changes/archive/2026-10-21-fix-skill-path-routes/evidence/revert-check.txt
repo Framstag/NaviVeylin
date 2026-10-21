@@ -1,0 +1,14 @@
+2026-10-21T11:34:49Z
+$ bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json
+skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+exit=0
+
+$ bash tools/check-doc-routes-selftest.sh --case routes#everyReferenceResolves
+PASS  routes#everyReferenceResolves — a map where every reference resolves (exit 0)
+check-doc-routes-selftest: 1 passed, 0 failed
+exit=0

@@ -1,0 +1,48 @@
+# Red test on HEAD — `routes#aSkillPathThatNoLongerResolvesIsReported` and its three siblings
+
+Item #13 (`nvid 172`). Base commit `44b673f424a75dbfae97e704f7e8ece03f3670b2`. Worktree
+`.pi/worktrees/loop`.
+
+The case was added to `tools/check-doc-routes-selftest.sh` **before** `tools/check-doc-routes.sh` was
+changed, and the self-test was run against HEAD's check. Case names at this point were still the human
+sentences (the id form landed in the same change); the ids they carry now are in brackets.
+
+Timestamp: `2026-10-21T11:32:55Z`
+Command: `bash tools/check-doc-routes-selftest.sh`
+Exit: 1
+
+```
+PASS  a map where every reference resolves (exit 0)
+PASS  a dangling section number fails naming the reference (exit 1)
+PASS  a bare duplicated number is reported as ambiguous (exit 1)
+PASS  heading text that matches nothing fails (exit 1)
+PASS  a document the table references but that does not exist is reported (exit 1)
+PASS  an AGENTS.md without a Documentation Map is reported (exit 2)
+PASS  an extra guideline that no route names is reported (exit 1)
+PASS  an extra guideline that is routed and resolves passes without editing the check (exit 0)
+PASS  an extra guideline whose section does not exist is reported (exit 1)
+FAIL  a skill path that resolves passes: expected exit 0 containing 'all 1 skill references resolve', got exit 0:
+        check-doc-routes: all 5 section references resolve
+FAIL  a skill path that no longer resolves is reported: expected exit 1 containing '.pi/skills/pixel-check', got exit 0:
+        check-doc-routes: all 5 section references resolve
+FAIL  a skill directory without a SKILL.md is reported: expected exit 1 containing '.pi/skills/pixel-check', got exit 0:
+        check-doc-routes: all 5 section references resolve
+FAIL  a skill name that only prefixes an existing one is reported: expected exit 1 containing '.pi/skills/pixel-check', got exit 0:
+        check-doc-routes: all 5 section references resolve
+PASS  the repository's AGENTS.md is untouched by every case
+check-doc-routes-selftest: 10 passed, 4 failed
+exit=1
+```
+
+Case ids after the change (`tools/check-doc-routes-selftest.sh`):
+
+| red case (HEAD sentence) | id |
+|---|---|
+| a skill path that resolves passes | `routes#aSkillTheTreeCarriesResolvesWithoutEditingTheCheck` |
+| a skill path that no longer resolves is reported | `routes#aSkillPathThatNoLongerResolvesIsReported` |
+| a skill directory without a SKILL.md is reported | `routes#aSkillDirectoryWithoutItsSkillFileIsReported` |
+| a skill name that only prefixes an existing one is reported | `routes#aSkillNameThatOnlyPrefixesAnExistingOneIsReported` |
+
+`tests=14 failures=4` is the shell form of the JUnit tally: the self-test is the suite (no Gradle, no device,
+no network), so its `PASS`/`FAIL <case>` lines plus the exit code are the evidence
+(`.pi/skills/revert-check`, "When the gate is a shell self-test, not Gradle").

@@ -1,0 +1,14 @@
+# 2026-10-21T11:09:12Z
+# user-visible shipped specs that no highlight names (the measurement the item reports as 38 on 2026-10-13):
+39
+# named by no highlight, as examples:
+always-on-display
+auto/browse
+auto-destination-picker
+auto/free-driving
+auto-map-interaction
+auto/map-pan
+auto/preferences
+auto-smooth-follow
+# highlights in the shortlist:
+19

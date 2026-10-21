@@ -1,0 +1,8 @@
+# 2026-10-21T11:09:10Z bash tools/gen-feature-list.sh --check-classification
+specs read: 176
+classified: 176
+unclassified: 0
+stale: 0
+car-only areas: 1
+highlights: 19
+exit=0

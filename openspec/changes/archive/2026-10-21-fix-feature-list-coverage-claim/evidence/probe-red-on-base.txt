@@ -1,0 +1,12 @@
+# red probe against the run's base commit 44b673f4 (a `git archive` extraction, so the diff under review is not the input)
+# taken 2026-10-21T11:08:52Z
+# command: bash openspec/changes/fix-feature-list-coverage-claim/evidence/red-probe.sh --root /tmp/head-44b673f4
+MISSING catalogue: it is not moved into the car-only area
+MISSING catalogue: the car-only capability of a feature area stays under that area
+MISSING catalogue: the report states the density it achieved
+MISSING density: a merged area passes
+MISSING density: one entry per capability fails the run
+MISSING gates: a user-visible spec no bullet reaches fails the run
+MISSING gates: the keyless bullet is named
+stated cases: 39, without a carrying case: 7
+exit=1

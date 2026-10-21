@@ -1,0 +1,651 @@
+Classfile /home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/intermediates/built_in_kotlinc/mobileDebug/compileMobileDebugKotlin/classes/com/naviveylin/navigation/NavigationNotificationController.class
+  Last modified 21.10.2026; size 6225 bytes
+  SHA-256 checksum cd6edefe2556e83d67f8ba34d6304456cfc1760399ae391a4eb614fb01db90b5
+  Compiled from "NavigationNotificationController.kt"
+public final class com.naviveylin.navigation.NavigationNotificationController
+  minor version: 0
+  major version: 61
+  flags: (0x0031) ACC_PUBLIC, ACC_FINAL, ACC_SUPER
+  this_class: #2                          // com/naviveylin/navigation/NavigationNotificationController
+  super_class: #4                         // java/lang/Object
+  interfaces: 0, fields: 8, methods: 11, attributes: 4
+Constant pool:
+    #1 = Utf8               com/naviveylin/navigation/NavigationNotificationController
+    #2 = Class              #1            // com/naviveylin/navigation/NavigationNotificationController
+    #3 = Utf8               java/lang/Object
+    #4 = Class              #3            // java/lang/Object
+    #5 = Utf8               <init>
+    #6 = Utf8               (Landroid/content/Context;Lcom/naviveylin/core/NavigationViewModel;Lcom/naviveylin/core/DrivingModeProvider;)V
+    #7 = Utf8               Ljavax/inject/Inject;
+    #8 = Utf8               Ldagger/hilt/android/qualifiers/ApplicationContext;
+    #9 = Utf8               Lorg/jetbrains/annotations/NotNull;
+   #10 = Utf8               context
+   #11 = String             #10           // context
+   #12 = Utf8               kotlin/jvm/internal/Intrinsics
+   #13 = Class              #12           // kotlin/jvm/internal/Intrinsics
+   #14 = Utf8               checkNotNullParameter
+   #15 = Utf8               (Ljava/lang/Object;Ljava/lang/String;)V
+   #16 = NameAndType        #14:#15       // checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+   #17 = Methodref          #13.#16       // kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+   #18 = Utf8               navigationViewModel
+   #19 = String             #18           // navigationViewModel
+   #20 = Utf8               drivingModeProvider
+   #21 = String             #20           // drivingModeProvider
+   #22 = Utf8               ()V
+   #23 = NameAndType        #5:#22        // "<init>":()V
+   #24 = Methodref          #4.#23        // java/lang/Object."<init>":()V
+   #25 = Utf8               Landroid/content/Context;
+   #26 = NameAndType        #10:#25       // context:Landroid/content/Context;
+   #27 = Fieldref           #2.#26        // com/naviveylin/navigation/NavigationNotificationController.context:Landroid/content/Context;
+   #28 = Utf8               Lcom/naviveylin/core/NavigationViewModel;
+   #29 = NameAndType        #18:#28       // navigationViewModel:Lcom/naviveylin/core/NavigationViewModel;
+   #30 = Fieldref           #2.#29        // com/naviveylin/navigation/NavigationNotificationController.navigationViewModel:Lcom/naviveylin/core/NavigationViewModel;
+   #31 = Utf8               Lcom/naviveylin/core/DrivingModeProvider;
+   #32 = NameAndType        #20:#31       // drivingModeProvider:Lcom/naviveylin/core/DrivingModeProvider;
+   #33 = Fieldref           #2.#32        // com/naviveylin/navigation/NavigationNotificationController.drivingModeProvider:Lcom/naviveylin/core/DrivingModeProvider;
+   #34 = Utf8               kotlinx/coroutines/SupervisorKt
+   #35 = Class              #34           // kotlinx/coroutines/SupervisorKt
+   #36 = Utf8               SupervisorJob$default
+   #37 = Utf8               (Lkotlinx/coroutines/Job;ILjava/lang/Object;)Lkotlinx/coroutines/CompletableJob;
+   #38 = NameAndType        #36:#37       // SupervisorJob$default:(Lkotlinx/coroutines/Job;ILjava/lang/Object;)Lkotlinx/coroutines/CompletableJob;
+   #39 = Methodref          #35.#38       // kotlinx/coroutines/SupervisorKt.SupervisorJob$default:(Lkotlinx/coroutines/Job;ILjava/lang/Object;)Lkotlinx/coroutines/CompletableJob;
+   #40 = Utf8               kotlinx/coroutines/Dispatchers
+   #41 = Class              #40           // kotlinx/coroutines/Dispatchers
+   #42 = Utf8               getMain
+   #43 = Utf8               ()Lkotlinx/coroutines/MainCoroutineDispatcher;
+   #44 = NameAndType        #42:#43       // getMain:()Lkotlinx/coroutines/MainCoroutineDispatcher;
+   #45 = Methodref          #41.#44       // kotlinx/coroutines/Dispatchers.getMain:()Lkotlinx/coroutines/MainCoroutineDispatcher;
+   #46 = Utf8               kotlin/coroutines/CoroutineContext
+   #47 = Class              #46           // kotlin/coroutines/CoroutineContext
+   #48 = Utf8               kotlinx/coroutines/CompletableJob
+   #49 = Class              #48           // kotlinx/coroutines/CompletableJob
+   #50 = Utf8               plus
+   #51 = Utf8               (Lkotlin/coroutines/CoroutineContext;)Lkotlin/coroutines/CoroutineContext;
+   #52 = NameAndType        #50:#51       // plus:(Lkotlin/coroutines/CoroutineContext;)Lkotlin/coroutines/CoroutineContext;
+   #53 = InterfaceMethodref #49.#52       // kotlinx/coroutines/CompletableJob.plus:(Lkotlin/coroutines/CoroutineContext;)Lkotlin/coroutines/CoroutineContext;
+   #54 = Utf8               kotlinx/coroutines/CoroutineScopeKt
+   #55 = Class              #54           // kotlinx/coroutines/CoroutineScopeKt
+   #56 = Utf8               CoroutineScope
+   #57 = Utf8               (Lkotlin/coroutines/CoroutineContext;)Lkotlinx/coroutines/CoroutineScope;
+   #58 = NameAndType        #56:#57       // CoroutineScope:(Lkotlin/coroutines/CoroutineContext;)Lkotlinx/coroutines/CoroutineScope;
+   #59 = Methodref          #55.#58       // kotlinx/coroutines/CoroutineScopeKt.CoroutineScope:(Lkotlin/coroutines/CoroutineContext;)Lkotlinx/coroutines/CoroutineScope;
+   #60 = Utf8               scope
+   #61 = Utf8               Lkotlinx/coroutines/CoroutineScope;
+   #62 = NameAndType        #60:#61       // scope:Lkotlinx/coroutines/CoroutineScope;
+   #63 = Fieldref           #2.#62        // com/naviveylin/navigation/NavigationNotificationController.scope:Lkotlinx/coroutines/CoroutineScope;
+   #64 = Utf8               com/naviveylin/navigation/NavigationNotificationController$1
+   #65 = Class              #64           // com/naviveylin/navigation/NavigationNotificationController$1
+   #66 = Utf8               (Lcom/naviveylin/navigation/NavigationNotificationController;Lkotlin/coroutines/Continuation;)V
+   #67 = NameAndType        #5:#66        // "<init>":(Lcom/naviveylin/navigation/NavigationNotificationController;Lkotlin/coroutines/Continuation;)V
+   #68 = Methodref          #65.#67       // com/naviveylin/navigation/NavigationNotificationController$1."<init>":(Lcom/naviveylin/navigation/NavigationNotificationController;Lkotlin/coroutines/Continuation;)V
+   #69 = Utf8               kotlin/jvm/functions/Function2
+   #70 = Class              #69           // kotlin/jvm/functions/Function2
+   #71 = Utf8               kotlinx/coroutines/BuildersKt
+   #72 = Class              #71           // kotlinx/coroutines/BuildersKt
+   #73 = Utf8               launch$default
+   #74 = Utf8               (Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/CoroutineContext;Lkotlinx/coroutines/CoroutineStart;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+   #75 = NameAndType        #73:#74       // launch$default:(Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/CoroutineContext;Lkotlinx/coroutines/CoroutineStart;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+   #76 = Methodref          #72.#75       // kotlinx/coroutines/BuildersKt.launch$default:(Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/CoroutineContext;Lkotlinx/coroutines/CoroutineStart;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+   #77 = Utf8               this
+   #78 = Utf8               Lcom/naviveylin/navigation/NavigationNotificationController;
+   #79 = Utf8               shouldRun$app
+   #80 = Utf8               (Lcom/naviveylin/core/NavigationState;Z)Z
+   #81 = Utf8               navState
+   #82 = String             #81           // navState
+   #83 = Utf8               com/naviveylin/core/NavigationState
+   #84 = Class              #83           // com/naviveylin/core/NavigationState
+   #85 = Utf8               isNavigating
+   #86 = Utf8               ()Z
+   #87 = NameAndType        #85:#86       // isNavigating:()Z
+   #88 = Methodref          #84.#87       // com/naviveylin/core/NavigationState.isNavigating:()Z
+   #89 = Utf8               Lcom/naviveylin/core/NavigationState;
+   #90 = Utf8               freeDriving
+   #91 = Utf8               Z
+   #92 = Utf8               startService
+   #93 = Utf8               java/lang/Exception
+   #94 = Class              #93           // java/lang/Exception
+   #95 = Utf8               serviceRunning
+   #96 = NameAndType        #95:#91       // serviceRunning:Z
+   #97 = Fieldref           #2.#96        // com/naviveylin/navigation/NavigationNotificationController.serviceRunning:Z
+   #98 = Utf8               android/content/Intent
+   #99 = Class              #98           // android/content/Intent
+  #100 = Utf8               com/naviveylin/service/NavigationNotificationService
+  #101 = Class              #100          // com/naviveylin/service/NavigationNotificationService
+  #102 = Utf8               (Landroid/content/Context;Ljava/lang/Class;)V
+  #103 = NameAndType        #5:#102       // "<init>":(Landroid/content/Context;Ljava/lang/Class;)V
+  #104 = Methodref          #99.#103      // android/content/Intent."<init>":(Landroid/content/Context;Ljava/lang/Class;)V
+  #105 = Utf8               com.naviveylin.action.START_NAV_NOTIFICATION
+  #106 = String             #105          // com.naviveylin.action.START_NAV_NOTIFICATION
+  #107 = Utf8               setAction
+  #108 = Utf8               (Ljava/lang/String;)Landroid/content/Intent;
+  #109 = NameAndType        #107:#108     // setAction:(Ljava/lang/String;)Landroid/content/Intent;
+  #110 = Methodref          #99.#109      // android/content/Intent.setAction:(Ljava/lang/String;)Landroid/content/Intent;
+  #111 = Utf8               setAction(...)
+  #112 = String             #111          // setAction(...)
+  #113 = Utf8               checkNotNullExpressionValue
+  #114 = NameAndType        #113:#15      // checkNotNullExpressionValue:(Ljava/lang/Object;Ljava/lang/String;)V
+  #115 = Methodref          #13.#114      // kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue:(Ljava/lang/Object;Ljava/lang/String;)V
+  #116 = Utf8               android/content/Context
+  #117 = Class              #116          // android/content/Context
+  #118 = Utf8               startForegroundService
+  #119 = Utf8               (Landroid/content/Intent;)Landroid/content/ComponentName;
+  #120 = NameAndType        #118:#119     // startForegroundService:(Landroid/content/Intent;)Landroid/content/ComponentName;
+  #121 = Methodref          #117.#120     // android/content/Context.startForegroundService:(Landroid/content/Intent;)Landroid/content/ComponentName;
+  #122 = Utf8               NavigationNotificationController
+  #123 = String             #122          // NavigationNotificationController
+  #124 = Utf8               startForegroundService failed
+  #125 = String             #124          // startForegroundService failed
+  #126 = Utf8               java/lang/Throwable
+  #127 = Class              #126          // java/lang/Throwable
+  #128 = Utf8               android/util/Log
+  #129 = Class              #128          // android/util/Log
+  #130 = Utf8               w
+  #131 = Utf8               (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+  #132 = NameAndType        #130:#131     // w:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+  #133 = Methodref          #129.#132     // android/util/Log.w:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+  #134 = Utf8               e
+  #135 = Utf8               Ljava/lang/Exception;
+  #136 = Utf8               intent
+  #137 = Utf8               Landroid/content/Intent;
+  #138 = Utf8               stopService
+  #139 = Utf8               com.naviveylin.action.STOP_NAV_NOTIFICATION
+  #140 = String             #139          // com.naviveylin.action.STOP_NAV_NOTIFICATION
+  #141 = NameAndType        #92:#119      // startService:(Landroid/content/Intent;)Landroid/content/ComponentName;
+  #142 = Methodref          #117.#141     // android/content/Context.startService:(Landroid/content/Intent;)Landroid/content/ComponentName;
+  #143 = Utf8               java/lang/Comparable
+  #144 = Class              #143          // java/lang/Comparable
+  #145 = Utf8               stopService failed
+  #146 = String             #145          // stopService failed
+  #147 = Utf8               dispose
+  #148 = Utf8               cancel$default
+  #149 = Utf8               (Lkotlinx/coroutines/CoroutineScope;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V
+  #150 = NameAndType        #148:#149     // cancel$default:(Lkotlinx/coroutines/CoroutineScope;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V
+  #151 = Methodref          #55.#150      // kotlinx/coroutines/CoroutineScopeKt.cancel$default:(Lkotlinx/coroutines/CoroutineScope;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V
+  #152 = Utf8               access$getNavigationViewModel$p
+  #153 = Utf8               (Lcom/naviveylin/navigation/NavigationNotificationController;)Lcom/naviveylin/core/NavigationViewModel;
+  #154 = Utf8               $this
+  #155 = Utf8               access$getDrivingModeProvider$p
+  #156 = Utf8               (Lcom/naviveylin/navigation/NavigationNotificationController;)Lcom/naviveylin/core/DrivingModeProvider;
+  #157 = Utf8               access$getServiceRunning$p
+  #158 = Utf8               (Lcom/naviveylin/navigation/NavigationNotificationController;)Z
+  #159 = Utf8               access$startService
+  #160 = Utf8               (Lcom/naviveylin/navigation/NavigationNotificationController;)V
+  #161 = NameAndType        #92:#22       // startService:()V
+  #162 = Methodref          #2.#161       // com/naviveylin/navigation/NavigationNotificationController.startService:()V
+  #163 = Utf8               access$stopService
+  #164 = NameAndType        #138:#22      // stopService:()V
+  #165 = Methodref          #2.#164       // com/naviveylin/navigation/NavigationNotificationController.stopService:()V
+  #166 = Utf8               <clinit>
+  #167 = Utf8               com/naviveylin/navigation/NavigationNotificationController$Companion
+  #168 = Class              #167          // com/naviveylin/navigation/NavigationNotificationController$Companion
+  #169 = Utf8               (Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+  #170 = NameAndType        #5:#169       // "<init>":(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+  #171 = Methodref          #168.#170     // com/naviveylin/navigation/NavigationNotificationController$Companion."<init>":(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+  #172 = Utf8               Companion
+  #173 = Utf8               Lcom/naviveylin/navigation/NavigationNotificationController$Companion;
+  #174 = NameAndType        #172:#173     // Companion:Lcom/naviveylin/navigation/NavigationNotificationController$Companion;
+  #175 = Fieldref           #2.#174       // com/naviveylin/navigation/NavigationNotificationController.Companion:Lcom/naviveylin/navigation/NavigationNotificationController$Companion;
+  #176 = Utf8               $stable
+  #177 = Utf8               I
+  #178 = NameAndType        #176:#177     // $stable:I
+  #179 = Fieldref           #2.#178       // com/naviveylin/navigation/NavigationNotificationController.$stable:I
+  #180 = Utf8               TAG
+  #181 = Utf8               Ljava/lang/String;
+  #182 = Utf8               Ljava/lang/Deprecated;
+  #183 = Utf8               Ljavax/inject/Singleton;
+  #184 = Utf8               Landroidx/compose/runtime/internal/StabilityInferred;
+  #185 = Utf8               parameters
+  #186 = Integer            0
+  #187 = Utf8               Lkotlin/Metadata;
+  #188 = Utf8               mv
+  #189 = Integer            2
+  #190 = Utf8               k
+  #191 = Integer            1
+  #192 = Utf8               xi
+  #193 = Integer            48
+  #194 = Utf8               d1
+  #195 = Utf8               \u0000<\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000b\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\u0002\n\u0002\b\u0004\b\u0007\u0018\u0000 \u00172\u00020\u0001:\u0001\u0017B#\b\u0007\u0012\b\b\u0001\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005\u0012\u0006\u0010\u0006\u001a\u00020\u0007¢\u0006\u0004\b\b\u0010\tJ\u001d\u0010\u000e\u001a\u00020\r2\u0006\u0010\u000f\u001a\u00020\u00102\u0006\u0010\u0011\u001a\u00020\rH\u0000¢\u0006\u0002\b\u0012J\b\u0010\u0013\u001a\u00020\u0014H\u0002J\b\u0010\u0015\u001a\u00020\u0014H\u0002J\u0006\u0010\u0016\u001a\u00020\u0014R\u000e\u0010\u0002\u001a\u00020\u0003X\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\u0004\u001a\u00020\u0005X\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\u0006\u001a\u00020\u0007X\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\n\u001a\u00020\u000bX\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\f\u001a\u00020\rX\u0082\u000e¢\u0006\u0002\n\u0000¨\u0006\u0018
+  #196 = Utf8               d2
+  #197 = Utf8
+  #198 = Utf8               shouldRun
+  #199 = Utf8               app
+  #200 = Utf8               NavigationNotificationController.kt
+  #201 = Utf8               RuntimeInvisibleAnnotations
+  #202 = Utf8               ConstantValue
+  #203 = Utf8               Deprecated
+  #204 = Utf8               RuntimeVisibleAnnotations
+  #205 = Utf8               Code
+  #206 = Utf8               LineNumberTable
+  #207 = Utf8               LocalVariableTable
+  #208 = Utf8               RuntimeVisibleParameterAnnotations
+  #209 = Utf8               RuntimeInvisibleParameterAnnotations
+  #210 = Utf8               StackMapTable
+  #211 = Utf8               InnerClasses
+  #212 = Utf8               SourceFile
+{
+  private static final com.naviveylin.navigation.NavigationNotificationController$Companion Companion;
+    descriptor: Lcom/naviveylin/navigation/NavigationNotificationController$Companion;
+    flags: (0x001a) ACC_PRIVATE, ACC_STATIC, ACC_FINAL
+    RuntimeInvisibleAnnotations:
+      0: #9()
+        org.jetbrains.annotations.NotNull
+
+  private final android.content.Context context;
+    descriptor: Landroid/content/Context;
+    flags: (0x0012) ACC_PRIVATE, ACC_FINAL
+    RuntimeInvisibleAnnotations:
+      0: #9()
+        org.jetbrains.annotations.NotNull
+
+  private final com.naviveylin.core.NavigationViewModel navigationViewModel;
+    descriptor: Lcom/naviveylin/core/NavigationViewModel;
+    flags: (0x0012) ACC_PRIVATE, ACC_FINAL
+    RuntimeInvisibleAnnotations:
+      0: #9()
+        org.jetbrains.annotations.NotNull
+
+  private final com.naviveylin.core.DrivingModeProvider drivingModeProvider;
+    descriptor: Lcom/naviveylin/core/DrivingModeProvider;
+    flags: (0x0012) ACC_PRIVATE, ACC_FINAL
+    RuntimeInvisibleAnnotations:
+      0: #9()
+        org.jetbrains.annotations.NotNull
+
+  private final kotlinx.coroutines.CoroutineScope scope;
+    descriptor: Lkotlinx/coroutines/CoroutineScope;
+    flags: (0x0012) ACC_PRIVATE, ACC_FINAL
+    RuntimeInvisibleAnnotations:
+      0: #9()
+        org.jetbrains.annotations.NotNull
+
+  private boolean serviceRunning;
+    descriptor: Z
+    flags: (0x0002) ACC_PRIVATE
+
+  public static final int $stable;
+    descriptor: I
+    flags: (0x0019) ACC_PUBLIC, ACC_STATIC, ACC_FINAL
+
+  public static final java.lang.String TAG;
+    descriptor: Ljava/lang/String;
+    flags: (0x0019) ACC_PUBLIC, ACC_STATIC, ACC_FINAL
+    ConstantValue: String NavigationNotificationController
+    Deprecated: true
+    RuntimeVisibleAnnotations:
+      0: #182()
+        java.lang.Deprecated
+    RuntimeInvisibleAnnotations:
+      0: #9()
+        org.jetbrains.annotations.NotNull
+
+  public com.naviveylin.navigation.NavigationNotificationController(android.content.Context, com.naviveylin.core.NavigationViewModel, com.naviveylin.core.DrivingModeProvider);
+    descriptor: (Landroid/content/Context;Lcom/naviveylin/core/NavigationViewModel;Lcom/naviveylin/core/DrivingModeProvider;)V
+    flags: (0x0001) ACC_PUBLIC
+    Code:
+      stack=7, locals=4, args_size=4
+         0: aload_1
+         1: ldc           #11                 // String context
+         3: invokestatic  #17                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+         6: aload_2
+         7: ldc           #19                 // String navigationViewModel
+         9: invokestatic  #17                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+        12: aload_3
+        13: ldc           #21                 // String drivingModeProvider
+        15: invokestatic  #17                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+        18: aload_0
+        19: invokespecial #24                 // Method java/lang/Object."<init>":()V
+        22: aload_0
+        23: aload_1
+        24: putfield      #27                 // Field context:Landroid/content/Context;
+        27: aload_0
+        28: aload_2
+        29: putfield      #30                 // Field navigationViewModel:Lcom/naviveylin/core/NavigationViewModel;
+        32: aload_0
+        33: aload_3
+        34: putfield      #33                 // Field drivingModeProvider:Lcom/naviveylin/core/DrivingModeProvider;
+        37: aload_0
+        38: aconst_null
+        39: iconst_1
+        40: aconst_null
+        41: invokestatic  #39                 // Method kotlinx/coroutines/SupervisorKt.SupervisorJob$default:(Lkotlinx/coroutines/Job;ILjava/lang/Object;)Lkotlinx/coroutines/CompletableJob;
+        44: invokestatic  #45                 // Method kotlinx/coroutines/Dispatchers.getMain:()Lkotlinx/coroutines/MainCoroutineDispatcher;
+        47: checkcast     #47                 // class kotlin/coroutines/CoroutineContext
+        50: invokeinterface #53,  2           // InterfaceMethod kotlinx/coroutines/CompletableJob.plus:(Lkotlin/coroutines/CoroutineContext;)Lkotlin/coroutines/CoroutineContext;
+        55: invokestatic  #59                 // Method kotlinx/coroutines/CoroutineScopeKt.CoroutineScope:(Lkotlin/coroutines/CoroutineContext;)Lkotlinx/coroutines/CoroutineScope;
+        58: putfield      #63                 // Field scope:Lkotlinx/coroutines/CoroutineScope;
+        61: nop
+        62: aload_0
+        63: getfield      #63                 // Field scope:Lkotlinx/coroutines/CoroutineScope;
+        66: aconst_null
+        67: aconst_null
+        68: new           #65                 // class com/naviveylin/navigation/NavigationNotificationController$1
+        71: dup
+        72: aload_0
+        73: aconst_null
+        74: invokespecial #68                 // Method com/naviveylin/navigation/NavigationNotificationController$1."<init>":(Lcom/naviveylin/navigation/NavigationNotificationController;Lkotlin/coroutines/Continuation;)V
+        77: checkcast     #70                 // class kotlin/jvm/functions/Function2
+        80: iconst_3
+        81: aconst_null
+        82: invokestatic  #76                 // Method kotlinx/coroutines/BuildersKt.launch$default:(Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/CoroutineContext;Lkotlinx/coroutines/CoroutineStart;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+        85: pop
+        86: nop
+        87: return
+      LineNumberTable:
+        line 35: 18
+        line 36: 22
+        line 37: 27
+        line 38: 32
+        line 41: 37
+        line 44: 61
+        line 45: 62
+        line 59: 86
+        line 35: 87
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      88     0  this   Lcom/naviveylin/navigation/NavigationNotificationController;
+            0      88     1 context   Landroid/content/Context;
+            0      88     2 navigationViewModel   Lcom/naviveylin/core/NavigationViewModel;
+            0      88     3 drivingModeProvider   Lcom/naviveylin/core/DrivingModeProvider;
+    RuntimeVisibleAnnotations:
+      0: #7()
+        javax.inject.Inject
+    RuntimeVisibleParameterAnnotations:
+      parameter 0:
+        0: #8()
+          dagger.hilt.android.qualifiers.ApplicationContext
+      parameter 1:
+      parameter 2:
+    RuntimeInvisibleParameterAnnotations:
+      parameter 0:
+        0: #9()
+          org.jetbrains.annotations.NotNull
+      parameter 1:
+        0: #9()
+          org.jetbrains.annotations.NotNull
+      parameter 2:
+        0: #9()
+          org.jetbrains.annotations.NotNull
+
+  public final boolean shouldRun$app(com.naviveylin.core.NavigationState, boolean);
+    descriptor: (Lcom/naviveylin/core/NavigationState;Z)Z
+    flags: (0x0011) ACC_PUBLIC, ACC_FINAL
+    Code:
+      stack=2, locals=3, args_size=3
+         0: aload_1
+         1: ldc           #82                 // String navState
+         3: invokestatic  #17                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+         6: aload_1
+         7: invokevirtual #88                 // Method com/naviveylin/core/NavigationState.isNavigating:()Z
+        10: ifne          17
+        13: iload_2
+        14: ifeq          21
+        17: iconst_1
+        18: goto          22
+        21: iconst_0
+        22: ireturn
+      StackMapTable: number_of_entries = 3
+        frame_type = 17 /* same */
+        frame_type = 3 /* same */
+        frame_type = 64 /* same_locals_1_stack_item */
+          stack = [ int ]
+      LineNumberTable:
+        line 63: 6
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      23     0  this   Lcom/naviveylin/navigation/NavigationNotificationController;
+            0      23     1 navState   Lcom/naviveylin/core/NavigationState;
+            0      23     2 freeDriving   Z
+    RuntimeInvisibleParameterAnnotations:
+      parameter 0:
+        0: #9()
+          org.jetbrains.annotations.NotNull
+      parameter 1:
+
+  private final void startService();
+    descriptor: ()V
+    flags: (0x0012) ACC_PRIVATE, ACC_FINAL
+    Code:
+      stack=4, locals=3, args_size=1
+         0: aload_0
+         1: iconst_1
+         2: putfield      #97                 // Field serviceRunning:Z
+         5: new           #99                 // class android/content/Intent
+         8: dup
+         9: aload_0
+        10: getfield      #27                 // Field context:Landroid/content/Context;
+        13: ldc           #101                // class com/naviveylin/service/NavigationNotificationService
+        15: invokespecial #104                // Method android/content/Intent."<init>":(Landroid/content/Context;Ljava/lang/Class;)V
+        18: ldc           #106                // String com.naviveylin.action.START_NAV_NOTIFICATION
+        20: invokevirtual #110                // Method android/content/Intent.setAction:(Ljava/lang/String;)Landroid/content/Intent;
+        23: dup
+        24: ldc           #112                // String setAction(...)
+        26: invokestatic  #115                // Method kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue:(Ljava/lang/Object;Ljava/lang/String;)V
+        29: astore_1
+        30: nop
+        31: aload_0
+        32: getfield      #27                 // Field context:Landroid/content/Context;
+        35: aload_1
+        36: invokevirtual #121                // Method android/content/Context.startForegroundService:(Landroid/content/Intent;)Landroid/content/ComponentName;
+        39: pop
+        40: goto          61
+        43: astore_2
+        44: ldc           #123                // String NavigationNotificationController
+        46: ldc           #125                // String startForegroundService failed
+        48: aload_2
+        49: checkcast     #127                // class java/lang/Throwable
+        52: invokestatic  #133                // Method android/util/Log.w:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+        55: pop
+        56: aload_0
+        57: iconst_0
+        58: putfield      #97                 // Field serviceRunning:Z
+        61: return
+      Exception table:
+         from    to  target type
+            30    40    43   Class java/lang/Exception
+      StackMapTable: number_of_entries = 2
+        frame_type = 255 /* full_frame */
+          offset_delta = 43
+          locals = [ class com/naviveylin/navigation/NavigationNotificationController, class android/content/Intent ]
+          stack = [ class java/lang/Exception ]
+        frame_type = 17 /* same */
+      LineNumberTable:
+        line 66: 0
+        line 67: 5
+        line 68: 18
+        line 67: 29
+        line 69: 30
+        line 70: 31
+        line 71: 43
+        line 77: 44
+        line 78: 56
+        line 80: 61
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+           44      17     2     e   Ljava/lang/Exception;
+           30      32     1 intent   Landroid/content/Intent;
+            0      62     0  this   Lcom/naviveylin/navigation/NavigationNotificationController;
+
+  private final void stopService();
+    descriptor: ()V
+    flags: (0x0012) ACC_PRIVATE, ACC_FINAL
+    Code:
+      stack=4, locals=3, args_size=1
+         0: aload_0
+         1: iconst_0
+         2: putfield      #97                 // Field serviceRunning:Z
+         5: new           #99                 // class android/content/Intent
+         8: dup
+         9: aload_0
+        10: getfield      #27                 // Field context:Landroid/content/Context;
+        13: ldc           #101                // class com/naviveylin/service/NavigationNotificationService
+        15: invokespecial #104                // Method android/content/Intent."<init>":(Landroid/content/Context;Ljava/lang/Class;)V
+        18: ldc           #140                // String com.naviveylin.action.STOP_NAV_NOTIFICATION
+        20: invokevirtual #110                // Method android/content/Intent.setAction:(Ljava/lang/String;)Landroid/content/Intent;
+        23: dup
+        24: ldc           #112                // String setAction(...)
+        26: invokestatic  #115                // Method kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue:(Ljava/lang/Object;Ljava/lang/String;)V
+        29: astore_1
+        30: nop
+        31: aload_0
+        32: getfield      #27                 // Field context:Landroid/content/Context;
+        35: aload_1
+        36: invokevirtual #142                // Method android/content/Context.startService:(Landroid/content/Intent;)Landroid/content/ComponentName;
+        39: checkcast     #144                // class java/lang/Comparable
+        42: pop
+        43: goto          59
+        46: astore_2
+        47: ldc           #123                // String NavigationNotificationController
+        49: ldc           #146                // String stopService failed
+        51: aload_2
+        52: checkcast     #127                // class java/lang/Throwable
+        55: invokestatic  #133                // Method android/util/Log.w:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+        58: pop
+        59: return
+      Exception table:
+         from    to  target type
+            30    43    46   Class java/lang/Exception
+      StackMapTable: number_of_entries = 2
+        frame_type = 255 /* full_frame */
+          offset_delta = 46
+          locals = [ class com/naviveylin/navigation/NavigationNotificationController, class android/content/Intent ]
+          stack = [ class java/lang/Exception ]
+        frame_type = 12 /* same */
+      LineNumberTable:
+        line 83: 0
+        line 84: 5
+        line 85: 18
+        line 84: 29
+        line 86: 30
+        line 87: 31
+        line 88: 46
+        line 89: 47
+        line 91: 59
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+           47      12     2     e   Ljava/lang/Exception;
+           30      30     1 intent   Landroid/content/Intent;
+            0      60     0  this   Lcom/naviveylin/navigation/NavigationNotificationController;
+
+  public final void dispose();
+    descriptor: ()V
+    flags: (0x0011) ACC_PUBLIC, ACC_FINAL
+    Code:
+      stack=4, locals=1, args_size=1
+         0: aload_0
+         1: getfield      #63                 // Field scope:Lkotlinx/coroutines/CoroutineScope;
+         4: aconst_null
+         5: iconst_1
+         6: aconst_null
+         7: invokestatic  #151                // Method kotlinx/coroutines/CoroutineScopeKt.cancel$default:(Lkotlinx/coroutines/CoroutineScope;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V
+        10: return
+      LineNumberTable:
+        line 95: 0
+        line 96: 10
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      11     0  this   Lcom/naviveylin/navigation/NavigationNotificationController;
+
+  public static final com.naviveylin.core.NavigationViewModel access$getNavigationViewModel$p(com.naviveylin.navigation.NavigationNotificationController);
+    descriptor: (Lcom/naviveylin/navigation/NavigationNotificationController;)Lcom/naviveylin/core/NavigationViewModel;
+    flags: (0x1019) ACC_PUBLIC, ACC_STATIC, ACC_FINAL, ACC_SYNTHETIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: getfield      #30                 // Field navigationViewModel:Lcom/naviveylin/core/NavigationViewModel;
+         4: areturn
+      LineNumberTable:
+        line 34: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0 $this   Lcom/naviveylin/navigation/NavigationNotificationController;
+
+  public static final com.naviveylin.core.DrivingModeProvider access$getDrivingModeProvider$p(com.naviveylin.navigation.NavigationNotificationController);
+    descriptor: (Lcom/naviveylin/navigation/NavigationNotificationController;)Lcom/naviveylin/core/DrivingModeProvider;
+    flags: (0x1019) ACC_PUBLIC, ACC_STATIC, ACC_FINAL, ACC_SYNTHETIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: getfield      #33                 // Field drivingModeProvider:Lcom/naviveylin/core/DrivingModeProvider;
+         4: areturn
+      LineNumberTable:
+        line 34: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0 $this   Lcom/naviveylin/navigation/NavigationNotificationController;
+
+  public static final boolean access$getServiceRunning$p(com.naviveylin.navigation.NavigationNotificationController);
+    descriptor: (Lcom/naviveylin/navigation/NavigationNotificationController;)Z
+    flags: (0x1019) ACC_PUBLIC, ACC_STATIC, ACC_FINAL, ACC_SYNTHETIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: getfield      #97                 // Field serviceRunning:Z
+         4: ireturn
+      LineNumberTable:
+        line 34: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0 $this   Lcom/naviveylin/navigation/NavigationNotificationController;
+
+  public static final void access$startService(com.naviveylin.navigation.NavigationNotificationController);
+    descriptor: (Lcom/naviveylin/navigation/NavigationNotificationController;)V
+    flags: (0x1019) ACC_PUBLIC, ACC_STATIC, ACC_FINAL, ACC_SYNTHETIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #162                // Method startService:()V
+         4: return
+      LineNumberTable:
+        line 34: 1
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0 $this   Lcom/naviveylin/navigation/NavigationNotificationController;
+
+  public static final void access$stopService(com.naviveylin.navigation.NavigationNotificationController);
+    descriptor: (Lcom/naviveylin/navigation/NavigationNotificationController;)V
+    flags: (0x1019) ACC_PUBLIC, ACC_STATIC, ACC_FINAL, ACC_SYNTHETIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #165                // Method stopService:()V
+         4: return
+      LineNumberTable:
+        line 34: 1
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0 $this   Lcom/naviveylin/navigation/NavigationNotificationController;
+
+  static {};
+    descriptor: ()V
+    flags: (0x0008) ACC_STATIC
+    Code:
+      stack=3, locals=0, args_size=0
+         0: new           #168                // class com/naviveylin/navigation/NavigationNotificationController$Companion
+         3: dup
+         4: aconst_null
+         5: invokespecial #171                // Method com/naviveylin/navigation/NavigationNotificationController$Companion."<init>":(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+         8: putstatic     #175                // Field Companion:Lcom/naviveylin/navigation/NavigationNotificationController$Companion;
+        11: bipush        8
+        13: putstatic     #179                // Field $stable:I
+        16: return
+}
+InnerClasses:
+  static final #65;                       // class com/naviveylin/navigation/NavigationNotificationController$1
+  private static final #172= #168 of #2;  // Companion=class com/naviveylin/navigation/NavigationNotificationController$Companion of class com/naviveylin/navigation/NavigationNotificationController
+SourceFile: "NavigationNotificationController.kt"
+RuntimeVisibleAnnotations:
+  0: #183()
+    javax.inject.Singleton
+  1: #187(#188=[I#189,I#189,I#186],#190=I#191,#192=I#193,#194=[s#195],#196=[s#78,s#197,s#10,s#25,s#18,s#28,s#20,s#31,s#5,s#6,s#60,s#61,s#95,s#197,s#198,s#81,s#89,s#90,s#79,s#92,s#197,s#138,s#147,s#172,s#199])
+    kotlin.Metadata(
+      mv=[2,2,0]
+      k=1
+      xi=48
+      d1=["\u0000<\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000b\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\u0002\n\u0002\b\u0004\b\u0007\u0018\u0000 \u00172\u00020\u0001:\u0001\u0017B#\b\u0007\u0012\b\b\u0001\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005\u0012\u0006\u0010\u0006\u001a\u00020\u0007¢\u0006\u0004\b\b\u0010\tJ\u001d\u0010\u000e\u001a\u00020\r2\u0006\u0010\u000f\u001a\u00020\u00102\u0006\u0010\u0011\u001a\u00020\rH\u0000¢\u0006\u0002\b\u0012J\b\u0010\u0013\u001a\u00020\u0014H\u0002J\b\u0010\u0015\u001a\u00020\u0014H\u0002J\u0006\u0010\u0016\u001a\u00020\u0014R\u000e\u0010\u0002\u001a\u00020\u0003X\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\u0004\u001a\u00020\u0005X\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\u0006\u001a\u00020\u0007X\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\n\u001a\u00020\u000bX\u0082\u0004¢\u0006\u0002\n\u0000R\u000e\u0010\f\u001a\u00020\rX\u0082\u000e¢\u0006\u0002\n\u0000¨\u0006\u0018"]
+      d2=["Lcom/naviveylin/navigation/NavigationNotificationController;","","context","Landroid/content/Context;","navigationViewModel","Lcom/naviveylin/core/NavigationViewModel;","drivingModeProvider","Lcom/naviveylin/core/DrivingModeProvider;","<init>","(Landroid/content/Context;Lcom/naviveylin/core/NavigationViewModel;Lcom/naviveylin/core/DrivingModeProvider;)V","scope","Lkotlinx/coroutines/CoroutineScope;","serviceRunning","","shouldRun","navState","Lcom/naviveylin/core/NavigationState;","freeDriving","shouldRun$app","startService","","stopService","dispose","Companion","app"]
+    )
+RuntimeInvisibleAnnotations:
+  0: #184(#185=I#186)
+    androidx.compose.runtime.internal.StabilityInferred(
+      parameters=0
+    )

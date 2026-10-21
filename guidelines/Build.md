@@ -324,7 +324,17 @@ compiles with a Java 17 toolchain that must be detectable locally — a second r
   - Failed tasks: `> Task ... FAILED` lines
   - `checkSubmoduleStylesheets` failure → libosmscout submodule not initialized
     (`git submodule update --init --recursive`)
-- **Warnings**: the build must have no warnings — report them, don't ignore.
+- **Warnings**: the build must have no warnings — report them, don't ignore. A qualifier applied to an
+  injected property states its target — `@param:ApplicationContext`, not `@ApplicationContext` — because the
+  unqualified form is applied to the value parameter only and a later Kotlin default also applies it to the
+  field. Measured 2026-10-20: one site (`NavigationNotificationController`) and two `w:` lines, one per `:app`
+  flavor compile of the shared tree; a forced recompile of both flavors with the site fixed prints none of the
+  family (`QualifierUseSiteTargetTest`, spec `build-test-gate`, "An injected property states its qualifier's
+  use-site target"). A guard that scans sources is subject to the same rule from both sides: it must walk the
+  source-set roots rather than prune a repository walk by directory name — the project's own source-scan
+  guards live in the package `com.naviveylin.build`, which a `build` prune removes, leaving a green that
+  scanned nothing — and a fixture inside its own surface must be assembled from parts, or it becomes a finding
+  of the guard it feeds (measured 2026-10-21: three such fixtures, `sources=719` against 716).
   - **The unit-test source sets carry none of the `… is deprecated. Deprecated in Java.` family.**
     Measured 2026-10-20 with `-Pkotlin.incremental=false` over the four suites (`:app` mobile and
     automotive, `:auto`, `:core`): HEAD's log carries 109 `w:` lines, of which exactly 7 were that family —

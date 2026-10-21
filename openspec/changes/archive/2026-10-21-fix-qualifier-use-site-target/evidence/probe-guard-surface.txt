@@ -1,0 +1,6 @@
+2026-10-20T23:01:48.902Z
+cmd: python3 probe-guard-surface.py .
+sources=719 findings=0
+implicit fixtures hits: [1, 1, 1]
+explicit fixtures hits: [0, 0, 0, 0, 0]
+exit=0

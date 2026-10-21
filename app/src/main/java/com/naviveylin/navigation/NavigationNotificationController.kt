@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
  */
 @Singleton
 class NavigationNotificationController @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val navigationViewModel: NavigationViewModel,
     private val drivingModeProvider: DrivingModeProvider
 ) {

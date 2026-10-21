@@ -18,6 +18,7 @@ import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationViewModel
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -51,6 +52,7 @@ import com.naviveylin.test.engineUnderTest
  * Classloader rule (AGENTS.md): FakeOSMScoutClient-backed tests run under
  * Robolectric with the DEFAULT sandbox — no @Config(sdk=...).
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class MapCanvasViewModelSingleFollowCenterTest {
 

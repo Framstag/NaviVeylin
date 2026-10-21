@@ -14,6 +14,7 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -34,6 +35,7 @@ import org.robolectric.RobolectricTestRunner
  * handle) is preserved. The native merge/dedup/limit logic itself lives in
  * libosmscout-client-java and is exercised on-device (see change tasks 4.x).
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class MapCanvasViewModelFreeTextSearchTest {
 

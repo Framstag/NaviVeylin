@@ -15,6 +15,7 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -32,6 +33,7 @@ import org.robolectric.RobolectricTestRunner
  * the current road is resolved via the bearing-aware `getRoadAt` with
  * movement/cooldown throttling, mirroring the max-speed resolution.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class MapCanvasViewModelRoadInfoTest {
 

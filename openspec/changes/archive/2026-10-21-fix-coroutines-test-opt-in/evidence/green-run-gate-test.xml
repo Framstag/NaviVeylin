@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.test.CoroutinesTestOptInGateTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-20T22:07:01.841Z" hostname="dingens" time="0.489">
+  <properties/>
+  <testcase name="aTestSourceThatDeclaresTheOptInIsNotNamed" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.159"/>
+  <testcase name="everyTestSourceThatUsesTheExperimentalTimeControlDeclaresTheOptIn" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.324"/>
+  <testcase name="aTestSourceThatOnlyImportsTheMarkerIsStillNamed" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.0"/>
+  <testcase name="aTestSourceThatUsesTheExperimentalTimeControlWithoutTheOptInIsNamed" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.001"/>
+  <testcase name="aWildcardImportOfTheTestPackageIsNamed" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.0"/>
+  <testcase name="aCommentedOutAnnotationDoesNotSatisfyTheRule" classname="com.naviveylin.test.CoroutinesTestOptInGateTest" time="0.0"/>
+  <system-out><![CDATA[scanned=441 missingOptIn=0 []
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

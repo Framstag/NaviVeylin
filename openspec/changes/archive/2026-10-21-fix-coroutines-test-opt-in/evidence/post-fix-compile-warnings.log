@@ -1,0 +1,176 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:pluginDescriptors
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:compileKotlin
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+
+> Task :buildSrc:jar
+:jar: No valid plugin descriptors were found in META-INF/gradle-plugins
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources
+> Task :core:generateDebugResources
+> Task :core:packageDebugResources
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources
+> Task :auto:generateDebugResources
+> Task :core:writeDebugAarMetadata
+> Task :core:extractDeepLinksDebug
+> Task :core:javaPreCompileDebug
+> Task :core:mapDebugSourceSetPaths
+> Task :core:processDebugManifest
+> Task :core:parseDebugLocalResources
+> Task :auto:packageDebugResources
+> Task :core:compileDebugLibraryResources
+> Task :core:preDebugUnitTestBuild
+> Task :auto:javaPreCompileDebug
+> Task :auto:writeDebugAarMetadata
+> Task :auto:extractDeepLinksDebug
+> Task :auto:mapDebugSourceSetPaths
+> Task :core:generateDebugRFile
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:processDebugManifest
+> Task :auto:compileDebugLibraryResources
+> Task :auto:parseDebugLocalResources
+> Task :auto:checkDebugUnitTestAarMetadata
+> Task :auto:mapDebugUnitTestSourceSetPaths
+> Task :auto:generateDebugUnitTestResources
+> Task :auto:generateDebugRFile
+> Task :core:generateDebugUnitTestStubRFile
+> Task :osmscout-client-java:compileJava
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes
+> Task :osmscout-client-java:jar
+> Task :app:checkHardcodedStrings
+> Task :auto:mergeDebugUnitTestManifest
+> Task :auto:processDebugUnitTestManifest
+> Task :auto:mergeDebugUnitTestResources
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :auto:processDebugUnitTestResources
+> Task :app:syncSubmoduleIcons
+> Task :app:syncSubmoduleStylesheets
+> Task :app:preBuild
+> Task :app:preMobileDebugBuild
+> Task :app:generateMobileDebugBuildConfig
+> Task :app:generateMobileDebugResources
+> Task :app:packageMobileDebugResources
+> Task :app:processMobileDebugNavigationResources
+> Task :app:javaPreCompileMobileDebug
+> Task :app:parseMobileDebugLocalResources
+> Task :app:mapMobileDebugSourceSetPaths
+> Task :app:compileMobileDebugNavigationResources
+> Task :app:checkMobileDebugAarMetadata
+> Task :app:generateMobileDebugRFile
+> Task :core:kspDebugKotlin
+> Task :app:createMobileDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksMobileDebug
+> Task :app:processMobileDebugMainManifest
+> Task :app:processMobileDebugManifest
+> Task :app:preMobileDebugUnitTestBuild
+> Task :app:preAutomotiveDebugBuild
+> Task :app:generateAutomotiveDebugBuildConfig
+> Task :app:generateAutomotiveDebugResources
+> Task :app:packageAutomotiveDebugResources
+> Task :app:processAutomotiveDebugNavigationResources
+> Task :app:javaPreCompileAutomotiveDebug
+> Task :app:mapAutomotiveDebugSourceSetPaths
+> Task :app:checkAutomotiveDebugAarMetadata
+> Task :app:parseAutomotiveDebugLocalResources
+> Task :app:compileAutomotiveDebugNavigationResources
+> Task :app:mergeMobileDebugResources
+> Task :app:createAutomotiveDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksAutomotiveDebug
+> Task :app:generateAutomotiveDebugRFile
+> Task :app:processAutomotiveDebugMainManifest
+> Task :app:processAutomotiveDebugManifest
+> Task :app:preAutomotiveDebugUnitTestBuild
+> Task :app:processMobileDebugManifestForPackage
+> Task :app:processAutomotiveDebugManifestForPackage
+> Task :app:mergeAutomotiveDebugResources
+> Task :app:processMobileDebugResources
+> Task :app:processAutomotiveDebugResources
+> Task :core:compileDebugKotlin
+> Task :core:compileDebugJavaWithJavac
+> Task :core:processDebugJavaRes
+> Task :core:transformDebugClassesWithAsm
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:bundleLibRuntimeToJarDebug
+> Task :core:createFullJarDebug
+> Task :core:kspDebugUnitTestKotlin
+> Task :core:compileDebugUnitTestKotlin
+> Task :auto:compileDebugKotlin
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:processDebugJavaRes
+> Task :auto:bundleLibCompileToJarDebug
+> Task :auto:bundleLibRuntimeToJarDebug
+> Task :auto:createFullJarDebug
+> Task :app:kspAutomotiveDebugKotlin
+> Task :app:kspMobileDebugKotlin
+
+> Task :auto:compileDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/CarStyleLoadNotifierTest.kt:88:54 'field defaults: Int' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/RenderLoopSupervisorTest.kt:40:9 Condition is always 'true'.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/RendererTestRule.kt:64:14 Type 'AutoMapRenderer' is final, so the value of the type parameter is predetermined.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/src/test/java/com/naviveylin/auto/TestCarContext.kt:26:25 Unchecked cast of 'Any?' to 'Array<Any?>'.
+
+> Task :app:compileMobileDebugKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:36:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+
+> Task :app:compileAutomotiveDebugKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/navigation/NavigationNotificationController.kt:36:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/main/java/com/naviveylin/ui/map/LocationMarkerOverlay.kt:165:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+
+> Task :app:compileMobileDebugJavaWithJavac
+> Task :app:hiltSyncMobileDebug
+> Task :app:hiltAggregateDepsMobileDebug
+> Task :app:compileAutomotiveDebugJavaWithJavac
+> Task :app:hiltJavaCompileMobileDebug
+> Task :app:bundleMobileDebugClassesToCompileJar
+> Task :app:hiltSyncAutomotiveDebug
+> Task :app:hiltAggregateDepsAutomotiveDebug
+> Task :app:kspMobileDebugUnitTestKotlin
+> Task :app:hiltJavaCompileAutomotiveDebug
+> Task :app:bundleAutomotiveDebugClassesToCompileJar
+> Task :app:kspAutomotiveDebugUnitTestKotlin
+
+> Task :app:compileMobileDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/AmbientLightMonitorTest.kt:35:22 'fun addSensor(p0: Int, p1: Sensor!): Unit' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:118:78 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:51:20 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/service/NavigationNotificationServiceTapTargetTest.kt:40:20 'fun isBroadcastIntent(): Boolean' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/service/NavigationNotificationServiceTapTargetTest.kt:69:20 'fun isActivityIntent(): Boolean' is deprecated. Deprecated in Java.
+
+> Task :app:compileAutomotiveDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/AmbientLightMonitorTest.kt:35:22 'fun addSensor(p0: Int, p1: Sensor!): Unit' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:118:78 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:51:20 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/service/NavigationNotificationServiceTapTargetTest.kt:40:20 'fun isBroadcastIntent(): Boolean' is deprecated. Deprecated in Java.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/service/NavigationNotificationServiceTapTargetTest.kt:69:20 'fun isActivityIntent(): Boolean' is deprecated. Deprecated in Java.
+
+BUILD SUCCESSFUL in 36s
+115 actionable tasks: 115 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

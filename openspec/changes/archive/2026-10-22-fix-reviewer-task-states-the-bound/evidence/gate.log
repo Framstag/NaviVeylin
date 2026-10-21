@@ -1,0 +1,8 @@
+2026-10-21T22:07:57Z
+gate: ./gradlew test -PforceTests --no-build-cache
+gate: tools/loop-selftest.sh
+gate: tools/sensor-selftest.sh
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=193 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-doc-routes.sh)
+EXIT=0
+2026-10-21T22:21:49Z

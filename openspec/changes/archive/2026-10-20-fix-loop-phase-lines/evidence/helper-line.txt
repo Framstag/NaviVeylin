@@ -1,0 +1,11 @@
+progress() and fmt_elapsed in tools/loop/lib.sh — 2026-10-20T21:10:44Z
+
+$ source tools/loop/lib.sh
+$ progress gate "read — 0 test-results XML"
+loop: gate · 0s · read — 0 test-results XML
+$ progress commit "end-item returned — HEAD abc (base def)"
+loop: commit · 0s · end-item returned — HEAD abc (base def)
+
+fmt_elapsed 0 / 37 / 252 -> 0s / 37s / 4m12s
+bash -n lib.sh run.sh loop-cases.sh: clean
+stage_dir assignments: 1 (the pre-screen is at line 340)

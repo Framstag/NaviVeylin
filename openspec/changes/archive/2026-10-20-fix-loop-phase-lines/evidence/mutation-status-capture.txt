@@ -1,0 +1,28 @@
+falsification of the pre-screen status capture — one mutation, one named case — 2026-10-20T21:24:16Z
+
+case: run#prescreenAnnouncesItselfBeforeItReturns (its second half: a stand-in pre-screen that exits 7
+must leave the run with 7)
+
+== mutation 1: `) || prescreen_status=$?` -> `)`  (the status is never captured)
+$ LOOP_ENGINE=/tmp/191-mut.4F2m0J/m1/tools/loop bash tools/loop-selftest.sh --case run#prescreenAnnouncesItselfBeforeItReturns
+  the run's exit status is the pre-screen's, not the stream's: expected '7', got '0'
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+
+== the change itself, restored
+$ bash tools/loop-selftest.sh --case run#prescreenAnnouncesItselfBeforeItReturns
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+
+== mutation 2 (recorded as measured, not as guarded): only `pipefail` removed, the capture kept
+$ LOOP_ENGINE=/tmp/191-mut.4F2m0J/m2/tools/loop bash tools/loop-selftest.sh --case run#prescreenAnnouncesItselfBeforeItReturns
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+
+What this means: the capture is what the case guards. With `pipefail` off the fixture still delivers the
+pre-screen's status to the run, so `set -o pipefail` in the subshell is the statement of a dependency, not an
+invariant a case measures — recorded that way rather than claimed.
+
+== Correction added after the first review (2026-10-20T21:40Z)
+The line above this block says "restored"; it overstates the technique. The mutation was applied to a *copy* of
+the engine (`LOOP_ENGINE=/tmp/191-mut.4F2m0J/m1/tools/loop`), so the production tree was never mutated and that
+run measured the unmutated tree rather than a restore. The stronger technique, but the word was a claim the
+transcript does not carry. The registered mutations 33.1–33.4 (`tools/loop-mutations.sh`, transcript in
+`mutations-round2.txt`) do mutate and restore in place, and record both steps.

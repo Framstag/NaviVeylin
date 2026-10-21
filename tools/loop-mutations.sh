@@ -156,6 +156,14 @@ MUTATIONS=(
   # unrelated change. 33.2 is the verdict: a blocked attempt is work, not a question nobody asked.
   '33.1@-@tools/loop/worktree.sh@worktree#doesNotAdoptAChangeCreditedToAnotherIssue@the commit subject that credits an archived change to this branch and its issue (issue #232)@s|^  gitr log -1 --format=%s "\$added" 2>/dev/null \| grep -qF "(#\$issue)" \|\| return 0$|  : # the mutation credits the branch with any change it holds|'
   '33.2@-@tools/loop/prescreen.sh@prescreen#aBlockedAttemptBranchIsWork@the verdict that reads a blocked attempt as work instead of as a decision (issue #232)@s|^        unfinished)$|        unfinished-set-aside)|'
+  # 34.x — the four properties of issue #191's phase lines, one mutation each: the text is streamed while the
+  # pre-screen runs, the same bytes are kept, a line has an elapsed field, and no line is ever read back into
+  # the state file. Each is exercised by the case that owns its scenario, so a property that stops being true
+  # turns exactly one case red.
+  '34.1@-@tools/loop/run.sh@run#prescreenAnnouncesItselfBeforeItReturns@the stream that reaches the terminal while the pre-screen runs (issue #191)@s#\| tee "\$prescreen_log"#\| cat > "\$prescreen_log"#'
+  '34.2@-@tools/loop/run.sh@run#prescreenAnnouncesItselfBeforeItReturns@the kept copy of the pre-screen text in the state directory (issue #191)@s#\| tee "\$prescreen_log"#\| tee /dev/null#'
+  '34.3@-@tools/loop/lib.sh@run#everyPhaseBoundaryIsPrinted@the elapsed field of a phase line (issue #191)@s#"\$(fmt_elapsed \$(( \$(date +%s) - LOOP_PROGRESS_STARTED )))"#""#'
+  '34.4@-@tools/loop/lib.sh@run#everyPhaseBoundaryIsPrinted@the rule that a phase line is terminal output and never a state field (issue #191)@s#^  local phase="\$1"; shift$#  local phase="\$1"; shift; jq --arg l "loop: \$phase" '"'"'.run.progressNote = \$l'"'"' "\$LOOP_STATE_FILE" > "\$LOOP_STATE_FILE.n" 2>/dev/null \&\& mv "\$LOOP_STATE_FILE.n" "\$LOOP_STATE_FILE"#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -271,6 +271,27 @@ Numbers that keep moving are a child thinking; `running` lines that stop appeari
 child that outlasts `LOOP_CHILD_MAX_SECONDS` ends itself with `exit 124` and the `LOOP-TIMEOUT` line in its
 report, so "running" lines that stop appearing without that line are a stopped *host*, not a bounded child.
 
+Outside a child, every boundary the run crosses prints one line of its own, from `progress()` in `lib.sh`, in
+one format — `loop: <phase> · <elapsed> · <what>`, the elapsed time counted from the run's own start:
+
+```
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory .pi/issue-loop
+loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in .pi/issue-loop/prescreen.log
+pre-screen: 7 eligible, 12 excluded — …
+loop: pre-screen · 53s · finished (exit 0) — the run decides on it next
+loop: worktree · 54s · ready — loop on loop-20261020-171122 from 3211d4d8b395
+loop: item · 55s · picked #191 — its report is written to .pi/issue-loop/items/191/worker-report.md
+loop: gate · 41m03s · read — 1 test-results XML in the tree
+loop: commit · 41m05s · end-item returned — HEAD 9f2b1c4ee0a1 (base 3211d4d8b395)
+```
+
+The pre-screen is the slowest step before the first child (measured 2026-10-20: 53 s for 84 records over 188
+tracker items), so it streams through `tee` rather than being replayed after it returns, and the same bytes stay
+in `.pi/issue-loop/prescreen.log` for whoever reads them after the terminal has scrolled; the header line above it
+names the step and the two views that exist meanwhile — `bash tools/loop/state.sh show` and the item's report
+file. No progress line is parsed back: the state file stays the run's record and `report.sh` stays derived from
+it, so a run that printed these lines and one that did not record the same state.
+
 ## Report (end of run)
 
 `tools/loop/report.sh` prints the header, the per-item table (with each item's wall time and spend, and, when

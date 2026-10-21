@@ -1,0 +1,110 @@
+the operator console of one fixture item, base 3211d4d8b395 vs this change — 2026-10-20T21:11:44Z
+
+== BEFORE — tools/loop at the base commit (engine /tmp/191-base-engine/tools/loop)
+agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on child-max-seconds=2700 min-free-mib=1024 free-mib=4034 dry-run=0 reset-worktree=0
+state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base 3256b1d462db
+state: deadline 2026-10-20T22:41:44Z
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+lock held: /tmp/191-probe.7Y095I/case.Lmg8yJ/repo/.pi/issue-loop/lock (owner 3030789)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-211145')
+HEAD ist jetzt bei 3256b1d init
+worktree /tmp/191-probe.7Y095I/case.Lmg8yJ/repo/.pi/worktrees/loop on branch loop-20261020-211145 from 3256b1d462db (1 local.prop* copied)
+worktree: /tmp/191-probe.7Y095I/case.Lmg8yJ/repo/.pi/worktrees/loop on loop-20261020-211145 from 3256b1d462db
+pick #21
+loop: worker-prompt started (log /tmp/191-probe.7Y095I/case.Lmg8yJ/repo/.pi/issue-loop/items/21/worker-report.md)
+loop: worker-prompt finished in 2s (exit 0, log 223 B)
+closed #21 (completed)
+close #21
+item #21: closed (2026-01-01-fix-demo) · 2.179s · 0 review round(s)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+stop: item cap reached (1/1)
+**agent-issue-loop — 2026-10-20T21:11:49Z** (budget 1 items / 90 min · review off · review rounds 2 · may-close yes · max-decisions 10 · base 3256b1d462db)
+
+closed 1 · mis-diagnosed 0 · skipped 0 · blocked 0 · budget left 0 items / 90 min · spent 0 min
+
+stop: item cap reached (1/1)
+
+closed 1 · mis-diagnosed 0 · skipped 0 · blocked 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #21 | bug | closed | 2026-01-01-fix-demo | the fixture has exactly one cause | Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z) | tests=1 failures=0 (fixture) | 0 | 2s | - | - | - | done | - |
+
+merged finished attempts: none
+excluded: #21 needs-decision
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: #21 needs-decision
+decisions the owner owes: #21
+branches: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261020-211145
+worktree: /tmp/191-probe.7Y095I/case.Lmg8yJ/repo/.pi/worktrees/loop (kept for the next run)
+state: /tmp/191-probe.7Y095I/case.Lmg8yJ/repo/.pi/issue-loop/run.json
+
+actions the caller owes:
+  1. decide #21 — the pre-screen refused it (needs-decision): branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it · the comment itself: gh issue view 21
+  2. land fix/issue-21-an-eligible-bug-whose-cited-path-still-e — 2 commit(s) the base does not have — item #21
+  3. keep or remove the worktree /tmp/191-probe.7Y095I/case.Lmg8yJ/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+worktree: removed app/build (4096 B)
+worktree: 1 build path(s) removed from the kept worktree: 4096 B — its sources and its git state stay
+worktree kept for the next run: /tmp/191-probe.7Y095I/case.Lmg8yJ/repo/.pi/worktrees/loop
+
+== AFTER — tools/loop with this change (engine /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop)
+agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on child-max-seconds=2700 min-free-mib=1024 free-mib=4017 dry-run=0 reset-worktree=0
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/issue-loop
+state: budget 1 items / 90 min · review off · may-close yes · max-decisions 10 · max-review-rounds 2 · base 274d120d4fbd
+state: deadline 2026-10-20T22:41:50Z
+loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/issue-loop/prescreen.log
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+lock held: /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/issue-loop/lock (owner 3033769)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-211151')
+HEAD ist jetzt bei 274d120 init
+worktree /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/worktrees/loop on branch loop-20261020-211151 from 274d120d4fbd (1 local.prop* copied)
+worktree: /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/worktrees/loop on loop-20261020-211151 from 274d120d4fbd
+loop: worktree · 1s · ready — loop on loop-20261020-211151 from 274d120d4fbd
+pick #21
+loop: item · 1s · picked #21 — its report is written to /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/issue-loop/items/21/worker-report.md
+loop: worker-prompt started (log /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/issue-loop/items/21/worker-report.md)
+loop: worker-prompt finished in 2s (exit 0, log 223 B)
+loop: commit · 3s · end-item returned — HEAD 63625b7c8cf5 (base 274d120d4fbd)
+loop: gate · 3s · read — 1 test-results XML in the tree
+closed #21 (completed)
+close #21
+item #21: closed (2026-01-01-fix-demo) · 2.186s · 0 review round(s)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+stop: item cap reached (1/1)
+**agent-issue-loop — 2026-10-20T21:11:55Z** (budget 1 items / 90 min · review off · review rounds 2 · may-close yes · max-decisions 10 · base 274d120d4fbd)
+
+closed 1 · mis-diagnosed 0 · skipped 0 · blocked 0 · budget left 0 items / 90 min · spent 0 min
+
+stop: item cap reached (1/1)
+
+closed 1 · mis-diagnosed 0 · skipped 0 · blocked 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #21 | bug | closed | 2026-01-01-fix-demo | the fixture has exactly one cause | Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z) | tests=1 failures=0 (fixture) | 0 | 2s | - | - | - | done | - |
+
+merged finished attempts: none
+excluded: #21 needs-decision
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: #21 needs-decision
+decisions the owner owes: #21
+branches: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261020-211151
+worktree: /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/worktrees/loop (kept for the next run)
+state: /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/issue-loop/run.json
+
+actions the caller owes:
+  1. decide #21 — the pre-screen refused it (needs-decision): branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it · the comment itself: gh issue view 21
+  2. land fix/issue-21-an-eligible-bug-whose-cited-path-still-e — 2 commit(s) the base does not have — item #21
+  3. keep or remove the worktree /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+worktree: removed app/build (4096 B)
+worktree: 1 build path(s) removed from the kept worktree: 4096 B — its sources and its git state stay
+worktree kept for the next run: /tmp/191-probe.jUXpIF/case.d30UQu/repo/.pi/worktrees/loop

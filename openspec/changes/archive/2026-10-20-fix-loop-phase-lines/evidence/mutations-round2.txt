@@ -1,0 +1,10 @@
+RED    33.1  run#prescreenAnnouncesItselfBeforeItReturns   (the stream that reaches the terminal while the pre-screen runs (issue #191))
+restore 33.1 run#prescreenAnnouncesItselfBeforeItReturns green again
+RED    33.2  run#prescreenAnnouncesItselfBeforeItReturns   (the kept copy of the pre-screen text in the state directory (issue #191))
+restore 33.2 run#prescreenAnnouncesItselfBeforeItReturns green again
+RED    33.3  run#everyPhaseBoundaryIsPrinted   (the elapsed field of a phase line (issue #191))
+restore 33.3 run#everyPhaseBoundaryIsPrinted green again
+RED    33.4  run#everyPhaseBoundaryIsPrinted   (the rule that a phase line is terminal output and never a state field (issue #191))
+restore 33.4 run#everyPhaseBoundaryIsPrinted green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

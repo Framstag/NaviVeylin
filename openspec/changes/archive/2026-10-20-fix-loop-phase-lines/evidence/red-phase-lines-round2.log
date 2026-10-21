@@ -1,0 +1,9 @@
+# red on the base engine (3211d4d8b395, /tmp/191-base/tools/loop) — 2026-10-20T21:32:51Z
+## run#prescreenAnnouncesItselfBeforeItReturns
+  the phase is announced on the console: 'loop: pre-screen' not found in: agent-issue-loop: items=1 minutes=90 review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on child-max-seconds=2700 min-free-mib=1024 free-mib=3670 dry-run=0 reset-worktree=0
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+exit=1
+## run#everyPhaseBoundaryIsPrinted
+  the pre-screen is announced and reported: expected '2', got '0'
+FAIL run#everyPhaseBoundaryIsPrinted
+exit=1

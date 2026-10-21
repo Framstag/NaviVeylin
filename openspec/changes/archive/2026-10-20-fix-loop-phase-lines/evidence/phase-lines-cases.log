@@ -1,0 +1,7 @@
+# the three cases, alone, over the final tree — 2026-10-20T21:33:03Z
+PASS run#headerNamesTheLiveView
+exit=0
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+exit=0
+PASS run#everyPhaseBoundaryIsPrinted
+exit=0

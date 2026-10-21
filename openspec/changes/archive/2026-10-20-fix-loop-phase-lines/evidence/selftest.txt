@@ -1,0 +1,358 @@
+# tools/loop-selftest.sh over the final tree — 2026-10-20T21:36:39Z (one run, no re-run)
+PASS state#initAndShowRoundTrips
+PASS state#nextHonoursEveryStopCondition
+PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+PASS state#secondRunRefusesWithExit5
+PASS state#initKeepsTheStateItReplaces
+PASS state#initAnnouncesARunWithoutAStop
+PASS state#defaultsComeFromLoopConf
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213650')
+HEAD ist jetzt bei a0f40d8 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS state#projectKeysAreReadFromLoopConf
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213657')
+HEAD ist jetzt bei 9398977 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS state#agentCommandIsTheOnlyIndirection
+PASS state#agentCommandRefusesAnEmptyValue
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+PASS prescreen#ranksBugsFirstAndDropsFeatures
+PASS prescreen#missingPathYieldsStale
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+PASS prescreen#doesNotClaimJudgementGates
+PASS prescreen#refusesReservedLabelInSelection
+PASS prescreen#withoutTheOptInIsNeverQueued
+PASS prescreen#settledItemIsDropped
+PASS prescreen#deviceItemIsAVerdictNotWork
+PASS prescreen#readsTheVerdictsFromTheProfile
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+PASS prescreen#previousAttemptBranchIsADecision
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS prescreen#harnessItemsLeadTheQueue
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+PASS prescreen#priorityDoesNotBypassTheGate
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+PASS prescreen#refusalLeavesATraceInTheTracker
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei dbe1718 init
+PASS worktree#seedsAllFourInputs
+PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei dbe1718 init
+Zu neuem Branch 'fix/issue-22-other' gewechselt
+PASS worktree#oneBranchPerItemOffTheBase
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 162e05e init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesWhenMainAdvanced
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213720')
+HEAD ist jetzt bei 162e05e init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+Aktualisiere 162e05e..51cb947
+Fast-forward
+ demo-fix.txt                                                        | 1 +
+ openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml | 1 +
+ openspec/changes/archive/2026-01-01-fix-demo/proposal.md            | 1 +
+ 3 files changed, 3 insertions(+)
+ create mode 100644 demo-fix.txt
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+adopted: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e -> 51cb947 · commits 22d7b1992ff9272ac418941f42c1e28407744a9c,51cb9472c05ace4b381ddd9f9816548b3c1d07ed · change 2026-01-01-fix-demo · evidence TEST-demo.xml
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+close #21
+item #21: closed (merged fix/issue-21-an-eligible-bug-whose-cited-path-still-e — a finished attempt the base did not have) · 0 review round(s)
+  git still lists the worktree that was removed
+FAIL worktree#keepsByDefaultAndRemovesOnRequest
+PASS worktree#keepsSourcesNotBuildOutput
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213736')
+HEAD ist jetzt bei c4550fb init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS worktree#noPushWithoutTheFlag
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 129edb4 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K89Ngd/case.86IcBq/repo/.pi/issue-loop/runs/2026-10-20T21:37:42Z.json
+PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 9644eb5 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesABranchCarryingAPreviousAttempt
+PASS worktree#refusesABranchWhoseReviewFailed
+PASS labels#verdictToLabelMatrix
+PASS labels#holdCarriesItsReason
+PASS labels#trapRemovesInProgressOnSignal
+PASS labels#neverWritesReservedLabel
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213749')
+HEAD ist jetzt bei f07e8cc init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS labels#writesOnlyBetweenChildren
+PASS labels#closeRemovesTheDecisionLabel
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213756')
+HEAD ist jetzt bei c383810 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS prompt#workerNamesEveryPhaseAndSkill
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213803')
+HEAD ist jetzt bei fa481e8 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS prompt#workerNamesTheDecisionField
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213810')
+HEAD ist jetzt bei bf61e88 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS prompt#reviewerCarriesTheEightItems
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213816')
+HEAD ist jetzt bei d20e4f4 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS prompt#packageIsAFileAndNotInlined
+PASS prompt#inlineInjectionCannotReachTheInstructionPosition
+PASS run#preflightRefusalStopsBeforeAnyWork
+PASS run#blockedItemAsksItsOwnQuestion
+PASS run#falsifiedSkipClosesWithItsMeasurement
+PASS run#falsificationWithoutAMeasurementIsEscalated
+PASS run#mayCloseNoKeepsAFalsificationOpen
+PASS run#falsificationWithAChangedTreeIsBlocked
+PASS run#decisionCapRefusesToStart
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213905')
+HEAD ist jetzt bei 6755388 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#oneItemOrderIsFixed
+PASS run#childClaimWithoutCommitIsBlocked
+PASS run#blockedItemIsEscalatedWithItsReason
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-213922')
+HEAD ist jetzt bei fef63d4 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#childStartsInTheProjectRoot
+PASS run#childReportsWhileItWaits
+PASS run#headerNamesTheLiveView
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+PASS run#everyPhaseBoundaryIsPrinted
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childThatNeverStartedIsTheRunsFault
+PASS run#hostBelowTheFloorBlocksTheItemAndStops
+PASS run#hostAboveTheFloorRunsTheItem
+PASS run#hostWithoutTheReadingPasses
+PASS run#childWriteOutsideTheWorktreeIsBlocked
+PASS run#reviewerWriteInTheProjectIsDiscarded
+PASS run#leftoverBranchIsRecordedNotDropped
+PASS run#branchThatAppearsWhileTheRunIsOpenIsRecorded
+PASS run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
+PASS run#recordsAFailedReviewOnTheBranch
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214050')
+HEAD ist jetzt bei d819dd4 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#dirtyKeptWorktreeIsARecordedRefusal
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214058')
+HEAD ist jetzt bei 606478f init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#resetWorktreeDiscardsWhatItNames
+PASS run#aSkipClearsTheInProgressMark
+PASS run#skipEscalationCarriesTheDecision
+PASS run#claimedGateWithoutEvidenceIsBlocked
+PASS run#citedEvidenceMustTravelWithTheChange
+PASS run#needsDecisionIsEscalatedWithTheWork
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214129')
+HEAD ist jetzt bei b1a9496 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#noGateStillRuns
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K89Ngd/case.E7slpU/repo/.pi/issue-loop/runs/2026-10-20T21:41:36Z.json
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 11afa19 init
+PASS run#dryRunTouchesNothing
+PASS run#reviewRoundsCapAtTwo
+PASS run#reviewBudgetIsARecordedValue
+PASS run#aZeroRoundBudgetIsRefused
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aReportCutTwiceBlocksAsTheTransportsFault
+PASS run#escalationCarriesTheDecision
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214307')
+HEAD ist jetzt bei 1311a94 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#mayCloseNoLeavesTheIssueOpen
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214313')
+HEAD ist jetzt bei ad655fa init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#metricsRecordedPerItem
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214320')
+HEAD ist jetzt bei 2d862ff init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214325')
+HEAD ist jetzt bei bc102ed init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#childUsageIsRecordedPerItem
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214332')
+HEAD ist jetzt bei 1187329 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#plainTextChildStillReports
+PASS run#emptyQueueIsNotAFailure
+PASS run#stopReasonIsPrintedAndReported
+PASS run#staleBaseStopsTheRunWithItsReason
+PASS run#awaitingDecisionIsNotEscalatedAgain
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214355')
+HEAD ist jetzt bei 1a1f177 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#commitsWithoutAnAmbientIdentity
+PASS run#reviewerWriteInvalidatesTheRound
+PASS run#reviewReadOnlyOffOnlyForDiagnosis
+PASS run#reviewDiffExcludesTheEvidenceArchive
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214423')
+HEAD ist jetzt bei 1a17a46 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS run#engineNamesNoProjectFact
+PASS adapter#modeFlagIsItsOwnArgument
+PASS state#inheritedStatePathOutsideTheTreeIsIgnored
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214429')
+HEAD ist jetzt bei ad6bfe4 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS report#headerAndTableShape
+PASS report#yieldIsCountedFromState
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#aVerdictAloneIsNoEscalation
+PASS report#misdiagnosedIsCountedApart
+PASS report#archivedStateIsReported
+PASS report#impossibleBudgetNamesAnotherRun
+PASS report#wallTimeAndReasonInTheTable
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.K89Ngd/case.rrZ6tr/repo/.pi/issue-loop/runs/2026-10-20T21:44:54Z.json
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#actionsNameDecisionAndBranch
+PASS report#emptyRunSaysNone
+PASS clean#interruptedSuiteRemovesItsScratchTree
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261020-214457')
+HEAD ist jetzt bei f80914c init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 0 eligible, 1 excluded — gates 2-5 stay the worker's (design D6)
+  excluded #21 needs-decision: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e carries a commit the run's base does not — a previous attempt's work is on it
+PASS clean#reportsWithoutApplyAndRemovesWithIt
+PASS clean#interruptedSuiteEndsItsProcessGroup
+PASS clean#reportsAndEndsAProcessLeftInAScratchTree
+PASS run#interruptedRunEndsTheChildItStarted
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+PASS usage#bareValueFlagDoesNotSwallowTheNextFlag
+PASS usage#bareValueFlagInASingleShotHarnessIsAUsageError
+PASS usage#noUnguardedValueFlagRemains
+loop-selftest: 1 of 131 cases failed
+exit=1

@@ -1,0 +1,39 @@
+# structural checks over the final tree — 2026-10-20T21:36:37Z
+
+## bash -n
+clean: tools/loop-cases.sh tools/loop-mutations.sh tools/loop/run.sh tools/loop/lib.sh
+
+## openspec validate (the ADDED requirement no longer warns; the one warning left is the base's)
+Specification 'agent-issue-loop' has issues
+⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+-- the same warning on the base tree (no requirement of this change present):
+⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+
+## openspec doctor
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
+References
+  (none declared)
+
+## one stage_dir assignment, before the pre-screen
+339:stage_dir=$(dirname "$LOOP_STATE_FILE")
+
+## the requirement is in the capability spec
+992:### Requirement: The run names its phases and the live view into it
+
+## the two pointers the review corrected
+70:the git state, and skips the measured 11-minute cold build (`Measured costs`). Carrying the *build output* of
+109:## Measured costs (plan with these numbers)
+state.sh matches (expected 0): 0
+
+## the stale draft is gone
+absent: openspec/changes/fix-loop-phase-progress
+archive
+
+## the four superseded transcripts are gone from the item directory
+absent: red-prescreen.log
+absent: green-prescreen.log
+absent: green-header.log
+absent: red-header.log

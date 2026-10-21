@@ -1,0 +1,4 @@
+::error::a capability spec's '## Purpose' is still the archive placeholder — write what the capability is for (a delta's Purpose is read only when the capability is created)
+openspec/specs/navigation-ongoing-notification/spec.md
+openspec/specs/render-mode-switch/spec.md
+EXIT=1

@@ -1,0 +1,22 @@
+# Structural checks for issue §171 — docs-only delta, no compiled file, so no Gradle gate (guidelines/Build.md §2 scope block)
+# 2026-10-21T11:24:48Z
+
+$ openspec validate --all
+Totals: 176 passed, 0 failed (176 items)
+
+$ openspec validate --all | grep -c "overview: Purpose section"
+0
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 89 section references resolve
+
+$ bash tools/gen-feature-list.sh --check-classification
+stale: 0
+car-only areas: 1
+highlights: 19
+
+$ bash <shipped check body>  (CI step Check OpenSpec artifact hygiene)
+OpenSpec artifacts are consistent.
+
+$ bash /home/tim/projects/NaviVeylin/.pi/issue-loop/items/11/red-probe.sh
+Every capability spec states its Purpose.

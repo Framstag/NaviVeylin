@@ -1,0 +1,11 @@
+# 2026-10-21T11:23:36Z
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
+References
+  (none declared)
+EXIT=0

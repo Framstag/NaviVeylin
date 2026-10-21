@@ -10,6 +10,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Unit tests for [SearchHistoryRepository]: entry content, youngest-first
@@ -25,7 +26,7 @@ class SearchHistoryRepositoryTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         // Fresh state per test: remove any persisted file from a previous run.
         File(context.filesDir, "maps/search_history.json").delete()
-        repo = SearchHistoryRepository(context)
+        repo = SearchHistoryRepository(context).also { it.defaultDispatcher = Dispatchers.Unconfined }
     }
 
     @Test
@@ -62,7 +63,7 @@ class SearchHistoryRepositoryTest {
 
         // A fresh instance must read the same entries from disk.
         val context: Context = ApplicationProvider.getApplicationContext()
-        val reloaded = SearchHistoryRepository(context)
+        val reloaded = SearchHistoryRepository(context).also { it.defaultDispatcher = Dispatchers.Unconfined }
         reloaded.load()
         assertEquals(
             listOf("Hauptstraße 12", "Café Central"),
@@ -112,7 +113,7 @@ class SearchHistoryRepositoryTest {
     fun loadCollapsesPersistedDuplicates() = runTest {
         seedHistoryFile("Bochum" to 300L, "Essen" to 200L, "Bochum" to 100L)
 
-        val reloaded = SearchHistoryRepository(ApplicationProvider.getApplicationContext())
+        val reloaded = SearchHistoryRepository(ApplicationProvider.getApplicationContext()).also { it.defaultDispatcher = Dispatchers.Unconfined }
         reloaded.load()
 
         assertEquals(listOf("Bochum", "Essen"), reloaded.history.value.map { it.text })
@@ -126,12 +127,12 @@ class SearchHistoryRepositoryTest {
     @Test
     fun collapseIsPersistedAndACleanFileIsNotRewritten() = runTest {
         seedHistoryFile("Bochum" to 300L, "Bochum" to 100L)
-        val collapsing = SearchHistoryRepository(ApplicationProvider.getApplicationContext())
+        val collapsing = SearchHistoryRepository(ApplicationProvider.getApplicationContext()).also { it.defaultDispatcher = Dispatchers.Unconfined }
         collapsing.load()
 
         val context: Context = ApplicationProvider.getApplicationContext()
         val cleanBytes = historyFile(context).readText()
-        val again = SearchHistoryRepository(context)
+        val again = SearchHistoryRepository(context).also { it.defaultDispatcher = Dispatchers.Unconfined }
         again.load()
         assertEquals(1, again.history.value.size)
         assertEquals(cleanBytes, historyFile(context).readText())
@@ -145,7 +146,7 @@ class SearchHistoryRepositoryTest {
     fun collapseKeepsTheNewestDateOfAnOutOfOrderFile() = runTest {
         seedHistoryFile("Bochum" to 100L, "Essen" to 200L, "Bochum" to 300L)
 
-        val reloaded = SearchHistoryRepository(ApplicationProvider.getApplicationContext())
+        val reloaded = SearchHistoryRepository(ApplicationProvider.getApplicationContext()).also { it.defaultDispatcher = Dispatchers.Unconfined }
         reloaded.load()
 
         assertEquals(

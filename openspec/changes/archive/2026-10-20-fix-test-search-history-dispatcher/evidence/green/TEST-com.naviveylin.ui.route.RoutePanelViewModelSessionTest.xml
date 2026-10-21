@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" tests="27" skipped="0" failures="0" errors="0" timestamp="2026-10-20T19:40:30.714Z" hostname="dingens" time="0.55">
+  <properties/>
+  <testcase name="opening a session does not close its surface immediately" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.019"/>
+  <testcase name="a stop with an open session reports that the session took the route over" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.019"/>
+  <testcase name="a reroute outside a session does not open one" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.02"/>
+  <testcase name="a stop without a session reports that no session took the route over" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.019"/>
+  <testcase name="a fresh state owner has no session" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.019"/>
+  <testcase name="grace expiry ends the session and clears the route" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.024"/>
+  <testcase name="a stopped session is not persisted across a state-owner recreation" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.028"/>
+  <testcase name="opening a session twice keeps the state" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.027"/>
+  <testcase name="a calculation without geometry publishes the endpoint fallback" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.022"/>
+  <testcase name="stopping navigation moves an open session into its stopped state" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.021"/>
+  <testcase name="grace expiry while nothing is on screen writes only the session end" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.021"/>
+  <testcase name="ending without a session changes nothing" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.02"/>
+  <testcase name="ending the session clears the route and resets the state" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.018"/>
+  <testcase name="restarting navigation inside the grace keeps the route and cancels expiry" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.017"/>
+  <testcase name="ending from the stopped state clears the route immediately" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.025"/>
+  <testcase name="opening a session during navigation keeps the adopted route" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.024"/>
+  <testcase name="opening a session during navigation reviews read-only" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.02"/>
+  <testcase name="an adopted route without geometry keeps the geometry already drawn" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.018"/>
+  <testcase name="grace expiry closes the surface" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.018"/>
+  <testcase name="opening a session on an adopted route reviews it" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.015"/>
+  <testcase name="opening a session without a route starts editing" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.017"/>
+  <testcase name="a calculated route moves the session to reviewing" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.018"/>
+  <testcase name="stopping navigation without a session opens none" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.014"/>
+  <testcase name="start navigation ends the session but keeps the route drawn" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.018"/>
+  <testcase name="ending a review during navigation keeps the route" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.015"/>
+  <testcase name="clearing the route keeps the session open for a new plan" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.024"/>
+  <testcase name="adopting a route without geometry adopts the session and publishes no geometry" classname="com.naviveylin.ui.route.RoutePanelViewModelSessionTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

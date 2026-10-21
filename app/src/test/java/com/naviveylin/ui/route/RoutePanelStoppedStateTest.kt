@@ -26,6 +26,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Compose tests for the session's stopped state (spec: `route-planning-session` — Grace period
@@ -74,7 +75,7 @@ class RoutePanelStoppedStateTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())

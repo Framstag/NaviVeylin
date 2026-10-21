@@ -49,7 +49,7 @@ class MapCanvasViewModelAutoZoomPauseTest {
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context),
+            searchHistoryRepository = SearchHistoryRepository(context).also { it.defaultDispatcher = mainDispatcherRule.dispatcher },
             locationService = LocationService(context),
             darkModeController = DarkModeController(SettingsStorage(context)),
             sharedLocationHandler = SharedLocationHandler(),

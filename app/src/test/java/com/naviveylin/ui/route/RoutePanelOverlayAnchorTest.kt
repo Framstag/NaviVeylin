@@ -39,6 +39,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Compose and unit tests for the session's overlay anchors (spec:
@@ -100,7 +101,7 @@ class RoutePanelOverlayAnchorTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())
@@ -339,7 +340,7 @@ class RoutePanelOverlayAnchorTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())

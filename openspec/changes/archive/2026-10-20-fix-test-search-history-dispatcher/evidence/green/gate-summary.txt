@@ -1,0 +1,12 @@
+# ./gradlew test -PforceTests --no-build-cache   (round 2, after the corrections-only pass)
+# tree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop   base: db1fe8e8
+# BUILD SUCCESSFUL in 3m 50s — 189 actionable tasks
+# one line per module task, tallied from */build/test-results/*/TEST-*.xml
+app:testAutomotiveDebugUnitTest: classes=280 tests=2077 failures=0 errors=0 skipped=0 ts=2026-10-20T19:41:05.033Z..2026-10-20T19:42:49.108Z
+app:testMobileDebugUnitTest: classes=280 tests=2077 failures=0 errors=0 skipped=0 ts=2026-10-20T19:39:05.931Z..2026-10-20T19:41:00.917Z
+auto:testDebugUnitTest: classes=85 tests=866 failures=0 errors=0 skipped=0 ts=2026-10-20T19:39:03.854Z..2026-10-20T19:39:47.723Z
+core:testDebugUnitTest: classes=60 tests=642 failures=0 errors=0 skipped=0 ts=2026-10-20T19:39:02.794Z..2026-10-20T19:39:15.428Z
+osmscout-client-java:test: classes=8 tests=48 failures=0 errors=0 skipped=0 ts=2026-10-20T19:39:02.447Z..2026-10-20T19:39:03.119Z
+TOTAL {'classes': 713, 'tests': 5710, 'failures': 0, 'errors': 0, 'skipped': 0}
+# buildSrc's own suite is NOT part of this command (buildSrc/build holds no test-results); the change
+# touches no buildSrc file.

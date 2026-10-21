@@ -53,7 +53,7 @@ class RoutePanelViewModelLocationGateTest {
         viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context),
+            searchHistoryRepository = SearchHistoryRepository(context).also { it.defaultDispatcher = mainDispatcherRule.dispatcher },
             locationService = LocationService(context),
             context = context,
             settingsStorage = SettingsStorage(context)

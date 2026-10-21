@@ -71,7 +71,7 @@ class MapCanvasViewModelStyleTest {
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = favoriteRepository,
-            searchHistoryRepository = SearchHistoryRepository(context),
+            searchHistoryRepository = SearchHistoryRepository(context).also { it.defaultDispatcher = mainDispatcherRule.dispatcher },
             locationService = LocationService(context),
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),

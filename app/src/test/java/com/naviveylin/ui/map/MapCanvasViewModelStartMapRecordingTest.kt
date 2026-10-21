@@ -75,7 +75,7 @@ class MapCanvasViewModelStartMapRecordingTest {
             favoriteRepository = FavoriteRepository(client).also {
                 it.defaultDispatcher = mainDispatcherRule.dispatcher
             },
-            searchHistoryRepository = SearchHistoryRepository(context),
+            searchHistoryRepository = SearchHistoryRepository(context).also { it.defaultDispatcher = mainDispatcherRule.dispatcher },
             locationService = LocationService(context),
             darkModeController = DarkModeController(settingsStorage),
             sharedLocationHandler = SharedLocationHandler(),

@@ -32,6 +32,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import kotlin.math.round
+import kotlinx.coroutines.Dispatchers
 
 /** Two decimals, locale-free: `Float.toString` prints the shortest form (53.33, 890.7). */
 private fun Float.r2(): Float = round(this * 100f) / 100f
@@ -82,7 +83,7 @@ class RoutePanelActionBandScaleTest {
         val viewModel = RoutePanelViewModel(
             client = client,
             favoriteRepository = FavoriteRepository(client),
-            searchHistoryRepository = SearchHistoryRepository(context()),
+            searchHistoryRepository = SearchHistoryRepository(context()).also { it.defaultDispatcher = Dispatchers.Unconfined },
             locationService = LocationService(context()),
             context = context(),
             settingsStorage = SettingsStorage(context())

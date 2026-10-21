@@ -42,6 +42,14 @@ One reader stays as it was: `tools/sensors/guard.sh:130` prints the identity for
 policy decision, so it still reports `(unknown login)` when the read failed — an absent identity in a
 display field, not a verdict about an item.
 
+**Corrected 2026-10-21 (round-2 review).** That sentence described the wrong line. The display is the `line
+identity` call; the verdict beside it was `report identity … "author-not-allowlisted"`, which fired on *any*
+non-zero preflight — so a tracker outage, which makes `policy.sh preflight` exit 75, was reported by the CI
+guard as the allowlist refusal this change forbids, with `tracker-unreachable` surviving only in the detail
+string. It was the ninth site of the class and it is closed here: the guard now branches on exit 75 into
+`tracker-unreachable` with `decision: "unknown"` and no verdict, its case
+(`guard#eachCheckHasItsOwnReason`) asserts it, and mutation 8.16 is the falsification.
+
 ## Alternatives the evidence eliminated
 
 - **Retry at each call site.** Rejected: the call sites are 30+ across `tools/issues`, `tools/loop` and

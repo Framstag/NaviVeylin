@@ -133,6 +133,7 @@ carry preferences.
 | I14 | Every historical reference still resolves | identifiers in item bodies; a check over the tree | a document cites an item identifier that finds nothing |
 | I15 | The mechanism can run somewhere else without a rewrite | one indirection for the agent command; the project's own gate and skills in configuration | a phase names a skill, a command or a path of its own |
 | I16 | A state transition replaces the item's state: one item carries exactly one value of the state namespace | the write path reads the item and removes every displaced value in the same edit; one shared scan (`tools/issues/lib.sh`), and the case `update#statusReplacesTheOldStatus` | an item carries two `status/*` labels, or a transition leaves the old value behind — the loop's own matrix case names the displaced label, so a verdict that only adds one fails there |
+| I17 | An unreachable tracker is not an answer: a transport failure yields no verdict about an item, its author or a decision | one seam (`tools/issues/lib.sh`, `issues_login`) every `gh` call goes through, and a status of its own — `75` — that no path reads as allow, as refuse or as cleared; the guard's identity step and `policy.sh preflight` both branch on it | an outage is recorded as `author-not-allowlisted`, as "nothing to do", or as a cleared condition |
 
 ## 5. Who may write what
 
@@ -165,9 +166,20 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   three write paths plus the other label flags to prove no route sets it. The import is also asserted to
   arrive with 0 eligible items.
 
-Two rules keep the decision queue answerable, because it is a query over one label and the run's ceiling
+Four rules keep the decision queue answerable, because it is a query over one label and the run's ceiling
 counts that query (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
 
+- **An answer reaches the next worker's package.** The answer is a comment, and the item's body still states
+the question it settled — so nothing but the package can carry it: the run asks the tracker for the item's
+comments and the package renders the last recorded decision beside the question it answered (`<<<ITEM_DECISION`,
+`recorded: none` when there is none), and `answer.sh` writes that question into the answer with an
+`<!-- answers: … -->` marker. The question is the escalation's `**The decision:**` line, never the verdict word
+(`needs-decision`) that opens its comment, and the queue reads it the same way (`tools/issues/lib.sh`,
+`ISSUES_QUESTION_JQ`) — the verdict word is what a bare answer bound to before that (issue #243). Without the
+package carrying the answer a fresh worker re-derives the same fork with a fresh option list, and
+the recorded `Decision: 2` silently means a different option (`issue #196`: recorded 04:52, re-asked 08:48). A
+worker that reads a recorded decision treats it as settled and says what it leaves open when it has to ask
+again.
 - **A closure leaves no decision label behind.** An item that carries the label and is closed would stay in
   the queue for ever and keep spending a decision slot; `tools/issues/close.sh` takes the label off in the same
   write that records the settled state, for every path that closes — the run, a person, a declared check.

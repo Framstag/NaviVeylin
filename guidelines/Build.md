@@ -234,7 +234,8 @@ JVM-only change builds no native artifact, one ABI is buildable for a device tar
 at 4 configuration trees instead of 13 (§4); forcing the test tasks instead of the whole graph leaves the
 compiles `UP-TO-DATE` (§4); a shared-source change runs one flavor instead of two (§4). The full gate — all
 modules, both flavors, instrumentation attached — ran green: `:app` mobile 219 classes / 1666 tests,
-automotive 219 / 1666, `:auto` 76 / 779, `:core` 39 / 444, JNI 2 / 26, all with 0 failures and 0 errors.
+automotive 219 / 1666, `:auto` 76 / 779, `:core` 39 / 444, JNI 2 / 26, all with 0 failures and 0 errors
+(measured 2026-10-08; the suites have since grown — see the aggregate record below).
 
 **The aggregate is not the sum of those levers — measured, and worth reading before quoting the table
 above.** One clean full gate (`test -PforceTests --no-build-cache`, all four modules, no other build on the
@@ -246,6 +247,18 @@ its isolated measurement (2m02s alone at two forks). Consequences to keep in min
 §6 describes **single-suite** runs, the aggregate gate is bounded by suite work rather than by any flag this
 change added, and the declared two forks may be too optimistic when several modules' suites run at once —
 see `TODO.md` §132.
+
+**The same shape measured again 2026-10-21, with the fork counts left as they are declared** (`test
+-PforceTests --no-build-cache -I tools/gate-timings.init.gradle.kts`, all four modules, 16-core host, ~4 GB
+RAM free at the start, no other build on the machine, worker-JVM RSS sampled every 2 s): **5m45s** wall
+(345 107 ms), 21 of 189 tasks executed, suites `:app` mobile **2m40s** / 2 096 tests, automotive **3m00s** /
+2 096, `:auto` **1m16s** / 866, `:core` **19.9s** / 642, JNI **2.8s** / 48 — **5 748 tests, 0 failures, 0
+errors** — and a peak test-worker footprint of **1.89 GiB in one worker, 3.42 GiB across the two concurrent
+`:app` forks**. That is the number the aggregate shape has to fit, and it fits the ceiling the declared forks
+were chosen against (§6), so `:app` stays at two forks: dropping to one costs ~28 % of every iteration and
+buys nothing measurable here. Each suite is still slower than its own isolated row (`:app` 2m02s → 2m40s /
+3m00s, `:auto` 40.0s → 1m16s), which is the contention this paragraph is about — read §6's table as
+single-suite, and this record as the gate the project actually runs (issue #83).
 
 ### The build JVM (daemon JVM criteria)
 
@@ -562,6 +575,14 @@ flavors one expects (§134.65).
   --print-errorlogs` there, list the real names with `meson test -C hostbuild --list | grep -i <topic>`
   first, and spend one throwaway `ninja` invocation after a `meson.build` edit so the regeneration lands
   before the target lookup.
+- **The host JNI target exists only where `pkg-config` finds a `jni` module** (§202, issue #38): the pinned
+  submodule's `libosmscout/meson.build` takes the JNI include path from `dependency('jni')`, so a machine
+  without `jni.pc` configures *no* JNI target at all — the first symptom is
+  `fatal error: jni.h: Datei oder Verzeichnis nicht gefunden` in a build directory that was configured before.
+  Provision one for an installed JDK (`~/.local/share/pkgconfig/jni.pc` with
+  `cflags: -I/usr/lib/jvm/java-27-openjdk/include -I/usr/lib/jvm/java-27-openjdk/include/linux`), keep
+  `PKG_CONFIG_PATH` pointing at that directory, and re-run `meson setup --reconfigure hostbuild`. The durable
+  alternative — a `JAVA_HOME` fallback inside the submodule — is issue #216.
 - **`System.loadLibrary` needs the plain-name `.so`** (§40.49) — a versioned `.so.1` symlink is not found.
 - **Plain `openDatabase(containerRoot)` wipes the DBThread** (§40.50) — the root has no `types.dat`; load a
   container of maps through the builder's map-lookup scan.
@@ -738,12 +759,18 @@ flavors one expects (§134.65).
 
   Durations are the test task's own execution from `build/gate-timings.json`; memory is the peak sum of
   the suite's worker-JVM RSS, sampled every 2 s. The class-name sets were identical at every setting.
+  **The table describes one suite per invocation, and the gate is not that shape**: it runs all four modules in
+  one invocation, where the forks plus the daemon contend — measured 2026-10-21, mobile 2m40s and automotive
+  3m00s against the 2m02s rows here, `:auto` 1m16s against 40.0s, with 3.42 GiB across the two concurrent `:app`
+  forks (§2, "The same shape measured again"). A wall time or a memory figure taken from this table for a gate
+  decision is therefore off by 1.3× (mobile) to 1.9× (`:auto`).
   **Four forks is deliberately not declared: it is not result-preserving.** At 4 forks mobile failed
   `NavigationEngineRerouteTest.instructionListUpdatesAfterAReroute` (awaiting a state change inside its
   bound) while the same class was green at 1 and 2 forks in the same session — four workers held 4.65 GB on
   top of the daemon. `:auto` is the opposite case: short enough that per-JVM start-up outweighs the split,
   so more forks only cost wall time (38.3s → 40.0s → 48.9s) and memory. Re-derive both numbers after a
-  meaningful test-suite change (the suites grew from 215/1635 to 218/1649 classes/tests on 2026-10-04).
+  meaningful test-suite change (the suites grew from 215/1635 to 218/1649 classes/tests on 2026-10-04, and stand
+  at 2 096 tests per `:app` flavor and 866 for `:auto` on 2026-10-21).
 - **Wall-clock waits are refused, and the conversion is measured** (change `speed-up-test-iteration`, spec
   `unit-test-suite-runtime` — Wall-clock waits in test sources are refused by a build check). Each
   test-bearing module wires `checkNoWallClockWaits` (the pure `buildSrc` object

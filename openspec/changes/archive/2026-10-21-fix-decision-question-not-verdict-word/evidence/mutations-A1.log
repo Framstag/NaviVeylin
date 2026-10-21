@@ -1,0 +1,9 @@
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/lib.sh
+  GREEN(exit 0)  restored, and the case passes again
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+  RED(exit 1)  1 occurrence(s) replaced in tools/issues/core/WorkPackage.java
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 2 mutation(s) run, 2 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

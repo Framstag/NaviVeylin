@@ -62,15 +62,30 @@ issues_preflight "$profile"
 
 # Only an item that carries the decision label awaits one. Answering anything else is a different write — closing
 # a fixed item, re-opening a refuted one — and this verb must not become a way around those gates.
-current=$(gh issue view "$issue" --json number,labels,state)
+current=$(gh issue view "$issue" --json number,labels,state,comments)
 labels=$(printf '%s' "$current" | jq -c '[.labels[]? | if type == "string" then {name: .} else . end]')
 if ! printf '%s' "$labels" | jq -e --arg l "$decision_label" 'any(.[]; .name == $l)' >/dev/null; then
   printf 'answer: #%s carries no %s — it awaits no decision, so there is nothing to answer\n' "$issue" "$decision_label" >&2
   exit "$ISSUES_EXIT_POLICY"
 fi
 
-# 1. the answer, on the item, before anything changes state.
-bash "$here/update.sh" "$issue" --comment "Decision: $decision" >/dev/null || exit $?
+# 1. the answer, on the item, before anything changes state — with the question it answers. A bare
+# "Decision: 2" is only readable beside the option list it refers to, and a later escalation numbers its own
+# options from 1, so the same answer would silently mean a different option (issue #196: recorded at 04:52, the
+# same fork re-asked at 08:48, and the recorded `2` no longer named what it had answered). The question is read
+# the way the queue prints it — the last comment's first non-empty line — and carried on a marker line, so the
+# work package can quote it beside the answer rather than guessing which comment it belonged to.
+question=$(issues_question_of "$(printf '%s' "$current" | jq -c '(.comments // []) | last // {}')")
+# A `>` in the quotation would close the marker early, and the marker must stay one line and readable.
+question=${question//>/}
+question_limit=2000
+if [ "${#question}" -gt "$question_limit" ]; then
+  question="${question:0:$question_limit} … (clipped at $question_limit characters)"
+fi
+answer_comment="Decision: $decision"
+[ -n "$question" ] && answer_comment="$answer_comment"$'\n'"<!-- answers: $question -->"
+
+bash "$here/update.sh" "$issue" --comment "$answer_comment" >/dev/null || exit $?
 
 # 2. the transition the answer implies.
 case "$outcome" in

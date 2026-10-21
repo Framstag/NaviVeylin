@@ -307,6 +307,22 @@ issues_labels_of() {
   jq -r '[.labels[]? | if type == "string" then . else .name end] | .[]' <<< "${1:-}"
 }
 
+# The question a comment carries (issue #243). The run's escalation comment opens with its verdict word
+# (`needs-decision`), then a blank line, then the sentence — so "the first non-empty line" is the verdict, and an
+# answer quoting it binds to `<!-- answers: needs-decision -->`. The sentence is the line the run marks
+# `**The decision:**`, and only a comment without that marker falls back to its first non-empty line.
+#
+# One program, read by the queue and the answer path below; `tools/issues/core/WorkPackage.java` restates it, because
+# the core is standalone Java — the two are held together by asserting the same fixture in
+# `decisions#theQuestionIsNotTheVerdictWord` and `WorkPackage#questionIsNotTheVerdictWord`.
+ISSUES_QUESTION_JQ='split("\n")
+  | map(select(test("\\S")))
+  | (map(select(startswith("**The decision:**"))) | .[0]) // .[0] // ""'
+
+issues_question_of() { # <comment-json> → the question it carries, one line
+  jq -r '.body // "" | '"$ISSUES_QUESTION_JQ" <<< "${1:-{}}"
+}
+
 # issues_status_displaced <issue-json> <target-label> <prefix> → one label per line: every value of the
 # status namespace the issue carries other than the target. The prefix is the caller's, so this stays a pure
 # filter: it reads the issue the caller already has and makes no `gh` call and no profile read of its own.

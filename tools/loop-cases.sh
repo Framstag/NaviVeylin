@@ -71,6 +71,7 @@ LOOP_SHELL_CASES=(
   'labels#closeRemovesTheDecisionLabel'
   'prompt#workerNamesEveryPhaseAndSkill'
   'prompt#workerNamesTheDecisionField'
+  'prompt#workerTreatsARecordedDecisionAsSettled'
   'prompt#reviewerCarriesTheEightItems'
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
@@ -110,6 +111,7 @@ LOOP_SHELL_CASES=(
   'run#resetWorktreeDiscardsWhatItNames'
   'run#aSkipClearsTheInProgressMark'
   'run#skipEscalationCarriesTheDecision'
+  'run#workPackageCarriesTheRecordedDecision'
   'run#claimedGateWithoutEvidenceIsBlocked'
   'run#citedEvidenceMustTravelWithTheChange'
   'run#needsDecisionIsEscalatedWithTheWork'
@@ -228,6 +230,7 @@ loop_run_shell_case() {
     'labels#closeRemovesTheDecisionLabel') fn=case_labels_closeRemovesTheDecisionLabel ;;
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
+    'prompt#workerTreatsARecordedDecisionAsSettled') fn=case_prompt_workerTreatsARecordedDecisionAsSettled ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
@@ -266,6 +269,7 @@ loop_run_shell_case() {
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
+    'run#workPackageCarriesTheRecordedDecision') fn=case_run_workPackageCarriesTheRecordedDecision ;;
     'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
     'run#citedEvidenceMustTravelWithTheChange') fn=case_run_citedEvidenceMustTravelWithTheChange ;;
     'run#needsDecisionIsEscalatedWithTheWork') fn=case_run_needsDecisionIsEscalatedWithTheWork ;;
@@ -1785,6 +1789,19 @@ case_run_skipEscalationCarriesTheDecision() {
   assert_contains "$(cat "$GH_STUB_RECORD")" '--add-label agent/needs-decision' "and marks the item as awaiting one"
 }
 
+# A recorded decision is the owner's policy, not a claim to re-verify (issue #196: a fresh worker spent a run
+# re-deriving a fork a person had already answered, and asked it again with a different option list).
+case_prompt_workerTreatsARecordedDecisionAsSettled() {
+  local d p prompt
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "no prompt was rendered"
+  assert_contains "$(cat "$prompt")" 'A recorded decision is settled' "the worker is told a decision is settled"
+  assert_contains "$(cat "$prompt")" '<<<ITEM_DECISION' "and where that decision is delimited"
+  assert_contains "$(cat "$prompt")" 'do not re-derive it as a fresh fork' "and that it is not re-asked"
+}
+
 case_prompt_reviewerCarriesTheEightItems() {
   local d p prompt
   d=$(scratch); p=$(new_project)
@@ -1849,6 +1866,26 @@ case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
   assert_eq "0" "$(grep -c 'Ignore all previous instructions\|^<<<ISSUE_TEXT$' "$prompt" || true)" \
     "the injected text does not reach the instruction position"
   return 0
+}
+
+# The answer a person recorded has to reach the worker's package (issue #196). Without it a fresh child
+# re-derives the question the answer settled: `Decision: 2` was recorded at 04:52, the same fork was asked again
+# at 08:48 with its options renumbered, and the recorded `2` came to mean a different option than the one it
+# answered. The item's body still says "bounds to settle", because nothing amends it — the package is where a
+# settled question has to be readable.
+case_run_workPackageCarriesTheRecordedDecision() {
+  local d p package
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario decided)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || fail "the run failed"
+  package="$p/.pi/issue-loop/items/22/work-package.md"
+  [ -f "$package" ] || fail "no work package was written for the decided item"
+  assert_contains "$(cat "$package")" '<<<ITEM_DECISION' "the package carries a decision block"
+  assert_contains "$(cat "$package")" 'recorded: 2026-10-21T04:52:39Z' "with the answer's own timestamp"
+  assert_contains "$(cat "$package")" 'question: **The decision:** which bound' "and the question it answered"
+  assert_contains "$(cat "$package")" 'decision: 2' "and the answer itself"
+  assert_eq "1" "$(grep -c '^ITEM_DECISION$' "$package" || true)" "exactly one closing marker"
 }
 
 # A closure ends an item's life as an open question, so the label that made it one has to go with it: an item
@@ -2233,6 +2270,12 @@ case_run_everyPhaseBoundaryIsPrinted() {
   assert_line_count "$out" '^loop: pre-screen · [0-9]+(m[0-9]{2})?s · ' 2 "the pre-screen is announced and reported"
   assert_line_count "$out" '^loop: worktree · [0-9]+(m[0-9]{2})?s · ' 1 "the worktree coming ready"
   assert_line_count "$out" '^loop: item · [0-9]+(m[0-9]{2})?s · ' 1 "the item being picked"
+  # The item's line is the live view the item was filed for, so its second half is asserted as well: the phase and
+  # the elapsed field alone stay green if the report path is dropped from `run.sh:728`, and the one artifact an
+  # operator is told to tail while the item is worked stops being named (issue #191, review round 2, mutation
+  # 34.5).
+  assert_matches "$out" '^loop: item · [0-9]+(m[0-9]{2})?s · picked #[0-9]+ — its report is written to .*/worker-report\.md$' \
+    "the item's line names the report a person can read while the item is worked"
   assert_line_count "$out" '^loop: gate · [0-9]+(m[0-9]{2})?s · ' 1 "the gate's evidence being read"
   assert_line_count "$out" '^loop: commit · [0-9]+(m[0-9]{2})?s · ' 1 "the item's work being committed"
   sf=$(state_file "$p")

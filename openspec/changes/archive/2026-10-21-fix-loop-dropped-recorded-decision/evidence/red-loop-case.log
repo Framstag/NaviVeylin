@@ -1,0 +1,13 @@
+  the package carries a decision block: '<<<ITEM_DECISION' not found in: ---- issue work package ----
+fingerprint: 1408f81bd8775df6
+provenance: issue #22
+issue: #22
+title: §22 An eligible item whose question a person has already answered
+<<<ISSUE_TEXT
+<!-- nvid: 22 -->
+
+- **Observed** ✗: the bound is unset.
+- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.
+ISSUE_TEXT
+---- end issue work package ----
+FAIL run#workPackageCarriesTheRecordedDecision

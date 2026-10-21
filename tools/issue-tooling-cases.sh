@@ -61,6 +61,7 @@ ISSUES_SHELL_CASES=(
   'close#writesNothingWhenTheItemAlreadyCarriesTheState'
   'close#refusesAProfileThatNamesNoSettledState'
   'decisions#listsTheQueueAndItsQuestions'
+  'decisions#theQuestionIsNotTheVerdictWord'
   'decisions#emptyQueueIsNotAnError'
   'duplicates#dryRunWritesNothing'
   'duplicates#youngerDuplicateIsClosedWithAPointer'
@@ -74,6 +75,8 @@ ISSUES_SHELL_CASES=(
   'answer#requiresTheDecisionText'
   'answer#refusesWhatIsNotADecision'
   'answer#continueReturnsTheItemToTheQueue'
+  'answer#theAnswerNamesTheQuestion'
+  'answer#theAnswerQuotesTheQuestionNotTheVerdictWord'
   'answer#deviceMovesToTheDeviceLane'
   'answer#retireClosesAsRetired'
   'basis#stableAcrossWhitespaceOnlyBodyEdit'
@@ -164,6 +167,7 @@ issues_run_shell_case() {
     'close#writesNothingWhenTheItemAlreadyCarriesTheState') case_close_writesNothingWhenTheItemAlreadyCarriesTheState ;;
     'close#refusesAProfileThatNamesNoSettledState') case_close_refusesAProfileThatNamesNoSettledState ;;
     'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
+    'decisions#theQuestionIsNotTheVerdictWord') case_decisions_theQuestionIsNotTheVerdictWord ;;
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
     'duplicates#dryRunWritesNothing') case_duplicates_dryRunWritesNothing ;;
     'duplicates#youngerDuplicateIsClosedWithAPointer') case_duplicates_youngerDuplicateIsClosedWithAPointer ;;
@@ -177,6 +181,8 @@ issues_run_shell_case() {
     'answer#requiresTheDecisionText') case_answer_requiresTheDecisionText ;;
     'answer#refusesWhatIsNotADecision') case_answer_refusesWhatIsNotADecision ;;
     'answer#continueReturnsTheItemToTheQueue') case_answer_continueReturnsTheItemToTheQueue ;;
+    'answer#theAnswerNamesTheQuestion') case_answer_theAnswerNamesTheQuestion ;;
+    'answer#theAnswerQuotesTheQuestionNotTheVerdictWord') case_answer_theAnswerQuotesTheQuestionNotTheVerdictWord ;;
     'answer#deviceMovesToTheDeviceLane') case_answer_deviceMovesToTheDeviceLane ;;
     'answer#retireClosesAsRetired') case_answer_retireClosesAsRetired ;;
     'basis#stableAcrossWhitespaceOnlyBodyEdit') case_basis_stableAcrossWhitespaceOnlyBodyEdit ;;
@@ -819,6 +825,21 @@ case_decisions_listsTheQueueAndItsQuestions() {
   assert_contains "$out" "2 item(s) await a decision" "with a count and the way to answer one"
 }
 
+# The run's escalation comment opens with its verdict word, not with its question (`needs-decision`, then a blank
+# line, then `**The decision:** …`). Reading the first non-empty line therefore answers the verdict, and every
+# bare `Decision: 2` binds to `needs-decision` (issue #243, measured on #196's own answer comment).
+case_decisions_theQuestionIsNotTheVerdictWord() {
+  export GH_STUB_DIR="$(scenario verdict-question)"
+  local out status question
+  out=$(run_tool decisions.sh --json 2>&1); status=$?
+  assert_eq "0" "$status" "the queue is a read: $out"
+  assert_eq "1" "$(printf '%s' "$out" | jq 'length')" "the one item that awaits a decision"
+  question=$(printf '%s' "$out" | jq -r '.[0].question')
+  assert_contains "$question" '**The decision:** ship the fixed cut' "the question is the sentence the escalation asks"
+  assert_eq "0" "$(printf '%s' "$question" | grep -cx 'needs-decision' || true)" \
+    "the run's verdict word is not the question"
+}
+
 # ----------------------------------------------------------------------------- cases: duplicates
 
 # The sweep's own tracker: `tools/issues/fixtures/scenarios/duplicates` holds one fingerprint shared by three
@@ -999,6 +1020,39 @@ case_answer_continueReturnsTheItemToTheQueue() {
   assert_contains "$(sed -n "${edit}p" "$log")" '--remove-label agent/needs-decision' "the decision label is cleared"
   assert_contains "$(sed -n "${edit}p" "$log")" '--add-label status/open' "and the item returns to the queue"
   assert_contains "$(sed -n "${edit}p" "$log")" '--remove-label status/on-hold' "with the hold replaced, not added to"
+}
+
+case_answer_theAnswerNamesTheQuestion() {
+  export GH_STUB_DIR="$(scenario decision-queue)"
+  local dir log out body
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  out=$(run_tool answer.sh 71 --decision "merge them, the older wording is redundant" 2>&1) ||
+    fail "answering failed: $out"
+  body=$(grep 'issue comment' "$log" | head -1)
+  [ -n "$body" ] || fail "the answer was not recorded on the item"
+  # A bare `Decision: 2` is only readable beside the option list it answered, and a later escalation renumbers
+  # its own options from 1 (issue #196). So the answer carries the question it answered with it.
+  assert_contains "$body" 'answers:' "the comment names the question it answers"
+  assert_contains "$body" 'merge the two rows into one' "and quotes that question"
+  assert_contains "$body" 'redundant' "while still carrying the answer"
+}
+
+# The same predicate on the writing side: the answer must quote the escalation's sentence, not the verdict word
+# that precedes it (issue #243). The negative is the invariant — `needs-decision` appears nowhere in the body.
+case_answer_theAnswerQuotesTheQuestionNotTheVerdictWord() {
+  export GH_STUB_DIR="$(scenario verdict-question)"
+  local dir log out body
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  out=$(run_tool answer.sh 76 --decision "ratchet above the current worst file" 2>&1) ||
+    fail "answering failed: $out"
+  body=$(grep 'issue comment' "$log" | head -1)
+  [ -n "$body" ] || fail "the answer was not recorded on the item"
+  assert_contains "$body" 'answers:' "the comment names the question it answers"
+  assert_contains "$body" '**The decision:** ship the fixed cut' "quoting the escalation's question sentence"
+  assert_eq "0" "$(printf '%s' "$body" | grep -c 'needs-decision' || true)" \
+    "and not the verdict word that opens that comment"
 }
 
 case_answer_deviceMovesToTheDeviceLane() {

@@ -1,0 +1,11 @@
+FAIL WorkPackage#noDecisionIsRecorded: the block is present even with no comments — expected to find '<<<ITEM_DECISION' in:
+---- issue work package ----
+fingerprint: fp
+provenance: source/agent
+issue: #7
+title: t
+<<<ISSUE_TEXT
+b
+ISSUE_TEXT
+---- end issue work package ----
+

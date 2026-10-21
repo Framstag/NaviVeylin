@@ -329,8 +329,15 @@ loop_profile() {
 
 # One issue's full record, bodies included. `list.sh --json` deliberately answers without bodies (the
 # cheap selection path), and the work package needs the text, so the candidate is re-read by number.
+#
+# `--comments` is asked for where the caller needs the answer a person recorded: the work package carries it
+# (issue #196), and a reader that does not ask for it gets none — the real CLI returns only the fields it is
+# asked for, and the fixture `gh` now does the same. The pre-screen asks for neither, so its per-candidate read
+# stays as small as it was.
 loop_issue_json() {
-  gh issue view "$1" --json number,title,body,labels,author,state 2>/dev/null
+  local fields="number,title,body,labels,author,state"
+  [ "${2:-}" = "--comments" ] && fields="$fields,comments"
+  gh issue view "$1" --json "$fields" 2>/dev/null
 }
 
 loop_issue_tool() { # run one of the tooling's scripts

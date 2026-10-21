@@ -1,0 +1,16 @@
+FAIL WorkPackage#questionIsNotTheVerdictWord: the question the answer addressed — expected to find 'question: **The decision:** ship the fixed cut' in:
+---- issue work package ----
+fingerprint: fp
+provenance: source/agent
+issue: #7
+title: t
+<<<ISSUE_TEXT
+b
+ISSUE_TEXT
+<<<ITEM_DECISION
+recorded: 2026-10-21T00:00:00Z
+question: needs-decision
+decision: 2
+ITEM_DECISION
+---- end issue work package ----
+

@@ -10,6 +10,7 @@
 #   6  a clean working tree?                  (a run must not write beside uncommitted work)
 #   7  an ambient identity on the allowlist?  (asked of the issue tooling, never re-read here)
 #   9  a registry whose every row is complete and whose command exists
+#  75  the tracker did not answer — no identity could be read, so no verdict is given
 #
 # Usage: guard.sh [--ref <ref>] [--remote <name>] [--profile <file>] [--registry <file>] [--json]
 # Exit:  0 every guard passed; otherwise the code of the guard that refused.
@@ -57,6 +58,17 @@ report() { # <guard> <exit> <reason> <detail>
   if [ "$json" -eq 1 ]; then
     jq -nc --arg guard "$1" --arg reason "$3" --arg detail "$4" --argjson code "$2" \
       '{guard: $guard, decision: "refuse", reason: $reason, detail: $detail, code: $code}'
+  fi
+  sensors_refuse "$2" "$3" "$4"
+}
+
+# An outage is not a verdict (issue #231): the guard knows only that it could not ask, so it says that and exits
+# with the code a caller branches on. `decision: "unknown"` is the same word `policy.sh preflight` answers, so one
+# reader covers both.
+report_unknown() { # <guard> <exit> <reason> <detail>
+  if [ "$json" -eq 1 ]; then
+    jq -nc --arg guard "$1" --arg reason "$3" --arg detail "$4" --argjson code "$2" \
+      '{guard: $guard, decision: "unknown", reason: $reason, detail: $detail, code: $code}'
   fi
   sensors_refuse "$2" "$3" "$4"
 }
@@ -123,8 +135,15 @@ if [ -n "$dirty" ]; then
 fi
 line clean-tree ""
 
-# 4. the identity — asked of the issue tooling's own gate, so the allowlist has one reader.
-if ! out=$(bash "$SENSORS_ISSUES_DIR/policy.sh" preflight --profile "$SENSORS_PROFILE" 2>&1); then
+# 4. the identity — asked of the issue tooling's own gate, so the allowlist has one reader. A preflight that
+#    could not ask is not a refusal: `policy.sh` answers 75 when the tracker did not answer, and reporting the
+#    allowlist verdict there told a network outage's operator that the author was unlisted (issue #231, the
+#    ninth site of the class the change closed; the display line below is the tenth and makes no verdict).
+out=$(bash "$SENSORS_ISSUES_DIR/policy.sh" preflight --profile "$SENSORS_PROFILE" 2>&1); status=$?
+if [ "$status" -ne 0 ]; then
+  if [ "$status" -eq "$SENSORS_UNREACHABLE" ]; then
+    report_unknown identity "$SENSORS_UNREACHABLE" "tracker-unreachable" "$out"
+  fi
   report identity "$SENSORS_IDENTITY" "author-not-allowlisted" "$out"
 fi
 login=$(issues_login)

@@ -33,7 +33,7 @@
 # refusal and the closed vocabulary apply to a sensor exactly as they apply to a person.
 #
 # Exit: 0 acted (or decided, in a dry run), 2 usage, 3 refusal, 8 a sensor could not determine
-# anything, 9 an incomplete row.
+# anything, 9 an incomplete row, 75 the tracker did not answer — no verdict was given.
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

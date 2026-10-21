@@ -693,7 +693,7 @@ while true; do
     stop_run "$shortfall; free memory and re-run — a starved host cannot become productive by taking the next item"
     break
   fi
-  issue_json=$(loop_issue_json "$issue") || {
+  issue_json=$(loop_issue_json "$issue" --comments) || {
     printf 'run: gh could not read #%s\n' "$issue" >&2
     stop_run "gh could not read #$issue — the tracker did not answer"
     break

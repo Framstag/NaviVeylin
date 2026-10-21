@@ -84,10 +84,14 @@ travel while the map itself rotates at its own pace.
   place, `FollowBlitRules.offsetFor`, which takes the whole `MapCanvasUiState` and reads `resolvedAnchor`
   itself: the anchor is not a parameter, because the screen's previous inline
   `FollowPrediction.displayOffsetPx(…, activeFollowAnchor.fx, activeFollowAnchor.fy)` call site was
-  invisible to every case and needed two fixes in one day (issue #18, 2026-09-27).
+  invisible to every case and needed two fixes in one day (issue #18, 2026-09-27). A caller that rebuilds
+  the state around the preset is refused too: the guard reads the code around the seam call, so
+  `offsetFor(ui.copy(resolvedAnchor = ResolvedAnchor(ui.activeFollowAnchor.fx,
+  ui.activeFollowAnchor.fy)), …)` fails it (measured 2026-10-21: `callSiteRawReads=2`, mutated run red).
   `FollowBlitCallSiteTest` holds the screen to the seam (one call, no inline offset computation, no raw
-  preset in the seam) and `MapCanvasViewModelVehicleAnchorTest`
-  `followBlitOffsetTakesTheResolvedAnchorNotTheRawPreset` drives it with measured overlays: preset
+  preset at the seam call site or in the seam) and `MapCanvasViewModelVehicleAnchorTest`
+  `followBlitOffsetTakesTheResolvedAnchorNotTheRawPreset` drives it with measured overlays and the
+  production `followRenderTarget(...)`: persisted preset
   `fy = 0.9` resolves to `0.733`, the seam's blit is the prediction drift (0 px, unclamped), and the same
   geometry with the preset is 320 px and clamped. With no measured overlay (browse mode, tests)
   every preset resolves to its exact fraction; non-covered presets (including the default center/center)

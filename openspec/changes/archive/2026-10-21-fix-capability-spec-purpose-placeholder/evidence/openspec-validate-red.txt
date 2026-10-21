@@ -1,0 +1,9 @@
+# openspec validate --type spec on base 44b673f, 2026-10-21T11:22:17Z
+$ openspec validate navigation-ongoing-notification --type spec
+Specification 'navigation-ongoing-notification' is valid
+⚠ [WARNING] overview: Purpose section is still a placeholder rather than a Purpose anyone wrote (the sentence `openspec archive` writes for a new capability, or a `TBD`/`TODO` marker left in its place). Replace it with what this capability is for, editing the main spec directly: a `## Purpose` in a delta is read only when the capability is created, so it cannot replace this one.
+EXIT=0
+$ openspec validate render-mode-switch --type spec
+Specification 'render-mode-switch' is valid
+⚠ [WARNING] overview: Purpose section is still a placeholder rather than a Purpose anyone wrote (the sentence `openspec archive` writes for a new capability, or a `TBD`/`TODO` marker left in its place). Replace it with what this capability is for, editing the main spec directly: a `## Purpose` in a delta is read only when the capability is created, so it cannot replace this one.
+EXIT=0

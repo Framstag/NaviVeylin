@@ -1,0 +1,3 @@
+# 2026-10-21T11:24:10Z — shipped form of the check (Purpose section only)
+Every capability spec states its Purpose.
+EXIT=0

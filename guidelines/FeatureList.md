@@ -46,11 +46,8 @@ document from turning into 239 one-line entries, and the second from turning int
 characters.
 
 Cases: `length: an over-long paragraph fails the run`, `length: a short paragraph passes`,
-`gates: a keyword longer than six words fails the run`.
-
-Cases: `gates: an entry with no bold keyword fails the run`, `gates: a keyword longer than six words fails the
-run`, `gates: a keyword word the cited specs lack fails the run`, `density: one entry per capability fails the run`,
-`density: a merged area passes`, `catalogue: the report states the density it achieved`.
+`gates: an entry with no bold keyword fails the run`, `gates: a keyword longer than six words fails the run`,
+`gates: a keyword word the cited specs lack fails the run`.
 
 **The two documents themselves:**
 
@@ -105,16 +102,17 @@ Three things a reader must know about the classification:
   id, and the fix is one line. Publishing an unclassified capability, or silently dropping one, are both worse
   than a red run.
 - **A stale entry — an id the classification names that is no longer shipped — is reported without failing.**
-  It is not demanded of the catalogue either: coverage is measured over the specs that are shipped.
+  It is not demanded of the catalogue either: coverage is measured over what is still shipped, and a stale
+  shortlist entry follows the same rule (§1).
 - **`userVisible` is a property of the spec, not of each requirement.** A user-visible spec may contain a
-  requirement that describes plumbing. What the catalogue owes is that no user-visible *spec* is dropped
-  silently, not that every one of its requirements reaches a bullet; which of them a bullet mentions is the
-  phrasing step's editorial call.
+  requirement that describes plumbing, and not every one of its requirements needs a bullet: which of them a
+  bullet mentions is the phrasing step's editorial call. A user-visible *spec* that no highlight names is not a
+  coverage failure either — §1 has the shortlist decide what is published — so the run fails only when a selling
+  point the shortlist does name reaches no entry.
 
 Cases: `gate: an unclassified shipped spec id fails the run`, `gate: an unclassified spec id writes no document`,
 `gate: a stale classification entry does not fail the run`, `gate: a user-visible spec with no renderable surface
-fails`, `gate: not exactly one car-only area fails the run`, `gates: a user-visible spec no bullet reaches fails
-the run`.
+fails`, `gate: not exactly one car-only area fails the run`.
 
 **The rule for a change author:** a change that archives a capability spec adds its classification line in the
 same change. `.pi/skills/feature-list` and the tool both tell you the id when it is missing.
@@ -129,8 +127,9 @@ behaves in the car — not for every capability that happens to run there.
 Consequence: `auto-search` belongs under *Search & Destinations*, not under *In Your Car*; `android-automotive-os`
 belongs under *In Your Car*, not under *Settings*.
 
-Cases: `catalogue: a dual-surface capability appears once`, `catalogue: the car-only capability of a feature
-area stays under that area`, `catalogue: it is not moved into the car-only area`.
+Cases: `catalogue: a dual-surface capability tags both surfaces`, `catalogue: the car-only area is rendered under
+its own heading`. The rule needs no case of its own beyond these two: one capability one area is a property of
+`areas.json`, not a check that could fail.
 
 ## 6. The prose gates, not a reviewer's memory
 
@@ -140,7 +139,7 @@ run and write nothing. `tools/feature-list/gate.awk` holds them; it can be read 
 | gate | what it refuses | what it only reports |
 |---|---|---|
 | source marker | a bullet carrying no key; a key whose spec does not exist or is not user-visible | — |
-| coverage | a user-visible spec that no bullet reaches | — |
+| coverage | a selling point that no entry reaches | — |
 | figures | a bullet stating a figure that appears in none of the specs it cites | — |
 | words | — | every content word of a bullet that appears in none of the specs it cites |
 
@@ -165,7 +164,7 @@ reviewer reads it; it must not fail a run, because the phrasing of a true statem
 the specs do not use. The figure gate is the opposite: a figure that no cited spec contains is a false claim, and
 a bullet of that kind is a defect, not a judgement call.
 
-Cases: `gates: the keyless bullet is named`, `gates: an invented figure fails the run`, `gates: the unsourced word
+Cases: `gates: the keyless entry is named`, `gates: an invented figure fails the run`, `gates: the unsourced word
 is named`, `gates: the report does not stand in for the figure gate`, `gates: a fully sourced bullet is not
 reported`.
 

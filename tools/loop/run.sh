@@ -117,6 +117,13 @@ host_free_mib() { # → MiB the host has available, or nothing when this host pu
 min_free_mib="${LOOP_MIN_FREE_MIB:-1024}"
 case "$min_free_mib" in ''|*[!0-9]*) min_free_mib=1024 ;; esac
 free_mib=$(host_free_mib)
+
+# A repository whose `core.bare` is true is not a work tree: `git status` still answers, so a run looks healthy,
+# but every merge, fast-forward and commit in it is refused with "this operation must be run in a work tree".
+# The run merges the branch it closes (#229) and so does the caller's publish, and both then read as "the branch
+# could not be merged" — the real cause never named (issue #241, measured 2026-10-21: five refused
+# fast-forwards, `git config --get core.bare` → `true`, `git rev-parse --is-inside-work-tree` → `false`, and one
+# `git config core.bare false` fixed all of it). The run refuses before it writes anything, and says what to do.
 printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s child-max-seconds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
   "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
   "$read_only" "$child_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
@@ -512,7 +519,14 @@ slugify() { # a change name out of an item's title: lowercase, dashes, bounded
 # process resolves the project's own tool policy at the directory it is started in), and the worktree is
 # the only tree a phase may write — so a write the child left in the project's tree is caught here and
 # never carried into the item's commit (D4, "one writer per tree").
-project_state() { git -C "$LOOP_ROOT" status --porcelain 2>/dev/null; }
+project_state() {
+  # The tree's own answer to "am I a work tree" travels with its status: a run whose project repository is flipped
+  # to `core.bare=true` by something it started keeps answering `git status` — with nothing — while every merge
+  # and commit in it is refused (#241). Compared before and after a child, the two lines disagree, and that
+  # disagreement is the report.
+  printf 'work-tree=%s\n' "$(git -C "$LOOP_ROOT" rev-parse --is-inside-work-tree 2>/dev/null | head -1)"
+  git -C "$LOOP_ROOT" status --porcelain 2>/dev/null
+}
 # …and the base it recorded, so a child that commits on the project's own branch without touching a file is
 # still a change of the tree the run promised to build on. `project_state` is compared before and after every
 # child, which is what catches a write outside the worktree.
@@ -582,13 +596,19 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # closed because a member of a background group that reads a terminal is stopped, not run, and an unattended
   # child has nobody to type at it anyway.
   set -m
-  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1 < /dev/null &
+  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1"; printf '%s\n' "$?" > "$2.status" ) > "$2" 2>&1 < /dev/null &
   child=$!
   active_child="$child"
   set +m
-  # The wait is a poll, not a blocking `wait`, because a blocking wait cannot notice the cap. The child is this
-  # shell's unreaped child for as long as we poll, so its process group cannot be recycled under the kill.
-  while kill -0 "$child" 2>/dev/null; do
+  # The wait ends on the **child's own completion record**, not on `kill -0` of its pid and not on `wait`: a child
+  # that the shell has already reaped answers nothing, and a `wait` on a pid bash no longer tracks returns no
+  # status, so a poll that believes the child is gone can leave the run blocked behind a `wait` for ever. Measured
+  # 2026-10-20/21 (issue #227): fourteen runs sat inside this poll with only a `sleep` child, printing a heartbeat
+  # every 30 s for up to 4 h 52 min — 606 lines, `log 0 B`, and not one `LOOP-TIMEOUT` line, although the cap was
+  # 2700 s. The subshell writes its own status when it returns, which is the one event the run can wait for.
+  local status_file="$2.status"
+  rm -f "$status_file"
+  while [ ! -e "$status_file" ]; do
     if [ $(( $(date +%s) - started )) -ge "$cap" ]; then
       timed_out=1
       kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
@@ -598,8 +618,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     fi
     sleep 1
   done
-  wait "$child"
-  rc=$?
+  rc=0
+  [ -e "$status_file" ] && rc=$(cat "$status_file" 2>/dev/null || printf 0)
+  case "$rc" in ''|*[!0-9]*) rc=1 ;; esac
+  # Nothing is left to a bare `wait`: a child that is still there after its own record was written, or after the
+  # cap ended it, is ended here by pid, and the loop does not block on the shell's job table.
+  if kill -0 "$child" 2>/dev/null; then loop_end_pid "$child"; fi
   active_child=""
   if [ "$timed_out" -eq 1 ]; then
     printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"

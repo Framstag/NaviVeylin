@@ -81,6 +81,7 @@ LOOP_SHELL_CASES=(
   'run#mayCloseNoKeepsAFalsificationOpen'
   'run#falsificationWithAChangedTreeIsBlocked'
   'run#decisionCapRefusesToStart'
+  'run#refusesARepositoryThatIsNotAWorkTree'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
   'run#blockedItemIsEscalatedWithItsReason'
@@ -154,6 +155,7 @@ LOOP_SHELL_CASES=(
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#interruptedSuiteEndsItsProcessGroup'
   'clean#reportsAndEndsAProcessLeftInAScratchTree'
+  'clean#endsARunWhoseTreeIsAlreadyDeleted'
   'run#interruptedRunEndsTheChildItStarted'
   'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
   'usage#bareValueFlagDoesNotSwallowTheNextFlag'
@@ -235,6 +237,7 @@ loop_run_shell_case() {
     'run#mayCloseNoKeepsAFalsificationOpen') fn=case_run_mayCloseNoKeepsAFalsificationOpen ;;
     'run#falsificationWithAChangedTreeIsBlocked') fn=case_run_falsificationWithAChangedTreeIsBlocked ;;
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
+    'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
@@ -310,6 +313,7 @@ loop_run_shell_case() {
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#interruptedSuiteEndsItsProcessGroup') fn=case_clean_interruptedSuiteEndsItsProcessGroup ;;
     'clean#reportsAndEndsAProcessLeftInAScratchTree') fn=case_clean_reportsAndEndsAProcessLeftInAScratchTree ;;
+    'clean#endsARunWhoseTreeIsAlreadyDeleted') fn=case_clean_endsARunWhoseTreeIsAlreadyDeleted ;;
     'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
@@ -1991,6 +1995,25 @@ case_run_decisionCapRefusesToStart() {
   assert_contains "$out" "await a decision" "the refusal names the condition"
   assert_contains "$out" "#41" "the open decisions are printed"
   assert_contains "$out" "#43" "all of them are printed"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although the run refused"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+}
+
+# A repository whose `core.bare` is true is not a work tree. `git status` still answers, so the run looks healthy
+# and lands nothing: every merge, fast-forward and commit in it is refused, and the run reports a merge it could
+# not take (issue #241, measured 2026-10-21: five refused fast-forwards in the project tree, `core.bare` → `true`,
+# `rev-parse --is-inside-work-tree` → `false`). The run refuses before it writes, and says what repairs it.
+case_run_refusesARepositoryThatIsNotAWorkTree() {
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  git -C "$p" config core.bare true || fail "this case could not put the fixture's repository into the state it tests"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  git -C "$p" config core.bare false
+  assert_eq "5" "$status" "a repository that is not a work tree refuses the run: $out"
+  assert_contains "$out" "records core.bare=true" "the refusal names the setting behind it"
+  assert_contains "$out" "git config core.bare false" "and the one command that repairs it"
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although the run refused"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
 }
@@ -4041,4 +4064,36 @@ case_run_interruptedRunEndsTheChildItStarted() {
   fi
   exec 8>&-
   [ "$alive" -eq 0 ] || fail "the run ended but the child it started (pid $child) is still running — an interrupted run must end its child"
+}
+
+# A process still standing in a scratch tree is a leftover whatever its tree's state, and the kernel shows a
+# deleted tree with ` (deleted)` appended to the cwd it reports. That suffix is why the leftovers of a killed
+# suite matched neither `loop-clean.sh`'s tree test nor its process test (issues #213, #233): the run was there,
+# at a path that no longer existed, and was invisible to both.
+case_clean_endsARunWhoseTreeIsAlreadyDeleted() {
+  local d tree pid seen survived
+  d=$(scratch); tree="$d/suite.tree/case.1"
+  mkdir -p "$tree" || fail "could not create the scratch tree"
+  ( cd "$tree" && exec sleep 300 ) &
+  pid=$!
+  seen=""
+  for _ in $(seq 1 100); do
+    seen=$( loop_pids_under "$d/suite.tree" )
+    [ -n "$seen" ] && break
+    sleep 0.1
+  done
+  [ -n "$seen" ] || { loop_end_pid "$pid"; fail "a process standing in the scratch tree was not reported before the tree was removed"; }
+
+  # …and with the tree gone, the same test still finds it: the cwd `/proc` reports carries the kernel's marker.
+  rm -rf "$d/suite.tree"
+  seen=$( loop_pids_under "$d/suite.tree" )
+  [ -n "$seen" ] || { loop_end_pid "$pid"; fail "a process whose tree is already deleted was not reported — the leftovers of a killed suite are exactly those"; }
+
+  loop_end_pids_under "$d/suite.tree" --quiet
+  survived=1
+  for _ in $(seq 1 50); do
+    kill -0 "$pid" 2>/dev/null || { survived=0; break; }
+    sleep 0.1
+  done
+  [ "$survived" -eq 0 ] || { loop_end_pid "$pid"; fail "the sweep reported the process but did not end it (pid $pid)"; }
 }

@@ -76,6 +76,13 @@ on_exit() {
   # `sleep` beside them — the processes that used to outlive their suite by hours, at a deleted directory.
   loop_end_group "$case_pgid"
   case_pgid=""
+  # …and then anything else that is still standing in the suite's own scratch root. A case that ends *normally*
+  # while the `run.sh` it started is still polling leaves that run behind: it was started by the case, whose own
+  # exit only ends the group the harness still remembers, and hours of suite runs left dozens of them (issue
+  # #233 — 44 processes, 2 to 4.6 h old, a `sleep 1` child each, trees long deleted and `loop-clean.sh` blind to
+  # them because the tree was gone). The sweep is the same test `loop-clean.sh` reports with, run before the tree
+  # is removed, so a run still standing in it is named, ended and attributed to this suite.
+  loop_end_pids_under "$tmp"
   rm -rf "$tmp"
   exit "$rc"
 }

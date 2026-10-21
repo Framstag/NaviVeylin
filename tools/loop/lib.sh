@@ -93,6 +93,18 @@ loop_note() {
 # a command substitution: a failure inside `$( )` would exit a subshell and be swallowed.
 loop_resolve() {
   LOOP_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    # One refusal covers two different states, and they need different repairs: run from outside a checkout at
+    # all, or inside a repository whose `core.bare` is true — where `git status` still answers, so the tree looks
+    # like a project while every merge, fast-forward and commit in it is refused. Measured 2026-10-21 (issue
+    # #241): the caller read "run this from the project you mean to act on" while standing in the project, spent
+    # five fast-forwards and an hour, and the setting was the cause.
+    bare=$(git rev-parse --git-dir 2>/dev/null) && [ -n "$bare" ] && \
+      [ "$(git config --get core.bare 2>/dev/null)" = "true" ] && {
+      printf 'loop: this repository records core.bare=true, so it is not a work tree\n' >&2
+      printf 'loop: every merge, fast-forward and commit is refused in it while `git status` still answers\n' >&2
+      printf 'loop: repair: git config core.bare false   (in %s)\n' "$PWD" >&2
+      exit "$LOOP_REFUSE"
+    }
     loop_die "not inside a git working tree — run this from the project you mean to act on"
   }
   local conf="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
@@ -245,6 +257,44 @@ loop_end_pid() {
     sleep 0.2
   done
   kill -s KILL "$pid" 2>/dev/null || true
+  return 0
+}
+
+# Every process whose working directory lies under <dir>, one pid per line. Linux's `/proc` is the only reader of
+# a process's working directory there is, so a platform without it reports nothing rather than guessing. This is
+# the test that finds a loop a *suite* or a *killed run* left behind: the tree is gone from the caller's view,
+# but the process that still polls it names it as its cwd (issue #213), and the same test serves
+# `loop-clean.sh`'s report and the self-test's own postcondition (issue #233).
+loop_pids_under() { # <dir> → one pid per line
+  local dir="${1:-}" entry pid cwd
+  [ -n "$dir" ] || return 0
+  [ -d /proc/self ] || return 0
+  for entry in /proc/[0-9]*; do
+    pid="${entry#/proc/}"
+    case "$pid" in ''|*[!0-9]*) continue ;; esac
+    [ "$pid" = "$$" ] && continue
+    [ "$pid" = "$PPID" ] && continue
+    cwd=$(readlink "$entry/cwd" 2>/dev/null) || continue
+    [ -n "$cwd" ] || continue
+    # A process whose tree is already gone still names it, with the kernel's ` (deleted)` appended — the
+    # leftovers a killed suite leaves behind are exactly those, so the suffix is stripped before the match.
+    cwd=${cwd% (deleted)}
+    case "$cwd" in
+      "$dir"|"$dir"/*) printf '%s\n' "$pid" ;;
+    esac
+  done
+}
+
+# …and ending them: the loop's leftovers under one directory, reported by pid, ended with the same signal
+# discipline as a single process. Prints the pids it ended so the caller can say what it did.
+loop_end_pids_under() { # <dir> [--quiet] → 0, and one "ended <pid>" line per process
+  local dir="${1:-}" quiet="${2:-}" pid ended=0
+  while IFS= read -r pid; do
+    [ -n "$pid" ] || continue
+    [ "$quiet" = "--quiet" ] || printf 'ended %s — its working directory is inside %s\n' "$pid" "${dir##*/}"
+    loop_end_pid "$pid"
+    ended=$((ended + 1))
+  done <<< "$(loop_pids_under "$dir")"
   return 0
 }
 

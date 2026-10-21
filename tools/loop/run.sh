@@ -651,7 +651,7 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
 render_reviewer_prompt() { # render_reviewer_prompt <out file>
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir" \
-    "REVIEW_EXCLUDE=${review_exclude_spec:-none}"
+    "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
 }
 
 # Why a run ended is the run's own number, not a line on a console that scrolls away: every path that leaves

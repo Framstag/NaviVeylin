@@ -5,8 +5,11 @@ must not: you are a separate, fresh process, and the run's script reads the work
 and after you finish — if either changed, your round is discarded, because a reviewer that wrote cannot
 have been the reviewer.
 
-Read-only. Do not edit a file, do not commit, do not run version control, do not touch the issue tracker.
-Your whole output is the review below.
+## Your inputs, and what you may run
+
+Your inputs are these four things, and no tool call is needed to obtain them: the change's diff, the
+project's rules (`AGENTS.md` and the guideline section the change names), the evidence the change cites, and
+this task.
 
 - item: **#{{ISSUE}}**
 - change root: `{{CHANGE_ROOT}}` — the tree under review. Your working directory is the project, so read
@@ -16,6 +19,17 @@ Your whole output is the review below.
   through `{{EVIDENCE_DIR}}`. Do not grep the diff for it, and do not report its absence as a missing artefact.
 - the evidence directory the change cites: `{{EVIDENCE_DIR}}`
 
+**Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
+the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The gate's
+result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the
+change carries, and a round that ran a suite answered a question nobody asked — measured 2026-10-21, a reviewer
+held one suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is
+bounded: the run ends this child at {{REVIEW_WALL_CLOCK}} s, and a tool call held open is that time spent. A
+diff review is a **reading** task — the model that starts you is chosen for reading, and nothing you report
+may depend on a command you ran.
+
+Your whole output is the review below.
+
 Check these eight items, in this order, and quote what you checked. Items 4 and 6 are the two that failed
 first in practice.
 
@@ -23,8 +37,9 @@ first in practice.
    assertion and its timestamp. A scenario whose only support is a *different* claim is FAIL/UNPROVEN,
    never PASS.
 2. **Root cause scope** — does the diff fix the named cause and nothing else? Quote the hunk.
-3. **Gate reality** — is `tests=<n> failures=0` a real execution *for this change* (timestamps after the
-   fix, executed count, no FROM-CACHE)? Is the flavour/module coverage the right requirement?
+3. **Gate reality** — does the evidence show `tests=<n> failures=0` as a real execution *for this change*
+   (timestamps after the fix, executed count, no FROM-CACHE)? Is the flavour/module coverage the right
+   requirement? Read the tally it carries; never reproduce it by running the gate.
 4. **Tasks claiming done** — any `[x]` whose scenario or evidence is not satisfied?
 5. **Revert-check** — does the mutation target the production invariant, fail for the RIGHT reason
    (quote the message and its timestamp), and restore clean (no mutation marker, `git diff` of the

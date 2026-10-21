@@ -73,6 +73,8 @@ LOOP_SHELL_CASES=(
   'prompt#workerNamesTheDecisionField'
   'prompt#workerTreatsARecordedDecisionAsSettled'
   'prompt#reviewerCarriesTheEightItems'
+  'prompt#reviewerIsBoundedToReading'
+  'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton'
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
   'run#preflightRefusalStopsBeforeAnyWork'
@@ -232,6 +234,8 @@ loop_run_shell_case() {
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
     'prompt#workerTreatsARecordedDecisionAsSettled') fn=case_prompt_workerTreatsARecordedDecisionAsSettled ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
+    'prompt#reviewerIsBoundedToReading') fn=case_prompt_reviewerIsBoundedToReading ;;
+    'prompt#iterationProtocolHandsTheReviewerTheSameSkeleton') fn=case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton ;;
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
@@ -1822,6 +1826,46 @@ case_prompt_reviewerCarriesTheEightItems() {
   # A falsification reaches the review with an empty diff, and the reviewer is told it is read like a change
   # (openspec change `falsified-items-close-in-the-loop`).
   assert_contains "$(cat "$prompt")" "falsification" "the reviewer is told how a falsification is read"
+}
+
+# Issue #236: the reviewer's task said what to judge and nothing about what it may run, so the natural-looking
+# first move — "run the tests" — is the expensive one. The #232 reviewer held one suite open for 4 min 1 s of a
+# 4 h 40 m change and the parent had to steer it back to reading. The case asserts the bound the task states,
+# because "read-only" alone was not enough to stop it: the gate and the suite have to be named.
+case_prompt_reviewerIsBoundedToReading() {
+  local d p prompt text cap
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$prompt" ] || fail "the reviewer prompt was not rendered"
+  text=$(cat "$prompt")
+  assert_contains "$text" "Your inputs are" "the reviewer is told what it is given"
+  assert_contains "$text" "do not run the gate" "the read-only list names the gate it must not run"
+  assert_contains "$text" "do not run a test suite" "and the suite beside it"
+  assert_contains "$text" "do not use the network" "and the network"
+  assert_contains "$text" "quoted from the evidence" "a green gate is quoted from the evidence, not reproduced"
+  assert_contains "$text" "reading task" "a diff review is a reading task, which is the model choice"
+  # the bound is the number the run itself enforces, so the two cannot drift
+  cap=${LOOP_CHILD_MAX_SECONDS:-2700}
+  assert_contains "$text" "$cap" "the wall-clock bound named in the task is the run's own ($cap s)"
+}
+
+# The same bound reaches a session that spawns its own reviewer (issue #236): the loop's prompt is the one
+# skeleton, and the iteration protocol is where a session is told to hand it over. Two surfaces, one rule.
+case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton() {
+  local doc
+  doc=$(cat "$LOOP_PROJECT_ROOT/guidelines/Build.md")
+  # the document is quoted whole, so a `case` is used instead of `assert_contains`: the failure names the rule
+  # that is missing rather than dumping 131 KB, and a `printf | grep -q` would fail on its own SIGPIPE under the
+  # suite's `pipefail`.
+  case "$doc" in
+    *tools/loop/prompts/reviewer.md*) ;;
+    *) fail "the iteration protocol does not name the skeleton a session-spawned reviewer is handed" ;;
+  esac
+  case "$doc" in
+    *'runs no gate'*) ;;
+    *) fail "the iteration protocol does not state the bound that skeleton carries" ;;
+  esac
 }
 
 case_prompt_packageIsAFileAndNotInlined() {

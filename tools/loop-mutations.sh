@@ -179,6 +179,9 @@ MUTATIONS=(
   # for an item nobody left undecided. The fixture `gh` filters by `--json` exactly as the real CLI does, which is
   # what makes the omission observable at all.
   '36.1@-@tools/loop/run.sh@run#workPackageCarriesTheRecordedDecision@the comments the run asks the tracker for, so the recorded decision reaches the package@s|loop_issue_json "\$issue" --comments|loop_issue_json "$issue"|'
+  # 37.1 — the reviewer's task states what the round may run (issue #236): without the gate in the read-only
+  # list, item 3 is answered by running the suite again, which is the 4 min 1 s the item measured.
+  '37.1@-@tools/loop/prompts/reviewer.md@prompt#reviewerIsBoundedToReading@the gate named in the read-only list the reviewer is given (issue #236)@s|do not run the gate|do not run that|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

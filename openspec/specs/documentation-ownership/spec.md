@@ -276,12 +276,13 @@ the check, and a document that no route names SHALL be reported.
 - **THEN** a fixture whose extra guideline holds an unresolvable route fails, and a fixture whose extra
   guideline is named by the table passes
 
-### Requirement: A section reference is resolved wherever a guideline writes one
+### Requirement: A section reference a guideline body writes is resolved
 
-Every section reference a guideline body makes SHALL resolve against the document it names, the way a
-reference in the routing table does: a reference that does not resolve SHALL be reported as a defect, and a
-bare number its document uses twice SHALL be reported as ambiguous. The check SHALL need no build, no test
-run, no device and no network access.
+Every section reference a guideline body makes to another guideline document SHALL resolve against that
+guideline, the way a reference in the routing table does: a reference that does not resolve SHALL be reported
+as a defect, and a bare number its document uses twice SHALL be reported as ambiguous. A reference naming a
+document that is not a guideline — a spec path, the retired backlog — is prose and is not resolved. The check
+SHALL need no build, no test run, no device and no network access.
 
 #### Scenario: A bare number a guideline body writes is ambiguous
 

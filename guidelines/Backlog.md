@@ -538,8 +538,9 @@ Named so a reader can tell a decision from an omission:
 - **A reversal is recorded, not deleted.** A decision that is later reversed moves to §13 or is annotated
   in §12 with what replaced it and why; `Design.md` §13 does the same for the app's superseded decisions.
 - **The routing table must name this document.** `tools/check-doc-routes.sh` fails when a guideline is
-  unrouted, so AGENTS.md's Documentation Map carries a row for it and CI proves the row resolves. The same
-  check resolves a section reference a guideline *body* writes, and refuses a bare number that its document
-  uses twice there too — the reason a `§14` of `MapRendering.md` is written with its heading text.
+  unrouted, so AGENTS.md's Documentation Map carries a row for it and CI proves the row resolves.
+- **A section reference a body writes resolves too.** The same check resolves the references a guideline
+  *body* makes to another guideline document, and refuses a bare number that document uses twice — the
+  reason a `§14` of `MapRendering.md` is written with its heading text.
 - **The concept is not the implementation.** If an invariant here and a spec disagree, the spec decides
   behaviour and this document is wrong: fix it here, in the same change.

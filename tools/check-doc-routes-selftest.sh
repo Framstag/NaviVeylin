@@ -73,18 +73,23 @@ $2
 FIXTURE
 }
 
-expect() { # $1 name, $2 expected exit, $3 fixture dir, $4 expected substring
-  local out got ok
+expect() { # $1 name, $2 expected exit, $3 fixture dir, $4... substrings the output must each contain
+  local out got ok s name want
+  name=$1
+  want=$2
   out=$("$check" --root "$3" 2>&1)
   got=$?
   ok=1
-  [ "$got" = "$2" ] || ok=0
-  if [ -n "${4:-}" ] && ! printf '%s' "$out" | grep -qF -- "$4"; then ok=0; fi
+  [ "$got" = "$want" ] || ok=0
+  shift 3
+  for s in "$@"; do
+    printf '%s' "$out" | grep -qF -- "$s" || ok=0
+  done
   if [ "$ok" = 1 ]; then
-    echo "PASS  $1 (exit $got)"
+    echo "PASS  $name (exit $got)"
     pass=$((pass + 1))
   else
-    echo "FAIL  $1: expected exit $2 containing '$4', got exit $got:"
+    echo "FAIL  $name: expected exit $want containing '$*', got exit $got:"
     printf '        %s\n' "$out"
     failures=$((failures + 1))
   fi
@@ -146,7 +151,8 @@ FIXTURE
 
 write_body "$tmp/body-ambiguous" 'The renderer rules live in `UI.md` §14.'
 write_agents "$tmp/body-ambiguous" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
-expect "a bare duplicated number in a guideline body is reported as ambiguous" 1 "$tmp/body-ambiguous" "ambiguous"
+expect "a bare duplicated number in a guideline body is reported as ambiguous" 1 "$tmp/body-ambiguous" \
+  "file=guidelines/Build.md" "ambiguous"
 
 write_body "$tmp/body-text" 'The renderer rules live in `UI.md` §14 "Android Auto renderer".'
 write_agents "$tmp/body-text" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
@@ -162,7 +168,8 @@ expect "a reference inside a fenced block is not a reference" 0 "$tmp/body-fence
 
 write_body "$tmp/body-dangling" 'The renderer rules live in `UI.md` §42.'
 write_agents "$tmp/body-dangling" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
-expect "a guideline body naming a section its document lacks is reported" 1 "$tmp/body-dangling" "UI.md §42"
+expect "a guideline body naming a section its document lacks is reported" 1 "$tmp/body-dangling" \
+  "file=guidelines/Build.md" "UI.md §42"
 
 # an archived change and an open change artifact are history: their references are not resolved
 mkdir -p "$tmp/artifacts/openspec/changes/archive/2026-01-01-old" "$tmp/artifacts/openspec/changes/open-thing"

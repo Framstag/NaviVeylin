@@ -669,9 +669,10 @@ while true; do
     esac
   fi
   # A blocked attempt's branch is kept under a name of its own instead of being overwritten (issue #232), and
-  # the run says so: the rename is the only record of where that attempt's commits went.
+  # the run prints exactly that line: the rename is the only record of where those commits went, and the start's
+  # captured output also holds git's own chatter, which the run does not repeat.
   case "$start_out" in
-    *set-aside:*) printf '%s\n' "$start_out" ;;
+    *set-aside:*) printf '%s\n' "$start_out" | grep '^set-aside:' || true ;;
   esac
   loop_labels pick "$issue" || {
     printf 'run: could not mark #%s in progress\n' "$issue" >&2

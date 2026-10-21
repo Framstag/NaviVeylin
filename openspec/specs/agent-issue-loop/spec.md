@@ -252,9 +252,11 @@ can make the run's own report false, so it is worked before a defect in the ship
 ### Requirement: Version control belongs to the run's script, not to the agent
 
 The run SHALL create and manage the working tree and the branch of each item itself, and no phase of an
-item SHALL be able to invoke version control on its own behalf. A previous attempt's branch SHALL be decided
-by what it carries: a branch whose attempt finished SHALL be merged and its item closed by the run, and only
-a branch that carries no finished change SHALL be refused and escalated as a decision.
+item SHALL be able to invoke version control on its own behalf. A previous attempt's branch SHALL be decided by
+what it *carries*: a branch whose attempt **finished** — one archived change of its own, added by a commit that
+names its issue — SHALL be merged and its item closed by the run, or, when it is not admissible for adoption,
+SHALL be refused and escalated as a decision; a branch that carries commits and no archived change of its own
+SHALL NOT be a decision: its commits SHALL be kept under a name the run gives them and the item SHALL be worked.
 
 #### Scenario: One working tree per run
 
@@ -289,23 +291,33 @@ a branch that carries no finished change SHALL be refused and escalated as a dec
 
 - **WHEN** an item's branch carries a commit the run's base does not have — whether the run learns it when the
   item starts, or the pre-screen asks git for it before any item is picked, on the item's branch-name prefix
-  because the slug is not known before the title is read — and the branch carries no finished change
+  because the slug is not known before the title is read — and the branch adds an archived change of its own
+  that is not admissible for adoption (no green verification record, or the reviewer's refusal of that change)
 - **THEN** the item is refused with the branch and the commits it carries named, and it is recorded as
   awaiting a decision before a budget slot is spent on it — in the run's own exclusion list and on the item,
-  with the branch as the evidence — because a previous attempt's work is never thrown away and a refusal is
+  with the branch as the evidence — because a finished attempt's change is never thrown away and a refusal is
   never silent
-- **Case**: `prescreen#previousAttemptBranchIsADecision`, `run#leftoverBranchIsRecordedNotDropped`
+- **Case**: `prescreen#aFinishedAttemptBranchIsADecision`, `worktree#refusesABranchCarryingAPreviousAttempt`,
+  `run#leftoverBranchIsRecordedNotDropped`
 
 #### Scenario: A finished attempt's branch is merged and its item closed
 
 - **WHEN** an item's branch carries a commit the run's base does not have, and that branch adds exactly one
-  archived change of its own whose verification record is green — learned either when the item starts or when
-  the pre-screen records the branch as an exclusion
+  archived change **of its own** — the commit that added it names `(#<issue>)` — whose verification record is
+  green — learned either when the item starts or when the pre-screen records the branch as an exclusion
 - **THEN** the branch's commits are merged onto the base, the base the run recorded advances to the merge, the
   item is closed with the branch, its commits and the evidence it was checked for named in the run's own record
   and report, and no budget slot is spent on a fresh attempt — so a finished attempt is not treated as a blocked
-  one
+  one, and a change another item's commit added does not make this branch adoptable
 - **Case**: `run#mergesAFinishedAttemptAndClosesTheItem`
+
+#### Scenario: A change another item's commit added does not make the branch adoptable
+
+- **WHEN** the run is asked to adopt a branch whose only archived change was added by a commit that names
+  another issue
+- **THEN** nothing is merged and the refusal names the missing input — a single archived change of this branch's
+  own — rather than a change the branch never wrote
+- **Case**: `worktree#doesNotAdoptAChangeCreditedToAnotherIssue`
 
 #### Scenario: A branch without a green verification is not merged
 
@@ -988,3 +1000,27 @@ allowed; a falsification without a measurement, and every other skip, SHALL keep
 - **THEN** the review still happens, and a measurement that does not cover the blamed mechanism is a
   blocking finding, which returns the item to the escalation path instead of closing it
 - **Case**: `run#falsificationWithAChangedTreeIsBlocked`
+
+### Requirement: A blocked attempt's branch is kept under a name of the run's own, and its item is worked
+
+An item whose branch carries commits the base does not have and adds no archived change of its own SHALL not be
+recorded as awaiting a decision. Its branch SHALL be renamed outside the `fix/issue-<N>-` prefix, so its commits
+stay reachable and no later run reads it as an attempt, and the item SHALL be worked on a fresh branch. A branch
+the run cannot classify SHALL be the owner's, never work.
+
+#### Scenario: The pre-screen queues the item and names the branch it will set aside
+
+- **WHEN** an eligible item's branch carries commits the base does not have and adds no archived change of its
+own — a change another item's commit added does not count
+- **THEN** the verdict is not a decision, the item is queued as work, and the run's record names the branch as
+  the evidence and the set-aside as the action
+- **Case**: `prescreen#aBlockedAttemptBranchIsWork`
+
+#### Scenario: The start keeps the commits and works the item
+
+- **WHEN** an item starts and its branch is in that state, whether the branch was there before the run or
+  appeared while the run was open
+- **THEN** the branch is renamed under the run's leftover prefix, its commit is still reachable there, the item
+  is worked on a fresh branch from the run's base, and the run prints the rename instead of refusing
+- **Case**: `worktree#setsAsideABlockedAttemptAndStartsFresh`,
+  `run#branchThatAppearsWhileTheRunIsOpenIsSetAside`

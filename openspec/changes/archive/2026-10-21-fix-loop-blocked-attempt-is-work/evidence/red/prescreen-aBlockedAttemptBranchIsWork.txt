@@ -1,0 +1,9 @@
+case: prescreen#aBlockedAttemptBranchIsWork
+tree: HEAD 2e732f0 (this change unapplied), its own cases file
+started: 2026-10-21T06:26:18Z
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+  a branch carrying no archived change of its own is work, not a decision: expected 'eligible', got 'needs-decision'
+FAIL prescreen#aBlockedAttemptBranchIsWork
+exit: 1
+finished: 2026-10-21T06:26:21Z

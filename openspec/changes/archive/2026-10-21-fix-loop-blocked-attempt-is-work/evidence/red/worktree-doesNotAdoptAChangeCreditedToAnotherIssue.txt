@@ -1,0 +1,7 @@
+case: worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+tree: HEAD 2e732f0 (this change unapplied), its own cases file
+started: 2026-10-21T06:26:23Z
+  a change credited to another issue does not make the branch adoptable: expected '5', got '0'
+FAIL worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+exit: 1
+finished: 2026-10-21T06:26:24Z

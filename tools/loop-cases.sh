@@ -1007,9 +1007,20 @@ case_prescreen_aBlockedAttemptBranchIsWork() {
 # verdict is the run's own decision verdict, but marked as already escalated so the run does not post the same
 # comment again.
 case_prescreen_itemAwaitingADecisionIsNotQueued() {
-  local p out issue status
+  local p out issue status base branch
   p=$(new_project)
   init_state "$p" 3 90
+  # #41 carries a stated question (`agent/needs-decision` + `status/on-hold`) *and* a blocked attempt's branch.
+  # The question decides: nobody starts a second attempt beside one a person was asked about (#110), so the
+  # branch is evidence for the same decision rather than a licence to work the item (#232).
+  base=$(git -C "$p" rev-parse HEAD)
+  branch="fix/issue-41-a-blocked-attempt"
+  git -C "$p" checkout -q -b "$branch" "$base"
+  printf 'the blocked attempt\n' > "$p/attempt.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the blocked attempt (#41)" >/dev/null 2>&1 ||
+    fail "could not commit the blocked attempt"
+  git -C "$p" checkout -q main
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
   export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
 
@@ -1021,6 +1032,8 @@ case_prescreen_itemAwaitingADecisionIsNotQueued() {
     assert_eq "true" "$(printf '%s' "$out" | jq -r --argjson i "$issue" '.[] | select(.issue == $i) | .alreadyEscalated')" \
       "and it is marked as already escalated, so the run does not escalate it again (#$issue)"
   done
+  assert_eq "$branch" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 41) | .evidence')" \
+    "a blocked attempt beside a stated question is that decision's evidence"
   # A hold with no escalation label is not a decision (#193): the worker's skip verdicts, the device verdict,
   # the repair path (`resolve-stale.sh` parks an item) and a person's own hold all write the same state, and only
   # the last of those four may be a question. The item is excluded as `held` — visible in the report, and outside

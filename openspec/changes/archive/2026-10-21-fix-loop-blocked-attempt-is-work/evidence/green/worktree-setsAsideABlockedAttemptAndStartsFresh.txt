@@ -1,0 +1,9 @@
+case: worktree#setsAsideABlockedAttemptAndStartsFresh
+tree: this change on base 2e732f0
+started: 2026-10-21T06:36:01Z
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 0fc90ee init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#setsAsideABlockedAttemptAndStartsFresh
+exit: 0
+finished: 2026-10-21T06:36:05Z

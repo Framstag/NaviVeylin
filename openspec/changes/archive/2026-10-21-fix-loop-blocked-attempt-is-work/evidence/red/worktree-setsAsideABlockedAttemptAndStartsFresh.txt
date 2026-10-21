@@ -1,0 +1,11 @@
+case: worktree#setsAsideABlockedAttemptAndStartsFresh
+tree: HEAD 2e732f0 (this change unapplied), its own cases file
+started: 2026-10-21T06:26:21Z
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 1791972 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+  a blocked attempt's branch does not park the item: loop: branch fix/issue-21-demo already exists and carries commits the base does not — a previous attempt's work is on it:
+71b45ac fix: the blocked attempt (#21): expected '0', got '5'
+FAIL worktree#setsAsideABlockedAttemptAndStartsFresh
+exit: 1
+finished: 2026-10-21T06:26:23Z

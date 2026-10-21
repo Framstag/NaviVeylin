@@ -1,0 +1,6 @@
+case: worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+tree: this change on base 2e732f0
+started: 2026-10-21T06:36:05Z
+PASS worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+exit: 0
+finished: 2026-10-21T06:36:08Z

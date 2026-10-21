@@ -66,7 +66,10 @@ Five facts shape verification in a worktree:
   item's branch any more once an item starts: `start-item` renames it to
   `loop/leftover/issue-<N>-<slug>-<utc>` and works the item on a fresh `fix/issue-<N>-<slug>`, because nothing on
   such a branch states a question a person could answer (issue #232). The prefix belongs to no item, so no
-  later run reads it as an attempt; the commits stay reachable under it until a person removes them.
+  later run reads it as an attempt; the commits stay reachable under it until a person removes them. The credit
+  is the landing convention `fix: <slug> (#<N>)`: a hand-made branch whose archived change was committed under
+  another subject reads as a *blocked* attempt and is set aside the same way, which keeps its commits but does
+  not refuse the item — name the issue in the commit subject if the change is meant to be adopted.
 
 ## What a kept worktree keeps, and what the loop leaves on disk
 

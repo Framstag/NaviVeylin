@@ -1,0 +1,8 @@
+case: prescreen#aBlockedAttemptBranchIsWork
+tree: this change on base 2e732f0
+started: 2026-10-21T06:35:58Z
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+PASS prescreen#aBlockedAttemptBranchIsWork
+exit: 0
+finished: 2026-10-21T06:36:01Z

@@ -146,7 +146,7 @@ $dirty"
   base=$(state_base)
   if gitw rev-parse --verify --quiet "refs/heads/$branch" >/dev/null; then
     state=$(branch_state_of "$issue" "$branch" "$base")
-    if [ "$state" = "landed" ] || gitw merge-base --is-ancestor "$branch" "$base"; then
+    if [ "$state" = "landed" ]; then
       gitw switch -C "$branch" "$base" >&2 || loop_die "start-item: git switch failed"
       printf 'item #%s on branch %s (reused — the branch carries no commit of its own)\n' "$issue" "$branch"
     elif [ "$state" = "unfinished" ]; then

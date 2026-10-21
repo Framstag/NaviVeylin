@@ -245,7 +245,16 @@ while [ "$i" -lt "$count" ]; do
       attempt_state=$(bash "$LOOP_DIR/worktree.sh" branch-state "$number" "$attempt_branch" 2>/dev/null | cut -f1)
       case "$attempt_state" in
         unfinished)
-          reason="branch $attempt_branch carries a blocked attempt — no archived change of its own, so the run sets the branch aside at the start and works the item"
+          # A stated question outranks the branch (#110, #193): an item that already awaits a decision is its
+          # owner's, and a blocked attempt beside that question is more of the same item's evidence, not a
+          # licence to work it again. Only the item nobody asked about is work.
+          if [ "$awaiting_decision" -eq 1 ]; then
+            verdict="$decision_verdict"
+            reason="the item awaits a decision (${awaiting_why}) — a blocked attempt's branch is on it too, so the question its owner was asked still decides"
+            [ "$awaiting_label" -eq 1 ] && already_escalated=1
+          else
+            reason="branch $attempt_branch carries a blocked attempt — no archived change of its own, so the run sets the branch aside at the start and works the item"
+          fi
           evidence="$attempt_branch"
           ;;
         *)

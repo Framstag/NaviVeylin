@@ -107,8 +107,8 @@ Three things a reader must know about the classification:
 - **`userVisible` is a property of the spec, not of each requirement.** A user-visible spec may contain a
   requirement that describes plumbing, and not every one of its requirements needs a bullet: which of them a
   bullet mentions is the phrasing step's editorial call. A user-visible *spec* that no highlight names is not a
-  coverage failure either — §1 has the shortlist decide what is published — so the run fails only when a selling
-  point the shortlist does name reaches no entry.
+  coverage failure either — §1 has the shortlist decide what is published — so the coverage gate fails only when
+  a selling point the shortlist does name reaches no entry.
 
 Cases: `gate: an unclassified shipped spec id fails the run`, `gate: an unclassified spec id writes no document`,
 `gate: a stale classification entry does not fail the run`, `gate: a user-visible spec with no renderable surface

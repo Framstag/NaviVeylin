@@ -1,0 +1,5 @@
+2
+date=2026-10-21T10:59:09Z
+  the clear names the recorded condition's identity: '"fingerprint":"4c0fc623bb0a7f23c5e2bceb8261bae03673acacd1ccc3485b191fb59c7bbe6d"' not found in: {"row":"broken-main","fingerprint":"83bb457d6f2996fec5413363404d41f47fad1ca7ce10db5c43de4664d2fa2207","verdict":"clear","measurement":"success","issue":null,"action":"nothing filed, nothing to clear"}
+FAIL sensors#aRecordedConditionParsesToItsObject
+EXIT=1

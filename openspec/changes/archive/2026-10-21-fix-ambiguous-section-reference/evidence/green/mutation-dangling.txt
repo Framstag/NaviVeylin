@@ -1,0 +1,21 @@
+mutation: the missing-section branch disabled (`if (!(key in headings))` -> `if (0)`) in tools/check-doc-routes.sh
+command: bash tools/check-doc-routes-selftest.sh
+
+PASS  a map where every reference resolves (exit 0)
+PASS  a dangling section number fails naming the reference (exit 1)
+PASS  a bare duplicated number is reported as ambiguous (exit 1)
+PASS  heading text that matches nothing fails (exit 1)
+PASS  a document the table references but that does not exist is reported (exit 1)
+PASS  an AGENTS.md without a Documentation Map is reported (exit 2)
+PASS  an extra guideline that no route names is reported (exit 1)
+PASS  an extra guideline that is routed and resolves passes without editing the check (exit 0)
+PASS  an extra guideline whose section does not exist is reported (exit 1)
+PASS  a bare duplicated number in a guideline body is reported as ambiguous (exit 1)
+PASS  a heading text in a guideline body resolves its duplicated number (exit 0)
+PASS  a reference inside a fenced block is not a reference (exit 0)
+FAIL  a guideline body naming a section its document lacks is reported: expected exit 1 containing 'UI.md §42', got exit 0:
+        check-doc-routes: all 6 section references resolve
+PASS  a reference in a change artifact is not checked (exit 0)
+PASS  the repository's AGENTS.md is untouched by every case
+check-doc-routes-selftest: 14 passed, 1 failed
+exit=1

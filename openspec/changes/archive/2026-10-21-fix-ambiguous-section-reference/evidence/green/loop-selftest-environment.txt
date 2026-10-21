@@ -1,0 +1,15 @@
+tools/loop-selftest.sh in this worktree (.pi/worktrees/loop), 2026-10-21T12:04:21Z:
+  FAIL worktree#keepsByDefaultAndRemovesOnRequest — git still lists the worktree that was removed
+  loop-selftest: 1 of 131 cases failed
+
+control 1 — the same case on a pristine 44b673f tree (/tmp/nv98/headtree, git archive 44b673f):
+  PASS worktree#keepsByDefaultAndRemovesOnRequest
+
+control 2 — the same case on a plain copy of THIS tree, with this change applied (/tmp/nv98/curtree):
+  PASS worktree#keepsByDefaultAndRemovesOnRequest
+
+This change modifies guidelines/Backlog.md, guidelines/Design.md, tools/check-doc-routes.sh and
+tools/check-doc-routes-selftest.sh; no file under tools/loop/** and neither of the two files the case's
+fixtures copy (tools/tooling.json, tools/pi-child-events.sh) is touched. The failure is therefore
+environment-dependent (the case runs inside the run's own linked worktree) and pre-existing, not caused
+by this change.

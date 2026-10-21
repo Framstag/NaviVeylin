@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
-# Resolve every guideline section reference in AGENTS.md's "Documentation Map", and every skill path the
-# documentation names.
+# Resolve every guideline section reference this project writes — the ones the routing table makes and the ones
+# a guideline body makes — and every skill path the documentation names.
 #
 # A reference is written as `<File>.md` §<number> "<heading text>" — the heading text is optional, and a
 # number may carry a letter suffix (`§15a`). The number must be a `## ` heading number of that document;
 # when heading text is given it must appear in one of the headings carrying that number, so a document that
 # numbers two sections alike (`MapRendering.md` has two `## 14.`) is still resolved unambiguously. A bare
-# number that its document uses twice is reported as ambiguous.
+# number that its document uses twice is reported as ambiguous — in the routing table and in a guideline
+# body alike, which is why a bare `§14` cannot be introduced anywhere a reader follows it. A reference
+# inside a fenced code block is quoted, not made, and is skipped.
 #
 # The documents are taken from `guidelines/*.md` at run time, not from a list inside this script, so a
 # document added later is covered without editing the check. A document that the routing table does not name
-# at all is reported as unrouted.
+# at all is reported as unrouted. An archived change and an open change artifact are history: their text is
+# neither checked nor rewritten.
 #
 # A skill path (`.pi/skills/<name>`) named by `AGENTS.md` or by a guideline resolves against the skills under
 # `.pi/skills/`, taken from the directories that carry a `SKILL.md` at run time. A path whose skill no longer
@@ -28,7 +31,7 @@ root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,27p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "check-doc-routes: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -88,9 +91,11 @@ for f in $files; do
     }' "$gdir/$f.md" >> "$tmp/headings"
 done
 
-# 4. a §-reference to a document that does not exist, then the references the table makes.
+# 4. a §-reference to a document that does not exist, then the references the routing table makes and the
+#    references a guideline body makes.
 #    A plain `.md` mention with no section reference (`guidelines/<file>.md`, a spec path) is prose and is
-#    left alone.
+#    left alone, and so is a document name that is not a guideline (a spec, a retired backlog): the
+#    existence rule below is the routing table's, and it stays there.
 missing_docs=0
 for n in $(grep -oE '[A-Za-z0-9_-]+\.md[^|]{0,3}§' "$tmp/region" | sed 's/\.md.*//' | sort -u); do
   if ! printf '%s\n' $files | grep -qx "$n"; then
@@ -99,8 +104,13 @@ for n in $(grep -oE '[A-Za-z0-9_-]+\.md[^|]{0,3}§' "$tmp/region" | sed 's/\.md.
   fi
 done
 
-sed -E "s/($named)\\.md/@@&@@/g" "$tmp/region" | awk -F'@@' -v pat="$named" '
+#    One extraction for both places. A body is read with its fenced code blocks skipped, because a block
+#    that quotes a reference shows an example; the fourth field is the file the error is reported against.
+extract_refs() { # $1 file to read, $2 name to report, $3 1 to skip fenced blocks
+  sed -E "s/($named)\\.md/@@&@@/g" "$1" | awk -F'@@' -v pat="$named" -v src="$2" -v fences="${3:-0}" '
   BEGIN { filere = "^(" pat ")\\.md$" }
+  fences == 1 && /^[[:space:]]*```/ { fence = !fence; next }
+  fences == 1 && fence { next }
   {
     file = ""
     for (i = 1; i <= NF; i++) {
@@ -117,10 +127,17 @@ sed -E "s/($named)\\.md/@@&@@/g" "$tmp/region" | awk -F'@@' -v pat="$named" '
           rest = substr(chunk, 2); q = index(rest, "\"")
           if (q > 0) { txt = substr(rest, 1, q - 1); chunk = substr(rest, q + 1) }
         }
-        print file "\t" num "\t" txt
+        print file "\t" num "\t" txt "\t" src
       }
     }
-  }' > "$tmp/refs"
+  }'
+}
+
+: > "$tmp/refs"
+extract_refs "$tmp/region" AGENTS.md 0 >> "$tmp/refs"
+for f in $files; do
+  extract_refs "$gdir/$f.md" "guidelines/$f.md" 1 >> "$tmp/refs"
+done
 
 # 5. the skills: derived from the directories under `.pi/skills/` that carry a SKILL.md, not from a list
 #    inside this script, so a skill added later is covered without editing the check.
@@ -164,15 +181,15 @@ awk -F'\t' -v unrouted="$unrouted" -v missingdocs="$missing_docs" -v skillfail="
     total++
     key = $1 SUBSEP $2
     if (!(key in headings)) {
-      printf "::error file=AGENTS.md::%s.md §%s — no such section\n", $1, $2
+      printf "::error file=%s::%s.md §%s — no such section\n", $4, $1, $2
       fail++
     } else if ($3 != "") {
       if (index(headings[key], $3) == 0) {
-        printf "::error file=AGENTS.md::%s.md §%s \"%s\" — no heading with that number contains that text\n", $1, $2, $3
+        printf "::error file=%s::%s.md §%s \"%s\" — no heading with that number contains that text\n", $4, $1, $2, $3
         fail++
       }
     } else if (count[key] > 1) {
-      printf "::error file=AGENTS.md::%s.md §%s — ambiguous, %d sections carry that number: name the heading text\n", $1, $2, count[key]
+      printf "::error file=%s::%s.md §%s — ambiguous, %d sections carry that number: name the heading text\n", $4, $1, $2, count[key]
       fail++
     }
   }

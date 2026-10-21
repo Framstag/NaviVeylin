@@ -6,9 +6,11 @@
 # dangling number, a bare number that is ambiguous, a heading text that matches nothing, a document the
 # table references but that does not exist, an AGENTS.md with no Documentation Map, a guideline document
 # that no route names, an extra guideline that is routed and resolves, an extra guideline that is routed
-# but whose section does not exist, and four skill-path cases: a named skill that exists, one that no longer
-# exists (renamed or deleted), one whose directory carries no `SKILL.md`, and one whose name is only a prefix
-# of a skill that does exist.
+# but whose section does not exist, the same three reference forms written in a guideline *body* rather than
+# in the table — a bare duplicated number, a heading text that resolves it, and a section the document does
+# not have — a reference inside a fenced code block (an example) and one inside a change artifact (history),
+# and four skill-path cases: a named skill that exists, one that no longer exists (renamed or deleted), one
+# whose directory carries no `SKILL.md`, and one whose name is only a prefix of a skill that does exist.
 #
 # The check derives its documents from the fixture's own `guidelines/` directory, so a fixture carries the
 # four base documents plus whichever extra one a case adds — and its table must name every document present.
@@ -105,10 +107,33 @@ expect() { # $1 case id, $2 expected exit, $3 fixture dir, $4 expected substring
   fi
 }
 
+expect_all() { # $1 case id, $2 expected exit, $3 fixture dir, $4 description, $5... substrings
+  local out got ok s id desc
+  [ -z "$case_filter" ] || [ "$case_filter" = "$1" ] || return 0
+  id="$1"; desc="$4"
+  out=$("$check" --root "$3" 2>&1)
+  got=$?
+  ok=1
+  [ "$got" = "$2" ] || ok=0
+  shift 4
+  for s in "$@"; do
+    printf '%s' "$out" | grep -qF -- "$s" || ok=0
+  done
+  if [ "$ok" = 1 ]; then
+    echo "PASS  $id — $desc (exit $got)"
+    pass=$((pass + 1))
+  else
+    echo "FAIL  $id — $desc: expected exit $2 containing every of '$*', got exit $got:"
+    printf '        %s\n' "$out"
+    failures=$((failures + 1))
+  fi
+}
+
 agents_before=$(md5sum "$root/AGENTS.md" | awk '{print $1}')
 
 for d in good dangling ambiguous mismatch missing noregion extra-unrouted extra-routed extra-dangling \
-         skill-ok skill-dangling skill-nofile skill-prefix; do
+         skill-ok skill-dangling skill-nofile skill-prefix \
+         body-ambiguous body-text body-fenced body-dangling artifacts; do
   mk_fixture "$tmp/$d"
 done
 
@@ -166,6 +191,47 @@ add_skill "$tmp/skill-prefix" pixel-check-extra
 write_agents "$tmp/skill-prefix" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |
 | a screenshot look | `.pi/skills/pixel-check` |'
 expect routes#aSkillNameThatOnlyPrefixesAnExistingOneIsReported 1 "$tmp/skill-prefix" ".pi/skills/pixel-check" "a skill name that only prefixes an existing one is reported"
+
+# a reference a guideline body writes is resolved the same way the table's rows are
+write_body() { # $1 = directory, $2 = body text of guidelines/Build.md
+  cat > "$1/guidelines/Build.md" <<FIXTURE
+# Build Specification
+
+## 99. Unused
+
+$2
+FIXTURE
+}
+
+write_body "$tmp/body-ambiguous" 'The renderer rules live in `UI.md` §14.'
+write_agents "$tmp/body-ambiguous" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all routes#aBareDuplicatedNumberInAGuidelineBodyIsReported 1 "$tmp/body-ambiguous" \
+  "a bare duplicated number in a guideline body is reported as ambiguous" "file=guidelines/Build.md" "ambiguous"
+
+write_body "$tmp/body-text" 'The renderer rules live in `UI.md` §14 "Android Auto renderer".'
+write_agents "$tmp/body-text" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect routes#aHeadingTextInAGuidelineBodyResolvesItsNumber 0 "$tmp/body-text" "all 6 section references resolve" "a heading text in a guideline body resolves its duplicated number"
+
+write_body "$tmp/body-fenced" 'An example, quoted:
+
+```
+The renderer rules live in `UI.md` §14.
+```'
+write_agents "$tmp/body-fenced" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect routes#aReferenceInsideAFencedBlockIsNotAReference 0 "$tmp/body-fenced" "all 5 section references resolve" "a reference inside a fenced block is not a reference"
+
+write_body "$tmp/body-dangling" 'The renderer rules live in `UI.md` §42.'
+write_agents "$tmp/body-dangling" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all routes#aGuidelineBodyNamingAMissingSectionIsReported 1 "$tmp/body-dangling" \
+  "a guideline body naming a section its document lacks is reported" "file=guidelines/Build.md" "UI.md §42"
+
+# an archived change and an open change artifact are history: their references are not resolved
+mkdir -p "$tmp/artifacts/openspec/changes/archive/2026-01-01-old" "$tmp/artifacts/openspec/changes/open-thing"
+for d in openspec/changes/archive/2026-01-01-old openspec/changes/open-thing; do
+  printf 'The renderer rules live in `UI.md` §14.\n' > "$tmp/artifacts/$d/proposal.md"
+done
+write_agents "$tmp/artifacts" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect routes#aReferenceInAChangeArtifactIsNotChecked 0 "$tmp/artifacts" "all 5 section references resolve" "a reference in a change artifact is not checked"
 
 agents_after=$(md5sum "$root/AGENTS.md" | awk '{print $1}')
 if [ -n "$case_filter" ]; then

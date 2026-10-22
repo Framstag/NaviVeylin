@@ -1,0 +1,33 @@
+2026-10-22T00:23:53Z
+### the repository's mode for the suite the profile names directly
+100644 ff094c99705a29591bfdbf982ad80c1e55d1d361 0	tools/check-action-runtimes-selftest.sh
+-rw-r--r-- 1 tim tim 4282 22. Okt 01:33 tools/check-action-runtimes-selftest.sh
+
+### every other suite the profile names, for comparison
+-rwxr-xr-x 1 tim tim 7253 21. Okt 21:43 tools/loop-selftest.sh
+-rwxr-xr-x 1 tim tim 3550 20. Okt 11:15 tools/sensor-selftest.sh
+-rwxr-xr-x 1 tim tim 9292 21. Okt 21:43 tools/check-doc-routes.sh
+-rwxr-xr-x 1 tim tim 5173 20. Okt 11:15 tools/check-portability-selftest.sh
+
+### the profile's command, run the way gate.sh runs it (direct invocation)
+zsh:1: keine Berechtigung: tools/check-action-runtimes-selftest.sh
+EXIT=126
+
+### the same suite through a shell, the way CI invokes it (build.yml:297)
+ok: a tree with no workflow directory is a layout error
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+EXIT=
+
+### the same suite through a shell, the way CI invokes it (build.yml:297)
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+EXIT=0
+
+### after the mode repair — chmod +x, the one bit every other suite the profile names already carries
+2026-10-22T00:24:00Z
+-rwxr-xr-x 1 tim tim 4282 22. Okt 01:33 tools/check-action-runtimes-selftest.sh
+### the profile's command, run the way gate.sh runs it (direct invocation)
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+EXIT=0
+
+### and the tree holds it as a modified file whose mode the run's own commit records
+ M tools/check-action-runtimes-selftest.sh

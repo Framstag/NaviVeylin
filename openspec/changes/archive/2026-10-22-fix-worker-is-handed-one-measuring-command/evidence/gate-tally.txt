@@ -1,0 +1,30 @@
+gate tally — how LOOP-GATE: tests=210 failures=0 was reached (2026-10-22)
+
+Run: `./tools/loop/gate.sh`, once, in `.pi/worktrees/loop`, started 2026-10-22T00:25:06Z
+(`gate-started.txt`), finished 2026-10-22T00:38:47Z (`gate.log`, last line).
+`EXIT=0` in `gate.log` is the gate's own status, written by the shell that ran it — not a
+pipeline's: the command was `./tools/loop/gate.sh > gate.log 2>&1; printf 'EXIT=%s' "$?"`,
+with no `tee` in between. `tools/loop/gate.sh:139-141` exits 1 when any suite failed; none did.
+
+The pathspec owed five commands (the profile's `*.xml` pattern matches this change's own
+`evidence/*.xml`, which is why the build's gate ran although no compiled file changed):
+
+| suite | tests | failures | source |
+|---|---|---|---|
+| `./gradlew test -PforceTests --no-build-cache` | 0 | 0 | `gradle-suite-tally.xml` — `BUILD SUCCESSFUL in 3m 21s`, `21 executed, 168 up-to-date` |
+| `tools/loop-selftest.sh` | 155 | 0 | `tools_loop-selftest.sh.xml` |
+| `tools/sensor-selftest.sh` | 45 | 0 | `tools_sensor-selftest.sh.xml` |
+| `tools/check-action-runtimes-selftest.sh` | 10 | 0 | `tools_check-action-runtimes-selftest.sh.xml` |
+| `tools/check-doc-routes.sh` | 0 | 0 | `tools_check-doc-routes.sh.xml` — a reference check, it prints no case count |
+
+So `tests=210` is 155 + 45 + 10 + 0 + 0, and it is the **tool** half: the JVM half reports
+`tests=0` because it executed no test — the test tasks were among the 168 up-to-date, and no
+`TEST-*.xml` under any module's `build/test-results/` was written after the gate started
+(`find . -name 'TEST-*.xml' -newermt '2026-10-22 02:30' | wc -l` → 0). `-PforceTests` therefore did
+not force execution on this tree — a defect of that flag or of the profile's invocation, not of this
+delta, and it is recorded here rather than repaired here: this change touches no compiled file, so
+the JVM half is not owed by scope (`Build.md` §2) and only the `*.xml` pattern pulled it in.
+
+`tools/check-action-runtimes-selftest.sh` is the suite that was red in review round 1. It ran
+because its mode is now `100755` (`suite-mode-probe.txt`): the profile names it as a command and the
+gate invokes it directly, so before the repair it exited 126.

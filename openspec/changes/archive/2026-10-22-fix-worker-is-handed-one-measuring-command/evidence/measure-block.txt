@@ -1,0 +1,50 @@
+2026-10-22T00:39:25Z
+### the block with no --change (one change open in this worktree, left by another item)
+LOOP-MEASURE base=HEAD~1 paths=31 insertions=604 deletions=22
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/focused-cases-green.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/focused-cases-green-round1-mislabeled.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/gate-round1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/gate-started.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/gate-suite-map-probe.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/gate-tally.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/gate-unrunnable-suite.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/gradle-suite-tally.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/mutation-39.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/mutation-39-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/post-archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/red-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/red-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/red-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/red-round2.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/suite-mode-probe.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/tools_check-action-runtimes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/tools_loop-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/evidence/tools_sensor-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/measure.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/prompts/worker.md
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/._gradlew_test_-PforceTests_--no-build-cache.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh.xml tests=155 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_sensor-selftest.sh.xml tests=45 failures=0
+LOOP-MEASURE-CHANGE fix-mutation-harness-file-scope scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END
+
+### the block told which change to measure
+LOOP-MEASURE-CHANGE 2026-10-22-fix-worker-is-handed-one-measuring-command scenarios=5 cases=5 unnamed=0
+LOOP-MEASURE-SURFACE surface: 5 cases added (3 in round 1, 2 in the round-2 corrections below), 1 case rewritten, 1 prompt section

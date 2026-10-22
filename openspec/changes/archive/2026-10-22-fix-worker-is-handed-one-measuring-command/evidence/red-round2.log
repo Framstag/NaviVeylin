@@ -1,0 +1,68 @@
+2026-10-22T00:22:55Z
+### measure#refusesToGuessWhichChangeItMeasures
+  two open changes are named as ambiguous, not guessed between: LOOP-MEASURE base=6a37589be2d5d704e7d1820de2854ff373c1f175 paths=2 insertions=10 deletions=0
+LOOP-MEASURE-PATH openspec/changes/fix-one/specs/demo/spec.md
+LOOP-MEASURE-PATH openspec/changes/fix-two/specs/demo/spec.md
+LOOP-MEASURE-CHECK LOOP-GATE: nothing owed — no path this profile gates changed since 6a37589be2d5d704e7d1820de2854ff373c1f175
+LOOP-MEASURE-CHANGE fix-two scenarios=2 cases=1 unnamed=1
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END: 'ambiguous' not found in: LOOP-MEASURE base=6a37589be2d5d704e7d1820de2854ff373c1f175 paths=2 insertions=10 deletions=0
+LOOP-MEASURE-PATH openspec/changes/fix-one/specs/demo/spec.md
+LOOP-MEASURE-PATH openspec/changes/fix-two/specs/demo/spec.md
+LOOP-MEASURE-CHECK LOOP-GATE: nothing owed — no path this profile gates changed since 6a37589be2d5d704e7d1820de2854ff373c1f175
+LOOP-MEASURE-CHANGE fix-two scenarios=2 cases=1 unnamed=1
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END
+FAIL measure#refusesToGuessWhichChangeItMeasures
+EXIT=1
+### measure#saysHowManyTalliesItWithheld
+  and says that it withheld some: LOOP-MEASURE base=361351fcff69c67a597d7906b4930fccefe25111 paths=0 insertions=0 deletions=0
+LOOP-MEASURE-CHECK LOOP-GATE: nothing owed — no path this profile gates changed since 361351fcff69c67a597d7906b4930fccefe25111
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s10.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s11.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s12.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s13.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s14.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s15.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s16.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s17.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s18.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s19.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s1.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s20.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s21.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s22.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s23.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s24.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s25.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s2.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s3.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s4.xml tests=3 failures=0
+LOOP-MEASURE-CHANGE none
+LOOP-MEASURE-END: 'LOOP-MEASURE-TALLY-MORE' not found in: LOOP-MEASURE base=361351fcff69c67a597d7906b4930fccefe25111 paths=0 insertions=0 deletions=0
+LOOP-MEASURE-CHECK LOOP-GATE: nothing owed — no path this profile gates changed since 361351fcff69c67a597d7906b4930fccefe25111
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s10.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s11.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s12.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s13.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s14.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s15.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s16.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s17.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s18.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s19.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s1.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s20.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s21.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s22.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s23.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s24.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s25.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s2.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s3.xml tests=3 failures=0
+LOOP-MEASURE-TALLY /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.SRO56Z/case.K1dNrV/tally/s4.xml tests=3 failures=0
+LOOP-MEASURE-CHANGE none
+LOOP-MEASURE-END
+FAIL measure#saysHowManyTalliesItWithheld
+EXIT=1
+2026-10-22T00:22:59Z

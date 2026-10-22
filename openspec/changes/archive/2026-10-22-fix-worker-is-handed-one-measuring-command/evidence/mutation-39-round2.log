@@ -1,0 +1,14 @@
+2026-10-22T00:24:15Z
+measure.sh before: 4277200493 8237 tools/loop/measure.sh
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.AKjHI5
+RED    39.1  measure#namesTheOwedChecksInOneBlock   (the owed checks the block names (issue #246))
+restore 39.1 measure#namesTheOwedChecksInOneBlock green again
+RED    39.2  measure#refusesToGuessWhichChangeItMeasures   (the count that makes two open changes ambiguous (issue #246))
+restore 39.2 measure#refusesToGuessWhichChangeItMeasures green again
+RED    39.3  measure#saysHowManyTalliesItWithheld   (the line that says how many tallies the cap withheld (issue #246))
+restore 39.3 measure#saysHowManyTalliesItWithheld green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+measure.sh after:  4277200493 8237 tools/loop/measure.sh
+measure.sh byte-identical after the run: yes
+2026-10-22T00:24:25Z

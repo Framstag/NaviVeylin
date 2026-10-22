@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case &lt;the two cases the round-2 corrections add&gt;" tests="2" failures="2" errors="0" timestamp="2026-10-22T00:22:55Z">
+  <system-out>Two focused case runs in the run's worktree before the corrections landed: measure#refusesToGuessWhichChangeItMeasures and measure#saysHowManyTalliesItWithheld, each EXIT=1, each FAIL line in red-round2.log. The first failed on the old block's own line LOOP-MEASURE-CHANGE fix-two scenarios=2 cases=1 unnamed=1 for a tree with fix-one and fix-two open, and on `--change fix-one` printing LOOP-MEASURE-CHANGE none; the second failed because a tally directory of 25 files printed 20 lines and no line saying so. tests/failures are counted from the two FAIL lines of red-round2.log, the way tools/loop/gate.sh derives a per-suite tally; the log carries its own clock (2026-10-22T00:22:55Z .. 00:22:59Z).</system-out>
+</testsuite>

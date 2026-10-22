@@ -1,0 +1,16 @@
+2026-10-22T00:24:05Z
+### the profile value tools/loop/loop.conf carries (LOOP_GATE_SUITES)
+LOOP_GATE_SUITES pairs=18  (sed -n 's/^LOOP_GATE_SUITES="\(.*\)"/\1/p' tools/loop/loop.conf | tr ';' '\n' | grep -c .)
+iterations with printf %s   (the form before the fix): 17
+iterations with printf %s\n (the form the fix uses):   18
+
+### the same, for the two-pair value the measuring command's case uses
+pairs=2  iterations with printf %s: 1  with printf %s\n: 2
+
+### what the drop costs: the pair the profile ends with, and whether the block names it
+last pair: AGENTS.md|tools/check-doc-routes.sh
+the block on this worktree (base = HEAD~1) names these checks:
+./gradlew test -PforceTests --no-build-cache
+tools/loop-selftest.sh
+tools/check-action-runtimes-selftest.sh
+tools/check-doc-routes.sh

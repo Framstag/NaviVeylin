@@ -6,8 +6,11 @@
 
 A run SHALL hand the worker of an item one reading command, named by the project's configuration, that prints
 the change's own numbers as one block: the paths the change touches, the checks its pathspec owes with the
-command that runs each, the tallies the tree already carries, and the change's spec scenarios counted against
-the cases that name them. The command SHALL run none of those checks — the gate is run once per item — and
+command that runs each, the tallies the tree already carries — up to a per-directory limit, and, when the
+block stops at that limit, the number it withheld — and the change's spec scenarios counted against the
+cases that name them. The block SHALL say which change it measured, and SHALL NOT choose between two open
+changes: it SHALL name them and measure neither. The command SHALL run none of those checks — the gate is
+run once per item — and
 SHALL NOT hold a project value of its own: the checks come from the same call the gate makes, so the profile
 stays the one place the mapping lives. Every line of the block SHALL carry one prefix, so that the block's end
 is visible rather than promised.
@@ -30,6 +33,21 @@ is read from the transcript, and a measurement already taken is quoted, not re-t
 - **THEN** the block carries each tally with its own `tests=`/`failures=`, the scenario and case counts with the
   number that name no case, and the proposal's `surface:` record quoted
 - **Case**: `measure#printsTheNumbersTheReviewerAsksFor`
+
+#### Scenario: Two open changes are named, not guessed between
+
+- **WHEN** two changes are open under `openspec/changes/` and the worker runs the measuring command without
+  naming one
+- **THEN** the block names both changes and carries no scenario or case count for either, and a run that
+  passes `--change <name>` prints the counts of that change alone
+- **Case**: `measure#refusesToGuessWhichChangeItMeasures`
+
+#### Scenario: A capped tally list says what it withheld
+
+- **WHEN** the gate's tally directory holds more tally files than the block prints
+- **THEN** the block prints its limit's worth of tallies and one further line carrying the number it withheld
+  against the number it found
+- **Case**: `measure#saysHowManyTalliesItWithheld`
 
 #### Scenario: The task names the command and the rule that stops a re-read
 

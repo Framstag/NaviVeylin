@@ -1,6 +1,24 @@
-post-archive checks, 2026-10-22T00:18:24Z
-Specification 'agent-issue-loop' is valid
+2026-10-22T00:39:12Z
+### openspec validate agent-issue-loop --type spec
+⚠ [WARNING] requirements[27]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[28]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[36]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+EXIT=0
+
+### openspec doctor
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
 References
   (none declared)
+EXIT=0
+
+### tools/check-doc-routes.sh
 check-doc-routes: all 120 section references resolve, all 5 skill references resolve
-grep of the merged requirement: 1 occurrence(s)
+EXIT=0
+
+### the archived change and its merged delta
+openspec/changes/archive/2026-10-22-fix-worker-is-handed-one-measuring-command
+5
+2
+2026-10-22T00:39:13Z

@@ -1,0 +1,13 @@
+# The Gradle half of the review round's single gate run — composed from the per-module JUnit XMLs, not
+# from gate.sh, which prints no Gradle tally and reads only a suite's own "all N cases passed" line
+# (that is why the LOOP-GATE line reads 325 while the Gradle half reads 5762). These XMLs live under
+# each module's `build/test-results/<task>/` only and are not versioned: the rows below are the
+# archived summary, and a `clean` deletes the source XMLs.
+# Counted by summing `tests=` / `failures=` / `errors=` over TEST-*.xml in each directory, 2026-10-22T04:09Z.
+module                                 tests  failures  errors  newest XML timestamp
+app  testMobileDebugUnitTest            2098         0       0  2026-10-22T04:08:28.457Z
+app  testAutomotiveDebugUnitTest        2098         0       0  2026-10-22T04:06:25.738Z
+auto testDebugUnitTest                   876         0       0  2026-10-22T04:05:00.237Z
+core testDebugUnitTest                   642         0       0  2026-10-22T04:04:30.438Z
+osmscout-client-java test                  48         0       0  2026-10-22T04:04:19.091Z
+TOTAL                                   5762         0       0

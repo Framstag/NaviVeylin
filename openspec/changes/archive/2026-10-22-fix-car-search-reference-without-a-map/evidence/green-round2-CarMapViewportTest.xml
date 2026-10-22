@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.CarMapViewportTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-22T04:03:40.753Z" hostname="dingens" time="0.526">
+  <properties/>
+  <testcase name="theLastDrawnFrameCenterIsPublished" classname="com.naviveylin.auto.CarMapViewportTest" time="0.516"/>
+  <testcase name="aCenterThatIsNotALocationIsDropped" classname="com.naviveylin.auto.CarMapViewportTest" time="0.001"/>
+  <testcase name="aScreenWhoseFrameNeverLandedKeepsTheCenterAlreadyPublished" classname="com.naviveylin.auto.CarMapViewportTest" time="0.008"/>
+  <testcase name="noCarMapHasDrawnYetMeansNoCenter" classname="com.naviveylin.auto.CarMapViewportTest" time="0.001"/>
+  <testcase name="aScreenWithoutARendererKeepsTheCenterAlreadyPublished" classname="com.naviveylin.auto.CarMapViewportTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

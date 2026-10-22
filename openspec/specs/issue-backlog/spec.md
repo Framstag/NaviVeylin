@@ -92,7 +92,12 @@ like any other conflicting route, never resolved in silence.
 
 The tooling SHALL act on an issue only when its author is on a committed allowlist and the issue carries
 the project's explicit opt-in label, and SHALL refuse to run at all when the identity it is running as is
-not on that allowlist.
+not on that allowlist. The opt-in authorises unattended **work**, so a closure that records a person's
+decision not to act — the not-planned closure, which writes the settled status a retired item already
+carries — SHALL NOT require it: that closure SHALL proceed when the gate's only refusal is
+`missing-eligibility-label`, and every other refusal (the author allowlist, a reserved label, a missing
+reason or missing evidence) SHALL still stop it. A closure that records a completed fix SHALL still require
+the opt-in, because that one asserts work which landed.
 
 #### Scenario: An unauthorised author is not acted on
 
@@ -113,6 +118,15 @@ not on that allowlist.
 
 - **WHEN** the identity the tooling runs as is not on the allowlist
 - **THEN** it refuses before acting and says so, rather than reporting an empty working set
+
+#### Scenario: A not-planned closure is a record write, not an act of work
+
+- **WHEN** an issue by an allowlisted author carries a settled state (`status/retired`) and no opt-in label,
+  and a not-planned closure of it is requested with a reason and its evidence
+- **THEN** the closure proceeds — the reason is posted, the settled state is written before the close, and
+  the CLI receives the `not planned` state reason — while the completed closure of that same item is still
+  refused with `missing-eligibility-label` and posts nothing
+- **Case**: `close#notPlannedNeedsNoOptIn`
 
 ### Requirement: Identity survives its source
 

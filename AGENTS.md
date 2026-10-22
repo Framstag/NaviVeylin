@@ -251,16 +251,18 @@ Two more rules are the validator's own, and an author meets them in the round af
 unless they are read here first: `openspec validate <change> --strict` fails on both, while the plain command
 passes the second with the severity it carries.
 
-- a `MODIFIED` block replaces its requirement when the change archives, so it carries the requirement **whole**:
-  the description and every scenario the shipped spec still has, the ones it does not change repeated verbatim.
-  A renamed scenario is a removal plus an addition — the validator then reports the shipped name as omitted.
-- a requirement's text stays at most 500 characters — the body, not its scenarios, which is where an example or
-  an edge case belongs. The limit is read on an `ADDED` block before it lands (`Requirement text is very long
-  (>500 characters)`) and on the shipped spec after archive; a `MODIFIED` block is exempt, because its text is
-  the existing requirement kept whole.
+- a `MODIFIED` block replaces its requirement when the change archives, so it carries every scenario the
+  shipped spec still has, the ones it does not change repeated verbatim — a renamed scenario is a removal plus
+  an addition, which the validator reports as the shipped name omitted.
+- a requirement's body stays at most 500 characters — the body, not its scenarios, which is where an example
+  or an edge case belongs — and the limit is read on an `ADDED` block before it lands (the validator's
+  `Requirement text is very long (>500 characters)`) and on the shipped spec after archive, a `MODIFIED`
+  block exempt because its text is the existing requirement kept whole.
 
 Run `openspec validate <change> --strict` — or `openspec validate --changes --strict` over the open set — before
-the artifact is finished rather than at archive time.
+the artifact is finished rather than at archive time. Both rules and their rationale are owned by
+`openspec/specs/documentation-ownership/spec.md`, "The validator's own strict rules are read before the first
+write".
 
 ## Build & Test
 

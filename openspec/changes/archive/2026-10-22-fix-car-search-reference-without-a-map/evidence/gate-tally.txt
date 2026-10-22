@@ -1,0 +1,13 @@
+LOOP-GATE: tests=325 failures=0 (tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+gradle gate: ./gradlew test -PforceTests --no-build-cache
+app/build/test-results/testMobileDebugUnitTest       tests=2098 skipped=0 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest   tests=2098 skipped=0 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest            tests=873 skipped=0 failures=0 errors=0
+core/build/test-results/testDebugUnitTest            tests=642 skipped=0 failures=0 errors=0
+osmscout-client-java/build/test-results/test         tests=48 skipped=0 failures=0 errors=0
+newest XML timestamps:
+app/build/test-results/testMobileDebugUnitTest       timestamp="2026-10-22T03:45:41.497Z"
+app/build/test-results/testAutomotiveDebugUnitTest   timestamp="2026-10-22T03:43:57.312Z"
+auto/build/test-results/testDebugUnitTest            timestamp="2026-10-22T03:42:38.960Z"
+core/build/test-results/testDebugUnitTest            timestamp="2026-10-22T03:42:10.933Z"
+osmscout-client-java/build/test-results/test         timestamp="2026-10-22T03:41:59.053Z"

@@ -1,0 +1,202 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :auto:checkHardcodedStrings
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
+> Task :auto:generateDebugUnitTestResources UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :core:writeDebugAarMetadata UP-TO-DATE
+> Task :core:extractDeepLinksDebug UP-TO-DATE
+> Task :core:processDebugManifest UP-TO-DATE
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
+> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestResources UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugUnitTestAssets UP-TO-DATE
+> Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestConfig UP-TO-DATE
+> Task :auto:koverFindJar UP-TO-DATE
+> Task :core:kspDebugKotlin
+> Task :core:compileDebugKotlin
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
+> Task :core:transformDebugClassesWithAsm
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:bundleLibRuntimeToJarDebug
+> Task :auto:compileDebugKotlin
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:processDebugJavaRes
+> Task :auto:bundleLibRuntimeToJarDebug
+> Task :auto:bundleLibCompileToJarDebug
+> Task :auto:compileDebugUnitTestKotlin
+> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :auto:testDebugUnitTest
+
+SearchScreenTest > aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter FAILED
+    java.lang.AssertionError: Verification failed: call 1 of 1: AutoSearchProvider(#430).searchLocations(eq(Dortmund), eq(20), eq(SearchReference(lat=52.52, lon=13.405)), any())). Only one matching call to AutoSearchProvider(#430)/searchLocations(String, Int, SearchReference, Long) happened, but arguments are not matching:
+    [0]: argument: Dortmund, matcher: eq(Dortmund), result: +
+    [1]: argument: 20, matcher: eq(20), result: +
+    [2]: argument: null, matcher: eq(SearchReference(lat=52.52, lon=13.405)), result: -
+    [3]: argument: 1, matcher: any(), result: +
+
+    Stack trace:
+                                                                io.mockk.impl.InternalPlatform.captureStackTrace                                   (InternalPlatform.kt:130)            
+                                                                  io.mockk.impl.stub.MockKStub.handleInvocation                                    (MockKStub.kt:253)                   
+                                io.mockk.impl.instantiation.JvmMockFactoryHelper$mockHandler$1.invocation                                          (JvmMockFactoryHelper.kt:24)         
+                                                         io.mockk.proxy.jvm.advice.Interceptor.call                                                (Interceptor.kt:21)                  
+                                                          io.mockk.proxy.jvm.advice.BaseAdvice.handle                                              (BaseAdvice.kt:42)                   
+                                        io.mockk.proxy.jvm.advice.jvm.JvmMockKProxyInterceptor.interceptNoSuper                                    (JvmMockKProxyInterceptor.java:44)   
+                                              com.naviveylin.core.AutoSearchProvider$Subclass2.beginSearch                                         (-:-1)                               
+                                       com.naviveylin.core.search.SearchGate$start$1$request$1.invokeSuspend                                       (SearchGate.kt:125)                  
+                                       com.naviveylin.core.search.SearchGate$start$1$request$1.invoke                                              (SearchGate.kt:-1)                   
+                                       com.naviveylin.core.search.SearchGate$start$1$request$1.invoke                                              (SearchGate.kt:-1)                   
+                                                  kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn                           (Undispatched.kt:42)                 
+                                              kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext                                         (Builders.common.kt:164)             
+                                                                 kotlinx.coroutines.BuildersKt.withContext                                         (-:1)                                
+                                                 com.naviveylin.core.search.SearchGate$start$1.invokeSuspend                                       (SearchGate.kt:125)                  
+                                           kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith                                          (ContinuationImpl.kt:34)             
+                                                             kotlinx.coroutines.DispatchedTask.run                                                 (DispatchedTask.kt:101)              
+                                                        kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test                (TestDispatcher.kt:24)               
+                                                kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test        (TestCoroutineScheduler.kt:99)       
+                                                kotlinx.coroutines.test.TestCoroutineScheduler.advanceUntilIdleOr$kotlinx_coroutines_test          (TestCoroutineScheduler.kt:118)      
+                                                kotlinx.coroutines.test.TestCoroutineScheduler.advanceUntilIdle                                    (TestCoroutineScheduler.kt:111)      
+                                                           kotlinx.coroutines.test.TestScopeKt.advanceUntilIdle                                    (TestScope.kt:95)                    
+    com.naviveylin.auto.SearchScreenTest$aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter$1.invokeSuspend                                       (SearchScreenTest.kt:271)            
+    com.naviveylin.auto.SearchScreenTest$aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter$1.invoke                                              (SearchScreenTest.kt:-1)             
+    com.naviveylin.auto.SearchScreenTest$aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter$1.invoke                                              (SearchScreenTest.kt:-1)             
+                          kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend                                       (TestBuilders.kt:318)                
+                                           kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith                                          (ContinuationImpl.kt:34)             
+                                                             kotlinx.coroutines.DispatchedTask.run                                                 (DispatchedTask.kt:101)              
+                                                        kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test                (TestDispatcher.kt:24)               
+                                                kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test        (TestCoroutineScheduler.kt:99)       
+               kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend                                       (TestBuilders.kt:327)                
+                                           kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith                                          (ContinuationImpl.kt:34)             
+                                                             kotlinx.coroutines.DispatchedTask.run                                                 (DispatchedTask.kt:101)              
+                                                          kotlinx.coroutines.EventLoopImplBase.processNextEvent                                    (EventLoop.common.kt:263)            
+                                                          kotlinx.coroutines.BlockingCoroutine.joinBlocking                                        (Builders.kt:95)                     
+                                                     kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking                                         (Builders.kt:69)                     
+                                                                 kotlinx.coroutines.BuildersKt.runBlocking                                         (-:1)                                
+                                                     kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default                                 (Builders.kt:47)                     
+                                                                 kotlinx.coroutines.BuildersKt.runBlocking$default                                 (-:1)                                
+                                                     kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult                                    (TestBuildersJvm.kt:10)              
+                                        kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0                                     (TestBuilders.kt:310)                
+                                                        kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0                                     (-:1)                                
+                                        kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0                                     (TestBuilders.kt:168)                
+                                                        kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0                                     (-:1)                                
+                                        kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default                             (TestBuilders.kt:160)                
+                                                        kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default                             (-:1)                                
+                                                          com.naviveylin.auto.SearchScreenTest.aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter (SearchScreenTest.kt:259)            
+                                               jdk.internal.reflect.DirectMethodHandleAccessor.invoke                                              (DirectMethodHandleAccessor.java:103)
+                                                                      java.lang.reflect.Method.invoke                                              (Method.java:580)                    
+                                                     org.junit.runners.model.FrameworkMethod$1.runReflectiveCall                                   (FrameworkMethod.java:59)            
+                                           org.junit.internal.runners.model.ReflectiveCallable.run                                                 (ReflectiveCallable.java:12)         
+                                                       org.junit.runners.model.FrameworkMethod.invokeExplosively                                   (FrameworkMethod.java:56)            
+                                            org.junit.internal.runners.statements.InvokeMethod.evaluate                                            (InvokeMethod.java:17)               
+                                              org.junit.internal.runners.statements.RunBefores.evaluate                                            (RunBefores.java:26)                 
+                                                                 org.junit.rules.TestWatcher$1.evaluate                                            (TestWatcher.java:61)                
+                                                              org.junit.runners.ParentRunner$3.evaluate                                            (ParentRunner.java:306)              
+                                      org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate                                            (RobolectricTestRunner.java:502)     
+                                                  org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2                                   (SandboxTestRunner.java:285)         
+                                                     org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0                            (Sandbox.java:104)                   
+                                                               java.util.concurrent.FutureTask.run                                                 (FutureTask.java:317)                
+                                                       java.util.concurrent.ThreadPoolExecutor.runWorker                                           (ThreadPoolExecutor.java:1144)       
+                                                java.util.concurrent.ThreadPoolExecutor$Worker.run                                                 (ThreadPoolExecutor.java:642)        
+                                                                              java.lang.Thread.run                                                 (Thread.java:1583)                   
+        at io.mockk.impl.recording.states.VerifyingState.failIfNotPassed(VerifyingState.kt:63)
+        at io.mockk.impl.recording.states.VerifyingState.recordingDone(VerifyingState.kt:42)
+        at io.mockk.impl.recording.CommonCallRecorder.done(CommonCallRecorder.kt:47)
+        at io.mockk.impl.eval.RecordedBlockEvaluator.record(RecordedBlockEvaluator.kt:63)
+        at io.mockk.impl.eval.VerifyBlockEvaluator.verify(VerifyBlockEvaluator.kt:30)
+        at io.mockk.MockKDsl.internalVerify(API.kt:120)
+        at io.mockk.MockKKt.verify(MockK.kt:218)
+        at io.mockk.MockKKt.verify$default(MockK.kt:209)
+        at com.naviveylin.auto.SearchScreenTest$aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter$1.invokeSuspend(SearchScreenTest.kt:273)
+        at com.naviveylin.auto.SearchScreenTest$aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter$1.invoke(SearchScreenTest.kt)
+        at com.naviveylin.auto.SearchScreenTest$aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter$1.invoke(SearchScreenTest.kt)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)
+        at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+        at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)
+        at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+        at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+        at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+        at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+        at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+        at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:160)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+        at com.naviveylin.auto.SearchScreenTest.aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter(SearchScreenTest.kt:259)
+
+17 tests completed, 1 failed
+
+> Task :auto:testDebugUnitTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':auto:testDebugUnitTest'.
+> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/auto/build/reports/tests/testDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 13s
+59 actionable tasks: 15 executed, 44 up-to-date

@@ -435,7 +435,8 @@ describes (spec: `route-calculation-feedback`). The route-calculation wait notic
   that arrives just after the delay must not swap a screen the driver has only glanced at (measured
   2026-10-05: an 847 ms route showed the notice for 443 ms; §133, issue #84). The dwell is decided by
   `calculationNoticeDwellRemainingMs()` and armed as one cancellable job; it MUST NOT delay a
-  cancellation (the driver's own tap) or the error notice that replaces a failed calculation.
+  cancellation (the driver's own tap) or the error notice that answers a failure with no navigation
+  view below the notice.
 - **Never outlives its work**: when the calculation ends the notice is removed by identity
   (`ScreenManager.remove`, never `popToRoot()`, which takes the navigation view with it);
   a calculation that ended while the session was not started MUST NOT leave a notice behind.

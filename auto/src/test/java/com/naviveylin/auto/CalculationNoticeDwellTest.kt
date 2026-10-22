@@ -25,8 +25,10 @@ class CalculationNoticeDwellTest {
 
     /**
      * The dwell owed for a notice that has been visible for [shownForMs] and is about to be
-     * replaced by the navigation view ([replacedByNavigation] false for a cancellation or a
-     * failure, which the driver or the error notice answers instead of a screen the wait owes).
+     * replaced by the navigation view ([replacedByNavigation] false where no navigation view stands
+     * below the notice: the driver's own cancellation, or a failure whose error notice is shown over
+     * no navigation view — those are answered at once, and a screen the wait owes is not what removes
+     * the notice).
      */
     private fun dwellRemainingMs(shownForMs: Long, replacedByNavigation: Boolean): Long {
         val method: Method = facade()
@@ -80,7 +82,8 @@ class CalculationNoticeDwellTest {
             dwellRemainingMs(shownForMs = 0L, replacedByNavigation = false)
         )
         assertEquals(
-            "a failure is answered by the error notice, not by a dwell",
+            "a failure with no navigation view below the notice is answered by the error notice at " +
+                "once, not by a dwell",
             0L,
             dwellRemainingMs(shownForMs = 443L, replacedByNavigation = false)
         )

@@ -1065,8 +1065,11 @@ class NavigationSession : Session() {
      * The navigation view is pushed on the `isNavigating` edge, i.e. *under* this notice, so the
      * removal is what reveals it: a route that arrives just after [CALCULATION_NOTICE_DELAY_MS]
      * used to swap a screen the driver had seen for 443 ms (measured 2026-10-05). A cancellation
-     * and a failure are not the navigation view replacing the notice — the driver's own answer and
-     * the error notice are shown at once, so the dwell does not delay them.
+     * with no navigation view below the notice, and a failure whose error notice stands over none,
+     * are not the navigation view replacing it — the driver's own answer and that error notice are
+     * shown at once, so the dwell does not delay them. A failed **reroute** keeps the navigation
+     * view live, so the dwell is owed there too: the error notice covers the notice on the same
+     * emission and this job removes it behind the overlay.
      */
     private fun scheduleCalculationNoticeRemoval() {
         val notice = calculationNotice ?: return
@@ -1296,19 +1299,20 @@ internal fun noticeIsStale(live: RouteCalculation?, noticeShown: Boolean): Boole
  * The minimum time the calculation notice stays visible once it has been pushed: a route that
  * arrives just after [NavigationSession]'s `CALCULATION_NOTICE_DELAY_MS` must not replace a screen
  * the driver has only glanced at. Measured 2026-10-05 (§133, issue #84): an 847 ms route showed the
- * notice for 443 ms, so 700 ms covers the observed flash band and puts the navigation view on
- * screen at the latest 700 ms after the notice appeared.
+ * notice for 443 ms — the only flash the change's evidence carries — so 700 ms leaves ~250 ms of
+ * margin over it and puts the navigation view on screen at the latest 700 ms after the notice
+ * appeared.
  */
 internal const val CALCULATION_NOTICE_MIN_DWELL_MS = 700L
 
 /**
  * How long the calculation notice that has been visible for [shownForMs] still has to stay up
  * before it may be removed: the rest of [CALCULATION_NOTICE_MIN_DWELL_MS], and nothing once the
- * dwell has run out. [replacedByNavigation] false is a cancellation or a failure — the driver's
- * own answer and the error notice are not a screen the wait owes, and the dwell must not delay
- * them (spec: `route-calculation-feedback` — A notice the navigation view replaces stays visible
- * for a minimum dwell). Pure seam for unit testing ([NavigationSession] cannot be constructed in
- * Robolectric).
+ * dwell has run out. [replacedByNavigation] false is a removal no navigation view stands behind — the
+ * driver's own cancellation, or a failure whose error notice is shown over no navigation view: those
+ * are answered at once, and the dwell must not delay them (spec: `route-calculation-feedback` — A
+ * notice the navigation view replaces stays visible for a minimum dwell). Pure seam for unit testing
+ * ([NavigationSession] cannot be constructed in Robolectric).
  */
 internal fun calculationNoticeDwellRemainingMs(
     shownForMs: Long,

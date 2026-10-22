@@ -1,8 +1,8 @@
 package com.naviveylin.auto
 
 import android.util.Log
-import com.framstag.libosmscout.client.InstalledMaps
 import com.framstag.libosmscout.client.OSMScoutClient
+import com.naviveylin.core.mapsource.MapTreeDiscovery
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -76,12 +76,15 @@ internal fun firstInstalledAutoMapBbox(
     client: OSMScoutClient
 ): Pair<Double, Double>? {
     return try {
-        // Shared with the phone app + AA warmup (InstalledMaps): recursive
-        // scan for database directories, excluding the basemap overlay.
-        val dirs = InstalledMaps.findDatabaseDirectories(
-            mapsRootDir.absolutePath,
-            File(mapsRootDir, "basemap").absolutePath
-        ).sorted()
+        // Shared with the phone app + AA warmup (MapTreeDiscovery): recursive
+        // scan for database directories, excluding the basemap overlay and the
+        // staging directories an earlier update attempt left behind — a
+        // leftover holds a complete `types.dat` and would otherwise centre the
+        // car map on the installation a failed swap replaced.
+        val dirs = MapTreeDiscovery.under(
+            mapsRootDir.toPath(),
+            mapsRootDir.toPath().resolve("basemap")
+        ).installed.map { it.toString() }.sorted()
         if (dirs.isEmpty()) return null
         for (dir in dirs) {
             try {

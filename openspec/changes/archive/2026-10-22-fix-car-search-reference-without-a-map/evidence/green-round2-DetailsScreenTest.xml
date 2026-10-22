@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DetailsScreenTest" tests="32" skipped="0" failures="0" errors="0" timestamp="2026-10-22T04:03:41.321Z" hostname="dingens" time="4.011">
+  <properties/>
+  <testcase name="coordinatesRowIsLocaleStableOnAGermanDevice" classname="com.naviveylin.auto.DetailsScreenTest" time="2.424"/>
+  <testcase name="showRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.076"/>
+  <testcase name="titleFallsBackToLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.045"/>
+  <testcase name="saveFavoriteRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.048"/>
+  <testcase name="titleFallsBackToGenericWhenNoCallerNameAndNoAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.028"/>
+  <testcase name="descriptionEntriesKeepNativeOrder" classname="com.naviveylin.auto.DetailsScreenTest" time="0.041"/>
+  <testcase name="noAreaRowWithoutAreaData" classname="com.naviveylin.auto.DetailsScreenTest" time="0.031"/>
+  <testcase name="removeFavoriteRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.038"/>
+  <testcase name="openingHoursShownOnDetailsScreen" classname="com.naviveylin.auto.DetailsScreenTest" time="0.042"/>
+  <testcase name="noRowCapForLongDescriptions" classname="com.naviveylin.auto.DetailsScreenTest" time="0.042"/>
+  <testcase name="titleFallsBackToLabelWhenNoAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.041"/>
+  <testcase name="blankDescriptionEntriesSkipped" classname="com.naviveylin.auto.DetailsScreenTest" time="0.053"/>
+  <testcase name="descriptionEntriesShownAsLabeledRows" classname="com.naviveylin.auto.DetailsScreenTest" time="0.041"/>
+  <testcase name="coordinatesRowAlwaysPresentWithLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.041"/>
+  <testcase name="allDescriptionAttributesShown" classname="com.naviveylin.auto.DetailsScreenTest" time="0.043"/>
+  <testcase name="oneObservationSetPerStartedPeriodAcrossStopAndStart" classname="com.naviveylin.auto.DetailsScreenTest" time="0.299"/>
+  <testcase name="addressShownAsLabeledRow" classname="com.naviveylin.auto.DetailsScreenTest" time="0.037"/>
+  <testcase name="titleShowsObjectName" classname="com.naviveylin.auto.DetailsScreenTest" time="0.031"/>
+  <testcase name="areaFallsBackToPostalArea" classname="com.naviveylin.auto.DetailsScreenTest" time="0.021"/>
+  <testcase name="destinationNameFallsBackToNull" classname="com.naviveylin.auto.DetailsScreenTest" time="0.033"/>
+  <testcase name="areaFallsBackToDescriptionIsIn" classname="com.naviveylin.auto.DetailsScreenTest" time="0.028"/>
+  <testcase name="titleShowsCallerNameBeforeAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.017"/>
+  <testcase name="titleFallsBackToAddressLikeLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.019"/>
+  <testcase name="titleFallsBackToAddressWithoutCallerName" classname="com.naviveylin.auto.DetailsScreenTest" time="0.021"/>
+  <testcase name="streetAndAddressEntriesNotDuplicated" classname="com.naviveylin.auto.DetailsScreenTest" time="0.024"/>
+  <testcase name="attributeRowsAreNotClickable" classname="com.naviveylin.auto.DetailsScreenTest" time="0.032"/>
+  <testcase name="aStoppedScreenAppliesNothingAndTheStateArrivesOnStart" classname="com.naviveylin.auto.DetailsScreenTest" time="0.044"/>
+  <testcase name="titleFallsBackToGeneric" classname="com.naviveylin.auto.DetailsScreenTest" time="0.023"/>
+  <testcase name="coordinatesRowMatchesTheNavigationDestinationText" classname="com.naviveylin.auto.DetailsScreenTest" time="0.033"/>
+  <testcase name="navigateRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.034"/>
+  <testcase name="aStoppedMapPublishesTheLastDrawnFrameCenter" classname="com.naviveylin.auto.DetailsScreenTest" time="0.239"/>
+  <testcase name="theDegradedMapIsStatedAndAFreshStartClearsIt" classname="com.naviveylin.auto.DetailsScreenTest" time="0.041"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

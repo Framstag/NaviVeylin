@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererTest" tests="82" skipped="0" failures="0" errors="0" timestamp="2026-10-22T04:03:32.940Z" hostname="dingens" time="7.803">
+  <properties/>
+  <testcase name="zoomStep_doubleScaleZoomsInOneLevel" classname="com.naviveylin.auto.AutoMapRendererTest" time="2.53"/>
+  <testcase name="noRenderRequestAfterSurfaceLoss" classname="com.naviveylin.auto.AutoMapRendererTest" time="2.764"/>
+  <testcase name="committedViewportCenterIsNullBeforeTheFirstFrame" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.052"/>
+  <testcase name="paneBandBlitOffsetUsesTheResolvedAnchor" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.049"/>
+  <testcase name="setViewportDisengagesFollowMode" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.043"/>
+  <testcase name="freshRenderPutsTheDisplayOnTheAnchor" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.089"/>
+  <testcase name="markerRidesPredictedPositionBetweenFixes" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.057"/>
+  <testcase name="shutdownStopsRenderLoop" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.037"/>
+  <testcase name="defaultFollowAnchorKeepsCenterFraming" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.031"/>
+  <testcase name="browseBlitKeepsTheSurfaceCenterAnchorContract" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.032"/>
+  <testcase name="renderLogMessageCarriesMagnificationAndFrameSizeWithoutAPosition" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.022"/>
+  <testcase name="destinationPinProjectsAgainstTheDisplayedFrame" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.077"/>
+  <testcase name="walkIsRenderSynchronous" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.027"/>
+  <testcase name="sharedCorrectionBoundAppliesToCar" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.051"/>
+  <testcase name="followLoopKeepsTickingWhileTheWalkPlays" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.031"/>
+  <testcase name="speedUnknownTargetWalksFromTheDisplayedMagnification" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.086"/>
+  <testcase name="walkEndsOnAnExactTargetRender" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.104"/>
+  <testcase name="curveSequenceStaysInBand" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.033"/>
+  <testcase name="setGpsMarkerUpdatesState" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.017"/>
+  <testcase name="shutdownClearsTheWalk" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.021"/>
+  <testcase name="blitRespectsSurfaceFailurePath" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.026"/>
+  <testcase name="stationaryJitterFixesDoNotReAnchorViewport" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.025"/>
+  <testcase name="fullRenderPreservesDisplayInFollowMode" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.025"/>
+  <testcase name="reengageFollowAnchorsViewportToFix" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.029"/>
+  <testcase name="renderLogMessageStaysPositionFreeWhenTheRenderFailed" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.024"/>
+  <testcase name="nearZoomRequestSupersedesTheWalk" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.04"/>
+  <testcase name="gateFreezeKeepsDisplayAndMarkerAtStop" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.022"/>
+  <testcase name="cornerOvershootStaysInBand" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.033"/>
+  <testcase name="walkStepsStayInsideTheBlitWindow" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.086"/>
+  <testcase name="zoomStepBeyondTheBlitLimitFallsBackToAFullRender" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.042"/>
+  <testcase name="smallGpsMoveServedByBlitNoFullRender" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.019"/>
+  <testcase name="followReanchorFallsBackToTheFixBeforeTheFirstDisplayFrame" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="hostPaneClampsTheLeadingEdgeAnchorOnly" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.02"/>
+  <testcase name="followDiagnosticLineKeepsNumbersLocaleIndependent" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.024"/>
+  <testcase name="surfaceCreatedStartsRender" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.021"/>
+  <testcase name="walkWithNoDisplayedFrameLandsDirectlyInsteadOfStepping" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.022"/>
+  <testcase name="markerRidesTheBlittedContentWithABlitOffset" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.031"/>
+  <testcase name="smallZoomDeltaNeedsNoExtraRender" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.034"/>
+  <testcase name="zoomStepIsAppliedAcrossFrames" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.027"/>
+  <testcase name="invalidateStyleAfterShutdownIsNoOp" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.019"/>
+  <testcase name="extrapolationGateStopsWhenStationaryPausedOrDisengaged" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="zoomStep_smallScaleFactorKeepsZoomLevel" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.029"/>
+  <testcase name="farZoomCommitStartsAWalk" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.038"/>
+  <testcase name="viewportStateCarriesTheFractionalMagnification" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.028"/>
+  <testcase name="identicalRecommitKeepsTheWalk" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.029"/>
+  <testcase name="subPixelCorrectionIsImperceptible" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.037"/>
+  <testcase name="zoomStep_clampsAtLimits" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.028"/>
+  <testcase name="marginRenderRequestHonoursThrottleParity" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.027"/>
+  <testcase name="reCenterReengagesFollowMode" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.02"/>
+  <testcase name="staleFixHoldsDisplayInsteadOfEasingBack" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.023"/>
+  <testcase name="invalidateDataForcesFullRenderNotBlit" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.02"/>
+  <testcase name="followReanchorUsesTheDisplayedPosition" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.029"/>
+  <testcase name="surfaceDestroyedClearsSurface" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.022"/>
+  <testcase name="bottomRowAnchorClampsAboveHostBottomChrome" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="markerStaysOnItsContentWhileAFollowReanchorIsPending" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.022"/>
+  <testcase name="followCommitLandsTheDisplayOnTheAnchor" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.034"/>
+  <testcase name="fullRenderRendersAtOverrunSize" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.023"/>
+  <testcase name="setFavoriteLocationsNullClearsData" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="markerUsesTheDisplayedFrameRotation" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.019"/>
+  <testcase name="followBlitServedForANonCenterAnchor" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.021"/>
+  <testcase name="backwardFixDoesNotHaltCarDisplay" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.021"/>
+  <testcase name="setFavoriteLocationsStoresData" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.019"/>
+  <testcase name="invalidateStyleForcesFullRenderNotBlit" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.022"/>
+  <testcase name="setDestinationMarkerNaNclearsMarker" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.026"/>
+  <testcase name="committedFrameIsLabeledWithTheRenderedParameters" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.027"/>
+  <testcase name="setDestinationMarkerStoresPositionAndName" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.026"/>
+  <testcase name="invalidateDataAfterShutdownIsNoOp" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.025"/>
+  <testcase name="zoomStep_accumulatesAcrossEvents" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.024"/>
+  <testcase name="zoomStep_halfScaleZoomsOutOneLevel" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.02"/>
+  <testcase name="reengageFollowKeepsTheReanchoredCommitBlitEligible" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.025"/>
+  <testcase name="reengageFollowReengagesWithoutSnapping" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.021"/>
+  <testcase name="hostTopInsetStoredClampedAndNoopsOnRepeat" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="setRouteWithoutGeometryStillSchedulesAndDrawsTheFrame" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.019"/>
+  <testcase name="offCenterAnchorShiftsFollowRenderTarget" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="largeViewportMoveFallsBackToFullRender" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.015"/>
+  <testcase name="walkKeepsTheVehicleOnTheAnchor" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.032"/>
+  <testcase name="staleFixHoldsPositionInsteadOfExtrapolating" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="staleBaseDoesNotStopCarDisplay" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.016"/>
+  <testcase name="walkRetargetsWithoutPassingTheRequestedMagnification" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.047"/>
+  <testcase name="walkCompletesWhileParked" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.072"/>
+  <testcase name="reengageFollowSchedulesTheFrameItReanchored" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.018"/>
+  <testcase name="viewportStateFlowEmitsUpdates" classname="com.naviveylin.auto.AutoMapRendererTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/home/tim/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.6/46e2545d7a97b6ccb195621650c5957279eb4812/byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

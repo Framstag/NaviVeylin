@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DetailsScreenTest" tests="32" skipped="0" failures="1" errors="0" timestamp="2026-10-22T04:02:36.256Z" hostname="dingens" time="7.856">
+  <properties/>
+  <testcase name="coordinatesRowIsLocaleStableOnAGermanDevice" classname="com.naviveylin.auto.DetailsScreenTest" time="6.44"/>
+  <testcase name="showRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.092"/>
+  <testcase name="titleFallsBackToLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.043"/>
+  <testcase name="saveFavoriteRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.036"/>
+  <testcase name="titleFallsBackToGenericWhenNoCallerNameAndNoAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.03"/>
+  <testcase name="descriptionEntriesKeepNativeOrder" classname="com.naviveylin.auto.DetailsScreenTest" time="0.032"/>
+  <testcase name="noAreaRowWithoutAreaData" classname="com.naviveylin.auto.DetailsScreenTest" time="0.029"/>
+  <testcase name="removeFavoriteRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.038"/>
+  <testcase name="openingHoursShownOnDetailsScreen" classname="com.naviveylin.auto.DetailsScreenTest" time="0.026"/>
+  <testcase name="noRowCapForLongDescriptions" classname="com.naviveylin.auto.DetailsScreenTest" time="0.028"/>
+  <testcase name="titleFallsBackToLabelWhenNoAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.025"/>
+  <testcase name="blankDescriptionEntriesSkipped" classname="com.naviveylin.auto.DetailsScreenTest" time="0.026"/>
+  <testcase name="descriptionEntriesShownAsLabeledRows" classname="com.naviveylin.auto.DetailsScreenTest" time="0.03"/>
+  <testcase name="coordinatesRowAlwaysPresentWithLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.022"/>
+  <testcase name="allDescriptionAttributesShown" classname="com.naviveylin.auto.DetailsScreenTest" time="0.023"/>
+  <testcase name="oneObservationSetPerStartedPeriodAcrossStopAndStart" classname="com.naviveylin.auto.DetailsScreenTest" time="0.264"/>
+  <testcase name="addressShownAsLabeledRow" classname="com.naviveylin.auto.DetailsScreenTest" time="0.025"/>
+  <testcase name="titleShowsObjectName" classname="com.naviveylin.auto.DetailsScreenTest" time="0.023"/>
+  <testcase name="areaFallsBackToPostalArea" classname="com.naviveylin.auto.DetailsScreenTest" time="0.029"/>
+  <testcase name="destinationNameFallsBackToNull" classname="com.naviveylin.auto.DetailsScreenTest" time="0.03"/>
+  <testcase name="areaFallsBackToDescriptionIsIn" classname="com.naviveylin.auto.DetailsScreenTest" time="0.022"/>
+  <testcase name="titleShowsCallerNameBeforeAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.026"/>
+  <testcase name="titleFallsBackToAddressLikeLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.027"/>
+  <testcase name="titleFallsBackToAddressWithoutCallerName" classname="com.naviveylin.auto.DetailsScreenTest" time="0.02"/>
+  <testcase name="streetAndAddressEntriesNotDuplicated" classname="com.naviveylin.auto.DetailsScreenTest" time="0.027"/>
+  <testcase name="attributeRowsAreNotClickable" classname="com.naviveylin.auto.DetailsScreenTest" time="0.046"/>
+  <testcase name="aStoppedScreenAppliesNothingAndTheStateArrivesOnStart" classname="com.naviveylin.auto.DetailsScreenTest" time="0.047"/>
+  <testcase name="titleFallsBackToGeneric" classname="com.naviveylin.auto.DetailsScreenTest" time="0.017"/>
+  <testcase name="coordinatesRowMatchesTheNavigationDestinationText" classname="com.naviveylin.auto.DetailsScreenTest" time="0.025"/>
+  <testcase name="navigateRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.024"/>
+  <testcase name="aStoppedMapPublishesTheLastDrawnFrameCenter" classname="com.naviveylin.auto.DetailsScreenTest" time="0.242">
+    <failure message="java.lang.AssertionError: the frame the stopped map displayed is the car surface's distance reference expected:&lt;(51.5136, 7.4653)&gt; but was:&lt;null&gt;" type="java.lang.AssertionError">java.lang.AssertionError: the frame the stopped map displayed is the car surface's distance reference expected:&lt;(51.5136, 7.4653)&gt; but was:&lt;null&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.naviveylin.auto.DetailsScreenTest$aStoppedMapPublishesTheLastDrawnFrameCenter$1.invokeSuspend(DetailsScreenTest.kt:185)
+	at com.naviveylin.auto.DetailsScreenTest$aStoppedMapPublishesTheLastDrawnFrameCenter$1.invoke(DetailsScreenTest.kt)
+	at com.naviveylin.auto.DetailsScreenTest$aStoppedMapPublishesTheLastDrawnFrameCenter$1.invoke(DetailsScreenTest.kt)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+	at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:160)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+	at com.naviveylin.auto.DetailsScreenTest.aStoppedMapPublishesTheLastDrawnFrameCenter(DetailsScreenTest.kt:167)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.rules.TestWatcher$1.evaluate(TestWatcher.java:61)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="theDegradedMapIsStatedAndAFreshStartClearsIt" classname="com.naviveylin.auto.DetailsScreenTest" time="0.036"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/home/tim/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.6/46e2545d7a97b6ccb195621650c5957279eb4812/byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+# The one gate run of the review round, its stdout as printed. Exit 0: the LOOP-GATE line carries no
+# "— failing:" suffix, which gate.sh prints only on a failed suite (tools/loop/gate.sh:138-143).
+# Run 2026-10-22, between 04:04 and 04:08 UTC.
+gate: ./gradlew test -PforceTests --no-build-cache
+gate: tools/loop-selftest.sh
+gate: tools/sensor-selftest.sh
+gate: tools/check-action-runtimes-selftest.sh
+gate: tools/gen-feature-list-selftest.sh
+gate: bash tools/gen-feature-list.sh --check-classification
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=325 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)

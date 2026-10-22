@@ -17,7 +17,7 @@ case.
       `StartMapResolverTest` `tests="9" skipped="0" failures="1"`, `ComparisonFailure
       expected:<…/maps/[nordrhein-westfalen]> but was:<…/maps/[.nordrhein-westfalen.backup]>`;
       `MapManagerSourceLabelTest` `tests="6" skipped="0" failures="1"`, `AssertionError: the leftover is not
-      an installed map`; both at `timestamp="2026-10-22T12:18:16.786Z"` →
+      an installed map`; at `timestamp="2026-10-22T12:18:16.786Z"` and `…12:18:16.796Z"` respectively →
       `evidence/red-on-head/` and `.pi/issue-loop/items/116/TEST-*.xml`.
 
 ## 2. The fix
@@ -53,7 +53,7 @@ case.
       (the classification removed) → both red cases fail again at `2026-10-22T12:20:42Z`, `tests="9"
       failures="1"` and `tests="6" failures="1"` → restored (`grep -c 'REVERT-CHECK'` → 0) → forced green at
       `2026-10-22T12:20:58Z` (§3.2) → `evidence/revert-check/`.
-- [x] 3.5 The run's gate: `./tools/loop/gate.sh` once, over the change's pathspec → `GATE-RC=0`,
+- [x] 3.5 The run's gate: `./tools/loop/gate.sh` once, with no arguments (the script runs the whole gate) → `GATE-RC=0`,
       `LOOP-GATE: tests=481 failures=0` (nine suites: the Gradle gate plus eight shell checks), and the Gradle
       half's own tallies summed from its JUnit XMLs: **733 suites, 5789 tests, 0 failures, 0 errors** across
       `:app` (576 suites / 4210 tests, both flavours), `:auto` (87 / 880), `:core` (61 / 646),
@@ -65,6 +65,29 @@ case.
 ## 4. Archive
 
 - [x] 4.1 `openspec validate fix-staging-leftover-discovered-as-map --strict` → `Change
-      'fix-staging-leftover-discovered-as-map' is valid`, `EXIT=0`.
+      'fix-staging-leftover-discovered-as-map' is valid`, `EXIT=0` (re-run after the round-2 corrections, see
+      §6.6).
 - [x] 4.2 Archived under `openspec/changes/archive/`; the delta merged into
       `openspec/specs/map-updates/spec.md`.
+
+## 5. Round-2 corrections (review round 1 refusal)
+
+- [x] 5.1 `MapTreeDiscovery.installedOnly(discovered, report = null)` emits one `reportLine` per dropped
+      leftover through a sink that defaults to `DiagnosticsLog`, as `under(...)` does; the caller
+      (`MapManagerViewModel.refreshInstalledMaps`) keeps its one-argument call.
+- [x] 5.2 Red for the new invariant, one mutation (`revert-check` shape): `installedOnly` reverted to
+      `discovered.filterNot { isStaging(it) }` → `MapTreeDiscoveryTest.aNativeInstalledListIsClassifiedByTheSameRule`
+      fails, `tests="4" skipped="0" failures="1"` at `2026-10-22T12:42:56.420Z`, `AssertionError: every
+      leftover the list drops is named with the installation it belongs to expected:<[…two lines…]> but
+      was:<[]>` → `evidence/revert-check-round2/`. Restored (`grep -rn REVERT-CHECK` over `app/src/main
+      core/src/main auto/src/main` → nothing) → forced green, `tests="4" skipped="0" failures="0"` at
+      `2026-10-22T12:43:06.048Z` → `evidence/green-round2/`.
+- [x] 5.3 The requirement names "the classification the update machinery defines" instead of `SlotInstall`,
+      and the fifth scenario gains "each dropped leftover is named in one diagnostics line with the
+      installation it belongs to" — in the delta and in `openspec/specs/map-updates/spec.md`.
+- [x] 5.4 `guidelines/Design.md` §9 states the rule: every reader that opens, lists, centres on or records a
+      database goes through `MapTreeDiscovery`, and the leftovers it drops are named in the diagnostics.
+- [x] 5.5 The class doc's update-check claim corrected (the check scans the tree itself; it never calls this
+      class), and the junk `evidence/gate/._gradlew_test_*.xml` sidecar removed.
+- [x] 5.6 The run's gate re-run once over the corrected tree → `GATE-RC=0`, `LOOP-GATE: tests=481 failures=0`
+      → `evidence/gate/` (replaced with the round-2 run's tallies and XMLs).

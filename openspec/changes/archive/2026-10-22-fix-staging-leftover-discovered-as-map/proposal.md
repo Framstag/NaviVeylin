@@ -104,6 +104,34 @@ app/src/main auto/src/main core/src/main osmscout-client-java/src`; `… "downlo
 existing consumer that already classifies (`MapUpdates` → `MapUpdateCheck`). So: 1 helper added, 6 call sites
 rewritten, 2 red cases + 4 new cases added, and no fixture touched.
 
+## Corrections after review round 1
+
+The reviewer refused the first round on one deviation: `MapTreeDiscovery.installedOnly` dropped the leftover
+silently (`discovered.filterNot { isStaging(it) }` — no `reportLine`, no `DiagnosticsLog`), while the
+requirement's second sentence says such a directory "SHALL still be named in the diagnostics together with the
+installation it belongs to", and the item's fix candidate says the leftover is reported while it is not
+listed. The class's own doc claimed the opposite ("a consumer that has to *report* the staging data … still
+sees it"), and the delta's fifth scenario asserted only the kept list.
+
+Changed in round 2, and nothing beyond the reviewer's named corrections plus its two NOTEs:
+
+1. `installedOnly(discovered, report = null)` now emits one `reportLine` per dropped leftover through a sink
+   that defaults to `DiagnosticsLog`, exactly as `under(...)` does; `MapManagerViewModel.refreshInstalledMaps`
+   keeps its one-argument call and gets the default sink.
+2. `MapTreeDiscoveryTest.aNativeInstalledListIsClassifiedByTheSameRule` asserts the two report lines beside
+   the kept list — the diagnostics clause now has a case on the native-list path.
+3. The requirement names "the classification the update machinery defines" instead of `SlotInstall`, so it
+   survives a rename of the seam; the fifth scenario gains the diagnostics `AND`.
+4. `guidelines/Design.md` §9 now carries the rule: every reader that opens, lists, centres on or records a
+   database goes through `MapTreeDiscovery`, and the leftovers it drops are named in the diagnostics.
+
+The class doc's update-check claim is corrected with it: the update check scans the tree itself
+(`MapUpdates.installedDatabaseDirectories`) and reports on its own; it never calls this class.
+
+surface: 1 production function given a reporting sink, 1 case rewritten (its assertion extended), 2 spec
+texts realigned (the delta and the shipped requirement), 1 guideline section given the rule —
+`grep -rn "installedOnly" app core auto --include=*.kt`
+
 ## Open items considered and left out
 
 - `InstalledMaps` itself stays unclassified. Hiding the staging directories inside the primitive is the

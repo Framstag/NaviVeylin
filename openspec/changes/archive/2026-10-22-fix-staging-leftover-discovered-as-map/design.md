@@ -21,8 +21,8 @@ installation a failed swap replaced.
 through. `under(...)` scans through the unchanged `InstalledMaps.findDatabaseDirectories`, splits the result
 with `SlotInstall.isStaging`, returns both halves (`Found.installed`, `Found.staging`) and reports one
 identity-only diagnostics line per leftover. `installedOnly(...)` applies the same rule to the native installed
-list the map manager is handed. The five shared-discovery consumers read `.installed`; the map manager reads
-`installedOnly(downloadManager.installedMaps)`.
+list the map manager is handed, and names each leftover it drops through the same `reportLine` sink. The five
+shared-discovery consumers read `.installed`; the map manager reads `installedOnly(downloadManager.installedMaps)`.
 
 | alternative the evidence eliminated | why |
 |---|---|
@@ -37,13 +37,13 @@ list the map manager is handed. The five shared-discovery consumers read `.insta
 
 | file | change |
 |---|---|
-| `core/…/mapsource/MapTreeDiscovery.kt` | `Found`, `under(mapsRoot, excludeDirectory, report)`, `installedOnly`, `isStaging`, `reportLine`; the default sink is `DiagnosticsLog` with tag `MapTreeDiscovery` |
+| `core/…/mapsource/MapTreeDiscovery.kt` | `Found`, `under(mapsRoot, excludeDirectory, report)`, `installedOnly(discovered, report)`, `isStaging`, `reportLine`; the default sink of both readers is `DiagnosticsLog` with tag `MapTreeDiscovery` |
 | `app/…/data/StartMapResolver.kt` | `MapTreeDiscovery.under(mapsRoot, mapsRoot.resolve("basemap")).installed` |
 | `app/…/data/MapDataRegistrar.kt` | the same, with `RepositoryUrlPlanner.BASEMAP_DIRECTORY_NAME` |
 | `app/…/di/AutoServiceModule.kt` | the same, over `File(filesDir, "maps").toPath()` |
 | `app/…/ui/map/MapCanvasViewModel.kt` | the same, before `StartMapSelection.databaseDirectoryFor` |
 | `auto/…/AutoInitialViewport.kt` | the same, before `.sorted()` — so the bbox loop cannot pick a leftover that sorts first |
-| `app/…/ui/mapmanager/MapManagerViewModel.kt` | `MapTreeDiscovery.installedOnly(downloadManager.installedMaps)` |
+| `app/…/ui/mapmanager/MapManagerViewModel.kt` | `MapTreeDiscovery.installedOnly(downloadManager.installedMaps)` — the default sink reports the leftovers it drops |
 | `core/src/test/…/MapTreeDiscoveryTest.kt` | the split (nested, `.backup`, `.incoming`, plain dot), the report line, the basemap exclusion, the native list |
 | `app/src/test/…/StartMapResolverTest.kt` | the red case: a leftover that sorts first is never the start map |
 | `app/src/test/…/MapManagerSourceLabelTest.kt` | the red case: a leftover is neither a path nor a row |
@@ -64,3 +64,30 @@ installation: a map genuinely named `.backup`-suffixed is the only way to lose a
 only — no coordinate (`guidelines/Logging.md` §3). Rollback: point the six call sites back at
 `InstalledMaps.findDatabaseDirectories` / `downloadManager.installedMaps` and delete `MapTreeDiscovery`; the
 delta then names a rule only the update check satisfies, which is the base commit's state.
+
+## Correction after review round 1
+
+**What the review found.** `installedOnly` was written as a bare `filterNot`: it removed the leftover from the
+map manager's list and said nothing about it. The requirement this change adds has two clauses — never opened
+or listed, *and* still named in the diagnostics — and only the first was true on that path. Two supporting
+claims were false with it: the class doc said a consumer that has to report the staging data still sees it
+through this class (the update check never calls it; it scans the tree itself), and the fifth scenario
+asserted only the kept list, so the diagnostics clause had no case there.
+
+**The fix, one mechanism and no fork.** Both readers now go through one path: partition the discovered names
+with `SlotInstall.isStaging`, report each dropped name with `reportLine` through a sink that defaults to
+`DiagnosticsLog`, return the kept names. `under(...)` already had exactly that shape, so the correction is
+`installedOnly` adopting it rather than a new rule — one call and one assertion, no option list.
+
+**Why the alternatives the review named were eliminated.** Narrowing the requirement to "the scan it
+performs" would leave `MapManagerViewModel` dropping the leftover silently, which contradicts both the
+requirement's own second sentence and the item's fix candidate ("treat staging data as not a map to open or
+list *while still reporting it*"). Abandoning the change leaves the phantom row the issue names first. The
+third alternative — keeping the silent drop and accepting it — is the deviation the reviewer refused.
+
+**Blast radius.** One production function gains a parameter and three lines, its one call site is unchanged
+(the parameter defaults), one test case grows one assertion, the delta and the shipped requirement are
+realigned, and `guidelines/Design.md` §9 carries the rule. No call site, no other consumer, no native code.
+
+**Rollback.** Revert `installedOnly` to `discovered.filterNot { isStaging(it) }` and drop the `AND` from the
+fifth scenario; the classification half of the change stands, and the map manager is back to a silent drop.

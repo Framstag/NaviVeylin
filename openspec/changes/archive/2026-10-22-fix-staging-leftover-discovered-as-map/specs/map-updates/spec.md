@@ -5,9 +5,10 @@
 ### Requirement: Staging data is never opened or listed as a map
 
 Every consumer that reads the maps tree to open, list, centre on or record a database SHALL apply the
-classification `SlotInstall` defines, so the staging directory of a transfer and the previous installation
-kept for a swap are never opened or listed as a map. Such a directory SHALL still be named in the diagnostics
-together with the installation it belongs to, and the installations beside it SHALL remain discovered.
+classification the update machinery defines, so the staging directory of a transfer and the previous
+installation kept for a swap are never opened or listed as a map. Such a directory SHALL still be named in
+the diagnostics together with the installation it belongs to, and the installations beside it SHALL remain
+discovered.
 
 #### Scenario: A leftover is not the start map
 
@@ -44,4 +45,5 @@ together with the installation it belongs to, and the installations beside it SH
 - **WHEN** the map manager is handed an installed list from the native scan that holds a `.backup` and an
   `.incoming`
 - **THEN** only the installation is kept
+- **AND** each dropped leftover is named in one diagnostics line with the installation it belongs to
 - **Case**: `MapTreeDiscoveryTest.aNativeInstalledListIsClassifiedByTheSameRule`

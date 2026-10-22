@@ -480,7 +480,9 @@ run's record, its queue and its branches stay its own; a lock whose owner is not
 and the takeover is announced, because a run killed with a signal no trap can catch leaves its lock behind, and
 a tombstone would refuse every run after it. The state names the process that wrote it, so the report tells a
 run that was killed from one that is still going instead of printing a budget left for a run that is spending
-nothing. Measured 2026-10-22: the run that started at 18:46 was killed at 19:19 with its round-2 review
+nothing, and it names the item it is working on and the phase it last recorded — `.current`, the first line
+`state.sh show` prints — so a state kept from a killed run says which item was in flight instead of a phase
+alone, and every step the run records is attributed to that item rather than to `0` (#263). Measured 2026-10-22: the run that started at 18:46 was killed at 19:19 with its round-2 review
 unanswered, and the run that started at 19:34 replaced its state, merged its unfinished item into `main`, closed
 it and was refused at the lock two minutes into a 240-minute budget.
 

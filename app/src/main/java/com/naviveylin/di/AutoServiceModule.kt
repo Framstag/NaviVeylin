@@ -13,6 +13,7 @@ import com.naviveylin.core.AutoSearchProvider
 import com.naviveylin.core.AutoSearchHistoryProvider
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
+import com.naviveylin.core.CarMapViewportProvider
 import com.naviveylin.core.CarSurfaceHost
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
@@ -323,6 +324,15 @@ object AutoServiceModule {
     @Provides
     @Singleton
     fun provideFreeDrivingStatusProvider(): FreeDrivingStatusProvider = FreeDrivingStatusProvider()
+
+    /**
+     * Process-scoped car map viewport center (spec: `search-result-ranking` —
+     * distance reference): one instance, so the car map screen that drew the last
+     * frame and every car search screen share the one value.
+     */
+    @Provides
+    @Singleton
+    fun provideCarMapViewportProvider(): CarMapViewportProvider = CarMapViewportProvider()
 
     private const val TAG = "AutoServiceModule"
 }

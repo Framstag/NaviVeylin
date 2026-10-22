@@ -55,10 +55,11 @@ class SearchScreen(
     private val navigationViewModel: NavigationViewModel,
     private val initialQuery: String? = null,
     /**
-     * Current car map viewport center, used as the search distance reference
-     * when no GPS fix exists (spec: search-result-ranking — distance
-     * reference). Null when this screen was opened from a surface that shows no
-     * map (then the results are ordered by tier and quality without distances).
+     * Current car map viewport center, used as the search distance reference when no GPS fix exists
+     * (spec: search-result-ranking — distance reference). A screen that owns a live map passes its own
+     * renderer's center; every other screen leaves it null and falls back to the car surface's last
+     * drawn frame center ([carMapViewport]), so opening the search from the root or history list does
+     * not lose the reference.
      */
     private val viewportCenter: () -> Pair<Double, Double>? = { null },
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main,
@@ -76,6 +77,13 @@ class SearchScreen(
     private val historyProvider = entryPoint.autoSearchHistoryProvider()
     private val favoritesProvider = entryPoint.autoFavoritesProvider()
     private val clientProvider = entryPoint.autoClientProvider()
+
+    /**
+     * The car surface's last drawn frame center: the distance reference for a search opened from a
+     * surface that shows no map (spec: search-result-ranking — distance reference). Read at search
+     * time, so a map that stopped drawing after this screen was pushed still counts.
+     */
+    private val carMapViewport = entryPoint.carMapViewportProvider()
 
     /** One car search's outcome: the rows and the reference they were ranked and measured against. */
     private data class CarSearchResult(
@@ -185,16 +193,19 @@ class SearchScreen(
     /**
      * Reference point for ordering and for the row distances: the last known GPS
      * fix, else the car map viewport center, else none (spec:
-     * search-result-ranking). Read inside the search coroutine, and used for both
-     * the ranking (passed to the provider) and the displayed distance, so the
-     * numbers cannot contradict the order.
+     * search-result-ranking). The viewport center is this screen's own live map
+     * when it has one, else the center of the last frame the car surface drew — so a
+     * search opened from the root or history list measures from the map the driver
+     * last saw instead of showing no distance at all. Read inside the search
+     * coroutine, and used for both the ranking (passed to the provider) and the
+     * displayed distance, so the numbers cannot contradict the order.
      */
     private fun searchReference(): SearchReference? {
         val fix = locationProvider.position().value
         if (fix != null && fix.lat.isFinite() && fix.lon.isFinite()) {
             return SearchReference(fix.lat, fix.lon)
         }
-        val center = viewportCenter()
+        val center = viewportCenter() ?: carMapViewport.center.value
         return if (center != null && center.first.isFinite() && center.second.isFinite()) {
             SearchReference(center.first, center.second)
         } else {
@@ -336,6 +347,7 @@ class SearchScreen(
         armScreenPush(carContext, scope, "SearchScreen (history entry)") {
             SearchScreen(
                 carContext, navigationViewModel, initialQuery = query,
+                viewportCenter = viewportCenter,
                 mainDispatcher = mainDispatcher, ioDispatcher = ioDispatcher
             )
         }

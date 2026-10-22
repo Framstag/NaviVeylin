@@ -19,6 +19,7 @@ import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoLocationProvider
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.BasemapReloadNotifier
+import com.naviveylin.core.CarMapViewportProvider
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.formatCoordinatePair
 import dagger.hilt.EntryPoints
@@ -90,6 +91,9 @@ class DetailsScreenTest {
             every { revision } returns MutableStateFlow(0L)
         }
         every { entryPoint.autoSurfaceHost() } returns SessionCarSurfaceHost()
+        // The car surface's published last-frame center: the stop path publishes into it, and no case
+        // here asserts the value (spec: search-result-ranking — distance reference).
+        every { entryPoint.carMapViewportProvider() } returns CarMapViewportProvider()
         mockkStatic(EntryPoints::class)
         every { EntryPoints.get(any(), AutoEntryPoint::class.java) } returns entryPoint
     }

@@ -394,6 +394,14 @@ class MapScreen(
                 screenObservations.start()
             }
             override fun onStop(owner: LifecycleOwner) {
+                // The last frame this map drew is the car surface's search distance reference once the
+                // screen stops drawing: a search pushed from here or from the root/history list measures
+                // from it (spec: search-result-ranking — distance reference). Published before the surface
+                // is detached, while the last frame is still the displayed one.
+                publishCarViewportCenter(
+                    rendererGate.renderer.value,
+                    entryPoint.carMapViewportProvider()
+                )
                 // Every observation ends with the started period (spec:
                 // auto/screen-observation — One instance of each observation per
                 // started period).

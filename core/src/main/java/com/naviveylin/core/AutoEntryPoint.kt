@@ -55,6 +55,14 @@ interface AutoEntryPoint {
     fun autoFreeDrivingStatusProvider(): FreeDrivingStatusProvider
 
     /**
+     * Center of the car map's last drawn frame (spec: `search-result-ranking` —
+     * distance reference): published by the car map screen that drew it, read by
+     * every car search screen, including the ones opened from a surface that
+     * shows no map.
+     */
+    fun carMapViewportProvider(): CarMapViewportProvider
+
+    /**
      * Session-scoped car surface owner (spec: car-host-fault-isolation — Single-owner
      * car surface): the car-app host registers exactly one surface callback per session.
      */

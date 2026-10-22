@@ -1,0 +1,14 @@
+LOOP-MEASURE base=522d69a7ac21aebe8a542983671c5f57963ebf5a paths=3 insertions=56 deletions=1
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh.xml tests=167 failures=0
+LOOP-MEASURE-CHANGE 2026-10-22-fix-run-state-names-its-item scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/2026-10-22-fix-run-state-names-its-item/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/2026-10-22-fix-run-state-names-its-item/evidence/gate-tallies/tools_loop-selftest.sh.xml tests=167 failures=0
+LOOP-MEASURE-TALLY openspec/changes/2026-10-22-fix-run-state-names-its-item/evidence/red-HEAD.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 0 fixtures realigned — `grep -rn "\.current" tools/loop/state.sh` (5 hits: the writer `:337`, the live view's two branches `:236-237`, every step's fallback `:382`, the item's end `:436`) and `git show <base>:tools/loop-cases.sh | grep -c "\.current"` (0: no case asserted the mark before this one)
+LOOP-MEASURE-END

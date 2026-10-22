@@ -60,7 +60,9 @@ the right reason, restore, it must pass again**); three mechanics differ:
 The mechanical form for the loop is **`tools/loop-mutations.sh`**: one command per mutation, red asserted,
 restore asserted, a `MUTATION-DID-NOT-APPLY` guard, and an EXIT trap that restores what it touched if the run
 is killed. `--list` prints the set; `--only <labels>` runs one; `--engine <copy>` runs against a copy (which
-is what its own self-test, `tools/loop-mutations-selftest.sh`, does to prove both guards and the restore).
+is what its own self-test, `tools/loop-mutations-selftest.sh`, does to prove both guards and the restore);
+`--files <path> ...` and `--from-git <base>` bound the pass to the records whose file the change touched, and
+the count line (`selected 7 of 81 records`) says so.
 Quote its transcript in the task item, exactly as the Gradle form quotes a tally.
 
 **The generic form for any shell gate is `tools/mutate.sh`** (`.pi/skills/mutation-runner`): the mutations
@@ -83,8 +85,15 @@ that owns the engine, so a set that no longer parses fails the pipeline instead 
 ```bash
 tools/loop-mutations.sh --list            # what the invariants are, and which case owns each
 tools/loop-mutations.sh --only 9.1        # one mutation, while iterating
+tools/loop-mutations.sh --files tools/loop/worktree.sh   # the records whose file this change touched
+tools/loop-mutations.sh --from-git <base> # the same set, derived from `git diff --name-only <base>`
 tools/loop-mutations.sh --out <file>      # the whole set, with the transcript recorded
 ```
+
+A filtered run prints its selection against the declared set (`selected 7 of 81 records`) — the line that says
+the pass was a subset — and a filter that names no record exits 2, because a mutation run that mutates nothing
+must never report success. Run the file set while iterating and the whole set before a change that owns
+`tools/loop/**` is archived.
 
 ## Procedure
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.jni.NativeParityScannerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-22T11:34:40.670Z" hostname="dingens" time="0.054">
+  <properties/>
+  <testcase name="a recorded deviation that no longer deviates is a finding" classname="com.naviveylin.build.jni.NativeParityScannerTest" time="0.042"/>
+  <testcase name="a malformed deviation line is a finding" classname="com.naviveylin.build.jni.NativeParityScannerTest" time="0.007"/>
+  <testcase name="a new override native without a record is a finding" classname="com.naviveylin.build.jni.NativeParityScannerTest" time="0.001"/>
+  <testcase name="package qualifiers and prose are not divergences" classname="com.naviveylin.build.jni.NativeParityScannerTest" time="0.001"/>
+  <testcase name="a new submodule native without a record is a finding" classname="com.naviveylin.build.jni.NativeParityScannerTest" time="0.002"/>
+  <system-out><![CDATA[staleFindings=[NativeParityFinding(path=osmscout-client-java/native-parity.txt, reason=the recorded submodule-only deviation `searchLocations(String,int,String,long)` of OSMScoutClient.java no longer exists — the two sides now agree on it, so remove the line ("fixture"))]
+malformedFindings=[[NativeParityFinding(path=osmscout-client-java/native-parity.txt:4, reason=a deviation line reads `file | submodule-only|override-only | name(types) | reason` — found 3 field(s): OSMScoutClient.java | submodule-only | getRegion(double,double))], [NativeParityFinding(path=osmscout-client-java/native-parity.txt:4, reason=`both` is not a direction: use submodule-only or override-only)], [NativeParityFinding(path=osmscout-client-java/native-parity.txt:4, reason=`Other.java` is not one of the five overridden bridge files (OSMScoutClient.java, OSMScoutClientBuilder.java, BasemapManager.java, MapDownloadManager.java, AvailableMapEntry.java))], [NativeParityFinding(path=osmscout-client-java/native-parity.txt:4, reason=`getRegion` is not a signature: write `name(type,type)`)], [NativeParityFinding(path=osmscout-client-java/native-parity.txt:4, reason=a recorded deviation carries no reason — a blank entry is an allowlist nobody can review)]]
+overrideAdditionFindings=[NativeParityFinding(path=app/src/main/cpp/libosmscout/libosmscout-client-java/java/com/framstag/libosmscout/client/OSMScoutClient.java, reason=unrecorded native drift: the override declares `getMaxSpeedAt(double,double)` and the submodule does not, so the next submodule sync drops it — record the Android addition (add `OSMScoutClient.java | override-only | getMaxSpeedAt(double,double) | <reason>` to osmscout-client-java/native-parity.txt if the divergence is intended))]
+recordedFindings=[]
+unrecordedFindings=[NativeParityFinding(path=osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java, reason=unrecorded native drift: the submodule declares `setGpsMarker(double,double,double,double)` and the override does not reach it — declare it in the override, or record that the Android port drops it (add `OSMScoutClient.java | submodule-only | setGpsMarker(double,double,double,double) | <reason>` to osmscout-client-java/native-parity.txt if the divergence is intended))]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

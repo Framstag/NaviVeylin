@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.data.StartMapResolverTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-22T12:23:50.286Z" hostname="dingens" time="0.279">
+  <properties/>
+  <testcase name="a deleted recorded map falls back to the same database every time" classname="com.naviveylin.data.StartMapResolverTest" time="0.042"/>
+  <testcase name="no installed map resolves to nothing" classname="com.naviveylin.data.StartMapResolverTest" time="0.023"/>
+  <testcase name="the recorded map is reopened when it is installed" classname="com.naviveylin.data.StartMapResolverTest" time="0.02"/>
+  <testcase name="a nested database directory is a candidate" classname="com.naviveylin.data.StartMapResolverTest" time="0.027"/>
+  <testcase name="a leftover staging directory is never the start map" classname="com.naviveylin.data.StartMapResolverTest" time="0.023"/>
+  <testcase name="the basemap package is never a candidate" classname="com.naviveylin.data.StartMapResolverTest" time="0.028"/>
+  <testcase name="the settings file is never a candidate" classname="com.naviveylin.data.StartMapResolverTest" time="0.024"/>
+  <testcase name="the resolved map is what the navigation routes are built from" classname="com.naviveylin.data.StartMapResolverTest" time="0.028"/>
+  <testcase name="resolution runs on the injected background dispatcher" classname="com.naviveylin.data.StartMapResolverTest" time="0.06"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -12,7 +12,11 @@ Measured in `.pi/worktrees/loop` on `ee95d71` (evidence: `.pi/issue-loop/items/2
   this change's `evidence/map-vs-pipeline.txt`). Among the missing: `tools/build-inputs.sh --check`,
   `tools/check-todo-references.sh`, `tools/resolve-stale-selftest.sh`,
   `tools/check-compose-sandbox-rule.sh`, `tools/mutate-selftest.sh`, `tools/check-portability.sh`,
-  `tools/check-action-runtimes.sh`, `tools/check-metadata.sh` and eight of the ten mutation `--list` lines.
+  `tools/check-action-runtimes.sh`, `tools/check-metadata.sh` and all eleven mutation `--list` lines
+  (`tools/mutate.sh --mutations … --list` eight times, and the tool-specific
+  `tools/issues/metadata-mutations.sh --list`, `tools/sensor-mutations.sh --list`,
+  `tools/build-inputs-mutations.sh --list`; the count in the old `ci-gate-steps.txt` was a partial listing and is
+  superseded by `map-vs-pipeline.txt`).
 - `tools/loop/gate.sh:95` answers `LOOP-GATE: nothing owed — no path this profile gates changed since <base>`
   and exits 0 for a path no glob names — so a delta that touches one of those checks is *green in the run* no
   matter what the pipeline says about it. That is exactly the shape of 2026-10-21: `ed56ed2` (the merge of
@@ -40,7 +44,7 @@ Measured in `.pi/worktrees/loop` on `ee95d71` (evidence: `.pi/issue-loop/items/2
   case that compares the map with the pipeline's check steps, so the escape is a red loop suite rather than a
   red `main`.
 
-surface: 2 cases added, 0 rewritten, 0 fixtures realigned, 2 mutation records added, 1 profile map replaced
+surface: 2 cases added, 0 rewritten, 0 fixtures realigned, 4 mutation records added, 1 profile map replaced
 (21 → 55 pairs) — `grep -rl 'LOOP_GATE' --include='*.sh' --include='*.md' --include='*.conf' --include='*.yml'
 --include='*.json' . | grep -v '^./openspec/changes/archive' | grep -v '^./.pi/'` → 11 files, of which the map
 itself (`loop.conf`), its two readers (`gate.sh`, `measure.sh`), the case runner (`loop-cases.sh`), the
@@ -59,9 +63,10 @@ falsification harness (`loop-mutations.sh`), the portability check (it reads `LO
   each pair belongs to: the path maps to *the whole command set of the step whose tools read it*, never to
   another step's.
 - **`tools/loop-cases.sh`** gains the two cases: the pin (the map against the pipeline's `Check …` steps) and
-  the behaviour (a delta on a path the pipeline checks owes that step's commands).
-- **`tools/loop-mutations.sh`** gains one record per invariant (40.1, 40.2), so reverting a pair makes the named
-  case fail.
+  the behaviour (a delta on a path the pipeline checks owes every command that step runs — the check, its
+  self-test and its mutation `--list` — and names no command of another step).
+- **`tools/loop-mutations.sh`** gains one record per assertion of the behaviour case (40.1–40.4), so reverting a
+  pair, or coarsening a glob to reach another step's command, makes the named case fail.
 - **`guidelines/Build.md` §3** states the bound the map now carries: every command of the pipeline's check
   steps is reachable from a path in the profile's map, and the map is pinned by a case.
 
@@ -78,7 +83,8 @@ of the four files; nothing else depends on the extra pairs.
 - Specifications changed: `agent-issue-loop` (one ADDED requirement; no existing requirement is modified).
 - Cost per item: a change touching `openspec/**` or a note now owes the whole "Check documentation routes" step
   (two scripts and one mutation list) and `tools/check-todo-references.sh`; all three are greps, measured at
-  0.14 s and 0.50 s over this tree on 2026-10-22. A workflow delta owes the loop's suite, because the loop's
-  suite is where the map is pinned against it.
+  0.14 s and 0.50 s over this tree on 2026-10-22 (`check-doc-routes.sh` 141 ms,
+  `check-todo-references.sh` 482 ms, `date +%s%N` around each). A workflow delta owes the loop's suite, because
+  the loop's suite is where the map is pinned against it.
 - Breaking: none. A profile that records no `LOOP_GATE_PIPELINE` at all is refused by the loop's own suite; the
   foreign-project fixture is not run by any suite, so it keeps its three keys.

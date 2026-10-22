@@ -19,7 +19,10 @@ Two edits to the profile and one to the suite that reads it:
    It is a project fact like the gate command, so it lives in the profile and no engine names it.
 3. **Two cases** in `tools/loop-cases.sh`: the pin (the map against the pipeline's `Check …` steps) and the
    behaviour (the plan for a path that step reads). The pin is the alarm the recorded decision's residual needs
-   — the map stays a copy, and the copy now fails the loop's suite the day the pipeline grows a step.
+   — the map stays a copy, and the copy now fails the loop's suite the day the pipeline grows a step. The
+   behaviour case asserts all three commands the `Check the build inputs` step runs and, negatively, that no
+   command of another step appears: a coarse glob (`tools/*`) satisfies every positive assertion while making
+   the map claim every step for every path, which is the rejected option 2.
 
 ## Why this and not the alternatives
 
@@ -45,13 +48,15 @@ Two edits to the profile and one to the suite that reads it:
 - `tools/loop-cases.sh` — two cases added. Both read the profile; the pin reads the project's own pipeline file
   through `$LOOP_PROJECT_ROOT` and parses only the `bash`/`sh` lines under a step named `Check …`, so a publish
   step (`Publish the sensor inputs` runs `tools/build-inputs.sh --write`) is not one of them.
-- `tools/loop-mutations.sh` — two records, 40.1 and 40.2, one per case, each removing a pair from the copied
-  profile.
+- `tools/loop-mutations.sh` — four records, 40.1–40.4, one per assertion: 40.1 and 40.2 remove a pair from the
+  copied profile, 40.3 removes the mutation-list pair, 40.4 adds a pair that reaches the portability check
+  through a coarse glob.
 - `guidelines/Build.md` §3 — the gate row states the bound.
 - Cost: a delta on `openspec/**` or a note now owes the whole documentation-routes step (two scripts and one
-  mutation list) and `tools/check-todo-references.sh`; measured 0.14 s and 0.50 s on this tree. A
-  `.github/workflows/*` delta owes the loop's suite as well as the action-runtimes suite, because the loop's
-  suite is where the map is pinned against the workflow.
+  mutation list) and `tools/check-todo-references.sh`; measured 141 ms for `check-doc-routes.sh` and 482 ms for
+  `check-todo-references.sh` on this tree (`date +%s%N` around each). A `.github/workflows/*` delta owes the
+  loop's suite as well as the action-runtimes suite, because the loop's suite is where the map is pinned against
+  the workflow.
 - No Kotlin, Java or C++ file is touched: `LOOP_GATE_COMPILED_CMD` is not owed by this change.
 
 ## Rollback

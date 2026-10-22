@@ -1,0 +1,14 @@
+== gate: 2026-10-22T04:43:46Z
+== change: fix-gate-suite-map-covers-the-pipeline
+== base: ee95d7160cb32c65b56979058338004f29db3edc (the run's base)
+== LOOP_CONF: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+
+gate: tools/check-doc-routes.sh
+gate: tools/check-doc-routes-selftest.sh
+gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+gate: tools/check-todo-references.sh
+gate: tools/loop-selftest.sh
+gate: tools/loop-mutations-selftest.sh
+LOOP-GATE: tests=157 failures=0 (tools/check-doc-routes.sh, tools/check-doc-routes-selftest.sh, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list, tools/check-todo-references.sh, tools/loop-selftest.sh, tools/loop-mutations-selftest.sh)
+exit=0
+== gate ended: 2026-10-22T04:54:00Z

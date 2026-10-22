@@ -1,0 +1,16 @@
+# one mutation per assertion of gate#aPipelineCheckIsOwedByItsPaths (issue #242, review round 1)
+2026-10-22T04:59:45Z
+
+$ bash tools/loop-mutations.sh --only "40.1 40.2 40.3 40.4"
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.MznCcy
+RED    40.1  gate#theMapCoversEveryPipelineStep   (the pair that carries the build-inputs step in the map (issue #242))
+restore 40.1 gate#theMapCoversEveryPipelineStep green again
+RED    40.2  gate#aPipelineCheckIsOwedByItsPaths   (the pair that owes the check over a path the step reads (issue #242))
+restore 40.2 gate#aPipelineCheckIsOwedByItsPaths green again
+RED    40.3  gate#aPipelineCheckIsOwedByItsPaths   (the pair that owes the build-inputs mutation list (issue #242))
+restore 40.3 gate#aPipelineCheckIsOwedByItsPaths green again
+RED    40.4  gate#aPipelineCheckIsOwedByItsPaths   (a pair that reaches another step through a coarse glob (issue #242))
+restore 40.4 gate#aPipelineCheckIsOwedByItsPaths green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0
+exit=0

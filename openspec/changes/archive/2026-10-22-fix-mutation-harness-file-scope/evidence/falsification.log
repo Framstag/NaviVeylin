@@ -1,0 +1,54 @@
+2026-10-22T07:08:57Z
+HEAD 11123fb — falsification of the two new invariants in tools/loop-mutations.sh
+pristine sha256: fe8b15fb22de966f23ec1ee7a9ff97237ade8b132e52c0b788bf32ece188c911
+
+### mutation 1: the empty-selection refusal removed (the line 263)
+=== mutated: no refusal for a selection of zero records (2026-10-22T07:08:57Z) ===
+ok   and it says the case did not notice
+ok   and it says it refused
+ok   a file set lists exactly the records its file owns
+ok   and it says how many of the declared set the file set selects
+ok   a file set runs the records its file owns
+ok   the selection line names the count and the declared set
+ok   exactly the owned records ran
+FAIL a file set no record owns exits 2: expected [2] got [0]
+FAIL the empty-selection guard message: expected [names no record of the 81 declared] in [loop-mutations: selected 0 of 81 records (files: tools/loop/nothing-owns-this-file.sh)
+ok   a git diff names the records its file owns
+ok   and it says the same selection the file set named
+loop-mutations-selftest: 2 of 34 cases failed — the mutation harness does not hold its own guards
+--- exit 1
+restore: byte-identical (fe8b15fb22de966f23ec1ee7a9ff97237ade8b132e52c0b788bf32ece188c911)
+
+### mutation 2: the selection line removed (the line 268)
+=== mutated: a filtered run says nothing about the selection (2026-10-22T07:09:40Z) ===
+ok   and it says the case did not notice
+ok   and it says it refused
+ok   a file set lists exactly the records its file owns
+FAIL and it says how many of the declared set the file set selects: expected [selected 1 of 81 records] in [ (files: tools/loop/state.sh)
+ok   a file set runs the records its file owns
+FAIL the selection line names the count and the declared set: expected [selected 1 of 81 records] in [ (files: tools/loop/state.sh)
+ok   exactly the owned records ran
+ok   a file set no record owns exits 2
+ok   the empty-selection guard message
+ok   a git diff names the records its file owns
+FAIL and it says the same selection the file set named: expected [selected 1 of 81 records] in [ (files: tools/loop/state.sh)
+loop-mutations-selftest: 3 of 34 cases failed — the mutation harness does not hold its own guards
+--- exit 1
+restore: byte-identical (fe8b15fb22de966f23ec1ee7a9ff97237ade8b132e52c0b788bf32ece188c911)
+
+### restored
+=== restored: the suite must be green again (2026-10-22T07:10:25Z) ===
+ok   and it says the case did not notice
+ok   and it says it refused
+ok   a file set lists exactly the records its file owns
+ok   and it says how many of the declared set the file set selects
+ok   a file set runs the records its file owns
+ok   the selection line names the count and the declared set
+ok   exactly the owned records ran
+ok   a file set no record owns exits 2
+ok   the empty-selection guard message
+ok   a git diff names the records its file owns
+ok   and it says the same selection the file set named
+loop-mutations-selftest: all 34 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched
+--- exit 0
+sha256 before fe8b15fb22de966f23ec1ee7a9ff97237ade8b132e52c0b788bf32ece188c911 / after fe8b15fb22de966f23ec1ee7a9ff97237ade8b132e52c0b788bf32ece188c911

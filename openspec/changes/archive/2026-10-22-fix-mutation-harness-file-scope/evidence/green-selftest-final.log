@@ -1,0 +1,5 @@
+2026-10-22T07:28:02Z
+the shipped tree, after the --help range fix (post-gate, one line; no suite asserts it)
+ok   and the copy is byte-identical to the pristine one again
+loop-mutations-selftest: all 34 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched
+exit=

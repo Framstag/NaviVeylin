@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh" tests="155" failures="0" errors="0">
+  <system-out>ended 1087425 — its working directory is inside loop-selftest.cL44DG ended 1088771 — its working directory is inside loop-selftest.cL44DG ended 829255 — its working directory is inside loop-selftest.cL44DG</system-out>
+</testsuite>

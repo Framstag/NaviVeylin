@@ -18,6 +18,7 @@ import com.naviveylin.core.AutoSearchHistoryProvider
 import com.naviveylin.core.AutoLocationProvider
 import com.naviveylin.core.AutoPosition
 import com.naviveylin.core.AutoSearchProvider
+import com.naviveylin.core.CarMapViewportProvider
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.addressbook.AddressBookContactsProvider
@@ -36,6 +37,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -70,6 +72,7 @@ class SearchScreenTest {
     private val historyProvider = mockk<AutoSearchHistoryProvider>()
     private val favoritesProvider = mockk<AutoFavoritesProvider>(relaxed = true)
     private val locationProvider = mockk<AutoLocationProvider>(relaxed = true)
+    private val carViewport = CarMapViewportProvider()
 
     @Before
     fun setUp() {
@@ -89,10 +92,14 @@ class SearchScreenTest {
         every { entryPoint.autoSearchHistoryProvider() } returns historyProvider
         every { entryPoint.autoFavoritesProvider() } returns favoritesProvider
         every { favoritesProvider.favoriteLocations() } returns MutableStateFlow(emptyMap())
-        // No GPS fix: the reference falls back to the (absent) car viewport
-        // center, so the rows show no distance (spec: search-result-ranking).
+        // No GPS fix unless a case publishes one, so the reference comes from the car surface's
+        // published center (spec: search-result-ranking — distance reference).
         every { entryPoint.autoLocationProvider() } returns locationProvider
         every { locationProvider.position() } returns MutableStateFlow(null)
+        // The car surface's published last-frame center: empty unless a case publishes one, which is
+        // the state of a session whose map has not drawn a frame yet — the spec's "neither exists"
+        // case.
+        every { entryPoint.carMapViewportProvider() } returns carViewport
 
         // The result rows' type artwork: a stub client that answers "no artwork", so the screen's
         // prefetch pass runs and the rows simply carry no icon (spec: search-result-row-icon).
@@ -243,6 +250,92 @@ class SearchScreenTest {
                 any()
             )
         }
+    }
+
+    /**
+     * A search opened from a surface that shows no map — the root list, the history list — measures
+     * from the car's last drawn frame center, because that is the "current car map viewport center"
+     * of a session that has a map (spec: search-result-ranking — distance reference). Issue #42.
+     */
+    @Test
+    fun aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { historyProvider.load() } returns emptyList()
+        carViewport.publish(52.52, 13.405)
+        every {
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
+        } returns emptyList()
+        // Exactly what `RootScreen` and `SearchHistoryScreen` push: no viewport center of its own.
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        screen.SearchCallbackImpl().onSearchTextChanged("Dortmund")
+        advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+        advanceUntilIdle()
+
+        verify {
+            searchProvider.searchLocations(
+                "Dortmund",
+                SearchScreenMapper.MAX_RESULTS,
+                SearchReference(52.52, 13.405),
+                any()
+            )
+        }
+    }
+
+    /**
+     * The map screen's own renderer stays the reference while it is the screen that owns the map: a
+     * center another car map left behind must not override the frame this map is drawing (spec:
+     * search-result-ranking — distance reference). Issue #42.
+     */
+    @Test
+    fun theMapScreensOwnCenterWinsOverThePublishedOne() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { historyProvider.load() } returns emptyList()
+        carViewport.publish(52.52, 13.405)
+        every {
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
+        } returns emptyList()
+        val screen = SearchScreen(
+            carContext,
+            navigationViewModel,
+            viewportCenter = { 51.5136 to 7.4653 },
+            mainDispatcher = mainDispatcherRule.dispatcher,
+            ioDispatcher = mainDispatcherRule.dispatcher
+        )
+        advanceUntilIdle()
+
+        screen.SearchCallbackImpl().onSearchTextChanged("Dortmund")
+        advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+        advanceUntilIdle()
+
+        verify {
+            searchProvider.searchLocations(
+                "Dortmund",
+                SearchScreenMapper.MAX_RESULTS,
+                SearchReference(51.5136, 7.4653),
+                any()
+            )
+        }
+    }
+
+    /**
+     * The specified "neither exists" case: no GPS fix and no car map has drawn a frame, so the rows
+     * carry no distance and the order is tier and quality only (spec: search-result-ranking). Issue #42.
+     */
+    @Test
+    fun noFixAndNoDrawnCarMapMeansNoDistance() = runTest(mainDispatcherRule.dispatcher) {
+        coEvery { historyProvider.load() } returns emptyList()
+        every {
+            searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, any(), any())
+        } returns listOf(resultEntry("Dortmund Hbf"))
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        screen.SearchCallbackImpl().onSearchTextChanged("Dortmund")
+        advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
+        advanceUntilIdle()
+
+        verify { searchProvider.searchLocations("Dortmund", SearchScreenMapper.MAX_RESULTS, null, any()) }
+        assertNull(carViewport.center.value)
     }
 
     @Test

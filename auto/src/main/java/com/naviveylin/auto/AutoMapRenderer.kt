@@ -1997,6 +1997,18 @@ class AutoMapRenderer internal constructor(
     internal fun markerViewport(): Pair<Double, Double> = displayedLat() to displayedLon()
 
     /**
+     * Center of the frame currently on the surface, or null while no frame has been
+     * committed. Unlike [markerViewport] this never falls back to the pending render
+     * target: a caller that publishes a value as "the center of the last drawn frame"
+     * (spec: search-result-ranking — Distance reference for ordering and display) must
+     * not publish a center no frame ever displayed. Exposed for tests.
+     */
+    internal fun committedViewportCenter(): Pair<Double, Double>? =
+        synchronized(surfaceLock) {
+            if (overrunBitmap == null) null else overrunLat to overrunLon
+        }
+
+    /**
      * Displayed-frame accessors (spec: gps-location-marker — Marker projects against
      * displayed bitmap viewport; change `overlay-projects-against-displayed-frame`):
      * center, magnification and rotation of the frame currently on the surface, with

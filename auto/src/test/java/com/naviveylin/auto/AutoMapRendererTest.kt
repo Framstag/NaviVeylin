@@ -50,6 +50,19 @@ class AutoMapRendererTest {
     }
 
     @Test
+    fun committedViewportCenterIsNullBeforeTheFirstFrame() {
+        // Spec: search-result-ranking — distance reference for ordering and display: a car map screen
+        // publishes the center of the frame it drew, so a renderer that has drawn nothing offers no
+        // center. `markerViewport()` (the overlay projection) answers with the pending target, which
+        // no frame ever displayed — the two must not be interchangeable for the publish.
+        assertNull(renderer.committedViewportCenter())
+        assertNotNull(
+            "the pending target is still the overlay reference before the first frame",
+            renderer.markerViewport()
+        )
+    }
+
+    @Test
     fun surfaceCreatedStartsRender() {
         val surface = mockk<Surface>(relaxed = true)
         val canvas = mockk<Canvas>(relaxed = true)

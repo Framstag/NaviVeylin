@@ -607,11 +607,12 @@ Source: specs `auto-search`, `auto-search-suggestions` (change `unify-auto-searc
   using the same km formatting as §6a. The distance reference is the last known
   GPS fix, else the car map viewport center — the map screen passes its own
   renderer's center while it is the screen that owns the map, and every car map
-  screen publishes the center of its last drawn frame as it stops drawing, so a
-  search opened from the root or the history list measures from the map the driver
-  last saw instead of showing no distance at all (issue #42). The spec's "neither
-  exists" case therefore needs a session whose map has not drawn a frame yet —
-  only then are the results ordered by tier and quality without distances. **Platform
+  screen publishes the center of the last frame it actually drew as it stops
+  drawing — never the pending render target of a map that stopped before its first
+  frame landed — so a search opened from the root or the history list measures from
+  the map the driver last saw instead of showing no distance at all (issue #42). The
+  spec's "neither exists" case therefore needs a session whose map has not drawn a
+  frame yet — only then are the results ordered by tier and quality without distances. **Platform
   constraint (documented deviation)**: a car `Row` has a single image slot and
   at most two text lines and carries no accessibility text channel, so the
   marking is glyph-only on the car and the two facts cannot be announced — the

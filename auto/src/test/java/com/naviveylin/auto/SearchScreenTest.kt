@@ -116,9 +116,13 @@ class SearchScreenTest {
         } returns PackageManager.PERMISSION_DENIED
     }
 
-    private fun newScreen(initialQuery: String? = null) = SearchScreen(
+    private fun newScreen(
+        initialQuery: String? = null,
+        viewportCenter: () -> Pair<Double, Double>? = { null }
+    ) = SearchScreen(
         carContext, navigationViewModel,
         initialQuery = initialQuery,
+        viewportCenter = viewportCenter,
         mainDispatcher = mainDispatcherRule.dispatcher,
         ioDispatcher = mainDispatcherRule.dispatcher
     )
@@ -388,7 +392,11 @@ class SearchScreenTest {
         every {
             searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS, any(), any())
         } returns emptyList()
-        val screen = newScreen()
+        // The screen doing the tap was opened from a map that is still live, so its own center is the
+        // reference; the car surface's retained center is an older frame of the map behind it. Only
+        // the screen carrying its center on to the pushed screen can keep the live value.
+        carViewport.publish(51.5136, 7.4653)
+        val screen = newScreen(viewportCenter = { 52.52 to 13.405 })
         advanceUntilIdle()
 
         val template = screen.onGetTemplate() as SearchTemplate
@@ -396,10 +404,18 @@ class SearchScreenTest {
         advanceUntilIdle()
 
         verify { screenManager.push(any<SearchScreen>()) }
-        // The pushed screen runs the search for the tapped query (design D2).
+        // The pushed screen runs the search for the tapped query (design D2), against the center of
+        // the live map the tap came from — not the surface's retained one.
         advanceTimeBy(SearchScreenMapper.SEARCH_DEBOUNCE_MS)
         advanceUntilIdle()
-        verify { searchProvider.searchLocations("Dortmund Hbf", SearchScreenMapper.MAX_RESULTS, any(), any()) }
+        verify {
+            searchProvider.searchLocations(
+                "Dortmund Hbf",
+                SearchScreenMapper.MAX_RESULTS,
+                SearchReference(52.52, 13.405),
+                any()
+            )
+        }
     }
 
     @Test

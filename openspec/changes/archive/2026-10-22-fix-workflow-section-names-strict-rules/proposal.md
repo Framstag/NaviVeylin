@@ -37,9 +37,11 @@ command run at the end of the work is stated nowhere.
 `evidence/probe.sh`, the structural check `guidelines/Build.md` §2 calls for in its scope block. On HEAD
 (`80df3a3`), 2026-10-22T02:34:42Z, `bash probe.sh` → `probe: 0 passed, 7 failed`, exit 1
 (`evidence/red-HEAD.txt`): the three read cases match no line of the workflow section, and the four validator
-cases find no delta to drive. After the fix, all seven pass (`evidence/green.txt`); removing the added block
-makes the three read cases fail again and restoring it makes them pass (`evidence/revert-check.txt`, `4 passed,
-3 failed` then `7 passed, 0 failed`).
+cases find no delta to drive. That line is round 1's, taken with the pre-archive probe path; the probe now
+resolves the change open **or** archived, and its own red test after the round-2 corrections is the four
+mutations in `evidence/round2-checks.log`. After the fix, all seven pass (`evidence/green.txt`); removing the
+added block makes the three read cases fail again and restoring it makes them pass (`evidence/revert-check.txt`,
+`4 passed, 3 failed` then `7 passed, 0 failed`).
 
 The four validator cases are the mechanism, not a promise: `aRenamedScenarioIsReportedAsAnOmission` and
 `theChangeSetIsValidatedByACommand` rename one shipped scenario title in this change's own delta and record what
@@ -60,13 +62,13 @@ delta that touches no compiled file is `guidelines/Build.md` §2, its scope bloc
 ## What Changes
 
 - `AGENTS.md` §"OpenSpec Workflow" — two bullets beside the three CI-gated ones (a `MODIFIED` requirement
-  repeats every shipped scenario verbatim and under its own title, a renamed scenario is a removal plus an
+  repeats every shipped scenario verbatim and under their own titles, a renamed scenario is a removal plus an
   addition; a requirement's text stays within 500 characters of body, examples belong in a scenario), the line
-  naming `openspec validate <change> --strict` as the command that reports them, and the name of the
-  requirement that owns both.
+  naming `openspec validate <change> --strict` as the command that **fails** on them where a plain
+  `openspec validate` only warns, and the name of the requirement that owns both.
 - `openspec/specs/documentation-ownership/spec.md` — one MODIFIED requirement (the scenario rule gains the
-  title sentence and the scenario that proves it) and one ADDED requirement (the entry document states the
-  validator's rules and names the command), 7 scenarios, each naming one case of `evidence/probe.sh`.
+  title sentence and the scenario that proves it) and one ADDED requirement (the entry document states the two
+  rules the strict command fails on and names it), 7 scenarios, each naming one case of `evidence/probe.sh`.
 - No tool, no gate and no CI step changes: the reporter of both rules is the validator, and this change makes
   the statement readable before the artifact exists.
 
@@ -78,6 +80,32 @@ delta that touches no compiled file is `guidelines/Build.md` §2, its scope bloc
   An author who already ran `--strict` first reads the rules one round earlier.
 - Rollback: revert the change directory and the `AGENTS.md` block. No data, no published document and no
   classification entry is written by this change.
+
+## Round 2 — the review's three blocking corrections
+
+Review round 1 refused the change on three statements that were wrong or broader than what their cases tested,
+and this change was corrected in place — the delta and its merged copy both, so no sentence is re-archived:
+
+- **`--strict` reports, plain `validate` stays silent** — false. Measured on the merged capability spec,
+  2026-10-22T02:56:09Z: plain `openspec validate documentation-ownership --type spec` exits 0 and prints
+  `⚠ [WARNING] requirements[11]` / `[13] … Requirement text is very long (>500 characters)`, so what `--strict`
+  changes is fatal-versus-ignorable, not reported-versus-unreported. The `AGENTS.md` line, the ADDED
+  requirement and the retitled scenario *An over-long requirement is a warning until the strict command* now
+  say that, and the case asserts both halves: plain exit 0 with the `[WARNING]` line, `--strict` exit 1.
+- **"each artifact rule that `openspec validate --strict` enforces"** — a universal the entry document does not
+  deliver: it states two. The requirement now says "the two artifact rules below" and keeps stating exactly
+  those two.
+- **three read cases asserted a bare substring** while their scenarios stated more. Each case now asserts every
+  clause of its THEN: `verbatim` **and** `under their own titles`; `500 characters` **and** `requirement body,
+  not its scenarios` **and** `an example belongs in a scenario`; and the change-set case now greps the
+  requirement's name as well as the change's and the omitted scenario's.
+
+The four mutations in `evidence/round2-checks.log` show each widened case is falsifiable on its own clause —
+removing `under their own titles`, `An example belongs in a scenario`, and restoring the round-1 `--strict`
+sentence each turn exactly one case red (`6 passed, 1 failed`), and the whole block's removal turns the three
+read cases red (`4 passed, 3 failed`). The two `⚠ [WARNING] requirements[11]` / `[13]` lines it records are the
+capability's own pre-existing debt (bodies 724 and 529 characters, untouched by this change); the corrected
+requirement's body is 483 characters and reports nothing.
 
 ## Surface (Phase A step 5)
 

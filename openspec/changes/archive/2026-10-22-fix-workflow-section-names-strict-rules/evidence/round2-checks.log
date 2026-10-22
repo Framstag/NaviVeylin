@@ -1,0 +1,75 @@
+# round-2 checks, 2026-10-22T02:56:09Z, root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+# each mutation is applied to AGENTS.md, the probe run, and AGENTS.md restored from a backup in the exit trap
+
+## M1 — the whole added block removed (the invariant's own falsification)
+FAIL theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim and under their own titles — no line of the section matches /MODIFIED.{0,80}repeats.{0,140}verbatim/
+FAIL theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character bound, that it is the requirement body and not its scenarios, and that an example belongs in a scenario — no line of the section matches /500 characters/
+FAIL theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules, as the command that fails on them where a plain validate only warns — no line of the section matches /openspec validate[^|]*--strict/
+PASS theChangeSetIsValidatedByACommand: validate --changes --strict exits 1 and its error names the change, the requirement and the omitted scenario
+PASS theCompletedBlockKeepsTheRequirementWhole: the block validates and carries every shipped scenario title and WHEN/THEN line verbatim
+PASS aRenamedScenarioIsReportedAsAnOmission: a renamed scenario title makes validate --strict exit 1 and report an omission: md: MODIFIED "A modified requirement carries the scenarios its spec still has" omits scenario(s) the current spec still has: "The change set is validated by command"
+PASS anOverLongRequirementIsReported: text past the bound makes --strict exit 1 reporting 'Requirement text is very long (>500 characters)', and a plain validate report the same finding as a warning and exit 0
+probe: 4 passed, 3 failed
+probe: failed cases: theWorkflowSectionStatesTheScenarioRule theWorkflowSectionStatesTheTextBound theStrictCommandIsNamedBesideTheRules
+M1 probe exit=1
+
+## M2 — the round-1 wording restored: 'only ... --strict reports them'
+PASS theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim and under their own titles
+PASS theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character bound, that it is the requirement body and not its scenarios, and that an example belongs in a scenario
+FAIL theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules, as the command that fails on them where a plain validate only warns — no line of the section matches /plain[[:space:]]+`openspec[[:space:]]+validate`[[:space:]]+reports[[:space:]]+both[[:space:]]+as[[:space:]]+warnings/
+PASS theChangeSetIsValidatedByACommand: validate --changes --strict exits 1 and its error names the change, the requirement and the omitted scenario
+PASS theCompletedBlockKeepsTheRequirementWhole: the block validates and carries every shipped scenario title and WHEN/THEN line verbatim
+PASS aRenamedScenarioIsReportedAsAnOmission: a renamed scenario title makes validate --strict exit 1 and report an omission: md: MODIFIED "A modified requirement carries the scenarios its spec still has" omits scenario(s) the current spec still has: "The change set is validated by command"
+PASS anOverLongRequirementIsReported: text past the bound makes --strict exit 1 reporting 'Requirement text is very long (>500 characters)', and a plain validate report the same finding as a warning and exit 0
+probe: 6 passed, 1 failed
+probe: failed cases: theStrictCommandIsNamedBesideTheRules
+M2 probe exit=1
+
+## M3 — 'under their own titles' dropped from the scenario bullet
+FAIL theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim and under their own titles — no line of the section matches /verbatim.{0,140}under[[:space:]]+their[[:space:]]+own[[:space:]]+titles/
+PASS theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character bound, that it is the requirement body and not its scenarios, and that an example belongs in a scenario
+PASS theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules, as the command that fails on them where a plain validate only warns
+PASS theChangeSetIsValidatedByACommand: validate --changes --strict exits 1 and its error names the change, the requirement and the omitted scenario
+PASS theCompletedBlockKeepsTheRequirementWhole: the block validates and carries every shipped scenario title and WHEN/THEN line verbatim
+PASS aRenamedScenarioIsReportedAsAnOmission: a renamed scenario title makes validate --strict exit 1 and report an omission: md: MODIFIED "A modified requirement carries the scenarios its spec still has" omits scenario(s) the current spec still has: "The change set is validated by command"
+PASS anOverLongRequirementIsReported: text past the bound makes --strict exit 1 reporting 'Requirement text is very long (>500 characters)', and a plain validate report the same finding as a warning and exit 0
+probe: 6 passed, 1 failed
+probe: failed cases: theWorkflowSectionStatesTheScenarioRule
+M3 probe exit=1
+
+## M4 — 'An example belongs in a scenario' dropped from the text-bound bullet
+PASS theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim and under their own titles
+FAIL theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character bound, that it is the requirement body and not its scenarios, and that an example belongs in a scenario — no line of the section matches /example[[:space:]]+belongs[[:space:]]+in[[:space:]]+a[[:space:]]+scenario/
+PASS theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules, as the command that fails on them where a plain validate only warns
+PASS theChangeSetIsValidatedByACommand: validate --changes --strict exits 1 and its error names the change, the requirement and the omitted scenario
+PASS theCompletedBlockKeepsTheRequirementWhole: the block validates and carries every shipped scenario title and WHEN/THEN line verbatim
+PASS aRenamedScenarioIsReportedAsAnOmission: a renamed scenario title makes validate --strict exit 1 and report an omission: md: MODIFIED "A modified requirement carries the scenarios its spec still has" omits scenario(s) the current spec still has: "The change set is validated by command"
+PASS anOverLongRequirementIsReported: text past the bound makes --strict exit 1 reporting 'Requirement text is very long (>500 characters)', and a plain validate report the same finding as a warning and exit 0
+probe: 6 passed, 1 failed
+probe: failed cases: theWorkflowSectionStatesTheTextBound
+M4 probe exit=1
+
+## restored tree
+PASS theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim and under their own titles
+PASS theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character bound, that it is the requirement body and not its scenarios, and that an example belongs in a scenario
+PASS theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules, as the command that fails on them where a plain validate only warns
+PASS theChangeSetIsValidatedByACommand: validate --changes --strict exits 1 and its error names the change, the requirement and the omitted scenario
+PASS theCompletedBlockKeepsTheRequirementWhole: the block validates and carries every shipped scenario title and WHEN/THEN line verbatim
+PASS aRenamedScenarioIsReportedAsAnOmission: a renamed scenario title makes validate --strict exit 1 and report an omission: md: MODIFIED "A modified requirement carries the scenarios its spec still has" omits scenario(s) the current spec still has: "The change set is validated by command"
+PASS anOverLongRequirementIsReported: text past the bound makes --strict exit 1 reporting 'Requirement text is very long (>500 characters)', and a plain validate report the same finding as a warning and exit 0
+probe: 7 passed, 0 failed
+restored probe exit=0
+
+## the change validates in strict mode, driven from a temporary copy (it is archived)
+Change 'probe-round2-validate' is valid
+change validate --strict exit=0
+
+## the capability spec validates, and reports no over-long finding for the corrected requirement
+Specification 'documentation-ownership' is valid
+⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[13]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+spec validate exit=0
+
+## the structural check AGENTS.md owes
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+doc-routes exit=0

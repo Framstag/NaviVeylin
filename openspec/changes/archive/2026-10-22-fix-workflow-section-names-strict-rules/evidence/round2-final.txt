@@ -1,0 +1,36 @@
+# final structural checks on the corrected tree, 2026-10-22T02:57:33Z
+
+## probe
+PASS theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim and under their own titles
+PASS theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character bound, that it is the requirement body and not its scenarios, and that an example belongs in a scenario
+PASS theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules, as the command that fails on them where a plain validate only warns
+PASS theChangeSetIsValidatedByACommand: validate --changes --strict exits 1 and its error names the change, the requirement and the omitted scenario
+PASS theCompletedBlockKeepsTheRequirementWhole: the block validates and carries every shipped scenario title and WHEN/THEN line verbatim
+PASS aRenamedScenarioIsReportedAsAnOmission: a renamed scenario title makes validate --strict exit 1 and report an omission: md: MODIFIED "A modified requirement carries the scenarios its spec still has" omits scenario(s) the current spec still has: "The change set is validated by command"
+PASS anOverLongRequirementIsReported: text past the bound makes --strict exit 1 reporting 'Requirement text is very long (>500 characters)', and a plain validate report the same finding as a warning and exit 0
+probe: 7 passed, 0 failed
+probe exit=0
+
+## capability spec
+Specification 'documentation-ownership' is valid
+⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[13]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+exit=0
+
+## doc routes
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+exit=0
+
+## change validates in strict mode (from a temporary copy, the change is archived)
+Unknown item 'openspec/changes/probe-final'. Did you mean: probe-final, spec-feature-index, gps-bearing-smoothing, gps-speed-priority, search-result-ranking?
+exit=1
+
+## openspec/changes after the runs
+archive
+fix-mutation-harness-file-scope
+
+## same check, retried by change name (the first attempt passed a path, which the CLI rejects)
+Change 'probe-final' is valid
+exit=0
+
+run again at 2026-10-22T02:57:47Z, after the proposal/design/tasks corrections

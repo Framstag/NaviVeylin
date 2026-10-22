@@ -15,8 +15,9 @@ State the two rules, and the command that reports them, in the section an author
 artifact (`AGENTS.md` §"OpenSpec Workflow"), beside the CI-gated rules already there, and own them by name:
 
 ```markdown
-Two further artifact rules are the validator's own — only `openspec validate <change> --strict` reports them, so
-it is run before the artifact is finished rather than at the archive, which is the round that already wrote it:
+Two further artifact rules are the validator's own — a plain `openspec validate` reports both as warnings and
+exits 0, and `openspec validate <change> --strict` fails on them, so that command is run before the artifact is
+finished rather than at the archive, which is the round that already wrote it:
 
 - a `MODIFIED` requirement replaces the whole block, so it repeats **every** scenario of the shipped requirement
   verbatim — the ones the change does not touch included, under their own titles. A renamed scenario reads as a
@@ -31,7 +32,7 @@ capability's *The always-read document states facts and references rules* and *A
 
 ## D3 — Blast radius
 
-- 2 documents edited: `AGENTS.md` (+10 lines), the `documentation-ownership` capability spec (via the delta at
+- 2 documents edited: `AGENTS.md` (+12 lines), the `documentation-ownership` capability spec (via the delta at
   the archive).
 - 1 change directory: proposal, delta spec, design, tasks, `evidence/`.
 - Nothing executable: no `tools/`, no `gate.sh`, no `loop.conf` entry, no CI step. The reporter of both rules is
@@ -65,10 +66,36 @@ generated document changes behaviour.
   nothing forces a trade, and touching the CI-gated bullets would make this change responsible for statements it
   was not asked to change.
 
-## D6 — Why the two validator cases are probes and not promises
+## D6 — Why the four validator cases are probes and not promises
 
 The mechanism each rule claims is checkable on this change's own delta, so each is checked instead of asserted:
 rename one shipped scenario title in the MODIFIED block and `openspec validate --strict` reports that title as
-omitted; lengthen a requirement body past the bound and the same command reports it as "very long". Each probe
-restores the file from a backup and re-runs the validator, so the tree is left as it was found and the green
-line is produced in the same run (`evidence/green.txt`).
+omitted; lengthen a requirement body past the bound and a plain `openspec validate` reports it as a warning
+while `--strict` fails on it. Each probe restores the file from a backup and re-runs the validator, so the tree
+is left as it was found and the green line is produced in the same run (`evidence/green.txt`).
+
+## D7 — Round 2: what the review refused, and the one fix each correction is
+
+D2's `AGENTS.md` snippet, D6's "reports it as very long", the ADDED requirement and the fourth scenario said
+four things the validator does not do; each correction is a narrowing of one sentence, so no alternative was
+eliminated by evidence and the single fix stands:
+
+1. **Reporting versus failing.** `openspec validate <change> --strict` does not own the report — a plain
+   `openspec validate` prints both findings and exits 0, and `--strict` only makes them fatal. Measured on the
+   merged spec: `Specification 'documentation-ownership' is valid` + two `⚠ [WARNING] … very long` lines, exit
+   0 (`evidence/round2-checks.log`). Fixed in `AGENTS.md`, in the requirement's WHEN/THEN, and in the retitled
+   *An over-long requirement is a warning until the strict command*, whose case now asserts both halves — a
+   plain run exits 0 with the `[WARNING]` line and `--strict` exits 1. The round-1 wording, restored on the tree,
+   is what turns that case red (`M2`, `6 passed, 1 failed`).
+2. **The universal.** "Each artifact rule that `openspec validate --strict` enforces" is not what the entry
+   document states, and the validator enforces more than two. The requirement now says "the two artifact rules
+   below", which is what it means and what its cases test.
+3. **Bare substrings.** Three read cases asserted less than their THEN carried. Each now asserts every clause,
+   with a mutation per clause: `under their own titles` (`M3`), `An example belongs in a scenario` (`M4`), and
+   the requirement's name in the change-set case. The clause count is the surface: 1 read case was widened per
+   clause removed, 0 cases added, and the three mutations each fail exactly one case.
+
+The probe also had to stop assuming an open change: after the archive the delta is under
+`openspec/changes/archive/`, so it now resolves either location and drives a temporary
+`openspec/changes/probe-<name>` copy that its exit trap removes. Without that the four validator cases fail
+with "no delta spec" on the shipped tree, and the red test would be a probe that cannot run.

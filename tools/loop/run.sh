@@ -679,11 +679,15 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
 
 # The round's prompt, rendered once per attempt: the same contract and the same diff, only the file it is written
 # to differs, so a retried answer is the same question asked again rather than a second review (#224).
+# `CORRECTION_SCOPE` is substituted **first**, not last: `loop_render` replaces one pair at a time on the template it
+# has accumulated so far, and the section names `{{DIFF_PATH}}` and `{{CHANGE_ROOT}}` itself. A section inserted
+# after those pairs would survive verbatim and hand the reviewer a file called `{{DIFF_PATH}}` — the round that
+# exists to verify corrections pointing at a placeholder (item #245's round-1 review).
 render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope]
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
+    "CORRECTION_SCOPE=${2:-}" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir" \
-    "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}" \
-    "CORRECTION_SCOPE=${2:-}"
+    "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
 }
 
 # Why a run ended is the run's own number, not a line on a console that scrolls away: every path that leaves

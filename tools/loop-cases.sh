@@ -3325,7 +3325,7 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
 # The assertions are the absences that make it so: the round-3 diff carries the correction's hunk and not the
 # line it replaced, and the round-3 prompt carries the finding the round exists to decide.
 case_run_aCorrectiveRoundIsHandedTheCorrections() {
-  local d p f diff prompt
+  local d p f diff prompt first
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # Rounds 1 and 2 refuse, and round 2 states that every finding is subtractive, so the run buys a third round;
@@ -3373,9 +3373,18 @@ esac"
     "the prompt carries the finding the round exists to decide"
   assert_contains "$(cat "$prompt")" "reviewer-report-2.md" "and names the report it came from"
   assert_contains "$(cat "$prompt")" "the correction round alone" "and says what the diff is"
+  # …and the section's own placeholders are rendered, not literal: `loop_render` substitutes one pair at a time on
+  # the accumulated template, so a section carrying `{{DIFF_PATH}}` that is inserted *after* that pair hands the
+  # reviewer a file called `{{DIFF_PATH}}` — the defect this assertion exists to catch (item #245's round-1 review).
+  assert_contains "$(cat "$prompt")" "review-3.diff" "and names the diff it was handed"
+  assert_not_contains "$(cat "$prompt")" "{{" "every placeholder in the correction section is substituted"
   # The earlier rounds are unchanged: the narrowing is the extra round's, not every round's.
-  assert_not_contains "$(cat "$p/.pi/issue-loop/items/21/reviewer-prompt-1.md")" "the correction round alone" \
+  first="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
+  [ -f "$first" ] || fail "the first round's prompt was not rendered"
+  assert_not_contains "$(cat "$first")" "the correction round alone" \
     "a first round is handed the change, not a correction range"
+  assert_contains "$(cat "$first")" "review-1.diff" "and it names its own diff"
+  assert_not_contains "$(cat "$first")" "{{" "and every placeholder in it is substituted too"
 }
 
 # A refusal is a refusal only when something the change depends on is contradicted. A report that grades every

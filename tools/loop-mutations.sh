@@ -130,6 +130,11 @@ MUTATIONS=(
   # asserts the narrowed range first and the quoted findings second.
   '40.1@-@tools/loop/run.sh@run#aCorrectiveRoundIsHandedTheCorrections@the base the extra round_diff is built from@s|^      write_review_diff "\$diff_base" "\$diff_file"$|      write_review_diff "\$base" "\$diff_file"|'
   '40.2@-@tools/loop/run.sh@run#aCorrectiveRoundIsHandedTheCorrections@the refusing report the extra round reads@s|^          correction_scope=\$(review_correction_scope "\$diff_base" "\$reviewer_report")$|          correction_scope=""|'
+  # The section names `{{DIFF_PATH}}`/`{{CHANGE_ROOT}}` itself, so the pair it is substituted from has to be the
+  # *first* one: rendered last, the paths the section names survive as literal placeholders and the round that
+  # exists to verify corrections points its reviewer at a file called `{{DIFF_PATH}}` (item #245's round-1 review).
+  # Two expressions, because the defect is an order: the pair is deleted from the head and appended after the last.
+  '40.3@-@tools/loop/run.sh@run#aCorrectiveRoundIsHandedTheCorrections@the correction section substituted before the paths it names@s|^    "CORRECTION_SCOPE=\${2:-}" \\$|    "LOOP_REORDERED=1" \\|;;s|^    "REVIEW_EXCLUDE=\${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=\${child_max:-2700}"$|& \\\n    "CORRECTION_SCOPE=${2:-}"|'
   '20.1@-@tools/loop/prescreen.sh@prescreen#itemAwaitingADecisionIsNotQueued@`alreadyEscalated` following the label rather than the hold@s|^    if \[ "$awaiting_label" -eq 1 \]; then$|    if true; then|'
   '20.2@-@tools/loop/prescreen.sh@prescreen#escalatedItemKeepsItsBranchAsEvidence@the awaiting clause not overwriting the branch the adoption path reads@s|^  if \[ "$verdict" = "$queued_verdict" \] && \[ "$awaiting_decision" -eq 1 \]; then$|  if [ "$awaiting_decision" -eq 1 ]; then|'
   '21.1@-@tools/loop/prescreen.sh@prescreen#aHoldWithNoDecisionIsNotADecision@a hold with no recorded decision reported as a hold rather than as a decision@s|^      verdict="$held_verdict"$|      verdict="$decision_verdict"|'

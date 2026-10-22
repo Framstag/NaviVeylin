@@ -1,0 +1,21 @@
+gate: ./tools/loop/gate.sh (exit 0) — 2026-10-22T03:22:37Z
+
+The gate's own summary line (the shell suites it counts):
+LOOP-GATE: tests=325 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+
+The Gradle suites' own JUnit XML tallies (gate.sh prints no summary line for a Gradle
+command, so its `tests=` counts the shell suites only; these are the executed suites'
+own numbers, read from `build/test-results/*/*.xml` after the gate ran):
+app mobile        app/build/test-results/testMobileDebugUnitTest       tests=2098 failures=0
+app automotive    app/build/test-results/testAutomotiveDebugUnitTest   tests=2098 failures=0
+auto              auto/build/test-results/testDebugUnitTest            tests=866 failures=0
+core              core/build/test-results/testDebugUnitTest            tests=642 failures=0
+osmscout-client-java osmscout-client-java/build/test-results/test       tests=48 failures=0
+
+Sum of the Gradle suites: 5752 tests, 0 failures.
+The class this change touches: NavigationStateOverlayComposeTest tests=13 failures=0
+(2026-10-22T03:10:27Z, `evidence/gate-overlay.xml`).
+
+The shell suites' per-suite tallies are `app/build/test-results/loop-gate/*.xml`;
+`tools/check-doc-routes.sh` printed `all 120 section references resolve, all 5 skill
+references resolve`.

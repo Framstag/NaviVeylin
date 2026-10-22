@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-22T03:06:56.758Z" hostname="dingens" time="6.964">
+  <properties/>
+  <testcase name="stopControlCentreEndsNavigationWithoutOpeningDetails" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="5.775"/>
+  <testcase name="stopControlBoundsLieOutsideDetailsRegionBounds" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.101"/>
+  <testcase name="cardHeightStaysWithinTheBound" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.09"/>
+  <testcase name="detailsRegionClickLeavesStopCallbackUntouched" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.079"/>
+  <testcase name="stopControlHitAreaIsAtLeast48Dp" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.066"/>
+  <testcase name="rowShowsNoPercentText" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.066"/>
+  <testcase name="glyphSlotsShareOneSizeAndAlignment" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.068"/>
+  <testcase name="noStopControlWhenCallbackIsNull" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.051"/>
+  <testcase name="etaSlotCarriesNoRing" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.056"/>
+  <testcase name="stopControlIsTheOnlyActionableTargetOverItsOwnBox" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.059"/>
+  <testcase name="detailsRegionClickOpensDetailsAndDoesNotStop" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.07"/>
+  <testcase name="noRingsWhenPercentsNull" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.07"/>
+  <testcase name="ringsShownWhenPercentsPassed" classname="com.naviveylin.ui.navigation.NavigationStateOverlayComposeTest" time="0.098"/>
+  <system-out><![CDATA[RoutingStatusCardHeight 120.0dp (bound 130dp)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

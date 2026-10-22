@@ -1,0 +1,32 @@
+=== run#aMergedBranchIsRemoved
+--- the case's own reason (stderr)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  the run left the branch of the item it closed behind: fix/issue-21-an-eligible-bug-whose-cited-path-still-e
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  the run left the branch of the item it closed behind: fix/issue-21-an-eligible-bug-whose-cited-path-still-e
+--- the verdict (stdout)
+FAIL run#aMergedBranchIsRemoved
+exit=1
+
+=== clean#sweepsOnlyWhatIsInTheBase
+--- the case's own reason (stderr)
+  the landed branch is named as removable: 'would remove fix/issue-1-landed' not found in: loop-clean: no worktree at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.TQBkPc/case.eAaiRJ/repo/.pi/worktrees/loop — no build output of the loop's to remove
+  the landed branch is named as removable: 'would remove fix/issue-1-landed' not found in: loop-clean: no worktree at /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.TQBkPc/case.eAaiRJ/repo/.pi/worktrees/loop — no build output of the loop's to remove
+loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+loop-clean: nothing to remove — 0 path(s) kept
+--- the verdict (stdout)
+FAIL clean#sweepsOnlyWhatIsInTheBase
+exit=1
+
+=== report#landedBranchesAreNamedAsRemovable
+--- the case's own reason (stderr)
+  the report tells the leftovers from the work: 'landed, removable:' not found in: **agent-issue-loop — 2026-10-22T20:25:19Z** (budget 1 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base 65bc3a18e19e)
+  1. land fix/issue-2-work — 1 commit(s) the base does not have — item #2
+
+actions the caller owes:
+  1. land fix/issue-2-work — 1 commit(s) the base does not have — item #2
+--- the verdict (stdout)
+FAIL report#landedBranchesAreNamedAsRemovable
+exit=1
+

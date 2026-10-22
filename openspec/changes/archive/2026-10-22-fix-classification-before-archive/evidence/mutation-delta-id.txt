@@ -1,0 +1,41 @@
+# Falsification probe (2026-10-22T01:20:18Z) — throwaway root /tmp/probe-classification-101: the real shipped specs + one open change's delta for an id nothing classifies
+
+## 1. the base commit 80df3a3 tool (before this change)
+specs read: 177
+classified: 177
+unclassified: 0
+stale: 0
+car-only areas: 1
+highlights: 19
+EXIT=0
+
+## 2. this tree's tool
+gen-feature-list: unclassified spec id(s):
+  newcap (introduced by the open change probe-change — classify it in that change, before it archives)
+specs read: 177
+classified: 177
+unclassified: 1
+delta spec ids: 1
+stale: 0
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+EXIT=1
+
+## 3. restored green pair — the real tree, this tree's tool
+specs read: 177
+classified: 177
+unclassified: 0
+delta spec ids: 2
+stale: 0
+car-only areas: 1
+highlights: 19
+EXIT=0
+
+# the tree is untouched by the probe:
+ M .github/workflows/build.yml
+ M README.md
+ M guidelines/FeatureList.md
+ M tools/gen-feature-list-selftest.sh
+ M tools/gen-feature-list.sh
+ M tools/loop/loop.conf

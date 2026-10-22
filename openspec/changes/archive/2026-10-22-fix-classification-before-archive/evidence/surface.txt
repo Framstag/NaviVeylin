@@ -1,0 +1,13 @@
+# surface: files that assert the classification gate or the loop suite mapping
+.github/workflows/build.yml
+guidelines/FeatureList.md
+openspec/specs/spec-feature-index/spec.md
+README.md
+tools/gen-feature-list-selftest.sh
+tools/gen-feature-list.sh
+tools/loop-cases.sh
+tools/loop/gate.sh
+tools/loop/loop.conf
+
+# cases in the tool selftest that name the gate
+17

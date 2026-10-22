@@ -1,0 +1,25 @@
+# Post-archive (2026-10-22T01:35:49Z)
+
+archived at: openspec/changes/archive/2026-10-22-fix-classification-before-archive
+
+## the delta merged into the capability spec
+60:A capability id that an open change's delta specs introduce SHALL be classified before that change is archived. The
+61-run SHALL read those delta specs from `openspec/changes/<change>/specs/<capability>/spec.md`, SHALL NOT read the
+62-delta specs of a change under `openspec/changes/archive/`, SHALL report an id they name that the classification does
+63-not name together with the open change that owes the line, SHALL make the run fail, and SHALL produce no regenerated
+
+## the same gate after the move
+specs read: 177
+classified: 177
+unclassified: 0
+delta spec ids: 1
+stale: 0
+car-only areas: 1
+highlights: 19
+EXIT=0
+
+## open changes still open
+fix-mutation-harness-file-scope
+
+## nothing of this change is left under openspec/changes/
+0

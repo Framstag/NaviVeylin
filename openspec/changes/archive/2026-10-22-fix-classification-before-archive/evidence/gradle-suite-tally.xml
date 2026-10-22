@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="./gradlew test -PforceTests --no-build-cache (both flavors)" tests="4194" failures="0" errors="0" timestamp="2026-10-22T01:28:00Z">
+  <system-out>The build's own gate, run once by ./tools/loop/gate.sh (evidence/gate.log, LOOP-GATE line). gate.sh derives a suite's tally from a summary line; Gradle prints none, so its own loop-gate tally reads tests=0 and the numbers are summed here from what Gradle wrote: app/build/test-results/testMobileDebugUnitTest/*.xml and .../testAutomotiveDebugUnitTest/*.xml, 286 classes each, `tests=` summed to 2097 per flavor and `failures=` to 0 in both. -PforceTests makes the run re-execute rather than report a cached result (guidelines/Build.md §4).</system-out>
+</testsuite>

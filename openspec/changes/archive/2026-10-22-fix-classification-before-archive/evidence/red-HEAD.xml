@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/gen-feature-list-selftest.sh (the three new delta cases)" tests="3" failures="3" errors="0" timestamp="2026-10-22T01:07:48Z">
+  <testcase name="gate: a capability an open change introduces must be classified"><failure>expected [1], got [0] — the gate printed `unclassified: 0` for an open change's delta capability `newcap`</failure></testcase>
+  <testcase name="gate: the unclassified open capability is named"><failure>stderr named no id: the shipped-only gate never reads openspec/changes/</failure></testcase>
+  <testcase name="gate: the open change that owes the line is named"><failure>stderr named no change: the gate does not know a delta spec exists</failure></testcase>
+  <system-out>Three focused case runs against the run's base commit 80df3a3 with the fix not yet in the tree, the same selftest run that carries them: `tools/gen-feature-list-selftest.sh` exited 1 with `112 passed, 3 failed`, and the three FAIL lines are the failures counted here, the way tools/loop/gate.sh derives its per-suite tally. The log's own run copy is red-HEAD.log, written at 2026-10-22T01:07:48Z.</system-out>
+</testsuite>

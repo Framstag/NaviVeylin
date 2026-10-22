@@ -1,0 +1,19 @@
+# what the inherited profile says vs the one this change edits (2026-10-22T01:35:01Z)
+
+LOOP_CONF inherited from the run: /home/tim/projects/NaviVeylin/tools/loop/loop.conf (the project tree's copy)
+
+## with the inherited profile (what ./tools/loop/gate.sh ran with)
+./gradlew test -PforceTests --no-build-cache
+tools/loop-selftest.sh
+tools/sensor-selftest.sh
+tools/check-action-runtimes-selftest.sh
+tools/check-doc-routes.sh
+
+## with this change root's profile
+./gradlew test -PforceTests --no-build-cache
+tools/loop-selftest.sh
+tools/sensor-selftest.sh
+tools/check-action-runtimes-selftest.sh
+tools/gen-feature-list-selftest.sh
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh

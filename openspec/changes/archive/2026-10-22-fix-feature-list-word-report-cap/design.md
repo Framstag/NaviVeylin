@@ -5,8 +5,9 @@
 `tools/feature-list/gate.awk` prints an unverifiable content word the instant the per-entry loop finds it
 (`:106`), one line per (word, entry) pair, with nothing that ranks it and nothing that counts what it left out. The
 report was written to make a claim the gates cannot settle visible to a reviewer; the shape it was written in makes
-it invisible at scale — 352 lines for 225 bullets on the first real generation
-(`openspec/changes/archive/2026-10-09-generate-feature-list/evidence.md:484`, `:620`). The check is right and the
+it invisible at scale — 352 advisory lines on the first real generation, over 12 areas
+(`openspec/changes/archive/2026-10-09-generate-feature-list/apply-evidence.md:484`, `:620`, and `:456` for the 12
+areas and 582 bullets). The check is right and the
 format is wrong, which is why the recorded decision on issue #103 is to cap the report rather than narrow the check.
 
 ## The fix
@@ -25,8 +26,10 @@ One mechanism, three parts, all in the gate:
 
 `tools/gen-feature-list.sh` declares `max_words=10` beside `maxpara` and passes `-v maxwords=…` to both call sites;
 `gate.awk` defaults to 10 when the variable is absent, so the awk file still runs on its own (`guidelines/FeatureList.md`
-§6 says it can). The release note's call site has no `## ` heading, so the whole note is one area and the summary line
-reads `in the document`.
+§6 says it can). The release note's entry is written with a `## <release>` heading of its own
+(`tools/gen-feature-list.sh:822`), so that version is the area the note's report is labelled with; `area_label()`'s
+`the document` arm is reached only by prose handed to the gate with no `## ` heading at all, which is neither call
+site's input.
 
 ## Why this bound, and not another
 
@@ -57,7 +60,9 @@ reads `in the document`.
   the snapshot format, the prompt digest, the classification gate, `tools/feature-list/pair.awk`.
 
 Memory: `specfreq` holds one counter per distinct word of the shipped specs (`openspec/specs/**/spec.md`, one line
-each) — a few tens of thousands of entries in an awk process that already holds the same spec text. The candidate
+each) — measured at 6 218 distinct words over 177 spec files
+(`find openspec/specs -name spec.md -print0 | xargs -0 cat | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '\n' | sed '/^$/d' | sort -u | wc -l`),
+against an awk process that already holds the same spec text. The candidate
 list is per area and cleared at each boundary.
 
 ## Alternatives the evidence eliminated
@@ -80,4 +85,5 @@ list is per area and cleared at each boundary.
 
 `git revert` the change. Nothing persisted depends on it: the report goes to stderr, the caller prints it, and no
 snapshot, cache entry, prompt digest or generated document reads it. A run after the revert prints the unbounded
-report again and every gate behaves exactly as before.
+report again — reasoning from the diff, not a measured run — and the gates that fail a run read none of the
+removed state.

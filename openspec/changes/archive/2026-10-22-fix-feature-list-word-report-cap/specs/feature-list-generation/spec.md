@@ -31,7 +31,7 @@ entries of that area use it.
 
 - **WHEN** a entry states a figure that appears in none of its cited specs
 - **THEN** the run fails rather than reporting, whatever the word report says
-- **Case**: `gates: the report does not stand in for the figure gate`
+- **Case**: `gates: an invented figure fails the run`
 
 #### Scenario: The report shows no more words of an area than its cap
 

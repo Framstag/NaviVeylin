@@ -11,7 +11,7 @@ defeats the requirement instead of serving it (issue #103, recorded decision on 
   (word, entry) pair, unbounded, in paragraph order, with no count of anything the reader cannot see. The caller
   prints whatever arrived (`tools/gen-feature-list.sh:725-728`), so the volume reaches the terminal unchanged.
   Nothing in the tree caps it or ranks it: `grep -n 'maxwords\|cap' tools/feature-list/gate.awk` returns nothing.
-- **The volume is recorded, not guessed**: `openspec/changes/archive/2026-10-09-generate-feature-list/evidence.md`
+- **The volume is recorded, not guessed**: `openspec/changes/archive/2026-10-09-generate-feature-list/apply-evidence.md`
   — "the advisory word report came back with 352" (line 484) and "352 lines on the first fanout, 104 after the …"
   (line 620) — so the condition is a measured one and it is not fixed.
 - **Root cause**: the report has no bound, because `gate.awk` prints a candidate word the moment it finds one

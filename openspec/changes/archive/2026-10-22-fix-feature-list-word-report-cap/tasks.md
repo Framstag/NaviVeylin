@@ -42,7 +42,8 @@
 
 - [x] 4.1 Remove the cap from `flush_words` (show every candidate), run the focused case
       `gates: the word report shows no more than its cap in one area` — it must fail — then restore the line and
-      re-run the suite green. Evidence: `evidence/mutation-no-cap.log`.
+      re-run the suite green. Evidence: `evidence/mutation-no-cap.log` (the two failures), and the restore's green
+      run in `evidence/green103b.log` / `evidence/green-final.log`.
 
 ## 5. The guideline says what the report now is
 
@@ -52,10 +53,10 @@
 
 ## 6. Checks this delta owes — no compiled file, so no Gradle task
 
-- [x] 6.1 `bash tools/check-doc-routes.sh` (a guideline changed) — log in `evidence/check-doc-routes.log`.
-- [x] 6.2 `bash tools/check-portability.sh` (a `tools/` file changed) — log in `evidence/check-portability.log`.
-- [x] 6.3 `openspec validate --all` and `openspec validate fix-feature-list-word-report-cap --strict` — log in
-      `evidence/openspec-validate.log`.
+- [x] 6.1 `bash tools/check-doc-routes.sh` (a guideline changed) — log in `evidence/doc-routes103.log`.
+- [x] 6.2 `bash tools/check-portability.sh` (a `tools/` file changed) — log in `evidence/portability103.log`.
+- [x] 6.3 `openspec validate --all` and `openspec validate fix-feature-list-word-report-cap --strict` — logs in
+      `evidence/openspec103.log` and `evidence/openspec103b.log`.
 - [x] 6.4 `./tools/loop/gate.sh`, run once for the item, quoted into the report and the evidence.
 
 ## 7. Evidence and archive

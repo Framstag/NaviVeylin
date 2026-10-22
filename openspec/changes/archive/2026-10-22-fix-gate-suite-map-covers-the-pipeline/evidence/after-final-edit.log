@@ -1,0 +1,10 @@
+== the two reading checks re-run after the change's last edit (2026-10-22T04:54:36Z)
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+check-doc-routes exit=0
+check-todo-references: 198 line(s) scanned, 63 distinct citation(s), 162 in the recorded table
+check-todo-references: 63 citation(s) resolve through the recorded table; 3537 file(s) excluded by the allowlist above
+check-todo-references exit=0
+specs read: 177
+classified: 177
+unclassified: 0
+delta spec ids: 1

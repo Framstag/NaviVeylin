@@ -1,0 +1,72 @@
+# The profile's map against the pipeline's check steps (issue #242)
+
+date: 2026-10-22T04:54:33Z   base: ee95d7160cb32c65b56979058338004f29db3edc
+
+## What counts as a gate command
+
+A step named 'Check …' in .github/workflows/build.yml, and the 'bash|sh <path> …' lines it runs
+(inline after 'run:' or one per line inside 'run: |'). The publish steps are not checks: 'Publish the
+sensor inputs' runs 'bash tools/build-inputs.sh --write' and writes the tree.
+
+## Before the change — map: 21 pairs naming 8 commands, pipeline: 31, missing: 23
+
+MISSING tools/build-inputs-mutations.sh --list
+MISSING tools/build-inputs-selftest.sh
+MISSING tools/build-inputs.sh --check
+MISSING tools/check-action-runtimes.sh
+MISSING tools/check-compose-sandbox-rule-selftest.sh
+MISSING tools/check-compose-sandbox-rule.sh
+MISSING tools/check-doc-routes-selftest.sh
+MISSING tools/check-portability.sh
+MISSING tools/check-todo-references.sh
+MISSING tools/issues/check-metadata.sh
+MISSING tools/issues/metadata-mutations.sh --list
+MISSING tools/loop-mutations-selftest.sh
+MISSING tools/mutate-selftest.sh
+MISSING tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+MISSING tools/mutate.sh --mutations tools/close-mutations.json --list
+MISSING tools/mutate.sh --mutations tools/create-mutations.json --list
+MISSING tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+MISSING tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+MISSING tools/mutate.sh --mutations tools/portability-mutations.json --list
+MISSING tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list
+MISSING tools/mutate.sh --mutations tools/status-mutations.json --list
+MISSING tools/resolve-stale-selftest.sh
+MISSING tools/sensor-mutations.sh --list
+
+## After the change — map: 55 pairs naming 31 commands, pipeline: 31, missing: 0
+
+(no MISSING line above)
+
+## The commands the map now names
+tools/build-inputs-mutations.sh --list
+tools/build-inputs-selftest.sh
+tools/build-inputs.sh --check
+tools/check-action-runtimes-selftest.sh
+tools/check-action-runtimes.sh
+tools/check-compose-sandbox-rule-selftest.sh
+tools/check-compose-sandbox-rule.sh
+tools/check-doc-routes-selftest.sh
+tools/check-doc-routes.sh
+tools/check-portability-selftest.sh
+tools/check-portability.sh
+tools/check-todo-references.sh
+tools/gen-feature-list-selftest.sh
+tools/gen-feature-list.sh --check-classification
+tools/issues/check-metadata.sh
+tools/issues/metadata-mutations.sh --list
+tools/issue-tooling-selftest.sh
+tools/loop-mutations-selftest.sh
+tools/loop-selftest.sh
+tools/mutate-selftest.sh
+tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+tools/mutate.sh --mutations tools/close-mutations.json --list
+tools/mutate.sh --mutations tools/create-mutations.json --list
+tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/portability-mutations.json --list
+tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list
+tools/mutate.sh --mutations tools/status-mutations.json --list
+tools/resolve-stale-selftest.sh
+tools/sensor-mutations.sh --list
+tools/sensor-selftest.sh

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-mutations-selftest.sh" tests="0" failures="0" errors="0">
+  <system-out>ok   the file the empty backup would have replaced still holds its content ok   the mutation set lists what it declares loop-mutations-selftest: the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project and it refuses a backup that did not land</system-out>
+</testsuite>

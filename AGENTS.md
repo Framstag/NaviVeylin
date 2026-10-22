@@ -247,6 +247,18 @@ Three artifact rules are CI-gated (`.github/workflows/build.yml`, step "Check Op
   by hand (2026-10-21). The requirement that owns this is
   `openspec/specs/documentation-ownership/spec.md`.
 
+Two further artifact rules are the validator's own — only `openspec validate <change> --strict` reports them, so
+it is run before the artifact is finished rather than at the archive, which is the round that already wrote it:
+
+- a `MODIFIED` requirement replaces the whole block, so it repeats **every** scenario of the shipped requirement
+  verbatim — the ones the change does not touch included, under their own titles. A renamed scenario reads as a
+  removal plus an addition.
+- a requirement's text stays within **500 characters** — the requirement body, not its scenarios. An example
+  belongs in a scenario.
+
+The requirement that owns both is `openspec/specs/documentation-ownership/spec.md`, "The validator's own rules
+are read before the first write".
+
 ## Build & Test
 
 Everything executable — the command table (build, assemble, force a rerun, coverage), the gate's result

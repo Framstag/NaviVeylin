@@ -98,7 +98,8 @@ instruct a reader to read every document under `guidelines/`.
 A change's MODIFIED block SHALL carry the requirement it modifies whole — the description and every scenario
 the shipped spec still has — because that block replaces the requirement when the change archives. A block
 that omits a shipped scenario SHALL be reported as an error naming the omitted scenario, and the change SHALL
-stay unarchivable until the block is completed.
+stay unarchivable until the block is completed. Every scenario SHALL keep its shipped title: a renamed
+scenario is a removal plus an addition.
 
 #### Scenario: The change set is validated by command
 
@@ -106,6 +107,7 @@ stay unarchivable until the block is completed.
   scenario its shipped spec still has
 - **THEN** the command exits non-zero and its error names the change, the requirement and the omitted scenario
 - **AND** the same command exits 0 once the omitted scenarios are restored into the block
+- **Case**: `probe#theChangeSetIsValidatedByACommand`
 
 #### Scenario: A completed block keeps the requirement whole
 
@@ -113,6 +115,14 @@ stay unarchivable until the block is completed.
   requirement
 - **THEN** the command reports the change valid, and comparing the block against the shipped requirement names
   no shipped text that the block dropped
+- **Case**: `probe#theCompletedBlockKeepsTheRequirementWhole`
+
+#### Scenario: A renamed scenario is an omission plus an addition
+
+- **WHEN** a MODIFIED block carries a shipped scenario under a new title and changes nothing else about it
+- **THEN** `openspec validate <change> --strict` exits non-zero and names the shipped scenario's title as
+  omitted, because a title is how the validator pairs the block's scenarios with the shipped ones
+- **Case**: `probe#aRenamedScenarioIsReportedAsAnOmission`
 
 ### Requirement: The routing cost is measured
 
@@ -314,6 +324,7 @@ exit 0.
   `openspec/specs/share/location-receiving/spec.md`'s `## Purpose` it prints
   `openspec/specs/share/location-receiving/spec.md:4` and the step fails; restored, the step prints
   `Every capability spec states its Purpose.` and exits 0
+
 ### Requirement: A document that names a skill resolves to a skill that exists
 
 A document that names a skill by its path — `.pi/skills/<name>` — SHALL name a skill the tree carries, a skill
@@ -350,6 +361,7 @@ stated once and referenced elsewhere, as it is across `guidelines/`.
   skill (`<name>-extra`)
 - **THEN** the check reports the path instead of accepting the longer name as a match
 - **Case**: `routes#aSkillNameThatOnlyPrefixesAnExistingOneIsReported`
+
 ### Requirement: A recorded guardrail is stated in the section that owns it
 
 A guardrail entry that a backlog record states as a rule — rather than as a pointer to a rule that already
@@ -367,6 +379,7 @@ skill or CI step states, the owning section gains the rule and the record keeps 
   distinguishing token there without a build, a device or a network call, so a reader reaches it from the
   section rather than from the tracker
   (case `record-carriage#eachRecordedRuleIsStatedInItsSection`)
+
 ### Requirement: A section reference a guideline body writes is resolved
 
 Every section reference a guideline body makes to another guideline document SHALL resolve against that
@@ -408,3 +421,40 @@ SHALL need no build, no test run, no device and no network access.
   guideline body does
 - **THEN** the check exits 0, its count excludes both, and neither file is rewritten
 - **Case**: `a reference in a change artifact is not checked`
+
+### Requirement: The validator's own rules are read before the first write
+
+The entry document's OpenSpec workflow section SHALL state each artifact rule that `openspec validate
+--strict` enforces, and SHALL name that command, beside the rules CI already gates: a `MODIFIED` requirement
+repeats every shipped scenario under its own title, and a requirement's text stays within the 500 characters
+the validator reports. The rule SHALL be read before the artifact is written, not from the validator's output
+after it.
+
+#### Scenario: The section states the scenario rule
+
+- **WHEN** an author opens the entry document before writing a change's delta
+- **THEN** its OpenSpec workflow section states that a `MODIFIED` requirement repeats every scenario its spec
+  still has, verbatim and under its own title, so that the omission the validator reports is read first
+- **Case**: `probe#theWorkflowSectionStatesTheScenarioRule`
+
+#### Scenario: The section states the text bound
+
+- **WHEN** an author opens the entry document before writing a requirement's text
+- **THEN** its OpenSpec workflow section states the bound the validator reports, 500 characters of requirement
+  body rather than of its scenarios, and says that an example belongs in a scenario
+- **Case**: `probe#theWorkflowSectionStatesTheTextBound`
+
+#### Scenario: The strict command is named with the rules
+
+- **WHEN** an author reads the two validator rules in the entry document
+- **THEN** the same place names `openspec validate <change> --strict` as the command that reports them, so the
+  check is run before the artifact is finished rather than at the archive, when the rule is met for the first
+  time
+- **Case**: `probe#theStrictCommandIsNamedBesideTheRules`
+
+#### Scenario: An over-long requirement is an error, not a warning
+
+- **WHEN** a requirement's text exceeds the bound the entry document states
+- **THEN** `openspec validate <change> --strict` exits non-zero and reports that requirement's text as too long,
+  so the stated number and the number the command enforces are the same one
+- **Case**: `probe#anOverLongRequirementIsReported`

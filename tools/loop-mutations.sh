@@ -188,6 +188,9 @@ MUTATIONS=(
   # 38.1 — the worker names the change's surface before it fixes the plan (issue #238): without the step, the plan
   # is estimated against its first file, which is how a "two functions" plan landed as 292 lines over six.
   '38.1@-@tools/loop/prompts/worker.md@prompt#workerNamesTheChangeSurfaceBeforeThePlan@the surface pass that sets the plan estimate (issue #238)@s|Count the surface before the plan is fixed\.|Plan the change first.|'
+  # 39.1 — the block names the checks the pathspec owes, read from `gate.sh --plan`, the one place that decides
+  # them (issue #246). Without it the worker is back to walking the tree for each check it might owe.
+  '39.1@-@tools/loop/measure.sh@measure#namesTheOwedChecksInOneBlock@the owed checks the block names (issue #246)@s|^  while IFS= read -r cmd; do$|  while false; do|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

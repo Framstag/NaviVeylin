@@ -65,6 +65,11 @@ loop_roles_load
 export LOOP_STATE_FILE="$LOOP_STATE_FILE" LOOP_WORKTREE="$LOOP_WORKTREE"
 export LOOP_CONF="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
 
+# The measuring command the worker is handed (issue #246). A project that configures none still renders a task,
+# so the placeholder carries a sentence instead of an empty span, and no render site reads the key directly.
+measure_cmd="${LOOP_MEASURE_CMD:-}"
+[ -n "$measure_cmd" ] || measure_cmd="(this project configures no measuring command)"
+
 : "${items:=$(loop_conf_value LOOP_ITEMS_DEFAULT)}"
 : "${minutes:=$(loop_conf_value LOOP_MINUTES_DEFAULT)}"
 : "${review:=$(loop_conf_value LOOP_REVIEW_DEFAULT)}"
@@ -768,7 +773,7 @@ while true; do
 
   render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
-    "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
+    "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
 
   started=$(date +%s%3N)
   run_child "$item_dir/worker-prompt.md" "$item_dir/worker-report.md"
@@ -953,7 +958,7 @@ while true; do
       findings=$(cat "$reviewer_report")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
-        "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
+        "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
       printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \
         >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"

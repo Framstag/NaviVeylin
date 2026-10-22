@@ -88,6 +88,9 @@ LOOP_SHELL_CASES=(
   'run#decisionCapRefusesToStart'
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
+  'measure#namesTheOwedChecksInOneBlock'
+  'measure#printsTheNumbersTheReviewerAsksFor'
+  'prompt#workerIsHandedTheMeasureBlock'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
   'run#blockedItemIsEscalatedWithItsReason'
@@ -251,6 +254,9 @@ loop_run_shell_case() {
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
+    'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
+    'measure#printsTheNumbersTheReviewerAsksFor') fn=case_measure_printsTheNumbersTheReviewerAsksFor ;;
+    'prompt#workerIsHandedTheMeasureBlock') fn=case_prompt_workerIsHandedTheMeasureBlock ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
@@ -753,15 +759,19 @@ case_state_projectKeysAreReadFromLoopConf() {
   local d p conf prompt
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
+  # The engine's own configuration is what these cases are about, and the caller's `LOOP_CONF` may name another
+  # copy of it — the run exports one from the project tree while the engine under test sits in the worktree.
   sed -e 's/^LOOP_AGENT_CMD=.*/LOOP_AGENT_CMD="pi --print"/' \
       -e 's/^LOOP_WORKER_SKILLS=.*/LOOP_WORKER_SKILLS="alpha-skill beta-skill"/' \
-      -e 's|^LOOP_GATE_CMD=.*|LOOP_GATE_CMD="my-gate --now"|' "$LOOP_CONF" > "$conf"
+      -e 's|^LOOP_GATE_CMD=.*|LOOP_GATE_CMD="my-gate --now"|' \
+      -e 's|^LOOP_MEASURE_CMD=.*|LOOP_MEASURE_CMD="my-measure --block"|' "$LOOP_ENGINE/loop.conf" > "$conf"
   export LOOP_CONF="$conf"
   run_one_item "$p" "$d" >/dev/null || fail "the run failed with a substituted configuration"
   prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
   [ -f "$prompt" ] || fail "the worker prompt was not rendered"
   assert_contains "$(cat "$prompt")" "alpha-skill beta-skill" "the skill list comes from loop.conf"
   assert_contains "$(cat "$prompt")" "my-gate --now" "the gate command comes from loop.conf"
+  assert_contains "$(cat "$prompt")" "my-measure --block" "and so does the measuring command"
   assert_not_contains "$(cat "$prompt")" "{{WORKER_SKILLS}}" "every placeholder is substituted"
 }
 
@@ -2183,6 +2193,104 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
   base=$(git -C "$p" rev-parse HEAD)
   plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
   assert_contains "$plan" "nothing owed" "a delta no pattern covers owes nothing: $plan"
+}
+
+# One call answers what the worker used to spend a run of calls finding out (issue #246): the change's pathspec,
+# the checks that pathspec owes, and the tallies the tree already carries. The block is what the item's bound
+# asks for — one call per measurement, not one call per file.
+case_measure_namesTheOwedChecksInOneBlock() {
+  local d p conf base out canary
+  d=$(scratch); p=$(new_project)
+  conf="$d/measure.conf"
+  # The engine's own configuration, not the copy the caller's environment may name: the run exports
+  # `LOOP_CONF` from the project tree while the engine under test sits in the worktree.
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  canary="$d/ran"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=compiled-gate\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS="*.kt"\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/notes-check;tools/*|tools-check"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # A suite that would leave a mark if anything ran it: the block names the check, it does not execute it.
+  printf '#!/usr/bin/env bash\n: > %s\nprintf "notes: all 1 cases passed\\n"\n' "$canary" > "$d/notes-check"
+  chmod +x "$d/notes-check"
+
+  mkdir -p "$p/notes" "$p/tools/loop"
+  printf 'a note\n' > "$p/notes/a.md"
+  printf '# a tool\n' > "$p/tools/loop/tool.sh"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/measure.sh" --base "$base" 2>&1 )
+  assert_eq "0" "$?" "the measuring command succeeded: $out"
+  # one block: every line it prints is part of it, so a stray command's output would be visible as one
+  assert_eq "0" "$(printf '%s\n' "$out" | grep -vc '^LOOP-MEASURE' || true)" "the block is the whole output: $out"
+  assert_contains "$out" "notes-check" "the check the notes delta owes is named"
+  assert_contains "$out" "tools-check" "the check the tools delta owes is named"
+  assert_contains "$out" "notes/a.md" "and the path that owes the first one"
+  assert_contains "$out" "paths=2 " "the pathspec the block answers for is counted"
+  assert_contains "$out" "LOOP-MEASURE-END" "the block says where it ends"
+  [ ! -e "$canary" ] || fail "the measuring command ran a check — it names what is owed, the gate runs it once"
+  return 0
+}
+
+# The numbers a reviewer asks for by item: a scenario that names no case is a plan defect, and the tally a green
+# claim quotes has to be in the block the worker holds, or the reviewer has to reconstruct it (issue #246).
+case_measure_printsTheNumbersTheReviewerAsksFor() {
+  local d p conf base out change
+  d=$(scratch); p=$(new_project)
+  conf="$d/measure.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=compiled-gate\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS="*.kt"\n'
+    printf 'LOOP_GATE_SUITES="notes/*|notes-check"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  mkdir -p "$d/tally" "$d/evidence"
+  printf '<?xml version="1.0"?>\n<testsuite name="g" tests="7" failures="0"></testsuite>\n' > "$d/tally/g.xml"
+  printf '<?xml version="1.0"?>\n<testsuite name="r" tests="2" failures="1"></testsuite>\n' > "$d/evidence/red.xml"
+
+  change="$p/openspec/changes/fix-demo"
+  mkdir -p "$change/specs/demo" "$change/evidence"
+  cp "$d/evidence/red.xml" "$change/evidence/red.xml"
+  printf 'surface: 1 case added — grep -l demo tools/loop-cases.sh\n' > "$change/proposal.md"
+  {
+    printf '## ADDED Requirements\n\n### Requirement: A demo\n\n'
+    printf '#### Scenario: One\n\n- **Case**: `demo#one`\n\n'
+    printf '#### Scenario: Two\n\n- **Case**: `demo#two`\n'
+  } > "$change/specs/demo/spec.md"
+  # …and a third scenario that names no case: the block counts it instead of a reviewer adding it up.
+  printf '#### Scenario: Three\n\n- **WHEN** nothing\n' >> "$change/specs/demo/spec.md"
+
+  base=$(git -C "$p" rev-parse HEAD)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/measure.sh" --base "$base" 2>&1 )
+  assert_eq "0" "$?" "the measuring command succeeded: $out"
+  assert_contains "$out" "scenarios=3 cases=2 unnamed=1" "the delta's scenarios are counted against the cases they name"
+  assert_contains "$out" "tests=7 failures=0" "the gate's own tally is carried"
+  assert_contains "$out" "tests=2 failures=1" "and the red tally the change's evidence carries"
+  assert_contains "$out" "surface: 1 case added" "the proposal's surface record is quoted, not re-derived"
+  return 0
+}
+
+case_prompt_workerIsHandedTheMeasureBlock() {
+  local d p prompt text measure conf
+  d=$(scratch); p=$(new_project)
+  conf="$d/loop.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  export LOOP_CONF="$conf"
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  text=$(cat "$prompt")
+  measure=$(sed -n 's/^LOOP_MEASURE_CMD="\(.*\)"/\1/p' "$LOOP_ENGINE/loop.conf")
+  [ -n "$measure" ] || fail "the configuration names no measuring command"
+  assert_contains "$text" "$measure" "the worker is handed the measuring command from loop.conf"
+  assert_contains "$text" 'LOOP-MEASURE' "and the prefix the block's lines carry"
+  assert_contains "$text" 'It runs none' "and that the block runs no check — the gate runs once"
+  assert_contains "$text" 'cited, not read again' "a file read once is cited, never read a second time"
+  return 0
 }
 
 case_run_oneItemOrderIsFixed() {

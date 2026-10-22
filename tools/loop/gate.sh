@@ -84,7 +84,10 @@ if [ -n "$suites" ]; then
       # shellcheck disable=SC2254 # the same: a pattern from the profile
       case "$p" in $glob) owed="$owed$cmd"$'\n' ;; esac
     done <<< "$paths"
-  done < <(printf '%s' "$suites" | tr ';' '\n')
+  # The trailing newline is not cosmetic: `read` returns non-zero on a last line it did not delimit, so a
+  # value printed without one loses its final pair — the last glob the profile names was never consulted
+  # (measured 2026-10-21, issue #246: an 18-pair value iterated 17 times, a 2-pair value once).
+  done < <(printf '%s\n' "$suites" | tr ';' '\n')
 fi
 owed=$(printf '%s' "$owed" | sed '/^$/d' | awk '!seen[$0]++')
 

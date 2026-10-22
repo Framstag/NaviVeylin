@@ -453,17 +453,15 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
-      # gradle.properties commits a machine-local JDK path
-      # (org.gradle.java.home=/usr/lib/jvm/java-17-openjdk) which does not
-      # exist on the runner — override it with the JDK set up above.
-      #
       # This flag does NOT select the daemon JVM: the checked-in daemon JVM
       # criteria (gradle/gradle-daemon-jvm.properties) take precedence over
       # org.gradle.java.home and JAVA_HOME (Gradle 9.6.1, "Daemon JVM
       # Toolchains"). They pin version 21 with no vendor, so the daemon starts
       # on the Temurin 21 installed in "Set up JDK 21" without a download. The
-      # flag and the local.properties line stay: setup-vcpkg.sh reads the JDK
-      # path from local.properties.
+      # flag stays for the launcher JVM and so the recipes match a workstation,
+      # and the local.properties line stays: setup-vcpkg.sh reads the JDK
+      # path from local.properties. The versioned gradle.properties carries no
+      # org.gradle.java.home line (issue #91).
       #
       # ~/.gradle/jdks is cached above because that is where Gradle unpacks a
       # provisioned JDK; with the criteria as they are, nothing is provisioned

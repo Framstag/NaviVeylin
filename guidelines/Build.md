@@ -277,10 +277,11 @@ single-suite, and this record as the gate the project actually runs (issue #83).
 
 ### The build JVM (daemon JVM criteria)
 
-The daemon JVM is **not** selected by `JAVA_HOME`, by the `-Dorg.gradle.java.home` in the recipes below, or
-by the committed `org.gradle.java.home=/usr/lib/jvm/java-17-openjdk` in `gradle.properties`: the checked-in
-daemon JVM criteria in `gradle/gradle-daemon-jvm.properties` **take precedence over both** (Gradle 9.6.1
-manual, "Daemon JVM Toolchains"). Three rules follow; CI enforces the first two in the step
+The daemon JVM is **not** selected by `JAVA_HOME` or by the `-Dorg.gradle.java.home` in the recipes below: the
+checked-in daemon JVM criteria in `gradle/gradle-daemon-jvm.properties` **take precedence over both** (Gradle
+9.6.1 manual, "Daemon JVM Toolchains"). The versioned `gradle.properties` carries no `org.gradle.java.home`
+line at all — a machine-local absolute path is wrong on every machine but the one that wrote it, and where the
+criteria apply it selected no JVM (issue #91). Three rules follow; CI enforces the first two in the step
 `Check daemon JVM criteria` (`.github/workflows/build.yml`, placed before the SDK/vcpkg work so it fails in
 seconds).
 

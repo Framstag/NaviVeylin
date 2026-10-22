@@ -48,12 +48,12 @@ build gate `:app:checkNativeParity`, wired into `preBuild`, SHALL assert it.
 - **THEN** the two sides compare equal and the prose declares nothing
 - **Case**: `buildSrc: NativeParityScannerTest` "package qualifiers and prose are not divergences"
 
-#### Scenario: The build refuses an unrecorded deviation
+#### Scenario: The app build registers the parity gate and wires it into preBuild
 
-- **WHEN** a contributor adds a native to one of the bridge's two Java sides and records nothing
-- **THEN** `:app:checkNativeParity` fails the build through `preBuild`, naming the file and the list line to
-  add, before any call site meets `NoSuchMethodError`
-- **Case**: `app: NativeOverrideParityGuardTest` "the build refuses an unrecorded deviation"
+- **WHEN** the app build script is read as the project's own file
+- **THEN** it registers `checkNativeParity` over the two Java sides and the recorded list, and makes `preBuild`
+  depend on it, so the scan runs in every app build instead of waiting for the call site's `NoSuchMethodError`
+- **Case**: `app: NativeOverrideParityGuardTest` "the app build registers the parity gate and wires it into preBuild"
 
 #### Scenario: The recorded deviations are the tree's own
 

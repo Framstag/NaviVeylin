@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.NativeOverrideParityGuardTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-22T12:13:00.165Z" hostname="dingens" time="0.365">
+  <properties/>
+  <testcase name="the recorded deviations are the tree's own" classname="com.naviveylin.build.NativeOverrideParityGuardTest" time="0.351"/>
+  <testcase name="the app build registers the parity gate and wires it into preBuild" classname="com.naviveylin.build.NativeOverrideParityGuardTest" time="0.006"/>
+  <system-out><![CDATA[deviationLines=10
+LINE 21 fields=4 OSMScoutClient.java
+LINE 22 fields=4 OSMScoutClient.java
+LINE 23 fields=4 OSMScoutClient.java
+LINE 24 fields=4 OSMScoutClient.java
+LINE 25 fields=4 OSMScoutClient.java
+LINE 26 fields=4 OSMScoutClient.java
+LINE 27 fields=4 OSMScoutClient.java
+LINE 28 fields=4 OSMScoutClient.java
+LINE 29 fields=4 OSMScoutClient.java
+LINE 30 fields=4 OSMScoutClient.java
+byDirection={submodule-only=5, override-only=5}
+buildScript=build.gradle.kts chars=74316
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

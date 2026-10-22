@@ -1,0 +1,24 @@
+2026-10-22T12:13:21Z
+throwaway project /tmp/cc-probe, build.gradle.kts: tasks.register("probe") { inputs.dir(file("nope")) ; doLast { println("probe ran") } }
+$ ./gradlew --offline -p /tmp/cc-probe probe
+> Task :probe FAILED
+
+[Incubating] Problems report is available at: file:///tmp/cc-probe/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+A problem was found with the configuration of task ':probe' (type 'DefaultTask').
+Input file does not exist
+  Property '$1' specifies directory '/tmp/cc-probe/nope' which doesn't exist
+    An input file was expected to be present but it doesn't exist
+    For more information, please refer to https://docs.gradle.org/9.6.1/userguide/validation_problems.html#input_file_does_not_exist in the Gradle documentation.
+    Possible solutions:
+      1. Make sure the directory exists before the task is called.
+      2. Make sure that the task which produces the directory is declared as an input.
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 1s
+1 actionable task: 1 executed

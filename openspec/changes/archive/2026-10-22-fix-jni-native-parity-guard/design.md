@@ -80,7 +80,10 @@ registration and the `preBuild` dependency restores the previous build exactly, 
   submodule directory as a finding with the `git submodule update --init` remedy, which is the same fail-closed
   choice `checkSubmoduleStylesheets` makes — and CI checks out submodules recursively. The task declares its
   inputs only when they exist, because `inputs.dir` on a missing path fails the task's *configuration* with
-  `Input file does not exist` before the scanner can speak (measured on a throwaway project, 2026-10-22); with
+  `Input file does not exist` before the scanner can speak — re-measured 2026-10-22 on a throwaway project whose
+  only task declares `inputs.dir(file("nope"))`: `./gradlew --offline -p /tmp/cc-probe probe` fails with
+  `Input file does not exist … Property '$1' specifies directory '/tmp/cc-probe/nope' which doesn't exist`
+  (`evidence/inputs-dir-missing.log`, with the probe's own `build.gradle.kts` quoted above its output); with
   that guard the five findings are what a clone without the submodule prints
   (`evidence/missing-submodule-remedy.log`).
 - **A false drift from formatting**: parameters are compared after comment stripping and package-qualifier
@@ -88,3 +91,15 @@ registration and the `preBuild` dependency restores the previous build exactly, 
   parameter is not one either (only its type is compared), which is the one normalization the pair needs.
 - **The record becomes an allowlist**: both stale recordings and malformed lines fail, so it cannot outlive the
   trees it describes.
+
+## What this change does not close
+
+- **The five filenames are still maintained in three places** — the `exclude("**/OSMScoutClient.java", …)` list
+  in `osmscout-client-java/build.gradle.kts`, `NativeParityScanner.OVERRIDDEN_FILES`, and the test's own copy —
+  so a sixth overridden file would be scanned by nobody: the guard's own reach is unguarded, the same class one
+  level up (raised as a note by the review of round 2, and a follow-up item rather than a widening of this
+  change).
+- **The comparison is `name(parameter types)`**, which is the item's own failure mode. A submodule native whose
+  return type changes while its name and parameters stay identical would pass the gate and still be a
+  `NoSuchMethodError` at the call site; the requirement states the same bound, so this is a widening for a later
+  item, not a contradiction here.

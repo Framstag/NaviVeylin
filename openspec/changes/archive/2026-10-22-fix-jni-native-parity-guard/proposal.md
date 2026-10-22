@@ -23,7 +23,9 @@
   declaration-level comparison (`native_parity_probe.py`, quoted in `evidence/surface.txt`).
 - The item's own memory is stale in two details, and the tree is the fact: the submodule-only set no longer
   contains `cancelSearch` (the override declares it) nor the override-only set `renderInto` (both sides declare
-  it, `ByteBuffer` imported differently) — 5 + 5, not 5 + 6.
+  it, `ByteBuffer` imported differently) — 5 + 5, not 5 + 6. The probe's own output prints the ten deviations and
+  neither name (`evidence/parity-probe-round3.txt`, re-run 2026-10-22; `evidence/surface.txt` is the round-1
+  run).
 
 Root cause, in one sentence: **the two Java sides of the JNI bridge are compared by nothing, so an API added to
 one side is silent at the other — and the obvious blanket subset check cannot supply that comparison, because
@@ -33,8 +35,9 @@ submodule API addition is again a silent `NoSuchMethodError` at the call site.**
 ### The red test
 
 `app/src/test/java/com/naviveylin/build/NativeOverrideParityGuardTest.kt`, cases "the build refuses an
-unrecorded deviation" and "the recorded deviations are the tree's own", on the base tree — no build gate and no
-recorded list exist:
+unrecorded deviation" (renamed to "the app build registers the parity gate and wires it into preBuild" by the
+round-3 correction, because those are the two claims it asserts — see `tasks.md` 4.3) and "the recorded
+deviations are the tree's own", on the base tree — no build gate and no recorded list exist:
 
 ```
 ./gradlew --offline :app:testMobileDebugUnitTest --tests "com.naviveylin.build.NativeOverrideParityGuardTest" -PforceTests --no-build-cache

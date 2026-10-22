@@ -355,6 +355,17 @@ the tree holds: a title naming a file whose tracked path the body already carrie
 unwritten (the state every item repaired from the doubled-directory form ends in), while a title citing a file
 the tree does not hold parks the item, because the citation is stale wherever it stands (#226).
 
+What it does when another run is already working: the lock that keeps one run per repository is taken **before**
+the run writes anything — before the state it would replace, before the pre-screen's queue and before the
+adoption path can merge a branch. A run that finds a live lock is refused and writes nothing, so the live
+run's record, its queue and its branches stay its own; a lock whose owner is not running any more is taken over
+and the takeover is announced, because a run killed with a signal no trap can catch leaves its lock behind, and
+a tombstone would refuse every run after it. The state names the process that wrote it, so the report tells a
+run that was killed from one that is still going instead of printing a budget left for a run that is spending
+nothing. Measured 2026-10-22: the run that started at 18:46 was killed at 19:19 with its round-2 review
+unanswered, and the run that started at 19:34 replaced its state, merged its unfinished item into `main`, closed
+it and was refused at the lock two minutes into a 240-minute budget.
+
 ## 8. The human lane
 
 The lane is everything the mechanism must not decide: a design question, a conception, a taste call, a

@@ -22,6 +22,8 @@ LOOP_SHELL_CASES=(
   'state#floorIsDerivedFromTheFinishedItemsWallTimes'
   'state#floorWithNoHistoryIsTheConfiguredMinimum'
   'state#secondRunRefusesWithExit5'
+  'state#aRefusedRunLeavesTheLiveStateAlone'
+  'state#aDeadOwnersLockIsTakenOver'
   'state#initKeepsTheStateItReplaces'
   'state#initAnnouncesARunWithoutAStop'
   'state#defaultsComeFromLoopConf'
@@ -166,6 +168,7 @@ LOOP_SHELL_CASES=(
   'report#misdiagnosedIsCountedApart'
   'report#archivedStateIsReported'
   'report#impossibleBudgetNamesAnotherRun'
+  'report#aKilledRunIsNotALiveRun'
   'report#wallTimeAndReasonInTheTable'
   'report#zeroUsagePrintsDashNotZero'
   'report#actionsNameDecisionAndBranch'
@@ -197,6 +200,8 @@ loop_run_shell_case() {
     'state#floorIsDerivedFromTheFinishedItemsWallTimes') fn=case_state_floorIsDerivedFromTheFinishedItemsWallTimes ;;
     'state#floorWithNoHistoryIsTheConfiguredMinimum') fn=case_state_floorWithNoHistoryIsTheConfiguredMinimum ;;
     'state#secondRunRefusesWithExit5') fn=case_state_secondRunRefusesWithExit5 ;;
+    'state#aRefusedRunLeavesTheLiveStateAlone') fn=case_state_aRefusedRunLeavesTheLiveStateAlone ;;
+    'state#aDeadOwnersLockIsTakenOver') fn=case_state_aDeadOwnersLockIsTakenOver ;;
     'state#initKeepsTheStateItReplaces') fn=case_state_initKeepsTheStateItReplaces ;;
     'state#initAnnouncesARunWithoutAStop') fn=case_state_initAnnouncesARunWithoutAStop ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
@@ -344,6 +349,7 @@ loop_run_shell_case() {
     'report#misdiagnosedIsCountedApart') fn=case_report_misdiagnosedIsCountedApart ;;
     'report#archivedStateIsReported') fn=case_report_archivedStateIsReported ;;
     'report#impossibleBudgetNamesAnotherRun') fn=case_report_impossibleBudgetNamesAnotherRun ;;
+    'report#aKilledRunIsNotALiveRun') fn=case_report_aKilledRunIsNotALiveRun ;;
     'report#wallTimeAndReasonInTheTable') fn=case_report_wallTimeAndReasonInTheTable ;;
     'report#zeroUsagePrintsDashNotZero') fn=case_report_zeroUsagePrintsDashNotZero ;;
     'report#actionsNameDecisionAndBranch') fn=case_report_actionsNameDecisionAndBranch ;;
@@ -724,7 +730,8 @@ case_state_secondRunRefusesWithExit5() {
   [ -f "$block.ready" ] || { printf '\n' > "$block"; wait "$first"; fail "the first run never reached its child"; }
 
   gh_log_content=$(cat "$GH_STUB_RECORD")
-  second=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  # The second run is bounded: a run that does not refuse must not hang the suite on a child.
+  second=$( ( cd "$p" && timeout 120 bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 ) 2>&1); status=$?
   assert_eq "5" "$status" "a second run refuses while the first holds the lock"
   assert_contains "$second" "another run holds" "the refusal names the lock"
 
@@ -734,6 +741,72 @@ case_state_secondRunRefusesWithExit5() {
   printf '\n' > "$block"
   wait "$first"
   unset PI_STUB_WAIT
+}
+
+# A run that finds another run's lock is refused — and the refusal has to come *before* the run writes
+# anything, so the live run's record is still the live run's. The lock was taken at the end of the
+# start-up, so the refused run had already replaced the state, rewritten the queue and merged a branch
+# (measured 2026-10-22: the run that started at 19:34 replaced the state of the run that started at 18:46,
+# merged that run's unfinished item into main, closed it, and was refused at the lock two minutes into a
+# 240-minute budget).
+case_state_aRefusedRunLeavesTheLiveStateAlone() {
+  local d p block first second status live_started live_sum sf
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  block="$d/fifo"; mkfifo "$block"
+  export PI_STUB_WAIT="$block"
+
+  ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/first.log" 2>&1 &
+  first=$!
+  local waited=0
+  while [ ! -f "$block.ready" ] && [ "$waited" -lt 300 ]; do sleep 0.1; waited=$((waited + 1)); done
+  [ -f "$block.ready" ] || { printf '\n' > "$block"; wait "$first"; fail "the first run never reached its child"; }
+
+  sf=$(state_file "$p")
+  [ -f "$sf" ] || fail "the first run wrote no state"
+  live_started=$(jq -r '.run.startedAt' "$sf")
+  live_sum=$(sha256sum "$sf" | cut -c1-16)
+
+  # The second run is bounded: a run that does not refuse must not hang the suite on a child.
+  second=$( ( cd "$p" && timeout 120 bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 ) 2>&1); status=$?
+  assert_eq "5" "$status" "a second run refuses while the first holds the lock"
+  assert_contains "$second" "another run holds" "the refusal names the lock"
+
+  # The refused run wrote nothing: the live run's own record is the one in place, byte for byte.
+  assert_eq "$live_started" "$(jq -r '.run.startedAt' "$sf")" \
+    "the refused run left the live run's state in place"
+  assert_eq "$live_sum" "$(sha256sum "$sf" | cut -c1-16)" \
+    "the refused run wrote nothing into the live run's state"
+
+  printf '\n' > "$block"
+  wait "$first"
+  unset PI_STUB_WAIT
+}
+
+# The lock is a lease, not a tombstone. A run that was killed with a signal no trap can catch leaves its
+# lock behind, and a lock whose owner is not running any more must not refuse every run that follows it:
+# the next run takes it over and says so (measured 2026-10-22: the run killed at 19:19 left the lock, and
+# the run that started at 19:34 was refused by it after having replaced the live run's state).
+case_state_aDeadOwnersLockIsTakenOver() {
+  local p lock out status dead
+  p=$(new_project)
+  init_state "$p" 1 90
+  lock="$(dirname "$(state_file "$p")")/lock"
+  mkdir -p "$lock"
+  # a pid that cannot be running: the ceiling of the pid space
+  dead=999999999
+  printf '%s\n' "$dead" > "$lock/owner"
+
+  out=$(run_state "$p" lock --owner "$$" 2>&1); status=$?
+  assert_eq "0" "$status" "a lock whose owner is gone is taken over"
+  assert_contains "$out" "took over" "the takeover is announced"
+  assert_contains "$out" "$dead" "the takeover names the process that is gone"
+  assert_eq "$$" "$(cat "$lock/owner" 2>/dev/null)" "the lock carries the new owner"
+
+  # Only the holder releases it.
+  run_state "$p" unlock --owner "$$" >/dev/null || fail "the unlock failed"
+  [ ! -d "$lock" ] || fail "the lock was not released by its holder"
 }
 
 # A finished run's counters, verdicts and stop reason live in one file, and `init` writes over it: the file is
@@ -4322,6 +4395,32 @@ case_report_impossibleBudgetNamesAnotherRun() {
     mv "$sf.tmp" "$sf" || fail "could not record the stop"
   out=$(run_report "$p" 2>/dev/null) || fail "the report failed"
   assert_contains "$out" "budget left 2 items / 5 min" "a run that recorded its end reports its own numbers"
+}
+
+# A run that was killed cannot record why it ended, so the report has to tell it apart from a run that is
+# going: no budget left is printed for it — the clock since its start is not its spend any more — and its
+# stop line names the process that is not running (measured 2026-10-22: the run killed at 19:19 left a
+# state that read `not stopped — the run is still going` with 217 minutes of budget left).
+case_report_aKilledRunIsNotALiveRun() {
+  local p sf out dead
+  p=$(new_project); sf=$(state_file "$p")
+  dead=999999999
+  init_state "$p" 2 90
+  # the state names the process that wrote it, and that process is not running any more
+  jq --argjson pid "$dead" '.run.ownerPid = $pid' "$sf" > "$sf.tmp" && mv "$sf.tmp" "$sf" ||
+    fail "could not write the state"
+
+  out=$(run_report "$p" 2>/dev/null) || fail "the report failed"
+  assert_not_contains "$out" "the run is still going" "a killed run is not a run that is going"
+  assert_contains "$out" "is gone" "the report names the state whose process is not running"
+  assert_contains "$out" "$dead" "and names the process"
+  assert_not_contains "$out" "budget left 2 items" "a killed run prints no budget left"
+
+  # A run that recorded its end is that run's own report, however long ago it ended.
+  run_state "$p" stop "queue empty" >/dev/null || fail "the stop could not be recorded"
+  out=$(run_report "$p" 2>/dev/null) || fail "the report failed"
+  assert_contains "$out" "stop: queue empty" "a run that recorded its end reports its own end"
+  assert_not_contains "$out" "is gone" "and is not called a run that is gone"
 }
 
 # The report's tail, read from its `actions the caller owes:` heading to its end: the tail is what a caller

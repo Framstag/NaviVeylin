@@ -76,6 +76,24 @@ printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · re
 # `budget left -421 min` about a 480-minute run it knew nothing about (issue #207).
 is_num() { case "${1:-}" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 
+# Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
+# two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
+# file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
+# printed while it is still going.
+stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
+
+# A run that wrote this state and is not running any more is not a run that is going: the state names the
+# process that wrote it, and a run that recorded no stop while its process is gone is a run that was killed
+# (measured 2026-10-22: the run killed at 19:19 left a state that read "the run is still going" with 217
+# minutes of budget left). The clock since its start is not its spend any more, so no budget left is printed
+# for it either.
+owner_pid=$(jq -r '.run.ownerPid // 0' "$state_file" 2>/dev/null || printf 0)
+case "$owner_pid" in ''|*[!0-9]*) owner_pid=0 ;; esac
+owner_gone=0
+if [ "$owner_pid" -gt 0 ] && [ -z "$stop_reason" ] && ! kill -0 "$owner_pid" 2>/dev/null; then
+  owner_gone=1
+fi
+
 run_epoch=$(jq -r '.run.startedEpoch // ""' "$state_file")
 deadline_epoch=$(jq -r '.run.deadlineEpoch // ""' "$state_file")
 deadline_at=$(jq -r '.run.deadlineAt // "an unrecorded time"' "$state_file")
@@ -88,7 +106,10 @@ if is_num "$run_epoch" && is_num "$deadline_epoch"; then
     spent_min=$(( ( $(date +%s) - run_epoch ) / 60 ))
   fi
 fi
-if [ -n "$spent_min" ]; then
+if [ "$owner_gone" -eq 1 ]; then
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$owner_pid"
+elif [ -n "$spent_min" ]; then
   printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left %s items / %s min · spent %s min\n\n' \
     "$closed" "$misdiagnosed" "$skipped" "$blocked" \
     "$((items - closed - misdiagnosed - skipped - blocked))" "$((minutes - spent_min))" "$spent_min"
@@ -97,12 +118,8 @@ else
     "$closed" "$misdiagnosed" "$skipped" "$blocked" "$deadline_at"
 fi
 
-# Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
-# two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
-# file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
-# printed while it is still going.
-stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
 printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reason";
+  elif [ "$owner_gone" -eq 1 ]; then printf 'the run that wrote this state is gone — its process (pid %s) is not running and it recorded no reason' "$owner_pid";
   else printf 'not stopped — the run is still going, or it ended without recording a reason'; fi)"
 
 # The run's own table is the same reader as `state.sh report`, pointed at the same file.

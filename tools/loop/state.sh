@@ -148,7 +148,7 @@ keep_replaced_state() {
 
 cmd_init() {
   state_resolve
-  local items="" minutes="" review="" may_close="" max_decisions="" max_review_rounds="" base=""
+  local items="" minutes="" review="" may_close="" max_decisions="" max_review_rounds="" base="" owner_pid=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --items) need_value "$@"; items="${2:-}"; shift 2 ;;
@@ -158,6 +158,7 @@ cmd_init() {
       --max-decisions) need_value "$@"; max_decisions="${2:-}"; shift 2 ;;
       --max-review-rounds) need_value "$@"; max_review_rounds="${2:-}"; shift 2 ;;
       --base) need_value "$@"; base="${2:-}"; shift 2 ;;
+      --owner-pid) need_value "$@"; owner_pid="${2:-}"; shift 2 ;;
       *) loop_die "init: unknown argument $1" ;;
     esac
   done
@@ -177,18 +178,30 @@ cmd_init() {
   case "$may_close" in yes|no) ;; *) loop_die "init: --may-close must be yes or no" ;; esac
   [ -n "$base" ] || base=$(git -C "$LOOP_ROOT" rev-parse HEAD 2>/dev/null) || loop_die "init: cannot read the current commit"
 
+  # The process that writes this state is named in it, so a reader can tell a run that is going from one
+  # that was killed: a run that recorded no stop and whose process is not running any more is the second,
+  # and the report says so instead of calling it a run that is still going (measured 2026-10-22: the run
+  # killed at 19:19 left a state that read "the run is still going" with 217 minutes of budget left). The
+  # run names its own pid; without one, the lock's owner is the run that is writing the state.
+  case "$owner_pid" in ''|*[!0-9]*) owner_pid=0 ;; esac
+  if [ "$owner_pid" -eq 0 ] && [ -r "$LOCK_FILE/owner" ]; then
+    owner_pid=$(tr -cd '0-9' < "$LOCK_FILE/owner" 2>/dev/null)
+    case "$owner_pid" in ''|*[!0-9]*) owner_pid=0 ;; esac
+  fi
+
   keep_replaced_state
   local started deadline
   started=$(now_epoch)
   deadline=$(( started + minutes * 60 ))
   write_state "$(jq -n \
     --argjson items "$items" --argjson minutes "$minutes" --argjson maxDecisions "$max_decisions" \
-    --argjson maxReviewRounds "$max_review_rounds" \
+    --argjson maxReviewRounds "$max_review_rounds" --argjson ownerPid "$owner_pid" \
     --argjson started "$started" --argjson deadline "$deadline" \
     --arg review "$review" --arg mayClose "$may_close" --arg base "$base" \
     --arg startedAt "$(iso_utc "$started")" --arg deadlineAt "$(iso_utc "$deadline")" \
     '{run:{items:$items, minutes:$minutes, review:$review, mayClose:$mayClose,
            maxDecisions:$maxDecisions, maxReviewRounds:$maxReviewRounds, base:$base,
+           ownerPid:$ownerPid,
            startedAt:$startedAt, startedEpoch:$started,
            deadlineAt:$deadlineAt, deadlineEpoch:$deadline},
       queue:[], excluded:[], current:null, items:[], steps:[]}')"
@@ -209,13 +222,22 @@ cmd_get() {
 
 cmd_show() {
   require_state
-  jq -r '
+  # A run that wrote this state and is not running any more is not a run that is going: the state names the
+  # process that wrote it, and the liveness of that process is what tells the two apart.
+  local gone_stop="" owner_pid
+  owner_pid=$(jq -r '.run.ownerPid // 0' "$STATE_FILE" 2>/dev/null || printf 0)
+  case "$owner_pid" in ''|*[!0-9]*) owner_pid=0 ;; esac
+  if [ "$owner_pid" -gt 0 ] && [ -z "$(jq -r '.run.stop.reason // ""' "$STATE_FILE" 2>/dev/null)" ] \
+     && ! kill -0 "$owner_pid" 2>/dev/null; then
+    gone_stop="the run that wrote this state is gone — its process (pid $owner_pid) is not running and it recorded no reason"
+  fi
+  jq -r --arg gone "$gone_stop" '
     (.run) as $r
     | "agent-issue-loop — " + (if .current == null then "no item in progress"
                               else "#\(.current.issue) \(.current.change) · phase \(.current.phase)" end),
       "budget   \($r.items) items / \($r.minutes) min · \($r.items - (.items | length)) left · deadline \($r.deadlineAt) · \((($r.deadlineEpoch - now) / 60 | floor)) min left\(if $r.deadlineEpoch <= now then " · EXPIRED" else "" end)",
       "flags    review \($r.review) · review rounds \($r.maxReviewRounds // "?") · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
-      "stop     \($r.stop.reason // "not stopped — the run is still going, or it ended without recording a reason")",
+      "stop     \($r.stop.reason // (if $gone != "" then $gone else "not stopped — the run is still going, or it ended without recording a reason" end))",
       "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",
       "excluded \(.excluded | length): \([.excluded[] | "#\(.issue) \(.reason)"] | join(" · "))",
@@ -541,10 +563,21 @@ cmd_lock() {
   done
   mkdir -p "$STATE_DIR"
   if ! mkdir "$LOCK_FILE" 2>/dev/null; then
-    local holder
+    # The lock is a lease, not a tombstone. A run that was killed with a signal no trap can catch leaves its
+    # lock behind, and a lock whose owner is not running any more must not refuse every run that follows it:
+    # the run takes it over and says so (measured 2026-10-22: the run killed at 19:19 left the lock, and the
+    # run that started at 19:34 was refused by it two minutes into a 240-minute budget — after having replaced
+    # the live run's state and merged its item). A live owner is the refusal it has always been.
+    local holder holder_pid
     holder=$(cat "$LOCK_FILE/owner" 2>/dev/null || printf 'an unknown process')
-    loop_note "another run holds $LOCK_FILE (owner $holder) — one run per repository"
-    exit "$LOOP_REFUSE"
+    holder_pid=$(printf '%s' "$holder" | tr -cd '0-9')
+    if [ -n "$holder_pid" ] && kill -0 "$holder_pid" 2>/dev/null; then
+      loop_note "another run holds $LOCK_FILE (owner $holder) — one run per repository"
+      exit "$LOOP_REFUSE"
+    fi
+    rm -rf "$LOCK_FILE" 2>/dev/null || true
+    mkdir "$LOCK_FILE" 2>/dev/null || { loop_note "another run holds $LOCK_FILE — one run per repository"; exit "$LOOP_REFUSE"; }
+    printf 'took over the lock %s: its owner %s is not running any more\n' "$LOCK_FILE" "$holder" >&2
   fi
   printf '%s\n' "$owner" > "$LOCK_FILE/owner"
   printf 'lock held: %s (owner %s)\n' "$LOCK_FILE" "$owner"

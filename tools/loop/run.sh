@@ -140,12 +140,8 @@ printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max
 printf 'run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory %s\n' \
   "$(dirname "$LOOP_STATE_FILE")"
 
-init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" \
-  --max-decisions "$max_decisions" --max-review-rounds "$max_review_rounds")
-if [ -n "$base" ]; then init_args+=(--base "$base"); fi
-loop_state init "${init_args[@]}" || exit $?
-base=$(loop_state get run.base)
-
+# The state is written below, after the identity and the lock: the lock is what keeps one run per
+# repository, and the state it would replace belongs to the run that is working.
 separator=$(loop_compat_profile_value namespaceSeparator)
 separator="${separator:-/}"
 # The label an item awaiting a decision carries, and the verdict that means it: both are values of the
@@ -308,23 +304,67 @@ if [ "$preflight_status" -ne 0 ]; then
   loop_die "run: the preflight could not be evaluated (exit $preflight_status)"
 fi
 
-# 2. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
+# 2. the lock: one run per repository, and it is taken **before** this run writes anything. The state it
+# would replace, the queue the pre-screen writes into it and the branch the adoption path merges are the
+# live run's, and a run that is refused after any of them has already done the damage (measured 2026-10-22:
+# the run that started at 19:34 replaced the state of the run that started at 18:46, paid for a pre-screen,
+# merged that run's unfinished item into main and closed it, and was refused at the lock two minutes into a
+# 240-minute budget). A lock whose owner is not running any more is taken over and the takeover is
+# announced, so a run that was killed leaves no tombstone that refuses every run after it.
+loop_state lock --owner "$$" || exit $?
+
+in_progress=""
+interrupted=0
+# The process group of the child that is running right now, and nothing else: `run_child` sets it under `set -m`
+# and clears it once it has waited, so the traps below can end the child (and everything the child started) when
+# the run takes a signal — the path a person's `kill`, or an operator's Ctrl-C, takes — while it is waiting for
+# that child (issue #213).
+active_child=""
+on_exit() {
+  local rc=$?
+  trap - EXIT
+  # The child first: a run ended by a signal must not leave the item's agent working in the tree while the run
+  # writes the item's outcome. `loop_end_group` sends `TERM`, so the child's own cleanup runs, and waits for it.
+  loop_end_group "$active_child"
+  active_child=""
+  if [ "$interrupted" -eq 1 ] && [ -n "$in_progress" ]; then
+    # A killed run must leave no item looking in progress: the label comes off and the item is recorded
+    # blocked, so the next run's pre-screen can take it up again (D7).
+    loop_labels unpick "$in_progress" >&2 || true
+    loop_state done "$in_progress" --result blocked --note "interrupted by a signal" >&2 || true
+  fi
+  loop_state unlock --owner "$$" >&2 || true
+  exit "$rc"
+}
+on_signal() { interrupted=1; exit "$1"; }
+trap on_exit EXIT
+trap 'on_signal 130' INT
+trap 'on_signal 143' TERM
+
+# 3. the state: this run's own record, written now that this run is the only one that can write it. The
+# process that writes it is named in it, so a reader can tell a run that is going from one that was killed.
+init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" \
+  --max-decisions "$max_decisions" --max-review-rounds "$max_review_rounds")
+if [ -n "$base" ]; then init_args+=(--base "$base"); fi
+init_args+=(--owner-pid "$$")
+loop_state init "${init_args[@]}" || exit $?
+base=$(loop_state get run.base)
+
+# 4. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
 #    previous run's leftovers is the right rule — but the refusal may not end a run with an exit code and no
 #    item: it names the item whose branch the kept tree carries, records the refusal under that item,
 #    escalates it and prints the report, so the "a run that ends with nothing processed and no reason"
 #    outcome stays impossible on the path where it is most likely — a killed or crashed run (issue #173).
 #    The check is one `git status` in a directory the run already knows: it needs neither the state nor the
 #    lock, so it happens here, before the decision cap is counted and long before the pre-screen is paid for.
-#    A worktree a *live* run is working in is not leftovers, and the lock in the run's own state directory is
-#    the one signal that tells the two apart — read here, never taken (this run takes it further down, and a
-#    run that holds it refuses there as it always has).
+#    A worktree a *live* run is working in is not leftovers: a live run holds the lock, and this run was
+#    refused at that lock before it got here — so a tree that is not clean now is a previous run's.
 worktree="$LOOP_WORKTREE"
-run_lock="$(dirname "$LOOP_STATE_FILE")/lock"
 worktree_is_dirty() {
   git -C "$LOOP_ROOT" worktree list --porcelain 2>/dev/null | grep -qx "worktree $worktree" &&
     [ -n "$(git -C "$worktree" status --porcelain 2>/dev/null)" ]
 }
-if [ -d "$worktree" ] && [ ! -e "$run_lock" ] && worktree_is_dirty; then
+if [ -d "$worktree" ] && worktree_is_dirty; then
   leftovers=$(git -C "$worktree" status --porcelain)
   # The item the leftovers belong to: `start-item` writes the item's branch into the worktree's own branch
   # marker, so a tree a killed run left behind still names the item it was working on.
@@ -363,7 +403,7 @@ if [ -d "$worktree" ] && [ ! -e "$run_lock" ] && worktree_is_dirty; then
   fi
 fi
 
-# 3. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
+# 5. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 open_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
   jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
 if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
@@ -375,7 +415,7 @@ if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   exit "$LOOP_REFUSE"
 fi
 
-# 4. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
+# 6. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
 if [ "$items" -eq 0 ]; then
   printf 'nothing eligible: the run was started with --items 0 (an empty budget is not a failure)\n'
   end_run
@@ -426,38 +466,6 @@ if [ "$dry_run" -eq 1 ]; then
   printf 'dry run: no worktree, no label and no agent process was created or started\n'
   exit "$LOOP_OK"
 fi
-
-# ── the lock, and the traps that clean up after an interrupt ────────────────────────────────────
-
-loop_state lock --owner "$$" || exit $?
-
-in_progress=""
-interrupted=0
-# The process group of the child that is running right now, and nothing else: `run_child` sets it under `set -m`
-# and clears it once it has waited, so the traps below can end the child (and everything the child started) when
-# the run takes a signal — the path a person's `kill`, or an operator's Ctrl-C, takes — while it is waiting for
-# that child (issue #213).
-active_child=""
-on_exit() {
-  local rc=$?
-  trap - EXIT
-  # The child first: a run ended by a signal must not leave the item's agent working in the tree while the run
-  # writes the item's outcome. `loop_end_group` sends `TERM`, so the child's own cleanup runs, and waits for it.
-  loop_end_group "$active_child"
-  active_child=""
-  if [ "$interrupted" -eq 1 ] && [ -n "$in_progress" ]; then
-    # A killed run must leave no item looking in progress: the label comes off and the item is recorded
-    # blocked, so the next run's pre-screen can take it up again (D7).
-    loop_labels unpick "$in_progress" >&2 || true
-    loop_state done "$in_progress" --result blocked --note "interrupted by a signal" >&2 || true
-  fi
-  loop_state unlock --owner "$$" >&2 || true
-  exit "$rc"
-}
-on_signal() { interrupted=1; exit "$1"; }
-trap on_exit EXIT
-trap 'on_signal 130' INT
-trap 'on_signal 143' TERM
 
 # ── the working tree, once per run ──────────────────────────────────────────────────────────────
 

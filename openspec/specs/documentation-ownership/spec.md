@@ -314,6 +314,7 @@ exit 0.
   `openspec/specs/share/location-receiving/spec.md`'s `## Purpose` it prints
   `openspec/specs/share/location-receiving/spec.md:4` and the step fails; restored, the step prints
   `Every capability spec states its Purpose.` and exits 0
+
 ### Requirement: A document that names a skill resolves to a skill that exists
 
 A document that names a skill by its path — `.pi/skills/<name>` — SHALL name a skill the tree carries, a skill
@@ -350,6 +351,7 @@ stated once and referenced elsewhere, as it is across `guidelines/`.
   skill (`<name>-extra`)
 - **THEN** the check reports the path instead of accepting the longer name as a match
 - **Case**: `routes#aSkillNameThatOnlyPrefixesAnExistingOneIsReported`
+
 ### Requirement: A recorded guardrail is stated in the section that owns it
 
 A guardrail entry that a backlog record states as a rule — rather than as a pointer to a rule that already
@@ -367,6 +369,7 @@ skill or CI step states, the owning section gains the rule and the record keeps 
   distinguishing token there without a build, a device or a network call, so a reader reaches it from the
   section rather than from the tracker
   (case `record-carriage#eachRecordedRuleIsStatedInItsSection`)
+
 ### Requirement: A section reference a guideline body writes is resolved
 
 Every section reference a guideline body makes to another guideline document SHALL resolve against that
@@ -408,3 +411,26 @@ SHALL need no build, no test run, no device and no network access.
   guideline body does
 - **THEN** the check exits 0, its count excludes both, and neither file is rewritten
 - **Case**: `a reference in a change artifact is not checked`
+
+### Requirement: The entry document states the validator's strict rules
+
+The always-read entry document SHALL state, beside the artifact rules the pipeline gates, the two rules
+`openspec validate --strict` fails on: a `MODIFIED` block carries every scenario the shipped spec still has,
+the unchanged ones repeated verbatim, and a requirement's body is at most 500 characters, its scenarios
+excluded. It SHALL name that strict invocation as the check an author runs before an artifact is finished.
+
+#### Scenario: An author reads both rules before writing an artifact
+
+- **WHEN** a reader takes the artifact rules from the entry document's `OpenSpec Workflow` section
+- **THEN** that section states that a `MODIFIED` block repeats every shipped scenario verbatim, and that a
+  requirement's body is at most 500 characters, its scenarios excluded
+- **Case**: `probe#theEntryDocumentStatesTheValidatorStrictRules` — `evidence/probe.sh` reads the section and
+  prints `FAIL` with the absent statement named, exiting 1 while one is missing (`evidence/red-on-head.log`,
+  2 of 2 cases failed on HEAD; `evidence/green-after-fix.log`, 0 of 2 after the statement was added)
+
+#### Scenario: The section names the command that catches them
+
+- **WHEN** the section is read for how an artifact is checked before it is finished
+- **THEN** it names `openspec validate <change> --strict`, and the `--changes --strict` form for the open set
+- **Case**: `probe#theEntryDocumentNamesTheStrictValidationCommand` — the same probe's second case, which
+  exits 1 on HEAD and 0 once the command line is in the section

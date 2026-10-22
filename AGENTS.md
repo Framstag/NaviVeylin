@@ -247,6 +247,21 @@ Three artifact rules are CI-gated (`.github/workflows/build.yml`, step "Check Op
   by hand (2026-10-21). The requirement that owns this is
   `openspec/specs/documentation-ownership/spec.md`.
 
+Two more rules are the validator's own, and an author meets them in the round after the artifact is written
+unless they are read here first: `openspec validate <change> --strict` fails on both, while the plain command
+passes the second with the severity it carries.
+
+- a `MODIFIED` block replaces its requirement when the change archives, so it carries the requirement **whole**:
+  the description and every scenario the shipped spec still has, the ones it does not change repeated verbatim.
+  A renamed scenario is a removal plus an addition — the validator then reports the shipped name as omitted.
+- a requirement's text stays at most 500 characters — the body, not its scenarios, which is where an example or
+  an edge case belongs. The limit is read on an `ADDED` block before it lands (`Requirement text is very long
+  (>500 characters)`) and on the shipped spec after archive; a `MODIFIED` block is exempt, because its text is
+  the existing requirement kept whole.
+
+Run `openspec validate <change> --strict` — or `openspec validate --changes --strict` over the open set — before
+the artifact is finished rather than at archive time.
+
 ## Build & Test
 
 Everything executable — the command table (build, assemble, force a rerun, coverage), the gate's result

@@ -1,0 +1,1 @@
+Change 'fix-workflow-section-names-strict-rules' is valid

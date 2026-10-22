@@ -1,0 +1,12 @@
+# red at HEAD, base 80df3a3, 2026-10-22T02:34:42Z
+# (HEAD's AGENTS.md, this change's delta moved aside)
+FAIL theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim — no line of the section matches /MODIFIED.{0,80}repeats.{0,90}verbatim/
+FAIL theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character requirement-text bound — no line of the section matches /500 characters/
+FAIL theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules — no line of the section matches /openspec validate[^|]*--strict/
+FAIL theChangeSetIsValidatedByACommand: no delta spec at openspec/changes/fix-workflow-section-names-strict-rules/specs/documentation-ownership/spec.md
+FAIL theCompletedBlockKeepsTheRequirementWhole: no delta spec at openspec/changes/fix-workflow-section-names-strict-rules/specs/documentation-ownership/spec.md
+FAIL aRenamedScenarioIsReportedAsAnOmission: no delta spec at openspec/changes/fix-workflow-section-names-strict-rules/specs/documentation-ownership/spec.md
+FAIL anOverLongRequirementIsReported: no delta spec at openspec/changes/fix-workflow-section-names-strict-rules/specs/documentation-ownership/spec.md
+probe: 0 passed, 7 failed
+probe: failed cases: theWorkflowSectionStatesTheScenarioRule theWorkflowSectionStatesTheTextBound theStrictCommandIsNamedBesideTheRules theChangeSetIsValidatedByACommand theCompletedBlockKeepsTheRequirementWhole aRenamedScenarioIsReportedAsAnOmission anOverLongRequirementIsReported
+EXIT=1

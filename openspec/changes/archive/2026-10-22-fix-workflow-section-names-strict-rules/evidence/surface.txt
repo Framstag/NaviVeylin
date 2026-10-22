@@ -1,0 +1,13 @@
+# surface, 2026-10-22T02:32:24Z, base 80df3a3
+$ grep -rln --include="*.md" --include="*.sh" --include="*.yml" --include="*.yaml" -- "--strict" . | grep -v openspec/changes/archive/ | grep -v "openspec/changes/fix-" | grep -v app/src/main/cpp
+
+$ grep -rln "500 characters" (same filters)
+./openspec/changes/fix-workflow-section-names-strict-rules/evidence/probe.sh
+
+$ grep -rln "artifact hygiene" . | grep -v archive
+./guidelines/Build.md
+./AGENTS.md
+./.github/workflows/build.yml
+
+$ grep -c "Case.*probe#" tools/*-cases.sh tools/*-selftest.sh   # cases asserting the changed rule before this change
+(no line printed above = no suite case asserts it)

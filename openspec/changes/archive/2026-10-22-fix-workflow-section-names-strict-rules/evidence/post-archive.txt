@@ -1,0 +1,28 @@
+# post-archive, 2026-10-22T02:49:52Z
+$ ls -d openspec/changes/archive/2026-10-22-fix-workflow-section-names-strict-rules
+openspec/changes/archive/2026-10-22-fix-workflow-section-names-strict-rules
+$ grep -n '^### Requirement: The validator' openspec/specs/documentation-ownership/spec.md
+425:### Requirement: The validator's own rules are read before the first write
+$ grep -n 'keep its shipped title' openspec/specs/documentation-ownership/spec.md
+101:stay unarchivable until the block is completed. Every scenario SHALL keep its shipped title: a renamed
+$ grep -c '^- \*\*Case\*\*:' openspec/specs/documentation-ownership/spec.md
+16
+$ openspec validate --specs --strict | tail -2
+Totals: 94 passed, 83 failed (177 items)
+Details: openspec validate about-dialog --type spec
+$ grep -n 'Two further artifact rules' AGENTS.md
+250:Two further artifact rules are the validator's own — only `openspec validate <change> --strict` reports them, so
+
+$ openspec validate documentation-ownership --type spec --strict
+Specification 'documentation-ownership' has issues
+⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[13]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+$ requirement body lengths, longest four (this change wrote the 469 and the 440)
+724	 capability spec states what the capability is for
+529	 recorded guardrail is stated in the section that owns it
+501	 document that names a skill resolves to a skill that exists
+469	 modified requirement carries the scenarios its spec still has
+$ openspec validate --specs --strict | tail -2
+Totals: 94 passed, 83 failed (177 items)
+Details: openspec validate about-dialog --type spec

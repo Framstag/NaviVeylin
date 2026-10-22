@@ -1,0 +1,22 @@
+# revert-check, 2026-10-22T02:34:45Z: the added block removed from AGENTS.md
+FAIL theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim — no line of the section matches /MODIFIED.{0,80}repeats.{0,90}verbatim/
+FAIL theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character requirement-text bound — no line of the section matches /500 characters/
+FAIL theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules — no line of the section matches /openspec validate[^|]*--strict/
+PASS theChangeSetIsValidatedByACommand: validate --changes --strict exits 1 and names the change, the requirement and the omitted scenario
+PASS theCompletedBlockKeepsTheRequirementWhole: the block validates and carries every shipped scenario title and WHEN/THEN line verbatim
+PASS aRenamedScenarioIsReportedAsAnOmission: a renamed scenario title makes validate --strict exit 1 and report an omission: md: MODIFIED "A modified requirement carries the scenarios its spec still has" omits scenario(s) the current spec still has: "The change set is validated by command"
+PASS anOverLongRequirementIsReported: text past the bound makes validate --strict exit 1 and report it: Requirement text is very long (>500 characters)
+probe: 4 passed, 3 failed
+probe: failed cases: theWorkflowSectionStatesTheScenarioRule theWorkflowSectionStatesTheTextBound theStrictCommandIsNamedBesideTheRules
+EXIT=1
+
+# and the block restored
+PASS theWorkflowSectionStatesTheScenarioRule: the section states that a MODIFIED requirement repeats every shipped scenario verbatim
+PASS theWorkflowSectionStatesTheTextBound: the section states the validator's 500-character requirement-text bound
+PASS theStrictCommandIsNamedBesideTheRules: the section names 'openspec validate <change> --strict' beside the two rules
+PASS theChangeSetIsValidatedByACommand: validate --changes --strict exits 1 and names the change, the requirement and the omitted scenario
+PASS theCompletedBlockKeepsTheRequirementWhole: the block validates and carries every shipped scenario title and WHEN/THEN line verbatim
+PASS aRenamedScenarioIsReportedAsAnOmission: a renamed scenario title makes validate --strict exit 1 and report an omission: md: MODIFIED "A modified requirement carries the scenarios its spec still has" omits scenario(s) the current spec still has: "The change set is validated by command"
+PASS anOverLongRequirementIsReported: text past the bound makes validate --strict exit 1 and report it: Requirement text is very long (>500 characters)
+probe: 7 passed, 0 failed
+EXIT=0

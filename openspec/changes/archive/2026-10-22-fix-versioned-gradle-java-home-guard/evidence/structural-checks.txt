@@ -6,3 +6,16 @@ Totals: 177 passed, 0 failed (177 items)
 
 $ yq '.jobs.build.steps | length' .github/workflows/build.yml
 40
+
+## round 2 (corrections-only: proposal.md Surface count, tasks.md 3.5 split, corrections-round2.md)
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+exit=0
+
+$ ./tools/loop/measure.sh --change 2026-10-22-fix-versioned-gradle-java-home-guard
+LOOP-MEASURE-CHANGE 2026-10-22-fix-versioned-gradle-java-home-guard scenarios=3 cases=3 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 case class added (3 cases), 0 cases rewritten, 0 fixtures realigned — the assertion surface is 2 places (the host case and the CI step), the second of which this change creates — measured: `grep -c "org\.gradle\.java\.home" .github/workflows/build.yml` = 10 lines (9 pre-existing, 1 added); of the four added workflow lines `:344-347`, `:344` spells the key escaped, `:345` unescaped, and `:346-347` carry no key
+
+$ openspec validate --specs
+Totals: 177 passed, 0 failed (177 items)

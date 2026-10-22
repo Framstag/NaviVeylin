@@ -57,11 +57,12 @@ which already states the absence as a rule and now names the guard that enforces
 ```
 git grep -l "org\.gradle\.java\.home" -- .: 20 versioned files, 12 of them archived changes
 grep -rn "gradle\.properties" app/src/test auto/src/test tools .github: 3 hits on the base tree, none an assertion
-grep -c "org\.gradle\.java\.home" .github/workflows/build.yml: 9 after the change (5 pre-existing, 4 added)
+grep -c "org\.gradle\.java\.home" .github/workflows/build.yml: 10 after the change — 9 pre-existing lines
+(66, 71, 462, 468, 475, 482, 491, 504, 525) plus the added `::error` line at :345; the added predicate at :344
+spells the key escaped (`org\.gradle\.java\.home`), so this quoted grep does not match it
 ```
 
-`surface: 1 case class added (3 cases), 0 cases rewritten, 0 fixtures realigned — the assertion surface is 2
-places (the host case and the CI step), the second of which this change creates` (the `grep`s above).
+surface: 1 case class added (3 cases), 0 cases rewritten, 0 fixtures realigned — the assertion surface is 2 places (the host case and the CI step), the second of which this change creates — measured: `grep -c "org\.gradle\.java\.home" .github/workflows/build.yml` = 10 lines (9 pre-existing, 1 added); of the four added workflow lines `:344-347`, `:344` spells the key escaped, `:345` unescaped, and `:346-347` carry no key
 
 ## What changes
 

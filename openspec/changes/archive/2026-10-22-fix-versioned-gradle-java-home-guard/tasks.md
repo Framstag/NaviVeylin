@@ -50,7 +50,25 @@
 - [x] 3.5 The project's gate, once: `./tools/loop/gate.sh` — exit 0,
   `LOOP-GATE: tests=477 failures=0` over the nine commands this pathspec owes, and from the XMLs the run
   left: app mobile `tests=2101 failures=0`, app automotive `tests=2101 failures=0`, auto `tests=876
-  failures=0`, core `tests=642 failures=0`, osmscout-client-java `tests=48 failures=0` — `6245 tests, 0
-  failures, 0 errors`; the new class ran in both app flavours (timestamps `2026-10-22T08:50:12.730Z` and
+  failures=0`, core `tests=642 failures=0`, osmscout-client-java `tests=48 failures=0` — `6245` is
+  `477` (the shell suites the gate's own line counts) + `5768` (the five module tallies from the XMLs), `0
+  failures, 0 errors`; the gate's `tests=477` therefore counts the shell suites only and the module tests are
+  evidenced by the XMLs, not by that number; the new class ran in both app flavours (timestamps `2026-10-22T08:50:12.730Z` and
   `2026-10-22T08:51:54.115Z`), 3 tests each, 0 failures (`evidence/gate.log`, `evidence/gate-tallies.txt`,
   `evidence/gate-mobile-VersionedGradleJavaHomeTest.xml`, `evidence/gate-automotive-VersionedGradleJavaHomeTest.xml`).
+
+## 4. Round 2 — the review's corrections
+
+- [x] 4.1 `proposal.md` Surface: replace the wrong `grep -c` sentence ("9 after the change (5 pre-existing, 4
+  added)") with the measured result — 10 matching lines, 9 pre-existing (66, 71, 462, 468, 475, 482, 491, 504,
+  525) plus the added `::error` at :345, the predicate at :344 being escaped so the quoted grep does not match
+  it — and put the block's conclusion on one `^surface:` line. Verification: `grep -c`/`grep -n` on
+  `.github/workflows/build.yml` (quoted in `evidence/corrections-round2.md`) and
+  `./tools/loop/measure.sh --change 2026-10-22-fix-versioned-gradle-java-home-guard` printing
+  `LOOP-MEASURE-SURFACE surface: 1 case class added (3 cases), …` instead of `none`.
+- [x] 4.2 `tasks.md` 3.5: state the `6245` total as `477` shell cases + `5768` module tests. Verification: the
+  eight shell tallies in `evidence/gate-tallies.txt` sum to 477 and the five module tallies to 5768.
+- [x] 4.3 Record the round and its measurements: `evidence/corrections-round2.md`, plus a round-2 section in
+  `evidence/structural-checks.txt`. Verification: `bash tools/check-doc-routes.sh` → `all 120 section
+  references resolve, all 5 skill references resolve`; `openspec validate --specs` → `Totals: 177 passed, 0
+  failed`. No gate re-run: this round touches no compiled file.

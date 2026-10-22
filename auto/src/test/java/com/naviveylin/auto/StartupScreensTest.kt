@@ -10,6 +10,7 @@ import io.mockk.every
 import io.mockk.mockk
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -22,7 +23,7 @@ import org.robolectric.Shadows.shadowOf
 
 /**
  * Tests for the startup-guard screens: [SafeScreen] template error fallback,
- * [LoadingScreen], [ErrorScreen] (message + Retry), and [DiagnosticsScreen]
+ * [ErrorScreen] (message + Retry), and [DiagnosticsScreen]
  * ordering. Default Robolectric sandbox, no @Config.
  *
  * The full [NavigationSession] guard path (exception → error screen) cannot
@@ -61,10 +62,17 @@ class StartupScreensTest {
         assertTrue(template.pane.rows[0].texts.first().toString().contains("ok"))
     }
 
+    /**
+     * The car display has one transient wait notice, the calculation notice
+     * ([RouteCalculatingScreen]); the retired loading screen had no production caller once
+     * [NavigationSession] served the real root screen (spec: `route-calculation-feedback` — One
+     * wait-notice implementation on the car display). The change *is* the deletion, so the case
+     * asserts the absence by name.
+     */
     @Test
-    fun loadingScreenShowsLoadingState() {
-        val template = LoadingScreen(carContext).onGetTemplate() as PaneTemplate
-        assertEquals("Loading map data…", template.pane.rows[0].title.toString())
+    fun retiredLoadingScreenClassIsGone() {
+        val present = runCatching { Class.forName("com.naviveylin.auto.LoadingScreen") }.isSuccess
+        assertFalse("com.naviveylin.auto.LoadingScreen is still on the classpath", present)
     }
 
     @Test

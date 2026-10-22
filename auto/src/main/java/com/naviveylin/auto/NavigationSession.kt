@@ -63,7 +63,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  *   does not block on the native client (only the map screen uses it).
  * - Host callbacks are guarded: failures surface as [ErrorScreen] with Retry
  *   rather than killing the process.
- * - The root screen is always the real one: a transient LoadingScreen was never
+ * - The root screen is always the real one: a transient loading screen was never
  *   a viable root because androidx.car.app 1.7 [ScreenManager] refuses to pop
  *   the root screen, so any later popToRoot() would re-reveal the stale
  *   loading template and wedge the session on it forever.
@@ -366,7 +366,7 @@ class NavigationSession : Session() {
             // The root screen is always the real one (RootScreen or
             // NavigationScreen). It does not need the native client, so it can
             // be served as the very first template without waiting for warmup.
-            // Never return a transient LoadingScreen here: it would become the
+            // Never return a transient loading screen here: it would become the
             // stack root and, because ScreenManager cannot pop the root, any
             // later popToRoot() would re-reveal it and wedge the session.
             val screen = initialScreen()
@@ -1173,7 +1173,7 @@ class NavigationSession : Session() {
         /**
          * Cap on cold-start warmup (Hilt entry point + native client build).
          * A healthy first init usually takes a few seconds; give slow devices
-         * headroom, but never let the LoadingScreen stay up indefinitely.
+         * headroom, but never let a stuck warmup hold the first screen up indefinitely.
          */
         private const val WARMUP_TIMEOUT_MS = 45_000L
     }

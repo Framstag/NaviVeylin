@@ -30,11 +30,11 @@ which also lists the sections this table does not route.
 | search, favourites, settings, persistence | `Design.md` §9 "Data, persistence & search", `UI.md` §6a "Phone search surface" |
 | logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `Build.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
 | route data and the numbers derived from it | `MapRendering.md` §19 |
-| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §2 — its "Agent iteration protocol" subsection is the iteration loop, its "The actions' Node runtime" subsection owns a `uses:` pin and the check that gates one —, §3, §4 |
+| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §2a "Agent iteration protocol" (the iteration loop), §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2e "The actions' Node runtime" (a `uses:` pin and the check that gates one), §3 "Commands reference", §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover" — 1.9–5.3 kB per section, against 23.2 kB and 23.4 kB for §2 and §4 whole (measured 2026-10-22); a single read is one row's section, not the row, and §2 and §4 index their other sub-sections — |
 | the native build — CMake sources, the ABI→triplet selection, vcpkg dependencies, stylesheet packaging | `Build.md` §12 |
-| writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `Build.md` §6 "Test constraints", §7 "Code coverage", `Design.md` §11 "Testing" |
+| writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `Build.md` §6a "The JNI stub and the classloader sandbox", §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions and declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion measured", §6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub for unit tests" — 1.1–5.3 kB each, against 22.1 kB for §6 whole —, §7 "Code coverage", `Design.md` §11 "Testing" |
 | release, versioning, SBOM, licence inventory | `Build.md` §5, §8, §9 |
-| on-device evidence — car crash triage, phone UI measurement | `Build.md` §10, §11 |
+| on-device evidence — car crash triage, phone UI measurement | `Build.md` §10a "Booting the AAOS AVD and driving the car UI", §10b "Judging the car surface and the render loop", §10c "Footprint, the app's host sends and route numbers", §10d "Rejected mutations, the error notice and database registration", §10e "Expectation baselines and the car search scope", §10f "Two checks that need evidence before a behaviour is specified", §10g "Start-map selection on the phone", §10h "Stylesheet load count per start", §10i "Device recipes that cost a round every time", §10j "A calculated route's length" — 0.9–6.8 kB each, against 31.6 kB for §10 whole —, §11 |
 | what one project metrics report run measures, its metric definitions, its excluded classes, its surface rule | `Metrics.md` §1 "Invocation and exit status", §2 "What one run measures, and what it does not", §3, §4, §5, §6 "Surface convention" |
 | legal, regulatory, Play policy, privacy, diagnostics disclosure | `Regulatory.md` §2, §3, §4, §6, §9 |
 | engineering principles, and the checklist before an apply pass | `Design.md` §12, "Appendix A — Quick checklist (apply phase)" |
@@ -180,7 +180,7 @@ the tracker:
 
 ## Agent iteration loop (measure first)
 
-The loop is `guidelines/Build.md` §2, "Agent iteration protocol": **look then measure before changing code;
+The loop is `guidelines/Build.md` §2a, "Agent iteration protocol": **look then measure before changing code;
 iterate with focused suites and gate once; batch independent questions; one builder per working tree.** It
 exists because those rules cost the most rounds in `ki_processing_failures.log` — rules 1-3 from a change
 whose single visual symptom needed many review rounds, rule 4 from the shared-worktree collisions

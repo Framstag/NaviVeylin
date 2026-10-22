@@ -6,10 +6,10 @@ them.
 
 **Maintenance rule** — when a change supersedes a build convention here, update
 this document in the same change. This document is the one owner of the gate's rules, of every gate
-measurement, of the agent iteration protocol (§2) and of the native build facts (§12). The other sites that mention them — `AGENTS.md`, the `openspec/config.yaml` tasks/archive
+measurement, of the agent iteration protocol (§2a) and of the native build facts (§12). The other sites that mention them — `AGENTS.md`, the `openspec/config.yaml` tasks/archive
 guidance, and the build/test skills — carry a section reference instead of a restated rule or measurement;
 a restatement found there is repaired by pointing it at the owning section here, and a measured number is
-quoted only where its run is dated (§2, §6).
+quoted only where its run is dated (§2c, §6c–§6e).
 
 ---
 
@@ -20,7 +20,7 @@ the tooling's own shell gates (`tools/issues/**`, `tools/sensors/**`, `tools/loo
 `tools/check-portability.sh`). They are named
 and discoverable by LLM agents (loaded on demand from `.pi/skills/`); use them whenever build, test,
 verification, or release work is requested or required by the OpenSpec apply/archive guidance. The loop
-they serve — when to look, when to measure, when to run which suite — is §2's *Agent iteration protocol*;
+they serve — when to look, when to measure, when to run which suite — is §2a's *Agent iteration protocol*;
 the skills are its hands, not its rule.
 
 | Skill | Purpose | When to use |
@@ -95,11 +95,16 @@ All four skills follow the same contract:
   - Exit code non-zero **or** output contains `BUILD FAILED` → failure
 - **Report a clear verdict** with actionable error excerpts on failure.
 
-### Agent iteration protocol
+Every question this section answers has its own sub-section; read the one that owns the question rather than
+the section whole. §2a "Agent iteration protocol", §2b "Liveness guard and shell recipes", §2c "Gate timing record
+and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" — measured 2026-10-22:
+1 902–5 236 bytes each, against 23 235 bytes for the section whole.
+
+## 2a. Agent iteration protocol
 
 A session that changes this repository works in the loop below. The measurements behind it, the levers it
-uses and the evidence it must quote live where the loop points: §4 (declared-cases pass, the forcing flag,
-the per-module freshness check), §6 (test constraints and the gate's forcing rule), §10 and §11 (the
+uses and the evidence it must quote live where the loop points: §4b (declared-cases pass, the forcing flag,
+the per-module freshness check), §6c–§6e (test constraints and the gate's forcing rule), §10 and §11 (the
 on-device and phone-measurement recipes), and the skills §1 names. This subsection states the rules; it
 quotes no measurement.
 
@@ -114,7 +119,7 @@ habit of running everything:
 - **Only test sources changed**: run the changed or new cases through the affected module's `--tests`
   filter (§3), not the suite.
 - **Library or app code changed**: the gate this document defines — the suite of the flavor the change can
-  affect, and the both-flavor gate before the change is called complete (§3, §4).
+  affect, and the both-flavor gate before the change is called complete (§3, §4b).
 - **Name every exclusion**: any test or task a run skipped, and why. A green run that quietly dropped a
   suite reads as a gate it was not.
 
@@ -133,7 +138,7 @@ habit of running everything:
    before this pass cost a factor of two: 292 insertions over six files, ~60 % of it test surface, against
    a plan of two functions (issue #238).
 2. **Iterate with focused suites, gate once.** Run the change's own declared cases first
-   (`tools/declared-cases.sh`, §4), then the module suite of the flavor the change can affect, and the
+   (`tools/declared-cases.sh`, §4b), then the module suite of the flavor the change can affect, and the
    full both-flavor gate once before the commit. A declared-cases pass is never gate evidence.
 3. **Batch independent questions.** Ask the owner two to four independent questions in one call rather
    than one question per round, and ask for the observation (where, when) before proposing a cause.
@@ -153,7 +158,7 @@ habit of running everything:
    the evidence already answered — one suite held open for **4 min 1 s** of a **4 h 40 m** change, 20 min in
    total, ~7 % of it (issue #236). A diff review is a reading task.
 
-### Liveness guard and shell recipes
+## 2b. Liveness guard and shell recipes
 
 - **The "no other build is running" guard must be able to match the real process.**
   `pgrep -f 'GradleWrapper[M]ain'` never matches: the wrapper runs as
@@ -205,7 +210,7 @@ habit of running everything:
 - **Do not use `/tmp` for large map imports** (§40.7): it is a RAM tmpfs (~7.7 GB quota), so an import
   there competes with the build for memory — use a disk path.
 
-### Gate timing record and baseline
+## 2c. Gate timing record and baseline
 
 Every gate run can leave a machine-readable record of what it cost, so "the gate got faster" is a
 measurement instead of an impression (change `speed-up-build-test-gate`, spec `build-test-gate`):
@@ -223,7 +228,7 @@ own behaviour is covered without a device: `bash tools/gate-timings-selftest.sh`
 
 To force execution of the tests — the case where the run itself is the evidence — use
 `-PforceTests --no-build-cache`, not `--rerun-tasks`: it re-executes the test tasks and leaves the rest of
-the graph up to date (§4).
+the graph up to date (§4b).
 
 **Baseline (2026-10-04)** — `:app:testMobileDebugUnitTest :app:testAutomotiveDebugUnitTest
 :app:assembleMobileDebug :app:assembleAutomotiveDebug --rerun-tasks --continue`; host with 15 GB RAM of
@@ -244,10 +249,10 @@ quote the wall clock and the per-suite windows, and read a phase sum as work, ne
 
 **After the change (2026-10-05)** — the levers this baseline was measured against, each with its numbers:
 the two `:app` suites run at the declared two forks (mobile 2m50s → 2m02s, automotive 2m35s → 2m02s per
-suite, §6); the Kover agent costs 10-12 % and is dropped for an iteration that feeds no report (§7); a
+suite, §6d); the Kover agent costs 10-12 % and is dropped for an iteration that feeds no report (§7); a
 JVM-only change builds no native artifact, one ABI is buildable for a device target, and `app/.cxx` is kept
-at 4 configuration trees instead of 13 (§4); forcing the test tasks instead of the whole graph leaves the
-compiles `UP-TO-DATE` (§4); a shared-source change runs one flavor instead of two (§4). The full gate — all
+at 4 configuration trees instead of 13 (§4c); forcing the test tasks instead of the whole graph leaves the
+compiles `UP-TO-DATE` (§4b); a shared-source change runs one flavor instead of two (§4b). The full gate — all
 modules, both flavors, instrumentation attached — ran green: `:app` mobile 219 classes / 1666 tests,
 automotive 219 / 1666, `:auto` 76 / 779, `:core` 39 / 444, JNI 2 / 26, all with 0 failures and 0 errors
 (measured 2026-10-08; the suites have since grown — see the aggregate record below).
@@ -259,7 +264,7 @@ suites `:app` mobile **4m54s**, automotive **3m56s**, `:auto` 1m39s, `:core` 32.
 share the invocation, so their forks (2+2+1) plus the daemon contend for CPU and — on a box with ~4 GB
 free — for memory: 12m00s of test-task work compressed into 9m46s of wall, and every suite is slower than
 its isolated measurement (2m02s alone at two forks). Consequences to keep in mind: the per-suite table in
-§6 describes **single-suite** runs, the aggregate gate is bounded by suite work rather than by any flag this
+§6d describes **single-suite** runs, the aggregate gate is bounded by suite work rather than by any flag this
 change added, and the declared two forks may be too optimistic when several modules' suites run at once —
 see `TODO.md` §132.
 
@@ -270,12 +275,12 @@ RAM free at the start, no other build on the machine, worker-JVM RSS sampled eve
 2 096, `:auto` **1m16s** / 866, `:core` **19.9s** / 642, JNI **2.8s** / 48 — **5 748 tests, 0 failures, 0
 errors** — and a peak test-worker footprint of **1.89 GiB in one worker, 3.42 GiB across the two concurrent
 `:app` forks**. That is the number the aggregate shape has to fit, and it fits the ceiling the declared forks
-were chosen against (§6), so `:app` stays at two forks: dropping to one costs ~28 % of every iteration and
+were chosen against (§6c), so `:app` stays at two forks: dropping to one costs ~28 % of every iteration and
 buys nothing measurable here. Each suite is still slower than its own isolated row (`:app` 2m02s → 2m40s /
-3m00s, `:auto` 40.0s → 1m16s), which is the contention this paragraph is about — read §6's table as
+3m00s, `:auto` 40.0s → 1m16s), which is the contention this paragraph is about — read §6d's table as
 single-suite, and this record as the gate the project actually runs (issue #83).
 
-### The build JVM (daemon JVM criteria)
+## 2d. The build JVM (daemon JVM criteria)
 
 The daemon JVM is **not** selected by `JAVA_HOME` or by the `-Dorg.gradle.java.home` in the recipes below: the
 checked-in daemon JVM criteria in `gradle/gradle-daemon-jvm.properties` **take precedence over both** (Gradle
@@ -337,7 +342,7 @@ same JBR the criteria would name). And the daemon JVM is not the only JVM the bu
 compiles with a Java 17 toolchain that must be detectable locally — a second requirement, tracked as
 `TODO.md` §146.
 
-### The actions' Node runtime
+## 2e. The actions' Node runtime
 
 A workflow's `uses:` pin, not the runner, decides which Node runtime an action runs on: a major that predates
 Node 24 makes the runner print `Node.js 20 is deprecated` on every step and force the action onto Node 24
@@ -386,6 +391,14 @@ flavors one expects (§134.65).
 
 ## 4. Result evaluation
 
+Every sub-section answers one question about a run; read the one that owns it. §4a "The verdict, the warnings
+and the failures", §4b "Which flavors and suites a run must cover", §4c "Native scope, pruned configurations and a
+restored mutation", §4d "Attributing a red run", §4e "Falsification, flakes and scheduling traps", §4f "Artifacts,
+evidence rules and native verification" — measured 2026-10-22: 3 072–5 273 bytes each, against 23 380 bytes for the
+section whole.
+
+## 4a. The verdict, the warnings and the failures
+
 - **Success**: exit code `0` and `BUILD SUCCESSFUL` in the output.
 - **Failure**: non-zero exit code or `BUILD FAILED`. Extract and report:
   - Kotlin compile errors: lines starting with `e: `
@@ -424,6 +437,9 @@ flavors one expects (§134.65).
     `AutoTestSourceWarningBaselineTest` (an `:app` unit test) now holds that set to this bullet.
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
+
+## 4b. Which flavors and suites a run must cover
+
 - **Per-flavor test tasks**: `:app` has one task per flavor —
   `:app:testMobileDebugUnitTest` and `:app:testAutomotiveDebugUnitTest` (there is
   no `:app:testDebugUnitTest`).
@@ -436,7 +452,7 @@ flavors one expects (§134.65).
   `mobile` 2m58s + `automotive` 2m57s for both against 2m58s for one (agent attached, §7), a saving of about
   3 minutes per gate. **Before a change is called complete, run both flavors with every shipped ABI built**:
   the reduced form is an iteration form and must not be reported as a full gate. `build/gate-timings.json`
-  (§2) shows how many suites a run actually executed.
+  (§2c) shows how many suites a run actually executed.
 - **Iteration: run the change's declared cases first** (change `speed-up-test-iteration`, spec
   `build-test-gate` — "Iteration pre-gate runs the change's declared cases first"). Before the module
   suite, `bash tools/declared-cases.sh <change> --diff <this change's own file list> --command` prints
@@ -464,8 +480,11 @@ flavors one expects (§134.65).
   `30 actionable tasks: 2 executed, 28 up-to-date`, where `--rerun-tasks` re-executes every compile,
   package and native task. `--no-build-cache` is not optional: a task that is not up to date may still
   have its outputs restored from the cache rather than executed. Keep `--rerun-tasks` for the completion
-  gate and for anything whose inputs the change touched; the gate record in §2 shows what each phase
+  gate and for anything whose inputs the change touched; the gate record in §2c shows what each phase
   costs.
+
+## 4c. Native scope, pruned configurations and a restored mutation
+
 - **Native scope of a run** (change `speed-up-build-test-gate`, spec `build-test-gate` — "Iteration runs
   build no more native artifacts than they test"). A JVM-only change needs **no** native build: the
   `:app` unit tests use the host stub (`src/test/jniLibs`), not the packaged libraries. When a run does need
@@ -496,6 +515,9 @@ flavors one expects (§134.65).
   XML keeps the **previous** run's `timestamp` — a 4-second "green" is not the second half of a
   revert-check. Force it and check the `timestamp` against the wall clock (`TODO.md` §17; the
   `revert-check` skill).
+
+## 4d. Attributing a red run
+
 - **Sweep the suite for what the change moves, before the gate**: a behaviour change can move an
   expectation pinned verbatim in an unrelated class, and focused runs cannot see it (2026-10-03: the POI
   fit's floor changed and only the full gate found `PoiSearchViewModelTest` asserting the old `14.0`).
@@ -542,6 +564,9 @@ flavors one expects (§134.65).
   `while (true)`/`while (isActive)` loops for a `withContext`, then move the loop's
   home off the main dispatcher (`guidelines/Design.md` §4) instead of enumerating
   the classes that leak a holder.
+
+## 4e. Falsification, flakes and scheduling traps
+
 - **A new regression test must fail against the *unfixed* revision first.** One that passes against the bug
   is worse than none: run it on the pre-fix tree (stash, or the parent commit) before claiming it guards the
   fix. If it cannot fail there — e.g. Robolectric defers the child collector that runs inline on the device —
@@ -583,6 +608,8 @@ flavors one expects (§134.65).
 - **Test reports**: HTML at
   `app/build/reports/tests/testMobileDebugUnitTest/index.html`, XML at
   `app/build/test-results/testMobileDebugUnitTest/*.xml`.
+
+## 4f. Artifacts, evidence rules and native verification
 
 ### Artifacts and evidence rules
 
@@ -680,6 +707,14 @@ flavors one expects (§134.65).
 
 ## 6. Test constraints
 
+Every sub-section states one family of constraints; read the one your case falls under. §6a "The JNI stub and the
+classloader sandbox", §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions and
+declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion measured",
+§6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub for unit tests" —
+measured 2026-10-22: 1 055–5 269 bytes each, against 22 053 bytes for the section whole.
+
+## 6a. The JNI stub and the classloader sandbox
+
 - **JNI stub / classloader rule**: `app/src/test/jniLibs/` holds a host stub so
   `OSMScoutClient`'s `System.loadLibrary` succeeds in JVM tests. Any test class
   that instantiates `FakeOSMScoutClient` (or otherwise triggers that load) MUST
@@ -697,6 +732,9 @@ flavors one expects (§134.65).
   `src/test/resources/robolectric.properties` (`:auto` carries one) is outside the
   rule, and the case lives in `:app`, so a `./gradlew :auto:test` run alone
   enforces nothing on `:auto` sources — the gate runs both modules.
+
+## 6b. Teardown, the Compose sandbox and geometry claims
+
 - **Teardown rule — release what the test starts.** Any test that constructs a
   component owning long-lived background work (its own coroutine scope, timers, a
   render loop, a native surface, a large retained bitmap) MUST release it before
@@ -760,6 +798,9 @@ flavors one expects (§134.65).
   the tap to the innermost target (measured 2026-10-05), so a click case alone cannot falsify an overlap
   guard — assert the geometry and falsify it with the `revert-check` skill (move the tap area / shrink the
   box / neuter the handler).
+
+## 6c. Queue post-conditions and declared fork budgets
+
 - **A case that asserts a queue's post-condition asserts the queue's own row state too.** A case that drives
   work through a queue and then asserts only what the queue was supposed to produce cannot name *why* the
   expectation was not met: "the item failed" — its row carries a failure, a text and a cleanup path of its own —
@@ -800,7 +841,10 @@ flavors one expects (§134.65).
   task's build-cache key: after changing it, run with `--no-build-cache`, or the
   previous configuration's results are restored and the setting looks proven when
   it never ran. Verify a budget by CONTENT, not by the build result:
-  the fork args (`-Xmx…`, `--info`) and the per-class result XMLs (§4, §17).
+  the fork args (`-Xmx…`, `--info`) and the per-class result XMLs (§4a, §17).
+
+## 6d. Declared test-JVM concurrency
+
 - **Declared test-JVM concurrency** (change `speed-up-build-test-gate`, spec `unit-test-suite-runtime` —
   "Unit-test parallelism is declared and result-preserving"): the fork budget above decides *how much
   heap* a fork gets, this one decides *how many run at once*, and both are declared in the same block
@@ -819,7 +863,7 @@ flavors one expects (§134.65).
   **The table describes one suite per invocation, and the gate is not that shape**: it runs all four modules in
   one invocation, where the forks plus the daemon contend — measured 2026-10-21, mobile 2m40s and automotive
   3m00s against the 2m02s rows here, `:auto` 1m16s against 40.0s, with 3.42 GiB across the two concurrent `:app`
-  forks (§2, "The same shape measured again"). A wall time or a memory figure taken from this table for a gate
+  forks (§2c, "The same shape measured again"). A wall time or a memory figure taken from this table for a gate
   decision is therefore off by 1.3× (mobile) to 1.9× (`:auto`).
   **Four forks is deliberately not declared: it is not result-preserving.** At 4 forks mobile failed
   `NavigationEngineRerouteTest.instructionListUpdatesAfterAReroute` (awaiting a state change inside its
@@ -828,6 +872,9 @@ flavors one expects (§134.65).
   so more forks only cost wall time (38.3s → 40.0s → 48.9s) and memory. Re-derive both numbers after a
   meaningful test-suite change (the suites grew from 215/1635 to 218/1649 classes/tests on 2026-10-04, and stand
   at 2 096 tests per `:app` flavor and 866 for `:auto` on 2026-10-21).
+
+## 6e. Wall-clock waits and the conversion measured
+
 - **Wall-clock waits are refused, and the conversion is measured** (change `speed-up-test-iteration`, spec
   `unit-test-suite-runtime` — Wall-clock waits in test sources are refused by a build check). Each
   test-bearing module wires `checkNoWallClockWaits` (the pure `buildSrc` object
@@ -849,7 +896,7 @@ flavors one expects (§134.65).
   | `:core` | 41 / 447, 0 failures | 14 s | 18 s |
   | JNI | 2 / 26, 0 failures | 1 s | 1.7 s |
 
-  Against the 2026-10-05 gate record (§2: `:app` mobile 4m54s, automotive 3m56s, `:auto` 1m39s, `:core`
+  Against the 2026-10-05 gate record (§2c: `:app` mobile 4m54s, automotive 3m56s, `:auto` 1m39s, `:core`
   32.8 s — 12m00s of suite work in a 9m46s wall) the same suites now take **4m02s of suite work in a
   4m54s wall**. The automotive suite alone went **252 s → 138 s of class time** with the same 221 classes;
   the classes that owed their time to a wait lost most of it: `MapCanvasViewModelBrowseReCenterTest`
@@ -861,6 +908,9 @@ flavors one expects (§134.65).
   in it (§142) — both pre-existing. An earlier reading of this conversion looked like a regression until
   the *unconverted* class was measured in the same window (18.337 s against the converted 9.42 s), which
   is why this bullet quotes same-session baselines and not the older, quieter machine's numbers.
+
+## 6f. Diagnosing a red run
+
 - **A red run is diagnosed from the failure's message, not from its location** (change
   `fix-aggregate-run-test-flakes`, spec `build-test-gate` — "A failing run reports each failure's message").
   `:app`, `:auto` and `:core` each set `exceptionFormat = "full"` on their unit-test tasks, so the run's own
@@ -905,6 +955,9 @@ flavors one expects (§134.65).
   dimension, not a state bug — one measurement run is cheaper and was correct here. And "pre-existing" is
   proven by a control run (`git stash push -u` → the same failing command → `git stash pop`), never by
   reasoning about the dependency graph.
+
+## 6g. Instrumented runs and the submodule's suite
+
 - Instrumented tests need a connected device/emulator; if none is available,
   say so instead of running them.
 - **After a submodule bump, `./gradlew test` is not one invocation.** It carries the native CMake
@@ -919,6 +972,9 @@ flavors one expects (§134.65).
   is killed at 60 s (`30 s` default × the repo recipe's `--timeout-multiplier 2`) and passes in **120 s**
   when run alone with `--timeout-multiplier 60`. Quote that timeout in any "suite is green" verdict, and
   re-run a lone timeout with a bigger multiplier before calling it a failure.
+
+## 6h. The JNI stub for unit tests
+
 - **The JNI stub for unit tests.** `app/src/test/jniLibs/` and `auto/src/test/jniLibs/` each hold a tiny
   host-compiled stub (ELF, no symbols, named both `libosmscout_client_java.so` and
   `libosmscout_client_javad.so`) so `OSMScoutClient`'s static `System.loadLibrary` succeeds in
@@ -1238,6 +1294,16 @@ failure is not visible in the app's own crash log. This is the recipe that produ
 evidence in change `fix-aaos-host-crash` (tasks 1.6 and 7.3-7.5); run it before, during
 and after the scenario you want to judge.
 
+Every sub-section is one recipe family; read the one that matches the evidence you need. §10a "Booting the AAOS
+AVD and driving the car UI", §10b "Judging the car surface and the render loop", §10c "Footprint, the app's host
+sends and route numbers", §10d "Rejected mutations, the error notice and database registration", §10e
+"Expectation baselines and the car search scope", §10f "Two checks that need evidence before a behaviour is
+specified", §10g "Start-map selection on the phone", §10h "Stylesheet load count per start", §10i "Device recipes
+that cost a round every time", §10j "A calculated route's length — which number is a route length" — measured
+2026-10-22: 911–6 839 bytes each, against 31 568 bytes for the section whole.
+
+## 10a. Booting the AAOS AVD and driving the car UI
+
 **Boot the AAOS AVD and install the automotive build.** The AVD's ABI is x86_64, so an
 arm64-only APK will not install:
 
@@ -1297,6 +1363,8 @@ adb -s emulator-5556 shell input keyevent KEYCODE_HOME       # background the ca
 Start the bare URI form without `-n` only if you want the system chooser; with several
 `geo:` handlers it opens the resolver dialog instead of the app.
 
+## 10b. Judging the car surface and the render loop
+
 **Judge the car surface and the render loop.** `lockCanvas` succeeds only for a live
 surface, and the renderer logs it, so counting those lines is the cheapest "is the map
 drawing" test:
@@ -1340,6 +1408,8 @@ adb -s emulator-5556 shell dumpsys meminfo | head -40
 adb -s emulator-5556 shell dumpsys cpuinfo
 ```
 
+## 10c. Footprint, the app's host sends and route numbers
+
 **Measuring the app's own footprint — the rule.** Every footprint counter this repo reads
 (`Graphics`, `EGL mtrack`, `GL mtrack`, native heap, `Bitmap (malloced)`, `TOTAL PSS`) is a **high-water
 mark inside a process**: measured 2026-09-27, `GL mtrack` went 80.6 MB → 130.6 MB across three zoom
@@ -1377,6 +1447,8 @@ The instrumented route check logs the same relationship with the per-step extrem
 ```bash
 adb logcat -d | grep 'RouteDeviceTest: per-step values'
 ```
+
+## 10d. Rejected mutations, the error notice and database registration
 
 **Rejected host mutations and confined faults.** Every screen-stack mutation (push, pop,
 popToRoot, remove) runs through the guarded seam, and every car-facing scope carries a fault
@@ -1444,6 +1516,8 @@ so an install mid-scenario contaminates every measurement in it: install first, 
 the session, and treat a host crash whose log shows `onPackageUpdateFinished`/`replacing=true`
 for the app package as a harness artifact, not an app defect.
 
+## 10e. Expectation baselines and the car search scope
+
 **Expectation baseline for a healthy run** (stationary vehicle, navigation active, ~75 s,
 browse -> navigate -> HOME -> return): a handful of `lock OK` (one per full render), one
 `surface adopt` per delivery and one `surface release` per host-driven teardown, **0**
@@ -1507,6 +1581,8 @@ Phone parity is checked with the same query and a fix on the phone
 (`resolveAdminRegion -> handle=…` in `adb logcat -s MapCanvasVM`): both surfaces must
 show the same matches for the same position.
 
+## 10f. Two checks that need evidence before a behaviour is specified
+
 **Two checks that need evidence before any behaviour is specified** (the template-rate one is
 recorded in `TODO.md` §64):
 
@@ -1519,7 +1595,7 @@ recorded in `TODO.md` §64):
   verbose). The distance values are bucketed to the host's own rounding and the lane image is
   reused; the residual rate follows the arrival estimate's update rate (`TODO.md` §64).
 
-### Start-map selection on the phone (`fix-start-map-selection`)
+## 10g. Start-map selection on the phone (`fix-start-map-selection`)
 
 The phone opens the map resolved by `StartMapResolver`: the last opened database, else the
 lexicographically smallest installed one, else the entry point that leads to the map manager
@@ -1545,7 +1621,7 @@ start that picked the wrong database is visible without a debug build. The car s
 (its session registers every installed database except the basemap): a car session started after a
 phone start must still report the same database count in the `WARMUP` line.
 
-### Stylesheet load count per start (`dedupe-stylesheet-loads`)
+## 10h. Stylesheet load count per start (`dedupe-stylesheet-loads`)
 
 The app applies the stylesheet/flag pair once per (style name, flag set) — see
 `guidelines/MapRendering.md` §15 for the key and the legitimate triggers. Both the phone and the car
@@ -1573,7 +1649,7 @@ an app update that refreshed the bundled stylesheets, and a basemap download
 (`reloadBasemap`). Count per start and compare per source rather than trusting one number —
 and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, not a cache hit.
 
-### Device recipes that cost a round every time (2026-10-05)
+## 10i. Device recipes that cost a round every time (2026-10-05)
 
 - **Device paths and dumps.** The harness refuses absolute *device* paths in a command (`/sdcard/…`,
   `/data/local/tmp/…` — `external_directory_read`): keep paths relative inside `adb shell`
@@ -1647,7 +1723,7 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   app, and the host `RendererService` disconnects ~40 s after launch. Plan car verification for an
   interactive window or a real head unit, and state the blocker instead of burning a session.
 
-### A calculated route's length — which number is a route length (`fix-router-overall-distance`)
+## 10j. A calculated route's length — which number is a route length (`fix-router-overall-distance`)
 
 - **The route's length is the description's own total, else the drawn polyline's length.** The bridge
   publishes `RouteEntry.distance` from the description branch (`libosmscout-client-java/src/OSMScoutClient.cpp`:
@@ -1721,7 +1797,7 @@ found both real causes only after measuring.
 
 Moved here verbatim from `AGENTS.md`, which keeps only the fact that it is a Cairo/vcpkg build. The
 native facts have no rule status — they are what the build is made of — so they live next to the rest of
-the build documentation (`§2` for the iteration loop, `§6` for the test suites, `§8`/`§9` for the SBOM and
+the build documentation (`§2a` for the iteration loop, `§6` for the test suites, `§8`/`§9` for the SBOM and
 the licence inventory).
 
 ### Architecture

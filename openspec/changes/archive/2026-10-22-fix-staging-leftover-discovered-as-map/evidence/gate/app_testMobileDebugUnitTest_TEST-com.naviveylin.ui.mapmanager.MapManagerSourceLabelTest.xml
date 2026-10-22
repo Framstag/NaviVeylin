@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-22T12:24:40.631Z" hostname="dingens" time="0.142">
+  <properties/>
+  <testcase name="installedStateCarriesTheSourceOfEveryDirectory" classname="com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest" time="0.037"/>
+  <testcase name="anUnreadableMarkerIsLabelledAsBuiltIn" classname="com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest" time="0.023"/>
+  <testcase name="leftoverStagingIsNotAnInstalledMap" classname="com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest" time="0.019"/>
+  <testcase name="repositoryInstallIsLabelled" classname="com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest" time="0.02"/>
+  <testcase name="unmarkedInstallationIsLabelledAsBuiltIn" classname="com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest" time="0.02"/>
+  <testcase name="keptRowKeepsItsLabelAndDeleteAction" classname="com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

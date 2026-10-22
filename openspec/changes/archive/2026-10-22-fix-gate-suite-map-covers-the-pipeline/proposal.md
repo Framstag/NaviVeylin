@@ -55,20 +55,22 @@ falsification harness (`loop-mutations.sh`), the portability check (it reads `LO
 ## What Changes
 
 - **One new requirement in `agent-issue-loop`**: the profile SHALL name the pipeline its map is pinned to, and
-  the map SHALL carry every command the pipeline's check steps run, so a landing the pipeline would refuse is
-  refused by the run. A profile that names no pipeline SHALL record that as an empty value rather than leave
-  the key out, so "the map is unpinned" is a state a reader can see.
+  the map SHALL carry every `bash`/`sh` command the pipeline's check steps run, so a landing the pipeline would
+  refuse is refused by the run. A profile that names no pipeline SHALL record that as an empty value rather
+  than leave the key out, so "the map is unpinned" is a state a reader can see. A step that runs its check as
+  inline shell or as a Gradle task is outside the pin; that residual is named in `guidelines/Build.md` §3.
 - **`tools/loop/loop.conf`** records `LOOP_GATE_PIPELINE=".github/workflows/build.yml"` and its
   `LOOP_GATE_SUITES` value grows from 21 pairs naming 8 commands to 55 pairs naming all 31, grouped by the step
   each pair belongs to: the path maps to *the whole command set of the step whose tools read it*, never to
   another step's.
 - **`tools/loop-cases.sh`** gains the two cases: the pin (the map against the pipeline's `Check …` steps) and
-  the behaviour (a delta on a path the pipeline checks owes every command that step runs — the check, its
-  self-test and its mutation `--list` — and names no command of another step).
+  the behaviour (a delta on a path the pipeline checks owes every command the map carries for that step — the
+  check, its self-test and its mutation `--list` — and names no command of another step).
 - **`tools/loop-mutations.sh`** gains one record per assertion of the behaviour case (40.1–40.4), so reverting a
   pair, or coarsening a glob to reach another step's command, makes the named case fail.
-- **`guidelines/Build.md` §3** states the bound the map now carries: every command of the pipeline's check
-  steps is reachable from a path in the profile's map, and the map is pinned by a case.
+- **`guidelines/Build.md` §3** states the bound the map now carries: every `bash`/`sh` command of the
+  pipeline's check steps is reachable from a path in the profile's map, the map is pinned by a case, and the
+  steps that run inline shell or a Gradle task are named as what the pin cannot see.
 
 The change is additive: no engine reads a new key it did not read before (`LOOP_GATE_PIPELINE` is read by the
 pin case only), no suite's behaviour changes, and the compiled-path gate is untouched. Rollback is the revert
@@ -82,9 +84,9 @@ of the four files; nothing else depends on the extra pairs.
   this change and the Gradle gate does not run.
 - Specifications changed: `agent-issue-loop` (one ADDED requirement; no existing requirement is modified).
 - Cost per item: a change touching `openspec/**` or a note now owes the whole "Check documentation routes" step
-  (two scripts and one mutation list) and `tools/check-todo-references.sh`; all three are greps, measured at
-  0.14 s and 0.50 s over this tree on 2026-10-22 (`check-doc-routes.sh` 141 ms,
-  `check-todo-references.sh` 482 ms, `date +%s%N` around each). A workflow delta owes the loop's suite, because
-  the loop's suite is where the map is pinned against it.
+  (two scripts and one mutation list) and `tools/check-todo-references.sh`; the doc checks and the citation scan
+  are greps that run in under a second, the classification pass in about two and a half (timed in
+  `evidence/after-final-edit.log`). A workflow delta owes the loop's suite, because the loop's suite is where the
+  map is pinned against it.
 - Breaking: none. A profile that records no `LOOP_GATE_PIPELINE` at all is refused by the loop's own suite; the
   foreign-project fixture is not run by any suite, so it keeps its three keys.

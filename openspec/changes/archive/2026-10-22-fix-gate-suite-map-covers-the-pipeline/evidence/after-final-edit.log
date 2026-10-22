@@ -1,11 +1,52 @@
-# The reading checks over the post-archive tree, after the last edit of the review round 1 corrections (issue #242).
-# These are the three checks the change's own map owes a path under `openspec/` — the delta it writes and
-# the archive move that ships it; the gate that ran at 05:00:55Z saw the tree before this file was written.
-2026-10-22T05:17:17Z
+# The reading checks over the post-archive tree, taken after the last edit of review round 3 (issue #242).
+# These are all FIVE commands the change's own map owes a `.md` under `openspec/`: the `openspec/*` pairs
+# (classification, documentation routes, its self-test, its mutation list) and the `*.md` pair
+# (`check-todo-references.sh`). Round 2's copy recorded three of the five and called them the set.
+# The gate at 05:35:48Z..05:50:33Z is `gate-round3.log`, over the tree as it stood before this run.
+# Elapsed time is `date +%s%N` around each command, so the timings this change quotes come from here.
+2026-10-22T05:51:45Z
+
+$ bash tools/gen-feature-list.sh --check-classification
+specs read: 177
+classified: 177
+unclassified: 0
+delta spec ids: 1
+stale: 0
+car-only areas: 1
+highlights: 19
+exit=0 — 2517 ms
 
 $ bash tools/check-doc-routes.sh
 check-doc-routes: all 120 section references resolve, all 5 skill references resolve
-exit=0
+exit=0 — 141 ms
+
+$ bash tools/check-doc-routes-selftest.sh
+PASS  routes#everyReferenceResolves — a map where every reference resolves (exit 0)
+PASS  routes#aDanglingSectionNumberIsReported — a dangling section number fails naming the reference (exit 1)
+PASS  routes#aBareDuplicatedNumberIsAmbiguous — a bare duplicated number is reported as ambiguous (exit 1)
+PASS  routes#headingTextThatMatchesNothingIsReported — heading text that matches nothing fails (exit 1)
+PASS  routes#aReferencedDocumentThatDoesNotExistIsReported — a document the table references but that does not exist is reported (exit 1)
+PASS  routes#anAgentsFileWithoutTheMapIsReported — an AGENTS.md without a Documentation Map is reported (exit 2)
+PASS  routes#anUnroutedGuidelineIsReported — an extra guideline that no route names is reported (exit 1)
+PASS  routes#anExtraGuidelineIsRoutedWithoutEditingTheCheck — an extra guideline that is routed and resolves passes without editing the check (exit 0)
+PASS  routes#anExtraGuidelineWithADanglingSectionIsReported — an extra guideline whose section does not exist is reported (exit 1)
+PASS  routes#aSkillTheTreeCarriesResolvesWithoutEditingTheCheck — a skill the tree carries resolves without editing the check (exit 0)
+PASS  routes#aSkillPathThatNoLongerResolvesIsReported — a skill path that no longer resolves is reported (exit 1)
+PASS  routes#aSkillDirectoryWithoutItsSkillFileIsReported — a skill directory without a SKILL.md is reported (exit 1)
+PASS  routes#aSkillNameThatOnlyPrefixesAnExistingOneIsReported — a skill name that only prefixes an existing one is reported (exit 1)
+PASS  routes#aBareDuplicatedNumberInAGuidelineBodyIsReported — a bare duplicated number in a guideline body is reported as ambiguous (exit 1)
+PASS  routes#aHeadingTextInAGuidelineBodyResolvesItsNumber — a heading text in a guideline body resolves its duplicated number (exit 0)
+PASS  routes#aReferenceInsideAFencedBlockIsNotAReference — a reference inside a fenced block is not a reference (exit 0)
+PASS  routes#aGuidelineBodyNamingAMissingSectionIsReported — a guideline body naming a section its document lacks is reported (exit 1)
+PASS  routes#aReferenceInAChangeArtifactIsNotChecked — a reference in a change artifact is not checked (exit 0)
+PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md is untouched by every case
+check-doc-routes-selftest: 19 passed, 0 failed
+exit=0 — 903 ms
+
+$ bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+# tools/check-doc-routes-mutations.json — 1 mutation(s), case command: bash tools/check-doc-routes-selftest.sh
+skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
+exit=0 — 19 ms
 
 $ bash tools/check-todo-references.sh
 check-todo-references: excluded, and why:
@@ -22,15 +63,6 @@ check-todo-references: excluded, and why:
   tools/issues/core/TodoSections.java                      that grammar
   Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
 check-todo-references: 198 line(s) scanned, 63 distinct citation(s), 162 in the recorded table
-check-todo-references: 63 citation(s) resolve through the recorded table; 3559 file(s) excluded by the allowlist above
-exit=0
+check-todo-references: 63 citation(s) resolve through the recorded table; 3561 file(s) excluded by the allowlist above
+exit=0 — 537 ms
 
-$ bash tools/gen-feature-list.sh --check-classification
-specs read: 177
-classified: 177
-unclassified: 0
-delta spec ids: 1
-stale: 0
-car-only areas: 1
-highlights: 19
-exit=0

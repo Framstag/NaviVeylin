@@ -11,10 +11,10 @@ exits 0, so a delta whose check the map never reaches is green in the run while 
 Two edits to the profile and one to the suite that reads it:
 
 1. **`LOOP_GATE_SUITES` is completed**, 21 pairs naming 8 commands → 55 pairs naming all 31. The unit of a pair
-   is a pipeline *step*, not a command: a path maps to every command that step runs (the check, its self-test,
-   its mutation `--list`), because the pipeline runs the step as a unit and any of its commands can be the one
-   that reddens. No path is mapped to a step whose tools do not read it — that would be option 2 of the item's
-   recorded decision, which the owner rejected.
+   is a pipeline *step*, not a command: a path maps to every `bash`/`sh` command that step runs (the check, its
+   self-test, its mutation `--list`), because the pipeline runs the step as a unit and any of its commands can
+   be the one that reddens. No path is mapped to a step whose tools do not read it — that would be option 2 of
+   the item's recorded decision, which the owner rejected.
 2. **`LOOP_GATE_PIPELINE=".github/workflows/build.yml"`** is recorded: the pipeline file the map is pinned to.
    It is a project fact like the gate command, so it lives in the profile and no engine names it.
 3. **Two cases** in `tools/loop-cases.sh`: the pin (the map against the pipeline's `Check …` steps) and the
@@ -53,10 +53,10 @@ Two edits to the profile and one to the suite that reads it:
   through a coarse glob.
 - `guidelines/Build.md` §3 — the gate row states the bound.
 - Cost: a delta on `openspec/**` or a note now owes the whole documentation-routes step (two scripts and one
-  mutation list) and `tools/check-todo-references.sh`; measured 141 ms for `check-doc-routes.sh` and 482 ms for
-  `check-todo-references.sh` on this tree (`date +%s%N` around each). A `.github/workflows/*` delta owes the
-  loop's suite as well as the action-runtimes suite, because the loop's suite is where the map is pinned against
-  the workflow.
+  mutation list) and `tools/check-todo-references.sh` — the two doc checks and the citation scan run in under a
+  second each, the classification pass reads 177 specs in about two and a half — each timed in
+  `evidence/after-final-edit.log`. A `.github/workflows/*` delta owes the loop's suite as well as the
+  action-runtimes suite, because the loop's suite is where the map is pinned against the workflow.
 - No Kotlin, Java or C++ file is touched: `LOOP_GATE_COMPILED_CMD` is not owed by this change.
 
 ## Rollback
@@ -70,3 +70,13 @@ key) is still runnable by an older engine and vice versa — the key is additive
 A new pipeline step still has to be added to the map by hand. The owner accepted that cost when it chose the
 map over running every step; the pin makes the omission loud instead of silent, and the step that is loud is
 the loop's own suite, whose case names every missing command.
+
+The pin's subject is narrower than "a step's every action", and that is deliberate: it reads the `run:` lines
+that name a script, so a step whose check is inline shell or a Gradle task is outside it. Three `Check …` steps
+run inline shell on `ee95d71` (`Check libosmscout Android-free outside Android/`, `Check OpenSpec artifact
+hygiene`, `Check daemon JVM criteria`) and one runs a Gradle task (`Check license policy`). The one with a
+consequence a reader can hit today is the daemon JVM criterion over `gradle/gradle-daemon-jvm.properties`, a
+path no `LOOP_GATE_COMPILED_PATTERNS` glob matches: a delta touching it is green in the run and red in the
+pipeline. The recorded decision's option 1 accepted the map as a copy with an alarm; closing this last corner
+would need either a `gradle/*.properties` compiled pattern or a parser for inline shell, and both are a new
+claim on top of the decision rather than a correction of it.

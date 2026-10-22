@@ -3,10 +3,11 @@
 Base: `ee95d7160cb32c65b56979058338004f29db3edc`. All times UTC, 2026-10-22. Change root:
 `.pi/worktrees/loop`.
 
-Two rounds are recorded here: the change as it was archived (round 1, times 04:41–04:54) and the
-corrections the review asked for (round 2, from 04:59). Round 1's artifacts are kept beside round 2's
-rather than overwritten — `gate-round1.log` is the gate that ran before the archive merge, `gate.log` the
-one that ran over the corrected tree.
+Three rounds are recorded here: the change as it was archived (round 1, times 04:41–04:54), the corrections
+review round 1 asked for (round 2, from 04:59), and review round 2's two blocking corrections (round 3, from
+05:21). Round 1's artifacts are kept beside round 2's rather than overwritten — `gate-round1.log` is the gate
+that ran before the archive merge, `gate.log` the one that ran over the round-2 tree, and `gate-round3.log` the
+one the change is judged by.
 
 ## The red cases, on HEAD, before the profile was changed
 
@@ -111,34 +112,48 @@ Both invocations are `./tools/loop/gate.sh --base ee95d7160cb32c65b5697905833800
 pointing at **this tree's** `tools/loop/loop.conf`. The run exports `LOOP_CONF` from the project tree, whose
 copy predates this change, so the bare invocation would have measured the paths between `origin/main`
 (`80df3a3`) and this tree — the run's previous landings, Kotlin included — and would have run the Gradle gate
-for a change that touches no compiled file, while never exercising the map this change writes. `measure.sh`
-over that base prints `LOOP-MEASURE base=80df3a3… paths=279` for the post-change tree (it was 262 while the
-change's own files were still untracked), which is why the `--base` is passed explicitly.
+for a change that touches no compiled file, while never exercising the map this change writes, which is why
+the `--base` is passed explicitly.
 
 Per-suite tallies: `tools_loop-selftest.sh.xml` (tests=157), plus one XML per other suite, all failures=0. The
 suites that print no "all N cases passed" line carry `tests=0` in their tally, which is the parser's reading of
 their summary and not a claim that they ran nothing: `check-doc-routes.sh` prints "all 120 section references
 resolve", `check-todo-references.sh` prints its citation count, and `mutate.sh --list` prints the record list.
 
-## After the change's last edit
+## After the change's last edit — round 3, over all five commands the map owes
 
 The first copy of this artifact (`04:54:36Z`) was labelled "after the final edit" and was not: `evidence.md`,
-`tasks.md` and the archive merge into `openspec/specs/agent-issue-loop/spec.md` followed it, and those
-`openspec/**` paths are exactly what the change's own map owes the three reading checks for. The review was
-right to refuse it.
+`tasks.md` and the archive merge into `openspec/specs/agent-issue-loop/spec.md` followed it. The round-2 copy
+(`05:17:17Z`) fixed the timestamp but not the set: the header said "the three checks the change's own map owes a
+path under `openspec/`", while that map owes **five** — `tools/gen-feature-list.sh --check-classification`,
+`tools/check-doc-routes.sh`, `tools/check-doc-routes-selftest.sh`,
+`tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list` (the `openspec/*` pairs) and
+`tools/check-todo-references.sh` (the `*.md` pair). Two of the five were therefore unrun over the post-archive
+tree, and review round 2 refused the artifact for it.
 
-`evidence/after-final-edit.log` is re-taken after the last write of this round, over the post-archive tree:
+`evidence/after-final-edit.log` is re-taken in round 3 after the last write of this round, over the post-archive
+tree, and every one of the five commands is in it: each prints its summary, exits 0, and carries its own
+elapsed time (`date +%s%N` before and after) — the two doc checks and the citation scan under a second each,
+the classification pass about two and a half — so the cost is quoted from the artifact rather than asserted in
+prose.
 
-    $ bash tools/check-doc-routes.sh
-    check-doc-routes: all 120 section references resolve, all 5 skill references resolve
-    $ bash tools/check-todo-references.sh
-    check-todo-references: 198 line(s) scanned, 63 distinct citation(s), 162 in the recorded table
-    check-todo-references: 63 citation(s) resolve through the recorded table; …
-    $ bash tools/gen-feature-list.sh --check-classification
-    specs read: 177
-    classified: 177
-    unclassified: 0
-    delta spec ids: 1
+## The gate, round 3
 
-Each exits 0. Measured wall time on this tree with `date +%s%N` around each: `check-doc-routes.sh` 141 ms,
-`check-todo-references.sh` 482 ms, `gen-feature-list.sh --check-classification` 2437 ms.
+`evidence/gate-round3.log` (`05:35:48Z`–`05:50:33Z`) — eight commands, `LOOP-GATE: tests=157 failures=0`,
+`exit=0`, over the corrected tree and under **this tree's** profile:
+
+    gate: ./gradlew test -PforceTests --no-build-cache
+    gate: tools/gen-feature-list.sh --check-classification
+    gate: tools/check-doc-routes.sh
+    gate: tools/check-doc-routes-selftest.sh
+    gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+    gate: tools/check-todo-references.sh
+    gate: tools/loop-selftest.sh
+    gate: tools/loop-mutations-selftest.sh
+    LOOP-GATE: tests=157 failures=0 (…)
+
+The invocation was `LOOP_CONF=<this tree>/tools/loop/loop.conf ./tools/loop/gate.sh --base ee95d71…`, the same
+shape round 2 used and for the same reason. The trap the paragraph above describes was caught again in this
+round rather than quoted: a bare `./tools/loop/gate.sh` first owed only **four** commands — the run exports
+`LOOP_CONF` from the project tree, whose profile predates this change — so that invocation measured the old
+map and is kept as `evidence/invalid-3a-bare-invocation-old-profile.log`, not as the change's gate.

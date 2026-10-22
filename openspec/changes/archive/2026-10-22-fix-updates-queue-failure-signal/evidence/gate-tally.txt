@@ -1,0 +1,15 @@
+gate: ./tools/loop/gate.sh — exit 0, 2026-10-22T00:52Z (BUILD SUCCESSFUL in 3m 32s)
+
+LOOP-GATE: tests=210 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/check-doc-routes.sh)
+
+The 210 above are the four shell suites' own case counts; the build's own tally is the gradle run's exit and its per-module XML:
+app/build/test-results/testMobileDebugUnitTest       tests=2097 skipped=0 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest   tests=2097 skipped=0 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest            tests=866 skipped=0 failures=0 errors=0
+core/build/test-results/testDebugUnitTest            tests=642 skipped=0 failures=0 errors=0
+osmscout-client-java/build/test-results/test         tests=48 skipped=0 failures=0 errors=0
+gradle total: 5750 tests, 0 failures, 0 errors, 0 skipped (2097 + 2097 + 866 + 642 + 48)
+
+our class, both flavours:
+app/build/test-results/testMobileDebugUnitTest: tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-22T00:48:44.326Z"
+app/build/test-results/testAutomotiveDebugUnitTest: tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-22T00:48:32.215Z"

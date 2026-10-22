@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-22T00:48:44.326Z" hostname="dingens" time="7.24">
+  <properties/>
+  <testcase name="theQueueRunsOneTransferAtATime" classname="com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest" time="6.447"/>
+  <testcase name="aFailureDoesNotStopTheQueue" classname="com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest" time="0.082"/>
+  <testcase name="updateOneItemRunsOnlyThatOne" classname="com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest" time="0.059"/>
+  <testcase name="theQueueIsVisibleAsADownloadWhileItRuns" classname="com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest" time="0.08"/>
+  <testcase name="aFailedSwapIsReportedAndKeepsTheInstallation" classname="com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest" time="0.062"/>
+  <testcase name="anItemIsCancelledOnItsOwn" classname="com.naviveylin.ui.mapmanager.MapManagerUpdatesQueueTest" time="0.052"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

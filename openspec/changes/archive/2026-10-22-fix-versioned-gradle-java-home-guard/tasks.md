@@ -66,9 +66,32 @@
   `.github/workflows/build.yml` (quoted in `evidence/corrections-round2.md`) and
   `./tools/loop/measure.sh --change 2026-10-22-fix-versioned-gradle-java-home-guard` printing
   `LOOP-MEASURE-SURFACE surface: 1 case class added (3 cases), …` instead of `none`.
-- [x] 4.2 `tasks.md` 3.5: state the `6245` total as `477` shell cases + `5768` module tests. Verification: the
-  eight shell tallies in `evidence/gate-tallies.txt` sum to 477 and the five module tallies to 5768.
+- [x] 4.2 `tasks.md` 3.5: state the `6245` total as `477` shell cases + `5768` module tests. Verification:
+  `477` is `evidence/gate.log`'s `LOOP-GATE: tests=477 failures=0` line, and `5768` is the five module tallies
+  in `evidence/gate-tallies.txt` (`2101 + 2101 + 876 + 642 + 48`). The per-suite split behind `477`
+  (`10 + 0 + 115 + 117 + 34 + 156 + 45 + 0`) is read from the gate's own per-suite output, which `gate.sh`
+  writes under `app/build/test-results/loop-gate/` and does not archive — only the aggregate line is archived.
 - [x] 4.3 Record the round and its measurements: `evidence/corrections-round2.md`, plus a round-2 section in
   `evidence/structural-checks.txt`. Verification: `bash tools/check-doc-routes.sh` → `all 120 section
   references resolve, all 5 skill references resolve`; `openspec validate --specs` → `Totals: 177 passed, 0
   failed`. No gate re-run: this round touches no compiled file.
+
+## 5. Round 3 — the round-2 review's two blocking findings
+
+- [x] 5.1 `proposal.md` Surface: the first line quoted a file count (`20 versioned files, 12 archived`) that
+  the command it quotes does not reproduce. Re-measured on 2026-10-22 from the change root, per tree:
+  `git grep -l "org\.gradle\.java\.home" -- .` → 30 files / 20 archived on the merged tree, 21 / 12 on the
+  base tree (this change's 8 files and its new test class excluded); the line now names both trees, their gap
+  and the reason a `grep -rl --exclude-dir=build` reading of the same base shows 22 / 12. Verification: the
+  three readings in `evidence/corrections-round3.md` §1, re-runnable and quoted with their output.
+- [x] 5.2 `tasks.md` 4.2 pointed a verification at an artifact that does not carry the number it verifies:
+  `evidence/gate-tallies.txt` holds no per-suite shell tallies. The item now points `477` at
+  `evidence/gate.log`'s `LOOP-GATE` line and `5768` at that file's five module tallies, and marks the
+  per-suite split as the gate's own unarchived per-suite output (`app/build/test-results/loop-gate/`).
+  Verification: `grep LOOP-GATE evidence/gate.log` and `grep TOTAL evidence/gate-tallies.txt`, quoted in
+  `evidence/corrections-round3.md` §2.
+- [x] 5.3 Record this round: `evidence/corrections-round3.md`, plus a round-3 section appended to
+  `evidence/structural-checks.txt`. Verification: `bash tools/check-doc-routes.sh` → `all 120 section
+  references resolve, all 5 skill references resolve`; `openspec validate --specs` → `Totals: 177 passed, 0
+  failed`. No gate re-run: this round touches no compiled file — two `.md` files of the change and its
+  evidence only.

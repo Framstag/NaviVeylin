@@ -19,3 +19,21 @@ LOOP-MEASURE-SURFACE surface: 1 case class added (3 cases), 0 cases rewritten, 0
 
 $ openspec validate --specs
 Totals: 177 passed, 0 failed (177 items)
+
+## round 3 (corrections-only: proposal.md Surface file count, tasks.md 4.2 pointer, corrections-round3.md)
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+exit=0
+
+$ git grep -l "org\.gradle\.java\.home" -- . | wc -l
+30
+$ git grep -l "org\.gradle\.java\.home" -- . | grep -c openspec/changes/archive
+20
+$ git grep -l "org\.gradle\.java\.home" -- . | grep -v fix-versioned-gradle-java-home-guard | grep -v VersionedGradleJavaHomeTest | wc -l
+21
+$ git grep -l "org\.gradle\.java\.home" -- . | grep -v fix-versioned-gradle-java-home-guard | grep -v VersionedGradleJavaHomeTest | grep -c openspec/changes/archive
+12
+
+$ openspec validate --specs
+Totals: 177 passed, 0 failed (177 items)

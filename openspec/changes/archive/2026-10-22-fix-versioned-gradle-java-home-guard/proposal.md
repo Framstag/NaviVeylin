@@ -55,7 +55,10 @@ which already states the absence as a rule and now names the guard that enforces
 ### Surface
 
 ```
-git grep -l "org\.gradle\.java\.home" -- .: 20 versioned files, 12 of them archived changes
+git grep -l "org\.gradle\.java\.home" -- .: merged tree 30 versioned files, 20 of them archived changes;
+base tree (this change's 8 files and its new test class excluded) 21 files, 12 of them archived — the 9-file
+gap is this change. Measured 2026-10-22. `grep -rl --exclude-dir=build` reads 22 on the base because it also
+skips the test class's `com/naviveylin/build/` package and counts the untracked `local.properties`
 grep -rn "gradle\.properties" app/src/test auto/src/test tools .github: 3 hits on the base tree, none an assertion
 grep -c "org\.gradle\.java\.home" .github/workflows/build.yml: 10 after the change — 9 pre-existing lines
 (66, 71, 462, 468, 475, 482, 491, 504, 525) plus the added `::error` line at :345; the added predicate at :344

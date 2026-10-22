@@ -752,6 +752,15 @@ flavors one expects (§134.65).
   the tap to the innermost target (measured 2026-10-05), so a click case alone cannot falsify an overlap
   guard — assert the geometry and falsify it with the `revert-check` skill (move the tap area / shrink the
   box / neuter the handler).
+- **A case that asserts a queue's post-condition asserts the queue's own row state too.** A case that drives
+  work through a queue and then asserts only what the queue was supposed to produce cannot name *why* the
+  expectation was not met: "the item failed" — its row carries a failure, a text and a cleanup path of its own —
+  and "the item had not finished" reach that assertion with the same message. `MapManagerUpdatesQueueTest` lost
+  a failure to exactly that on 2026-10-20 (one mobile-suite run, `expected:<[new types]> but was:<[installed]>`,
+  20/20 green on its own and green in three full-suite runs that failed 69/184/5 cases on `EDQUOT` disk writes),
+  and its `updateOneItemRunsOnlyThatOne` now reads `uiState.updateTransfers` and asserts no
+  `UpdateTransferState.Failed` for its item *before* it asserts the installed file, with the row in the message
+  (issue #217, change `fix-updates-queue-failure-signal`).
 - **Declared unit-test fork budgets.** Two modules need more than the AGP default
   fork heap (512 MB) to hold their whole suite in one JVM; both declare it in
   `testOptions { unitTests { all { it.maxHeapSize = … } } }` so a fresh checkout and

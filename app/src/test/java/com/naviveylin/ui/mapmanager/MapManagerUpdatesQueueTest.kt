@@ -6,6 +6,7 @@ import com.framstag.libosmscout.client.FakeMapDownloadManager
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.MapDownloadManager
 import com.framstag.libosmscout.client.MapProvider
+import com.naviveylin.R
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.mapsource.MapSource
@@ -26,6 +27,7 @@ import com.naviveylin.data.withSelectedMapSource
 import com.naviveylin.test.MainDispatcherRule
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.PosixFilePermissions
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -42,7 +44,8 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Unit tests for what updating more than one installation does: one transfer at a time, each cancellable on
- * its own, a failure of one reported for its own row without stopping the rest, and one item updated alone.
+ * its own, a failure of one reported for its own row without stopping the rest, one item updated alone, and a
+ * swap that cannot complete reported on the row of the item it belongs to.
  *
  * Spec: map-updates — "Updating every listed item is a queue" / "An update replaces the installation only when
  * it is complete" / "An installed update is rendered without an app restart".
@@ -199,6 +202,13 @@ class MapManagerUpdatesQueueTest {
         viewModel.update(hamburgItem)
         advanceUntilIdle()
 
+        // The item's own row says how its transfer ended, and this assertion exists so that a failure of the
+        // assertions below names its cause: through the installed file alone a `Failed` row (a transfer, a
+        // verification or a swap that did not complete) and a transfer that had not finished when the assertion
+        // ran read identically — which is what the 2026-10-20 failure of this case could not tell apart (issue
+        // #217).
+        val row = viewModel.uiState.value.updateTransfers[hamburgDirectory]
+        assertFalse("the one-item update did not fail — its row says $row", row is UpdateTransferState.Failed)
         assertEquals(NEW_TYPES, typesDat(hamburgDirectory))
         assertEquals("the other installation is untouched", INSTALLED_TYPES, typesDat(berlinDirectory))
         assertTrue(
@@ -207,6 +217,51 @@ class MapManagerUpdatesQueueTest {
                 url.contains("/berlin/v$version/map.lib") || url.contains("/berlin/v$version/types.dat")
             }
         )
+    }
+
+    @Test
+    fun aFailedSwapIsReportedAndKeepsTheInstallation() = runTest(mainDispatcherRule.dispatcher) {
+        installMap(berlinDirectory)
+        installMap(hamburgDirectory)
+        serveBothSlots()
+        // The swap starts by deleting the previous attempt's backup and moving the installation aside. A backup
+        // that cannot be removed — its body is read-only, so the removal is refused — stops it there, with the
+        // previous installation still in place: the transfer completed and verified, and only the swap did not
+        // (spec `map-updates` — "An update replaces the installation only when it is complete").
+        val stuckBackup = storageManager.mapsRootDir.resolve(".$hamburgDirectory${SlotInstall.BACKUP_SUFFIX}")
+        val kept = Files.createDirectories(stuckBackup.resolve("kept"))
+        Files.write(kept.resolve("types.dat"), INSTALLED_TYPES.toByteArray())
+        Files.setPosixFilePermissions(kept, PosixFilePermissions.fromString("r-xr-xr-x"))
+        try {
+            val viewModel = updatesViewModel()
+            checkAndWait(viewModel)
+            val hamburgItem = viewModel.updates.value.updates.first { it.directoryName == hamburgDirectory }
+
+            viewModel.update(hamburgItem)
+            advanceUntilIdle()
+
+            val row = viewModel.uiState.value.updateTransfers[hamburgDirectory]
+            assertTrue("the item reports that its update could not be installed", row is UpdateTransferState.Failed)
+            assertEquals(
+                "with the text a failed installation gets, not a failed transfer's",
+                ApplicationProvider.getApplicationContext<Application>().getString(R.string.update_install_failed),
+                (row as UpdateTransferState.Failed).message
+            )
+            assertEquals(
+                "the installation the app had is the one it keeps",
+                INSTALLED_TYPES,
+                typesDat(hamburgDirectory)
+            )
+            assertFalse(
+                "and no other listed item reports a failure",
+                viewModel.uiState.value.updateTransfers[berlinDirectory] is UpdateTransferState.Failed
+            )
+        } finally {
+            // Give the maps tree back as the class's setUp produces it: what this case made unremovable is what
+            // the next case sweeps, and a backup that outlives the case would fail the next swap.
+            Files.setPosixFilePermissions(kept, PosixFilePermissions.fromString("rwxr-xr-x"))
+            SlotInstall.sweep(storageManager.mapsRootDir.resolve(hamburgDirectory))
+        }
     }
 
     @Test

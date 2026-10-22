@@ -587,7 +587,12 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   so the installation a running client renders stays usable throughout; data a
   failed or interrupted attempt left in the maps tree is *recognised* by
   `SlotInstall.stagingTargetOf` rather than only hidden, and the app-start path
-  removes it (spec: `map-updates`). The repository update check runs at most once
+  removes it (spec: `map-updates`). Every reader that opens, lists, centres on or
+  records a database — the start-map resolution, the map manager's installed list,
+  the phone canvas, the car session — goes through `MapTreeDiscovery`, which applies
+  that classification and names each leftover it drops in the diagnostics together
+  with the installation it belongs to; none of them reads the raw `InstalledMaps`
+  scan itself, and the update check, which does, reports the leftovers on its own. The repository update check runs at most once
   a day on the app-start path (`MapUpdates`, process-scoped) and persists its
   result — the last completed check and the installations found — in the settings
   file under the same serialised transaction as every other setting.

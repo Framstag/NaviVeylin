@@ -4,7 +4,7 @@
 
 `NavigationStateOverlayComposeTest` reads the two details regions and the control's own tag in the unmerged
 tree; nothing iterates the **actionable targets** of the merged tree, so a target the card gains over the
-control's pixels (`NavigationStateOverlay.kt:70` — the card the archived `fix-nav-overlay-stop-tap` change
+control's pixels (`NavigationStateOverlay.kt:71` — the card the archived `fix-nav-overlay-stop-tap` change
 stripped of `.clickable`) is invisible to all 12 cases.
 
 ## The single fix
@@ -24,8 +24,11 @@ cannot regress the overlay.
   and measured: it is green on HEAD *and* green under the card-wide fold, because a merging parent does not
   absorb a merging child — the IconButton stays its own node. It would have held nothing the item names
   (measured 2026-10-22T03:05Z: card-wide `.clickable` added, all 13 cases green). Eliminated by measurement.
-- **Counting nodes that carry the stop label** (`hasClickAction() and hasContentDescription(label)`) is green on
-  HEAD and green under the same fold, for the same reason. Eliminated by the same probe.
+- **Counting nodes that carry the stop label** (`hasClickAction() and hasContentDescription(label)`) holds
+  nothing: it is green on HEAD *and* green under the same fold, because under the fold exactly one actionable
+  node carries the label while two overlap the box. Read off the mutation that was run, not probed again —
+  `evidence/revert-check-mutated.xml` has the two label assertions on the control passing
+  (`NavigationStateOverlayComposeTest.kt:246-247`) and only the unrestricted count failing (`:257`).
 - **A production change** — the fold is a test-only gap, the production code already satisfies the contract
   (`evidence/head-green.xml`: the control is actionable, labelled, and the only target over its box).
 

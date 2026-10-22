@@ -41,14 +41,29 @@ Item #7 (`§166`, filed 2026-10-09 by `bugfix-loop` after `fix-nav-overlay-stop-
 
 `openspec/specs/navigation-status-details/spec.md`, MODIFIED requirement "Routing status card is clickable":
 the control SHALL be an actionable target of its own carrying its own accessible label, and no other
-actionable target of the card SHALL overlap its hit area. Two scenarios name one case each.
+actionable target of the card SHALL overlap its hit area. The added scenario names its case
+(`- **Case**:`); the requirement's other eight scenarios are the pre-change text restated unchanged
+(`evidence/delta-vs-base-requirement.diff`).
 
 ## Cases and evidence
 
 - `app: NavigationStateOverlayComposeTest.stopControlIsTheOnlyActionableTargetOverItsOwnBox` — green on HEAD
   (`evidence/head-green.xml`, tests=13 failures=0, 2026-10-22T03:06:56Z), red under the revert-check mutation
   (`evidence/revert-check-mutated.xml`, tests=13 failures=1, 2026-10-22T03:07:12Z).
-- `./gradlew test -PforceTests --no-build-cache` — the gate (`evidence/gate.xml`, both flavors).
+- `./gradlew test -PforceTests --no-build-cache` — the gate, both flavors: its record is
+  `evidence/gate.log` and `evidence/gate-tally.txt`, and the changed class's own result is
+  `evidence/gate-overlay.xml`.
+
+Surface, counted before the plan was fixed:
+
+```
+surface: 1 case added, 0 rewritten, 0 fixtures realigned — the rule is held by 1 guideline bullet and 1
+capability requirement, and of the 15 test files that mention a stop symbol only one asserts the card's
+overlay geometry
+$ grep -rln 'stopNavigation\|stopControl\|stop_navigation' app/src/test app/src/androidTest   # 15 files
+$ grep -rln 'Routing status card is clickable' openspec/specs                                 # 1
+$ grep -rn 'Tap targets (phone overlays)' guidelines/                                         # guidelines/UI.md:810
+```
 
 ## Impact
 

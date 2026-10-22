@@ -1,0 +1,7 @@
+# scenario-body check — BEFORE the correction (round 2), 2026-10-22T03:25:47Z
+# scope: every spec.md under openspec/specs/ plus this change's delta
+# fails a `#### Scenario:` heading with no bullet before the next heading (openspec validate only warns;
+# openspec doctor does not look at scenario bodies)
+openspec/changes/archive/2026-10-22-fix-stop-control-semantics-guard/specs/navigation-status-details/spec.md:54: #### Scenario: The expanded view's stop control is its own target too — no WHEN/THEN body
+openspec/specs/navigation-status-details/spec.md:58: #### Scenario: The expanded view's stop control is its own target too — no WHEN/THEN body
+EXIT=1

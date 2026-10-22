@@ -1,0 +1,18 @@
+# openspec validate + doctor, 2026-10-22T03:26:19Z (task 3's named verification; neither looks at a scenario body)
+
+$ openspec validate navigation-status-details --type spec
+Specification 'navigation-status-details' is valid
+⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+EXIT=0
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
+References
+  (none declared)
+EXIT=0

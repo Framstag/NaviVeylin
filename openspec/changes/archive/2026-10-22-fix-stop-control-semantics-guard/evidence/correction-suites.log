@@ -1,0 +1,16 @@
+# the two gate suites this correction's pathspec owes (`openspec/*` and `*.md` in tools/loop/loop.conf's LOOP_GATE_SUITES), 2026-10-22T03:26:14Z
+# run directly, not through ./tools/loop/gate.sh: the change's gate is round 1's and is not re-run
+
+$ bash tools/gen-feature-list.sh --check-classification
+specs read: 177
+classified: 177
+unclassified: 0
+delta spec ids: 1
+stale: 0
+car-only areas: 1
+highlights: 19
+EXIT=0
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+EXIT=0

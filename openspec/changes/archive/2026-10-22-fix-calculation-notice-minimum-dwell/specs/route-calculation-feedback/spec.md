@@ -4,7 +4,7 @@
 
 ### Requirement: A notice the navigation view replaces stays visible for a minimum dwell
 
-Once the car calculation notice has been shown it SHALL stay visible for a minimum dwell before the navigation view replaces it: a route that arrives within that dwell SHALL replace the notice only when the dwell has elapsed, and a notice that has outlasted it SHALL be replaced at once. The dwell SHALL be measured from the moment the notice appeared, SHALL NOT delay the removal a cancellation or a failure causes, and SHALL NOT apply to a calculation whose notice was never shown.
+Once the car calculation notice is shown it SHALL stay visible for a minimum dwell before the navigation view replaces it: a route arriving inside the dwell SHALL replace it only once the dwell has elapsed, and a notice that outlasted it SHALL be replaced at once. The dwell SHALL run from the moment the notice appeared, SHALL NOT delay the removal a cancellation causes or a failure whose error notice stands over no navigation view, and SHALL NOT apply where the notice was never shown.
 
 #### Scenario: A route that arrives inside the dwell keeps the notice up
 
@@ -21,6 +21,6 @@ Once the car calculation notice has been shown it SHALL stay visible for a minim
 
 #### Scenario: The driver's own answer is never delayed by the dwell
 
-- **WHEN** the calculation is cancelled from the notice, or it fails
+- **WHEN** the calculation is cancelled from the notice, or it fails with no navigation view below the notice
 - **THEN** the notice SHALL leave without waiting for the minimum dwell
 - **Case**: `auto: CalculationNoticeDwellTest.theDriversOwnAnswerIsNeverDelayedByTheDwell`

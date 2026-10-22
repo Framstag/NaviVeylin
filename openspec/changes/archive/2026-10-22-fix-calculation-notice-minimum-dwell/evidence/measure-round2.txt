@@ -1,0 +1,13 @@
+LOOP-MEASURE base=80df3a3cadec0c6c4961ef08220d08177f23a9b1 paths=483 insertions=19117 deletions=202
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK tools/gen-feature-list-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHANGE 2026-10-22-fix-calculation-notice-minimum-dwell scenarios=3 cases=3 unnamed=0
+LOOP-MEASURE-SURFACE surface: 3 cases added, 0 rewritten, 0 fixtures realigned — `CalculationNoticeDwellTest` (new, 3 cases),
+LOOP-MEASURE-END

@@ -107,7 +107,10 @@ again and nothing else moves.
 
 ## Out of scope, and why
 
-The dwell does **not** apply to a cancellation or a failure: the driver's own tap and the error notice are
-answers, not a screen the wait owes, and delaying them would tax the one interaction the notice exists to
-offer. Reroute notices are covered by the same rule (the navigation view is already live under them, so
-the dwell is the only thing that changes); the phone surface has no wait notice and is untouched.
+The dwell does **not** apply where nothing the wait owes stands below the notice: the driver's own tap on
+Cancel, and a failure whose error notice is shown over no navigation view, are answers and not a screen the
+wait owes, and delaying them would tax the one interaction the notice exists to offer. A failed **reroute**
+keeps the navigation view live, so the dwell is owed there too — the error notice covers the notice on the
+same emission, so the dwelling notice is not visible and the job removes it behind the overlay. Reroute
+notices are covered by the same rule (the navigation view is already live under them, so the dwell is the
+only thing that changes); the phone surface has no wait notice and is untouched.

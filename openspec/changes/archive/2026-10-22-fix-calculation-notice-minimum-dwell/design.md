@@ -30,18 +30,20 @@ is the session's mutation); a `Handler.postDelayed` (rejected — the session's 
 ## D2. `700 ms`, and why that number
 
 The measured flash is 443 ms (an 847 ms route; the notice is pushed at 400 ms, the navigation view
-replaced it at 443 ms later). The dwell must be longer than the band it removes, and the observed band is
-400–800 ms; 700 ms covers every sample the archived change recorded (847 ms, 24.6 s, 28.7 s) and keeps the
-worst case a driver waits — a route that arrives one millisecond after the delay — at 700 ms of notice,
-1.1 s from the request. The number is asserted by the case (a 443 ms notice owes 257 ms), so a later
-measurement that changes it changes a red case, not a comment.
+replaced it at 443 ms later). The dwell must be longer than the flash it removes, and 443 ms is the only
+flash the evidence carries: the other samples (847 ms, 24.6 s, 28.7 s) are *route durations*, and no route
+returning between 443 ms and those was observed. 700 ms therefore leaves ~250 ms of margin over the only
+flash measured and keeps the worst case a driver waits — a route that arrives one millisecond after the
+delay — at 700 ms of notice, 1.1 s from the request. A flash longer than 443 ms is not excluded by the
+evidence; the number is asserted by the case (a 443 ms notice owes 257 ms), so a later measurement that
+changes it changes a red case, not a comment.
 
-*Alternatives eliminated:* raising `CALCULATION_NOTICE_DELAY_MS` to ~900 ms instead (rejected — it makes
-the notice disappear for the whole 400–900 ms band, i.e. the driver waits a second in silence instead of
-seeing that something is happening, and the archived change's own decision kept 400 ms because no
-successful route below it was observed); a fixed dwell of 443 ms (rejected — it would be the measured
-sample rounded down to the boundary, and a route arriving at 443 ms would flash for zero milliseconds only
-by luck).
+*Alternatives eliminated:* raising `CALCULATION_NOTICE_DELAY_MS` to ~900 ms instead (rejected — every
+route ending between 400 ms and 900 ms would then show no notice at all, i.e. the driver waits a second in
+silence instead of seeing that something is happening, and the archived change's own decision kept 400 ms
+because no successful route below it was observed); a fixed dwell of 443 ms (rejected — it would be the
+measured sample rounded down to the boundary, and a route arriving at 443 ms would flash for zero
+milliseconds only by luck).
 
 ## D3. The dwell never delays the driver's own answer
 
@@ -49,13 +51,20 @@ The removal has two shapes and only one of them is a screen the wait owes:
 
 - **the route arrived** — the navigation view is pushed on the `isNavigating` edge, i.e. *under* the
   notice, and the removal is what reveals it. This is the shape the dwell protects.
-- **a cancellation or a failure** — the driver's tap, and the error notice. Delaying either would tax the
-  one interaction the notice exists to offer, and the shipped scenarios ("Calculation cancelled from the
-  notice", "Calculation fails") state they are answered at once.
+- **nothing the wait owes stands below the notice** — the driver's tap on Cancel, or a failure whose error
+  notice is shown over no navigation view. Both are answered at once, and delaying either would tax the
+  one interaction the notice exists to offer.
 
 `replacedByNavigation` is therefore an input of the decision (it is
 `navigationViewModel.state.value.isNavigating` at the moment the calculation state cleared), not of the
-timer.
+timer — which makes the discriminator "is a navigation view live", not "was the outcome a success".
+
+A **failed reroute** is the case that separates the two: `NavigationEngine.endCalculation()` clears
+`state.calculation` and leaves `isNavigating` true, so the dwell *is* owed — but the error notice is pushed
+over the calculation notice on the same state emission, so what stays behind is not visible, and the dwell
+job removes it under the overlay. The requirement therefore claims no-dwell only for the failure that has
+no navigation view under the error notice. The first wording claimed it for every failure, and round 1 of
+the review refused the change for exactly that contradiction between the clause and the wiring.
 
 ## Blast radius
 

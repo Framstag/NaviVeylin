@@ -70,6 +70,9 @@ class DetailsScreenTest {
     private val destLat = 51.5
     private val destLon = 7.5
 
+    /** The car surface's published last-frame center; the stop path publishes into it. */
+    private val carViewport = CarMapViewportProvider()
+
     @Before
     fun setUp() {
         every { carContext.applicationContext } returns ApplicationProvider.getApplicationContext<Context>()
@@ -91,9 +94,10 @@ class DetailsScreenTest {
             every { revision } returns MutableStateFlow(0L)
         }
         every { entryPoint.autoSurfaceHost() } returns SessionCarSurfaceHost()
-        // The car surface's published last-frame center: the stop path publishes into it, and no case
-        // here asserts the value (spec: search-result-ranking — distance reference).
-        every { entryPoint.carMapViewportProvider() } returns CarMapViewportProvider()
+        // The car surface's published last-frame center: the stop path publishes into it
+        // (spec: search-result-ranking — distance reference), asserted by
+        // [aStoppedMapPublishesTheLastDrawnFrameCenter].
+        every { entryPoint.carMapViewportProvider() } returns carViewport
         mockkStatic(EntryPoints::class)
         every { EntryPoints.get(any(), AutoEntryPoint::class.java) } returns entryPoint
     }
@@ -156,6 +160,32 @@ class DetailsScreenTest {
         assertTrue(
             "and re-arms the recovery budget",
             !screen.rendererGate.renderSupervisor.isSuspended
+        )
+    }
+
+    @Test
+    fun aStoppedMapPublishesTheLastDrawnFrameCenter() = runTest(mainDispatcher.dispatcher) {
+        // Spec: search-result-ranking — Car search opened from a surface that shows no map. The push
+        // that opens the search stops this screen; the center it publishes on the way out is the
+        // one the search then measures from. The renderer stands in for one that has committed a
+        // frame, so the case pins the wiring (onStop -> publish) rather than the helper alone.
+        val screen = newScreen()
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+        // The screen's own renderer init may still be resolving its client on a real background
+        // dispatcher, so its later publish must not race this case: publish the standing renderer
+        // here, then stop without draining the scheduler in between.
+        val drawnFrame = mockk<AutoMapRenderer>(relaxed = true)
+        every { drawnFrame.committedViewportCenter() } returns (51.5136 to 7.4653)
+        screen.rendererGate.publish(drawnFrame)
+
+        screen.dispatchLifecycleEvent(Lifecycle.Event.ON_STOP)
+        advanceUntilIdle()
+
+        assertEquals(
+            "the frame the stopped map displayed is the car surface's distance reference",
+            51.5136 to 7.4653,
+            carViewport.center.value
         )
     }
 

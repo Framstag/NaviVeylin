@@ -7,8 +7,8 @@ import java.io.File
 
 /**
  * Holds the JNI bridge's two Java sides together, to `osmscout-jni`'s requirement "The override mirrors the
- * submodule's natives, except the recorded deviations" (scenarios "The build refuses an unrecorded deviation"
- * and "The recorded deviations are the tree's own").
+ * submodule's natives, except the recorded deviations" (scenarios "The app build registers the parity gate and
+ * wires it into preBuild" and "The recorded deviations are the tree's own").
  *
  * `:osmscout-client-java` compiles the libosmscout submodule's `libosmscout-client-java/java` sources except five
  * overridden files (`guidelines/Design.md` §5). A native the submodule declares and the override does not is a
@@ -34,7 +34,7 @@ class NativeOverrideParityGuardTest {
     private val deviationList = File(repoRoot, "osmscout-client-java/native-parity.txt")
 
     @Test
-    fun `the build refuses an unrecorded deviation`() {
+    fun `the app build registers the parity gate and wires it into preBuild`() {
         assertTrue(
             "the build script must exist at ${buildScript.absolutePath}",
             buildScript.isFile

@@ -225,7 +225,10 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
 # block's reason.
 merge_refusal=""
 merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed, 5 refused (the reason in merge_refusal)
-  local issue="$1" branch="$2" out base
+  # `base` is deliberately not in this list: the merge moves the run's own base, and every later item is cut from
+  # it. Declared here, the assignment below wrote a copy — the state file advanced and the run kept the commit it
+  # read once at its start, so the next item was handed a base several merges old (issue #252).
+  local issue="$1" branch="$2" out
   merge_refusal=""
   out=$(bash "$LOOP_DIR/worktree.sh" merge-item "$issue" "$branch" 2>&1) || {
     merge_refusal="$out"
@@ -236,7 +239,14 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
   # The merge moved the base branch itself, so the base the run recorded is the commit every later item must
   # descend from — without this the next `start-item` would refuse the run's own merge as a stale base.
   base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${LOOP_BASE_REF:-main}") || base=""
-  [ -z "$base" ] || loop_state set-base "$base" >/dev/null 2>&1 || true
+  # A base the tree moved to but the state does not carry is not a warning to swallow: the run hands the next item
+  # a commit the tree has left, which is the same defect one step further on. The merge is refused instead, so the
+  # item blocks with its branch named rather than closing on a base nobody can reproduce (issue #252).
+  if [ -z "$base" ] || ! loop_state set-base "$base" >/dev/null 2>&1; then
+    merge_refusal="the base could not be recorded after the merge — ${LOOP_BASE_REF:-main} did not resolve, or the run's state refused it, so the state and the tree would disagree about what every later item descends from"
+    printf '%s\n' "$merge_refusal" >&2
+    return "$LOOP_REFUSE"
+  fi
   # The branch and its commits are what a later reader checks the closure against: git lists the branch, nothing
   # else does once the run's state is replaced by the next run's.
   merged_branch=$(printf '%s\n' "$out" | sed -n 's/^merged: branch \([^ ]*\) .*/\1/p')
@@ -578,6 +588,31 @@ review_correction_scope() { # <refused head> <refusing report path>
   printf '\n'
 }
 
+# Test results are the gate's evidence, and the run reads them out of the worktree after a worker — so a
+# directory an earlier item wrote is indistinguishable from this item's own gate. The kept worktree carries them
+# across items, and a child the round cap ends leaves the half-written state of its own gate behind (issue #253:
+# item #116's killed Gradle left `auto/build/test-results/testDebugUnitTest/binary/in-progress-results-generic.bin`,
+# and the next gate failed with `java.io.EOFException` on infrastructure instead of on a case; the same leftovers
+# defeat the "no test-results XML exists in the tree" refusal below, because there is always an XML).
+#
+# So every worker starts on a worktree without one. What is removed is a directory named `test-results` whose
+# parent is a `build` directory, inside the worktree, through `loop_scratch_remove`, whose four refusals are the
+# whole safety argument: only inside the tree, never through a symlink, never a path git tracks. The reviewer's
+# child is deliberately not covered: the round reads the gate result the worker just wrote, and taking it out of
+# the tree would hand the reviewer a tree the worker's evidence has been removed from.
+clear_stale_test_results() {
+  local dir rel cleared=""
+  [ -d "$worktree" ] || return 0
+  while IFS= read -r dir; do
+    [ -n "$dir" ] || continue
+    rel="${dir#"$worktree"/}"
+    loop_scratch_remove "$worktree" "$rel" --apply || continue
+    cleared="${cleared:+$cleared }$rel"
+  done < <(find "$worktree" -type d -name test-results -path '*/build/test-results' 2>/dev/null | sort)
+  [ -n "$cleared" ] || return 0
+  printf 'run: cleared %s from the worktree before this child — test results an earlier child wrote, which its gate would have counted\n' "$cleared"
+}
+
 # A child's own stream is silent by construction: the adapter the configured agent command names keeps the
 # child's event stream for the report (`LOOP_CHILD_EVENTS`) and prints its answer once it has exited (measured
 # 2026-10-19: on a pipe nothing appears until then), so a run used to print `pick #N` and then nothing for the
@@ -600,6 +635,9 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   local before after rc phase stop hb started interval cap child timed_out=0
   before=$(project_state)
   phase=$(basename "$1" .md)
+  # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
+  # carries no other child's test results (issue #253).
+  case "$phase" in worker*) clear_stale_test_results ;; esac
   interval="${LOOP_PROGRESS_SECONDS:-30}"
   case "$interval" in ''|*[!0-9]*|0) interval=30 ;; esac
   cap="${LOOP_CHILD_MAX_SECONDS:-2700}"
@@ -735,6 +773,12 @@ while true; do
     break
   }
   title=$(printf '%s' "$issue_json" | jq -r '.title // ""')
+  # The item's class is a work input, not a label the worker guesses: a feature takes the propose-first path
+  # while a bug and an improvement take the fix path (`tools/loop/prompts/worker.md`).
+  class=$(printf '%s' "$issue_json" | jq -r '[.labels[]? | if type == "string" then . else .name end |
+    select(startswith("class/")) | sub("^class/"; "")] | .[0] // ""')
+  # The class that is planned before it is applied is the profile's value, not a word in the skeleton (D16).
+  propose_class=$(loop_role proposeClass)
   slug=$(slugify "$title")
   [ -n "$slug" ] || slug="issue-$issue"
 
@@ -804,7 +848,8 @@ while true; do
 
   render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
-    "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
+    "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
+    "CLASS=$class" "PROPOSE_CLASS=$propose_class"
 
   started=$(date +%s%3N)
   run_child "$item_dir/worker-prompt.md" "$item_dir/worker-report.md"
@@ -998,7 +1043,8 @@ while true; do
       findings=$(cat "$reviewer_report")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
-        "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
+        "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
+        "CLASS=$class" "PROPOSE_CLASS=$propose_class"
       printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \
         >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"

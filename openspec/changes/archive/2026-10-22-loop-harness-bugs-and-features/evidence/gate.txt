@@ -1,0 +1,88 @@
+# Gate evidence — loop-harness-bugs-and-features
+
+Run on `main` at the change's working tree, 2026-10-22, JDK 27, offline, no token, no sandbox.
+
+## `bash tools/loop-selftest.sh`
+
+```
+loop-selftest: all 160 cases passed (JDK 27, offline, no token, no sandbox)
+```
+
+The cases added or changed by this delta:
+
+```
+PASS prescreen#ranksBugsFirstAndKeepsFeatures
+PASS prescreen#oneHarnessImprovementPerFourAppItems
+PASS prescreen#aRefusedClassStillStopsTheScreen
+PASS prescreen#harnessItemsLeadTheQueue
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+PASS prescreen#priorityDoesNotBypassTheGate
+PASS prescreen#anUndeclaredLeadingIntervalStopsTheScreen
+PASS prompt#workerCarriesTheFeaturePath
+PASS prompt#workerNamesEveryPhaseAndSkill
+PASS prompt#reviewerCarriesTheEightItems
+```
+
+## Falsification (mutation 22.1)
+
+`bash tools/loop-mutations.sh --only 22.1` removes the leader split in `prescreen.sh` (the category lead is
+sorted back into the class order):
+
+```
+RED    22.1  prescreen#harnessItemsLeadTheQueue   (the category lead ranking a leading defect ahead of every other item)
+restore 22.1 prescreen#harnessItemsLeadTheQueue green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+```
+
+Before the fix to the record's sed expression the harness reported `MUTATION-DID-NOT-APPLY 22.1`; the record
+now uses `#` as the sed delimiter, so its literal `|` is not read as alternation.
+
+## `bash tools/loop-mutations-selftest.sh`
+
+```
+loop-mutations-selftest: all 34 cases passed
+```
+
+## `bash tools/issue-tooling-selftest.sh`
+
+```
+issue-tooling-selftest: all 118 cases passed (JDK 27, offline, no token, HEAD ea6052d, tools af338b61b759, 2026-10-22T15:51:11Z)
+```
+
+## `bash tools/check-portability.sh` and its self-test
+
+```
+check-portability: OK — 47 engines and 2 templates name no project value (105 value(s) read from the project)
+check-portability-selftest: all 27 cases passed (JDK 27, offline, no token, no Gradle)
+```
+
+`check-portability.sh` now omits numeric and boolean role values from the forbidden set: `firstCategoryEvery: 4`
+is a count, not a name, and the old value set forbade every `$4` in the engines. The prompt skeletons carry
+`{{PROPOSE_CLASS}}` instead of the class name, because a template is an engine.
+
+## `bash tools/check-doc-routes.sh`
+
+```
+check-doc-routes: all 120 section references resolve, all 4 skill references resolve
+```
+
+## `openspec validate loop-harness-bugs-and-features --strict`
+
+```
+Change 'loop-harness-bugs-and-features' is valid
+```
+
+## Classification gate — the three unclassified ids are not this change's
+
+`bash tools/gen-feature-list.sh --check-classification` reports three unclassified spec ids, each introduced by
+a different open change:
+
+```
+search-name-matching        (fix-compound-name-matching)
+search-result-row-icon      (search-result-row-content)
+start-map-selection         (fix-start-map-selection)
+```
+
+`agent-issue-loop` is classified in the catalogue. No other open change was touched.

@@ -70,10 +70,17 @@ queued_verdict=$(loop_role queuedVerdict)
 held_verdict=$(loop_role heldVerdict)
 decision_verdict=$(loop_role decisionAgent)
 worked_classes="$(loop_role workedClasses)"
-# The categories whose items lead the queue, in the profile's order (this project: the tooling, the process and
+# The categories whose defects lead the queue, in the profile's order (this project: the tooling, the process and
 # the proof rather than the shipped app). Empty is a project that wants no category priority, and the queue then
 # keeps the class order alone — an absent key is a half-adapted profile, refused by `loop_roles_load`.
 priority_categories="$(loop_role firstCategories)"
+# Which classes that priority is for: this project leads on defects only, so a harness improvement is not another
+# harness bug. A leading category's other classes are mixed in at the interval below rather than dropped.
+priority_classes="$(loop_role firstCategoryClasses)"
+# One leading-category item whose class is not in `firstCategoryClasses` after every N other items; 0 mixes none
+# and leaves those items in the class order. A non-number is read as 0 rather than as a broken queue.
+priority_every=$(loop_role firstCategoryEvery | head -1)
+case "$priority_every" in ''|*[!0-9]*) priority_every=0 ;; esac
 refused_classes="$(loop_role refusedClasses)"
 inflight_status=$(loop_role inFlightStatus)
 device_status=$(loop_role deviceStatus)
@@ -118,6 +125,26 @@ cited_symbols_of() {
   printf '%s\n%s\n' "$1" "$2" |
     grep -oE '[A-Za-z0-9_][A-Za-z0-9_./-]*\.[A-Za-z0-9]+:[A-Za-z_][A-Za-z0-9_]*' |
     sort -u || true
+}
+
+# A fix that has to be committed inside the submodule is not work this loop can deliver: neither the run nor
+# `worktree.sh end-item` may commit or push there, so the item is a person's patch followed by the gitlink bump —
+# and a run that admits it spends a worker phase, a review and a decision slot to reach exactly that (issue #254,
+# measured on #30, #60 and #122 of the 2026-10-22 run; the owner's answer on #60 was a pre-screen rule as the
+# durable guard). The signal is the item's own text naming the submodule, which is what the tooling already has:
+# the path the loop's configuration records, a path under it, or the submodule's directory name. Nothing fuzzier —
+# a rule that guessed from a word like "upstream" would refuse items whose fix is the app's, and a falsely refused
+# item is lost from the queue.
+submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
+names_the_submodule() { # <title> <body> → 0 when the item's own text names the submodule
+  local text name
+  [ -n "$submodule_path" ] || return 1
+  text="$1
+$2"
+  case "$text" in *"$submodule_path"*) return 0 ;; esac
+  name="${submodule_path##*/}"
+  [ -n "$name" ] || return 1
+  printf '%s\n' "$text" | grep -qwF -- "$name"
 }
 
 # The base every item of this run descends from: the branch question below is asked against it, exactly as
@@ -325,6 +352,17 @@ while [ "$i" -lt "$count" ]; do
     fi
   fi
 
+  # A fix that must land inside the submodule is the one question a script can settle before a child spends a
+  # phase on it (#254): the loop may neither commit nor push there, so the item is its owner's, and the verdict is
+  # the profile's decision value — no new label, and the same state the run reached minutes later from a worker
+  # report. It is asked after the awaiting-decision clauses and not before: a hold or an earlier escalation has
+  # already stated what the item is, and a second verdict would escalate it twice.
+  if [ "$verdict" = "$queued_verdict" ] && names_the_submodule "$title" "$body"; then
+    verdict="$decision_verdict"
+    reason="the fix has to be committed inside ${submodule_path}, where this run may neither commit nor push — a person lands the patch there and the gitlink bump that follows"
+    evidence="$submodule_path"
+  fi
+
   # The refusal leaves its trace in the tracker (expectation of #163). Only the verdicts the item cannot
   # escape by itself are written: `in-flight` clears when the other change closes, `needs-device` and
   # `needs-decision` already have a label write of their own (`labels.sh`), and the author's own label is
@@ -361,13 +399,33 @@ while [ "$i" -lt "$count" ]; do
 done
 
 ranked=$(printf '%s' "$records" | jq -c --argjson worked "$(printf '%s\n' "$worked_classes" | jq -R . | jq -sc .)" \
-  --argjson leading "$(printf '%s' "$priority_categories" | jq -R . | jq -sc .)" '
-  (map(. + {_rank: (. as $r | (($worked | index($r.class)) // ($worked | length))),
-             _lead: (. as $r | (($leading | index($r.category)) // ($leading | length)))})
-   | sort_by([._lead, ._rank, .issue]) | map(del(._lead, ._rank))) as $sorted
-  | ($sorted | map(select(.verdict == $queued))) as $q
-  | reduce range(0; ($q | length)) as $i ($sorted;
-      . as $all | ($q[$i].issue) as $id
+  --argjson leading "$(printf '%s\n' "$priority_categories" | jq -R . | jq -sc .)" \
+  --argjson leadingClasses "$(printf '%s\n' "$priority_classes" | jq -R . | jq -sc .)" \
+  --argjson every "$priority_every" '
+  def class_rank($w): (.class as $c | ($w | index($c)) // ($w | length));
+  def cat_rank($l): (.category as $c | ($l | index($c)) // ($l | length));
+  def in_list($l): (. as $v | ($l | index($v)) != null);
+  . as $all
+  | ($all | map(select(.verdict == $queued))) as $queue
+  | ($queue | map(select((cat_rank($leading) < ($leading | length)) and (.class | in_list($leadingClasses))))) as $leadingItems
+  | ($queue | map(select((cat_rank($leading) < ($leading | length)) and ((.class | in_list($leadingClasses)) | not)))) as $mixedItems
+  | ($queue | map(select(cat_rank($leading) >= ($leading | length)))) as $restItems
+  | ($leadingItems | sort_by([class_rank($worked), .issue])) as $lead
+  | ($mixedItems | sort_by([class_rank($worked), .issue])) as $mix
+  | ($restItems | sort_by([class_rank($worked), .issue])) as $rest
+  | (if $every > 0 then
+       (reduce range(0; ($rest | length)) as $i ({out: [], used: 0};
+          .out += [$rest[$i]]
+          | if (((($i + 1) % $every) == 0) and (.used < ($mix | length)))
+            then .out += [$mix[.used]] | .used += 1
+            else . end)
+        | .out + ($mix[.used:]))
+     else
+       (($rest + $mix) | sort_by([class_rank($worked), .issue]))
+     end) as $tail
+  | ($lead + $tail) as $order
+  | reduce range(0; ($order | length)) as $i ($all;
+      . as $records | ($order[$i].issue) as $id
       | map(if .issue == $id then .rank = ($i + 1) else . end))
 ' --arg queued "$queued_verdict") || loop_die "prescreen: could not rank the candidates"
 records="$ranked"

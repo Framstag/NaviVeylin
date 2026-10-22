@@ -9,6 +9,9 @@ Placeholders below are filled by the run's script before you are started. They a
 you get: everything else you need is in the tree.
 
 - item: **#{{ISSUE}}**
+- class: **{{CLASS}}** — the run read it from the item. When it is `{{PROPOSE_CLASS}}`, the item takes the
+  **propose-first** path: plan the change as `add-<slug>`, with the acceptance scenario as the red case,
+  before any production code is written. Otherwise it is worked as a `fix-<slug>` change.
 - change root: `{{CHANGE_ROOT}}` — the tree this item changes. Your working directory is the project, so
   `cd` into the change root and run every command there; the project's own tree is not yours to write.
 - prepared work package: `{{WORK_PACKAGE}}`
@@ -71,10 +74,14 @@ option lists, and the recorded `2` came to mean a different option).
 1. Verify the entry against the tree. Confirm the condition still holds, with a `file:line`, and that it
    is not already fixed. If it no longer holds, stop: verdict `skipped`, sub-verdict `stale`.
 2. Name the root cause in one sentence: the single mechanism that explains the symptom. Two mechanisms
-   means the item is not eligible — verdict `skipped`, sub-verdict `needs-diagnosis`.
+   means the item is not eligible — verdict `skipped`, sub-verdict `needs-diagnosis`. For `{{PROPOSE_CLASS}}`
+   there is no root cause to name: name the one missing capability and the `file:line` (or the named run)
+   that shows it is absent, and treat two independent missing capabilities as `needs-diagnosis`.
 3. Produce the **red test**: the smallest case that exercises the defect and fails on HEAD. Record the
-   JUnit XML `tests=`/`failures=`, the case name and the timestamp. For an improvement, the red case
-   asserts the number, count or absence the delta requires — never "better".
+   JUnit XML `tests=`/`failures=`, the case name and the timestamp. For a non-defect, the red case
+   asserts the number, count or absence the delta requires — never "better". For `{{PROPOSE_CLASS}}`, the
+   red case is the acceptance scenario the new requirement states: it fails on HEAD because the capability is
+   absent, and it passes only once the capability exists.
 4. Name the owning capability and the owning guideline section. Route with `AGENTS.md`'s Documentation
    Map; never read a guideline in full.
 5. Count the surface before the plan is fixed. The rule you are about to change has more than one place that
@@ -94,22 +101,25 @@ run's pre-screen already decided what a script can decide; these are the judgeme
 | # | condition | if it fails |
 |---|---|---|
 | 1 | the claim is verified in the tree today | `stale` |
-| 2 | one root cause explains the symptom | `needs-diagnosis` |
-| 3 | exactly one fix follows — no trade-off, no option, no reversal of a recorded owner decision | `needs-decision` |
-| 4 | it is a falsifiable WHEN/THEN that is false on HEAD | `unspecifiable` |
+| 2 | one root cause explains the symptom, or for `{{PROPOSE_CLASS}}` one missing capability explains the item | `needs-diagnosis` |
+| 3 | exactly one change follows — no trade-off, no option, no design fork, no reversal of a recorded owner decision | `needs-decision` |
+| 4 | it is a falsifiable WHEN/THEN that is false on HEAD — for `{{PROPOSE_CLASS}}`, the acceptance scenario fails because the capability is absent | `unspecifiable` |
 | 5 | it fits one capability delta and one change (bounded files) | `too-wide` |
 | 6 | correctness is decidable by a host test | `needs-device` |
-| 7 | *(improvement only)* an existing capability owns the delta and the red case asserts a number, count or absence | `not-spec-shaped` |
+| 7 | *(a non-defect)* an existing capability owns the delta — or `{{PROPOSE_CLASS}}` adds one small requirement — and the red case asserts a number, count, absence or acceptance scenario, not "better" | `not-spec-shaped` |
 
 Never renumber, never re-rank and never delete on a rejection: reporting the verdicts **is** part of this
 run's output.
 
 ## Phase C — plan the change
 
-Use the planning skill from the list above; it must not touch project code. Change name: `fix-<slug>`.
+Use the planning skill from the list above; it must not touch project code. Change name: `fix-<slug>`, or
+`add-<slug>` when the class is `{{PROPOSE_CLASS}}`. A propose-class item's plan is written **before** any
+production code: proposal, capability delta, design and tasks, then apply — the propose-first path.
 
 - `proposal.md`'s `## Why` carries the Phase A evidence verbatim (root cause, the red test and its XML,
-  the owning requirement, the guideline section).
+  the owning requirement, the guideline section; for `{{PROPOSE_CLASS}}`: the absence with its pointer and
+  the acceptance scenario).
 - `specs/<capability>/spec.md` — the delta only, and every scenario names exactly one test case. A
   scenario with no case is a planning defect: fix the plan rather than promising a test later.
 - `design.md` — the root cause, the single fix, blast radius, rollback, and the alternatives the evidence
@@ -148,6 +158,10 @@ failure is open. Tests red after three focused attempts is `blocked`, not "adjus
 2. Copy every cited XML into the change's **own** `evidence/` directory (`<change>/evidence/`) — that is
    the versioned half, and the run refuses an item whose change cites a test result but carries none — and
    keep a copy in `{{EVIDENCE_DIR}}` as well, which is where the run reads the reports and the diff.
+   Then check the pointers mechanically, from the change root:
+   `bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/<change-name> --root .` — it resolves
+   every `file:line`, every quoted `tests=`/`failures=`, every `/tmp` pointer and every `§N`, and reports a
+   dangling one. Fix what it reports before you archive.
 3. Archive the change. Confirm the directory exists under the archive and that the delta merged into the
    capability spec.
 4. **Do not commit, do not push, and do not run version control**: the run's script owns git and commits

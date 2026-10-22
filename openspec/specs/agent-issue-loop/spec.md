@@ -1,9 +1,10 @@
 # agent-issue-loop Specification
 
 ## Purpose
-A defect-shaped item in the tracker is closed by an unattended, budgeted run: one fresh agent process works
-one item from a prepared package, a separate reviewer checks it, the run's own script owns the budget and
-the version control, and nothing closes until evidence exists.
+A backlog item in the tracker is closed by an unattended, budgeted run: one fresh agent process works one
+item from a prepared package, a separate reviewer checks it, the run's own script owns the budget and the
+version control, and nothing closes until evidence exists. A defect is fixed; a feature is planned
+propose-first and then applied.
 
 ## Requirements
 
@@ -220,20 +221,23 @@ tracker, so the item's state says why it is not worked after the run's own state
 
 ### Requirement: The queue repairs the tooling the run depends on first
 
-The pre-screen SHALL order the queue by category before class: a category the profile names as leading SHALL
-rank ahead of every other category, and only then SHALL the profile's class order and the issue number decide.
-The category order SHALL be a rank and SHALL NOT be a gate — it SHALL NOT change a verdict, a label or a count.
+The pre-screen SHALL rank a defect in a category the profile names as leading ahead of every other item, SHALL
+mix the leading categories' other classes in one after every N other items (N the profile's
+`firstCategoryEvery`), and SHALL let the profile's class order and the issue number decide each stream. The
+category order SHALL be a rank, never a gate: it SHALL NOT change a verdict, a label or a count.
 
 #### Scenario: Harness items lead the queue, bugs before improvements inside a group
 
 A defect in the tooling that runs, measures, gates or reports the loop is paid again by every item after it and
-can make the run's own report false, so it is worked before a defect in the shipping app.
+can make the run's own report false, so it is worked before a defect in the shipping app. A harness improvement
+is not a defect: it is mixed in at the profile's interval rather than leading.
 
 - **WHEN** the pre-screen ranks a backlog whose eligible items are a harness bug, a harness improvement, an app
   bug and an app improvement
-- **THEN** their ranks are, in order: the harness bug, the harness improvement, the app bug and the app
-  improvement, and within one group the older issue leads
-- **Case**: `prescreen#harnessItemsLeadTheQueue`
+- **THEN** the harness bug leads, the harness improvement is mixed in after every `firstCategoryEvery` other
+  item, and the app bug and app improvement follow in the profile's class order — so a leading-category
+  improvement neither leads the queue nor disappears from it
+- **Case**: `prescreen#harnessItemsLeadTheQueue`, `prescreen#oneHarnessImprovementPerFourAppItems`
 
 #### Scenario: The leading categories are the profile's, and an empty list is no priority
 
@@ -241,10 +245,11 @@ can make the run's own report false, so it is worked before a defect in the ship
 - **THEN** the order uses exactly the declared values — a renamed set is ordered on, not merely scanned — and an
   empty list leaves the class order alone, so a project that wants no category priority says so in its profile
   rather than in the engine
-- **AND** a profile that omits the key stops the pre-screen with a reason naming it, as it does for every role
-  the pre-screen reads, so a half-adapted profile cannot rank silently
+- **AND** a profile that omits any role the pre-screen reads, including `firstCategoryClasses` and
+  `firstCategoryEvery`, stops the pre-screen with a reason naming it, so a half-adapted profile cannot rank
+  silently
 - **Case**: `prescreen#aRenamedLeadingCategoryLeads`, `prescreen#priorityCategoriesAreReadFromTheProfile`,
-  `prescreen#anUndeclaredRoleStopsTheScreen`
+  `prescreen#anUndeclaredRoleStopsTheScreen`, `prescreen#anUndeclaredLeadingIntervalStopsTheScreen`
 
 #### Scenario: A priority category is a rank, not a gate
 
@@ -258,7 +263,7 @@ can make the run's own report false, so it is worked before a defect in the ship
 - **WHEN** two candidates share a leading category, or share a category that does not lead
 - **THEN** the profile's class order decides first and the issue number second, so the category key never
   reverses a bug against an improvement of the same group
-- **Case**: `prescreen#harnessItemsLeadTheQueue`, `prescreen#ranksBugsFirstAndDropsFeatures`
+- **Case**: `prescreen#harnessItemsLeadTheQueue`, `prescreen#ranksBugsFirstAndKeepsFeatures`
 
 ### Requirement: Version control belongs to the run's script, not to the agent
 
@@ -1418,3 +1423,30 @@ change from the run's base.
 - **THEN** the prompt names the refusing round's report, quotes its findings, and states that the diff under
   review is the correction round alone — and a first round's prompt carries no such section
 - **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+
+### Requirement: A feature is planned before it is applied
+
+A `class/feature` item the profile works SHALL be queued like a defect. It SHALL be worked by the
+propose-first path: the worker SHALL write an OpenSpec change named `add-<slug>` whose proposal, capability
+delta, design and tasks exist before production code, and whose acceptance scenario is the red case that fails
+on HEAD because the capability is absent. A feature SHALL NOT be refused merely because it is a feature.
+
+#### Scenario: A feature is queued, not refused
+
+- **WHEN** the profile's `workedClasses` names `feature` and an eligible feature is in the backlog
+- **THEN** the pre-screen gives it an eligible verdict and a rank in the profile's class order, instead of a
+  `class-feature` refusal
+- **Case**: `prescreen#ranksBugsFirstAndKeepsFeatures`
+
+#### Scenario: A feature's plan precedes its apply
+
+- **WHEN** the worker takes a `class/feature` item
+- **THEN** its prompt carries the item's class, names the `add-<slug>` change and the acceptance scenario it
+  owes as the red case, and the proposal, capability delta, design and tasks are written before production code
+- **Case**: `prompt#workerCarriesTheFeaturePath`
+
+#### Scenario: A profile may still refuse features
+
+- **WHEN** the profile's `refusedClasses` names `feature`
+- **THEN** the item is refused with `class-feature` and the profile's refusal label, exactly as before
+- **Case**: `prescreen#aRefusedClassStillStopsTheScreen`

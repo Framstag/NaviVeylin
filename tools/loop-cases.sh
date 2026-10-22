@@ -28,7 +28,9 @@ LOOP_SHELL_CASES=(
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
   'state#agentCommandRefusesAnEmptyValue'
-  'prescreen#ranksBugsFirstAndDropsFeatures'
+  'prescreen#ranksBugsFirstAndKeepsFeatures'
+  'prescreen#oneHarnessImprovementPerFourAppItems'
+  'prescreen#aRefusedClassStillStopsTheScreen'
   'prescreen#missingPathYieldsStale'
   'prescreen#doesNotClaimJudgementGates'
   'prescreen#refusesReservedLabelInSelection'
@@ -46,8 +48,10 @@ LOOP_SHELL_CASES=(
   'prescreen#priorityCategoriesAreReadFromTheProfile'
   'prescreen#priorityDoesNotBypassTheGate'
   'prescreen#anUndeclaredRoleStopsTheScreen'
+  'prescreen#anUndeclaredLeadingIntervalStopsTheScreen'
   'prescreen#escalatedItemKeepsItsBranchAsEvidence'
   'prescreen#refusalLeavesATraceInTheTracker'
+  'prescreen#aFixInTheSubmoduleIsAPersonsPatch'
   'worktree#seedsAllFourInputs'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
   'worktree#oneBranchPerItemOffTheBase'
@@ -70,6 +74,7 @@ LOOP_SHELL_CASES=(
   'labels#writesOnlyBetweenChildren'
   'labels#closeRemovesTheDecisionLabel'
   'prompt#workerNamesEveryPhaseAndSkill'
+  'prompt#workerCarriesTheFeaturePath'
   'prompt#workerNamesTheDecisionField'
   'prompt#workerTreatsARecordedDecisionAsSettled'
   'prompt#reviewerCarriesTheEightItems'
@@ -114,6 +119,8 @@ LOOP_SHELL_CASES=(
   'run#mergesAFinishedAttemptAndClosesTheItem'
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
   'run#mergesItsCommittedBranchBeforeClosing'
+  'run#theBaseAdvancesWithEveryMerge'
+  'run#staleTestResultsAreNotThisChildsGate'
   'run#doesNotCloseOnAMergeTheBaseCannotTake'
   'run#recordsAFailedReviewOnTheBranch'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
@@ -197,7 +204,9 @@ loop_run_shell_case() {
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
     'state#agentCommandRefusesAnEmptyValue') fn=case_state_agentCommandRefusesAnEmptyValue ;;
     'state#inheritedStatePathOutsideTheTreeIsIgnored') fn=case_state_inheritedStatePathOutsideTheTreeIsIgnored ;;
-    'prescreen#ranksBugsFirstAndDropsFeatures') fn=case_prescreen_ranksBugsFirstAndDropsFeatures ;;
+    'prescreen#ranksBugsFirstAndKeepsFeatures') fn=case_prescreen_ranksBugsFirstAndKeepsFeatures ;;
+    'prescreen#oneHarnessImprovementPerFourAppItems') fn=case_prescreen_oneHarnessImprovementPerFourAppItems ;;
+    'prescreen#aRefusedClassStillStopsTheScreen') fn=case_prescreen_aRefusedClassStillStopsTheScreen ;;
     'prescreen#missingPathYieldsStale') fn=case_prescreen_missingPathYieldsStale ;;
     'prescreen#doesNotClaimJudgementGates') fn=case_prescreen_doesNotClaimJudgementGates ;;
     'prescreen#refusesReservedLabelInSelection') fn=case_prescreen_refusesReservedLabelInSelection ;;
@@ -215,8 +224,10 @@ loop_run_shell_case() {
     'prescreen#priorityCategoriesAreReadFromTheProfile') fn=case_prescreen_priorityCategoriesAreReadFromTheProfile ;;
     'prescreen#priorityDoesNotBypassTheGate') fn=case_prescreen_priorityDoesNotBypassTheGate ;;
     'prescreen#anUndeclaredRoleStopsTheScreen') fn=case_prescreen_anUndeclaredRoleStopsTheScreen ;;
+    'prescreen#anUndeclaredLeadingIntervalStopsTheScreen') fn=case_prescreen_anUndeclaredLeadingIntervalStopsTheScreen ;;
     'prescreen#escalatedItemKeepsItsBranchAsEvidence') fn=case_prescreen_escalatedItemKeepsItsBranchAsEvidence ;;
     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
+    'prescreen#aFixInTheSubmoduleIsAPersonsPatch') fn=case_prescreen_aFixInTheSubmoduleIsAPersonsPatch ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
     'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
@@ -239,6 +250,7 @@ loop_run_shell_case() {
     'labels#writesOnlyBetweenChildren') fn=case_labels_writesOnlyBetweenChildren ;;
     'labels#closeRemovesTheDecisionLabel') fn=case_labels_closeRemovesTheDecisionLabel ;;
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
+    'prompt#workerCarriesTheFeaturePath') fn=case_prompt_workerCarriesTheFeaturePath ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
     'prompt#workerTreatsARecordedDecisionAsSettled') fn=case_prompt_workerTreatsARecordedDecisionAsSettled ;;
     'prompt#reviewerCarriesTheEightItems') fn=case_prompt_reviewerCarriesTheEightItems ;;
@@ -282,6 +294,8 @@ loop_run_shell_case() {
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
     'run#mergesItsCommittedBranchBeforeClosing') fn=case_run_mergesItsCommittedBranchBeforeClosing ;;
+    'run#theBaseAdvancesWithEveryMerge') fn=case_run_theBaseAdvancesWithEveryMerge ;;
+    'run#staleTestResultsAreNotThisChildsGate') fn=case_run_staleTestResultsAreNotThisChildsGate ;;
     'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
@@ -480,6 +494,29 @@ LOOP-GATE: not run — the tree is unchanged'
 
 stub_success() { # stub_success <dir> — a run that produces a change and a passing review
   stub_write "$1" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+}
+
+# A worker action that differs per *invocation*. The stub is handed one action for every worker process, so a case
+# whose second item must not repeat its first — two merges, a stale gate result — needs the tree to carry something
+# of its own per item. The action counts its own calls first and the body may name that count as `$n`.
+stub_per_item_worker() { # stub_per_item_worker <dir> <worker-report> <reviewer-report> <body>
+  local dir="$1"
+  printf '%s\n' "$2" > "$dir/worker-report.txt"
+  printf '%s\n' "$3" > "$dir/reviewer-report.txt"
+  {
+    printf 'case "$1" in\n'
+    printf '  worker*)\n'
+    printf '    n=$(cat "%s" 2>/dev/null || printf 0); n=$((n + 1)); printf "%%s\\n" "$n" > "%s"\n' \
+      "$dir/per-item-count" "$dir/per-item-count"
+    printf '%s\n' "$4"
+    printf '    ;;\n'
+    printf 'esac\n'
+  } > "$dir/worker-action.sh"
+  export PI_STUB_REPORT_WORKER="$dir/worker-report.txt"
+  export PI_STUB_REPORT_REVIEWER="$dir/reviewer-report.txt"
+  export PI_STUB_ACTION="$dir/worker-action.sh"
+  export PI_STUB_LOG="$dir/pi.log"; : > "$PI_STUB_LOG"
+  export GH_STUB_RECORD="$dir/gh.log"; : > "$GH_STUB_RECORD"
 }
 
 run_one_item() { # run_one_item <project> <dir> [run.sh args…]
@@ -840,20 +877,48 @@ case_state_inheritedStatePathOutsideTheTreeIsIgnored() {
 
 # ----------------------------------------------------------------------------- cases: prescreen
 
-case_prescreen_ranksBugsFirstAndDropsFeatures() {
+case_prescreen_ranksBugsFirstAndKeepsFeatures() {
   local p out
   p=$(new_project)
   init_state "$p" 3 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
   out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
-  assert_eq "21 22 23 24" "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
-    "three bugs before the improvement"
-  assert_eq "4" "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")][-1].rank')" "the improvement is ranked last"
-  assert_eq "class-feature" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" "a feature is dropped"
-  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .reason')" "class/feature" "the feature's reason"
+  assert_eq "21 22 23 24 25" "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
+    "three bugs, then the improvement, then the feature"
+  assert_eq "5" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .rank')" "a feature is ranked, not refused"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" "the feature is work"
   assert_eq "in-flight" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 26) | .verdict')" "an in-flight item is dropped"
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 26) | .reason')" "in-flight" "the in-flight reason"
-  assert_eq "4" "$(jq -r '.queue | length' "$(state_file "$p")")" "the queue holds the survivors only"
+  assert_eq "5" "$(jq -r '.queue | length' "$(state_file "$p")")" "the queue holds the survivors only"
+}
+
+# One harness improvement after every four other items: it is mixed in, never leading, and it does not push an
+# app bug back. The fixture has one harness improvement and nine app bugs, so the improvement takes rank 5.
+case_prescreen_oneHarnessImprovementPerFourAppItems() {
+  local p out
+  p=$(new_project)
+  init_state "$p" 10 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario interleave)
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
+  assert_eq "31 32 33 34 30 35 36 37 38 39" \
+    "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
+    "the harness improvement is mixed in after four app items"
+  assert_eq "5" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 30) | .rank')" \
+    "the harness improvement takes rank 5, not rank 1"
+}
+
+# A profile may still refuse a class, and then the pre-screen refuses it exactly as before: the feature path is
+# this project's configuration, not an assertion of the engine.
+case_prescreen_aRefusedClassStillStopsTheScreen() {
+  local p out
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  jq '.roles.refusedClasses = ["feature"]' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not refuse the feature class"
+  out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on a refused class"
+  assert_eq "class-feature" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" "the refused class is dropped"
+  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .reason')" "class/feature" "the refusal names the class"
 }
 
 case_prescreen_missingPathYieldsStale() {
@@ -891,6 +956,31 @@ case_prescreen_refusalLeavesATraceInTheTracker() {
   : > "$GH_STUB_RECORD"
   run_prescreen "$p" --json --dry-run >/dev/null 2>&1 || true
   assert_eq "" "$(cat "$GH_STUB_RECORD")" "a dry run writes no label"
+}
+
+# A fix that has to be committed inside the submodule is not work this loop can deliver: the run and
+# `worktree.sh end-item` may neither commit nor push there, so the item is a person's patch plus the gitlink bump
+# that follows it (issue #254). Measured 2026-10-22: #30, #60 and #122 each spent a worker phase to reach exactly
+# that question, and the owner's answer on #60 was a pre-screen rule as the durable guard. The rule reads the
+# item's own text — the recorded path, a file under it, or the submodule by name — and nothing fuzzier, because a
+# false exclusion costs an item.
+case_prescreen_aFixInTheSubmoduleIsAPersonsPatch() {
+  local p out status reason
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario submodule)
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "0" "$status" "the app-side item beside them is still work (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
+  assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 71) | .verdict')" \
+    "an item that names the submodule path is its owner's, not the run's"
+  reason=$(printf '%s' "$out" | jq -r '.[] | select(.issue == 71) | .reason')
+  assert_contains "$reason" "app/src/main/cpp/libosmscout" "the reason names the path the fix has to be committed in"
+  assert_contains "$reason" "a person lands the patch" "and the route that remains: a person lands the patch"
+  assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 72) | .verdict')" \
+    "the submodule named without its path is the same question"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 73) | .verdict')" \
+    "an item that names neither is queued"
+  assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$p")")" "only the app-side item reaches the queue"
 }
 
 case_prescreen_doesNotClaimJudgementGates() {
@@ -1033,7 +1123,7 @@ case_prescreen_aFinishedAttemptBranchIsADecision() {
     "the branch is the verdict's own clause of evidence"
   assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 22) | .verdict')" \
     "a branch that carries no commit of its own leaves the item eligible"
-  assert_eq "3" "$(jq -r '.queue | length' "$(state_file "$p")")" "the decision is not queued as work"
+  assert_eq "4" "$(jq -r '.queue | length' "$(state_file "$p")")" "the decision is not queued as work"
   assert_eq "needs-decision" "$(jq -r '.excluded[] | select(.issue == 21) | .verdict' "$(state_file "$p")")" \
     "the decision is recorded in the run's exclusion list"
   assert_eq "$branch" \
@@ -1216,32 +1306,30 @@ case_prescreen_escalatedItemKeepsItsBranchAsEvidence() {
 
 # A harness defect is paid again by every item after it — a broken `prescreen.sh`, `labels.sh`, `close.sh` or a
 # sensor can make the run's own report false — so the profile's leading categories rank ahead of every other
-# category, and inside one group the class order still decides (harness bug, harness improvement, app bug, app
-# improvement). Before this key the category was read, recorded and printed, and never ranked on.
+# category in the classes `firstCategoryClasses` names (here, bugs). A harness improvement is not another
+# harness defect: it is mixed in after every `firstCategoryEvery` other item instead of leading.
 case_prescreen_harnessItemsLeadTheQueue() {
   local p out
   p=$(new_project)
   init_state "$p" 5 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
   out=$(run_prescreen "$p" --json) || fail "the pre-screen failed"
-  assert_eq "22 26 23 21 24" \
+  assert_eq "22 26 21 28 24 23" \
     "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
-    "the leading group (bug, bug, improvement), then the app bug, then the app improvement"
+    "the two harness bugs lead, then the app work, and the harness improvement is mixed in at the end"
   assert_eq "1" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 22) | .rank')" \
     "the harness bug leads the queue"
   assert_eq "2" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 26) | .rank')" \
     "the second harness bug follows by issue number inside the leading group"
-  assert_eq "3" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .rank')" \
-    "the leading improvement follows both leading bugs, so the class order decides inside the group"
-  assert_eq "4" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .rank')" \
-    "the app bug leads the app improvement but follows the whole leading group"
-  assert_eq "5" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .rank')" \
-    "the app improvement stays last"
+  assert_eq "3" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .rank')" \
+    "the app bug follows the harness bugs, because a harness improvement does not lead"
+  assert_eq "6" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 23) | .rank')" \
+    "the harness improvement is mixed in, not ranked inside the leading group"
 }
 
 # A renamed set is ordered on, not merely scanned: the profile declares `ui` as its leading category and the
-# fixture's `category/ui` improvement leads the queue, above a harness bug — the key is the declared value, not a
-# spelling this change happens to ship.
+# fixture's `category/ui` bug leads the queue, above a harness bug — the key is the declared value, not a
+# spelling this change happens to ship. Its improvement is mixed in, not led.
 case_prescreen_aRenamedLeadingCategoryLeads() {
   local p out
   p=$(new_project)
@@ -1250,11 +1338,11 @@ case_prescreen_aRenamedLeadingCategoryLeads() {
   jq '.roles.firstCategories = ["ui"]' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
     mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not rename the leading category"
   out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on a renamed leading set"
-  assert_eq "24 21 22 26 23" \
+  assert_eq "28 21 22 26 23 24" \
     "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
-    "the declared value leads, and the class order decides among the rest"
-  assert_eq "1" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 24) | .rank')" \
-    "the ui improvement is rank 1 under the renamed set"
+    "the declared value's bug leads, the class order decides among the rest, and the ui improvement is mixed in"
+  assert_eq "1" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 28) | .rank')" \
+    "the ui bug is rank 1 under the renamed set"
 }
 
 # The leading categories are the profile's values, read through the roles section like every other decision: an
@@ -1269,7 +1357,7 @@ case_prescreen_priorityCategoriesAreReadFromTheProfile() {
   jq '.roles.firstCategories = []' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
     mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not empty the priority list"
   out=$(run_prescreen "$p" --json) || fail "the pre-screen failed on an empty priority list"
-  assert_eq "21 22 26 23 24" \
+  assert_eq "21 22 26 28 23 24" \
     "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible")] | sort_by(.rank) | [.[].issue] | join(" ")')" \
     "an empty list leaves the class order alone"
 
@@ -1299,8 +1387,8 @@ case_prescreen_priorityDoesNotBypassTheGate() {
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 27) | .reason')" "allowlist" \
     "and the reason names the allowlist"
   assert_eq "0" "$(wc -c < "$log" | tr -d ' ')" "the category writes no label of its own"
-  assert_eq "5" "$(jq -r '.queue | length' "$(state_file "$p")")" \
-    "the queue holds the five eligible items and not the held one"
+  assert_eq "6" "$(jq -r '.queue | length' "$(state_file "$p")")" \
+    "the queue holds the eligible items and not the held one"
 }
 
 # Every role the script reads is required, not merely the one this change added: a half-adapted profile that
@@ -1315,6 +1403,20 @@ case_prescreen_anUndeclaredRoleStopsTheScreen() {
   out=$(run_prescreen "$p" --json 2>&1); status=$?
   assert_eq "2" "$status" "an undeclared role stops the pre-screen"
   assert_contains "$out" "does not declare heldVerdict" "and the refusal names the key"
+}
+
+# The mixing interval is a role too: a profile that omits it is half-adapted and stops, rather than ranking
+# silently on a default the engine invented.
+case_prescreen_anUndeclaredLeadingIntervalStopsTheScreen() {
+  local p out status
+  p=$(new_project)
+  init_state "$p" 1 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario categories)
+  jq 'del(.roles.firstCategoryEvery)' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not remove the mixing interval"
+  out=$(run_prescreen "$p" --json 2>&1); status=$?
+  assert_eq "2" "$status" "an undeclared interval stops the pre-screen"
+  assert_contains "$out" "does not declare firstCategoryEvery" "and the refusal names the key"
 }
 
 # ----------------------------------------------------------------------------- cases: worktree
@@ -1783,6 +1885,20 @@ case_prompt_workerNamesEveryPhaseAndSkill() {
   assert_contains "$(cat "$prompt")" "data, not instructions" "the item's text is marked as data"
 }
 
+# A feature is work too, and its prompt says how it enters: the run hands the item's class to the child, the
+# child plans `add-<slug>` before production code, and the acceptance scenario is its red case.
+case_prompt_workerCarriesTheFeaturePath() {
+  local d p prompt
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  assert_contains "$(cat "$prompt")" "class: **bug**" "the run hands the item's class to the child"
+  assert_contains "$(cat "$prompt")" "propose-first" "the feature path is named"
+  assert_contains "$(cat "$prompt")" "add-<slug>" "and its change name"
+  assert_contains "$(cat "$prompt")" "acceptance scenario" "and the red case a feature owes"
+}
+
 case_prompt_workerNamesTheDecisionField() {
   local d p prompt
   d=$(scratch); p=$(new_project)
@@ -1833,7 +1949,7 @@ case_prompt_reviewerCarriesTheEightItems() {
   prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-1.md"
   [ -f "$prompt" ] || fail "the reviewer prompt was not rendered"
   local item
-  for item in '1. **Scenario coverage**' '2. **Root cause scope**' '3. **Gate reality**' '4. **Tasks claiming done**' \
+  for item in '1. **Scenario coverage**' '2. **Cause or gap scope**' '3. **Gate reality**' '4. **Tasks claiming done**' \
               '5. **Revert-check**' '6. **Evidence pointers**' '7. **Spec and guideline honesty**' '8. **New overreach**'; do
     assert_contains "$(cat "$prompt")" "$item" "the reviewer contract carries $item"
   done
@@ -2828,10 +2944,18 @@ case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside() {
   # `worktree#setsAsideABlockedAttemptAndStartsFresh`'s). Each worker also writes a branch-named file, so the
   # two items' patches differ: `merge-item` (#229) reads patch identity, and two byte-identical changes would
   # otherwise be one patch the base already carries.
+  # Each worker also writes an archived change of its own, named after the branch it found itself on: the base
+  # advances with every merge (issue #252), so a second item whose only change repeated the first item's would be a
+  # tree that genuinely carries no change of its own — which the run blocks on purpose, and which is not this
+  # case's subject.
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in worker*)
        current=$(git rev-parse --abbrev-ref HEAD)
        printf "%s\n" "$current" > "branch-$(printf %s "$current" | tr / _).txt"
+       change="openspec/changes/archive/2026-01-01-fix-$(printf %s "$current" | tr / _)"
+       mkdir -p "$change/evidence"
+       printf "archived\n" > "$change/proposal.md"
+       cp app/build/test-results/test/TEST-demo.xml "$change/evidence/TEST-demo.xml"
        case "$current" in
          fix/issue-21-*)
            git branch "fix/issue-22-${current#fix/issue-21-}" HEAD
@@ -3021,6 +3145,80 @@ case_run_mergesItsCommittedBranchBeforeClosing() {
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "merged $branch (commits $commits) onto the base" \
     "the closure's evidence names the merge, so the tracker's fixed-by claim carries what backs it"
+}
+
+# The base a run hands each item is the run's own variable, and a merge advances it (issue #252).
+# `merge_committed_branch` declared `base` in its own `local` list, so `loop_state set-base` moved the state file
+# while the run kept the commit it read once at its start: every later item was handed the run-start commit as
+# `BASE=`, and its review diff carried every change the run had already merged. Measured 2026-10-22: by item #116
+# the round-1 diff was 441 KB and named ten archived changes of items that had closed hours before, and a
+# falsification was recorded `skipped` because the tree was compared with a base several merges old. Two items
+# closed by merge in one run — the second one's prompt and diff carry nothing of the first.
+case_run_theBaseAdvancesWithEveryMerge() {
+  local d p run_log first_merge prompt diff run_start
+  d=$(scratch); p=$(new_project)
+  run_start=$(git -C "$p" rev-parse main)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  stub_per_item_worker "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' '
+    change="openspec/changes/archive/2026-01-01-fix-item$n"
+    mkdir -p "$change/evidence" app/build/test-results/test
+    printf "archived\n" > "$change/proposal.md"
+    printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/test/TEST-demo.xml
+    cp app/build/test-results/test/TEST-demo.xml "$change/evidence/TEST-demo.xml"
+    printf "the fix for item %s\n" "$n" > "item$n-fix.txt"
+'
+  run_log="$d/run.txt"
+  run_loop "$p" --items 2 --minutes 90 --review on >"$run_log" 2>&1 ||
+    fail "the run itself failed: $(cat "$run_log")"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the first item closed"
+  assert_eq "closed" "$(jq -r '.items[1].verdict' "$(state_file "$p")")" "the second item closed"
+  first_merge=$(jq -r '.items[0].merged.commits' "$(state_file "$p")" | awk -F, '{print $NF}')
+  [ -n "$first_merge" ] && [ "$first_merge" != "null" ] || fail "the first item's merge commit was not recorded"
+  [ "$first_merge" != "$run_start" ] || fail "the first item's merge is the run's start — nothing advanced"
+  prompt=$(cat "$p/.pi/issue-loop/items/22/worker-prompt.md")
+  assert_contains "$prompt" "$first_merge" \
+    "the second item is handed the first item's merge as its base, not the run-start commit"
+  diff=$(cat "$p/.pi/issue-loop/items/22/review-1.diff")
+  assert_contains "$diff" "item2-fix.txt" "the round-1 diff is the second item's own change"
+  assert_not_contains "$diff" "item1-fix.txt" \
+    "and it carries nothing the first item landed, which the base already has"
+  assert_eq "$(git -C "$p" rev-parse main)" "$(run_state "$p" get run.base)" \
+    "the state's base and the run's own agree"
+}
+
+# A kept worktree carries the test results a build wrote, and a child the round cap ended leaves the half-written
+# state of its own gate behind (issue #253: item #116's killed Gradle left
+# `auto/build/test-results/testDebugUnitTest/binary/in-progress-results-generic.bin`, and the next gate failed with
+# `java.io.EOFException` on infrastructure instead of on a case). The run reads the gate's evidence out of the tree
+# after a worker, so a directory an earlier item wrote was counted as the next item's gate — and the "no
+# test-results XML exists in the tree" refusal could not fire against it. The first item here leaves a green XML in
+# the worktree; the second writes a change and claims a gate, but no XML of its own.
+case_run_staleTestResultsAreNotThisChildsGate() {
+  local d p run_log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  stub_per_item_worker "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' '
+    change="openspec/changes/archive/2026-01-01-fix-item$n"
+    mkdir -p "$change/evidence"
+    printf "archived\n" > "$change/proposal.md"
+    printf "the fix for item %s\n" "$n" > "item$n-fix.txt"
+    if [ "$n" -eq 1 ]; then
+      mkdir -p app/build/test-results/test
+      printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/test/TEST-demo.xml
+      cp app/build/test-results/test/TEST-demo.xml "$change/evidence/TEST-demo.xml"
+    fi
+'
+  run_log="$d/run.txt"
+  run_loop "$p" --items 2 --minutes 90 --review on >"$run_log" 2>&1 ||
+    fail "the run itself failed: $(cat "$run_log")"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "the first item closes on the gate its own worker ran"
+  assert_eq "blocked" "$(jq -r '.items[1].verdict' "$(state_file "$p")")" \
+    "the second item is not closed on a test result its own gate never wrote"
+  assert_contains "$(jq -r '.items[1].note' "$(state_file "$p")")" "no test-results XML exists in the tree" \
+    "the block names the gate result it could not find"
+  assert_contains "$(cat "$run_log")" "app/build/test-results" \
+    "and the run names the stale results it removed before that child"
 }
 
 # The merge lands in the project's own tree, where the base branch is checked out, so a tree that is not clean at

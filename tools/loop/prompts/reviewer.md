@@ -37,7 +37,8 @@ first in practice.
 1. **Scenario coverage** — `PASS|FAIL|UNPROVEN` per delta scenario, with the asserting case name, its
    assertion and its timestamp. A scenario whose only support is a *different* claim is FAIL/UNPROVEN,
    never PASS.
-2. **Root cause scope** — does the diff fix the named cause and nothing else? Quote the hunk.
+2. **Cause or gap scope** — does the diff implement the named root cause, or for the profile's propose class
+   the named missing capability, and nothing else? Quote the hunk.
 3. **Gate reality** — does the evidence show `tests=<n> failures=0` as a real execution *for this change*
    (timestamps after the fix, executed count, no FROM-CACHE)? Is the flavour/module coverage the right
    requirement? Read the tally it carries; never reproduce it by running the gate.

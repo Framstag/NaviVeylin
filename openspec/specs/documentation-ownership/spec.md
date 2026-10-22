@@ -424,7 +424,7 @@ runs before an artifact is finished.
 
 - **WHEN** a reader takes the validator's rules from the entry document's `OpenSpec Workflow` section
 - **THEN** that section names `openspec/specs/documentation-ownership/spec.md` and this requirement as owning
-  both rules, and summarises each in one sentence
+  both rules
 - **Case**: `probe#theEntryDocumentStatesTheValidatorStrictRules` — `evidence/probe.sh` reads the section's
   strict-rules passage and prints `FAIL` with the absent statement named, exiting 1 while one is missing
   (`evidence/red-on-head.log`, 2 of 2 cases failed on the pre-change tree; `evidence/red-on-correction.log`,

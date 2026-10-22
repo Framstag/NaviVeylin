@@ -128,6 +128,7 @@ LOOP_SHELL_CASES=(
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#aSkipClearsTheInProgressMark'
+  'run#stateNamesTheItemInProgress'
   'run#skipEscalationCarriesTheDecision'
   'run#workPackageCarriesTheRecordedDecision'
   'run#claimedGateWithoutEvidenceIsBlocked'
@@ -306,6 +307,7 @@ loop_run_shell_case() {
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
+    'run#stateNamesTheItemInProgress') fn=case_run_stateNamesTheItemInProgress ;;
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
     'run#workPackageCarriesTheRecordedDecision') fn=case_run_workPackageCarriesTheRecordedDecision ;;
     'run#claimedGateWithoutEvidenceIsBlocked') fn=case_run_claimedGateWithoutEvidenceIsBlocked ;;
@@ -3430,6 +3432,46 @@ case_run_aSkipClearsTheInProgressMark() {
     "the skip posts exactly one comment, naming why the item is held"
   assert_contains "$(grep 'issue comment' "$GH_STUB_RECORD" || true)" "the fixture condition no longer holds" \
     "and the comment carries the worker's own root cause"
+}
+
+# The state is the only thing a person can open after a run was killed, and it named neither the item nor the
+# change in flight: `state.sh start` — the one writer of `.current` — had no call site in `run.sh`, so every
+# phase step recorded `issue: 0` and a state kept from a killed run carried `{"phase":"A"}` and nothing else.
+# Measured 2026-10-22: the run started at 18:46 was killed at 19:19 while #249's round-2 reviewer was answering,
+# and the kept `runs/2026-10-22T16:46:21Z.json` says `current: {"phase":"A"}` — the item was recoverable only
+# from the worktree's branch marker, a file the state does not point at (issue #263). The case reads the state
+# *while the child is blocked*, which is the state a killed run leaves behind, and again once the item ended.
+case_run_stateNamesTheItemInProgress() {
+  local d p sf fifo pid i
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  sf=$(state_file "$p")
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  if [ ! -e "$fifo.ready" ]; then
+    kill -9 "$pid" 2>/dev/null
+    fail "the stub child never started, so there is no item in flight to read the state about"
+  fi
+  # The case holds the fifo's writer side, so releasing a child never blocks and never leaves a writer behind.
+  exec 8> "$fifo"
+  assert_eq "21" "$(jq -r '.current.issue' "$sf" 2>/dev/null)" \
+    "the state names the item while it is being worked"
+  assert_eq "A" "$(jq -r '.current.phase' "$sf" 2>/dev/null)" "and the phase the run is in"
+  assert_contains "$(run_state "$p" show 2>&1 | head -1)" "#21" \
+    "the live view the run's own header names reads the same mark"
+  printf 'go\n' >&8; exec 8>&-
+  wait "$pid" || fail "the run itself failed"
+  assert_eq "null" "$(jq -r '.current' "$sf")" "the mark comes off the state when the item ends"
+  assert_eq "21" "$(jq -r '[.steps[].issue] | unique | .[0]' "$sf")" \
+    "every step the run recorded names the item it was taken for"
+  assert_eq "1" "$(jq -r '[.steps[].issue] | unique | length' "$sf")" \
+    "no step is recorded against issue 0"
 }
 
 case_run_claimedGateWithoutEvidenceIsBlocked() {

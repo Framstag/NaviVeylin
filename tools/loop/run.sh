@@ -832,6 +832,17 @@ while true; do
     break
   }
   in_progress="$issue"
+  # The state names the item from here on and not only a phase: `.current` is what `state.sh show` prints and
+  # what `done` clears, so a person who opens the state of a killed run reads which item was in flight instead
+  # of resolving the worktree's branch marker by hand (issue #263). Its `change` is the name the run asks the
+  # worker for — the same slug the branch carries — because the change the worker files is not known until it
+  # reports, and `done` records that one beside the item.
+  change_hint="$(if [ "$class" = "$propose_class" ]; then printf add; else printf fix; fi)-$slug"
+  loop_state start "$issue" --change "$change_hint" >/dev/null || {
+    printf 'run: could not record #%s as the item in progress\n' "$issue" >&2
+    stop_run "the state could not name #$issue as the item in progress"
+    break
+  }
 
   item_dir="$stage_dir/items/$issue"
   mkdir -p "$item_dir"

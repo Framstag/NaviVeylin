@@ -22,6 +22,7 @@
 #   worktree.sh adopt-item <issue> <branch>
 #   worktree.sh branch-state <issue> <branch>
 #   worktree.sh merge-item <issue> <branch>
+#   worktree.sh release-branch <branch>
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
@@ -404,6 +405,29 @@ cmd_record_review_failure() { # <issue> <change> <round>
     "$(gitw rev-parse --short HEAD)"
 }
 
+# A branch the run committed for an item and merged is done with: the work is in the base, and the branch
+# itself is a leftover. Git refuses to delete a branch a worktree holds, and the kept worktree is on it — so
+# the worktree is released first (detached at the branch's own HEAD, which is where the work is) and the
+# branch is then removed with git's *safe* delete, which refuses a branch whose work is not in the base. The
+# worktree's branch marker stays: it names the item whose work the tree carries, and a tree that is dirty
+# when the next run starts is attributed by it.
+cmd_release_branch() { # <branch>
+  local branch="${1:-}"
+  [ -n "$branch" ] || loop_die "release-branch: usage: worktree.sh release-branch <branch>"
+  gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null || {
+    printf 'no branch %s to release\n' "$branch"
+    return 0
+  }
+  if [ -d "$worktree" ] && [ "$(gitw rev-parse --abbrev-ref HEAD 2>/dev/null)" = "$branch" ]; then
+    gitw switch --detach >&2 || loop_die "release-branch: could not release the worktree from $branch"
+  fi
+  gitr branch -d "$branch" >&2 || {
+    printf 'branch %s was not removed — it carries work the base does not have\n' "$branch" >&2
+    return 1
+  }
+  printf 'released: branch %s removed (its work is in the base)\n' "$branch"
+}
+
 cmd_head() { [ -d "$worktree" ] || loop_die "head: no worktree at $worktree"; gitw rev-parse HEAD; }
 cmd_status() { [ -d "$worktree" ] || loop_die "status: no worktree at $worktree"; gitw status --porcelain; }
 
@@ -451,6 +475,7 @@ case "$cmd" in
   adopt-item) cmd_adopt_item "$@" ;;
   branch-state) cmd_branch_state "$@" ;;
   merge-item) cmd_merge_item "$@" ;;
+  release-branch) cmd_release_branch "$@" ;;
   head) cmd_head "$@" ;;
   status) cmd_status "$@" ;;
   strip-scratch) cmd_strip_scratch "$@" ;;

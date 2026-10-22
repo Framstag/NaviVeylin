@@ -291,6 +291,17 @@ tree" have to be one claim: measured 2026-10-20, a run closed #201 with its two 
 No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s
 decision, taken on what a stranger to the run can check.
 
+A branch the run made is a leftover once its work is in the base, and it goes when it goes: the run removes the
+branch it committed for an item and merged, releasing the kept worktree from it first (git refuses to delete a
+branch a worktree holds) and deleting it with git's own safe delete, which refuses a branch whose work is not
+in the base. The one command that answers "what has the loop left behind" (`tools/loop/loop-clean.sh`) removes
+the rest — the branches whose patches the base already holds, asked by **patch identity** (`git cherry`), never
+by ancestry, because the loop lands work as `fix: … (#N)` and a landed branch is not an ancestor of the base.
+A branch that still carries unlanded work is never removed by the tooling: it is named as work to land, and a
+branch a worktree holds is a tree in use. The report names the two kinds apart, so a flat list of branch names
+says which are leftovers. Measured 2026-10-22: 53 local branches, 43 of them already merged into the base and
+none of them removed by anything.
+
 What it does with an answer that arrived cut: the report a review round is decided from is the file the child's
 answer reached, and what reaches that file can be short. On 2026-10-20 an item's round-2 report stopped
 mid-word — `… and the post-restore gre`, 6 067 bytes, ending on the newline the adapter adds — while its own

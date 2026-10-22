@@ -327,6 +327,17 @@ loop_unlanded_commits() { # <repo> <base> <branch>
   return 0
 }
 
+# The branches the loop names: one per item it worked and one per run for its worktree. The same set the
+# report lists, so a reader and the sweep ask about the same branches.
+loop_own_branches() { # <repo> → one branch per line
+  git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
+}
+
+# The branches a worktree holds: git refuses to delete one of them, so every deletion asks this first.
+loop_worktree_branches() { # <repo> → one branch per line
+  git -C "$1" worktree list --porcelain 2>/dev/null | sed -n 's|^branch refs/heads/||p'
+}
+
 # ── the issue tooling, as the loop uses it ───────────────────────────────────────────────────────
 
 loop_profile() {

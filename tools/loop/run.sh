@@ -207,6 +207,10 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
     --closed "$closure" --note "$out" \
     --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-evidence "$merged_evidence" \
     >/dev/null
+  # The branch is merged, so the work is in the base and the branch itself is a leftover: the run removes
+  # the branch it merged (a cherry-picked adoption is not an ancestor of the base, so git's safe delete
+  # refuses it and the branch stays for the sweep — which asks the same question by patch identity).
+  bash "$LOOP_DIR/worktree.sh" release-branch "$branch" >&2 || true
   printf 'item #%s: closed (merged %s — a finished attempt the base did not have) · %s review round(s)\n' \
     "$issue" "$merged_branch" 0
 }
@@ -1104,6 +1108,12 @@ while true; do
       outcome="blocked"
       blocked_reason="the branch fix/issue-$issue-$slug could not be merged onto the base, so the item is not closed on a fix the tree does not have — $merge_refusal"
     }
+    # The branch the run committed for this item is done with once the run merged it: the work is in the
+    # base, and the branch is the run's own leftover. The release frees the worktree from it and the
+    # deletion is git's safe one, which refuses a branch whose work is not in the base.
+    if [ "$outcome" = "closed" ]; then
+      bash "$LOOP_DIR/worktree.sh" release-branch "fix/issue-$issue-$slug" >&2 || true
+    fi
   fi
 
   # The wall time is recorded in milliseconds-derived seconds: a stub run finishes inside one second, and

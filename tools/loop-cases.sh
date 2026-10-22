@@ -121,6 +121,7 @@ LOOP_SHELL_CASES=(
   'run#mergesAFinishedAttemptAndClosesTheItem'
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
   'run#mergesItsCommittedBranchBeforeClosing'
+  'run#aMergedBranchIsRemoved'
   'run#theBaseAdvancesWithEveryMerge'
   'run#staleTestResultsAreNotThisChildsGate'
   'run#doesNotCloseOnAMergeTheBaseCannotTake'
@@ -173,9 +174,11 @@ LOOP_SHELL_CASES=(
   'report#zeroUsagePrintsDashNotZero'
   'report#actionsNameDecisionAndBranch'
   'report#landedBranchIsNoAction'
+  'report#landedBranchesAreNamedAsRemovable'
   'report#emptyRunSaysNone'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
+  'clean#sweepsOnlyWhatIsInTheBase'
   'clean#interruptedSuiteEndsItsProcessGroup'
   'clean#reportsAndEndsAProcessLeftInAScratchTree'
   'clean#endsARunWhoseTreeIsAlreadyDeleted'
@@ -299,6 +302,7 @@ loop_run_shell_case() {
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
     'run#mergesItsCommittedBranchBeforeClosing') fn=case_run_mergesItsCommittedBranchBeforeClosing ;;
+    'run#aMergedBranchIsRemoved') fn=case_run_aMergedBranchIsRemoved ;;
     'run#theBaseAdvancesWithEveryMerge') fn=case_run_theBaseAdvancesWithEveryMerge ;;
     'run#staleTestResultsAreNotThisChildsGate') fn=case_run_staleTestResultsAreNotThisChildsGate ;;
     'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
@@ -354,9 +358,11 @@ loop_run_shell_case() {
     'report#zeroUsagePrintsDashNotZero') fn=case_report_zeroUsagePrintsDashNotZero ;;
     'report#actionsNameDecisionAndBranch') fn=case_report_actionsNameDecisionAndBranch ;;
     'report#landedBranchIsNoAction') fn=case_report_landedBranchIsNoAction ;;
+    'report#landedBranchesAreNamedAsRemovable') fn=case_report_landedBranchesAreNamedAsRemovable ;;
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
+    'clean#sweepsOnlyWhatIsInTheBase') fn=case_clean_sweepsOnlyWhatIsInTheBase ;;
     'clean#interruptedSuiteEndsItsProcessGroup') fn=case_clean_interruptedSuiteEndsItsProcessGroup ;;
     'clean#reportsAndEndsAProcessLeftInAScratchTree') fn=case_clean_reportsAndEndsAProcessLeftInAScratchTree ;;
     'clean#endsARunWhoseTreeIsAlreadyDeleted') fn=case_clean_endsARunWhoseTreeIsAlreadyDeleted ;;
@@ -1749,8 +1755,10 @@ ACTION
   [ -f "$outside/keep.txt" ] || fail "the removal followed the symlink out of the worktree"
   assert_eq "" "$(git -C "$w" status --porcelain)" "the kept worktree is clean, its git state untouched"
   branch=$(cat "$w/.pi/loop-branch")
-  [ -n "$(git -C "$p" branch --list "$branch")" ] || fail "the run's branch $branch is gone"
-  assert_eq "$(git -C "$p" rev-parse "$branch")" "$(git -C "$w" rev-parse HEAD)" \
+  # The branch the run committed on is gone once the run merged it — the work is in the base — and the kept
+  # worktree still holds the commit it carried.
+  [ -z "$(git -C "$p" branch --list "$branch")" ] || fail "the run's branch $branch is still there"
+  assert_eq "$(git -C "$p" rev-parse main)" "$(git -C "$w" rev-parse HEAD)" \
     "the kept worktree still holds the item's commit"
   bytes=$(printf '%s\n' "$out" | sed -n 's/.*removed from the kept worktree: \([0-9][0-9]*\) B.*/\1/p' | head -1)
   [ -n "$bytes" ] || fail "the run does not say how much build output it removed: $out"
@@ -3097,7 +3105,12 @@ case_run_mergesAFinishedAttemptAndClosesTheItem() {
   assert_eq "0" "$status" "adopting a finished attempt is an explicit non-error"
   assert_contains "$out" "adopted: branch $branch" "the run names the branch it merged"
   [ "$(git -C "$p" rev-parse main)" != "$base" ] || fail "the base did not move onto the merged branch"
-  git -C "$p" merge-base --is-ancestor "$branch" main || fail "the finished attempt's commits are not on the base"
+  # The branch the run merged is removed once the run merged it — the work is in the base, and the branch
+  # itself was a leftover — so the commits it carried are what the base is asked about.
+  [ -z "$(git -C "$p" branch --list "$branch")" ] || fail "the run left the branch it merged behind: $branch"
+  for c in $(jq -r '.items[0].merged.commits' "$(state_file "$p")" | tr ',' ' '); do
+    git -C "$p" merge-base --is-ancestor "$c" main || fail "the finished attempt's commit $c is not on the base"
+  done
   [ -f "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md" ] ||
     fail "the archived change did not travel with the merge"
   assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is recorded as done"
@@ -3195,28 +3208,32 @@ case_run_mergesItsCommittedBranchBeforeClosing() {
   runlog="$d/run.txt"
   run_one_item "$p" "$d" --review on >"$runlog" 2>&1 || fail "the run itself failed: $(cat "$runlog")"
   assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the reviewed item is closed"
+  # The branch the run committed on is gone once the run merged it: the work is in the base, and the branch
+  # itself was the run's own leftover. The commits it carried are what the record keeps.
   branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
-  [ -n "$branch" ] || fail "the run left no item branch"
-  git -C "$p" merge-base --is-ancestor "$branch" main ||
-    fail "the item was closed with its fix on $branch, which the base does not have"
+  [ -z "$branch" ] || fail "the run left the branch of the item it closed behind: $branch"
+  commits=$(jq -r '.items[0].merged.commits' "$(state_file "$p")")
+  [ -n "$commits" ] && [ "$commits" != "null" ] || fail "the run recorded no merged commits"
+  last=$(printf '%s' "$commits" | awk -F, '{print $NF}')
+  git -C "$p" merge-base --is-ancestor "$last" main ||
+    fail "the item was closed with its fix on the branch it merged, which the base does not have"
   [ -f "$p/demo-fix.txt" ] || fail "the fix the run committed did not reach the base"
-  assert_eq "$(git -C "$p" rev-parse "$branch")" "$(git -C "$p" rev-parse main)" \
+  assert_eq "$(git -C "$p" rev-parse "$last")" "$(git -C "$p" rev-parse main)" \
     "the base is the merge of the branch, not a second commit of its own"
   # The closure's own account of the merge, which is what a reader has left once the run's state is replaced by
   # the next run's: the branch it merged, the commits it carried, and the closure's evidence naming both.
-  commits=$(jq -r '.items[0].merged.commits' "$(state_file "$p")")
-  [ -n "$commits" ] && [ "$commits" != "null" ] || fail "the run recorded no merged commits"
-  assert_eq "$branch" "$(jq -r '.items[0].merged.branch' "$(state_file "$p")")" \
-    "the run records the branch it merged"
-  assert_eq "$(git -C "$p" rev-parse "$branch")" "$(printf '%s' "$commits" | awk -F, '{print $NF}')" \
-    "and the commits it recorded end at the branch's tip"
+  recorded=$(jq -r '.items[0].merged.branch' "$(state_file "$p")")
+  case "$recorded" in
+    fix/issue-21-*) ;;
+    *) fail "the run did not record the branch it merged: $recorded" ;;
+  esac
   for c in ${commits//,/ }; do
     git -C "$p" merge-base --is-ancestor "$c" main || fail "the recorded commit $c is not on the base"
   done
   assert_eq "$(git -C "$p" rev-parse main)" "$(run_state "$p" get run.base)" \
     "and the base the run recorded is the merge, so the next item builds on it"
   log=$(cat "$GH_STUB_RECORD")
-  assert_contains "$log" "merged $branch (commits $commits) onto the base" \
+  assert_contains "$log" "merged $recorded (commits $commits) onto the base" \
     "the closure's evidence names the merge, so the tracker's fixed-by claim carries what backs it"
 }
 
@@ -3411,7 +3428,10 @@ case_run_resetWorktreeDiscardsWhatItNames() {
   [ ! -f "$p/.pi/worktrees/loop/leftover.txt" ] || fail "the named leftover survived --reset-worktree"
   assert_eq "" "$(git -C "$p/.pi/worktrees/loop" status --porcelain)" "the kept worktree is clean again"
   assert_contains "$out" "nothing eligible" "and the run then answers to the backlog, not to the leftovers"
-  [ -n "$(git -C "$p" branch --list 'fix/issue-21-*')" ] || fail "the repair discarded the branches as well"
+  # The repair discards what it names and nothing else: the work the previous run did is in the base, and the
+  # base still carries it (the run removed that run's branch, because the run merged it).
+  git -C "$p" ls-tree -r --name-only main | grep -q 'openspec/changes/archive/2026-01-01-fix-demo/proposal.md' ||
+    fail "the repair discarded the work the previous run did"
 }
 
 case_run_aSkipClearsTheInProgressMark() {
@@ -3921,16 +3941,15 @@ case_run_commitsWithoutAnAmbientIdentity() {
   run_one_item "$p" "$d" >/dev/null || fail "a machine without an ambient git identity could not run an item"
   assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item completed"
 
-  # Both commits carry the run's own identity: the login the gate preflight resolved (the stub `gh` answers
+  # The two commits carry the run's own identity: the login the gate preflight resolved (the stub `gh` answers
   # it), as that login's noreply address.
   login=$(tr -d '\n' < "$LOOP_ISSUE_FIXTURES/login.txt")
-  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/*' | head -n 1)
-  [ -n "$branch" ] || fail "the item's branch does not exist"
-  # The two commits are counted from the base the run started on, not from the base branch: the run merges the
-  # item's branch before it closes the item, so `main` is the item's own head by the time this is read (#229).
-  count=$(git -C "$p" rev-list --count "$base_before..$branch" 2>/dev/null || printf '0')
-  [ "$count" -eq 2 ] || fail "the run did not commit twice on $branch (commits since the run's base: $count)"
-  author=$(git -C "$p" log -n 2 --format='%an <%ae>' "$branch" | sort -u)
+  # The commits are counted from the base the run started on, not from the base branch: the run merges the
+  # item's branch before it closes the item and removes that branch, so `main` is the item's own head by the
+  # time this is read (#229).
+  count=$(git -C "$p" rev-list --count "$base_before..main" 2>/dev/null || printf '0')
+  [ "$count" -eq 2 ] || fail "the run did not commit twice (commits since the run's base: $count)"
+  author=$(git -C "$p" log -n 2 --format='%an <%ae>' main | sort -u)
   assert_eq "$login <$login@users.noreply.github.com>" "$author" "both commits are attributed to the run's identity"
 }
 
@@ -4230,6 +4249,91 @@ case_run_awaitingDecisionIsNotEscalatedAgain() {
 
 # ----------------------------------------------------------------------------- cases: report
 
+# A branch the run committed for an item and merged is done with: the work is in the base, and the branch
+# itself is the run's own leftover. Measured 2026-10-22: 43 of the 53 local branches were already merged
+# into the base, and nothing removed them — the run creates a branch per item and never took one away.
+case_run_aMergedBranchIsRemoved() {
+  local d p w branch head
+  d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  branch=$(git -C "$p" branch --list 'fix/issue-*' --format='%(refname:short)')
+  [ -z "$branch" ] || fail "the run left the branch of the item it closed behind: $branch"
+  # The work is in the base — the branch is gone, the fix is not.
+  git -C "$p" ls-tree -r --name-only main | grep -q 'openspec/changes/archive/2026-01-01-fix-demo/proposal.md' ||
+    fail "the item's change is not in the base"
+  # The worktree was released from the branch, not broken by it: it is on no branch of its own, and the next
+  # item still cuts its own branch from the base.
+  head=$(git -C "$w" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  assert_eq "HEAD" "$head" "the worktree is not on the branch that was removed"
+}
+
+# A branch the loop made is a leftover like any other: the one command that answers "what has the loop left
+# behind" removes the branches whose patches are in the base, and keeps the ones that carry work and the ones
+# a worktree holds.
+case_clean_sweepsOnlyWhatIsInTheBase() {
+  local p out
+  p=$(new_project)
+  # A branch whose patch is in the base: it was merged, so it carries nothing.
+  git -C "$p" switch -c fix/issue-1-landed >/dev/null 2>&1 || fail "could not create the branch"
+  printf 'the fix\n' > "$p/landed.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the landed one (#1)" >/dev/null 2>&1 || fail "could not commit"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back"
+  git -C "$p" merge --ff-only fix/issue-1-landed >/dev/null 2>&1 || fail "could not merge"
+  # A branch that carries work the base does not have.
+  git -C "$p" switch -c fix/issue-2-work >/dev/null 2>&1 || fail "could not create the branch"
+  printf 'the work\n' > "$p/work.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the work (#2)" >/dev/null 2>&1 || fail "could not commit"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back"
+  # A branch a worktree holds: a tree in use.
+  git -C "$p" worktree add -b fix/issue-3-held "$p/.pi/worktrees/held" main >/dev/null 2>&1 || fail "could not add the worktree"
+
+  out=$(run_clean "$p" 2>&1) || fail "the report failed"
+  assert_contains "$out" "would remove fix/issue-1-landed" "the landed branch is named as removable"
+  assert_contains "$out" "kept fix/issue-2-work" "the branch that carries work is kept"
+  assert_contains "$out" "kept fix/issue-3-held" "the branch a worktree holds is kept"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-1-landed >/dev/null ||
+    fail "the report removed a branch"
+
+  out=$(run_clean "$p" --apply 2>&1) || fail "the sweep failed"
+  assert_contains "$out" "removed fix/issue-1-landed" "the landed branch is removed"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-1-landed >/dev/null 2>&1 &&
+    fail "the landed branch survived the sweep"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-2-work >/dev/null ||
+    fail "the branch that carries work was removed"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-3-held >/dev/null ||
+    fail "the branch a worktree holds was removed"
+}
+
+# The report's branch list is a flat list of names, and a name says nothing: the reader cannot tell the
+# leftovers from the work. The report asks the same question the action list asks — what does this branch
+# carry — and answers it twice: a branch that carries work is an action, a branch that carries nothing is
+# named as removable.
+case_report_landedBranchesAreNamedAsRemovable() {
+  local p out
+  p=$(new_project)
+  git -C "$p" switch -c fix/issue-1-landed >/dev/null 2>&1 || fail "could not create the branch"
+  printf 'the fix\n' > "$p/landed.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the landed one (#1)" >/dev/null 2>&1 || fail "could not commit"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back"
+  git -C "$p" merge --ff-only fix/issue-1-landed >/dev/null 2>&1 || fail "could not merge"
+  git -C "$p" switch -c fix/issue-2-work >/dev/null 2>&1 || fail "could not create the branch"
+  printf 'the work\n' > "$p/work.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the work (#2)" >/dev/null 2>&1 || fail "could not commit"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back"
+  init_state "$p" 1 90
+
+  out=$(run_report "$p" 2>&1) || fail "the report failed"
+  assert_contains "$out" "landed, removable:" "the report tells the leftovers from the work"
+  assert_contains "$out" "fix/issue-1-landed" "the landed branch is named as removable"
+  assert_contains "$out" "land fix/issue-2-work" "the branch that carries work is an action"
+  assert_not_contains "$out" "land fix/issue-1-landed" "and the landed branch is not an action"
+}
+
+# A run's report of what it did is the run's product, and a branch it made is part of it.
 case_report_headerAndTableShape() {
   local d p out rows
   d=$(scratch); p=$(new_project)

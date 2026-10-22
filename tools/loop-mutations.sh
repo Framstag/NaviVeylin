@@ -234,6 +234,13 @@ MUTATIONS=(
   '41.1@-@tools/loop/run.sh@state#aRefusedRunLeavesTheLiveStateAlone@the lock taken before the run writes anything@s|^loop_state lock --owner "\$\$" \|\| exit \$?$|: # the mutation takes no lock at all|'
   '41.2@-@tools/loop/state.sh@state#aDeadOwnersLockIsTakenOver@the liveness of the lock'"'"'s owner@s|^    if \[ -n "\$holder_pid" \] && kill -0 "\$holder_pid" 2>/dev/null; then$|    if true; then|'
   '41.3@-@tools/loop/report.sh@report#aKilledRunIsNotALiveRun@the report telling a run whose process is gone from one that is going@s|^if \[ "\$owner_pid" -gt 0 \] && \[ -z "\$stop_reason" \] && ! kill -0 "\$owner_pid" 2>/dev/null; then$|if false; then|'
+  # 42.x — the branches the loop made (measured 2026-10-22: 43 of 53 local branches were already in the
+  # base and nothing removed them). One mutation per invariant: the worktree's release, the deletion, the
+  # sweep's own question, and the report's second line.
+  '42.1@-@tools/loop/worktree.sh@run#aMergedBranchIsRemoved@the worktree released from the branch it holds@s|^    gitw switch --detach >&2 \|\| loop_die "release-branch: could not release the worktree from \$branch"$|    : # the mutation leaves the worktree on the branch|'
+  '42.2@-@tools/loop/worktree.sh@run#aMergedBranchIsRemoved@the deletion of the merged branch@s|^  gitr branch -d "\$branch" >&2 \|\| {$|  : # the mutation removes no branch\n  false \|\| {|'
+  '42.3@-@tools/loop/loop-clean.sh@clean#sweepsOnlyWhatIsInTheBase@the sweep asking what a branch carries@s|^    if unlanded=\$(loop_unlanded_commits "\$LOOP_ROOT" "\$base_commit" "\$branch"); then$|    if true; then|'
+  '42.4@-@tools/loop/report.sh@report#landedBranchesAreNamedAsRemovable@the report naming the branches that can be removed@s|^printf .landed, removable: %s\\n. |printf "nothing removable: %s\\n" |'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

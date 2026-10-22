@@ -140,9 +140,27 @@ printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAg
   + [.excluded[] | select(.verdict == $d) | "#\(.issue)"]
   | if length == 0 then "none" else join(" · ") end' "$state_file")"
 
-# The branches are read from git, not from a child's report: the run's own script created them.
+# The branches are read from git, not from a child's report: the run's own script created them. What each
+# of them carries is asked once, by patch identity — the loop lands work as `fix: … (#N)`, so a branch whose
+# work is already on the base is not an ancestor of it, and ancestry named leftovers as landings for ever
+# (issue #228). The two answers are different: a branch that carries work is an action the caller owes, a
+# branch that carries nothing is a leftover the caller may remove — and a flat list of names says neither.
+base=$(jq -r '.run.base // ""' "$state_file")
 branches=$(git -C "$LOOP_ROOT" branch --list 'loop-*' 'fix/issue-*' --format='%(refname:short)')
+branch_table=""
+while IFS= read -r branch; do
+  [ -n "$branch" ] || continue
+  if unlanded=$(loop_unlanded_commits "$LOOP_ROOT" "$base" "$branch"); then
+    ahead=$(printf '%s\n' "$unlanded" | grep -c . || true)
+  else
+    ahead=1
+  fi
+  case "$ahead" in ''|*[!0-9]*) ahead=1 ;; esac
+  branch_table="$branch_table$branch"$'\t'"$ahead"$'\n'
+done <<< "$branches"
 printf 'branches: %s\n' "$(if [ -n "$branches" ]; then printf '%s' "$branches" | paste -sd' ' -; else printf 'none'; fi)"
+landed=$(printf '%s' "$branch_table" | awk -F'\t' '$2 == 0 { printf "%s%s", (n++ ? " " : ""), $1 }')
+printf 'landed, removable: %s\n' "$(if [ -n "$landed" ]; then printf '%s' "$landed"; else printf 'none'; fi)"
 if [ -d "$LOOP_WORKTREE" ]; then
   printf 'worktree: %s (kept for the next run)\n' "$LOOP_WORKTREE"
 else
@@ -167,7 +185,6 @@ decisions() {
 }
 
 state_dir=$(dirname "$state_file")
-base=$(jq -r '.run.base // ""' "$state_file")
 actions=()
 
 while IFS=$'\t' read -r kind issue verdict reason extra; do
@@ -190,17 +207,12 @@ while IFS=$'\t' read -r kind issue verdict reason extra; do
 done < <(decisions)
 
 # The branches are read from git, and a branch is an action because of what it *carries*, not because it
-# exists: `none` must never hide commits. What it carries is asked by patch identity — the loop lands work as
-# `fix: … (#N)`, so a branch whose work is already on the base is not an ancestor of it, and ancestry named
-# leftovers as landings for ever (issue #228). A range git cannot answer is named rather than counted as zero.
-while IFS= read -r branch; do
+# exists: `none` must never hide commits. What it carries was asked above, by patch identity — the loop
+# lands work as `fix: … (#N)`, so a branch whose work is already on the base is not an ancestor of it, and
+# ancestry named leftovers as landings for ever (issue #228). A range git cannot answer is named rather than
+# counted as zero.
+while IFS=$'\t' read -r branch ahead; do
   [ -n "$branch" ] || continue
-  if unlanded=$(loop_unlanded_commits "$LOOP_ROOT" "$base" "$branch"); then
-    ahead=$(printf '%s\n' "$unlanded" | grep -c . || true)
-  else
-    ahead=1
-  fi
-  case "$ahead" in ''|*[!0-9]*) ahead=1 ;; esac
   [ "$ahead" -gt 0 ] || continue
   owner=$(printf '%s' "$branch" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1)
   if [ -z "$owner" ]; then
@@ -211,7 +223,7 @@ while IFS= read -r branch; do
   else
     actions[${#actions[@]}]="land $branch — $ahead commit(s) the base does not have — no item of this run owns it"
   fi
-done <<< "$branches"
+done <<< "$branch_table"
 
 # An item that ended without a gate result is the one failure a caller cannot reconstruct from the table:
 # the transcript beside its id says how far the item got.

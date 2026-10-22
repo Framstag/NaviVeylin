@@ -90,10 +90,15 @@ printf '%s' "$issue" > "$issue_file"
 
 # The gate. A sensor-scoped close is refused by the author condition and by any refusal other than the
 # missing opt-in: the check's own issues are authorised by the row, and its scope is the label below.
+# A not-planned closure is exempt from the opt-in for the same reason and no other: it records a person's
+# decision not to act, not work performed on the item, and it writes the settled status the item may already
+# carry (#251). Every other refusal still stops it, and a *completed* closure still needs the label, because
+# that one asserts work the automation did.
 out=$(issues_core Policy check "$issue_file" --profile "$profile" 2>&1)
 status=$?
 reason_code="${out%%:*}"
-if [ "$status" -eq 3 ] && [ "$reason_code" = "missing-eligibility-label" ] && [ -n "$sensor_label" ]; then
+if [ "$status" -eq 3 ] && [ "$reason_code" = "missing-eligibility-label" ] \
+  && { [ -n "$sensor_label" ] || [ "$state_reason" = "not_planned" ]; }; then
   :
 elif [ "$status" -eq 3 ]; then
   if [ "$json" -eq 1 ]; then

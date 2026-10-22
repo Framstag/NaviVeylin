@@ -198,6 +198,14 @@ MUTATIONS=(
   # 39.3 — a directory of more tallies than the block prints is not a directory of twenty (issue #246, review
   # round 1): without the line, the cap reads as the whole tree.
   '39.3@-@tools/loop/measure.sh@measure#saysHowManyTalliesItWithheld@the line that says how many tallies the cap withheld (issue #246)@s|^    item TALLY-MORE|    : # the mutation withholds the count|'
+  # 40.1 — the map covers every command the pipeline's check steps run (issue #242): without the pair, a landing
+  # that breaks the build-inputs step is green in the run and red in the pipeline, which is the shape that reddened
+  # `main` on 2026-10-21. A profile whose map is one long quoted line can only be mutated in place, so the
+  # expression deletes one pair from the copy the case reads.
+  '40.1@-@tools/loop/loop.conf@gate#theMapCoversEveryPipelineStep@the pair that carries the build-inputs step in the map (issue #242)@s#tools/build-inputs\*|tools/build-inputs-selftest.sh;##'
+  # 40.2 — the gate owes that step's check for a path the step reads (issue #242): without the pair the plan answers
+  # `nothing owed` and exits 0 for a delta the pipeline refuses.
+  '40.2@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@the pair that owes the check over a path the step reads (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;##'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

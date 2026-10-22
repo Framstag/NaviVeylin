@@ -88,6 +88,8 @@ LOOP_SHELL_CASES=(
   'run#decisionCapRefusesToStart'
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
+  'gate#theMapCoversEveryPipelineStep'
+  'gate#aPipelineCheckIsOwedByItsPaths'
   'measure#namesTheOwedChecksInOneBlock'
   'measure#printsTheNumbersTheReviewerAsksFor'
   'measure#refusesToGuessWhichChangeItMeasures'
@@ -256,6 +258,8 @@ loop_run_shell_case() {
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
+    'gate#theMapCoversEveryPipelineStep') fn=case_gate_theMapCoversEveryPipelineStep ;;
+    'gate#aPipelineCheckIsOwedByItsPaths') fn=case_gate_aPipelineCheckIsOwedByItsPaths ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
     'measure#printsTheNumbersTheReviewerAsksFor') fn=case_measure_printsTheNumbersTheReviewerAsksFor ;;
     'measure#refusesToGuessWhichChangeItMeasures') fn=case_measure_refusesToGuessWhichChangeItMeasures ;;
@@ -2197,6 +2201,67 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
   base=$(git -C "$p" rev-parse HEAD)
   plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
   assert_contains "$plan" "nothing owed" "a delta no pattern covers owes nothing: $plan"
+}
+
+# The profile's suite map is a *copy* of the steps the pipeline's checks run, and a copy nobody compares reddens
+# `main` again the next time the pipeline grows a step (issue #242). On 2026-10-21 it carried eight of the
+# pipeline's thirty-one shell gate commands, so a landing the pipeline refused went green in the run — a merge
+# passed the build's gate and broke `tools/check-portability-selftest.sh`, and the pipeline found the red `main`
+# instead. The profile names the pipeline it is pinned to, and every command under a `Check …` step has to be a
+# value of the map. A profile that names no pipeline cannot be pinned and says so: that residual — a new step
+# escapes until someone adds it — is the cost the map's owner accepted over running every step for every item.
+case_gate_theMapCoversEveryPipelineStep() {
+  local conf pipeline cmds map missing
+  conf="$LOOP_ENGINE/loop.conf"
+  # The key is recorded even when it is empty, like `LOOP_GATE_CMD`: a profile that names no pipeline has to say
+  # so, or "the map is a copy with no alarm" is a state nobody reading the file can see.
+  grep -q '^LOOP_GATE_PIPELINE=' "$conf" \
+    || fail "the profile records no LOOP_GATE_PIPELINE, so the map is pinned to nothing and nobody can tell"
+  pipeline=$(sed -n 's/^LOOP_GATE_PIPELINE="\(.*\)"/\1/p' "$conf")
+  if [ -z "$pipeline" ]; then
+    # A project with no pipeline (or one that chose not to pin its map) has nothing to compare against.
+    return 0
+  fi
+  [ -f "$LOOP_PROJECT_ROOT/$pipeline" ] || fail "the profile pins the map to $pipeline, which the project does not carry"
+  # The commands a check step runs: a step named `Check …` is a check (a publish step writes the tree and is not
+  # one), and its commands are the `bash <path> …` lines it runs — inline after `run:` or one per line inside a
+  # `run: |` block. A trailing `|| { … }` is the workflow's own error handling, not part of the command.
+  cmds=$(awk '
+    /^[[:space:]]*- name:/ { name=$0; sub(/^[[:space:]]*- name:[[:space:]]*/, "", name); incheck=(name ~ /^Check /); next }
+    incheck {
+      line=$0
+      if (line ~ /^[[:space:]]*run:[[:space:]]*(bash|sh)[[:space:]]/) {
+        sub(/^[[:space:]]*run:[[:space:]]*/, "", line); print line
+      } else if (line ~ /^[[:space:]]*(bash|sh)[[:space:]]/) {
+        sub(/^[[:space:]]*/, "", line); sub(/[[:space:]]*[|&;].*$/, "", line); print line
+      }
+    }' "$LOOP_PROJECT_ROOT/$pipeline" \
+    | sed -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | sort -u)
+  [ -n "$cmds" ] || fail "the pipeline at $pipeline names no shell gate command: the pin would pass over nothing"
+  map=$(sed -n 's/^LOOP_GATE_SUITES="\(.*\)"/\1/p' "$conf" | tr ';' '\n' \
+    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | sort -u)
+  [ -n "$map" ] || fail "the profile's suite map is empty"
+  missing=$(comm -13 <(printf '%s\n' "$map") <(printf '%s\n' "$cmds"))
+  [ -z "$missing" ] || fail "the suite map carries none of these commands the pipeline's Check steps run: $(printf '%s' "$missing" | tr '\n' ' ')"
+}
+
+# The map is worth its lines only if the gate reads it: a delta touching a path the pipeline's checks gate owes
+# that step's commands. Before the map was completed this path owed *nothing* and the gate exited 0 — the shape
+# of the 2026-10-21 landing that reddened `main` (issue #242).
+case_gate_aPipelineCheckIsOwedByItsPaths() {
+  local d p conf base plan
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  mkdir -p "$p/tools"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$p/tools/build-inputs.sh"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the build inputs' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/build-inputs.sh --check" "the check the pipeline runs over that path is owed: $plan"
+  assert_contains "$plan" "tools/build-inputs-selftest.sh" "and the suite that proves it: $plan"
+  return 0
 }
 
 # One call answers what the worker used to spend a run of calls finding out (issue #246): the change's pathspec,

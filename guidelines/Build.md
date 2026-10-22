@@ -365,7 +365,7 @@ workstation with it.
 | Build single ABI (fastest iteration) | `./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a` |
 | Run all unit tests | `./gradlew test` |
 | Run all unit tests — the **full gate** (all modules, both `:app` flavors, forced) | `./gradlew test -PforceTests --no-build-cache` |
-| Run the gate a change owes, by its own pathspec (what the loop's gate command names) | `tools/loop/gate.sh --base <sha>` — the Gradle gate when a compiled path changed, else the shell suite that covers the touched paths; `--plan` prints the selection without running it |
+| Run the gate a change owes, by its own pathspec (what the loop's gate command names) | `tools/loop/gate.sh --base <sha>` — the Gradle gate when a compiled path changed, else the shell commands of the pipeline's check steps that read the touched paths; `--plan` prints the selection without running it |
 | Run app unit tests only (one flavor — there is no `:app:testDebugUnitTest`) | `./gradlew :app:testMobileDebugUnitTest` (or `:app:testAutomotiveDebugUnitTest`) |
 | Run single test class | `./gradlew :app:testMobileDebugUnitTest --tests "<FQCN>"` |
 | Run instrumented tests (device required) | `./gradlew connectedAndroidTest` |
@@ -376,6 +376,12 @@ workstation with it.
 A run meant to cover the whole suite adds `--continue`, or the first failing module ends the invocation and
 the remaining suites never execute; read the executed-task list in the output for what actually ran, not the
 flavors one expects (§134.65).
+
+The gate above is only as wide as the profile's map: `LOOP_GATE_SUITES` (`tools/loop/loop.conf`) has to reach
+every command a `Check …` step of the pipeline runs, or a landing the pipeline refuses is green in the run —
+which is what reddened `main` on 2026-10-21 (issue #242). The map's unit is a step, not a command, and
+`gate#theMapCoversEveryPipelineStep` pins it against the pipeline the profile names in `LOOP_GATE_PIPELINE`, so
+a step the pipeline gains and the map does not carry fails the loop's own suite and names the missing commands.
 
 ## 4. Result evaluation
 

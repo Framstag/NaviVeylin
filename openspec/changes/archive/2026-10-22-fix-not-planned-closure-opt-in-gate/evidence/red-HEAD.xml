@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Derived from evidence/red-HEAD.log by hand, the way gate.sh derives a suite's tally from its summary
+     line: three probe checks ran, two failed. Taken 2026-10-22T06:31:40Z against 9aac52b. -->
+<testsuite name="bash /tmp/probe-251.sh" tests="3" failures="2" errors="0">
+  <testcase classname="spec" name="notPlannedExemptionIsStated"><failure message="grep -qi 'not-planned' openspec/specs/issue-backlog/spec.md matched nothing"/></testcase>
+  <testcase classname="spec" name="notPlannedScenarioNamesItsCase"><failure message="grep -q 'close#notPlannedNeedsNoOptIn' openspec/specs/issue-backlog/spec.md matched nothing"/></testcase>
+  <testcase classname="close" name="notPlannedNeedsNoOptIn"/>
+  <system-out>FAIL spec#notPlannedExemptionIsStated FAIL spec#notPlannedScenarioNamesItsCase PASS close#notPlannedNeedsNoOptIn tests=3 failures=2 EXIT=1</system-out>
+</testsuite>

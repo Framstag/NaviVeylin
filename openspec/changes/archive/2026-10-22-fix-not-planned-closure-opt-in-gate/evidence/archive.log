@@ -1,0 +1,15 @@
+2026-10-22T06:35:02Z
+
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Why section should not exceed 1000 characters
+Task status: ✓ Complete
+
+Specs to update:
+  issue-backlog: update
+Applying changes to openspec/specs/issue-backlog/spec.md:
+  ~ 1 modified
+Totals: + 0, ~ 1, - 0, → 0
+Specs updated successfully.
+Change 'fix-not-planned-closure-opt-in-gate' archived as '2026-10-22-fix-not-planned-closure-opt-in-gate'.
+EXIT=0
+2026-10-22T06:35:03Z

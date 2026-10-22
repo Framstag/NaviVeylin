@@ -1,0 +1,9 @@
+probe script: /tmp/probe-251.sh (verbatim below)
+2026-10-22T06:31:40Z
+---
+FAIL spec#notPlannedExemptionIsStated
+FAIL spec#notPlannedScenarioNamesItsCase
+PASS close#notPlannedNeedsNoOptIn
+tests=3 failures=2
+EXIT=1
+2026-10-22T06:31:41Z

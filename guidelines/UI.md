@@ -430,6 +430,12 @@ describes (spec: `route-calculation-feedback`). The route-calculation wait notic
   request superseded, before the delay elapses raises no notice.
 - **One notice, updated in place**: a second state change (the next percentage) MUST update
   the notice that is up and `invalidate()` it — never push a second screen.
+- **Minimum visible dwell**: a notice the navigation view replaces stays up for at least
+  `CALCULATION_NOTICE_MIN_DWELL_MS` (700 ms) after it appeared, measured from the landed push — a route
+  that arrives just after the delay must not swap a screen the driver has only glanced at (measured
+  2026-10-05: an 847 ms route showed the notice for 443 ms; §133, issue #84). The dwell is decided by
+  `calculationNoticeDwellRemainingMs()` and armed as one cancellable job; it MUST NOT delay a
+  cancellation (the driver's own tap) or the error notice that replaces a failed calculation.
 - **Never outlives its work**: when the calculation ends the notice is removed by identity
   (`ScreenManager.remove`, never `popToRoot()`, which takes the navigation view with it);
   a calculation that ended while the session was not started MUST NOT leave a notice behind.

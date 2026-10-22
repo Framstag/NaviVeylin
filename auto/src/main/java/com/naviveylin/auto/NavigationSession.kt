@@ -2,6 +2,7 @@ package com.naviveylin.auto
 
 import android.content.Intent
 import android.content.res.Configuration
+import android.os.SystemClock
 import android.util.Log
 import androidx.car.app.Screen
 import androidx.car.app.ScreenManager
@@ -127,6 +128,16 @@ class NavigationSession : Session() {
      */
     private var noticeArmJob: Job? = null
     private var noticeArmToken: Long? = null
+
+    /**
+     * When the notice on the stack was pushed (monotonic), or null while no notice is up: its
+     * minimum visible dwell is measured from here (spec: `route-calculation-feedback` — A notice
+     * the navigation view replaces stays visible for a minimum dwell).
+     */
+    private var calculationNoticeShownAtMs: Long? = null
+
+    /** The removal owed to the end of the notice's minimum visible dwell, while one is pending. */
+    private var calculationNoticeDwellJob: Job? = null
 
     @Volatile
     private var sessionDestroyed = false
@@ -759,6 +770,7 @@ class NavigationSession : Session() {
         noticeArmJob?.cancel()
         noticeArmJob = null
         noticeArmToken = null
+        cancelNoticeDwell()
     }
 
     private fun getNavigationScreen(): NavigationScreen {
@@ -803,6 +815,14 @@ class NavigationSession : Session() {
         }
         if (landed) {
             navigationScreen = null
+            // The pop took every notice with it, so the records must not claim a screen: a notice
+            // this session still believed in would keep a dwell job pointing at a screen that is
+            // no longer on the stack (spec: car-host-fault-isolation — Host screen-stack mutations
+            // are balanced).
+            calculationNotice = null
+            calculationNoticeBucket = null
+            calculationNoticeShownAtMs = null
+            cancelNoticeDwell()
             screenStack.onRootPopped()
         }
         // A rejected pop keeps the cached screen and the record: the screen is still on
@@ -934,10 +954,13 @@ class NavigationSession : Session() {
         if (calculation == null) {
             cancelNoticeArm()
             if (noticeIsStale(calculation, noticeShown = calculationNotice != null)) {
-                removeCalculationNotice()
+                scheduleCalculationNoticeRemoval()
             }
             return
         }
+        // A notice for a live calculation must stay: a removal owed to the previous notice's
+        // dwell would take it down (spec: `route-calculation-feedback` — One notice only).
+        cancelNoticeDwell()
         val notice = calculationNotice
         if (notice != null) {
             // A notice is up: update it instead of stacking a second screen (spec:
@@ -1028,8 +1051,48 @@ class NavigationSession : Session() {
         // emission retries.
         if (landed) {
             calculationNotice = notice
+            calculationNoticeShownAtMs = SystemClock.elapsedRealtime()
             screenStack.onCalculationNoticePushed(notice)
         }
+    }
+
+    /**
+     * Remove the notice whose calculation is over — or owe its removal to the end of its minimum
+     * visible dwell first, when the navigation view is what replaces it (spec:
+     * `route-calculation-feedback` — A notice the navigation view replaces stays visible for a
+     * minimum dwell).
+     *
+     * The navigation view is pushed on the `isNavigating` edge, i.e. *under* this notice, so the
+     * removal is what reveals it: a route that arrives just after [CALCULATION_NOTICE_DELAY_MS]
+     * used to swap a screen the driver had seen for 443 ms (measured 2026-10-05). A cancellation
+     * and a failure are not the navigation view replacing the notice — the driver's own answer and
+     * the error notice are shown at once, so the dwell does not delay them.
+     */
+    private fun scheduleCalculationNoticeRemoval() {
+        val notice = calculationNotice ?: return
+        val navigationLive = navigationViewModel.state.value.isNavigating
+        val shownForMs = calculationNoticeShownAtMs
+            ?.let { SystemClock.elapsedRealtime() - it }
+            ?: 0L
+        val remainingMs = calculationNoticeDwellRemainingMs(shownForMs, navigationLive)
+        if (remainingMs <= 0L) {
+            removeCalculationNotice()
+            return
+        }
+        cancelNoticeDwell()
+        Log.d(TAG, "calculation notice dwell pending ms=$remainingMs")
+        calculationNoticeDwellJob = scope.launch(CoroutineName("calculation-notice-dwell")) {
+            delay(remainingMs)
+            // Only the notice this job was armed for may be removed by it: a newer notice on the
+            // stack is not this one's to take down.
+            if (calculationNotice !== notice) return@launch
+            removeCalculationNotice()
+        }
+    }
+
+    private fun cancelNoticeDwell() {
+        calculationNoticeDwellJob?.cancel()
+        calculationNoticeDwellJob = null
     }
 
     /**
@@ -1059,6 +1122,8 @@ class NavigationSession : Session() {
         if (removed) {
             calculationNotice = null
             calculationNoticeBucket = null
+            calculationNoticeShownAtMs = null
+            cancelNoticeDwell()
             screenStack.onCalculationNoticeDismissed(notice)
         }
     }
@@ -1226,6 +1291,31 @@ internal fun needsNoticeArm(
  */
 internal fun noticeIsStale(live: RouteCalculation?, noticeShown: Boolean): Boolean =
     live == null && noticeShown
+
+/**
+ * The minimum time the calculation notice stays visible once it has been pushed: a route that
+ * arrives just after [NavigationSession]'s `CALCULATION_NOTICE_DELAY_MS` must not replace a screen
+ * the driver has only glanced at. Measured 2026-10-05 (§133, issue #84): an 847 ms route showed the
+ * notice for 443 ms, so 700 ms covers the observed flash band and puts the navigation view on
+ * screen at the latest 700 ms after the notice appeared.
+ */
+internal const val CALCULATION_NOTICE_MIN_DWELL_MS = 700L
+
+/**
+ * How long the calculation notice that has been visible for [shownForMs] still has to stay up
+ * before it may be removed: the rest of [CALCULATION_NOTICE_MIN_DWELL_MS], and nothing once the
+ * dwell has run out. [replacedByNavigation] false is a cancellation or a failure — the driver's
+ * own answer and the error notice are not a screen the wait owes, and the dwell must not delay
+ * them (spec: `route-calculation-feedback` — A notice the navigation view replaces stays visible
+ * for a minimum dwell). Pure seam for unit testing ([NavigationSession] cannot be constructed in
+ * Robolectric).
+ */
+internal fun calculationNoticeDwellRemainingMs(
+    shownForMs: Long,
+    replacedByNavigation: Boolean
+): Long =
+    if (!replacedByNavigation) 0L
+    else (CALCULATION_NOTICE_MIN_DWELL_MS - shownForMs).coerceAtLeast(0L)
 
 /**
  * Whether the delay armed for [armedToken] may still raise its notice: the engine must still

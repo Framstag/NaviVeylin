@@ -1,0 +1,20 @@
+=== measure#namesTheOwedChecksInOneBlock
+  the measuring command succeeded: bash: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/measure.sh: Datei oder Verzeichnis nicht gefunden: expected '0', got '127'
+FAIL measure#namesTheOwedChecksInOneBlock
+EXIT=1
+=== measure#printsTheNumbersTheReviewerAsksFor
+  the measuring command succeeded: bash: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/measure.sh: Datei oder Verzeichnis nicht gefunden: expected '0', got '127'
+FAIL measure#printsTheNumbersTheReviewerAsksFor
+EXIT=1
+=== prompt#workerIsHandedTheMeasureBlock
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261021-235840')
+HEAD ist jetzt bei 94fb666 init
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  the configuration names no measuring command
+FAIL prompt#workerIsHandedTheMeasureBlock
+EXIT=1

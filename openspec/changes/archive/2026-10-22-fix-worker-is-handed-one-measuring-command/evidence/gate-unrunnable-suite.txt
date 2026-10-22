@@ -1,0 +1,7 @@
+diagnosis: the suite the run's base makes owed, invoked as the profile names it (directly) and through a shell
+invocation in LOOP_GATE_SUITES: tools/check-action-runtimes-selftest.sh (no shell)
+mode of the file on HEAD: 100644 ff094c99705a29591bfdbf982ad80c1e55d1d361 0	tools/check-action-runtimes-selftest.sh
+who touched .github/workflows since the run's base 80df3a3: 5342724 (#240), f8440dc (#196) — neither commit is this item's work
+direct exit=126
+through a shell exit=0
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)

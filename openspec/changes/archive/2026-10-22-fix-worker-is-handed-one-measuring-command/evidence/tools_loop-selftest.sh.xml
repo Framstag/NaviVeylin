@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh" tests="153" failures="0" errors="0">
+  <system-out>loop-selftest: all 153 cases passed (JDK 27, offline, no token, no sandbox) ended 2895978 — its working directory is inside loop-selftest.pvqqVj ended 3155609 — its working directory is inside loop-selftest.pvqqVj</system-out>
+</testsuite>

@@ -1,0 +1,7 @@
+gate: ./gradlew test -PforceTests --no-build-cache
+gate: tools/loop-selftest.sh
+gate: tools/sensor-selftest.sh
+gate: tools/check-action-runtimes-selftest.sh
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=198 failures=1 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/check-doc-routes.sh) — failing: tools/check-action-runtimes-selftest.sh
+EXIT=0

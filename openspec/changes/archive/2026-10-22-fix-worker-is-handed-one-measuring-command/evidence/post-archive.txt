@@ -1,0 +1,6 @@
+post-archive checks, 2026-10-22T00:18:24Z
+Specification 'agent-issue-loop' is valid
+References
+  (none declared)
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+grep of the merged requirement: 1 occurrence(s)

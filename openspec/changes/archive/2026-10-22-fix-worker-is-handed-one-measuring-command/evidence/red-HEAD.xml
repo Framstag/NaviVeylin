@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case &lt;the three new cases&gt;" tests="3" failures="3" errors="0" timestamp="2026-10-21T23:58:48Z">
+  <system-out>Three focused case runs against the run's base commit 80df3a3 with the fix not yet in the tree: measure#namesTheOwedChecksInOneBlock, measure#printsTheNumbersTheReviewerAsksFor and prompt#workerIsHandedTheMeasureBlock, each EXIT=1. tests/failures counted from the three FAIL lines of red-HEAD.log, the way tools/loop/gate.sh derives its per-suite tally; the log's own run copy was written at 2026-10-21T23:58:48Z and carries no clock of its own.</system-out>
+</testsuite>

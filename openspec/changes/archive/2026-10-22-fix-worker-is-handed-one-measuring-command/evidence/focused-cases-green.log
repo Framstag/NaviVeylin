@@ -1,0 +1,16 @@
+=== measure#namesTheOwedChecksInOneBlock
+PASS measure#namesTheOwedChecksInOneBlock
+=== measure#printsTheNumbersTheReviewerAsksFor
+PASS measure#printsTheNumbersTheReviewerAsksFor
+=== prompt#workerIsHandedTheMeasureBlock
+
+`LOOP-VERDICT: closed` means: the red case existed and is now green, the affected cases pass, the archive
+exists, and the evidence is in `/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.nLObtm/case.ddtpFa/repo/.pi/issue-loop/items/21`.
+FAIL prompt#workerIsHandedTheMeasureBlock
+=== state#projectKeysAreReadFromLoopConf
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS state#projectKeysAreReadFromLoopConf
+=== gate#theDeltaSelectsTheSuitesItTouches
+PASS gate#theDeltaSelectsTheSuitesItTouches

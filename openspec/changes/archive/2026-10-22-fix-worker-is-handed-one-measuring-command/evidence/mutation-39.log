@@ -1,0 +1,4 @@
+RED    39.1  measure#namesTheOwedChecksInOneBlock   (the owed checks the block names (issue #246))
+restore 39.1 measure#namesTheOwedChecksInOneBlock green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

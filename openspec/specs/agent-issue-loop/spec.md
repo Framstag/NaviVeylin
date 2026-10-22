@@ -803,7 +803,8 @@ answer whose tail was lost outright.
 ### Requirement: A run's state outlives the run that replaces it
 
 The run SHALL keep the state a new run replaces, SHALL be able to report on a kept run afterwards, and SHALL
-name the run its numbers belong to rather than print a budget left computed from another run's clock.
+name the run its numbers belong to rather than print a budget left computed from another run's clock, and
+SHALL tell a run whose process is gone from one that is still going.
 
 #### Scenario: The state a run replaces is kept, named by that run's start
 
@@ -837,6 +838,14 @@ name the run its numbers belong to rather than print a budget left computed from
   recorded no stop` — instead of printing a budget left below zero, and a run that recorded its stop reports its
   own spend to that stop however long ago it ended
 - **Case**: `report#impossibleBudgetNamesAnotherRun`
+
+#### Scenario: A run whose process is gone is not a run that is going
+
+- **WHEN** the state names the process that wrote it, that process is not running, and the run recorded no
+  stop — a run that was killed
+- **THEN** the report prints no budget left for it, and its stop line names the process that is gone instead
+  of saying the run is still going, so a killed run and a running one cannot be read alike
+- **Case**: `report#aKilledRunIsNotALiveRun`
 
 ### Requirement: A kept worktree carries the sources, not the build output
 
@@ -1450,3 +1459,24 @@ on HEAD because the capability is absent. A feature SHALL NOT be refused merely 
 - **WHEN** the profile's `refusedClasses` names `feature`
 - **THEN** the item is refused with `class-feature` and the profile's refusal label, exactly as before
 - **Case**: `prescreen#aRefusedClassStillStopsTheScreen`
+
+### Requirement: One run at a time holds the repository
+
+One run at a time SHALL hold a repository: the lock that keeps one run per repository SHALL be taken before
+the run writes anything, a run that finds a live lock SHALL be refused without writing state, branch or
+label, and a lock whose owner is no longer running SHALL be taken over and announced.
+
+#### Scenario: A second run is refused before it writes anything
+
+- **WHEN** a run is started while another run holds the lock
+- **THEN** the second run is refused with a message that names the lock and its owner, it writes no state, no
+  branch and no label, and the live run's state is the one left in place — the run that was refused never
+  replaced the record of the run that is working
+- **Case**: `state#aRefusedRunLeavesTheLiveStateAlone`
+
+#### Scenario: A lock left by a run that is gone is taken over
+
+- **WHEN** a run finds a lock whose owner is no longer running
+- **THEN** it takes the lock over, says so in one line naming the process that is gone, and starts — a run
+  that was killed leaves no tombstone that refuses every run after it
+- **Case**: `state#aDeadOwnersLockIsTakenOver`

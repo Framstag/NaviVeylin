@@ -1,0 +1,19 @@
+=== state#aRefusedRunLeavesTheLiveStateAlone
+--- the case's own reason (stderr)
+--- the verdict (stdout)
+PASS state#aRefusedRunLeavesTheLiveStateAlone
+exit=0
+
+=== state#aDeadOwnersLockIsTakenOver
+--- the case's own reason (stderr)
+--- the verdict (stdout)
+PASS state#aDeadOwnersLockIsTakenOver
+exit=0
+
+=== report#aKilledRunIsNotALiveRun
+--- the case's own reason (stderr)
+state: drift — /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.Bz17M2/case.6ceQqM/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (e2d973721e9737a8 → f8fedde69d154e44); a field was edited outside this script
+--- the verdict (stdout)
+PASS report#aKilledRunIsNotALiveRun
+exit=0
+

@@ -3,19 +3,23 @@
 #
 # The defect is a documentation shape, so the case that exercises it reads the documents: a routed section of
 # `guidelines/Build.md` must be one read (at most $bound bytes), its number must survive a split, the routing
-# table must name the sub-section that answers the reader, and a split must move the text rather than rewrite
-# it. No build, no device, no network — text and git only, exactly like `tools/check-doc-routes.sh`.
+# table must name the sub-section that answers the reader *and* state what it costs, and a split must move the
+# text rather than rewrite it. No build, no device, no network — text and git only, exactly like
+# `tools/check-doc-routes.sh`.
 #
-# The bound is this change's number, measured on the four offenders: `§2` 23 233 B, `§4` 23 378 B, `§6`
-# 22 051 B, `§10` 31 566 B on the base commit, against `§7` 8 875 B and `§9` 7 292 B, the next largest
-# sections of the file, which the split leaves alone. 12 000 B is ~3 k tokens: under a fifth of the 17 334
-# tokens a child's first response reports as its whole start-of-session prompt.
+# The ruler, used by every number this probe prints and by the ones the change quotes: a section's cost is the
+# byte count of its lines from the `## ` heading through the line before the next `## ` heading — i.e.
+# `sed -n "<heading>,<next heading - 1>p" guidelines/Build.md | wc -c`, ASCII, so bytes and characters agree.
+#
+# The bound is this change's number, measured on the four offenders on the base commit `3180fff` with that
+# ruler: `§2` 23 235 B, `§4` 23 380 B, `§6` 22 053 B, `§10` 31 568 B, against `§7` 8 877 B and `§9` 7 294 B,
+# the next largest sections of the file, which the split leaves alone. 12 000 B is ~3 k tokens: under a fifth
+# of the 17 334 tokens a child's first response reports as its whole start-of-session prompt.
 #
 # Exit 0 when every case passes, 1 when one fails, 2 on a usage error.
 #
 # Usage: red-probe.sh [--xml <path>] [--base <sha>] [--bound <bytes>] [<case>]
 #   cases: bound | numbers | route | verbatim          (no case argument runs all four)
-#   --bound lowers the threshold on purpose: the revert-check of `routed-read#bound` runs it at 5 000.
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -107,6 +111,9 @@ case_numbers() {
   return 0
 }
 
+# The rows of the Documentation Map that route Build.md at a lettered sub-section must name the cost of what
+# they name: the scenario's second clause is that the row "states what the sections cost", and a row that
+# routes two documents but prices neither is what the split was meant to end.
 case_route() {
   local region missing="" n
   region=$(awk '/^## Documentation Map$/{f=1;next} f && /^## /{exit} f{print}' "$agents")
@@ -117,9 +124,25 @@ case_route() {
     printf 'FAIL routed-read#route — the routing table names no sub-section of:%s\n' "$missing"
     return 1
   fi
+  # Every row that routes Build.md at lettered sub-sections states a cost (a kB figure from the same ruler).
+  local row label costless="" rows=0
+  while IFS= read -r row; do
+    printf '%s\n' "$row" | grep -qE 'Build\.md.*§[0-9]+[a-z]' || continue
+    rows=$((rows + 1))
+    if ! printf '%s\n' "$row" | grep -qE '[0-9]+([.,][0-9]+)?[[:space:]]?kB'; then
+      label=$(printf '%s\n' "$row" | cut -d'|' -f2 | sed 's/^ *//; s/ *$//')
+      costless="$costless [$label]"
+    fi
+  done <<< "$region"
+  if [ -n "$costless" ]; then
+    printf 'FAIL routed-read#route — %s row(s) name a lettered Build.md sub-section but state no cost:%s\n' \
+      "$(printf '%s\n' "$costless" | grep -o '\[' | wc -l | tr -d ' ')" "$costless"
+    return 1
+  fi
   local count
   count=$(printf '%s\n' "$region" | grep -oE 'Build\.md[^|]*' | grep -oE '§[0-9]+[a-z]' | sort -u | wc -l)
-  printf 'PASS routed-read#route — the routing table names %s lettered Build.md sub-sections\n' "$count"
+  printf 'PASS routed-read#route — the routing table names %s lettered Build.md sub-sections across %s priced row(s)\n' \
+    "$count" "$rows"
   return 0
 }
 

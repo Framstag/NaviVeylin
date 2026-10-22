@@ -8,15 +8,17 @@ scope block; `tools/loop/loop.conf`'s `LOOP_GATE_SUITES` maps `*.md` and `AGENTS
 
 - [x] 1.1 Write `evidence/red-probe.sh` with the four cases — `routed-read#bound` (no section of
       `guidelines/Build.md` above 12 000 bytes), `routed-read#numbers` (sections 1–12 present and the route check green,
-      the counter-case), `routed-read#route` (the map names a lettered sub-section of each offender),
-      `routed-read#verbatim` (each offender carries ≥ 4 lettered sub-sections and no line is rewritten). Run it on
-      the base tree. Verify: `tests=4 failures=3`, three cases named with their messages, sections 10 (31 568),
-      4 (23 380), 2 (23 235) and 6 (22 053) above the bound (`evidence/red-on-head.xml`,
-      `evidence/red-probe.sh`, 2026-10-22T16:55:15Z).
+      the counter-case), `routed-read#route` (the map names a lettered sub-section of each offender and states what
+      its rows cost), `routed-read#verbatim` (each offender carries ≥ 4 lettered sub-sections and no line is
+      rewritten). Run it on the base commit's content. Verify: `tests=4 failures=3`, three cases named with their
+      messages — §10=31 568, §4=23 380, §2=23 235, §6=22 053 above the bound; the map names no sub-section; each
+      offender carries 0 lettered sub-sections — and `#numbers` green as the counter-case
+      (`evidence/red-on-head.xml`, `evidence/red-on-head.log`, 2026-10-22T17:17:56Z).
       *(spec: all four scenarios of *The routing cost is measured*)*
 - [x] 1.2 Record the condition the item claims beside it: `wc -c guidelines/Build.md` → `137276`, and the
       per-section table in `proposal.md`'s `## Why`. Verify: the four offenders' byte counts are the ones the
-      red case prints.
+      red case prints, and the ruler is the one `evidence/red-probe.sh --bound 0 bound` prints for every section
+      (`section 7 = 8877`, `section 9 = 7294`, `§4f = 5275`, `§2c = 5238` …).
       *(spec: A section carrying more than one question is split)*
 
 ## 2. Split the four sections
@@ -24,30 +26,33 @@ scope block; `tools/loop/loop.conf`'s `LOOP_GATE_SUITES` maps `*.md` and `AGENTS
 - [x] 2.1 `guidelines/Build.md`: section 2 → `§2a–§2e`, section 4 → `§4a–§4f`, section 6 → `§6a–§6h`, section 10 → `§10a–§10j`, each parent
       keeping its heading and body plus one index paragraph that names its sub-sections and their measured cost.
       Verify: `grep -n '^## ' guidelines/Build.md` lists 41 sections with sections 1–12 intact, and
-      `routed-read#bound` passes with the worst section at 6 839 B (`evidence/green-after-fix.log`).
+      `routed-read#bound` passes with the worst section at 6 841 B (§10i) (`evidence/green-after-fix.log`).
       *(spec: A section carrying more than one question is split)*
-- [x] 2.2 Retarget the 18 intra-document references inside `Build.md` that pointed at text the split moved
-      (section 4 → `§4b` where the forced-rerun bullet now lives, section 2 → `§2c` for the gate-timing record, section 6 →
-      `§6d` for the concurrency table, and so on), and update the two heading-text references in `AGENTS.md`
-      and one in `.pi/skills/run-tests/SKILL.md`. Verify: `bash tools/check-doc-routes.sh` exits 0 with
-      `all 144 section references resolve`, and `routed-read#verbatim` passes.
+- [x] 2.2 Retarget the 20 lines inside `Build.md` that pointed at text the split moved (section 4 → `§4b` where
+      the forced-rerun bullet now lives, section 2 → `§2c` for the gate-timing record, section 6 → `§6d` for the
+      concurrency table, §4f for the per-class result XMLs, and so on), and update the `AGENTS.md` prose
+      reference and one in `.pi/skills/run-tests/SKILL.md`. Verify: `bash tools/check-doc-routes.sh` exits 0 with
+      `all 152 section references resolve`, and `routed-read#verbatim` passes.
       *(spec: A split section keeps its number and its citations; The split moves text instead of rewriting it)*
 - [x] 2.3 Re-point the three `AGENTS.md` rows that routed sections 2/4, 6 and 10 at the lettered sub-sections, stating
-      the measured per-section cost. Verify: `routed-read#route` passes naming 24 lettered Build.md sub-sections,
-      and the row text still resolves (`bash tools/check-doc-routes.sh`).
+      the measured per-section cost and the ruler (`bytes/1000, one decimal`). Verify: `routed-read#route` passes
+      naming 29 lettered Build.md sub-sections across 3 priced rows, and the row text still resolves
+      (`bash tools/check-doc-routes.sh`).
       *(spec: The route names the sub-section)*
 
 ## 3. The invariant, falsified and restored
 
-- [x] 3.1 Falsify `routed-read#verbatim`: reword one sentence of §6f in place, run the probe, restore. Verify: the
+- [x] 3.1 Falsify `routed-read#verbatim`: reword one sentence of §6f in place, run the case, restore. Verify: the
       case fails naming that line, then `tests=4 failures=0` again (`evidence/revert-check-verbatim.log`).
       *(spec: The split moves text instead of rewriting it)*
-- [x] 3.2 Falsify `routed-read#route`: revert the `AGENTS.md` build row to the bare parents (sections 2, 3 and 4), run the probe,
-      restore. Verify: the case fails with `the routing table names no sub-section of: §2a §4a`, then green
-      (`evidence/revert-check-route.log`).
+- [x] 3.2 Falsify `routed-read#route` twice, one mutation per check: (a) revert the `AGENTS.md` build row to the
+      bare parents, (b) keep its sub-section names and strip the `kB` cost it states. Verify: (a) `the routing
+      table names no sub-section of: §2a §4a`, (b) `1 row(s) name a lettered Build.md sub-section but state no
+      cost`, then green (`evidence/revert-check-route.log`).
       *(spec: The route names the sub-section)*
-- [x] 3.3 Falsify `routed-read#bound`: run the probe with `--bound 5000`, restore by omitting the flag. Verify:
-      the case fails naming sections 7 and 9 as well, then green (`evidence/revert-check-bound.log`).
+- [x] 3.3 Falsify `routed-read#bound` against production: demote `§10a–§10j` to `###` so section 10 has its
+      single-heading shape again, run the case, restore. Verify: `1 section(s) of Build.md exceed 12000 bytes:
+      §10=32707`, then green; no threshold is touched (`evidence/revert-check-bound.log`).
       *(spec: A section carrying more than one question is split)*
 
 ## 4. Verify and archive
@@ -56,8 +61,12 @@ scope block; `tools/loop/loop.conf`'s `LOOP_GATE_SUITES` maps `*.md` and `AGENTS
       `tools/check-doc-routes.sh`. Verify: its summary line and the tally under
       `app/build/test-results/loop-gate/` are copied into `evidence/gate.log` and `evidence/gate-tallies/`
       (`LOOP-GATE`).
-- [x] 4.2 Validate the change: `openspec validate fix-build-md-routed-read-size --strict`. Verify: zero failures,
-      and the requirement body is under the validator's 500-character limit.
+- [x] 4.2 Validate the change: `openspec validate fix-build-md-routed-read-size --strict`. Verify: `Change
+      'fix-build-md-routed-read-size' is valid`, and the requirement body is 488 characters, under the
+      validator's 500-character limit; `openspec validate --specs` reports `177 passed, 0 failed`
+      (`evidence/openspec-validate.log`, which re-runs both commands against a copy of the archived change's own
+      files).
 - [x] 4.3 Run `bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/fix-build-md-routed-read-size
-      --root .` from the change root. Verify: no dangling pointer, then archive the change and confirm the delta
-      merged into `openspec/specs/documentation-ownership/spec.md`'s *The routing cost is measured*.
+      --root .` from the change root. Verify: every `file:line`, `tests=`/`failures=` pair and §N resolves
+      (`evidence/evidence-check.log`), then archive the change and confirm the delta merged into
+      `openspec/specs/documentation-ownership/spec.md`'s *The routing cost is measured*.

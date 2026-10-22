@@ -1,7 +1,7 @@
-2026-10-22T16:55:11Z
+green-after-fix 2026-10-22T17:04:18Z — four cases on the change's final content, root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
 PASS routed-read#bound — every section of Build.md is at most 12000 bytes
-PASS routed-read#numbers — §1-§12 are all present and check-doc-routes: all 146 section references resolve, all 4 skill references resolve
-PASS routed-read#route — the routing table names 24 lettered Build.md sub-sections
+PASS routed-read#numbers — §1-§12 are all present and check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+PASS routed-read#route — the routing table names 29 lettered Build.md sub-sections across 3 priced row(s)
 PASS routed-read#verbatim — every offender is split into lettered sub-sections and no sentence is rewritten
 red-probe: 0 of 4 cases failed
 EXIT=0

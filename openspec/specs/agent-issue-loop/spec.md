@@ -1415,7 +1415,6 @@ change from the run's base.
 #### Scenario: The refusing findings travel into the extra round
 
 - **WHEN** the run renders the prompt of the round a corrective refusal bought
-- **THEN** the prompt names the refusing round's report, quotes its findings, states that the diff under review
-  is the correction round alone, and says that a correction whose hunk is missing is an unanswered finding —
-  and a first round's prompt carries no such section
+- **THEN** the prompt names the refusing round's report, quotes its findings, and states that the diff under
+  review is the correction round alone — and a first round's prompt carries no such section
 - **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`

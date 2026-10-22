@@ -26,6 +26,15 @@ tree already carries, and the change's spec scenarios counted against the cases 
 of them**: the gate is run once, by `{{GATE_CMD}}`, and a number the block lacks is a defect in the block
 rather than a reason to walk the tree by hand.
 
+Two answers the block cannot give by guessing, and asks for instead:
+
+- **Which change.** With one change open it measures that one; with none, the newest archived change. With two
+  open it prints `LOOP-MEASURE-CHANGE ambiguous` and names them rather than measuring a stranger's delta — pass
+  `--change <name>` then, and on a correction round pass the name of the archived change you are correcting.
+- **The tallies after a build tree is gone.** The block reads tallies a run already wrote, under the gate's own
+  directory and the change's `evidence/`. A `clean` empties the first, and then the block carries no
+  `LOOP-MEASURE-TALLY` line at all, which is not the same as a green number: cite the copy in `evidence/`.
+
 Every line of the block carries the prefix `LOOP-MEASURE`. Quote those lines into your report and into the
 change's evidence instead of re-deriving them.
 

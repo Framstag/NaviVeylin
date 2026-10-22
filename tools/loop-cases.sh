@@ -90,6 +90,8 @@ LOOP_SHELL_CASES=(
   'gate#theDeltaSelectsTheSuitesItTouches'
   'measure#namesTheOwedChecksInOneBlock'
   'measure#printsTheNumbersTheReviewerAsksFor'
+  'measure#refusesToGuessWhichChangeItMeasures'
+  'measure#saysHowManyTalliesItWithheld'
   'prompt#workerIsHandedTheMeasureBlock'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
@@ -256,6 +258,8 @@ loop_run_shell_case() {
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
     'measure#printsTheNumbersTheReviewerAsksFor') fn=case_measure_printsTheNumbersTheReviewerAsksFor ;;
+    'measure#refusesToGuessWhichChangeItMeasures') fn=case_measure_refusesToGuessWhichChangeItMeasures ;;
+    'measure#saysHowManyTalliesItWithheld') fn=case_measure_saysHowManyTalliesItWithheld ;;
     'prompt#workerIsHandedTheMeasureBlock') fn=case_prompt_workerIsHandedTheMeasureBlock ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
@@ -2271,6 +2275,75 @@ case_measure_printsTheNumbersTheReviewerAsksFor() {
   assert_contains "$out" "tests=7 failures=0" "the gate's own tally is carried"
   assert_contains "$out" "tests=2 failures=1" "and the red tally the change's evidence carries"
   assert_contains "$out" "surface: 1 case added" "the proposal's surface record is quoted, not re-derived"
+  return 0
+}
+
+# Two changes open at once are not the block's to choose between (issue #246, review round 1). It measured the
+# alphabetically last open change, so a worker correcting one change read the other's scenario count and was
+# never told; and the `--change` it documents resolved to nothing at all, because a bare name is not a directory.
+# A name resolves under the open changes and, because a correction round works on a change that is already
+# archived, under the archive too.
+case_measure_refusesToGuessWhichChangeItMeasures() {
+  local d p conf base out
+  d=$(scratch); p=$(new_project)
+  conf="$d/measure.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_SUITES="notes/*|notes-check"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  mkdir -p "$p/openspec/changes/fix-one/specs/demo" "$p/openspec/changes/fix-two/specs/demo"
+  printf '#### Scenario: One\n\n- **Case**: `demo#one`\n' > "$p/openspec/changes/fix-one/specs/demo/spec.md"
+  {
+    printf '#### Scenario: Two\n\n- **Case**: `demo#two`\n\n'
+    printf '#### Scenario: Three\n\n- **WHEN** nothing\n'
+  } > "$p/openspec/changes/fix-two/specs/demo/spec.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'two open changes' >/dev/null 2>&1 \
+    || fail "could not commit the two changes in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/measure.sh" --base "$base" 2>&1 )
+  assert_eq "0" "$?" "the measuring command succeeded: $out"
+  assert_contains "$out" "ambiguous" "two open changes are named as ambiguous, not guessed between: $out"
+  assert_contains "$out" "fix-one" "and both are named: $out"
+  assert_contains "$out" "fix-two" "and the second of them too: $out"
+  assert_not_contains "$out" "scenarios=" "no change's numbers are reported for a change the block could not pick"
+
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/measure.sh" --base "$base" --change fix-one 2>&1 )
+  assert_eq "0" "$?" "the measuring command succeeded with --change: $out"
+  assert_contains "$out" "scenarios=1 cases=1 unnamed=0" "the name the worker passed is the change it measured: $out"
+  assert_contains "$out" "LOOP-MEASURE-CHANGE fix-one" "and the block says which one it measured: $out"
+
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/measure.sh" --base "$base" --change fix-nope 2>&1 )
+  assert_eq "0" "$?" "a name that resolves nowhere still prints a block: $out"
+  assert_contains "$out" "not-found" "and it is named rather than read as 'no change': $out"
+  return 0
+}
+
+# A directory of more tallies than the block prints is not a directory of twenty (issue #246, review round 1): the
+# block stopped at its limit and said nothing, so a reader took the silence for the whole tree. The line that
+# says how many it withheld is what makes the cap a fact rather than a truncation.
+case_measure_saysHowManyTalliesItWithheld() {
+  local d p conf base out i
+  d=$(scratch); p=$(new_project)
+  conf="$d/measure.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_SUITES="notes/*|notes-check"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  mkdir -p "$d/tally"
+  for i in $(seq 1 25); do
+    printf '<?xml version="1.0"?>\n<testsuite name="s%s" tests="3" failures="0"></testsuite>\n' "$i" \
+      > "$d/tally/s$i.xml"
+  done
+  base=$(git -C "$p" rev-parse HEAD)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/measure.sh" --base "$base" 2>&1 )
+  assert_eq "0" "$?" "the measuring command succeeded: $out"
+  assert_eq "20" "$(printf '%s\n' "$out" | grep -c '^LOOP-MEASURE-TALLY ' || true)" \
+    "the block lists at most twenty tallies per directory: $out"
+  assert_contains "$out" "LOOP-MEASURE-TALLY-MORE" "and says that it withheld some: $out"
+  assert_contains "$out" "5 of 25" "with the number withheld against the number it found: $out"
   return 0
 }
 

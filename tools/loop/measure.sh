@@ -83,27 +83,65 @@ tally_of() { # <xml file> → `tests=<n> failures=<n>` or nothing when the file 
   sed -n 's/.*<testsuite[^>]*tests="\([0-9][0-9]*\)"[^>]*failures="\([0-9][0-9]*\)".*/tests=\1 failures=\2/p' "$1" 2>/dev/null |
     head -1
 }
-tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
-if [ -n "$tally_root" ]; then
+# A directory of tallies, capped — and the count it withheld, because a block that stopped silently would read as
+# "the tree carries this many" (measured 2026-10-22, review round 1 of issue #246: `head -20` truncated both
+# directories and said nothing). The cap is a reading limit, not a claim about the tree.
+tally_limit=20
+tally_dir() { # <directory>
+  local dir="$1" all total shown withheld f n
+  [ -n "$dir" ] && [ -d "$dir" ] || return 0
+  all=$(find "$dir" -name '*.xml' 2>/dev/null | sort)
+  [ -n "$all" ] || return 0
+  total=$(printf '%s\n' "$all" | grep -c . || true)
+  shown=0
+  withheld=0
   while IFS= read -r f; do
     [ -n "$f" ] || continue
     n=$(tally_of "$f")
     [ -n "$n" ] || continue
-    item TALLY "$f $n"
-  done <<< "$(find "$tally_root" -name '*.xml' 2>/dev/null | sort | head -20)"
-fi
+    if [ "$shown" -lt "$tally_limit" ]; then
+      item TALLY "$f $n"
+      shown=$((shown + 1))
+    else
+      withheld=$((withheld + 1))
+    fi
+  done <<< "$all"
+  [ "$withheld" -eq 0 ] ||
+    item TALLY-MORE "$withheld of $total tally files not shown — at most $tally_limit per directory ($dir)"
+}
+tally_dir "$(loop_conf_value LOOP_GATE_TALLY_DIR)"
 
 # The change: its delta's scenarios against the cases they name. A scenario with no case is a plan defect, so
 # the count that says so is part of the block rather than something a reviewer has to add up by hand.
-if [ -z "$change" ]; then
-  change=$(find openspec/changes -maxdepth 1 -mindepth 1 -type d ! -name archive 2>/dev/null | sort | tail -1)
-  if [ -z "$change" ]; then
-    change=$(find openspec/changes/archive -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort | tail -1)
+#
+# Which change is measured is not the block's to guess (review round 1, issue #246): it measured the
+# alphabetically last open change, so a correction round on another one read a stranger's numbers. A name the
+# worker passes resolves under the open changes and then under the archive, where a correction round works; no
+# name and two open changes is named as ambiguous, never silently resolved.
+change_dir=""
+change_said=0
+say_change() { item CHANGE "$*"; change_said=1; }
+if [ -n "$change" ]; then
+  for cand in "$change" "openspec/changes/$change" "openspec/changes/archive/$change"; do
+    [ -n "$cand" ] && [ -d "$cand" ] && { change_dir="$cand"; break; }
+  done
+  if [ -z "$change_dir" ]; then
+    cand=$(find openspec/changes/archive -maxdepth 1 -mindepth 1 -type d -name "*$change*" 2>/dev/null | sort | tail -1)
+    [ -n "$cand" ] && change_dir="$cand"
   fi
+  [ -n "$change_dir" ] || say_change "not-found name=$change — no change of that name is open or archived"
+else
+  open_changes=$(find openspec/changes -maxdepth 1 -mindepth 1 -type d ! -name archive 2>/dev/null | sort)
+  open_count=$(printf '%s' "$open_changes" | grep -c . || true)
+  case "$open_count" in
+    1) change_dir="$open_changes" ;;
+    0) change_dir=$(find openspec/changes/archive -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort | tail -1) ;;
+    *) say_change "ambiguous open=$(printf '%s\n' "$open_changes" | xargs -n1 basename | paste -sd, -) — $open_count changes are open, so the block names them and measures none: pass --change <name>" ;;
+  esac
 fi
-if [ -n "$change" ] && [ -d "$change" ]; then
-  change_name=$(basename "$change")
-  specs=$(find "$change/specs" -name 'spec.md' 2>/dev/null | sort)
+if [ -n "$change_dir" ] && [ -d "$change_dir" ]; then
+  change_name=$(basename "$change_dir")
+  specs=$(find "$change_dir/specs" -name 'spec.md' 2>/dev/null | sort)
   scenarios=0
   cases=0
   while IFS= read -r s; do
@@ -115,16 +153,11 @@ if [ -n "$change" ] && [ -d "$change" ]; then
   [ "$unnamed" -ge 0 ] || unnamed=0
   item CHANGE "$change_name scenarios=$scenarios cases=$cases unnamed=$unnamed"
   # The evidence the change carries, beside the gate's own tallies: the half a reviewer reads by path.
-  while IFS= read -r f; do
-    [ -n "$f" ] || continue
-    n=$(tally_of "$f")
-    [ -n "$n" ] || continue
-    item TALLY "$f $n"
-  done <<< "$(find "$change/evidence" -name '*.xml' 2>/dev/null | sort | head -20)"
-  surface=$(sed -n 's/^surface:/surface:/p' "$change/proposal.md" 2>/dev/null | head -1)
+  tally_dir "$change_dir/evidence"
+  surface=$(sed -n 's/^surface:/surface:/p' "$change_dir/proposal.md" 2>/dev/null | head -1)
   item SURFACE "${surface:-none — the proposal carries no surface: line}"
 else
-  item CHANGE "none"
+  [ "$change_said" -eq 1 ] || say_change "none — no change is open and none is archived"
 fi
 
 printf 'LOOP-MEASURE-END\n'

@@ -191,6 +191,13 @@ MUTATIONS=(
   # 39.1 — the block names the checks the pathspec owes, read from `gate.sh --plan`, the one place that decides
   # them (issue #246). Without it the worker is back to walking the tree for each check it might owe.
   '39.1@-@tools/loop/measure.sh@measure#namesTheOwedChecksInOneBlock@the owed checks the block names (issue #246)@s|^  while IFS= read -r cmd; do$|  while false; do|'
+  # 39.2 — two open changes are named as ambiguous instead of guessed between (issue #246, review round 1): the
+  # count that makes them ambiguous is pinned to one, so the block is back to measuring whichever change sorts
+  # last while the worker reads a stranger's scenario count.
+  '39.2@-@tools/loop/measure.sh@measure#refusesToGuessWhichChangeItMeasures@the count that makes two open changes ambiguous (issue #246)@s|^  open_count=.*$|  open_count=1|'
+  # 39.3 — a directory of more tallies than the block prints is not a directory of twenty (issue #246, review
+  # round 1): without the line, the cap reads as the whole tree.
+  '39.3@-@tools/loop/measure.sh@measure#saysHowManyTalliesItWithheld@the line that says how many tallies the cap withheld (issue #246)@s|^    item TALLY-MORE|    : # the mutation withholds the count|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

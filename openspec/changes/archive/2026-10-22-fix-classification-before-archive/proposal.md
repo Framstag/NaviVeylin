@@ -47,7 +47,7 @@ Wiring, so the check runs at the moments that matter rather than in a suite nobo
 |---|---|
 | `tools/loop/gate.sh`'s profile (`tools/loop/loop.conf`) | `tools/gen-feature-list*.sh` and `tools/feature-list/*` owe the tool's suite; `openspec/*` owes the classification gate, so a change that writes a delta or moves its archive is gated on it |
 | `.github/workflows/build.yml` | the tool's suite runs beside the classification step — until now its 115 cases ran in no CI step at all |
-| `tools/gen-feature-list-selftest.sh` | a gate-shaped summary line, so the numbers it prints reach the gate's tally instead of `tests=0` |
+| `tools/gen-feature-list-selftest.sh` | a gate-shaped summary line (`<name>: all N cases passed`), which the gate's own summary regex reads (`tools/loop/gate.sh:114-118`, its shape asserted by `tools/loop-cases.sh`) — no gate run under this profile was made here |
 
 `guidelines/FeatureList.md` §2, §4 and §9 and `README.md` say the widened rule; `.github/workflows/build.yml`'s
 error message names it.
@@ -68,8 +68,9 @@ error message names it.
 
 `evidence/surface.txt`, produced by
 `grep -rln "check-classification\|unclassified spec id\|LOOP_GATE_SUITES" tools/ guidelines/ README.md
-.github/workflows/ openspec/specs/`: **9 files** assert the rule — the tool, its suite (17 gate cases, 2 of them
-realigned by this change), the guideline, the spec, `README.md`, the CI workflow, and the loop's
-`gate.sh`/`loop.conf`/`loop-cases.sh`. One existing case (`keys: an in-flight change contributes no key`) asserts a
+.github/workflows/ openspec/specs/`: **9 files** assert the rule — the tool, its suite (17 gate cases, 7 of them
+added by this change), the guideline, the spec, `README.md`, the CI workflow, and the loop's
+`gate.sh`/`loop.conf`/`loop-cases.sh`. One existing case, and it is not a gate case (`keys: an in-flight change
+contributes no key`), asserts a
 neighbouring rule and had to be realigned: its fixture delta now carries a classification line, because the gate
 reads deltas — its assertion (the *index* ships nothing an open change carries) is unchanged.

@@ -36,9 +36,11 @@
   `EXIT=1`, `newcap (introduced by the open change probe-change — classify it in that change, before it
   archives)`; restored pair `EXIT=0`.
 - [x] 2.5 `tools/gen-feature-list-selftest.sh` prints a gate-shaped summary (`all N cases passed` /
-  `M of N cases failed`) beside its own line, so the gate's tally is the suite's number and not `tests=0`.
-  **Verify**: `bash tools/gen-feature-list-selftest.sh | tail -1` → `gen-feature-list-selftest: all 115 cases
-  passed` (`evidence/focused-gen-feature-list-selftest.txt`).
+  `M of N cases failed`) beside its own line, which the gate's own summary regex reads
+  (`tools/loop/gate.sh:114-118`, its shape asserted by `tools/loop-cases.sh`). No gate run under this change's
+  profile was made, so the tally is a consequence of that regex and its case, not something a gate log shows.
+  **Verify**: `bash tools/gen-feature-list-selftest.sh | grep 'all 115 cases passed'` →
+  `gen-feature-list-selftest: all 115 cases passed`, exit 0 (`evidence/focused-gen-feature-list-selftest.txt`).
 
 ## 3. The check runs at the moments that matter
 
@@ -62,12 +64,13 @@
   177`, `unclassified: 0`, `delta spec ids: 2`, `stale: 0`, exit 0.
 - [x] 4.2 One gate run, exactly as the run configures it: `./tools/loop/gate.sh` → exit 0,
   `LOOP-GATE: tests=210 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh,
-  tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/check-doc-routes.sh)`, with the build's
-  own 2 × 2097 cases and 0 failures summed in `evidence/gradle-suite-tally.xml`. `evidence/gate.log`,
-  `evidence/tools_*.xml`.
+  tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/check-doc-routes.sh)`, with `:app`'s
+  two flavours at 2097 cases each, 0 failures, summed in `evidence/gradle-suite-tally.xml` — that tally covers
+  `:app` alone, not the build's other modules. `evidence/gate.log`, `evidence/tools_*.xml`.
 - [x] 4.3 No compiled file changed, so no *new* Gradle task was owed: `guidelines/Build.md` §2's scope rule — the
-  build ran because the run's base is behind the tree, and the four shell suites plus the classification gate are
-  this change's own verification.
+  build in that run came from a compiled path another change left in the shared worktree
+  (`app/src/test/.../MapManagerUpdatesQueueTest.kt`), not from this change, and the four shell suites plus the
+  classification gate are this change's own verification.
 - [x] 4.4 Evidence copied into this change's `evidence/` directory (the versioned half) and into the run's item
   directory.
 - [x] 4.5 `openspec archive fix-classification-before-archive`, confirming the delta merged into
@@ -82,4 +85,4 @@
 | green focused | `gen-feature-list-selftest: all 115 cases passed`, exit 0 |
 | falsification | base tool `EXIT=0`, this tree's tool `EXIT=1` naming `newcap` and `probe-change` |
 | real tree | `classified: 177 / unclassified: 0 / stale: 0 / delta spec ids: 2`, exit 0 |
-| gate | `LOOP-GATE: tests=210 failures=0`, exit 0, plus 2 × 2097 Gradle cases, 0 failures |
+| gate | `LOOP-GATE: tests=210 failures=0`, exit 0, plus `:app`'s two flavours at 2097 cases each, 0 failures |

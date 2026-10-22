@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.GermanTranslationCompletenessTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-22T10:34:27.909Z" hostname="dingens" time="0.168">
+  <properties/>
+  <testcase name="everyEnglishPluralHasGermanTranslation" classname="com.naviveylin.auto.GermanTranslationCompletenessTest" time="0.044"/>
+  <testcase name="everyEnglishStringHasGermanTranslation" classname="com.naviveylin.auto.GermanTranslationCompletenessTest" time="0.007"/>
+  <testcase name="retiredWaitNoticeStringsAreGone" classname="com.naviveylin.auto.GermanTranslationCompletenessTest" time="0.113"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

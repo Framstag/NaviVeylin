@@ -73,7 +73,8 @@ Cases: `regeneration: two runs produce the same file`, `catalogue: no generation
 
 A capability is published when, and only when, a change that introduces it has been archived: archiving moves
 its capability specs into `openspec/specs/`. That directory is therefore the product's shipped surface, and the
-catalogue needs no "is it released yet" filter. An in-flight change contributes nothing.
+catalogue needs no "is it released yet" filter. An in-flight change contributes nothing to it — the classification
+is the one judgement that reads an open change's delta ahead of the archive (§4).
 
 Cases: `keys: an in-flight change contributes no key`.
 
@@ -103,12 +104,18 @@ area catalogue: id, heading, order, and which single area is the car platform's 
 
 Three things a reader must know about the classification:
 
-- **A shipped spec id that neither file names fails the whole run and writes nothing.** The failure names the
-  id, and the fix is one line. Publishing an unclassified capability, or silently dropping one, are both worse
-  than a red run.
+- **A spec id that neither file names fails the whole run and writes nothing.** The failure names the id, and the
+  fix is one line. Publishing an unclassified capability, or silently dropping one, are both worse than a red run.
+  The ids the gate demands are the shipped set **and** the capability ids an open change's delta specs introduce
+  (`openspec/changes/<change>/specs/<capability>/spec.md`), so a line the archive would have owed is due while the
+  change is still open — the archive step runs this same check before it moves the change root, and the CI step
+  names the id on the pull request that introduces the delta (issue #101, `TODO.md` §157's second candidate).
+  `openspec/changes/archive/` is history and is not read: an archived change's capability has either shipped,
+  which the shipped set names, or was retired from it.
 - **A stale entry — an id the classification names that is no longer shipped — is reported without failing.**
   It is not demanded of the catalogue either: coverage is measured over what is still shipped, and a stale
-  shortlist entry follows the same rule (§1).
+  shortlist entry follows the same rule (§1). A line added ahead of the archive reads as stale for the same
+  reason and for the same non-reason: the capability is not shipped yet.
 - **`userVisible` is a property of the spec, not of each requirement.** A user-visible spec may contain a
   requirement that describes plumbing, and not every one of its requirements needs a bullet: which of them a
   bullet mentions is the phrasing step's editorial call. A user-visible *spec* that no highlight names is not a
@@ -116,11 +123,14 @@ Three things a reader must know about the classification:
   a selling point the shortlist does name reaches no entry.
 
 Cases: `gate: an unclassified shipped spec id fails the run`, `gate: an unclassified spec id writes no document`,
-`gate: a stale classification entry does not fail the run`, `gate: a user-visible spec with no renderable surface
-fails`, `gate: not exactly one car-only area fails the run`.
+`gate: a capability an open change introduces must be classified`, `gate: the unclassified open capability is
+named`, `gate: the open change that owes the line is named`, `gate: an archived change's delta is not read`,
+`gate: a classified delta passes before it ships`, `gate: a stale classification entry does not fail the run`,
+`gate: a user-visible spec with no renderable surface fails`, `gate: not exactly one car-only area fails the run`.
 
-**The rule for a change author:** a change that archives a capability spec adds its classification line in the
-same change. `.pi/skills/feature-list` and the tool both tell you the id when it is missing.
+**The rule for a change author:** a change that introduces a capability classifies it in that same change — when
+it writes the delta spec, not when it archives. `.pi/skills/feature-list` and the tool both tell you the id when
+it is missing, and the tool names the open change that owes the line.
 
 ## 5. Car support is a tag; the car platform has one area
 
@@ -200,7 +210,8 @@ read`, `snapshot: versions order as the release format orders them (-1 < -10 < -
 
 ## 9. What a change owes when it touches this
 
-- Archiving a capability spec: add its classification line (`specs.json`) in that same change.
+- Introducing a capability: add its classification line (`specs.json`) in that same change. The gate reads an open
+  change's delta specs, so the line is due before the archive rather than after it.
 - Renaming a requirement: nothing — the run pairs the vanished key with its replacement and reports a change,
   not a removal. A rename that the pairing cannot match is reported for review rather than published.
 - Changing a phrasing instruction: nothing — the prompt digest invalidates the affected prose. Check the

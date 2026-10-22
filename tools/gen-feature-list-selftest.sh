@@ -60,6 +60,15 @@ spec() {  # spec <id> <requirement name> [<requirement name> ...]
   } > "$repo/openspec/specs/$id/spec.md"
 }
 
+delta_spec() {  # delta_spec <change> <capability-path> — a capability an open change introduces
+  id="$2"
+  mkdir -p "$repo/openspec/changes/$1/specs/$id"
+  {
+    printf '# %s Specification\n\n## Purpose\n\nThe capability an open change introduces.\n\n## ADDED Requirements\n\n' "$id"
+    printf '### Requirement: The introduced capability\n\nThe introduced capability SHALL exist.\n\n#### Scenario: The introduced capability exists\n\n- **WHEN** the fixture says so\n- **THEN** The introduced capability exists\n\n'
+  } > "$repo/openspec/changes/$1/specs/$id/spec.md"
+}
+
 areas_() {
   cat > "$data/areas.json" <<'JSON'
 {
@@ -133,6 +142,15 @@ run_split() {
   last_cmd="run $*"
   last_log="$work/g.out"
   bash "$tool" --root "$repo" --data-dir "$data" --out-dir "$out" "$@" > "$work/g.out" 2> "$work/g.err"
+  last_rc=$?
+}
+
+# check — `--check-classification` over the fixture. The gate's failure is on stderr and its counts on stdout, so
+# the two streams are kept apart here for the same reason run_split keeps them apart.
+check() {
+  last_cmd="check --check-classification"
+  last_log="$work/c.out"
+  bash "$tool" --root "$repo" --data-dir "$data" --check-classification > "$work/c.out" 2> "$work/c.err"
   last_rc=$?
 }
 
@@ -220,9 +238,15 @@ cat > "$repo/openspec/changes/some-change/specs/zz/spec.md" <<'MD'
 - **WHEN** a change is in flight
 - **THEN** the index does not see it
 MD
+# The in-flight capability is classified first: the classification gate reads an open change's delta spec (issue
+# #101), so an unclassified `zz` would fail the run and write no report at all. What this case asserts is that the
+# *index* — the capability keys — still ships nothing an open change carries, whatever the classification knows.
+jq '.specs.zz = {"area":"three","userVisible":false,"surfaces":[]}' \
+  "$data/specs.json" > "$data/specs.json.tmp" && mv "$data/specs.json.tmp" "$data/specs.json"
 run --release 1-1-1-1 --report-only > "$work/r.out" 2>&1
 is "keys: an in-flight change contributes no key" "9" "$(sed -n 's/^capability keys: //p' "$work/r.out")"
 rm -rf "$repo/openspec/changes"
+specs_
 
 run --release 1-1-1-1 --report-only > "$work/r.out" 2>&1
 is "keys: every shipped spec is classified" "0" "$(sed -n 's/^unclassified spec ids: //p' "$work/r.out")"
@@ -274,6 +298,32 @@ rc "gate: a stale classification entry does not fail the run" 0 run --release 3-
 run_split --release 3-1-1-3 --report-only > /dev/null
 is "gate: a stale entry is reported" "1" "$(sed -n 's/^stale classification entries: //p' "$work/g.out")"
 grep -q 'not-a-shipped-spec' "$work/g.err" && ok "gate: the stale entry is named" || bad "gate: the stale entry is named"
+specs_
+
+# A capability an open change introduces is a delta spec, not a shipped one: `openspec/changes/<change>/specs/`
+# names the capability the archiving move is about to publish, so the classification line is owed while the change
+# is still open — the moment it matters — instead of by the run after it archives (issue #101, §157's second
+# candidate). `changes/archive/` is history and is not read: an archived change's capability has either shipped,
+# which the shipped set names, or was retired from it.
+delta_spec pending-change newcap
+check
+is "gate: a capability an open change introduces must be classified" "1" "$last_rc"
+grep -q 'newcap' "$work/c.err" && ok "gate: the unclassified open capability is named" || bad "gate: the unclassified open capability is named"
+grep -q 'pending-change' "$work/c.err" && ok "gate: the open change that owes the line is named" || bad "gate: the open change that owes the line is named"
+
+mkdir -p "$repo/openspec/changes/archive/2099-01-01-shipped-long-ago"
+mv "$repo/openspec/changes/pending-change" "$repo/openspec/changes/archive/2099-01-01-shipped-long-ago/"
+check
+is "gate: an archived change's delta is not read" "0" "$last_rc"
+
+mv "$repo/openspec/changes/archive/2099-01-01-shipped-long-ago/pending-change" "$repo/openspec/changes/"
+jq '.specs.newcap = {"area":"one","userVisible":false,"surfaces":[]}' \
+  "$data/specs.json" > "$data/specs.json.tmp" && mv "$data/specs.json.tmp" "$data/specs.json"
+check
+is "gate: a classified delta passes before it ships" "0" "$last_rc"
+is "gate: a delta-only classification leaves nothing unclassified" "0" "$(sed -n 's/^unclassified: //p' "$work/c.out")"
+is "gate: a delta-only classification is reported as stale, not as a failure" "1" "$(sed -n 's/^stale: //p' "$work/c.out")"
+rm -rf "$repo/openspec/changes" "$data/specs.json.tmp"
 specs_
 
 jq '.specs.alpha.surfaces = ["tablet"]' "$data/specs.json" > "$data/specs.json.tmp" && mv "$data/specs.json.tmp" "$data/specs.json"
@@ -676,5 +726,13 @@ if [ "${GITHUB_STEP_SUMMARY:-}" != "" ]; then
   printf 'gen-feature-list-selftest: %d passed, %d failed\n' "$pass" "$fail" >> "$GITHUB_STEP_SUMMARY"
 fi
 printf 'gen-feature-list-selftest: %d passed, %d failed\n' "$pass" "$fail"
+# The gate reads a suite's numbers from one of two summary shapes — `all N cases passed`, `M of N cases failed` —
+# and this suite is now one of the suites a changed `tools/gen-feature-list*.sh` or `openspec/` path pulls in
+# (tools/loop/loop.conf). Without this line the gate records its tally as 0 cases whatever this suite ran.
+if [ "$fail" -eq 0 ]; then
+  printf 'gen-feature-list-selftest: all %d cases passed\n' "$pass"
+else
+  printf 'gen-feature-list-selftest: %d of %d cases failed\n' "$fail" "$((pass + fail))"
+fi
 [ "$fail" -eq 0 ] || exit 1
 exit 0

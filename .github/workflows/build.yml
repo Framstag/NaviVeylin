@@ -136,19 +136,27 @@ jobs:
           echo "OpenSpec artifacts are consistent."
 
       # ── capability classification ──────────────────────────────
-      # TODO.md §157: nothing forces a change to classify the capability spec it
-      # archives, so the mistake surfaces at the next generation instead. Three
-      # instances are on record (generate-feature-list, routing-max-speed,
-      # routing-failure-reporting). The tool already owns the check and exits 1
-      # naming the id — running it here fails the pull request that causes it
+      # TODO.md §157 / issue #101: nothing forced a change to classify the capability spec it
+      # archives, so the mistake surfaced at the next generation instead. Three instances are on
+      # record (generate-feature-list, routing-max-speed, routing-failure-reporting). The tool owns
+      # the check, exits 1 naming the id, and reads an open change's delta specs as well as the
+      # shipped set — so it fails the pull request that introduces the delta, before the archive,
       # rather than a later session's run. Data only: two files read, no Gradle.
       - name: Check capability classification
         run: |
           set -euo pipefail
           bash tools/gen-feature-list.sh --check-classification || {
-            echo "::error file=tools/feature-list/specs.json::a shipped capability spec is unclassified (TODO.md §157) — add its line in the change that archives the spec"
+            echo "::error file=tools/feature-list/specs.json::a capability spec is unclassified (TODO.md §157) — add its line in the change that introduces it, before the archive"
             exit 1
           }
+
+      # ── feature-list tooling ───────────────────────────────────
+      # The gate above is one call of a tool whose 115 cases decide what it reads and refuses. The suite ran
+      # nowhere in CI and nowhere in the loop's gate until issue #101: a case that pins the gate's behaviour could
+      # pass in isolation and the next change to the tool would learn nothing. Offline, seconds, no Gradle.
+      - name: Check feature-list tooling
+        run: |
+          bash tools/gen-feature-list-selftest.sh
 
       # ── documentation routes ───────────────────────────────────
       # AGENTS.md's Documentation Map is the only route from "what I am changing" to the guideline

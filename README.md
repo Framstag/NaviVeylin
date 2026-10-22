@@ -96,7 +96,8 @@ bash tools/gen-feature-list.sh --release 2026-10-08-1
 # Read what the index knows: every capability with its area, visibility and surfaces
 bash tools/gen-feature-list.sh --list
 
-# The gate over the classification alone
+# The gate over the classification alone — the shipped specs and the capability ids an open change's delta specs
+# introduce, so a line the archive would have owed is due while the change is still open
 bash tools/gen-feature-list.sh --check-classification
 ```
 

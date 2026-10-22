@@ -3,7 +3,8 @@
 #
 # The shipped capability set is `openspec/specs/`: a capability reaches it when a change archives, so the
 # directory is the product's shipped surface and needs no filter. One capability key identifies one
-# requirement: `<spec-id>#<Requirement name>`.
+# requirement: `<spec-id>#<Requirement name>`. The classification gate reads the capability ids an open
+# change's delta specs introduce as well, so the line a change owes is due before it archives (issue #101).
 #
 # This script is the deterministic half of the pipeline: it enumerates specs, derives the keys, digests
 # each capability's text, computes the delta against a version's baseline snapshot, decides which feature
@@ -167,7 +168,24 @@ jq -Rs '
 shipped_ids=$(find "$specs_dir" -name spec.md | sed "s|^$specs_dir/||; s|/spec.md$||" | sort)
 classified_ids=$(jq -r '.specs | keys[]' "$specs_file" | sort)
 
-unclassified=$(comm -23 <(printf '%s\n' "$shipped_ids") <(printf '%s\n' "$classified_ids"))
+# A capability an open change introduces is a delta spec, not a shipped one: `openspec/changes/<change>/specs/`
+# names the capability the archiving move is about to publish. Reading it here is what makes the owed
+# classification line due while the change is still open — the archive step runs this same check before it moves
+# the change root (issue #101, `TODO.md` §157's second candidate) — instead of the run after it archives, a change
+# late. `changes/archive/` is history and is not read: an archived change's capability has either shipped, which
+# the shipped set names, or was retired from it.
+changes_dir="$root/openspec/changes"
+delta_origins=""
+if [ -d "$changes_dir" ]; then
+  delta_origins=$(find "$changes_dir" -mindepth 3 -name spec.md -not -path "$changes_dir/archive/*" 2>/dev/null \
+    | sed 's|^\(.*\)/changes/\([^/]*\)/specs/\(.*\)/spec.md$|\3\t\2|' | sort -u)
+fi
+delta_ids=$(printf '%s\n' "$delta_origins" | cut -f1 | sed '/^$/d' | sort -u)
+required_ids=$(printf '%s\n%s\n' "$shipped_ids" "$delta_ids" | sed '/^$/d' | sort -u)
+
+unclassified=$(comm -23 <(printf '%s\n' "$required_ids") <(printf '%s\n' "$classified_ids"))
+# stale is measured over the shipped set alone: a delta's line reads as stale until the capability ships, which is
+# reported and does not fail — the same rule a removed spec id follows (guidelines/FeatureList.md §4).
 stale=$(comm -13 <(printf '%s\n' "$shipped_ids") <(printf '%s\n' "$classified_ids"))
 
 unclassified_n=$(printf '%s\n' "$unclassified" | grep -c . || true)
@@ -190,8 +208,16 @@ caronly_n=$(jq '[.areas[] | select(.carOnly)] | length' "$areas_file")
 gate_errors=0
 if [ "$unclassified_n" -gt 0 ]; then
   gate_errors=1
-  echo "gen-feature-list: unclassified shipped spec id(s):" >&2
-  printf '%s\n' "$unclassified" | sed 's/^/  /' >&2
+  echo "gen-feature-list: unclassified spec id(s):" >&2
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    origin=$(printf '%s\n' "$delta_origins" | awk -F '\t' -v id="$id" '$1 == id { print $2; exit }')
+    if [ -n "$origin" ]; then
+      printf '  %s (introduced by the open change %s — classify it in that change, before it archives)\n' "$id" "$origin" >&2
+    else
+      printf '  %s (shipped)\n' "$id" >&2
+    fi
+  done <<< "$unclassified"
 fi
 if [ -n "$bad_areas" ]; then
   gate_errors=1
@@ -236,6 +262,7 @@ if [ "$mode" = "check" ]; then
   echo "specs read: $spec_count"
   echo "classified: $(printf '%s\n' "$classified_ids" | grep -c . || true)"
   echo "unclassified: $unclassified_n"
+  echo "delta spec ids: $(printf '%s\n' "$delta_ids" | grep -c . || true)"
   echo "stale: $stale_n"
   echo "car-only areas: $caronly_n"
   echo "highlights: $(jq '.highlights | length' "$highlights_file")"

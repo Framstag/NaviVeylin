@@ -1,0 +1,16 @@
+### openspec validate --change --strict
+Change 'fix-calculation-notice-minimum-dwell' is valid
+exit=0
+### openspec validate --specs
+✓ spec/zoom-transition-scaling
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 177 passed, 0 failed (177 items)
+exit=0
+### check-doc-routes
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+exit=0
+### check-classification
+stale: 0
+car-only areas: 1
+highlights: 19
+exit=0

@@ -1,0 +1,23 @@
+LOOP-MEASURE base=e1c9b74 paths=3 insertions=97 deletions=1
+LOOP-MEASURE-PATH auto/src/main/java/com/naviveylin/auto/NavigationSession.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/CalculationNoticeDwellTest.kt
+LOOP-MEASURE-PATH guidelines/UI.md
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests --no-build-cache
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/._gradlew_test_-PforceTests_--no-build-cache.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_gen-feature-list-selftest.sh.xml tests=119 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=117 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh.xml tests=156 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_sensor-selftest.sh.xml tests=45 failures=0
+LOOP-MEASURE-CHANGE fix-calculation-notice-minimum-dwell scenarios=3 cases=3 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-calculation-notice-minimum-dwell/evidence/green-CalculationNoticeDecisionTest.xml tests=8 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-calculation-notice-minimum-dwell/evidence/green-CalculationNoticeDwellTest.xml tests=3 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-calculation-notice-minimum-dwell/evidence/green-SessionScreenStackTest.xml tests=16 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-calculation-notice-minimum-dwell/evidence/mutation-dwell-zero.xml tests=3 failures=2
+LOOP-MEASURE-TALLY openspec/changes/fix-calculation-notice-minimum-dwell/evidence/red-seam-absent.xml tests=3 failures=3
+LOOP-MEASURE-SURFACE surface: 3 cases added, 0 rewritten, 0 fixtures realigned — `CalculationNoticeDwellTest` (new, 3 cases),
+LOOP-MEASURE-END

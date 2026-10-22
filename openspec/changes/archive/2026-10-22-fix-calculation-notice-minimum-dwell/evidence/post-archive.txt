@@ -1,0 +1,7 @@
+### after archive: openspec validate --specs
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 177 passed, 0 failed (177 items)
+### archive path
+openspec/changes/archive/2026-10-22-fix-calculation-notice-minimum-dwell
+### merged requirement
+1

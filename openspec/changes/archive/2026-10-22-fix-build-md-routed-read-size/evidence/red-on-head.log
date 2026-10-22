@@ -1,0 +1,10 @@
+2026-10-22T16:57:08Z
+FAIL routed-read#bound — 4 section(s) of Build.md exceed 12000 bytes: §10=31568 §4=23380 §2=23235 §6=22053
+PASS routed-read#numbers — §1-§12 are all present and check-doc-routes: all 120 section references resolve, all 4 skill references resolve
+FAIL routed-read#route — the routing table names no sub-section of: §2a §4a §6a §10a
+FAIL routed-read#verbatim — §2 carries 0 lettered sub-sections, fewer than 4
+FAIL routed-read#verbatim — §4 carries 0 lettered sub-sections, fewer than 4
+FAIL routed-read#verbatim — §6 carries 0 lettered sub-sections, fewer than 4
+FAIL routed-read#verbatim — §10 carries 0 lettered sub-sections, fewer than 4
+red-probe: 3 of 4 cases failed
+EXIT=1

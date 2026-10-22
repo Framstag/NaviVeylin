@@ -1,0 +1,38 @@
+revert-check 2026-10-22T16:56:30Z — root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+
+## routed-read#verbatim — one sentence of §6f reworded
+[mutated] FAIL routed-read#verbatim — 1 line(s) of Build.md are rewritten rather than moved:
+[mutated]     no downloaded result XML. Gradle's short location is the frame of the **test method**: a `runTest`-wrapped
+[mutated] red-probe: 1 of 1 cases failed
+[mutated] EXIT=1
+[restored] PASS routed-read#verbatim — every offender is split into lettered sub-sections and no sentence is rewritten
+[restored] red-probe: 0 of 1 cases failed
+[restored] EXIT=0
+EXIT=0
+
+## routed-read#route — the build row reverted to `Build.md` §2, §3, §4
+[mutated] FAIL routed-read#route — the routing table names no sub-section of: §2a §4a
+[mutated] red-probe: 1 of 1 cases failed
+[mutated] EXIT=1
+[restored] PASS routed-read#route — the routing table names 24 lettered Build.md sub-sections
+[restored] red-probe: 0 of 1 cases failed
+[restored] EXIT=0
+EXIT=0
+
+## routed-read#bound — the threshold lowered to 5 000 bytes
+[mutated] FAIL routed-read#bound — 9 section(s) of Build.md exceed 5000 bytes: §7=8877 §9=7294 §10i=6841 §1=5609 §4f=5275 §6b=5271 §2c=5238 §2d=5106 §2a=5060
+[mutated] red-probe: 1 of 1 cases failed
+[mutated] EXIT=1
+[restored] PASS routed-read#bound — every section of Build.md is at most 12000 bytes
+[restored] red-probe: 0 of 1 cases failed
+[restored] EXIT=0
+EXIT=0
+
+## all four cases, restored
+[restored] PASS routed-read#bound — every section of Build.md is at most 12000 bytes
+[restored] PASS routed-read#numbers — §1-§12 are all present and check-doc-routes: all 146 section references resolve, all 4 skill references resolve
+[restored] PASS routed-read#route — the routing table names 24 lettered Build.md sub-sections
+[restored] PASS routed-read#verbatim — every offender is split into lettered sub-sections and no sentence is rewritten
+[restored] red-probe: 0 of 4 cases failed
+[restored] EXIT=0
+EXIT=0

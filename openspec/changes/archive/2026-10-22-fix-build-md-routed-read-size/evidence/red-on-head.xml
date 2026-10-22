@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/red-probe.sh" tests="4" failures="3" errors="0" timestamp="2026-10-22T16:55:15Z">
+  <system-out>red-probe: 3 of 4 cases failed (bound=12000 bytes, base=3180fff93ada7a530a4c2b2b6966905c743e373c)</system-out>
+</testsuite>

@@ -1,0 +1,2 @@
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=0 failures=0 (tools/check-doc-routes.sh)

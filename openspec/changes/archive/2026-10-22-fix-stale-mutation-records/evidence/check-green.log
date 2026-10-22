@@ -1,0 +1,5 @@
+# 2026-10-22T20:32:56Z
+# the check over the whole declared set, after the two records were rewritten
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.RBbIuF
+loop-mutations: all 87 cases passed — every selected record applies to the file it names
+exit=0

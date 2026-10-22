@@ -1,0 +1,12 @@
+# the three new records, against the cases they own
+loop-mutations: selected 3 of 87 records (labels: 41.1 41.2 41.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.ZPRVTc
+RED    41.1  mutation#aStaleRecordIsNamed   (the exit that fails a set whose record no longer applies (issue #264))
+restore 41.1 mutation#aStaleRecordIsNamed green again
+RED    41.2  gate#anEnginePathOwesTheRecordCheck   (the profile pair that owes the record check for a path under the engine (issue #264))
+restore 41.2 gate#anEnginePathOwesTheRecordCheck green again
+RED    41.3  mutation#everyDeclaredRecordApplies   (the anchor two records keep on the child-start line (issue #264))
+restore 41.3 mutation#everyDeclaredRecordApplies green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+exit=0

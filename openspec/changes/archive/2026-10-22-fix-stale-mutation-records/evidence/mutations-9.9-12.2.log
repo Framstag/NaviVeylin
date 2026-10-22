@@ -1,0 +1,10 @@
+# after the patterns are rewritten — the item's own evidence line
+loop-mutations: selected 2 of 84 records (labels: 9.9 12.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.aVFbFJ
+RED    9.9  state#agentCommandIsTheOnlyIndirection   (the single agent-command indirection)
+restore 9.9 state#agentCommandIsTheOnlyIndirection green again
+RED    12.2  run#childStartsInTheProjectRoot   (the child started in the project, where the project's own policy is resolved)
+restore 12.2 run#childStartsInTheProjectRoot green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+exit=0

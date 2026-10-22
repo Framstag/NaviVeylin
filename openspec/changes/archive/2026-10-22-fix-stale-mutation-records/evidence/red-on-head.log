@@ -1,0 +1,10 @@
+# HEAD 9f10749 — the three new cases, before the check exists
+--- mutation#everyDeclaredRecordApplies
+  every declared record applies to the file it names — the check printed: loop-mutations: unknown argument --check: expected '0', got '2'
+FAIL mutation#everyDeclaredRecordApplies
+--- mutation#aStaleRecordIsNamed
+  a record whose expression names no line fails the check: loop-mutations: unknown argument --check: expected '1', got '2'
+FAIL mutation#aStaleRecordIsNamed
+--- gate#anEnginePathOwesTheRecordCheck
+  a path under the engine owes the record check, so a stale record fails the gate: tools/loop-selftest.sh: 'loop-mutations.sh --check' not found in: tools/loop-selftest.sh
+FAIL gate#anEnginePathOwesTheRecordCheck

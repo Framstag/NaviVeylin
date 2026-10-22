@@ -1,0 +1,11 @@
+# HEAD 9f10749 — the two records against the engine's current line
+# tools/loop/run.sh:668 carries the child's completion record since #227:
+  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1"; printf '%s\n' "$?" > "$2.status" ) > "$2" 2>&1 < /dev/null &
+
+loop-mutations: selected 2 of 84 records (labels: 9.9 12.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.UyGCpa
+MUTATION-DID-NOT-APPLY 9.9  /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/run.sh (the pattern no longer matches — fix the mutation, not the case)
+MUTATION-DID-NOT-APPLY 12.2  /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/run.sh (the pattern no longer matches — fix the mutation, not the case)
+
+red-when-mutated: 0 · not-noticed: 2 · restore-failures: 0
+exit=1

@@ -1,8 +1,8 @@
 package com.naviveylin.data
 
 import android.util.Log
-import com.framstag.libosmscout.client.InstalledMaps
 import com.naviveylin.core.StartMapSelection
+import com.naviveylin.core.mapsource.MapTreeDiscovery
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
  * One owner for the two halves of the start map (spec: `start-map-selection` — the start map comes
  * from the shared installed-map discovery; the last opened map is reopened at the next start; a
  * recorded map that is no longer installed falls back deterministically): the discovery
- * [InstalledMaps.findDatabaseDirectories] shares its rule with the additional-database batch
+ * [MapTreeDiscovery] shares its rule with the additional-database batch
  * (`MapCanvasViewModel.initMap`) and the car session (`AutoServiceModule`), and the choice itself is
  * the pure [StartMapSelection.choose] rule (design D1).
  *
@@ -39,11 +39,13 @@ class StartMapResolver @Inject constructor(
     suspend fun resolve(): String? = withContext(ioDispatcher) {
         val mapsRoot = storageManager.mapsRootDir
         // Same exclusion the additional-maps batch and the car session use: the basemap overlay is
-        // loaded by the client's own basemap lookup directory, never as a map the user opened.
-        val installed = InstalledMaps.findDatabaseDirectories(
-            mapsRoot.toString(),
-            mapsRoot.resolve(BASEMAP_DIR_NAME).toString()
-        )
+        // loaded by the client's own basemap lookup directory, never as a map the user opened. The
+        // classification drops and reports what an earlier update attempt left behind, which carries a
+        // `types.dat` of its own (spec: `map-updates`).
+        val installed = MapTreeDiscovery.under(
+            mapsRoot,
+            mapsRoot.resolve(BASEMAP_DIR_NAME)
+        ).installed.map { it.toString() }
         val lastUsed = settingsStorage.load().lastMapPath
         val chosen = StartMapSelection.choose(installed, lastUsed)
         // Identity, never a position: which database was opened and how many were candidates.

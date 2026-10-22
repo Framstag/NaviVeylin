@@ -91,6 +91,19 @@ class StartMapResolverTest {
     }
 
     @Test
+    fun `a leftover staging directory is never the start map`() = runTest {
+        // A swap whose cleanup failed leaves the previous installation in `.nordrhein-westfalen.backup`
+        // beside its target (spec `map-updates` — "Data left by an interrupted update is recognised,
+        // not mistaken for a map"). It carries a `types.dat`, and the leading dot sorts before the
+        // region, so a discovery that returned it would make it the start map.
+        val region = database("nordrhein-westfalen")
+        val leftover = database(".nordrhein-westfalen.backup")
+        assertTrue("the leftover must sort first for this case", leftover.absolutePath < region.absolutePath)
+
+        assertEquals(region.absolutePath, resolver().resolve())
+    }
+
+    @Test
     fun `the settings file is never a candidate`() = runTest {
         // SettingsStorage writes filesDir/maps/settings.json — a file inside the scanned root.
         val region = database("nordrhein-westfalen")

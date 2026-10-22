@@ -308,6 +308,17 @@ round the run itself ended already says so in its report (`LOOP-TIMEOUT`) and is
 in one round block the item with *the reviewer's report was cut short twice*, and the branch carries no
 review-failure marker, because no reviewer refused that change.
 
+What the round a corrective refusal buys is handed: a refusal whose every finding is subtractive —
+`LOOP-CORRECTIONS-ONLY: yes` — at the round budget buys one more round (#187), and that round exists to decide
+whether those findings were answered, not to grade the change a second time. So it is handed the correction
+round alone, `git diff <the refusing round's HEAD>..HEAD`, with the refusing report quoted in its prompt; a
+finding the tree still carries is a `BLOCKING:` finding there, and a correction whose hunk is missing is an
+unanswered finding rather than an absence to report against the diff. The range is why the round is affordable
+at all: the whole change is the #204 reading surface, measured at 435 KB and 9 935 changed lines (9 364 of them
+generated output) for item #126, and two rounds have already graded it. What the narrowed input does *not*
+remove is the reviewer process: #245's owner kept the round and narrowed what it reads, so the re-reading is
+what this change saves and the 300 to 420 s a round costs still stands.
+
 What it does when it cannot proceed: an item that needs a decision is **escalated** — the work already done
 is named on the item, the item is marked as awaiting a decision, and the run takes the next candidate. The
 work is preserved rather than abandoned (I11), which is the part the prose-era loop got wrong by treating a

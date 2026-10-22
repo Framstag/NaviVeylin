@@ -130,6 +130,7 @@ LOOP_SHELL_CASES=(
   'run#reviewBudgetIsARecordedValue'
   'run#aZeroRoundBudgetIsRefused'
   'run#aCorrectiveRefusalEarnsOneMoreRound'
+  'run#aCorrectiveRoundIsHandedTheCorrections'
   'run#aZeroBlockingRefusalClosesWithItsNotes'
   'run#aBlockingRefusalStillTakesTheRoundTwoPath'
   'run#aCutReportIsRetriedInsteadOfRefused'
@@ -297,6 +298,7 @@ loop_run_shell_case() {
     'run#reviewBudgetIsARecordedValue') fn=case_run_reviewBudgetIsARecordedValue ;;
     'run#aZeroRoundBudgetIsRefused') fn=case_run_aZeroRoundBudgetIsRefused ;;
     'run#aCorrectiveRefusalEarnsOneMoreRound') fn=case_run_aCorrectiveRefusalEarnsOneMoreRound ;;
+    'run#aCorrectiveRoundIsHandedTheCorrections') fn=case_run_aCorrectiveRoundIsHandedTheCorrections ;;
     'run#aZeroBlockingRefusalClosesWithItsNotes') fn=case_run_aZeroBlockingRefusalClosesWithItsNotes ;;
     'run#aBlockingRefusalStillTakesTheRoundTwoPath') fn=case_run_aBlockingRefusalStillTakesTheRoundTwoPath ;;
     'run#aCutReportIsRetriedInsteadOfRefused') fn=case_run_aCutReportIsRetriedInsteadOfRefused ;;
@@ -3314,6 +3316,66 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
   assert_eq "3" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" \
     "a corrective refusal earns the third round"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "and a third refusal still blocks the item"
+}
+
+# What the round a corrective refusal buys is handed (#245; the decision recorded on the item, option 3). The
+# round exists to decide whether the refusing round's findings were answered, and the reading surface that
+# answers it is the correction alone — `git diff <the refused round's HEAD>..HEAD` — plus the refusing report,
+# not the whole change the earlier rounds already graded (#204's 435 KB / 9 935-line diff at a smaller scale).
+# The assertions are the absences that make it so: the round-3 diff carries the correction's hunk and not the
+# line it replaced, and the round-3 prompt carries the finding the round exists to decide.
+case_run_aCorrectiveRoundIsHandedTheCorrections() {
+  local d p f diff prompt
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # Rounds 1 and 2 refuse, and round 2 states that every finding is subtractive, so the run buys a third round;
+  # that round accepts the corrections.
+  printf 'BLOCKING: the demo scenario names no case\nLOOP-BLOCKING: 1\nLOOP-CORRECTIONS-ONLY: yes\nLOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recommended: apply the corrections\nVERDICT: FAIL\n' \
+    > "$d/reviewer-fail.txt"
+  printf 'LOOP-BLOCKING: 0\nVERDICT: PASS\n' > "$d/reviewer-pass.txt"
+  # `the first pass` is what round 2 leaves in the file; `the correction` is what round 3 replaces it with. The
+  # two correction passes carry the same prompt name (`worker-prompt-round2.md`), so the marker that tells them
+  # apart lives in `build/`, which is gitignored and therefore in neither diff. The stubs' paths are expanded
+  # here, at write time, and only the runtime's own `$1` and `$PI_STUB_REPORT_REVIEWER` reach the action.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "case \"\$1\" in
+  worker-prompt-round2.md)
+    if [ -e build/correction-seen ]; then
+      printf \"the fix\\nthe first pass\\nthe correction\\n\" > demo-fix.txt
+    else
+      printf \"the fix\\nthe first pass\\n\" > demo-fix.txt
+      mkdir -p build && : > build/correction-seen
+    fi
+    ;;
+esac
+case \"\$1\" in
+  reviewer-prompt-1.md|reviewer-prompt-2.md) cp \"$d/reviewer-fail.txt\" \"\$PI_STUB_REPORT_REVIEWER\" ;;
+  reviewer-prompt-3.md) cp \"$d/reviewer-pass.txt\" \"\$PI_STUB_REPORT_REVIEWER\" ;;
+esac"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  f=$(state_file "$p")
+  assert_eq "3" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "the corrective refusal bought the third round"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$f")" "and the round that answered the findings closes the item"
+  # The round before the extension is the whole change, so the difference the next round's diff shows is the
+  # extension's alone.
+  diff="$p/.pi/issue-loop/items/21/review-2.diff"
+  [ -f "$diff" ] || fail "the second round was handed no diff"
+  assert_contains "$(cat "$diff")" "the first pass" "the round at the cap reads the change"
+  # …and the round the refusal bought is the correction round alone.
+  diff="$p/.pi/issue-loop/items/21/review-3.diff"
+  [ -f "$diff" ] || fail "the round the corrective refusal bought was handed no diff"
+  assert_contains "$(cat "$diff")" "+the correction" "the extra round reads the corrections"
+  assert_not_contains "$(cat "$diff")" "+the first pass" \
+    "and not the line the corrections replaced, which the refusing round already graded — as context it may sit beside the hunk, as a change it may not"
+  # …and what it must decide travels with it: the refusing round's finding, quoted in the prompt.
+  prompt="$p/.pi/issue-loop/items/21/reviewer-prompt-3.md"
+  [ -f "$prompt" ] || fail "the extra round's prompt was not rendered"
+  assert_contains "$(cat "$prompt")" "the demo scenario names no case" \
+    "the prompt carries the finding the round exists to decide"
+  assert_contains "$(cat "$prompt")" "reviewer-report-2.md" "and names the report it came from"
+  assert_contains "$(cat "$prompt")" "the correction round alone" "and says what the diff is"
+  # The earlier rounds are unchanged: the narrowing is the extra round's, not every round's.
+  assert_not_contains "$(cat "$p/.pi/issue-loop/items/21/reviewer-prompt-1.md")" "the correction round alone" \
+    "a first round is handed the change, not a correction range"
 }
 
 # A refusal is a refusal only when something the change depends on is contradicted. A report that grades every

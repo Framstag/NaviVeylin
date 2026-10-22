@@ -19,6 +19,8 @@ cites, and this task.
   through `{{EVIDENCE_DIR}}`. Do not grep the diff for it, and do not report its absence as a missing artefact.
 - the evidence directory the change cites: `{{EVIDENCE_DIR}}`
 
+{{CORRECTION_SCOPE}}
+
 **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
 the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The gate's
 result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the
@@ -87,9 +89,12 @@ only when it is not. The run reads the count first, so a verdict that disagrees 
 and a report with no `LOOP-BLOCKING:` line at all is read as a refusal, because a run cannot tell an old review
 from a quiet one.
 
-On FAIL, name the exact things to change. A round-2 finding that is **strictly subtractive** — delete a
-claim, correct a pointer, remove a wrong quote, narrow a scenario mapping — needs no third review; anything
-that adds a claim, a case or an assertion does.
+On FAIL, name the exact things to change, and grade the shape of the refusal: a finding that is **strictly
+subtractive** — delete a claim, correct a pointer, remove a wrong quote, narrow a scenario mapping — needs no
+new claim, case or assertion, so one worker pass answers it; anything that adds one does not. A refusal of that
+shape at the round budget buys one more round, and that round exists only to verify the corrections: its prompt
+carries the section above ("This round verifies the corrections, not the change again") naming the correction
+diff and the refusing report, and it is those findings — not the whole change — that the round grades.
 
 Two more machine-read lines follow the verdict on FAIL, because the run renders them into the escalation a
 person reads and decides how many rounds one item gets:

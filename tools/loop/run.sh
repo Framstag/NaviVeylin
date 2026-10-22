@@ -552,6 +552,32 @@ write_review_diff() { # write_review_diff <base> <file>
   fi
 }
 
+# The round a corrective refusal buys is handed the corrections, not the change again (issue #245; the decision
+# recorded on the item, option 3). The refusing round said every finding was subtractive, so what the next
+# reviewer has to decide is whether those findings were answered — and the whole change since the base is the
+# wrong reading surface for it: it is the #204 measurement (9 935 changed lines, 9 364 of them generated output)
+# at a smaller scale, and two rounds have already graded it. So the range is the refused round's own HEAD
+# (`git diff <refused>..HEAD`, the ref `write_review_diff` is called with) and the findings are the refusing
+# report, quoted. Nothing is promised that the run does not know: the range is named, and a finding the tree
+# still carries is the round's to refuse.
+review_correction_scope() { # <refused head> <refusing report path>
+  local head="$1" report="$2"
+  printf '## This round verifies the corrections, not the change again\n\n'
+  printf 'The round before this one refused the change and stated `LOOP-CORRECTIONS-ONLY: yes`: every finding it\n'
+  printf 'raised was subtractive, so one worker pass was what it asked for. This round decides whether that pass\n'
+  printf 'answered them.\n\n'
+  printf -- '- the diff under review at `{{DIFF_PATH}}` is `git diff %s..HEAD` — the correction round alone, not\n' "$head"
+  printf '  the whole change since the base. A hunk of the change is absent from it on purpose; read the change\n'
+  printf '  itself in `{{CHANGE_ROOT}}` where a correction needs its context.\n'
+  printf -- '- the refusing round is `%s`, quoted in full below. Each of its findings is what this round\n' "$report"
+  printf '  decides: a finding the tree still carries is a `BLOCKING:` finding, and one the correction answers is\n'
+  printf '  recorded as closed. A correction whose hunk is missing is an unanswered finding, not an absence to\n'
+  printf '  report against the diff.\n\n'
+  printf '### The refusing round%ss findings\n\n' "'"
+  cat "$report"
+  printf '\n'
+}
+
 # A child's own stream is silent by construction: the adapter the configured agent command names keeps the
 # child's event stream for the report (`LOOP_CHILD_EVENTS`) and prints its answer once it has exited (measured
 # 2026-10-19: on a pipe nothing appears until then), so a run used to print `pick #N` and then nothing for the
@@ -653,10 +679,11 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
 
 # The round's prompt, rendered once per attempt: the same contract and the same diff, only the file it is written
 # to differs, so a retried answer is the same question asked again rather than a second review (#224).
-render_reviewer_prompt() { # render_reviewer_prompt <out file>
+render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope]
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir" \
-    "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
+    "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}" \
+    "CORRECTION_SCOPE=${2:-}"
 }
 
 # Why a run ended is the run's own number, not a line on a console that scrolls away: every path that leaves
@@ -889,14 +916,19 @@ while true; do
     corrective_round_used=0
     # Read once: the same pathspec the round's diff is built with is the one its prompt names.
     review_exclude_spec=$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)
+    # The base a round's diff is taken from, and which is the run's own except for the round a corrective refusal
+    # buys: that one is handed the correction round alone, from the refused round's HEAD (#245). `correction_scope`
+    # is the section the same round's prompt carries instead of an empty placeholder.
+    diff_base="$base"
+    correction_scope=""
     while [ "$round" -le "$round_cap" ]; do
       review_rounds=$round
       diff_file="$item_dir/review-$round.diff"
-      write_review_diff "$base" "$diff_file"
+      write_review_diff "$diff_base" "$diff_file"
       before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       reviewer_report="$item_dir/reviewer-report-$round.md"
-      render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md"
+      render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md" "$correction_scope"
       run_child "$item_dir/reviewer-prompt-$round.md" "$reviewer_report"
       # An answer cut on its way to the file decides nothing, and it is not a reviewer that stayed quiet either
       # (#224): it is the run's own transport, so the round is asked once more instead of the item being blocked.
@@ -907,7 +939,7 @@ while true; do
         printf 'run: the round %s answer was cut short (%s) — retrying the round once\n' \
           "$round" "$(last_line "$reviewer_report")" >&2
         reviewer_report="$item_dir/reviewer-report-$round-retry.md"
-        render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md"
+        render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md" "$correction_scope"
         run_child "$item_dir/reviewer-prompt-$round-retry.md" "$reviewer_report"
         if [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
           ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
@@ -945,11 +977,15 @@ while true; do
       fi
       if [ "$round" -ge "$round_cap" ]; then
         # A corrective refusal earns one more round, once: a reviewer that says "nothing here adds a claim" has
-        # answered the question its FAIL otherwise leaves open (#186, #187).
+        # answered the question its FAIL otherwise leaves open (#186, #187). That round exists only to decide the
+        # findings the refusing round wrote, so it is handed the correction round — the refused round's own HEAD
+        # as the diff's base — and the refusing report, rather than the whole change again (#245).
         corrections_only=$(report_field "$reviewer_report" LOOP-CORRECTIONS-ONLY)
         if [ "$corrective_round_used" -eq 0 ] && [ "$corrections_only" = "yes" ]; then
           corrective_round_used=1
           round_cap=$((round_cap + 1))
+          diff_base=$(git -C "$worktree" rev-parse HEAD 2>/dev/null || printf '%s' "$base")
+          correction_scope=$(review_correction_scope "$diff_base" "$reviewer_report")
         else
           break
         fi
@@ -971,7 +1007,7 @@ while true; do
         break
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
-      write_review_diff "$base" "$item_dir/review-$((round + 1)).diff"
+      write_review_diff "$diff_base" "$item_dir/review-$((round + 1)).diff"
       round=$((round + 1))
     done
     if [ "$review_verdict" = "FAIL" ]; then

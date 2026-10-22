@@ -289,7 +289,14 @@ item with its branch as the evidence rather than closing it, because `status/fix
 tree" have to be one claim: measured 2026-10-20, a run closed #201 with its two commits still on
 `fix/issue-201-…` and the base at the run's base, and a person fast-forwarded `main` 35 minutes later (#229).
 No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s
-decision, taken on what a stranger to the run can check.
+decision, taken on what a stranger to the run can check. A review round is part of that record, in both
+directions: the run commits the round onto the branch before its reviewer starts and commits the answer when
+it arrives, so a round whose reviewer was killed mid-answer reads as unanswered instead of as a pass. Measured
+2026-10-22: the round-2 reviewer of #249 was killed, its report was 0 bytes, and the run that started 15
+minutes later adopted the branch, merged it into `main` and closed the item — no reviewer had graded the change
+(#262). A branch whose last round answered `PASS` is adoptable; one whose round was announced and never
+answered, and one the reviewer refused, is the owner's, and one that carries no round at all was never asked to
+a review (`--review off`) and stays adoptable.
 
 A branch the run made is a leftover once its work is in the base, and it goes when it goes: the run removes the
 branch it committed for an item and merged, releasing the kept worktree from it first (git refuses to delete a

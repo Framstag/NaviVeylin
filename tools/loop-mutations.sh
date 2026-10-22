@@ -140,8 +140,14 @@ MUTATIONS=(
   '16.3@-@tools/loop/report.sh@run#stopReasonIsPrintedAndReported@the report repeating the recorded stop reason@s|^stop_reason=.*$|stop_reason=""|'
   '17.1@-@tools/loop/prescreen.sh@prescreen#itemAwaitingADecisionIsNotQueued@the clause that leaves an item awaiting a decision to its owner@s|^  if \[ "$verdict" = "$queued_verdict" \] && \[ "$awaiting_decision" -eq 1 \]; then$|  if false; then|'
   '17.2@-@tools/loop/run.sh@run#awaitingDecisionIsNotEscalatedAgain@the run not re-escalating an item that already carries the escalation label@s|^    \| select(.*alreadyEscalated.*$|    \| select(true)|'
-  '18.1@-@tools/loop/worktree.sh@worktree#refusesABranchWhoseReviewFailed@adoption reading the verdict the reviewer left on the branch@s|^  refused_round=.*$|  refused_round=""|'
+  '18.1@-@tools/loop/worktree.sh@worktree#refusesABranchWhoseReviewFailed@adoption deciding on the verdict the reviewer left on the branch@s|^  case "\$review_state" in$|  case "" in|'
   '18.2@-@tools/loop/run.sh@run#recordsAFailedReviewOnTheBranch@the run committing the reviewer verdict onto the item branch@s|^        bash "\$LOOP_DIR/worktree.sh" record-review-failure .*$|        : # the verdict is recorded nowhere but this run|'
+  # 18.3/18.4 — a round whose reviewer never answered must not read like a pass (issue #262): the run announces
+  # the round on the branch before the reviewer starts, and adoption refuses an announcement that holds no
+  # answer. The two halves are separate invariants: without 18.4 nothing is announced at all, and the branch
+  # carries neither a request nor an answer of the round that is running.
+  '18.3@-@tools/loop/worktree.sh@worktree#refusesABranchWhoseReviewRoundNeverAnswered@adoption refusing a round that was announced and never answered@s|review-unanswered|adoptable|'
+  '18.4@-@tools/loop/run.sh@run#announcesAndRecordsTheReviewRound@the run announcing the review round on the item branch before its reviewer starts@s|^        bash "\$LOOP_DIR/worktree.sh" record-review-round .*requested .*$|        : # the round is announced nowhere but this run|'
   '25.1@-@tools/loop/lib.sh@worktree#keepsSourcesNotBuildOutput@the symlink refusal that keeps the cleanup inside a kept worktree@s|^  if \[ -L "$target" \]; then$|  if false; then|'
   '25.2@-@tools/loop/loop-clean.sh@clean#reportsWithoutApplyAndRemovesWithIt@the age gate that keeps a scratch tree a live suite may be writing into@s|^  if \[ -z "$(find "$dir" -maxdepth 0 -mmin +"$stale_minutes" 2>/dev/null)" \]; then$|  if false; then|'
   '19.1@-@tools/loop/run.sh@run#reviewBudgetIsARecordedValue@the round budget coming from the recorded value instead of a literal@s|^    round_cap="$max_review_rounds"$|    round_cap=2|'

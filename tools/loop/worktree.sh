@@ -23,6 +23,7 @@
 #   worktree.sh branch-state <issue> <branch>
 #   worktree.sh merge-item <issue> <branch>
 #   worktree.sh release-branch <branch>
+#   worktree.sh record-review-round <issue> <change> <round> requested|passed
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
@@ -251,26 +252,47 @@ carried_verification() { # <branch> <base> <change> → the evidence it carries,
   printf '%s\n' "$files" | sed "s#^openspec/changes/archive/$change/evidence/##" | paste -sd, -
 }
 
-# The reviewer's verdict is evidence too, and it is the one fact that makes a finished-looking branch the
-# owner's: a branch whose archived change and green XML are all a later run can see was refused by the reviewer
-# that read the diff, so adopting it would close the item on a decision a person had just refused (#185).
-carried_review_refusal() { # <branch> <change> → the last round the reviewer refused, or nothing
-  gitr ls-tree -r --name-only "$1" -- "openspec/changes/archive/$2/evidence" 2>/dev/null |
-    sed -n 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' | sort -n | tail -1
+# The reviewer's verdict is evidence, and the *round* is evidence too (#262): the answer alone cannot be told
+# apart from a reviewer that never wrote one, so a branch whose round was announced and never answered looked
+# exactly like a branch whose round passed. Measured 2026-10-22: the round-2 reviewer of #249 was killed
+# mid-answer, its report was 0 bytes, and the next run adopted the branch and closed the item although nobody had
+# graded the change. A round is therefore written on the branch twice — announced before the reviewer starts, and
+# answered when it arrives — and the highest round the branch names is its last.
+#
+#   review-round-<n>-requested.md   the run announced the round; no answer arrived yet
+#   review-round-<n>-passed.md      the round answered, and the change passed it
+#   review-failed-round-<n>.md      the round answered, and it refused the change (#185)
+#
+# A round that carries an answer reads as that answer, and a refusal outranks a pass if a branch ever carries
+# both: the reading is the conservative one, as an old-shaped review never passes.
+carried_review_state() { # <branch> <change> → "<round> <passed|failed|requested>", or nothing
+  local branch="$1" change="$2" files round
+  files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null) || return 0
+  round=$(printf '%s\n' "$files" |
+    sed -n -e 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' \
+      -e 's#.*/review-round-\([0-9][0-9]*\)-requested\.md$#\1#p' \
+      -e 's#.*/review-round-\([0-9][0-9]*\)-passed\.md$#\1#p' |
+    sort -n | tail -1)
+  [ -n "$round" ] || return 0
+  case "$files" in *"/review-failed-round-$round.md"*) printf '%s failed\n' "$round"; return 0 ;; esac
+  case "$files" in *"/review-round-$round-passed.md"*) printf '%s passed\n' "$round"; return 0 ;; esac
+  printf '%s requested\n' "$round"
 }
 
 # What a branch is, as one value, because three callers ask the same question and must not answer it
 # differently: `adopt-item` merges what finished, the pre-screen records what a person must decide, and
 # `start-item` may only set aside what carries nothing of its own (#232).
 #
-#   adoptable          one archived change of its own, a green verification, no reviewer's refusal
+#   adoptable          one archived change of its own, a green verification, no reviewer's refusal, and no
+#                      review round left unanswered
 #   review-refused     the same, and the reviewer refused it — the owner's (#185)
+#   review-unanswered  the same, and the last review round was announced and never answered — the owner's (#262)
 #   archived-not-green the change is there and never verified — the owner's (#176)
 #   unfinished         commits and no archived change of its own: a blocked attempt, so work rather than a question
 #   landed             every commit is already in the base — the item is startable on that branch again
 #   absent             there is no such branch
 branch_state_of() { # <issue> <branch> <base> → the state, one word
-  local issue="$1" branch="$2" base="$3" change evidence
+  local issue="$1" branch="$2" base="$3" change evidence review_state
   gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null || { printf 'absent\n'; return 0; }
   if gitr merge-base --is-ancestor "$branch" "$base" 2>/dev/null; then
     printf 'landed\n'
@@ -280,7 +302,11 @@ branch_state_of() { # <issue> <branch> <base> → the state, one word
   [ -n "$change" ] || { printf 'unfinished\n'; return 0; }
   evidence=$(carried_verification "$branch" "$base" "$change")
   [ -n "$evidence" ] || { printf 'archived-not-green\n'; return 0; }
-  [ -z "$(carried_review_refusal "$branch" "$change")" ] || { printf 'review-refused\n'; return 0; }
+  review_state=$(carried_review_state "$branch" "$change")
+  case "$review_state" in
+    *' failed') printf 'review-refused\n'; return 0 ;;
+    *' requested') printf 'review-unanswered\n'; return 0 ;;
+  esac
   printf 'adoptable\n'
 }
 
@@ -291,7 +317,7 @@ cmd_branch_state() { # <issue> <branch> → <state> TAB <change> TAB <evidence>
   base=$(state_base)
   state=$(branch_state_of "$issue" "$branch" "$base")
   case "$state" in
-    adoptable|review-refused|archived-not-green)
+    adoptable|review-refused|review-unanswered|archived-not-green)
       change=$(carried_change "$issue" "$branch" "$base")
       evidence=$(carried_verification "$branch" "$base" "$change")
       ;;
@@ -311,7 +337,7 @@ cmd_adopt_item() {
   # The merge lands in the project's own tree, where the base branch is checked out — the pre-screen's
   # adoption happens before the run's worktree exists, so the worktree is not required here.
   check_base
-  local base change evidence dirty commits who_name who_email
+  local base change evidence dirty commits who_name who_email review_state
   base=$(state_base)
   gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
     loop_refuse "there is no branch $branch to adopt"
@@ -321,9 +347,13 @@ cmd_adopt_item() {
   evidence=$(carried_verification "$branch" "$base" "$change")
   [ -n "$evidence" ] ||
     loop_refuse "branch $branch is not adopted — the change $change carries no green verification record"
-  refused_round=$(carried_review_refusal "$branch" "$change")
-  [ -z "$refused_round" ] ||
-    loop_refuse "branch $branch is not adopted — the reviewer refused $change in round $refused_round (evidence/review-failed-round-$refused_round.md); apply the reviewer's corrections and merge it by hand, or delete that file deliberately if the verdict no longer applies"
+  review_state=$(carried_review_state "$branch" "$change")
+  case "$review_state" in
+    *' failed')
+      loop_refuse "branch $branch is not adopted — the reviewer refused $change in round ${review_state%% *} (evidence/review-failed-round-${review_state%% *}.md); apply the reviewer's corrections and merge it by hand, or delete that file deliberately if the verdict no longer applies" ;;
+    *' requested')
+      loop_refuse "branch $branch is not adopted — review round ${review_state%% *} of $change was announced and never answered (evidence/review-round-${review_state%% *}-requested.md): no reviewer graded that change, so it is reviewed and merged by hand, or that announcement is deleted deliberately when the round is not to be waited for" ;;
+  esac
   commits=$(gitr rev-list --reverse "$base".."$branch" | tr '\n' ' ' | sed 's/ $//')
   [ -n "$commits" ] || loop_refuse "branch $branch carries no commit the base does not"
   # The merge lands in the project tree, where the base branch is checked out: over uncommitted work it would
@@ -374,10 +404,47 @@ $dirty"
     "$branch" "$(gitr rev-parse --short HEAD)" "$(printf '%s' "$commits" | sed 's/ /,/g')"
 }
 
-# The reviewer's verdict is evidence, and evidence travels with the change (#185): a branch whose only record of
-# the refusal is this run's machine-local item directory looks finished to the next run, which reads one archived
-# change and a green XML and adopts exactly the change the reviewer refused. Recording it writes one file into
-# the change's own `evidence/` directory and commits it on the item's branch, so the verdict leaves with the run.
+# The run's record of a review round, written onto the item's branch: the *announcement* before the reviewer
+# starts, and the answer when it arrives (#262). The branch is what a later run reads — the item's own directory
+# (`.pi/issue-loop/items/<n>/`) is machine-local and is gone or unreadable to it — so a reviewer that is killed
+# mid-answer has to leave a round that says "never answered" rather than no trace at all.
+cmd_record_review_round() { # <issue> <change> <round> <requested|passed>
+  local issue="$1" change="$2" round="$3" what="${4:-}" dir file who_name who_email
+  case "$issue" in ''|*[!0-9]*) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed" ;; esac
+  [ -n "$change" ] && [ -n "$round" ] ||
+    loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed"
+  case "$what" in requested|passed) ;; *) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed" ;; esac
+  [ -d "$worktree" ] || loop_die "record-review-round: no worktree at $worktree"
+  [ -d "$worktree/openspec/changes/archive/$change" ] ||
+    loop_refuse "record-review-round: $change is not an archived change in the worktree"
+  dir="$worktree/openspec/changes/archive/$change/evidence"
+  file="$dir/review-round-$round-$what.md"
+  mkdir -p "$dir" || loop_die "record-review-round: could not create $dir"
+  if [ "$what" = requested ]; then
+    {
+      printf 'The run announced review round %s of this change before its reviewer started.\n\n' "$round"
+      printf 'Recorded by the run for issue #%s at %s, on the item branch, because a branch is what a later run\n' \
+        "$issue" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf 'can see: a round whose answer never arrives must not read like a round that passed, and this file\n'
+      printf 'is the only record that the round existed at all.\n'
+    } > "$file" || loop_die "record-review-round: could not write $file"
+  else
+    {
+      printf 'The reviewer passed this change in review round %s.\n\n' "$round"
+      printf 'Recorded by the run for issue #%s at %s, on the item branch, beside the announcement of the same\n' \
+        "$issue" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf 'round: a later run adopting this branch reads the answer here instead of trusting a silence.\n'
+    } > "$file" || loop_die "record-review-round: could not write $file"
+  fi
+  gitw add -- "$file" >&2 || loop_die "record-review-round: could not stage $file"
+  IFS=$'\t' read -r who_name who_email <<< "$(loop_commit_identity)"
+  gitw -c user.name="$who_name" -c user.email="$who_email" \
+    commit -qm "review: $change round $round $what (#$issue)" >&2 ||
+    loop_die "record-review-round: could not commit the round"
+  printf 'recorded: evidence/review-round-%s-%s.md in %s (%s)\n' "$round" "$what" "$change" \
+    "$(gitw rev-parse --short HEAD)"
+}
+
 cmd_record_review_failure() { # <issue> <change> <round>
   local issue="${1:-}" change="${2:-}" round="${3:-}" dir file who_name who_email
   case "$issue" in ''|*[!0-9]*) loop_die "record-review-failure: usage: worktree.sh record-review-failure <issue> <change> <round>" ;; esac
@@ -471,6 +538,7 @@ case "$cmd" in
   create) cmd_create "$@" ;;
   start-item) cmd_start_item "$@" ;;
   end-item) cmd_end_item "$@" ;;
+  record-review-round) cmd_record_review_round "$@" ;;
   record-review-failure) cmd_record_review_failure "$@" ;;
   adopt-item) cmd_adopt_item "$@" ;;
   branch-state) cmd_branch_state "$@" ;;

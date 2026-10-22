@@ -990,6 +990,15 @@ while true; do
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       reviewer_report="$item_dir/reviewer-report-$round.md"
       render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md" "$correction_scope"
+      # The round is announced on the branch *before* the reviewer starts, so an answer that never arrives is a
+      # fact a later run reads (#262): with only the answer written, a reviewer killed mid-answer left a branch
+      # that read exactly like a passed one, and the next run adopted it. A round that cannot be announced stays
+      # a round the run holds, and the warning names what a later run will read instead.
+      if [ -n "$change" ]; then
+        bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$round" requested >&2 ||
+          printf 'run: review round %s could not be announced on the branch — a later run may adopt %s as if no review had been asked for\n' \
+            "$round" "$change" >&2
+      fi
       run_child "$item_dir/reviewer-prompt-$round.md" "$reviewer_report"
       # An answer cut on its way to the file decides nothing, and it is not a reviewer that stayed quiet either
       # (#224): it is the run's own transport, so the round is asked once more instead of the item being blocked.
@@ -1029,10 +1038,23 @@ while true; do
       if grep -q '^VERDICT: PASS' "$reviewer_report" 2>/dev/null &&
         { [ -z "$blocking" ] || [ "$blocking" -eq 0 ]; }; then
         review_verdict="PASS"
+      elif [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then
+        review_verdict="NOTES"
+      fi
+      # A round that answered is written on the branch as the answer to the round it announced (#262). The
+      # refusal arm is written after the loop (`record-review-failure`), where the run knows the round was the
+      # last one; here the answer is all that is known and all a later run needs.
+      if [ "$review_verdict" = "PASS" ] || [ "$review_verdict" = "NOTES" ]; then
+        if [ -n "$change" ]; then
+          bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$round" passed >&2 ||
+            printf 'run: the round %s answer could not be recorded on the branch — a later run reads %s as never answered\n' \
+              "$round" "$change" >&2
+        fi
+      fi
+      if [ "$review_verdict" = "PASS" ]; then
         break
       fi
-      if [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then
-        review_verdict="NOTES"
+      if [ "$review_verdict" = "NOTES" ]; then
         review_notes_text=$(review_notes "$reviewer_report")
         break
       fi
@@ -1078,7 +1100,8 @@ while true; do
       # The verdict has to outlive this run and travel with the change: the branch is what a later run adopts
       # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185). A
       # falsification has no change to record the verdict against — its tree did not move — so the branch keeps
-      # no review marker and `worktree.sh` is not asked to write one.
+      # no review marker and `worktree.sh` is not asked to write one. The round's announcement is already on the
+      # branch (#262), so the refusal answers a round a later run can see was asked.
       if [ -n "$change" ]; then
         bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$review_rounds" >&2 ||
           printf 'run: the failed review could not be recorded on the branch — a later run may adopt it\n' >&2

@@ -260,9 +260,10 @@ while [ "$i" -lt "$count" ]; do
   # verdict is a value of the profile's vocabulary, read here as the device verdict is (D16).
   #
   # What the branch *carries* decides the verdict (#232). A finished attempt — one archived change of its own
-  # plus a green verification, or the reviewer's refusal of exactly that change — is a question for its owner
-  # (#176, #185). A **blocked** attempt carries commits and no archived change of its own: nothing on it states
-  # a question a person could answer, and `start-item` keeps its commits by renaming the branch aside, so the
+  # plus a green verification, with its last review round answered by a pass — is a question for its owner
+  # (#176, #185); so is one whose last round was announced and never answered, or refused (#262). A **blocked**
+  # attempt carries commits and no archived change of its own: nothing on it states a question a person could
+  # answer, and `start-item` keeps its commits by renaming the branch aside, so the
   # item is queued as work. Before this, any commit parked the item forever — measured on #230, whose branch
   # held an unmerged fix and whose refusal named an unrelated change (issue #232).
   #

@@ -67,6 +67,7 @@ LOOP_SHELL_CASES=(
   'worktree#setsAsideABlockedAttemptAndStartsFresh'
   'worktree#doesNotAdoptAChangeCreditedToAnotherIssue'
   'worktree#refusesABranchWhoseReviewFailed'
+  'worktree#refusesABranchWhoseReviewRoundNeverAnswered'
   'worktree#refusesToMergeOverADirtyProjectTree'
   'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom'
   'labels#verdictToLabelMatrix'
@@ -129,6 +130,7 @@ LOOP_SHELL_CASES=(
   'run#staleTestResultsAreNotThisChildsGate'
   'run#doesNotCloseOnAMergeTheBaseCannotTake'
   'run#recordsAFailedReviewOnTheBranch'
+  'run#announcesAndRecordsTheReviewRound'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#aSkipClearsTheInProgressMark'
@@ -252,6 +254,7 @@ loop_run_shell_case() {
     'worktree#setsAsideABlockedAttemptAndStartsFresh') fn=case_worktree_setsAsideABlockedAttemptAndStartsFresh ;;
     'worktree#doesNotAdoptAChangeCreditedToAnotherIssue') fn=case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue ;;
     'worktree#refusesABranchWhoseReviewFailed') fn=case_worktree_refusesABranchWhoseReviewFailed ;;
+    'worktree#refusesABranchWhoseReviewRoundNeverAnswered') fn=case_worktree_refusesABranchWhoseReviewRoundNeverAnswered ;;
     'worktree#refusesToMergeOverADirtyProjectTree') fn=case_worktree_refusesToMergeOverADirtyProjectTree ;;
     'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom') fn=case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
@@ -313,6 +316,7 @@ loop_run_shell_case() {
     'run#staleTestResultsAreNotThisChildsGate') fn=case_run_staleTestResultsAreNotThisChildsGate ;;
     'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
+    'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
@@ -1825,6 +1829,43 @@ case_worktree_refusesABranchWhoseReviewFailed() {
   [ ! -f "$p/refused-fix.txt" ] || fail "the refused change was merged onto the base anyway"
 }
 
+# A round the reviewer *never answered* looks exactly like a round that passed, from outside: the run writes a
+# verdict on the branch only when the reviewer refuses, so a reviewer killed mid-answer leaves no trace at all.
+# Measured 2026-10-22: the round-2 reviewer of item #249 was killed, its report was 0 bytes, the next run read the
+# branch as a finished attempt, merged it into `main` and closed the item — although no reviewer had graded the
+# change (issue #262). The round is therefore announced on the branch *before* the reviewer starts, so an answer
+# that never arrives is a fact a later run reads: the branch is not adopted, and its silence is the owner's.
+case_worktree_refusesABranchWhoseReviewRoundNeverAnswered() {
+  local p out status branch state
+  p=$(new_project)
+  init_state "$p" 1 90
+  branch="fix/issue-24-an-unanswered-round"
+  git -C "$p" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the unanswered attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-unanswered/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-unanswered/proposal.md"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-unanswered/evidence/TEST-unanswered.xml"
+  # Round 1 answered, round 2 was announced and its reviewer never wrote a word: a previous answer does not
+  # license the round after it, which is exactly the shape #249's branch had.
+  printf 'The reviewer passed this change in review round 1.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-unanswered/evidence/review-round-1-passed.md"
+  printf 'Review round 2 of this change was announced.\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-unanswered/evidence/review-round-2-requested.md"
+  printf 'the change nobody graded\n' > "$p/unanswered-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the unanswered change (#24)" >/dev/null 2>&1 ||
+    fail "could not commit the unanswered change"
+  git -C "$p" switch -q main >/dev/null 2>&1 || fail "could not return to the base"
+
+  state=$(run_worktree "$p" branch-state 24 "$branch" 2>&1 | cut -f1)
+  assert_eq "review-unanswered" "$state" "the branch states that its last review round never answered"
+  out=$(run_worktree "$p" adopt-item 24 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a branch whose last review round never answered is not adopted"
+  assert_contains "$out" "never answered" "the refusal says why"
+  assert_contains "$out" "round 2" "and names the round that stayed silent"
+  [ ! -f "$p/unanswered-fix.txt" ] || fail "the unanswered change was merged onto the base anyway"
+}
+
 
 case_labels_verdictToLabelMatrix() {
   local d p log out status
@@ -3085,6 +3126,26 @@ case_run_recordsAFailedReviewOnTheBranch() {
     "and it is a commit on the branch, not a machine-local file"
 }
 
+# The round is readable from the branch in both directions, which is what makes an unanswered one a fact rather
+# than a silence: the run announces the round before its reviewer starts and records the answer when it arrives
+# (issue #262). Without the announcement the only record of a round is its refusal or its pass, so a reviewer
+# killed mid-answer left a branch that read exactly like a passed one.
+case_run_announcesAndRecordsTheReviewRound() {
+  local d p evidence commits
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+
+  evidence=$(git -C "$p" ls-tree -r --name-only main -- openspec/changes/archive/2026-01-01-fix-demo/evidence)
+  assert_contains "$evidence" "review-round-1-requested.md" \
+    "the round is announced on the branch before the reviewer runs"
+  assert_contains "$evidence" "review-round-1-passed.md" "and the answer is recorded when it arrives"
+  commits=$(git -C "$p" log --format=%s main)
+  assert_contains "$commits" "round 1 requested" "the announcement is a commit on the branch"
+  assert_contains "$commits" "round 1 passed" "and so is the answer"
+}
+
 case_run_mergesAFinishedAttemptAndClosesTheItem() {
   local d p out status branch base log
   d=$(scratch); p=$(new_project)
@@ -3935,7 +3996,7 @@ case_run_commitsWithoutAnAmbientIdentity() {
   # A container or a CI runner has no `user.name`/`user.email` anywhere: git then refuses every commit, and
   # the run would block on its own commit (measured 2026-10-18, issue #167). The throwaway repository's local
   # identity is removed as well, so the case is the runner's environment and not the developer's.
-  local d p login branch count author base_before
+  local d p login work author base_before
   d=$(scratch); p=$(new_project)
   git -C "$p" config --unset user.name >/dev/null 2>&1 || true
   git -C "$p" config --unset user.email >/dev/null 2>&1 || true
@@ -3952,11 +4013,13 @@ case_run_commitsWithoutAnAmbientIdentity() {
   login=$(tr -d '\n' < "$LOOP_ISSUE_FIXTURES/login.txt")
   # The commits are counted from the base the run started on, not from the base branch: the run merges the
   # item's branch before it closes the item and removes that branch, so `main` is the item's own head by the
-  # time this is read (#229).
-  count=$(git -C "$p" rev-list --count "$base_before..main" 2>/dev/null || printf '0')
-  [ "$count" -eq 2 ] || fail "the run did not commit twice (commits since the run's base: $count)"
-  author=$(git -C "$p" log -n 2 --format='%an <%ae>' main | sort -u)
-  assert_eq "$login <$login@users.noreply.github.com>" "$author" "both commits are attributed to the run's identity"
+  # time this is read (#229). The review round's own two commits (#262) sit beside the fix and its archive and
+  # carry the same identity, which is why the work commits are counted by their subject and the author check
+  # reads every commit the run made, the round's included.
+  work=$(git -C "$p" log --format=%s "$base_before..main" 2>/dev/null | grep -c '^fix: ' || true)
+  [ "$work" -eq 2 ] || fail "the run did not commit the fix and its archive (fix commits since the run's base: $work)"
+  author=$(git -C "$p" log --format='%an <%ae>' "$base_before..main" | sort -u)
+  assert_eq "$login <$login@users.noreply.github.com>" "$author" "every commit, the review round's included, is attributed to the run's identity"
 }
 
 case_run_emptyQueueIsNotAFailure() {

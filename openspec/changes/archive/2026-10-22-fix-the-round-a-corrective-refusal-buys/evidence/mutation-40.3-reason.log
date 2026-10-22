@@ -1,0 +1,4 @@
+2026-10-22T08:15:15Z
+  every placeholder in the correction section is substituted: '{{' should not appear in: # Reviewer — the fixed contract
+FAIL run#aCorrectiveRoundIsHandedTheCorrections
+EXIT=

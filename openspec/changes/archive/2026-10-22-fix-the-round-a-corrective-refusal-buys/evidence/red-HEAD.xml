@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#aCorrectiveRoundIsHandedTheCorrections" tests="1" failures="1" errors="0" timestamp="2026-10-22T07:49:59Z">
+  <system-out>One focused case run against the run's base commit c70be3d50e613 with the fix not yet in the tree: run#aCorrectiveRoundIsHandedTheCorrections, EXIT=1. tests/failures counted from the case's FAIL line of red-HEAD.log, the way tools/loop/gate.sh derives its per-suite tally; the log carries the wall clock the run copy was written at.</system-out>
+</testsuite>

@@ -31,11 +31,13 @@ Ordered. Each task names the verification that closes it; nothing is ticked on a
 
 - [x] 6. The affected cases, focused, then the project's gate once — this delta touches compiled files
   (`*.kt`, `*.xml`), so it owes the build gate.
-  Verification: `./gradlew :auto:testDebugUnitTest` → `tests=877 failures=0 errors=0`, `EXIT=0`
-  (`evidence/focused-green-module.log`); then `./tools/loop/gate.sh` →
-  `LOOP-GATE: tests=481 failures=0 (…)`, `EXIT=0` (`evidence/gate.log`, started 2026-10-22T10:35:20Z), with
-  the gradle half of the same gate at 5 769 tests / 0 failures across `app` (574 XMLs), `auto` (86),
-  `core` (60) and `osmscout-client-java` (8).
+  Verification: `./gradlew :auto:testDebugUnitTest` → `BUILD SUCCESSFUL in 31s`
+  (`evidence/focused-green-module.log`, the module run's own transcript); then `./tools/loop/gate.sh` →
+  `LOOP-GATE: tests=481 failures=0 (…)` (`evidence/gate.log`, the gate's own summary line — `tools/loop/gate.sh:139-143`
+  prints it in this form only on the path where every suite exited 0, and prints `— failing:<suites>` with
+  `exit 1` otherwise). Those two lines are the whole tally this change carries: the focused module run's
+  transcript has no case count of its own, and no gradle-half number survives the build directory that held
+  it.
 
 - [x] 7. Falsification (`revert-check`): `LoadingScreen` restored alone in `SafeScreen.kt` —
   `retiredLoadingScreenClassIsGone` went red (`FAILED`, `EXIT=1`, `evidence/falsification-mutant-red.log`) —

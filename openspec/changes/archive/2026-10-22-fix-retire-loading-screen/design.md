@@ -28,8 +28,10 @@ and `guidelines/UI.md` §3c are unchanged, because §3c never described the dead
 case only checks `values` ⊆ `values-de`, so deleting a key from both files cannot redden it.
 
 surface: 2 cases added, 1 case removed, 1 class deleted, 3 comments rewritten, 4 resource lines deleted in 2
-files — `grep -rn "LoadingScreen\|loading_map_data\|preparing_navigation" auto/src app/src core/src
-tools/loop/prompts tools/loop/fixtures tools/*-cases.sh guidelines/ openspec/specs/` → 12 matches in 5 files.
+files — the same search after the fix (`grep -rn "LoadingScreen\|loading_map_data\|preparing_navigation"
+auto/src app/src core/src tools/loop/prompts tools/loop/fixtures tools/*-cases.sh guidelines/ openspec/specs/`)
+matches 7 lines in 3 files, all of them this change's own: the two cases and the requirement the delta adds
+(`evidence/surface-after.log`).
 
 ## Rollback
 

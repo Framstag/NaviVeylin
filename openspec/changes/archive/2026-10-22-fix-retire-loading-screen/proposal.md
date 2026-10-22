@@ -40,9 +40,11 @@ GermanTranslationCompletenessTest > retiredWaitNoticeStringsAreGone FAILED
 cases are green on the same run, so the two failures are the change's, not the tree's.
 
 surface: 2 cases added, 1 case removed, 1 class (16 lines + 8 KDoc lines) deleted, 3 comments rewritten,
-4 string-resource lines deleted in 2 files — `grep -rn "LoadingScreen\|loading_map_data\|preparing_navigation"
-auto/src app/src core/src tools/loop/prompts tools/loop/fixtures tools/*-cases.sh guidelines/ openspec/specs/`
-→ 12 matches in 5 files (no shell case, no fixture, no prompt, no shipped spec asserts the behaviour).
+4 string-resource lines deleted in 2 files. No shell case, no fixture, no prompt and no shipped spec asserted
+the retired screen, and the only surviving references are this change's own — the same search after the fix
+(`grep -rn "LoadingScreen\|loading_map_data\|preparing_navigation" auto/src app/src core/src tools/loop/prompts
+tools/loop/fixtures tools/*-cases.sh guidelines/ openspec/specs/`) matches 7 lines in 3 files: the two cases
+and the requirement the delta adds (`evidence/surface-after.log`).
 
 ## What Changes
 

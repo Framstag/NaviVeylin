@@ -106,6 +106,24 @@ own strict rules are read before the first write". The probe asserts that clause
 `evidence/red-on-correction.log` (`1 of 2 cases failed`) and the `owning` mutation of
 `evidence/revert-check.sh`.
 
+## Corrections after review round 2
+
+One blocking, and it is the same shape in the other place: a sentence the delta claimed and no case could
+notice losing.
+
+### C3 — the first scenario stops claiming the one-sentence summary
+
+C2 added the owning clause to the `AGENTS.md` block and, with it, a third `THEN` conjunct to the first scenario:
+"… as owning both rules, **and summarises each in one sentence**". The named case is six fixed-string needles
+over the passage (`evidence/probe.sh`), so splitting either bullet into two sentences leaves every needle
+matching and the case green while the conjunct is lost — the property is mechanically assertable, so this is a
+gap, not an impossibility. It is settled the other way because the shape already has a normative home: the
+capability's own "The always-read document states facts and references rules" requires one sentence per rule
+and names the owning section, so the delta does not need to restate it. The conjunct is deleted from the delta
+and from the merged requirement; the case, the block and the parent requirement are unchanged, and the delta
+still asserts everything it can prove (`473` characters, `IDENTICAL` to the merged block, both cases `PASS` —
+`evidence/structural-checks-round3.log`).
+
 ## Blast radius
 
 One block in `AGENTS.md` "OpenSpec Workflow": three CI-gated bullets untouched, then two rule sentences, the
@@ -134,6 +152,9 @@ is the red state recorded in `evidence/red-on-head.log` and, for the owning clau
 - `tools/check-doc-routes.sh` and `bash tools/gen-feature-list.sh --check-classification` — the structural
   pair the loop's `gate.sh` maps `AGENTS.md` and `openspec/*` to (`guidelines/Build.md` §2, scope block) —
   green (`evidence/structural-checks.log`).
+- Correction round 3 (C3): the clause is gone from both copies, the probe is `0 of 2`, the delta block is
+  `IDENTICAL` to the merged one, the body measures `473`, and both structural checks plus `--strict` validation
+  of the archived change exit 0 (`evidence/structural-checks-round3.log`, `2026-10-22T12:23:41+02:00`).
 - No Gradle target, no device, no emulator: the change compiles nothing.
 
 ## Risks

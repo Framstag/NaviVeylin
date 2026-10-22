@@ -3,7 +3,7 @@
 Parent spec for every task below: `documentation-ownership` — delta in
 `specs/documentation-ownership/spec.md` ("The validator's own strict rules are read before the first write").
 Design: `design.md` (D1 = the rules' home, D2 = the case, D3 = ADDED never MODIFIED, D4 = the bound's scope,
-C1 and C2 = the corrections after review round 1).
+C1–C3 = the corrections after review rounds 1 and 2).
 This change touches no compiled file, so every verification below is a structural check
 (`guidelines/Build.md` §2, scope block): no Gradle build of its own, no test class, no device.
 
@@ -34,8 +34,12 @@ This change touches no compiled file, so every verification below is a structura
   carries the requirement **whole** … repeated verbatim" and "a requirement's text stays at most 500
   characters — the body, not its scenarios …", and "Run `openspec validate <change> --strict` — or `openspec
   validate --changes --strict` over the open set — before the artifact is finished rather than at archive
-  time." `git diff --stat AGENTS.md` → `1 file changed, 15 insertions(+)`, `git diff AGENTS.md | grep -c
-  '^-[^-]'` → `0` (no line removed or rewritten).
+  time." The block is 17 added lines and 0 removed or rewritten on the tree (16 lines of text plus the blank
+  separator the section needs):
+  `awk '/^Two more rules are the validator.s own/{f=1} f && /^## Build & Test/{exit} f' AGENTS.md | wc -l`
+  → `17`, and the three CI-gated bullets above it are unedited — the round-2 diff's `@@ -247,6 +247,23 @@`
+  hunk carries 17 `+` lines and 0 `-` lines. The figure 15 was taken before correction 6.2 added the owning
+  clause's two lines; the tree carries 17.
 
 ## 3. State the rule the entry document now carries
 
@@ -73,9 +77,9 @@ This change touches no compiled file, so every verification below is a structura
   scenarios]`, `PASS theEntryDocumentNamesTheStrictValidationCommand`, `probe: 1 of 2 cases failed`, `EXIT=1`;
   restored byte-identical and re-ran (`evidence/revert-check-restored.log`, 2026-10-22T11:56:28+02:00) —
   `probe: 0 of 2 cases failed`, `EXIT=0`. No marker comment is left: the mutation was the removal of a
-  documented sentence, and `git diff AGENTS.md` shows the 15 added lines of task 2.1 only. Re-checked from
-  the archived path, 2026-10-22T12:12:45+02:00 (mutated, `1 of 2 cases failed`) and 12:12:48+02:00 (restored,
-  `0 of 2`), `git diff --stat AGENTS.md → 1 file changed, 15 insertions(+)` and `grep -c '^-[^-]'` → 0.
+  documented sentence, and the tree carries the 17 added lines of task 2.1 only (same `awk | wc -l` → `17`)
+  and 0 removed. Re-checked from the archived path, 2026-10-22T12:12:45+02:00 (mutated, `1 of 2 cases failed`)
+  and 12:12:48+02:00 (restored, `0 of 2`).
 - [x] 4.3 The structural pair the loop's gate maps these paths to (`guidelines/Build.md` §2, scope block):
   `bash tools/gen-feature-list.sh --check-classification` and `tools/check-doc-routes.sh`, plus the CLI's own
   `openspec validate --strict` (task 3.1). Exclusions named: no Gradle target, no test suite, no device, no
@@ -104,7 +108,8 @@ This change touches no compiled file, so every verification below is a structura
   `openspec/specs/documentation-ownership/spec.md:415` with both scenarios and their case lines; the shipped
   spec holds no delta header; `openspec validate documentation-ownership --type spec` → `Specification
   'documentation-ownership' is valid` with two pre-existing `>500 characters` warnings on
-  `requirements[11]` and `requirements[13]` (neither is this change's requirement, which measures 425), and
+  `requirements[11]` and `requirements[13]` (neither is this change's requirement; its body measures 473
+  characters, task 6.2's measurement), and
   `openspec validate --changes --strict` → `No items found to validate` because this change has left the open
   set. The directory exists at `openspec/changes/archive/2026-10-22-fix-openspec-strict-rules-unread/` and the
   open path no longer exists.
@@ -142,10 +147,48 @@ already made, not new scope; no compiled file changed, so the verification is st
 - [x] 6.3 Structural checks over the corrected tree, the pair the loop's `gate.sh` maps these paths to plus the
   CLI's own validation (spec: documentation-ownership — both scenarios). Verify: each exits 0, and no Gradle
   target is run because no compiled file changed (`guidelines/Build.md` §2, scope block).
-  **Done 2026-10-22T12:18:35+02:00:** `tools/check-doc-routes.sh` → `all 120 section references resolve, all 5
+  **Done 2026-10-22T12:20:04+02:00:** `tools/check-doc-routes.sh` → `all 120 section references resolve, all 5
   skill references resolve`; `bash tools/gen-feature-list.sh --check-classification` → `specs read: 177,
   classified: 177, unclassified: 0, stale: 0`; `openspec validate documentation-ownership --type spec` →
   valid; `openspec validate fix-openspec-strict-rules-unread --strict` → `Change
   'fix-openspec-strict-rules-unread' is valid` (the archived change copied to the open path for the call and
   removed again). Evidence: `evidence/structural-checks.log`, `evidence/openspec-validate.log`. The gate
   itself is not re-run: it was run once for this item (task 4.4) and the correction touches no compiled file.
+  Re-run on the round-3 tree at `2026-10-22T12:23:41+02:00` (`evidence/structural-checks-round3.log`), same
+  results.
+
+## 7. Corrections after review round 2
+
+Review round 2 refused one blocking: the first scenario's `THEN` carried a third conjunct — "and summarises
+each in one sentence" — that `probe#theEntryDocumentStatesTheValidatorStrictRules` cannot notice losing, a
+six-needle case over fixed strings. It also found three stale pointers in this file. Every correction is
+strictly subtractive: one clause deleted from the delta and from the merged requirement, and three figures or
+timestamps corrected. No compiled file changed, so the verification stays structural.
+
+- [x] 7.1 Delete ", and summarises each in one sentence" from the first scenario's `THEN` in both copies
+  (spec: documentation-ownership — An author reads both rules before writing an artifact; design C3). The
+  one-sentence shape stays owned by `openspec/specs/documentation-ownership/spec.md:133`, so nothing is lost
+  from the tree; the delta stops claiming only what no case asserts. Verify: the clause is gone from both
+  copies, the probe still passes, the delta block still equals the merged block, and the requirement's body is
+  still inside 500 characters.
+  **Done 2026-10-22T12:23:41+02:00:** `evidence/structural-checks-round3.log` — `copies still carrying the clause: 0
+  (0 expected)`, `PASS theEntryDocumentStatesTheValidatorStrictRules`, `PASS
+  theEntryDocumentNamesTheStrictValidationCommand`, `probe: 0 of 2 cases failed`, `EXIT=0`; body `473`
+  characters; `IDENTICAL`; `2` scenarios and `2` cases.
+- [x] 7.2 Repair the three stale pointers this file carried: 5.1 restated "425" as the shipped requirement's
+  body, 6.3's `Done` line carried `12:18:35` while its artifacts carry `12:20:04`/`12:20:07`, and 2.1/4.2
+  quoted "15 insertions" for a block the corrected tree carries as 17 lines. Verify: each figure reproduces on
+  the tree, or points at the task that measured it.
+  **Done 2026-10-22T12:23:41+02:00:** 5.1 now points at 6.2's `473`; 6.3 quotes the artifact timestamps; 2.1 and
+  4.2 state 17 added lines and 0 removed, measured by
+  `awk '/^Two more rules are the validator.s own/{f=1} f && /^## Build & Test/{exit} f' AGENTS.md | wc -l`
+  → `17` (`evidence/structural-checks-round3.log`, same run).
+- [x] 7.3 The structural pair plus the CLI's own validation over the corrected tree, and the probe run from the
+  archived change (spec: documentation-ownership — both scenarios). Verify: each exits 0.
+  **Done 2026-10-22T12:23:41+02:00:** `evidence/structural-checks-round3.log` — `check-doc-routes: all 120 section
+  references resolve, all 5 skill references resolve`, classification `177/177/0`, `Specification
+  'documentation-ownership' is valid` with the two pre-existing `>500` warnings, `Change
+  'fix-openspec-strict-rules-unread' is valid` in strict mode from a temporary open copy (removed again), probe
+  `0 of 2 cases failed`; `==EXIT=0`. Re-run at `12:24:59` once the two documentation edits that record this section
+  had landed, same results (`evidence/structural-checks-round3.log`, second block). The gate is not re-run: it
+  was run once for this item (task 4.4) and this correction touches no compiled file.

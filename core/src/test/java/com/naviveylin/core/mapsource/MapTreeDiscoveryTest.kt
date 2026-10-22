@@ -79,10 +79,21 @@ class MapTreeDiscoveryTest {
     fun aNativeInstalledListIsClassifiedByTheSameRule() {
         // The map manager's list comes from the native scan, not from the shared discovery, and carries
         // the same staging data.
+        val lines = mutableListOf<String>()
+
         val installed = MapTreeDiscovery.installedOnly(
-            listOf("/files/maps/.berlin.backup", "/files/maps/berlin", "/files/maps/.iceland.incoming")
+            listOf("/files/maps/.berlin.backup", "/files/maps/berlin", "/files/maps/.iceland.incoming"),
+            report = { lines += it }
         )
 
-        assertEquals(listOf("/files/maps/berlin"), installed)
+        assertEquals("only the installation is listed", listOf("/files/maps/berlin"), installed)
+        assertEquals(
+            "every leftover the list drops is named with the installation it belongs to",
+            listOf(
+                "map discovery: leftover staging .berlin.backup of berlin — not opened or listed",
+                "map discovery: leftover staging .iceland.incoming of iceland — not opened or listed"
+            ),
+            lines
+        )
     }
 }

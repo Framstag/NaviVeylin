@@ -18,9 +18,11 @@ import java.nio.file.Paths
  * leftover is named in the diagnostics instead of being silently dropped
  * (`guidelines/Design.md` §5, `guidelines/Logging.md` §3).
  *
- * The class is not a filter: [Found] keeps both halves, so a consumer that has to *report* the staging
- * data (the update check) still sees it, and a consumer that opens or lists databases uses
- * [Found.installed].
+ * The class is not a filter: [Found] keeps both halves, and both readers ([under] for a fresh scan and
+ * [installedOnly] for a list handed in by the native scan) name every leftover they drop through
+ * [reportLine], so a consumer that opens or lists databases still has the staging data to report. The
+ * update check scans the tree itself (`MapUpdates`'s `installedDatabaseDirectories`) and applies the same
+ * classification there.
  */
 object MapTreeDiscovery {
 
@@ -58,9 +60,18 @@ object MapTreeDiscovery {
     /**
      * The installations among [discovered] — for a consumer handed the tree by someone else, such as
      * the native map manager's installed list.
+     *
+     * @param report sink for the line naming each leftover this drops; `null` writes it to [DiagnosticsLog]
      */
-    fun installedOnly(discovered: Collection<String>): List<String> =
-        discovered.filterNot { isStaging(it) }
+    fun installedOnly(
+        discovered: Collection<String>,
+        report: ((String) -> Unit)? = null
+    ): List<String> {
+        val (staging, installed) = discovered.partition { isStaging(it) }
+        val sink = report ?: { line -> DiagnosticsLog.log(TAG, line) }
+        staging.forEach { name -> sink(reportLine(Paths.get(name))) }
+        return installed
+    }
 
     /**
      * The line one leftover is reported with: identity only — the directory and the installation it

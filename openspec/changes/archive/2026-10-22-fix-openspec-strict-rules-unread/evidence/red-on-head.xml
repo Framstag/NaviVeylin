@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/probe.sh (both cases, on HEAD)" tests="2" failures="2" errors="0" timestamp="2026-10-22T11:55:44+02:00">
+  <system-out>FAIL theEntryDocumentStatesTheValidatorStrictRules — the OpenSpec Workflow section does not state: [MODIFIED] [repeated verbatim] [500 characters] [the body, not its scenarios]; FAIL theEntryDocumentNamesTheStrictValidationCommand — the OpenSpec Workflow section does not state: [openspec validate &lt;change&gt; --strict]; probe: 2 of 2 cases failed; EXIT=1</system-out>
+</testsuite>

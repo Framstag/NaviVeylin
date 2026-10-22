@@ -1,0 +1,5 @@
+2026-10-22T11:55:44+02:00
+FAIL theEntryDocumentStatesTheValidatorStrictRules — the OpenSpec Workflow section does not state: [MODIFIED] [repeated verbatim] [500 characters] [the body, not its scenarios]
+FAIL theEntryDocumentNamesTheStrictValidationCommand — the OpenSpec Workflow section does not state: [openspec validate <change> --strict]
+probe: 2 of 2 cases failed
+EXIT=1

@@ -1,0 +1,11 @@
+2026-10-22T11:56:25+02:00
+FAIL theEntryDocumentStatesTheValidatorStrictRules — the OpenSpec Workflow section does not state: [500 characters] [the body, not its scenarios]
+PASS theEntryDocumentNamesTheStrictValidationCommand
+probe: 1 of 2 cases failed
+EXIT=1
+2026-10-22T12:12:45+02:00
+# re-check from the archived path: the 500-character bullet deleted, nothing else:
+FAIL theEntryDocumentStatesTheValidatorStrictRules — the OpenSpec Workflow section does not state: [500 characters] [the body, not its scenarios]
+PASS theEntryDocumentNamesTheStrictValidationCommand
+probe: 1 of 2 cases failed
+EXIT=1

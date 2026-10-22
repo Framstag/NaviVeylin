@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/probe.sh (revert-check: the 500-character bullet removed, then restored)" tests="2" failures="1" errors="0" timestamp="2026-10-22T11:56:25+02:00">
+  <system-out>MUTATED (2026-10-22T11:56:25+02:00, re-checked 2026-10-22T12:12:45+02:00 from the archived path): FAIL theEntryDocumentStatesTheValidatorStrictRules — the OpenSpec Workflow section does not state: [500 characters] [the body, not its scenarios]; PASS theEntryDocumentNamesTheStrictValidationCommand; probe: 1 of 2 cases failed; EXIT=1. RESTORED (2026-10-22T11:56:28+02:00, re-checked 2026-10-22T12:12:48+02:00): both cases PASS, probe: 0 of 2 cases failed, EXIT=0. failures="1" counts the mutated run, the run that had to fail.</system-out>
+</testsuite>

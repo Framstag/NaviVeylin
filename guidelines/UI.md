@@ -819,7 +819,13 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   `navStatusDetailsStatsRegion` for the stats strip), and the control is a 48 dp box of its
   own (`testTag` `stopNavigation`). A shared row that two hosts put a tap area on passes that
   area in as one parameter (`NavigationStatsRow.leadingModifier`) rather than duplicating the
-  control per host.
+  control per host. The rule is held against **every** actionable target, not against the two
+  regions: the control SHALL be the only node carrying a click action whose bounds overlap its
+  own, and it SHALL carry its own label — a card-wide `.clickable` added back around the row
+  leaves every geometry case green, because those read the two regions instead of the set of
+  targets that overlap the control (measured 2026-10-22: the fold in place, 13 tests with one
+  failure — the new case alone — and every pre-existing case green; change
+  `fix-stop-control-semantics-guard`).
 - **Route progress lives in the stats row's glyphs, not in a row of its own (phone + car,
   change `nav-status-progress-rings`, spec `navigation-status-details`).** The routing status card
   SHALL carry the driver's progress as a ring around the glyph of the value it belongs to — the

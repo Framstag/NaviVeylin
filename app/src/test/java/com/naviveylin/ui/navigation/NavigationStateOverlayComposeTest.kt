@@ -1,10 +1,13 @@
 package com.naviveylin.ui.navigation
 
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -12,6 +15,8 @@ import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
+import com.naviveylin.R
 import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -19,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import android.content.Context
 
 /**
  * Compose UI tests for the routing status card's progress rings
@@ -224,6 +230,35 @@ class NavigationStateOverlayComposeTest {
 
         assertEquals(1, stopClicks)
         assertEquals(0, detailsClicks)
+    }
+
+    @Test
+    fun stopControlIsTheOnlyActionableTargetOverItsOwnBox() {
+        launchOverlay()
+
+        val stopLabel = ApplicationProvider.getApplicationContext<Context>()
+            .getString(R.string.stop_navigation)
+
+        // The merged tree is what a tap and a screen reader resolve against: the control is a target
+        // of its own, carrying the stop action and its own label
+        // (spec: navigation-status-details — The tap is received by the control, not by the card).
+        val control = composeRule.onNodeWithTag("stopNavigation")
+            .assertHasClickAction()
+            .assertContentDescriptionEquals(stopLabel)
+            .fetchSemanticsNode()
+
+        // …and it is the only actionable target over its own box. A card-wide clickable added around
+        // the row claims the same pixels and is invisible to the geometry cases above, because those
+        // read the two details regions instead of every target that carries an action
+        // (spec: … — the two hit areas do not overlap; each is a target of its own).
+        val overlapping = composeRule.onAllNodes(hasClickAction())
+            .fetchSemanticsNodes()
+            .filter { it.boundsInRoot.overlaps(control.boundsInRoot) }
+        assertEquals(
+            "only the stop control may be actionable over its own box (found $overlapping)",
+            1,
+            overlapping.size
+        )
     }
 
     @Test

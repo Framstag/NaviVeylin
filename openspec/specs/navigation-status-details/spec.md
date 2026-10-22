@@ -8,7 +8,7 @@ Lets the driver expand the routing status card during active navigation into a f
 
 ### Requirement: Routing status card is clickable
 
-During active navigation, the phone's routing status card SHALL be tappable, and the stop control it carries SHALL be a tap target of its own: a tap inside the control's hit area SHALL end navigation, and a tap anywhere else on the card SHALL open the full-screen route description. The two hit areas SHALL NOT overlap. The control's hit area SHALL be at least 48 dp in each dimension.
+During active navigation, the phone's routing status card SHALL be tappable, and the stop control it carries SHALL be a tap target of its own: a tap inside the control's hit area SHALL end navigation, and a tap anywhere else on the card SHALL open the full-screen route description. The two hit areas SHALL NOT overlap. The control's hit area SHALL be at least 48 dp in each dimension. The control SHALL be exposed as an actionable target of its own, carrying the stop action and its own accessible label, and no other actionable target of the card SHALL overlap the control's hit area.
 
 #### Scenario: Tap opens full-screen details
 
@@ -42,17 +42,20 @@ During active navigation, the phone's routing status card SHALL be tappable, and
 - **THEN** the stop control's hit area SHALL lie outside the card's own tap area
 - **AND** the hit areas SHALL be exposed as distinct accessibility targets, each with its own bounds
 
+#### Scenario: The control is the only target over its own box
+
+Held by `NavigationStateOverlayComposeTest.stopControlIsTheOnlyActionableTargetOverItsOwnBox`.
+
+- **WHEN** the routing status card is shown during active navigation
+- **THEN** the actionable target carrying the stop action SHALL carry the control's own accessible label
+- **AND** it SHALL be the only actionable target of the card whose bounds overlap the control's hit area
+
 #### Scenario: Stop control is large enough to hit
 
 - **WHEN** the routing status card is shown during active navigation
 - **THEN** the stop control's hit area SHALL be at least 48 dp wide and 48 dp high
 
 #### Scenario: The expanded view's stop control is its own target too
-
-- **WHEN** the full-screen route description is open during active navigation
-- **AND** the user taps the centre of its stop control's hit area
-- **THEN** navigation SHALL end
-- **AND** the tap SHALL NOT be handled by any surrounding tap area of the expanded view
 
 #### Scenario: The car card carries no stop control
 

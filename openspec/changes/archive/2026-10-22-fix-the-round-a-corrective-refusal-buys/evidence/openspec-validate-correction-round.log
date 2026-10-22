@@ -1,0 +1,4 @@
+started: 2026-10-22T08:40:37Z
+command: openspec validate agent-issue-loop --type spec
+warnings: 7
+EXIT=0

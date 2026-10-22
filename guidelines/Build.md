@@ -281,9 +281,12 @@ The daemon JVM is **not** selected by `JAVA_HOME` or by the `-Dorg.gradle.java.h
 checked-in daemon JVM criteria in `gradle/gradle-daemon-jvm.properties` **take precedence over both** (Gradle
 9.6.1 manual, "Daemon JVM Toolchains"). The versioned `gradle.properties` carries no `org.gradle.java.home`
 line at all — a machine-local absolute path is wrong on every machine but the one that wrote it, and where the
-criteria apply it selected no JVM (issue #91). Three rules follow; CI enforces the first two in the step
-`Check daemon JVM criteria` (`.github/workflows/build.yml`, placed before the SDK/vcpkg work so it fails in
-seconds).
+criteria apply it selected no JVM (issue #91). That absence is guarded twice, and the guard is the shape the
+repair owes: the same CI step refuses a line that returns, and the `:app` case
+`VersionedGradleJavaHomeTest` fails on it, so a copy-paste from an archived design reddens a test run as well
+as the pipeline instead of landing silently (issue #248). Three rules follow; CI enforces the first two in the
+step `Check daemon JVM criteria` (`.github/workflows/build.yml`, placed before the SDK/vcpkg work so it fails
+in seconds).
 
 1. **Version 21, no vendor.** The file pins `toolchainVersion=21` and carries **no** `toolchainVendor` line,
    so any installed JDK 21 satisfies it — the workstation's JBR 21 and the runner's Temurin 21 both start
@@ -307,6 +310,10 @@ Checks (none of them needs a device or a JDK download):
 ```bash
 # the guard exactly as CI runs it (expect: "daemon JVM criteria: version 21, no vendor, no package id.", exit 0)
 yq -r '.jobs.build.steps[] | select(.name=="Check daemon JVM criteria") | .run' .github/workflows/build.yml > /tmp/guard.sh && bash /tmp/guard.sh
+
+# the same rule as a host case: the property source carries no org.gradle.java.home, and the pipeline's step
+# reads it (expect: 3 tests, 0 failures)
+./gradlew --offline :app:testMobileDebugUnitTest --tests "com.naviveylin.build.VersionedGradleJavaHomeTest" -PforceTests
 
 # every declared platform resolves to that vendor's 21 archive (expect six 307s, tar.gz on unix, zip on windows)
 grep '^toolchainUrl\.' gradle/gradle-daemon-jvm.properties | while IFS='=' read -r k raw; do u=$(printf '%s' "$raw" | sed 's/\\:/:/g'); printf '%-26s %s %s\n' "${k#toolchainUrl.}" "$(curl -sS -o /dev/null -w '%{http_code}' -L --max-redirs 0 "$u")" "$(basename "$(curl -sS -o /dev/null -w '%{redirect_url}' -L --max-redirs 0 "$u")")"; done

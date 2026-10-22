@@ -3,7 +3,8 @@
 ## Why
 
 Root cause: `openspec/specs/issue-backlog/spec.md`'s requirement "Only an authorised actor's item may be acted
-on" (line 91) states that the tooling SHALL act on an item **only** when it carries the opt-in label, and its
+on" (line 91; the SHALL sentence is `:92`) states that the tooling SHALL act on an item **only** when it
+carries the opt-in label, and its
 scenario "The opt-in is required and is not the author's decision alone" (line 102) makes the label a condition
 of every act — but `tools/issues/close.sh:100` exempts exactly one path from that label,
 `state_reason = not_planned`, because that closure records a person's decision not to act and asserts no work.
@@ -40,8 +41,10 @@ requirement is not, and a capability that contradicts its engine is the defect a
 
 - **`openspec/specs/issue-backlog/spec.md`** — the requirement "Only an authorised actor's item may be acted
   on" gains the one clause the engine implements: the opt-in authorises unattended work, so a closure that
-  records a person's decision not to act (`--not-planned`) does not need it, while a closure that records a
-  completed fix still does. Its existing four scenarios are carried unchanged, and one scenario is added:
+  records a person's decision not to act (`--not-planned`) does not need it, while a completed closure of an
+  item **no declared check owns** still does — a check's closure of its own issue is authorised by that check's
+  row, so the `--sensor` path needs no opt-in either. Its existing four scenarios are carried unchanged, and
+  one scenario is added:
   **A not-planned closure is a record write, not an act of work**, whose `Case` is the green
   `close#notPlannedNeedsNoOptIn` in `tools/issue-tooling-cases.sh`.
 - **Nothing else.** `tools/issues/close.sh`, `tools/issue-tooling-cases.sh` and

@@ -10,8 +10,9 @@ not on that allowlist. The opt-in authorises unattended **work**, so a closure t
 decision not to act — the not-planned closure, which writes the settled status a retired item already
 carries — SHALL NOT require it: that closure SHALL proceed when the gate's only refusal is
 `missing-eligibility-label`, and every other refusal (the author allowlist, a reserved label, a missing
-reason or missing evidence) SHALL still stop it. A closure that records a completed fix SHALL still require
-the opt-in, because that one asserts work which landed.
+reason or missing evidence) SHALL still stop it. A completed closure of an item that no declared check owns
+SHALL still require the opt-in, because that one asserts work which landed; a declared check's closure of its
+own issue is authorised by that check's row instead, so the `--sensor` path needs no opt-in either.
 
 #### Scenario: An unauthorised author is not acted on
 
@@ -37,7 +38,7 @@ the opt-in, because that one asserts work which landed.
 
 - **WHEN** an issue by an allowlisted author carries a settled state (`status/retired`) and no opt-in label,
   and a not-planned closure of it is requested with a reason and its evidence
-- **THEN** the closure proceeds — the reason is posted, the settled state is written before the close, and
-  the CLI receives the `not planned` state reason — while the completed closure of that same item is still
-  refused with `missing-eligibility-label` and posts nothing
+- **THEN** the closure proceeds — the reason and its evidence are posted and the CLI receives the `not planned`
+  state reason — while the completed closure of that same item is still refused with
+  `missing-eligibility-label` and posts nothing
 - **Case**: `close#notPlannedNeedsNoOptIn`

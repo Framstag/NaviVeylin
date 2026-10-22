@@ -1,0 +1,19 @@
+2026-10-22T07:00:26Z
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+  OpenSpec root: ok
+
+References
+  (none declared)
+DOCTOR-EXIT=0
+$ openspec validate issue-backlog --type spec
+Specification 'issue-backlog' is valid
+⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+VALIDATE-EXIT=0
+$ diff of the requirement paragraph between the merged spec and the archived delta
+DIFF-EXIT=0
+2026-10-22T07:00:27Z

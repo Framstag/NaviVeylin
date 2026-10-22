@@ -1,0 +1,12 @@
+probe script: /home/tim/projects/NaviVeylin/.pi/issue-loop/items/251/evidence/probe-251-correction.sh
+2026-10-22T06:59:54Z
+---
+FAIL spec#completedClosureIsScopedToUnownedItems
+FAIL spec#sensorPathNamesItsAuthorisation
+FAIL spec#scenarioDropsTheUnassertedWrite
+PASS spec#deltaMatchesTheMergedRequirement
+PASS close#notPlannedNeedsNoOptIn
+PASS close#sensorScopeAllowsItsOwnIssue
+tests=6 failures=3
+EXIT=1
+2026-10-22T06:59:56Z

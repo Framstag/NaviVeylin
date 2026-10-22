@@ -44,11 +44,10 @@ During active navigation, the phone's routing status card SHALL be tappable, and
 
 #### Scenario: The control is the only target over its own box
 
-Held by `NavigationStateOverlayComposeTest.stopControlIsTheOnlyActionableTargetOverItsOwnBox`.
-
 - **WHEN** the routing status card is shown during active navigation
 - **THEN** the actionable target carrying the stop action SHALL carry the control's own accessible label
 - **AND** it SHALL be the only actionable target of the card whose bounds overlap the control's hit area
+- **Case**: `app: NavigationStateOverlayComposeTest.stopControlIsTheOnlyActionableTargetOverItsOwnBox`
 
 #### Scenario: Stop control is large enough to hit
 
@@ -56,6 +55,11 @@ Held by `NavigationStateOverlayComposeTest.stopControlIsTheOnlyActionableTargetO
 - **THEN** the stop control's hit area SHALL be at least 48 dp wide and 48 dp high
 
 #### Scenario: The expanded view's stop control is its own target too
+
+- **WHEN** the full-screen route description is open during active navigation
+- **AND** the user taps the centre of its stop control's hit area
+- **THEN** navigation SHALL end
+- **AND** the tap SHALL NOT be handled by any surrounding tap area of the expanded view
 
 #### Scenario: The car card carries no stop control
 

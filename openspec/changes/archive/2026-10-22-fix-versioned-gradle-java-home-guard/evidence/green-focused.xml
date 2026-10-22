@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.VersionedGradleJavaHomeTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-22T08:48:19.405Z" hostname="dingens" time="0.217">
+  <properties/>
+  <testcase name="the pipeline refuses a reintroduced line" classname="com.naviveylin.build.VersionedGradleJavaHomeTest" time="0.108"/>
+  <testcase name="the versioned property source names no Java home" classname="com.naviveylin.build.VersionedGradleJavaHomeTest" time="0.006"/>
+  <testcase name="the scan is still detectable" classname="com.naviveylin.build.VersionedGradleJavaHomeTest" time="0.099"/>
+  <system-out><![CDATA[stepChars=1379
+propertySource=gradle.properties lines=29 findings=0
+offending=[1, 1] tolerated=[0, 0, 0]
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

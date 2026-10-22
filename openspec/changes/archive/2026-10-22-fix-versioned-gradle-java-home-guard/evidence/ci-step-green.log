@@ -1,0 +1,8 @@
+$ yq -r '.jobs.build.steps[] | select(.name=="Check daemon JVM criteria") | .run' .github/workflows/build.yml > /tmp/loop248/guard.sh && bash /tmp/loop248/guard.sh
+daemon JVM criteria: version 21, no vendor, no package id.
+exit=0
+
+$ grep -nE '^[[:space:]]*org\.gradle\.java\.home[[:space:]]*=' <(printf 'org.gradle.java.home=/usr/lib/jvm/java-17-openjdk
+')
+1:org.gradle.java.home=/usr/lib/jvm/java-17-openjdk
+exit=0 (a hit, so the step exits 1)

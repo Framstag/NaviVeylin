@@ -1,0 +1,15 @@
+# the gate's own tallies — ./tools/loop/gate.sh, exit 0
+
+LOOP-GATE: tests=477 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/loop-mutations-selftest.sh, tools/issue-tooling-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+
+## per suite, from the XML the run left in each module ("app" counted per flavour)
+app:testAutomotiveDebugUnitTest: tests=2101 failures=0
+app:testMobileDebugUnitTest: tests=2101 failures=0
+auto:testDebugUnitTest: tests=876 failures=0
+core:testDebugUnitTest: tests=642 failures=0
+osmscout-client-java:test: tests=48 failures=0
+TOTAL 6245 0
+
+## the new class in both app flavours
+timestamp="2026-10-22T08:50:12.730Z"
+timestamp="2026-10-22T08:51:54.115Z"

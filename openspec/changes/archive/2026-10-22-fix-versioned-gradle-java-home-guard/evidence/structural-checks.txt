@@ -1,0 +1,8 @@
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+
+$ openspec validate --specs
+Totals: 177 passed, 0 failed (177 items)
+
+$ yq '.jobs.build.steps | length' .github/workflows/build.yml
+40

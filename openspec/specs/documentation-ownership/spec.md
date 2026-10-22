@@ -424,17 +424,17 @@ SHALL need no build, no test run, no device and no network access.
 
 ### Requirement: The validator's own rules are read before the first write
 
-The entry document's OpenSpec workflow section SHALL state each artifact rule that `openspec validate
---strict` enforces, and SHALL name that command, beside the rules CI already gates: a `MODIFIED` requirement
-repeats every shipped scenario under its own title, and a requirement's text stays within the 500 characters
-the validator reports. The rule SHALL be read before the artifact is written, not from the validator's output
-after it.
+The entry document's OpenSpec workflow section SHALL state the two artifact rules below and name the command
+that fails on them: a `MODIFIED` requirement repeats every shipped scenario under their own titles, and a
+requirement's text stays within the 500 characters the validator reports. A plain `openspec validate` SHALL
+report both as warnings and exit 0, where `openspec validate <change> --strict` fails on them. Both SHALL be
+read before the artifact is written, not after it.
 
 #### Scenario: The section states the scenario rule
 
 - **WHEN** an author opens the entry document before writing a change's delta
 - **THEN** its OpenSpec workflow section states that a `MODIFIED` requirement repeats every scenario its spec
-  still has, verbatim and under its own title, so that the omission the validator reports is read first
+  still has, verbatim and under their own titles, so that the omission the validator reports is read first
 - **Case**: `probe#theWorkflowSectionStatesTheScenarioRule`
 
 #### Scenario: The section states the text bound
@@ -447,14 +447,15 @@ after it.
 #### Scenario: The strict command is named with the rules
 
 - **WHEN** an author reads the two validator rules in the entry document
-- **THEN** the same place names `openspec validate <change> --strict` as the command that reports them, so the
-  check is run before the artifact is finished rather than at the archive, when the rule is met for the first
-  time
+- **THEN** the same place names `openspec validate <change> --strict` as the command that fails on them, saying
+  that a plain `openspec validate` only warns, so the check is run before the artifact is finished rather than
+  at the archive, when the rule is met for the first time
 - **Case**: `probe#theStrictCommandIsNamedBesideTheRules`
 
-#### Scenario: An over-long requirement is an error, not a warning
+#### Scenario: An over-long requirement is a warning until the strict command
 
 - **WHEN** a requirement's text exceeds the bound the entry document states
-- **THEN** `openspec validate <change> --strict` exits non-zero and reports that requirement's text as too long,
-  so the stated number and the number the command enforces are the same one
+- **THEN** a plain `openspec validate` reports that requirement's text as a warning and exits 0, while
+  `openspec validate <change> --strict` exits non-zero, so the stated number and the number the command
+  enforces are the same one
 - **Case**: `probe#anOverLongRequirementIsReported`

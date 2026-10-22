@@ -95,6 +95,9 @@ LOOP_SHELL_CASES=(
   'run#decisionCapRefusesToStart'
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
+  'gate#anEnginePathOwesTheRecordCheck'
+  'mutation#everyDeclaredRecordApplies'
+  'mutation#aStaleRecordIsNamed'
   'measure#namesTheOwedChecksInOneBlock'
   'measure#printsTheNumbersTheReviewerAsksFor'
   'measure#refusesToGuessWhichChangeItMeasures'
@@ -277,6 +280,9 @@ loop_run_shell_case() {
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
+    'gate#anEnginePathOwesTheRecordCheck') fn=case_gate_anEnginePathOwesTheRecordCheck ;;
+    'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
+    'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
     'measure#printsTheNumbersTheReviewerAsksFor') fn=case_measure_printsTheNumbersTheReviewerAsksFor ;;
     'measure#refusesToGuessWhichChangeItMeasures') fn=case_measure_refusesToGuessWhichChangeItMeasures ;;
@@ -4922,4 +4928,67 @@ case_clean_endsARunWhoseTreeIsAlreadyDeleted() {
     sleep 0.1
   done
   [ "$survived" -eq 0 ] || { loop_end_pid "$pid"; fail "the sweep reported the process but did not end it (pid $pid)"; }
+}
+
+# A declared mutation record quotes one line of one engine file, and nothing compared the two until issue #264:
+# `9.9` and `12.2` had quoted `run.sh`'s child-start line as #227 wrote it before that line was given the child's
+# own completion record, so both records reported `MUTATION-DID-NOT-APPLY` and the two invariants they own — the
+# single agent-command indirection, the child started in the project — were asserted by nothing. The check reads
+# the set the engine declares and the files that set names. It runs no case, which is what lets the gate owe it.
+case_mutation_everyDeclaredRecordApplies() {
+  local declared out status
+  declared=$(sed -n '/^MUTATIONS=(/,/^)/p' "$LOOP_ENGINE/../loop-mutations.sh" | grep -c "^  '")
+  [ "$declared" -gt 0 ] || fail "could not read the declared set out of $LOOP_ENGINE/../loop-mutations.sh"
+  out=$(bash "$LOOP_ENGINE/../loop-mutations.sh" --check --engine "$LOOP_ENGINE" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "every declared record applies to the file it names — the check printed: $out"
+  assert_not_contains "$out" "MUTATION-PATTERN-STALE" "no record of the set is stale: $out"
+  assert_contains "$out" "all $declared cases passed" "and the count is the set the harness declares: $out"
+  return 0
+}
+
+# …and the check has to be able to fail, on the shape the defect had: a record whose expression names no line of
+# the file it is pointed at mutates less than it declares, and `RED` for a partly applied mutation is the silent
+# half of the same lie. The stale record is built in a throwaway copy of the set, so no case edits the project's
+# own records.
+case_mutation_aStaleRecordIsNamed() {
+  local d harness at label file out status
+  d=$(scratch)
+  harness="$d/loop-mutations.sh"
+  cp "$LOOP_ENGINE/../loop-mutations.sh" "$harness" || fail "could not copy the mutation set"
+  # The first record of the declared set, read from the set rather than spelled here: a record that is renumbered
+  # moves this case with it instead of turning it red for a reason nobody is looking for.
+  at=$(grep -n '^MUTATIONS=(' "$harness" | cut -d: -f1)
+  at=$((at + 1))
+  label=$(sed -n "${at}s/^  '\([^@]*\)@.*/\1/p" "$harness")
+  file=$(sed -n "${at}s/^  '[^@]*@[^@]*@\([^@]*\)@.*/\1/p" "$harness")
+  [ -n "$label" ] && [ -n "$file" ] || fail "could not read the first record of the declared set"
+  # One more expression, naming a line the file does not have: the record now applies only in part.
+  sed -i "${at}s#'\$#;;s|^a line this file does not have\$|  mutation|'#" "$harness" || fail "could not stale the record"
+  out=$(TMPDIR="$d" bash "$harness" --check --only "$label" --engine "$LOOP_ENGINE" 2>&1)
+  status=$?
+  assert_eq "1" "$status" "a record whose expression names no line fails the check: $out"
+  assert_contains "$out" "MUTATION-PATTERN-STALE $label" "and the record is named by its own label: $out"
+  case "$out" in
+    *"MUTATION-PATTERN-STALE $label"*"$file"*) ;;
+    *) fail "the stale record's file should be named with it: $out" ;;
+  esac
+  return 0
+}
+
+# The check is the gate's, not a hand-run's (issue #264): `tools/loop/gate.sh` ran the harness's own cases for a
+# path under the engine and never the records against the files they name, so a record that stopped applying sat
+# unnoticed until somebody ran the whole set by hand. The profile's suite map is what owes it for an engine path.
+case_gate_anEnginePathOwesTheRecordCheck() {
+  local d p plan base
+  d=$(scratch); p=$(new_project)
+  mkdir -p "$p/tools/loop"
+  printf '# an engine script\n' > "$p/tools/loop/run.sh"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'an engine change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "loop-mutations.sh --check" \
+    "a path under the engine owes the record check, so a stale record fails the gate: $plan"
+  return 0
 }

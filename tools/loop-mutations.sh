@@ -23,11 +23,19 @@
 # pass by doing nothing. Run the file set of a change while iterating, and the full set before a change that owns
 # `tools/loop/**` is archived.
 #
-# Exit: 0 every selected mutation went red and its restore went green; 1 a mutation did not apply, was not
-#       noticed, or its restore stayed red; 2 usage, a missing prerequisite, a filter that names no record, or a
-#       backup/restore that could not be taken safely (nothing is mutated in that case).
+# **The check.** A record quotes one line, and a line changes. `--check` applies every selected record's
+# expressions to a copy of the file the record names and reports each record that no longer changes it — no case
+# runs and nothing in the tree is mutated, so it is cheap enough for the project's gate, which owes it for a path
+# under `tools/loop/**` (issue #264: `9.9` and `12.2` had quoted `run.sh`'s child-start line as it was before it
+# carried the child's own completion record, and both reported `MUTATION-DID-NOT-APPLY` until the next hand-run
+# set — two invariants asserted by nothing in the meantime).
 #
-# Usage: tools/loop-mutations.sh [--list] [--only <labels>] [--files <path> ...] [--from-git <base>]
+# Exit: 0 every selected mutation went red and its restore went green, or every selected record applies to the
+#       file it names (`--check`); 1 a mutation did not apply, was not noticed, its restore stayed red, or a record
+#       is stale (`--check`); 2 usage, a missing prerequisite, a filter that names no record, or a backup/restore
+#       that could not be taken safely (nothing is mutated in that case).
+#
+# Usage: tools/loop-mutations.sh [--list] [--check] [--only <labels>] [--files <path> ...] [--from-git <base>]
 #                                [--engine <dir>] [--out <file>] [--timeout <seconds>]
 #                                [--probe no-apply|stays-green|empty-backup]
 set -uo pipefail
@@ -35,6 +43,7 @@ set -uo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 list_only=0
+check=0
 only=""
 # The file set, kept space-padded (` path path `) so a membership test is one `case` and no array expansion runs
 # under `set -u`. A record's file is a repository-relative path, so the filter compares paths, never basenames.
@@ -47,6 +56,7 @@ probe=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --list) list_only=1; shift ;;
+    --check) check=1; shift ;;
     --only) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only="${2:-}"; shift 2 ;;
     # Repeatable, and space-separated inside one value, so a caller can pass either shape without a rule.
     --files) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }
@@ -65,6 +75,10 @@ for tool in bash jq git java javac sed; do
   command -v "$tool" >/dev/null 2>&1 || { echo "loop-mutations: $tool is required" >&2; exit 2; }
 done
 [ -d "$engine" ] || { echo "loop-mutations: no engine directory at $engine" >&2; exit 2; }
+# The two prerequisites below are what *running a case* needs, and `--check` runs none: it applies patterns to
+# copies of the files the records name, so it needs the engine and nothing else — which is what lets a caller
+# point it at a bare copy of the set.
+if [ "$check" -eq 0 ]; then
 # The engine reads its dependency as a sibling (`$LOOP_DIR/../issues`), so a copy must keep that layout —
 # `--engine <dir>` wants `<dir>` to be the copied `loop` directory, with `issues` beside it.
 [ -f "$engine/../issues/lib.sh" ] || {
@@ -72,6 +86,7 @@ done
   exit 2
 }
 [ -f "$root/tools/loop-selftest.sh" ] || { echo "loop-mutations: the gate tools/loop-selftest.sh is missing" >&2; exit 2; }
+fi
 
 # The mutations. Fields are `@`-separated (no sed expression below contains one), and one record's sed
 # expressions are separated by `;;`:
@@ -89,11 +104,15 @@ MUTATIONS=(
   '9.6@-@tools/loop/run.sh@run#decisionCapRefusesToStart@the decision cap that stops a run@s|^if \[ "${open_decisions:-0}" -ge "$max_decisions" \]; then|if false; then|'
   '9.7@-@tools/loop/run.sh@run#mayCloseNoLeavesTheIssueOpen@the closure opt-out@s|^      if \[ "$may_close" = "no" \]; then close_args+=(--no-close); fi$|      : # the mutation closes anyway|'
   '9.8@-@tools/loop/worktree.sh@worktree#oneBranchPerItemOffTheBase@one branch per item@s|switch -c "$branch" "$base"|switch -c "fix/loop-branch" "$base"|'
-  '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|$LOOP_AGENT_CMD "$1"|pi --print "$1"|'
+  # Records 9.9 and 12.2 (the second one below, in the 12.x block) anchor on the *head* of `run_child`'s
+  # child-start line — the command and its directory — and not on its tail: the tail gained the child's own
+  # completion record (`.status`, issue #227), and a record that quotes the whole line is orphaned by the next
+  # edit to any part of it (issue #264).
+  '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$LOOP_ROOT" \&\& pi --print "$1"; printf|'
   '9.10@-@tools/loop/run.sh@run#reviewerWriteInvalidatesTheRound@the reviewer read-only comparison@s|^      if \[ "$read_only" = "on" \] && \[ "$before" != "$after" \]; then|      if false; then|'
   '9.11@-@tools/loop/prompts/worker.md@state#projectKeysAreReadFromLoopConf@the project facts living in loop.conf@s|{{WORKER_SKILLS}}|openspec-propose openspec-apply-change build-app run-tests revert-check|'
   '12.1@-@tools/loop/worktree.sh@run#commitsWithoutAnAmbientIdentity@the commit is attributed to the run'"'"'s own identity@s|-c user.name="\$who_name" -c user.email="\$who_email" ||'
-  '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD|( cd "$worktree" \&\& $LOOP_AGENT_CMD|'
+  '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$1"; printf|'
   '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsBlocked@the run catching a child write left outside the worktree@s|^    printf '"'"'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran\\n'"'"' >> "$2"$|    : # the mutation carries the write instead|'
   '12.4@-@tools/loop/run.sh@run#reviewerWriteInTheProjectIsDiscarded@the reviewer comparison reading the project tree as well@s|git -C "$worktree" diff; project_state; }|git -C "$worktree" diff; }|'
   '12.5@-@tools/loop/worktree.sh@worktree#reusesABranchThatCarriesNoWorkOfItsOwn@the reuse of a branch that carries nothing of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if false; then|'
@@ -241,6 +260,19 @@ MUTATIONS=(
   '42.2@-@tools/loop/worktree.sh@run#aMergedBranchIsRemoved@the deletion of the merged branch@s|^  gitr branch -d "\$branch" >&2 \|\| {$|  : # the mutation removes no branch\n  false \|\| {|'
   '42.3@-@tools/loop/loop-clean.sh@clean#sweepsOnlyWhatIsInTheBase@the sweep asking what a branch carries@s|^    if unlanded=\$(loop_unlanded_commits "\$LOOP_ROOT" "\$base_commit" "\$branch"); then$|    if true; then|'
   '42.4@-@tools/loop/report.sh@report#landedBranchesAreNamedAsRemovable@the report naming the branches that can be removed@s|^printf .landed, removable: %s\\n. |printf "nothing removable: %s\\n" |'
+  # 43.x — the record check (issue #264): a record quotes one line of one engine file, and nothing compared the two
+  # until the gate owed the comparison: #227 gave `run.sh`'s child-start line the child's own completion record,
+  # and `9.9`/`12.2` quoted the whole line, so both reported `MUTATION-DID-NOT-APPLY` and the two invariants they
+  # own were falsified by nothing. 43.1 is the check's own refusal — without it a stale record is printed and the
+  # check exits 0; 43.2 is the profile pair that makes the gate owe it; 43.3 is the shape of the defect: an edit
+  # to the engine line the records quote, leaving them pointed at a line that is no longer there.
+  # The record names a file *beside* the engine (`../loop-mutations.sh`), the shape records 26.1 and 29.2 already
+  # use for a file the engine's own directory does not hold: `tools/loop-mutations.sh` under the `tools/loop/`
+  # prefix it is not a member of resolves to `$engine/-mutations.sh`. The labels are 43.x and not 41.x because the
+  # lock change took 41.x first (`#265`), and a label names one invariant for good.
+  '43.1@-@../loop-mutations.sh@mutation#aStaleRecordIsNamed@the exit that fails a set whose record no longer applies (issue #264)@s|^  if \[ "$stale" -ne 0 \]; then$|  if false; then|'
+  '43.2@-@tools/loop/loop.conf@gate#anEnginePathOwesTheRecordCheck@the profile pair that owes the record check for a path under the engine (issue #264)@s#tools/loop/\*|bash tools/loop-mutations\.sh --check;##'
+  '43.3@-@tools/loop/run.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1" \&\& printf|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine
@@ -357,6 +389,52 @@ cleanup() {
   rm -rf "$scratch"
 }
 trap cleanup EXIT
+
+# `--check`: each selected record's expressions applied to a copy of the file the record names, and reported when
+# one of them changes nothing. Reported per record and not per expression — one stale expression is enough to make
+# the record mutate less than it declares, and `RED` for a partly applied mutation is the silent half of the same
+# lie. `$checked` counts the records whose file exists, so the summary is the set that was actually looked at and
+# not the set that was declared.
+if [ "$check" -eq 1 ]; then
+  checked=0
+  stale=0
+  for record in "${MUTATIONS[@]}"; do
+    IFS='@' read -r label _fifo file _case _desc exprs <<< "$record"
+    selected "$label" "$file" || continue
+    path="$engine/${file#tools/loop/}"
+    if [ ! -f "$path" ]; then
+      printf 'MUTATION-PATTERN-NOFILE %s  %s (the record names a file the engine does not have)\n' "$label" "$file" >&2
+      stale=$((stale + 1))
+      continue
+    fi
+    probe="$scratch/check.$(printf '%s' "$label" | tr -c 'A-Za-z0-9._-' '_')"
+    cp -- "$path" "$probe" 2>/dev/null || {
+      printf 'loop-mutations: could not copy %s to check its records — nothing was mutated\n' "$path" >&2
+      exit 2
+    }
+    record_stale=0
+    while IFS= read -r expr; do
+      [ -n "$expr" ] || continue
+      cp -- "$probe" "$probe.prev" || { printf 'loop-mutations: could not copy %s for the check\n' "$probe" >&2; exit 2; }
+      sed -i "$expr" "$probe"
+      if cmp -s "$probe.prev" "$probe"; then
+        record_stale=1
+        break
+      fi
+    done < <(printf '%s\n' "$exprs" | sed 's/;;/\n/g')
+    checked=$((checked + 1))
+    if [ "$record_stale" -eq 1 ]; then
+      printf 'MUTATION-PATTERN-STALE %s  %s (an expression of this record names no line of this file — fix the record, not the case)\n' "$label" "$file" >&2
+      stale=$((stale + 1))
+    fi
+  done
+  if [ "$stale" -ne 0 ]; then
+    printf 'loop-mutations: %s of %s checked records no longer apply — the set is stale\n' "$stale" "$checked"
+    exit 1
+  fi
+  printf 'loop-mutations: all %s cases passed — every selected record applies to the file it names\n' "$checked"
+  exit 0
+fi
 
 red=0
 not_noticed=0

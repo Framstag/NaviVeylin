@@ -111,5 +111,12 @@ Audit the shape with the bundled script before touching either side:
 ## Notes
 
 - Symbol resolution and the long-name fallback: JNI native method resolution; overload mangling is visible in this file (`Java_..._searchLocations__Ljava_lang_String_2IJ`).
+- **The pair is gated by the build**, so a native added to one of the five overridden files and not the other fails
+  the next build instead of waiting for a call site: `:app:checkNativeParity` (buildSrc `NativeParityScanner`, in
+  `preBuild`) compares each overridden file with the submodule's copy and holds the difference to
+  `osmscout-client-java/native-parity.txt`, where every intentional divergence carries a reason
+  (`guidelines/Design.md` §5). A new native therefore needs a line there or a mirror — the same commit as the
+  declaration, per step 5. This audit script answers a different question: a declaration against the compiled
+  `.so`'s symbols, not the two Java sides against each other.
 - Cross-references: `AGENTS.md` "Native Integration" and "JNI stub for unit tests"; `guidelines/Design.md` §5 (native boundary, upstreamable patches); `guidelines/Build.md` (build/test skills); the `update-to-current-libosmscout-master` skill (its step 3 checks symbol *presence* — pair it with this audit).
 - This skill is versioned with the project (`.pi/skills/native-bridge-signature-change/`); copy the directory to `~/.pi/agent/skills/native-bridge-signature-change/` to make it available across projects.

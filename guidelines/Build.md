@@ -1007,11 +1007,15 @@ yields non-empty counters. The JNI module's own suite is unchanged by the opt-ou
 26 tests / 0 failures.
 
 **Configuration cache: deliberately off (evaluated 2026-10-04/05).** `./gradlew --configuration-cache
-:app:testMobileDebugUnitTest …` does not store an entry: Gradle reports **8 problems**, all of them
+:app:testMobileDebugUnitTest …` does not store an entry: Gradle reports **13 problems** (re-measured
+2026-10-22 on `:app:testMobileDebugUnitTest --tests "com.naviveylin.build.NativeOverrideParityGuardTest"`; it was
+**8** when this was evaluated, and the gates added since are what grew it), all of them
 script-level `DefaultTask` registrations whose `doLast` closures capture script objects —
-`:app:checkHardcodedStrings`, `:app:checkNoCoordinatesInLogs`, `:app:generateSbomMobileDebug` (twice: a
-script object and a `DefaultProject`), `:app:mergeNativeSbom`, `:app:downloadSbomCli`, and
-`:auto:`/`:core:checkHardcodedStrings`. Clearing them means moving those tasks into `buildSrc` classes with
+`:app:checkCleartextTransportPolicy`, `:app:checkHardcodedStrings`, `:app:checkNativeParity`,
+`:app:checkNoCoordinatesInLogs`, `:app:checkNoWallClockWaits`, `:app:downloadSbomCli`,
+`:app:generateSbomMobileDebug` (twice: a script object and a `DefaultProject`), `:app:mergeNativeSbom`, and
+`:auto:`/`:core:` `checkHardcodedStrings` and `checkNoWallClockWaits`. Clearing them means moving those tasks
+into `buildSrc` classes with
 serializable inputs — a change of its own, not a build-flag flip. Until then every invocation pays
 configuration time; `TODO.md` §22 carries the same conclusion, now measured. The release-state contract
 holds meanwhile: `:app:checkLicensePolicy` on 2026-10-05 left `app/release-version.properties`

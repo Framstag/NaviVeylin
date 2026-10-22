@@ -1,0 +1,30 @@
+# Every intentional divergence between the libosmscout submodule's Java JNI client and the Android override
+# that replaces it, read by the `:app:checkNativeParity` build gate.
+#
+# Why this file exists: `:osmscout-client-java` compiles the submodule's `libosmscout-client-java/java` sources
+# except five overridden files (`guidelines/Design.md` §5), so a native on one side only is a `NoSuchMethodError`
+# at the first call — no compiler error, no failing test. A blanket "submodule natives ⊆ override natives"
+# check is false even today, because the override diverges on purpose in both directions; this list is the
+# pair's expected difference, and the gate fails on anything the list does not carry (issue #174, §119 for the
+# instance that was fixed by hand).
+#
+# One entry per line: `file | submodule-only|override-only | name(type,type) | reason`
+#   submodule-only  the submodule declares it, the Android override does not reach it
+#   override-only   the Android override declares it, the submodule does not
+# Blank lines and `#` lines are comments. A line whose shape is wrong, or whose divergence has since
+# disappeared, fails the gate: this is a record of the trees, never an allowlist that outlives them.
+#
+# `name(type,type)` is the declaration with package qualifiers stripped (`java.nio.ByteBuffer` → `ByteBuffer`),
+# which is the one normalization the two sides need: they import the same types differently.
+#
+# file | direction | signature | reason
+OSMScoutClient.java | submodule-only | calculateRouteWithObjectsAsync(double,double,long,String,double,double,long,String,RouteCallback) | the app routes through `calculateRouteAsync` (a callback, no object list); the object-list form has no caller in `:app`, `:auto` or `:core`
+OSMScoutClient.java | submodule-only | getRegion(double,double) | the Android surfaces take a region from a search result's `adminRegionHierarchy` or from `resolveAdminRegion` + `getAdminRegionName`, never from a coordinate lookup
+OSMScoutClient.java | submodule-only | searchLocations(String,int,String,long) | the Android search surface is admin-region-handle based (`searchLocations(String,int,long,long)` with `resolveAdminRegion`) and structured-address based (`searchLocationByForm`); the region-name form has no caller
+OSMScoutClient.java | submodule-only | setGpsMarker(double,double,double,double) | the position marker is passed with the frame to the renderer entry point instead of being set as client state between frames
+OSMScoutClient.java | submodule-only | startNavigation(long,NavigationListener) | re-implemented in the override as a plain Java method: it delegates to `startNavigationWithVehicle(routeHandle, Vehicle.CAR, listener)`, so an Android caller cannot start navigation without naming a vehicle
+OSMScoutClient.java | override-only | getAddressAt(double,double) | Android addition: reverse-geocoded address for the phone location details sheet (`LocationDetailsSheet`, `SearchRowResolvers`) and the car details screen (`DetailsScreen`), which the submodule client has no entry point for
+OSMScoutClient.java | override-only | getDatabaseBoundingBox(String) | Android addition: the initial viewport needs a database's bounding box before/without a full open (`MapCanvasViewModel`, `AutoInitialViewport`)
+OSMScoutClient.java | override-only | getMaxSpeedAt(double,double) | Android addition: the speed overlay reads the max speed of the road at the current position (`MapCanvasViewModel`)
+OSMScoutClient.java | override-only | reloadBasemap() | Android addition (`guidelines/Design.md` §5): `BasemapRegistrar` reloads the basemap after a download completes, which the submodule client does only on database open
+OSMScoutClient.java | override-only | searchLocationByForm(String,String,String,String,int,long) | Android addition (`guidelines/Design.md` §5): the structured address form (region, postal area, street, house number) the phone search (`StructuredAddressSearch`) and the address book (`AddressBookResolver`) use

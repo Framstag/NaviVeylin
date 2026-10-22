@@ -2207,8 +2207,8 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
 # `main` again the next time the pipeline grows a step (issue #242). On 2026-10-21 it carried eight of the
 # pipeline's thirty-one shell gate commands, so a landing the pipeline refused went green in the run — a merge
 # passed the build's gate and broke `tools/check-portability-selftest.sh`, and the pipeline found the red `main`
-# instead. The profile names the pipeline it is pinned to, and every command under a `Check …` step has to be a
-# value of the map. A profile that names no pipeline cannot be pinned and says so: that residual — a new step
+# instead. The profile names the pipeline it is pinned to, and every `bash`/`sh` command under a `Check …` step
+# has to be a value of the map. A profile that names no pipeline cannot be pinned and says so: that residual — a new step
 # escapes until someone adds it — is the cost the map's owner accepted over running every step for every item.
 case_gate_theMapCoversEveryPipelineStep() {
   local conf pipeline cmds map missing

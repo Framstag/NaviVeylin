@@ -378,10 +378,13 @@ the remaining suites never execute; read the executed-task list in the output fo
 flavors one expects (§134.65).
 
 The gate above is only as wide as the profile's map: `LOOP_GATE_SUITES` (`tools/loop/loop.conf`) has to reach
-every command a `Check …` step of the pipeline runs, or a landing the pipeline refuses is green in the run —
-which is what reddened `main` on 2026-10-21 (issue #242). The map's unit is a step, not a command, and
-`gate#theMapCoversEveryPipelineStep` pins it against the pipeline the profile names in `LOOP_GATE_PIPELINE`, so
-a step the pipeline gains and the map does not carry fails the loop's own suite and names the missing commands.
+every `bash`/`sh` command a `Check …` step of the pipeline runs, or a landing the pipeline refuses is green in
+the run — which is what reddened `main` on 2026-10-21 (issue #242). The map's unit is a step, not a command,
+and `gate#theMapCoversEveryPipelineStep` pins it against the pipeline the profile names in `LOOP_GATE_PIPELINE`,
+so a step the pipeline gains and the map does not carry fails the loop's own suite and names the missing
+commands. The pin reads the `run:` line that names a script and nothing else, so a step whose check is inline
+shell or a Gradle task is outside it: `Check daemon JVM criteria` (over `gradle/gradle-daemon-jvm.properties`,
+which no compiled pattern matches either) is green in the run today, and that is the residual this pin leaves.
 
 ## 4. Result evaluation
 

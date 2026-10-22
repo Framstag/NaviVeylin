@@ -116,10 +116,11 @@ stay unarchivable until the block is completed.
 
 ### Requirement: The routing cost is measured
 
-The cost of a routed read SHALL be measured against the cost of reading the documents the route replaces, and
-the measurement SHALL be recorded where the route is documented. A section a route names SHALL cost at most
-12 000 characters and SHALL answer one question: a larger or wider section SHALL be split into lettered
-sub-sections under its unchanged number, and the table SHALL route the sub-section that answers the question.
+The cost of a routed read SHALL be measured against reading the documents the route replaces, and the
+measurement SHALL be recorded where the route is documented. A section of `guidelines/Build.md` that a route
+names SHALL cost at most 12 000 bytes and answer one question: a larger or wider section SHALL be split into
+lettered sub-sections under its unchanged number, and the table SHALL route the sub-section that answers the
+question. Bounding the other guidelines is issue #197's.
 
 #### Scenario: Numbers for representative changes
 
@@ -134,11 +135,12 @@ sub-sections under its unchanged number, and the table SHALL route the sub-secti
 
 #### Scenario: A section carrying more than one question is split
 
-- **WHEN** a section the routing table names costs more than 12 000 characters, or answers more than one
-  question
+- **WHEN** a section of `guidelines/Build.md` that the routing table names costs more than 12 000 bytes, or
+  answers more than one question
 - **THEN** the document splits it into lettered sub-sections under its unchanged number, the section's own
-  body becomes an index of them, and every resulting section is at most 12 000 characters
-- **Case**: `routed-read#bound`
+  body becomes an index of them, and every resulting sub-section is at most 12 000 bytes
+- **Case**: `routed-read#bound` — the cost of a section is the byte count of its lines from the `## ` heading
+  through the line before the next `## ` heading, and the case prints it for every section of the document
 
 #### Scenario: A split section keeps its number and its citations
 
@@ -152,7 +154,8 @@ sub-sections under its unchanged number, and the table SHALL route the sub-secti
 - **WHEN** the routing table routes a document whose section has been split
 - **THEN** the row names the lettered sub-section that answers the reader's question, and states what the
   sections cost
-- **Case**: `routed-read#route`
+- **Case**: `routed-read#route` — every row that routes `guidelines/Build.md` at a lettered sub-section must
+  also carry the cost it states, so a row naming sub-sections and pricing nothing fails the case
 
 #### Scenario: The split moves text instead of rewriting it
 

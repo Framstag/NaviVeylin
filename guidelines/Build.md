@@ -98,7 +98,7 @@ All four skills follow the same contract:
 Every question this section answers has its own sub-section; read the one that owns the question rather than
 the section whole. §2a "Agent iteration protocol", §2b "Liveness guard and shell recipes", §2c "Gate timing record
 and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" — measured 2026-10-22:
-1 902–5 236 bytes each, against 23 235 bytes for the section whole.
+1 904–5 238 bytes each, against 23 235 bytes before the split.
 
 ## 2a. Agent iteration protocol
 
@@ -394,8 +394,8 @@ flavors one expects (§134.65).
 Every sub-section answers one question about a run; read the one that owns it. §4a "The verdict, the warnings
 and the failures", §4b "Which flavors and suites a run must cover", §4c "Native scope, pruned configurations and a
 restored mutation", §4d "Attributing a red run", §4e "Falsification, flakes and scheduling traps", §4f "Artifacts,
-evidence rules and native verification" — measured 2026-10-22: 3 072–5 273 bytes each, against 23 380 bytes for the
-section whole.
+evidence rules and native verification" — measured 2026-10-22: 3 074–5 275 bytes each, against 23 380 bytes before the
+split.
 
 ## 4a. The verdict, the warnings and the failures
 
@@ -711,7 +711,7 @@ Every sub-section states one family of constraints; read the one your case falls
 classloader sandbox", §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions and
 declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion measured",
 §6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub for unit tests" —
-measured 2026-10-22: 1 055–5 269 bytes each, against 22 053 bytes for the section whole.
+measured 2026-10-22: 1 057–5 271 bytes each, against 22 053 bytes before the split.
 
 ## 6a. The JNI stub and the classloader sandbox
 
@@ -841,7 +841,7 @@ measured 2026-10-22: 1 055–5 269 bytes each, against 22 053 bytes for the sect
   task's build-cache key: after changing it, run with `--no-build-cache`, or the
   previous configuration's results are restored and the setting looks proven when
   it never ran. Verify a budget by CONTENT, not by the build result:
-  the fork args (`-Xmx…`, `--info`) and the per-class result XMLs (§4a, §17).
+  the fork args (`-Xmx…`, `--info`) and the per-class result XMLs (§4f, §17).
 
 ## 6d. Declared test-JVM concurrency
 
@@ -1300,7 +1300,7 @@ sends and route numbers", §10d "Rejected mutations, the error notice and databa
 "Expectation baselines and the car search scope", §10f "Two checks that need evidence before a behaviour is
 specified", §10g "Start-map selection on the phone", §10h "Stylesheet load count per start", §10i "Device recipes
 that cost a round every time", §10j "A calculated route's length — which number is a route length" — measured
-2026-10-22: 911–6 839 bytes each, against 31 568 bytes for the section whole.
+2026-10-22: 913–6 841 bytes each, against 31 568 bytes before the split.
 
 ## 10a. Booting the AAOS AVD and driving the car UI
 

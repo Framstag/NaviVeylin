@@ -2259,8 +2259,14 @@ case_gate_aPipelineCheckIsOwedByItsPaths() {
     || fail "could not commit the change in the throwaway repository"
   base=$(git -C "$p" rev-parse HEAD~1)
   plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  # Every command the step runs, not the two that happen to be first in the map: the pipeline runs the step as a
+  # unit, and any of its commands can be the one that reddens (issue #242, review round 1).
   assert_contains "$plan" "tools/build-inputs.sh --check" "the check the pipeline runs over that path is owed: $plan"
   assert_contains "$plan" "tools/build-inputs-selftest.sh" "and the suite that proves it: $plan"
+  assert_contains "$plan" "tools/build-inputs-mutations.sh --list" "and the mutation set the same step runs: $plan"
+  # …and nothing from another step: a glob as coarse as `tools/*` would satisfy the three assertions above while
+  # making the map claim every step for every path, which is the decision's rejected option 2.
+  assert_not_contains "$plan" "tools/check-portability.sh" "and names no command of another step: $plan"
   return 0
 }
 

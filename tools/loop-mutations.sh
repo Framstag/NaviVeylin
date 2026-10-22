@@ -206,6 +206,12 @@ MUTATIONS=(
   # 40.2 — the gate owes that step's check for a path the step reads (issue #242): without the pair the plan answers
   # `nothing owed` and exits 0 for a delta the pipeline refuses.
   '40.2@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@the pair that owes the check over a path the step reads (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;##'
+  # 40.3 — the plan names every command the step runs (issue #242, review round 1): without the pair the case's two
+  # older assertions still pass, and the mutation set the same step runs is owed by nobody.
+  '40.3@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@the pair that owes the build-inputs mutation list (issue #242)@s#tools/build-inputs\*|tools/build-inputs-mutations.sh --list;##'
+  # 40.4 — the plan names no command of another step (issue #242, review round 1): a pair as coarse as `tools/*`
+  # reaching the portability check makes the map claim the rejected option 2 while every positive assertion passes.
+  '40.4@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@a pair that reaches another step through a coarse glob (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;#tools/build-inputs*|tools/build-inputs.sh --check;tools/build-inputs*|tools/check-portability.sh;#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

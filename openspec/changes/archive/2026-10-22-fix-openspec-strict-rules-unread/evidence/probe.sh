@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # probe.sh — the two cases of this change, over the entry document's `OpenSpec Workflow` section.
 #
-# The defect is a documentation gap, so the case that exercises it reads the document: the section an author
-# takes the artifact rules from must state the two rules `openspec validate --strict` fails on, and must name
-# the strict command itself. No build, no device, no network — text only, exactly like `tools/check-doc-routes.sh`.
+# The defect is a documentation gap, so the case that exercises it reads the document: the passage an author
+# takes the validator's rules from must state both rules, name the requirement that owns them, and name the
+# strict command (both invocations). No build, no device, no network — text only, exactly like
+# `tools/check-doc-routes.sh`.
 #
 # Exit 0 when both cases pass, 1 when one fails, 2 on a usage error.
 #
@@ -21,17 +22,22 @@ agents="$root/AGENTS.md"
 # The section, from its `## ` heading to the next one — the unit a reader takes the artifact rules from.
 section=$(awk '/^## OpenSpec Workflow$/{f=1;next} f && /^## /{exit} f{print}' "$agents")
 
+# The strict-rules passage inside that section: its lead-in sentence to the end of the section. The cases read
+# this passage rather than the whole section, because the section's CI-gated bullets already name a spec path —
+# a needle satisfied by a sibling bullet would not show that *these* rules name their owner.
+passage=$(printf '%s\n' "$section" | awk '/^Two more rules are the validator/{f=1} f' | tr '\n' ' ' | tr -s ' ')
+
 run_case() { # $1 case name, $2.. the fixed strings that must all occur
   local name="$1"; shift
   local missing=""
   for needle in "$@"; do
-    case "$section" in
+    case "$passage" in
       *"$needle"*) ;;
       *) missing="$missing [$needle]" ;;
     esac
   done
   if [ -n "$missing" ]; then
-    printf 'FAIL %s — the OpenSpec Workflow section does not state:%s\n' "$name" "$missing"
+    printf 'FAIL %s — the OpenSpec Workflow strict-rules passage does not state:%s\n' "$name" "$missing"
     return 1
   fi
   printf 'PASS %s\n' "$name"
@@ -40,6 +46,8 @@ run_case() { # $1 case name, $2.. the fixed strings that must all occur
 
 case_a() {
   run_case theEntryDocumentStatesTheValidatorStrictRules \
+    'openspec/specs/documentation-ownership/spec.md' \
+    'The validator'\''s own strict rules are read before the first write' \
     'MODIFIED' \
     'repeated verbatim' \
     '500 characters' \
@@ -48,7 +56,8 @@ case_a() {
 
 case_b() {
   run_case theEntryDocumentNamesTheStrictValidationCommand \
-    'openspec validate <change> --strict'
+    'openspec validate <change> --strict' \
+    'openspec validate --changes --strict'
 }
 
 ran=0

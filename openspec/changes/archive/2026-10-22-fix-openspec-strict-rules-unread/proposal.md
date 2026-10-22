@@ -37,14 +37,17 @@ AGENTS.md guidelines/ tools/ openspec/specs/` → 0 hits; `grep -rn 'omits scena
 requirement that owns the `MODIFIED` half names no case that a harness implements. One guideline document and
 one capability spec are touched, and one block in `AGENTS.md` is extended.
 
+surface: 2 probe cases added, 0 rewritten, 0 fixtures realigned — the two `tools/` greps above return 0, and
+the probe is the change's only case (`evidence/surface.log`, re-measured 2026-10-22 after the correction)
+
 ## What Changes
 
 - `AGENTS.md` "OpenSpec Workflow" gains two bullets beside the three CI-gated artifact rules — the
   `MODIFIED` block repeats every shipped scenario verbatim, and a requirement's body is at most 500
-  characters excluding its scenarios — and the line that names `openspec validate <change> --strict` as the
-  check run before the artifact is finished.
-- The capability delta `documentation-ownership` states that these two rules are stated where an author reads
-  them, with one scenario per half and the probe case that exercises each.
+  characters excluding its scenarios — the line that names `openspec validate <change> --strict` as the check
+  run before the artifact is finished, and the clause naming the capability requirement that owns both rules.
+- The capability delta `documentation-ownership` states both rules normatively and requires the always-read
+  entry document to name it, with one scenario per half and the probe case that exercises each.
 - `evidence/probe.sh` is the case of both scenarios: it reads the section, passes on the edited tree
   (`evidence/green-after-fix.log`, 2026-10-22T11:55:48+02:00) and fails on HEAD.
 
@@ -59,10 +62,10 @@ None.
 
 ### Modified Capabilities
 
-- `documentation-ownership` — one ADDED requirement, "The entry document states the validator's strict
-  rules", with two scenarios. No existing requirement changes, no scenario of the shipped spec is removed,
-  and the requirement is appended rather than merged into a neighbour, so the shipped `MODIFIED` semantics
-  this change documents cannot bite the change itself.
+- `documentation-ownership` — one ADDED requirement, "The validator's own strict rules are read before the
+  first write", with two scenarios. No existing requirement changes, no scenario of the shipped spec is
+  removed, and the requirement is appended rather than merged into a neighbour, so the shipped `MODIFIED`
+  semantics this change documents cannot bite the change itself.
 
 ## Impact
 

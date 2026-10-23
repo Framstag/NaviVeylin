@@ -2598,7 +2598,7 @@ SUITE
 # are printed beside its own command, carried in the summary the run records as its gate claim, and written into
 # the tally the run's own check reads.
 case_gate_theSummaryNamesWhatEachSuiteCost() {
-  local d p conf base out tally seconds
+  local d p conf base out tally seconds line_seconds
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
   cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
@@ -4425,7 +4425,8 @@ case_usage_bareValueFlagDoesNotSwallowTheNextFlag() {
   for pair in \
     '--push:tools/loop/run.sh --items 100 --push --dry-run' \
     '--finding:tools/issues/create.sh --finding --class bug' \
-    '--case:bash tools/sensor-selftest.sh --case --list'; do
+    '--case:bash tools/sensor-selftest.sh --case --list' \
+    '--group:bash tools/loop-selftest.sh --group --list'; do
     flag=${pair%%:*}; line=${pair#*:}
     out=$( cd "$LOOP_PROJECT_ROOT" && timeout 20 bash -c "$line" 2>&1 ); status=$?
     [ "$status" -eq 2 ] || fail "'$line' exited $status instead of 2: $out"
@@ -4445,6 +4446,7 @@ case_usage_bareValueFlagInASingleShotHarnessIsAUsageError() {
   local line flag out status
   for line in \
     'bash tools/loop-selftest.sh --case' \
+    'bash tools/loop-selftest.sh --group' \
     'bash tools/sensor-selftest.sh --case' \
     'bash tools/build-inputs-selftest.sh --case' \
     'bash tools/issues/check-metadata-selftest.sh --case' \

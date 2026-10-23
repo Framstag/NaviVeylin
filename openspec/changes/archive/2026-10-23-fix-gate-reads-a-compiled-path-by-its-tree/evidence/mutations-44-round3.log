@@ -1,0 +1,11 @@
+2026-10-23T07:36:09Z == mutations for round 3 (44.2 anchored; records 43.2 44.1 44.2 selected)
+loop-mutations: selected 3 of 98 records (files: tools/loop/gate.sh tools/loop/loop.conf)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.e689UQ
+RED    43.2  gate#anEnginePathOwesTheRecordCheck   (the profile pair that owes the record check for a path under the engine (issue #264))
+restore 43.2 gate#anEnginePathOwesTheRecordCheck green again
+RED    44.1  gate#anArchivedArtefactOwesNoBuild   (the profile reading a compiled path by its tree rather than by its name)
+restore 44.1 gate#anArchivedArtefactOwesNoBuild green again
+RED    44.2  gate#aModuleResourceOwesTheBuild   (the matcher reading an anchored pattern as a pattern)
+restore 44.2 gate#aModuleResourceOwesTheBuild green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

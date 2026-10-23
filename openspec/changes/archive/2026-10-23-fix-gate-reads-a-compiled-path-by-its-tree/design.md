@@ -45,8 +45,13 @@ convention, and the convention is a closed list rather than an extension.
 **The residual that keeps, stated rather than claimed away.** Two files in this tree are classified compiled by
 their name alone: `tools/gate-timings.init.gradle.kts`, a Gradle init script beside the build, and `hmm_mise.toml`,
 the mise toolchain file at the repository root (measured 2026-10-23, `evidence/counts.log`). Both configure the
-toolchain the build runs on, so a delta touching either owes the build and that is defensible — but it is not the
-rule "never from a file name alone", and the requirement says what the profile does. `*.gradle` matches no tracked
+toolchain the build runs on, so a delta touching either owes the build and that is defensible — but the rule behind
+it is a closed list of build-input names, not an extension test: `*.toml` and `*.gradle` classify **any** file with
+that name wherever it sits (`docs/notes.toml` owes the build too; `evidence/counts.log` prints
+`hmm_mise.toml -> compiled`). The requirement states that list rather than an absolute no name can satisfy, and the
+name-based half is deliberately kept: narrowing `*.toml` to a toolchain name was eliminated rather than chosen,
+because it would stop gating the file that decides which JDK the build runs on, while the defect this item measured
+— an archived evidence tally, a fixture that mimics build output — is reached by no name-based pattern. `*.gradle` matches no tracked
 file today (`git ls-files '*.gradle'` → 0) and stays so a Groovy build script would be gated. No name-based pattern
 reaches what the item measured: an archived evidence tally, or a fixture that mimics build output.
 
@@ -121,11 +126,28 @@ would re-open the change and add a case for a defect the item did not measure. W
 evidence tally, a fixture that mimics build output — no name-based pattern reaches, and
 `gate#anArchivedArtefactOwesNoBuild` still holds it.
 
+## Round 3 — the sentence that promised more than the profile keeps
+
+Review 2 refused the change on one blocking finding: round 2's requirement still carried an absolute its own
+profile contradicts. "Never from an extension alone" was gone, but the replacement still said a compiled path is
+decided "from a build input's naming convention (a Gradle script, a toolchain `.toml`, `CMakeLists.txt`)", while
+`matches()` binds `*.toml` and `*.gradle` to no tree and no name — `docs/notes.toml` is compiled to the gate, which
+is the extension-alone clause in another word. The correction is subtractive and nothing else: the requirement now
+states the rule the profile implements — a name that is the convention for a build input classifies wherever it
+sits, and an extension that names anything else is not enough — and the residual above is its reason. No case,
+assertion or profile line changed, and no `WHEN` clause moved; the one scenario `THEN` that promised an owed check on
+both halves now names the half that owes one. The alternative — scoping `*.toml`/`*.gradle` in the
+profile — is the elimination recorded above, and it would add a case this item did not measure.
+
 ## Verification
 
 The change touches no compiled file (`*.sh`, `*.conf` and `openspec/**`), so it owes no build: the structural
 checks are `tools/loop/gate.sh` — whose profile maps `tools/loop/**` to `tools/loop-selftest.sh`, the record check
 and `tools/check-doc-routes.sh`, and `openspec/*` to `tools/gen-feature-list.sh --check-classification` — plus
-`openspec validate agent-issue-loop --strict`. All five are in `evidence/post-archive-checks.log`, and the gate's
-own `LOOP-GATE:` line is in `evidence/gate-round2.log` with its tallies under `evidence/gate-tallies-round2/`. The two cases are falsified by records `44.1` and `44.2` (each mutates the half its
+`openspec validate agent-issue-loop --strict`. Three of the five — the `validate`, the classification check and the
+doc-route check — are rerun after the archive move in `evidence/post-archive-checks.log`; the two suite tallies are
+the pre-move gate's, in `evidence/gate-round2.log` with its tallies under `evidence/gate-tallies-round2/`, and the
+move compiles nothing. Round 3's wording correction re-ran the three prose checks
+(`evidence/post-archive-checks-round3.log`) and the gate over the corrected tree (`evidence/gate-round3.log`, its
+tallies under `evidence/gate-tallies-round3/`). The two cases are falsified by records `44.1` and `44.2` (each mutates the half its
 case asserts), and a gate run after the fix must still name the five checks this tree's own delta owes.

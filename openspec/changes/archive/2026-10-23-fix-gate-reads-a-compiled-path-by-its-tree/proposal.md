@@ -16,9 +16,9 @@ the full Kotlin suite for a delta that touches no compiled file (measured on HEA
 this tree's diff against its base carries **0** compiled-extension paths and **4** `.xml`, and
 `./tools/loop/gate.sh --plan` still prints `./gradlew test -PforceTests --no-build-cache` first).
 
-**The scale of it, re-measured in the tree.** `git ls-files '*.xml' | grep -c '^openspec/changes/archive/'` → 735
-archived artefacts when this change was planned, **741** on reread — the count grows with every archived evidence XML
-(`evidence/counts.log`) — and two more trees carry the same false positive today: three fixture `.xml` under
+**The scale of it, re-measured in the tree.** `git ls-files '*.xml' | grep -c '^openspec/changes/archive/'` →
+**741** measured for this change (`evidence/counts.log`), a count that only grows with every archived evidence XML.
+Two more trees carry the same false positive today: three fixture `.xml` under
 `tools/fixtures/gate-timings/root/app/build/test-results/` (a fixture that *mimics* a test report) and ten
 `tools/issues/core/*.java` the shell suites compile with `javac`, not the Gradle gate. The measured cost is
 #262's: its own gate line printed 202 cases over `tools/loop-selftest.sh`,
@@ -61,8 +61,9 @@ mapping is what moved.
 
 - `tools/loop/loop.conf` — `LOOP_GATE_COMPILED_PATTERNS` becomes `*/src/* */lint.xml *.gradle.kts *.gradle *.toml
   CMakeLists.txt`: a module's source tree whatever the module is called (so a new module is gated), its
-  `lint.xml`, and the build inputs whose names are the convention — a Gradle script, a toolchain `.toml`,
-  `CMakeLists.txt`. That last half is a residual the requirement states rather than hides: it also classifies a
+  `lint.xml`, and the build inputs whose names are the convention — a `.gradle.kts` or `.gradle` script, a `.toml`,
+  `CMakeLists.txt` — which classify wherever they sit, so a `docs/notes.toml` would owe the build too. That last
+  half is a residual the requirement states rather than hides: today it classifies a
   Gradle init script beside the build (`tools/gate-timings.init.gradle.kts`) and the root `hmm_mise.toml` as
   compiled. The measurement behind the line and the reason the two dead anchored patterns disappear are in the
   comment above it.

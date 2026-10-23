@@ -323,7 +323,11 @@ an alternative it has — the tree is still dirty and nothing is discarded witho
 later candidate would be refused the same way and one cause would leave one blocked item per candidate. While
 this happens one item keeps one record: a second account of an item the run already recorded joins the note that
 record has, because the report's four tallies, its budget-left figure and the "two consecutive items ended
-blocked" stop condition are all derived from the same list of records. Measured 2026-10-23: the run stopped 166
+blocked" stop condition are all derived from the same list of records. What the later account may write is the note
+and the escalation label and nothing else: the first record's `result`, `verdict` and metrics stand
+(`tools/loop/state.sh:443`–`446`), so an item that ended `done` is not turned into a `blocked` one by the leftovers
+found later — the stop reason is what names that item, and the tally that counts it stays the first account's.
+Measured 2026-10-23: the run stopped 166
 minutes into an 8 h budget with `the item could not be started: loop: the worktree is not clean — refusing to
 start #270:`, 7 eligible items unworked, the leftovers attributed to nothing and #270 carrying no state entry at
 all (#284).

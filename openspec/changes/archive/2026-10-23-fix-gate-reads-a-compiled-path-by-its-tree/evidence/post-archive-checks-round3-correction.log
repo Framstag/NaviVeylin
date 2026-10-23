@@ -1,4 +1,4 @@
-2026-10-23T12:45:06Z
+2026-10-23T12:51:29Z
 == post-archive checks, round 3 correction (issue #273 — the round-3 review's finding 1 repaired: the
    profile pinned to the tree under test; no code, case, assertion, spec or requirement byte changed)
 
@@ -42,11 +42,11 @@
    ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
    ok   C3 /tmp pointers: none cited
    ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
-   ok   C5 file:line: 347 resolved and in range, 0 unresolved or ambiguous
+   ok   C5 file:line: 352 resolved and in range, 0 unresolved or ambiguous
    ----
    evidence-check: PASS
 
--- the sixth tally of the earlier unpinned run, which a plain ls hides (gate.sh:156 derives a tally
+-- the sixth tally of the earlier unpinned run, which a plain ls hides (tools/loop/gate.sh:137 derives a tally
    name from the command with tr '/ ' '__', so ./gradlew's leading dot becomes a dotfile):
    ls   : 5
    ls -a: 6

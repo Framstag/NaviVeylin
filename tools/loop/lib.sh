@@ -177,6 +177,19 @@ loop_tmp_dir_for() { # <tree> → that tree's scratch root, resolved against tha
   esac
 }
 
+# The same directory however each side is spelled: `--worktree .` (or a relative name this tree resolves to) makes the
+# invocation's scratch root and the kept worktree's one directory written two ways — `$LOOP_ROOT/.pi/tmp` against
+# `$LOOP_ROOT/./.pi/tmp` — and compared as strings they never match, so the same trees would be listed twice and their
+# bytes counted twice while `--apply` removes them once (issue #274, round-1 review). Empty and vanished paths are not
+# the same directory: a root that does not exist has no tree to list under it either.
+loop_same_dir() { # <a> <b> → 0 when both name the same existing directory
+  local a b
+  [ -n "${1:-}" ] && [ -n "${2:-}" ] || return 1
+  a=$(cd "$1" 2>/dev/null && pwd -P) || return 1
+  b=$(cd "$2" 2>/dev/null && pwd -P) || return 1
+  [ "$a" = "$b" ]
+}
+
 loop_conf_value() { # print one configuration key's value by name
   local key="$1"
   eval "printf '%s' \"\${$key:-}\""

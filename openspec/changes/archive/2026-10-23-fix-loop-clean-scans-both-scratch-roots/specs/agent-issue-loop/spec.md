@@ -48,3 +48,11 @@ and it SHALL NOT touch a worktree's tracked or untracked source.
 - **THEN** the report names that root as its own line, names the stale tree and the process, keeps a tree of that
   root younger than `LOOP_TMP_STALE_MINUTES`, and `--apply` removes the stale tree and ends the process
 - **Case**: `clean#reportsTheWorktreesScratchTreesToo`
+
+#### Scenario: `--worktree .` scans the one root it names once
+
+- **WHEN** `loop-clean --worktree .` is run from the project, so the tree it is pointed at is the one the invocation
+  resolves and the two scratch roots are one directory written two ways
+- **THEN** the report prints one heading for that root, lists each scratch tree once and counts its bytes once — a
+  tree is never listed or counted twice
+- **Case**: `clean#worktreeDotSweepsTheOneRootOnce`

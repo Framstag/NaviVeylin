@@ -30,7 +30,9 @@ is one line of `KEY="value"`, so it is read as data.
 **Chosen: one more word in the existing `for dir in …` glob, plus one heading line.** The loop body — the age
 gate, the process scan, the removal, the counts — is untouched, so the two roots get one rule and one tally by
 construction rather than by two code paths that could drift. The three mutation records that quote lines inside
-that body (`25.2`, `28.2`, `42.3`) keep matching, because only the glob line and the heading change.
+that body (`25.2`, `28.2`, `42.3`) keep applying because nothing inside the body changes: the lines they quote are
+not the glob line or the heading this change edits (`bash tools/loop-mutations.sh --check --files
+tools/loop/loop-clean.sh` → every selected record applies).
 
 **Eliminated: a second copy of the loop.** Two copies of an age gate and a process sweep are two chances to fix
 one and not the other; this item exists because one scanner had one root, and the fix is not a second scanner.
@@ -41,10 +43,12 @@ mode issue #264 records, where two invariants silently lost their falsification.
 
 ## D3 — the invocation's own root when the worktree is this tree
 
-**Chosen: scan it once.** `--worktree .` (or a name this tree resolves to) makes the two roots one; the second is
-dropped when the resolved paths are the same string, which is how this script already compares a `--worktree`
-argument with `$LOOP_ROOT`. Scanning twice would list every tree twice and count its bytes twice while removing it
-once — a report whose total is a lie.
+**Chosen: scan it once.** `--worktree .` (or a name this tree resolves to) makes the two roots one directory
+written two ways — `$LOOP_ROOT/.` against `$LOOP_ROOT` — so the second is dropped when the two **resolve** to the
+same directory (`loop_same_dir`, `tools/loop/lib.sh`), not when they are the same string: compared as written they
+never match for that spelling (round-1 review, `evidence/revert-check-round2-message.log`). Scanning twice would
+list every tree twice and count its bytes twice while `--apply` removes it once — a report whose total is a lie;
+`clean#worktreeDotSweepsTheOneRootOnce` asserts the one heading, the one entry and the one count.
 
 ## D4 — what the report says
 
@@ -58,7 +62,7 @@ unchanged.
 | risk | why it is bounded |
 |---|---|
 | `--apply` removes a tree a live suite is writing into | the trees of the second root carry the same age rule as the first: only trees older than `LOOP_TMP_STALE_MINUTES`, and a live suite touches its tree continuously |
-| a tree is listed and counted twice | the second root is dropped when it is the first (`--worktree .`), and the default worktree root is never the invocation's own |
+| a tree is listed and counted twice | the second root is dropped when it resolves to the first one's directory (`--worktree .`), and the default worktree root is never the invocation's own |
 | a foreign tree's configuration is executed | it is read with `sed`, never sourced |
 | the report ends a process it should not | the process test is unchanged and still scoped to trees the report is about to remove; a process inside a kept tree is never signalled |
 | the new heading breaks an existing reader | no case matches the heading text; the three existing `loop-clean` cases were re-run green (`evidence/affected-cases.log`) |
@@ -70,5 +74,26 @@ unchanged.
   whole `clean` group is green (`evidence/affected-cases.log`).
 - Falsification: mutation `53.1` (`tools/loop-mutations.sh --only 53.1`) takes the resolved second root out of
   the report and the new case goes red — `RED 53.1`, restore, green (`evidence/revert-check-53.1.log`).
-- The project's gate `./tools/loop/gate.sh` once for the change's pathspec, and `openspec validate --strict`.
+- The dedup: mutation `53.2` removes the directory comparison and `clean#worktreeDotSweepsTheOneRootOnce` goes red
+  on its first assertion (`evidence/revert-check-round2.log`, and the quoted assertion in
+  `evidence/revert-check-round2-message.log`).
+- The gate once, `./tools/loop/gate.sh`, exit 0 (`evidence/gate-round2.log`, tallies in
+  `evidence/gate-tallies-round-2/`), and the whole `clean` group green with the correction in place
+  (`evidence/clean-group-round2.log`, `all 8 cases passed`).
 - No compiled file is touched, so no Gradle task, no device check and no visual measurement is owed.
+
+## Correction after the round-1 review
+
+One BLOCKING finding: D3's dedup was a string comparison, and `--worktree .` resolves to `$LOOP_ROOT/.`, so the two
+roots never compared equal — that spelling printed two headings for one root and counted one tree's bytes twice while
+`--apply` removed it once (the flag `--help` advertises). The correction is the third option D3 had ruled out on
+paper but the code did not implement:
+
+- `loop_same_dir <a> <b>` (`tools/loop/lib.sh`) answers whether two paths name the same existing directory
+  (`cd … && pwd -P`), and `tools/loop/loop-clean.sh` uses it for the dedup instead of `[ "$worktree_tmp" =
+  "$LOOP_TMP_DIR" ]`.
+- `clean#worktreeDotSweepsTheOneRootOnce` pins the branch no case exercised: red on the pre-correction tree
+  (`evidence/red-round2.log`, `expected '1', got '2'` headings), green after (`evidence/green-round2.log`).
+- Record `53.2` is its falsification (`evidence/revert-check-round2.log`), and the quoted assertion it fails on is
+  in `evidence/revert-check-round2-message.log`.
+- The requirement gains the scenario that names that case, in the delta and the shipped spec alike.

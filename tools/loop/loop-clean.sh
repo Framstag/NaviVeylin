@@ -92,11 +92,12 @@ fi
 # Two roots, reported as two lines: this process resolved the first, and the kept worktree resolves the second —
 # the trees a gate run inside the worktree leaves are made there, so a report that looked only at its own root
 # answered "nothing to do" while they accumulated (issue #274). `--worktree .` names this tree, and then the two
-# roots are one: it is scanned once, so a tree is never listed or counted twice.
+# roots are one directory written two ways (`$LOOP_ROOT/.` against `$LOOP_ROOT`): it is scanned once, so a tree is
+# never listed or counted twice — which is a comparison of the directories, not of the strings (round-1 review).
 worktree_tmp=""
 if [ -d "$tree" ]; then
   worktree_tmp=$(loop_tmp_dir_for "$tree")
-  [ "$worktree_tmp" = "$LOOP_TMP_DIR" ] && worktree_tmp=""
+  loop_same_dir "$worktree_tmp" "$LOOP_TMP_DIR" && worktree_tmp=""
 fi
 say "loop-clean: self-test scratch trees under ${LOOP_TMP_DIR#"$LOOP_ROOT"/} older than ${stale_minutes} min"
 [ -z "$worktree_tmp" ] ||

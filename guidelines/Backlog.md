@@ -345,12 +345,14 @@ branch a worktree holds is a tree in use. The report names the two kinds apart, 
 says which are leftovers. Measured 2026-10-22: 53 local branches, 43 of them already merged into the base and
 none of them removed by anything.
 
-The report reads **two** scratch roots, never one: the root its own invocation resolves and the root the kept
-worktree resolves, because a suite creates its trees under the root of the tree it runs in and the gate runs the
-suite inside the worktree. The same age rule and the same process evidence apply to both, so a tree a live suite is
-writing into stays kept wherever it stands. Measured 2026-10-23: 305 MB in four `loop-selftest.*` trees and four
-`run.sh` poll loops under `.pi/worktrees/loop/.pi/tmp`, three of the trees past the threshold and three of the runs
-past their budget, and the report printed its heading with no entry at all.
+The report reads the scratch root its own invocation resolves **and** the root the kept worktree resolves, because a
+suite creates its trees under the root of the tree it runs in and the gate runs the suite inside the worktree. When
+`--worktree` names this tree the two are one directory spelled two ways, so it is scanned once — compared as written
+they never match, and the report would list each tree twice and count its bytes twice. The same age rule and the same
+process evidence apply to both, so a tree a live suite is writing into stays kept wherever it stands. Measured
+2026-10-23: 305 MB in four `loop-selftest.*` trees and four `run.sh` poll loops under `.pi/worktrees/loop/.pi/tmp`,
+three of the trees past the threshold and three of the runs past their budget, and the report printed its heading with
+no entry at all.
 
 What it does with an answer that arrived cut: the report a review round is decided from is the file the child's
 answer reached, and what reaches that file can be short. On 2026-10-20 an item's round-2 report stopped

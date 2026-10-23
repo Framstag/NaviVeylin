@@ -1,7 +1,7 @@
 # The `--help` range after the header grew
 #
 # The header comment gained three lines for the second scratch root, and `--help` prints a fixed range of it
-# (`sed -n '2,38p'`, was `2,35p'`): without the repair the help output stopped mid-sentence at the
+# (`sed -n '2,38p'`, was `2,35p`): without the repair the help output stopped mid-sentence at the
 # `--worktree` description and lost `--apply` and `--quiet`. No case reads the header, so the gate ran before
 # this one-line repair and its numbers stand for the tree it measured. Taken 2026-10-23T15:56:44Z:
 

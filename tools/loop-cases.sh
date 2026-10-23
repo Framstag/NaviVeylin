@@ -205,6 +205,7 @@ LOOP_SHELL_CASES=(
   'clean#interruptedSuiteEndsItsProcessGroup'
   'clean#reportsAndEndsAProcessLeftInAScratchTree'
   'clean#reportsTheWorktreesScratchTreesToo'
+  'clean#worktreeDotSweepsTheOneRootOnce'
   'clean#endsARunWhoseTreeIsAlreadyDeleted'
   'run#interruptedRunEndsTheChildItStarted'
   'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
@@ -411,6 +412,7 @@ loop_run_shell_case() {
     'clean#interruptedSuiteEndsItsProcessGroup') fn=case_clean_interruptedSuiteEndsItsProcessGroup ;;
     'clean#reportsAndEndsAProcessLeftInAScratchTree') fn=case_clean_reportsAndEndsAProcessLeftInAScratchTree ;;
     'clean#reportsTheWorktreesScratchTreesToo') fn=case_clean_reportsTheWorktreesScratchTreesToo ;;
+    'clean#worktreeDotSweepsTheOneRootOnce') fn=case_clean_worktreeDotSweepsTheOneRootOnce ;;
     'clean#endsARunWhoseTreeIsAlreadyDeleted') fn=case_clean_endsARunWhoseTreeIsAlreadyDeleted ;;
     'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
     'driver#aCaseThatAsksForNoCoreCompilesNothing') fn=case_driver_aCaseThatAsksForNoCoreCompilesNothing ;;
@@ -5290,6 +5292,26 @@ case_clean_reportsTheWorktreesScratchTreesToo() {
   for i in $(seq 1 50); do kill -0 "$stale" 2>/dev/null || { alive=0; break; }; sleep 0.1; done
   [ "$alive" -eq 0 ] || fail "the process inside the worktree's tree survived --apply"
   [ -f "$w/demo-fix.txt" ] || fail "the cleanup removed a source file from the worktree"
+}
+
+# `--worktree .` names the tree the report is run from, and then the invocation's scratch root and the one that tree
+# resolves are one directory written two ways (`$LOOP_ROOT/.` against `$LOOP_ROOT`). Compared as strings the two never
+# match, so the same trees would be listed twice and their bytes counted twice while `--apply` removes them once — a
+# report whose total is a lie (issue #274, round-1 review). `--apply` hides it (the second pass finds the tree already
+# gone), so the report is what this case reads: one heading, one entry, one count.
+case_clean_worktreeDotSweepsTheOneRootOnce() {
+  local d p out headings entries
+  d=$(scratch); p=$(new_project)
+  mkdir -p "$p/.pi/tmp/loop-selftest.stale"
+  printf 'a killed suite left this\n' > "$p/.pi/tmp/loop-selftest.stale/file"
+  touch -d '3 hours ago' "$p/.pi/tmp/loop-selftest.stale/file" "$p/.pi/tmp/loop-selftest.stale"
+
+  out=$(run_clean "$p" --worktree .) || fail "loop-clean --worktree . failed: $out"
+  headings=$(printf '%s\n' "$out" | grep -c 'self-test scratch trees under' || true)
+  assert_eq 1 "$headings" "--worktree . names this tree, so its one scratch root gets one heading"
+  entries=$(printf '%s\n' "$out" | grep -c 'would remove loop-selftest.stale' || true)
+  assert_eq 1 "$entries" "and the tree a killed suite left is listed once, not once per way of spelling the root"
+  assert_contains "$out" "would remove 1 path(s)" "and counted once"
 }
 
 # A run ended by a signal ends the child it started (issue #213). The child is put in a process group of its own

@@ -1,0 +1,4 @@
+  the reason the escalation carries names the path that appeared, so the decision is answerable: '?? demo-owned.txt' not found in: the worker wrote outside the worktree — the project's own tree changed while it ran
+FAIL run#childWriteOutsideTheWorktreeIsBlocked
+loop-selftest: 1 of 1 cases failed
+ended 1412011 — its working directory is inside loop-selftest.mzxH6j

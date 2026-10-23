@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one case this change rewrites, against the engine's own `tools/loop/run.sh` at
+     f2d27735818acd6d05095a9b331f4ee2bae1bb74 (2026-10-23T16:49Z, ~7 s wall clock): the case file from this
+     change, `tools/loop/run.sh` untouched at HEAD, then
+     `bash tools/loop-selftest.sh --case 'run#childWriteOutsideTheWorktreeIsBlocked'` — FAIL, exit 1, because the
+     transcript carried the constant sentence and neither the status line the child's write produced nor the
+     process the child left in the project. A single-case run prints no suite summary line, so the tally below is
+     one case and the one failure; the transcript is evidence/red-HEAD.log. -->
+<testsuite name="loop-selftest --case run#childWriteOutsideTheWorktreeIsBlocked" tests="1" failures="1" errors="0">
+  <testcase name="run#childWriteOutsideTheWorktreeIsBlocked">
+    <failure>the reason the escalation carries names the path that appeared, so the decision is answerable: '?? demo-owned.txt' not found in: the worker wrote outside the worktree — the project's own tree changed while it ran</failure>
+  </testcase>
+  <system-out>FAIL run#childWriteOutsideTheWorktreeIsBlocked</system-out>
+</testsuite>

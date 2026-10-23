@@ -302,6 +302,11 @@ MUTATIONS=(
   # paid for it (issue #261). It is the one call site a selection cannot skip: the driver reaches it before it knows
   # which cases it runs, so the poisoned `javac` the case installs is invoked whatever the selection is.
   '48.1@-@../loop-selftest.sh@driver#aCaseThatAsksForNoCoreCompilesNothing@the compile at the first case that asks for it, not above the case list (issue #261)@s|^source "$root/tools/loop-cases.sh"$|core_ensure\nsource "$root/tools/loop-cases.sh"|'
+  # 49.1 is the other half of 48.1: the marker is what makes the compile *once per suite* rather than once per
+  # asking case. Without it a suite of two asking cases is still green — each case compiles again and is handed a
+  # class path — so the invariant is invisible to an assertion and only a count catches it: the case installs a
+  # `javac` that records every invocation, and the mutation makes it record two.
+  '49.1@-@../loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^  if \[ ! -f "$selftest_core_marker" \]; then$|  if true; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

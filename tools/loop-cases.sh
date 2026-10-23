@@ -13,6 +13,11 @@
 #   LOOP_TMP             a scratch directory under the gitignored `.pi/tmp/`
 # and puts the stub `pi` and the stub `gh` first on PATH.
 #
+# The driver compiles nothing until a case asks for it (issue #261), so **a case that starts the engine or the issue
+# tooling calls `core_ensure` first** — `run_loop` does it for the cases that go through it. A case that reaches the
+# tooling without asking is served by the tooling's own on-demand compile, at the price of a second compile rather
+# than of a red suite.
+#
 # A case runs in a subshell; it prints nothing on success and a reason on failure, exiting non-zero.
 set -uo pipefail
 
@@ -198,6 +203,7 @@ LOOP_SHELL_CASES=(
   'usage#noUnguardedValueFlagRemains'
   'driver#aCaseThatAsksForNoCoreCompilesNothing'
   'driver#aCaseThatAsksForTheCoreGetsItOrRefuses'
+  'driver#theCoreIsCompiledOncePerSuite'
 )
 
 loop_shell_cases() {
@@ -389,6 +395,7 @@ loop_run_shell_case() {
     'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
     'driver#aCaseThatAsksForNoCoreCompilesNothing') fn=case_driver_aCaseThatAsksForNoCoreCompilesNothing ;;
     'driver#aCaseThatAsksForTheCoreGetsItOrRefuses') fn=case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses ;;
+    'driver#theCoreIsCompiledOncePerSuite') fn=case_driver_theCoreIsCompiledOncePerSuite ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -5343,7 +5350,10 @@ CASES
   assert_eq "0" "$status" "a case that asks for the core is handed the compiled class path: $out"
   assert_contains "$out" "PASS stub#asksForTheCore" "and the case is the one that passed: $out"
 
-  # A scratch root of its own, so the classes the first half compiled are not what this half runs on.
+  # A scratch root of its own, so the classes the first half compiled are not what this half runs on. The broken
+  # configuration is a *second* file: writing it into `$conf` would truncate the file `sed` is reading, and the
+  # nested driver would then be handed an empty one (its isolation held by `lib.sh`'s fallback, not by this case).
+  broken_conf="$d/loop-broken.conf"
   bin="$d/bin"; mkdir -p "$bin" "$tmp/broken"
   cat > "$bin/javac" <<'SHIM'
 #!/usr/bin/env bash
@@ -5351,9 +5361,64 @@ echo "javac: this probe does not compile anything" >&2
 exit 1
 SHIM
   chmod +x "$bin/javac"
-  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp/broken\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
-  out=$( ( unset ISSUES_CORE_CLASSES; PATH="$bin:$PATH" bash "$nested/tools/loop-selftest.sh" --case 'stub#asksForTheCore' ) 2>&1); status=$?
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp/broken\"|" "$conf" > "$broken_conf" || fail "could not write the loop configuration"
+  out=$( ( unset ISSUES_CORE_CLASSES; LOOP_CONF="$broken_conf" PATH="$bin:$PATH" bash "$nested/tools/loop-selftest.sh" --case 'stub#asksForTheCore' ) 2>&1); status=$?
   assert_eq "1" "$status" "a case that asks for a core that cannot compile fails the suite: $out"
   assert_contains "$out" "the issue tooling's Java core does not compile" "and the refusal names the cause: $out"
+  return 0
+}
+
+# The compile is once per *suite*, not once per asking case: the marker in the suite's own scratch tree is what a
+# later asking case reads, because a case runs in a subshell of the driver and a variable that subshell exports
+# does not come back to it. A suite with no marker is still green — every asking case would simply compile again —
+# so the number of invocations has to be counted: `javac` on PATH is a probe that records each invocation, writes
+# the class file the two stub cases look for, and exits 0.
+case_driver_theCoreIsCompiledOncePerSuite() {
+  local d nested tmp bin log out status conf invocations
+  d=$(scratch); nested="$d/nested"; tmp="$d/tmp"; bin="$d/bin"; log="$d/javac.log"
+  mkdir -p "$nested/tools" "$tmp" "$bin"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  cat > "$nested/tools/loop-cases.sh" <<'CASES'
+LOOP_SHELL_CASES=('stub#asksFirst' 'stub#asksSecond')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  declare -F core_ensure >/dev/null || {
+    echo "the driver hands a case no way to ask for the core" >&2
+    exit 1
+  }
+  core_ensure
+  [ -f "${ISSUES_CORE_CLASSES:-/nonexistent}/Cases.class" ] || {
+    echo "the driver handed the case $1 no compiled class path: '${ISSUES_CORE_CLASSES:-}'" >&2
+    exit 1
+  }
+}
+CASES
+  cat > "$bin/javac" <<SHIM
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$log"
+dir=""
+while [ \$# -gt 0 ]; do
+  if [ "\$1" = "-d" ]; then dir="\$2"; shift; fi
+  shift
+done
+[ -n "\$dir" ] || { echo "javac: this probe needs a -d directory" >&2; exit 1; }
+mkdir -p "\$dir" && : > "\$dir/Cases.class"
+SHIM
+  chmod +x "$bin/javac"
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+
+  # Both stub cases are selected — the driver runs its whole two-case suite, which is the shape the invariant is
+  # about. `ISSUES_CORE_CLASSES` is unset so what they are handed is the nested driver's own compile, and the
+  # count is read from the probe's log rather than from anything the driver prints about itself.
+  out=$( ( unset ISSUES_CORE_CLASSES; LOOP_CONF="$conf" PATH="$bin:$PATH" bash "$nested/tools/loop-selftest.sh" ) 2>&1); status=$?
+  assert_eq "0" "$status" "a suite whose selection is two asking cases runs: $out"
+  assert_contains "$out" "PASS stub#asksFirst" "and the first asking case ran, handed the compiled class path: $out"
+  assert_contains "$out" "PASS stub#asksSecond" "and so did the second: $out"
+  assert_contains "$out" "loop-selftest: all 2 cases passed" "and the suite reported both of them: $out"
+  invocations=$(wc -l < "$log" 2>/dev/null | tr -d ' ')
+  assert_eq "1" "${invocations:-0}" "the core is compiled once for the suite, not once per asking case (javac ran ${invocations:-0} times, recorded in $log)"
   return 0
 }

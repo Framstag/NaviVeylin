@@ -298,6 +298,14 @@ MUTATIONS=(
   # none executed. The mutation puts the fabrication back beside the error count, so the case that names it sees the
   # phantom case and the phantom failure both.
   '47.1@-@tools/loop/gate.sh@gate#aFailingSuiteWithNoSummaryInventsNoTest@the error count that keeps a suite which reported no summary from being tallied as one failing test (issue #268)@s|^  err=0$|  err=0; [ "$rc" -eq 0 ] \|\| { n=1; f=1; }|'
+  # 49.x — the suite's own selection and its record of what it cost. Measured 2026-10-23: one case under
+  # `tools/loop/**` owes the whole self-test (723 s for 163 cases, serial) and the gate said nothing about it, so an
+  # item that touched two files paid 723 s on every iteration (#261 paid eight) and the twelve minutes could only
+  # be established with a stopwatch and a `ps`. One mutation per invariant: the group filter, the refusal of a
+  # filter that names nothing, the duration in the gate's record.
+  '49.1@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the group filter that keeps a suite from running the cases of another group (2026-10-23)@s|^  if \[ -n "\$only_group" \] && ! matches "\$case_name" "\$only_group#\*"; then continue; fi$|  : # the mutation runs every case the suite declares|'
+  '49.2@-@../loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23)@s|^  printf .%s. "\$n"$|  printf .%s. 1|'
+  '49.3@-@tools/loop/gate.sh@gate#theSummaryNamesWhatEachSuiteCost@the wall clock the gate records beside the suite that spent it (2026-10-23)@s|^  took=\$((SECONDS - t0))$|  took=0|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

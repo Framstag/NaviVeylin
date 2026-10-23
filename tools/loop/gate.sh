@@ -14,9 +14,12 @@
 #   LOOP_GATE_COMPILED_PATTERNS  the globs that make a path compiled
 #   LOOP_GATE_SUITES             `<glob>|<command>` pairs, `;`-separated: the suites a path pulls in
 #
-# Every suite that ran contributes the numbers of its own summary line to one record, and each writes a
-# JUnit-shaped tally under the tally directory, so the run's own check — "a green claim has a test result in the
-# tree" — reads what actually executed. The tally is derived from the suite's summary, never invented.
+# Every suite that ran contributes the numbers of its own summary line to one record, and its own wall clock
+# beside them: the summary line names each suite's seconds, and the tally carries the same number as its `time`
+# attribute, so the gate reports what an iteration cost instead of leaving it to a stopwatch and a `ps`.
+# Each writes a JUnit-shaped tally under the tally directory, so the run's own check — "a green claim has a test
+# result in the tree" — reads what actually executed. The tally is derived from the suite's summary, never
+# invented.
 #
 # Exit: 0 everything that ran passed (or nothing was owed); 1 something failed, and the line names which; 2 usage
 # or a base this tree cannot resolve.
@@ -104,7 +107,7 @@ cases=0
 failures=0
 errors=0
 failed_suites=""
-ran=""
+ran_entries=""
 # A suite's output is streamed, not replayed: `tee` writes it to the console as the suite writes it, and the
 # file it tees into is what the summary is parsed from — one observation feeds the log and the tally. Measured
 # 2026-10-23 (issue #269): `out=$($cmd 2>&1)` held the whole output until the command exited, so a gate that ran
@@ -115,8 +118,12 @@ stream=$(mktemp "${TMPDIR:-/tmp}/loop-gate-output.XXXXXX") \
 trap 'rm -f "$stream"' EXIT
 while IFS= read -r cmd; do
   [ -n "$cmd" ] || continue
-  ran="$ran${ran:+, }$cmd"
   say "gate: $cmd"
+  # A suite's wall clock is recorded, not guessed: without it neither an operator nor a worker can tell a suite
+  # that costs a quarter of an hour from one that costs three seconds, and an iteration that has to be made
+  # cheaper cannot say which suite it is paying for. `SECONDS` is the shell's own counter, integer and monotonic
+  # enough for a wall clock of this size.
+  t0=$SECONDS
   # `--quiet` keeps the console for the verdict, but the file is written either way: the tally is read from it.
   # The status is the suite's own, never the stream's (`pipefail` would answer that too, but only for the last
   # command of the pipeline, and this one names the answer explicitly).
@@ -128,6 +135,9 @@ while IFS= read -r cmd; do
     rc=${PIPESTATUS[0]}
   fi
   out=$(cat "$stream")
+  took=$((SECONDS - t0))
+  say "gate: $cmd — ${took}s"
+  ran_entries="${ran_entries}${ran_entries:+, }$cmd ${took}s"
   [ "$rc" -eq 0 ] || failed_suites="$failed_suites $cmd"
   # The suite's own summary line: `<name>: all N cases passed` or `<name>: M of N cases failed`.
   n=$(printf '%s\n' "$out" | sed -n 's/.*all \([0-9][0-9]*\) cases passed.*/\1/p' | tail -1)
@@ -154,15 +164,16 @@ while IFS= read -r cmd; do
   if [ -n "$tally_root" ]; then
     mkdir -p "$tally_root" 2>/dev/null || true
     name=$(printf '%s' "$cmd" | tr '/ ' '__' | cut -c1-80)
-    printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="%s">\n  <system-out>%s</system-out>\n</testsuite>\n' \
-      "$cmd" "$n" "$f" "$err" "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="%s" time="%s">\n  <system-out>%s</system-out>\n</testsuite>\n' \
+      "$cmd" "$n" "$f" "$err" "$took" \
+      "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
       > "$tally_root/$name.xml" 2>/dev/null || true
   fi
 done <<< "$owed"
 
 if [ -n "$failed_suites" ]; then
-  printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s\n' "$cases" "$failures" "$errors" "$ran" "$failed_suites"
+  printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s\n' "$cases" "$failures" "$errors" "$ran_entries" "$failed_suites"
   exit 1
 fi
-printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s)\n' "$cases" "$failures" "$errors" "$ran"
+printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s)\n' "$cases" "$failures" "$errors" "$ran_entries"
 exit 0

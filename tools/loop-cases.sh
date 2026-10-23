@@ -100,6 +100,10 @@ LOOP_SHELL_CASES=(
   'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
   'gate#aFailingSuiteIsReadFromTheSameStream'
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
+  'gate#theSummaryNamesWhatEachSuiteCost'
+  'driver#aGroupFilterRunsOnlyItsOwnCases'
+  'driver#aFilterThatNamesNoCaseRefuses'
+  'driver#theListIsFilteredTheSameWayASuiteRunIs'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
   'measure#namesTheOwedChecksInOneBlock'
@@ -291,6 +295,10 @@ loop_run_shell_case() {
     'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
+    'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
+    'driver#aGroupFilterRunsOnlyItsOwnCases') fn=case_driver_aGroupFilterRunsOnlyItsOwnCases ;;
+    'driver#aFilterThatNamesNoCaseRefuses') fn=case_driver_aFilterThatNamesNoCaseRefuses ;;
+    'driver#theListIsFilteredTheSameWayASuiteRunIs') fn=case_driver_theListIsFilteredTheSameWayASuiteRunIs ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
@@ -2581,6 +2589,47 @@ SUITE
     "the tally the run's own check reads invents no test: $(cat "$d"/tally/*.xml 2>/dev/null)"
   assert_not_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="1"' \
     "no phantom case is recorded where none executed"
+  return 0
+}
+
+# The gate reports what an iteration cost (this change): a suite's wall clock used to be invisible, so "the
+# self-test costs twelve minutes" could only be established with a stopwatch and a `ps` over a running process,
+# and an iteration that has to be made cheaper could not say which suite it was paying for. Each suite's seconds
+# are printed beside its own command, carried in the summary the run records as its gate claim, and written into
+# the tally the run's own check reads.
+case_gate_theSummaryNamesWhatEachSuiteCost() {
+  local d p conf base out tally seconds
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # A suite whose own wall clock is known to within a second: the gate's number has to carry it, and the number
+  # is read out of the run rather than stated in the case — a hard-coded `2s` would pass on a suite that never
+  # slept, which is the one thing this case must not do.
+  cat > "$d/suite.sh" <<'SUITE'
+sleep 2
+printf 'notes: all 1 cases passed\n'
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 ) \
+    || fail "the gate failed: $out"
+  assert_matches "$out" "gate: bash $d/suite\.sh — [0-9]+s" \
+    "the suite's own line names how long it ran: $out"
+  seconds=$(printf '%s\n' "$out" | sed -n 's/.*suite\.sh \([0-9][0-9]*\)s).*/\1/p' | tail -1)
+  [ -n "$seconds" ] || fail "the gate's summary carries no duration beside the command: $out"
+  [ "$seconds" -ge 2 ] || fail "the duration is below the suite's own sleep: ${seconds}s"
+  tally=$(cat "$d"/tally/*.xml 2>/dev/null)
+  assert_contains "$tally" "time=\"$seconds\"" \
+    "and the tally the run's own check reads carries the same number: $tally"
   return 0
 }
 
@@ -5266,5 +5315,82 @@ case_gate_anEnginePathOwesTheRecordCheck() {
   plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
   assert_contains "$plan" "loop-mutations.sh --check" \
     "a path under the engine owes the record check, so a stale record fails the gate: $plan"
+  return 0
+}
+
+# ------------------------------------------------------- cases: the suite's own selection
+
+# A suite that selected nothing and reported success is the one answer the driver must not give (this change):
+# `--group` names a group, `--case` takes a name or a pattern, and a filter that names no case is refused with
+# exit 2 rather than running an empty suite that exits 0. The cases below drive a *copy* of the driver over a
+# declared set of three cases in two groups, one of which fails if it is ever executed — so a selection that
+# leaks is a red case, never a claim about one.
+driver_selection_probe() { # <dir> → a nested suite whose cases record themselves and whose beta case fails
+  local d="$1" nested="$1/nested"
+  mkdir -p "$nested/tools"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$nested/tools/loop-selftest.sh" \
+    || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  # The cases file is the driver's only input about the set: every case records that it ran, and the two the
+  # group filter must never reach fail loudly.
+  cat > "$nested/tools/loop-cases.sh" <<CASES
+LOOP_SHELL_CASES=('alpha#one' 'alpha#two' 'beta#three')
+loop_shell_cases() { printf '%s\n' "\${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  printf '%s\n' "\$1" >> "$d/ran"
+  case "\$1" in beta#*) printf 'the selection leaked into beta\n'; return 1 ;; esac
+  return 0
+}
+CASES
+}
+
+# `--group` runs that group's cases and no other group's, and `--case` with a pattern selects the same set: the
+# two filters are one mechanism, so a change that narrows an iteration with either pays for what it selected.
+case_driver_aGroupFilterRunsOnlyItsOwnCases() {
+  local d nested out rc
+  d=$(scratch); driver_selection_probe "$d"; nested="$d/nested"
+  out=$(bash "$nested/tools/loop-selftest.sh" --group alpha 2>&1); rc=$?
+  assert_eq "0" "$rc" "the group's two cases pass: $out"
+  assert_eq "$(printf 'alpha#one\nalpha#two')" "$(cat "$d/ran" 2>/dev/null)" \
+    "exactly the group's cases ran, and no case of the other group: $(cat "$d/ran" 2>/dev/null)"
+  : > "$d/ran"
+  out=$(bash "$nested/tools/loop-selftest.sh" --case 'alpha#*' 2>&1); rc=$?
+  assert_eq "0" "$rc" "the same selection by pattern passes: $out"
+  assert_eq "$(printf 'alpha#one\nalpha#two')" "$(cat "$d/ran" 2>/dev/null)" \
+    "the pattern selected the same two cases: $(cat "$d/ran" 2>/dev/null)"
+  return 0
+}
+
+# A filter that names nothing is a refusal, and it is refused before a case runs: a caller who mistyped a group
+# would otherwise read exit 0 as "the cases I asked for all passed" — the same rule `tools/loop-mutations.sh`
+# applies to a file filter that names no record.
+case_driver_aFilterThatNamesNoCaseRefuses() {
+  local d nested out rc
+  d=$(scratch); driver_selection_probe "$d"; nested="$d/nested"
+  out=$(bash "$nested/tools/loop-selftest.sh" --group nope 2>&1); rc=$?
+  assert_eq "2" "$rc" "an unknown group is a usage refusal: $out"
+  assert_contains "$out" "no case carries the group: nope" "and it names the group it could not find: $out"
+  [ ! -e "$d/ran" ] || fail "a refused group still ran cases: $(cat "$d/ran")"
+  out=$(bash "$nested/tools/loop-selftest.sh" --case 'nope#*' 2>&1); rc=$?
+  assert_eq "2" "$rc" "a pattern that names no case is a usage refusal: $out"
+  assert_contains "$out" "no such case: nope#*" "and it names the pattern: $out"
+  [ ! -e "$d/ran" ] || fail "a refused pattern still ran cases: $(cat "$d/ran")"
+  return 0
+}
+
+# The list answers the same question the run does (this change): `--list --group` prints what that group would
+# run, so a worker can size an iteration before paying for it, and an unfiltered list still prints the whole
+# declared set.
+case_driver_theListIsFilteredTheSameWayASuiteRunIs() {
+  local d nested out
+  d=$(scratch); driver_selection_probe "$d"; nested="$d/nested"
+  out=$(bash "$nested/tools/loop-selftest.sh" --list --group alpha 2>&1)
+  assert_eq "$(printf 'alpha#one\nalpha#two')" "$out" \
+    "the list is the group's cases and only them: $out"
+  out=$(bash "$nested/tools/loop-selftest.sh" --list 2>&1)
+  assert_eq "$(printf 'alpha#one\nalpha#two\nbeta#three')" "$out" \
+    "and an unfiltered list is still the whole declared set: $out"
+  [ ! -e "$d/ran" ] || fail "listing runs no case, and one ran: $(cat "$d/ran")"
   return 0
 }

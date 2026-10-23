@@ -376,7 +376,8 @@ workstation with it.
 | Build AAOS flavor only | `./gradlew :app:assembleAutomotiveDebug` |
 | Build single ABI (fastest iteration) | `./gradlew :app:assembleMobileDebug -Pandroid.injected.build.abi=arm64-v8a` |
 | Run all unit tests | `./gradlew test` |
-| Run all unit tests — the **full gate** (all modules, both `:app` flavors, forced) | `./gradlew test -PforceTests --no-build-cache` |
+| Run all unit tests — the **full gate** (all modules, both `:app` flavors, forced) | `./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache` |
+| Run the full gate in a tree with no vcpkg checkout | the same line: `-PjvmTestsOnly` keeps the SBOM and licence chain out of the test graph, so the suite configures without `vcpkg/` (issue #270; the refusal that keeps the property out of a packaging invocation is `guidelines/Build.md` §9) |
 | Run the gate a change owes, by its own pathspec (what the loop's gate command names) | `tools/loop/gate.sh --base <sha>` — the Gradle gate when a compiled path changed, else the shell suite that covers the touched paths; `--plan` prints the selection without running it |
 | Run app unit tests only (one flavor — there is no `:app:testDebugUnitTest`) | `./gradlew :app:testMobileDebugUnitTest` (or `:app:testAutomotiveDebugUnitTest`) |
 | Run single test class | `./gradlew :app:testMobileDebugUnitTest --tests "<FQCN>"` |
@@ -482,6 +483,13 @@ split.
   have its outputs restored from the cache rather than executed. Keep `--rerun-tasks` for the completion
   gate and for anything whose inputs the change touched; the gate record in §2c shows what each phase
   costs.
+- **`-PjvmTestsOnly` joins it** (change `fix-jvm-test-run-needs-no-native-tree`, spec `build-sbom` — "A
+  JVM-only test run does not require the native tree"): the licence inventory is a variant asset source
+  (§9), so without the property the unit-test graph carries `generateLicenseAssets` → `generateSbom` →
+  `mergeNativeSbom`, and a tree with no vcpkg checkout could not configure the suite at all — 26 s of
+  configuration failure, no test task reached its action (issue #270). The documented gate, `loop.conf`'s
+  `LOOP_GATE_COMPILED_CMD` and the CI unit-test step pass it; the invocation that packages must not, and
+  is refused by name.
 
 ## 4c. Native scope, pruned configurations and a restored mutation
 
@@ -1275,6 +1283,23 @@ instances in the SourceSet API, and a single shared generated root leaks one
 variant's inventory into another's APK (the automotive merged assets had picked
 up `licenses/mobile/debug/`). The app reads `licenses/dependencies.json` from its
 own assets — no shared directory, no runtime lookup by flavor.
+
+**A JVM-only test run carries no inventory** (`-PjvmTestsOnly`, change
+`fix-jvm-test-run-needs-no-native-tree`, spec `build-sbom`). Because the inventory is a variant asset
+source and the unit-test tasks package the variant's assets, the test graph used to carry
+`generateLicenseAssets` → `generateSbom` → `mergeNativeSbom`: a tree without a vcpkg checkout could not
+configure a single test, and the native section's port list was read while `mergeNativeSbom` was being
+*created*. The property leaves the asset source unwired — the chain drops out of the test graph — and the
+vcpkg status file is an input only when it is there, with the port list a `Provider` read when the task
+runs, so a missing tree fails `mergeNativeSbom` naming the file instead of failing the configuration of
+every graph that includes it. `mergeNativeSbom` still refuses to produce an SBOM without that tree, and
+"Missing native SBOM data fails generation" is unchanged. The property is **refused** when the same
+invocation packages or checks the policy (`assemble*`, `bundle*`, `release`, `build`, `install*`,
+`generateSbom*`, `mergeNativeSbom`, `generateLicenseAssets*`, `checkLicensePolicy*`): an artefact built
+that way would ship without its `licenses/` assets, which is the guarantee this section states. The
+strict path is the CI steps that assemble the APK, generate the SBOM and run the policy gate with the
+vcpkg tree present; the assertion is the shell suite `tools/check-jvm-test-graph-selftest.sh`, three
+`--dry-run` configurations.
 
 **buildSrc.** `./gradlew -p buildSrc test` runs the license suite (52 tests); the
 `build` task Gradle runs on every invocation includes them, and unchanged inputs

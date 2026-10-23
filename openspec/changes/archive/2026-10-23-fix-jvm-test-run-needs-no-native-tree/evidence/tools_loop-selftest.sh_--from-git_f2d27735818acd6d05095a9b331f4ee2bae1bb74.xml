@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git f2d27735818acd6d05095a9b331f4ee2bae1bb74" tests="202" failures="1" errors="0" time="1061">
+  <system-out>loop-selftest: 1 of 202 cases failed ended 1220043 — its working directory is inside loop-selftest.O1Tke6 ended 3765590 — its working directory is inside loop-selftest.O1Tke6</system-out>
+</testsuite>

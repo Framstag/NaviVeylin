@@ -53,6 +53,25 @@ tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
 
 say() { [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
 
+# The profile this gate read is the rule its numbers attest, so the log names it (issue #277): the gate of a change
+# whose delta edits `loop.conf` must read the profile of the tree it is measuring, and a profile read from outside
+# that tree is named as pinned, beside the one this engine ships, instead of leaving a reader to recognise it by its
+# numbers. `--plan` prints the commands a delta owes and nothing else — `measure.sh` reads them as that list — so the
+# pin is written only when the gate is going to run something.
+profile_beside_engine() { # the resolved profile is the one this engine ships
+  local resolved engine
+  resolved=$(cd "$(dirname "$LOOP_CONF_PATH")" 2>/dev/null && pwd -P) || return 1
+  engine=$(cd "$here" 2>/dev/null && pwd -P) || return 1
+  [ "$resolved/$(basename "$LOOP_CONF_PATH")" = "$engine/loop.conf" ]
+}
+if [ "$plan" -eq 0 ]; then
+  if profile_beside_engine; then
+    say "LOOP-GATE-PROFILE: $LOOP_CONF_PATH"
+  else
+    say "LOOP-GATE-PROFILE: $LOOP_CONF_PATH — pinned; not the profile beside this engine ($here/loop.conf)"
+  fi
+fi
+
 # The paths the change touches: what it committed since the base, plus whatever is still uncommitted — a gate
 # run before the run's own commit measures the same work. A base git cannot answer is named, never treated as
 # "no change": a range that cannot be resolved is the one thing a gate must not read as green.

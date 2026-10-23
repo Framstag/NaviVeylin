@@ -112,6 +112,8 @@ LOOP_SHELL_CASES=(
   'driver#theListIsFilteredTheSameWayASuiteRunIs'
   'gate#anArchivedArtefactOwesNoBuild'
   'gate#aModuleResourceOwesTheBuild'
+  'gate#theGateNamesTheProfileItRead'
+  'gate#theChildReadsTheProfileOfTheTreeItWorksIn'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
   'measure#namesTheOwedChecksInOneBlock'
@@ -313,6 +315,8 @@ loop_run_shell_case() {
     'driver#theListIsFilteredTheSameWayASuiteRunIs') fn=case_driver_theListIsFilteredTheSameWayASuiteRunIs ;;
     'gate#anArchivedArtefactOwesNoBuild') fn=case_gate_anArchivedArtefactOwesNoBuild ;;
     'gate#aModuleResourceOwesTheBuild') fn=case_gate_aModuleResourceOwesTheBuild ;;
+    'gate#theGateNamesTheProfileItRead') fn=case_gate_theGateNamesTheProfileItRead ;;
+    'gate#theChildReadsTheProfileOfTheTreeItWorksIn') fn=case_gate_theChildReadsTheProfileOfTheTreeItWorksIn ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
@@ -5681,5 +5685,67 @@ case_gate_aModuleResourceOwesTheBuild() {
   base=$(git -C "$p" rev-parse HEAD~1)
   plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
   assert_contains "$plan" "$compiled" "a module's lint configuration still owes the build: $plan"
+  return 0
+}
+
+# The gate's log names the profile it read (issue #277). A gate measures a rule, and its log said nothing about
+# which one: the round-3 log of #273 carried no pin and named the compiled command first, while the very tree it
+# was gating owed five shell checks and no build, so only a reader who knew the replaced profile by heart could
+# tell the numbers came from it. The pin is a line of the log, and a profile read from outside the tree the engine
+# sits in is named as pinned beside the one the engine ships.
+case_gate_theGateNamesTheProfileItRead() {
+  local d p conf base out
+  d=$(scratch); p=$(new_project)
+  conf="$d/pinned.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  base=$(git -C "$p" rev-parse HEAD)
+
+  # A profile pinned from outside the engine: the log names that file and says it is not the engine's own.
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  assert_contains "$out" "LOOP-GATE-PROFILE: $conf" "the log names the profile the gate read: $out"
+  assert_contains "$out" "not the profile beside this engine" \
+    "and says a pinned profile is not the one this engine ships: $out"
+
+  # The profile beside the engine is the tree whose paths the gate measures, and naming it is not a pin.
+  out=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  assert_contains "$out" "LOOP-GATE-PROFILE: $LOOP_ENGINE/loop.conf" \
+    "a gate reads the profile beside its own engine by default: $out"
+  assert_not_contains "$out" "pinned" "and does not call its own profile a pinned one: $out"
+  return 0
+}
+
+# A child works in the worktree and runs the worktree's own engine, so the profile its gate reads is the one beside
+# that engine — never the run's (issue #277). Measured 2026-10-23 finishing #273: the run exported the profile of the
+# project it was started in, so an item whose delta rewrote `LOOP_GATE_COMPILED_PATTERNS` was gated by the rule it was
+# replacing (its round-3 log owed the build where the tree's own profile owed five shell checks and no build), the
+# log could not say so, and the repair was a hand-pinned re-run.
+case_gate_theChildReadsTheProfileOfTheTreeItWorksIn() {
+  local d p log pin
+  d=$(scratch); p=$(new_project)
+  # The fixture's worktree carries an engine of its own, the way the project's does: a profile beside it, and the
+  # library every one of the engine's readers shares.
+  mkdir -p "$p/tools/loop" "$p/tools/issues"
+  cp -r "$LOOP_ENGINE"/. "$p/tools/loop/" || fail "could not copy the engine into the throwaway project"
+  cp "$LOOP_PROJECT_ROOT/tools/issues/lib.sh" "$p/tools/issues/lib.sh" \
+    || fail "could not copy the issue tooling's library into the throwaway project"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'an engine of its own' >/dev/null 2>&1 \
+    || fail "could not commit the engine in the throwaway repository"
+
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  export LOOP_CHILD_PROFILE_LOG="$d/child.log"; : > "$LOOP_CHILD_PROFILE_LOG"
+  # The worker's own two facts: the profile the run handed its environment, and the profile the gate of the tree it
+  # works in resolves when it runs there. Nothing else of the item's action matters to this case.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'if [ "$1" = worker-prompt.md ]; then
+       printf "handed=%s\n" "${LOOP_CONF:-<none>}" >> "$LOOP_CHILD_PROFILE_LOG"
+       bash ./tools/loop/gate.sh --base "$(git rev-parse HEAD)" >> "$LOOP_CHILD_PROFILE_LOG" 2>&1 || true
+     fi'
+  run_loop "$p" --items 1 --minutes 90 >/dev/null || fail "the run failed"
+
+  log=$(cat "$LOOP_CHILD_PROFILE_LOG")
+  pin="$p/.pi/worktrees/loop/tools/loop/loop.conf"
+  assert_contains "$log" "LOOP-GATE-PROFILE: $pin" \
+    "the gate of the tree the child works in reads the profile beside that tree's engine: $log"
+  assert_contains "$log" "handed=<none>" "and the run hands the child no profile of its own: $log"
   return 0
 }

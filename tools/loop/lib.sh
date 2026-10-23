@@ -36,6 +36,10 @@ LOOP_ISSUES_DIR="$LOOP_DIR/../issues"
 source "$LOOP_ISSUES_DIR/lib.sh"
 
 LOOP_ROOT=""
+# The configuration file `loop_resolve` actually sourced. It is a global because the file a gate read is the rule
+# its numbers attest, so the process that ran it names it in its own log (issue #277). Empty until `loop_resolve`
+# has run, and every engine script resolves before it reads a key.
+LOOP_CONF_PATH=""
 # `LOOP_STATE_FILE` and `LOOP_WORKTREE` are the self-test's configuration seam (and the only way to run
 # two loops in one tree deliberately). An inherited value is preserved, never cleared: assigning an
 # empty string here would drop the environment's answer.
@@ -115,6 +119,7 @@ loop_resolve() {
   }
   local conf="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
   [ -f "$conf" ] || loop_die "no configuration at $conf — the loop reads its defaults and its project keys from loop.conf"
+  LOOP_CONF_PATH="$conf"
   # shellcheck source=tools/loop/loop.conf
   source "$conf"
   # An inherited run identity is honoured only inside the tree this process resolved; `loop_path_outside_tree`

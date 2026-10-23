@@ -292,6 +292,15 @@ records the build as well as `find` and `grep -r` do. Measured 2026-10-23 (issue
 leading `.`, and the round-3 reviewer of #273 counted five files where the directory held six, refusing a round on
 a tally that was present.
 
+A gate reads the profile beside its own engine — the tree whose paths it measures — and its log says which file that
+was: `LOOP-GATE-PROFILE: <path>` is the first line of a gate that runs something, and a profile read from outside
+that tree is named as pinned beside the one the engine ships. The run resolves its own configuration and keeps it
+to itself, because a child works in the worktree and runs that tree's own engine. Measured 2026-10-23 finishing
+#273 (issue #277): the run exported the profile of the project it was started in, so a change whose delta rewrote
+`LOOP_GATE_COMPILED_PATTERNS` was gated by the rule it was replacing — the log named the compiled command first
+where the tree's own profile owed five shell checks and no build, and it carried no pin at all, so the round-3
+reviewer could only refuse the round and the repair was a hand-pinned re-run.
+
 What it does with a child that never started: a status alone cannot tell a child whose argv the environment
 refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
 that ended non-zero, wrote no verdict and left the tree at the base commit never read the item. That is the

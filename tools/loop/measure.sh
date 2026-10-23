@@ -42,6 +42,11 @@ loop_resolve
 say() { printf 'LOOP-MEASURE %s\n' "$*"; }
 item() { printf 'LOOP-MEASURE-%s %s\n' "$1" "$2"; }
 
+# The profile this block was read from, beside the change: the checks below are the profile's answer, and a change
+# whose delta edits that file must be measured by the file it edits, not by the one the run was started from
+# (issue #277). The gate names the same profile in the log of the run it makes.
+item PROFILE "$LOOP_CONF_PATH"
+
 # The same base the gate resolves, and the same refusal: a range that cannot be resolved is named, never read
 # as "no change" — an unresolvable base is the one thing a measurement must not report as a measurement.
 if [ -z "$base" ]; then

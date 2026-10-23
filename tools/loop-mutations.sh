@@ -332,6 +332,15 @@ MUTATIONS=(
   # straight from the command keeps that leading `.`, so the one tally that records the build is hidden from a plain
   # `ls` and from a `*.xml` glob — the round-3 reviewer of #273 counted five files where the directory held six.
   '51.1@-@tools/loop/gate.sh@gate#aCompiledStepsTallyIsNotHidden@the ./ prefix stripped before the tally is named (issue #278)@s|\${cmd#\./}|\$cmd|'
+  # 52.x — the gate reads the profile beside its own engine, and says which profile that was (issue #277). Measured
+  # 2026-10-23 finishing #273: the run exported the profile of the project it was started in to every child, so a
+  # change whose delta rewrote `LOOP_GATE_COMPILED_PATTERNS` was gated by the rule it was replacing, and the log named
+  # no profile at all — the round-3 reviewer refused it, and the repair was a hand-pinned re-run. One mutation per
+  # half: 52.1 hands the run's own profile to the child again, 52.2 takes the pin out of the log, and 52.3 makes a
+  # pinned profile claim to be the one the engine ships.
+  '52.1@-@tools/loop/run.sh@gate#theChildReadsTheProfileOfTheTreeItWorksIn@the run keeping its own profile out of a child that works in another tree (issue #277)@s|^export -n LOOP_CONF$|export LOOP_CONF="${LOOP_CONF:-$LOOP_DIR/loop.conf}"|'
+  '52.2@-@tools/loop/gate.sh@gate#theGateNamesTheProfileItRead@the profile the gate read, named in the log it wrote (issue #277)@s|^    say "LOOP-GATE-PROFILE: \$LOOP_CONF_PATH"$|    : # the mutation names no profile|'
+  '52.3@-@tools/loop/gate.sh@gate#theGateNamesTheProfileItRead@a pinned profile named as pinned, beside the one the engine ships (issue #277)@s|^  \[ "\$resolved/\$(basename "\$LOOP_CONF_PATH")" = "\$engine/loop.conf" \]$|  true|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

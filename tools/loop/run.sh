@@ -63,7 +63,13 @@ loop_roles_load
 # The resolved paths and the configuration go to every child, so all of them agree on which run and which
 # project they belong to.
 export LOOP_STATE_FILE="$LOOP_STATE_FILE" LOOP_WORKTREE="$LOOP_WORKTREE"
-export LOOP_CONF="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
+# The profile stays with the process that read it, because the child works in another tree and reads the profile
+# beside that tree's engine. Measured 2026-10-23 finishing #273 (issue #277): the export below was the run's own
+# default, so every gate of a change whose delta edits `loop.conf` measured the profile of the project the run was
+# started in — the rule the change was replacing — and the log could not tell; the repair was a hand-pinned re-run.
+# `LOOP_CONF` is the self-test's seam and is read here (`loop_resolve` records it as `LOOP_CONF_PATH`); `export -n`
+# keeps the value this shell already read and takes it out of every child's environment.
+export -n LOOP_CONF
 
 # The measuring command the worker is handed (issue #246). A project that configures none still renders a task,
 # so the placeholder carries a sentence instead of an empty span, and no render site reads the key directly.
@@ -91,7 +97,7 @@ case "$read_only" in on|off) ;; *) loop_die "run: --review-read-only must be on 
 # The one indirection through which every child is started (D3, D15). An empty value would start nothing
 # and report success for it, so it stops the run instead.
 if [ -z "$(printf '%s' "${LOOP_AGENT_CMD:-}" | tr -d '[:space:]')" ]; then
-  loop_die "run: LOOP_AGENT_CMD is empty in $LOOP_CONF — the run has no way to start an agent process"
+  loop_die "run: LOOP_AGENT_CMD is empty in $LOOP_CONF_PATH — the run has no way to start an agent process"
 fi
 
 # The run header names every effective value, so a run can be repeated and audited (D2). The child's

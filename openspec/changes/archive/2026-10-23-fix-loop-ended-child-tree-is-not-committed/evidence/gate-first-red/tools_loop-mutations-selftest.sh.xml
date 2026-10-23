@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-mutations-selftest.sh" tests="34" failures="5" errors="0">
+  <system-out>red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0] ok   and the copy is byte-identical to the pristine one again loop-mutations-selftest: 5 of 34 cases failed — the mutation harness does not hold its own guards</system-out>
+</testsuite>

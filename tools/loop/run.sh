@@ -60,8 +60,7 @@ done
 
 loop_resolve
 loop_roles_load
-# The resolved paths and the configuration go to every child, so all of them agree on which run and which
-# project they belong to.
+# The resolved paths go to every child, so all of them agree on which run and which project they belong to.
 export LOOP_STATE_FILE="$LOOP_STATE_FILE" LOOP_WORKTREE="$LOOP_WORKTREE"
 # The profile stays with the process that read it, because the child works in another tree and reads the profile
 # beside that tree's engine. Measured 2026-10-23 finishing #273 (issue #277): the export below was the run's own

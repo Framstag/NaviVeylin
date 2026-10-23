@@ -76,6 +76,12 @@ tools/loop/loop-clean.sh             # report only
 tools/loop/loop-clean.sh --apply     # remove; safe to repeat
 ```
 
+A kept worktree also carries the machine-local environment its children need, in `<worktree>/.pi/loop-env.sh` — a
+`vcpkg` symlink would be untracked and would pollute the `git status` the run reads for evidence — and the gate
+sources that file for itself, not only passes it to the children `run.sh` starts (issue #267): a gate typed by hand
+in the tree ran without `VCPKG_ROOT` and failed at configuration in 21 s, having executed no test, where the same
+gate takes minutes and is green.
+
 The rules the run follows here — the kept tree carries sources and not build output, a suite ended by a signal
 cleans up after itself and ends what it started, nothing outlives the layer that started it, and the leftover
 report names the processes and not only the trees — are the spec `agent-issue-loop`'s, under *A kept worktree

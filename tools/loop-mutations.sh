@@ -241,6 +241,10 @@ MUTATIONS=(
   '42.2@-@tools/loop/worktree.sh@run#aMergedBranchIsRemoved@the deletion of the merged branch@s|^  gitr branch -d "\$branch" >&2 \|\| {$|  : # the mutation removes no branch\n  false \|\| {|'
   '42.3@-@tools/loop/loop-clean.sh@clean#sweepsOnlyWhatIsInTheBase@the sweep asking what a branch carries@s|^    if unlanded=\$(loop_unlanded_commits "\$LOOP_ROOT" "\$base_commit" "\$branch"); then$|    if true; then|'
   '42.4@-@tools/loop/report.sh@report#landedBranchesAreNamedAsRemovable@the report naming the branches that can be removed@s|^printf .landed, removable: %s\\n. |printf "nothing removable: %s\\n" |'
+  # 43.x — the environment a kept worktree records, which the gate itself must run under (measured 2026-10-23,
+  # issue #267: a hand-run gate in the worktree died at configuration in 21 s, having executed no test, because
+  # only `run.sh` sourced the file).
+  '43.1@-@tools/loop/gate.sh@gate#runsUnderTheWorktreeEnvironment@the worktree environment the gate itself runs under@s|^if \[ -f "\$LOOP_ROOT/.pi/loop-env.sh" \]; then$|if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

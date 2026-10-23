@@ -96,6 +96,9 @@ $dirty"
 
   # `VCPKG_ROOT` is exported for the children from a file inside the worktree, not as a symlink: a
   # symlink named `vcpkg` is untracked and pollutes `git status`, which the run reads for evidence.
+  # `run.sh` sources this file for every child it starts, and `gate.sh` sources it for itself — a gate typed by
+  # hand in this tree used to run without the dependency root and fail at configuration, in 21 s, having executed
+  # no test (issue #267).
   {
     printf '# Written by tools/loop/worktree.sh — the machine-local environment a child needs.\n'
     printf 'export VCPKG_ROOT=%q\n' "$LOOP_ROOT/vcpkg"

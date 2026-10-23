@@ -22,10 +22,12 @@ only_group=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --list) list_only=1; shift ;;
-    --case|--group)
+    --case)
       [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }
-      if [ "$1" = "--case" ]; then only_case="${2:-}"; else only_group="${2:-}"; fi
-      shift 2 ;;
+      only_case="${2:-}"; shift 2 ;;
+    --group)
+      [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }
+      only_group="${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
     *) echo "loop-selftest: unknown argument $1" >&2; exit 2 ;;
   esac

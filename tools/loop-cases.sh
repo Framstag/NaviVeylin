@@ -2627,6 +2627,12 @@ SUITE
   seconds=$(printf '%s\n' "$out" | sed -n 's/.*suite\.sh \([0-9][0-9]*\)s).*/\1/p' | tail -1)
   [ -n "$seconds" ] || fail "the gate's summary carries no duration beside the command: $out"
   [ "$seconds" -ge 2 ] || fail "the duration is below the suite's own sleep: ${seconds}s"
+  # All three readers carry the same number, and the suite's own line is read out of the run rather than matched
+  # by shape: a line that says the right thing about a wrong number would otherwise pass.
+  line_seconds=$(printf '%s\n' "$out" \
+    | sed -n "s|^gate: bash $d/suite\\.sh — \([0-9][0-9]*\)s\$|\\1|p" | tail -1)
+  assert_eq "$seconds" "$line_seconds" \
+    "the suite's own line carries the same number as the gate's summary: $out"
   tally=$(cat "$d"/tally/*.xml 2>/dev/null)
   assert_contains "$tally" "time=\"$seconds\"" \
     "and the tally the run's own check reads carries the same number: $tally"
@@ -5352,6 +5358,8 @@ case_driver_aGroupFilterRunsOnlyItsOwnCases() {
   d=$(scratch); driver_selection_probe "$d"; nested="$d/nested"
   out=$(bash "$nested/tools/loop-selftest.sh" --group alpha 2>&1); rc=$?
   assert_eq "0" "$rc" "the group's two cases pass: $out"
+  assert_contains "$out" "— selection: --group alpha" \
+    "and the summary names the selection it ran, so a green filtered run never reads like the whole suite: $out"
   assert_eq "$(printf 'alpha#one\nalpha#two')" "$(cat "$d/ran" 2>/dev/null)" \
     "exactly the group's cases ran, and no case of the other group: $(cat "$d/ran" 2>/dev/null)"
   : > "$d/ran"
@@ -5359,6 +5367,13 @@ case_driver_aGroupFilterRunsOnlyItsOwnCases() {
   assert_eq "0" "$rc" "the same selection by pattern passes: $out"
   assert_eq "$(printf 'alpha#one\nalpha#two')" "$(cat "$d/ran" 2>/dev/null)" \
     "the pattern selected the same two cases: $(cat "$d/ran" 2>/dev/null)"
+  # Both filters at once are an intersection, not a union: a caller narrowing a group with a pattern gets the
+  # cases that pass both, which is what makes `--group run --case 'run#*Cap*'` mean what it reads as.
+  : > "$d/ran"
+  out=$(bash "$nested/tools/loop-selftest.sh" --group alpha --case 'alpha#one' 2>&1); rc=$?
+  assert_eq "0" "$rc" "a group narrowed by a pattern passes: $out"
+  assert_eq "alpha#one" "$(cat "$d/ran" 2>/dev/null)" \
+    "the intersection is one case, not the group: $(cat "$d/ran" 2>/dev/null)"
   return 0
 }
 

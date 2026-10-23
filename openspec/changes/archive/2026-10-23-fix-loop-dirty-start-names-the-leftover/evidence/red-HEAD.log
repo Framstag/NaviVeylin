@@ -1,0 +1,8 @@
+# red on HEAD — /bin/zsh
+# engine tools/loop/run.sh as committed at f2d27735 (base f2d27735), the case file from this change
+# command: bash tools/loop-selftest.sh --case 'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds'
+# taken: 2026-10-23T17:11:48Z
+  and names the item whose work the tree holds, not only the candidate: '#21' not found in: the item could not be started: loop: the worktree is not clean — refusing to start #22:
+FAIL run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+loop-selftest: 1 of 1 cases failed
+# exit: 1

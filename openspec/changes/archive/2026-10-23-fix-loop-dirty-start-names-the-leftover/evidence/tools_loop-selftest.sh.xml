@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh" tests="192" failures="0" errors="0" time="729">
+  <system-out>loop-selftest: all 192 cases passed (JDK 27, offline, no token, no sandbox) ended 2225100 — its working directory is inside loop-selftest.BhQUx3 ended 2568455 — its working directory is inside loop-selftest.BhQUx3</system-out>
+</testsuite>

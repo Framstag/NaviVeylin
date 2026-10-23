@@ -574,6 +574,49 @@ project_state() {
 # still a change of the tree the run promised to build on. `project_state` is compared before and after every
 # child, which is what catches a write outside the worktree.
 
+# The difference between two readings, which is what a report needs: the lines one reading carries and the other
+# does not. A constant sentence said only that the tree had changed, so neither the run nor a later reader of the
+# blocked item could tell which path to restore — or whether a path had changed at all, since the tree's own answer
+# to "am I a work tree" travels in the same reading (issue #285).
+project_state_diff() { # project_state_diff <before> <after> → the lines only one of the two readings carries
+  { printf '%s\n' "$1"; printf '%s\n' "$2"; } | sed '/^[[:space:]]*$/d' | sort | uniq -u
+}
+
+# One clause out of a list of lines, quoted as it was read and bounded: a damaged tree carries thousands of
+# `git status` lines, and a block reason is a sentence a person reads on the tracker.
+outside_write_clause() { # <cap> — stdin: one line per item → `a; b; …`, `; and N more` past the cap
+  awk -v cap="$1" 'NF { n++; if (n <= cap) printf "%s%s", (n > 1 ? "; " : ""), $0 }
+                   END { if (n > cap) printf "%s and %d more", (cap > 0 ? "; " : ""), n - cap }'
+}
+
+# The processes the project shows that no phase may be working in: a survivor still names the tree it works in as
+# its working directory, which is the question `loop_pids_under` already answers for the cap's own sweep (issue
+# #272), and a working directory inside the worktree is a tree a phase *may* write. `loop_pids_under` skips this
+# shell and its parent; the caller runs the sweep from a directory outside the tree as well, so the shell that
+# reads the answer is never part of it.
+outside_write_pids() { # <root> <worktree> → one `<pid> <command>` line per process
+  local pid cwd
+  for pid in $(loop_pids_under "$1"); do
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
+    case "${cwd% (deleted)}" in "$2"|"$2"/*) continue ;; esac
+    printf '%s %s\n' "$pid" "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | cut -c1-80 | sed 's/[[:space:]]*$//')"
+  done
+}
+
+# The one line a child's transcript gains when the project's own tree moved while it ran: what changed, by the
+# status line it changed to, and who else could have changed it. Both halves are what makes the block answerable —
+# which path to restore, and which process to look at (issue #285: #274's round-2 worker was blocked by a line that
+# named no path, and the work was lost to a decision nobody could answer).
+outside_write_line() { # outside_write_line <before> <after> → one `LOOP-OUTSIDE-WRITE: …` line
+  local paths holders
+  paths=$(project_state_diff "$1" "$2" | cut -c1-120 | outside_write_clause 10)
+  holders=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" | cut -c1-120 | outside_write_clause 5 )
+  printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran: %s' \
+    "${paths:-(no status line differs — only the work-tree answer changed)}"
+  [ -z "$holders" ] || printf '; process(es) whose working directory is inside the project: %s' "$holders"
+  printf '\n'
+}
+
 # The diff a review round is handed is the change, not the generated output a change is archived beside:
 # item #126's round-3 diff (issue #204) carried 9 935 changed lines, 9 364 of them gate HTML and XML, against
 # 112 lines of Kotlin. Which directories hold generated output is a fact about a project's change records,
@@ -743,7 +786,9 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     "$(fmt_elapsed $(( $(date +%s) - started )))" "$rc" "$(wc -c < "$2" 2>/dev/null || printf 0)"
   after=$(project_state)
   if [ "$before" != "$after" ]; then
-    printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran\n' >> "$2"
+    # Named, not asserted: the transcript says which status line appeared and which processes the project still
+    # shows, because this line is what blocks the item and a person is the one who answers it (issue #285).
+    outside_write_line "$before" "$after" >> "$2"
   fi
   return "$rc"
 }
@@ -967,7 +1012,7 @@ while true; do
     # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
     if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
   elif [ -n "$outside_write" ]; then
-    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran"
+    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — $outside_write"
   elif [ "$verdict_claim" = "skipped" ] && [ "${skip_verdict:-}" = "falsified" ] \
     && [ -n "$falsified_mechanism" ] && [ -n "$falsified_measurement" ] && [ "$head_now" = "$base" ]; then
     # Measured 2026-10-20: three of the first four items of one run (#89, #99, #137) were items whose premise the
@@ -1113,7 +1158,7 @@ while true; do
         # Named for what it is: a write outside the worktree, not a second failed review round.
         review_verdict="outside-write"
         outcome="blocked"
-        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran"
+        blocked_reason="the round-2 worker wrote outside the worktree — $outside_write"
         break
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true

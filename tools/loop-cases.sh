@@ -3345,19 +3345,59 @@ case_run_hostWithoutTheReadingPasses() {
   assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "and the item closes as usual"
 }
 
+# A child is caught writing in the project's own tree — and what was caught has to be attributable, or the block
+# is a state nobody can answer: the transcript names the `git status` lines that appeared, so a later reader knows
+# which path to restore, and the processes the project still shows, because a survivor names the tree it works in
+# (issue #285: #274's round-2 worker was blocked by a line that named no path, and neither the run nor a person
+# could tell what had changed, so the work was lost to `needs-decision`).
 case_run_childWriteOutsideTheWorktreeIsBlocked() {
-  local d p
+  local d p report line writer alive i
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # a child that does its work in the worktree and also writes in the project's own tree: only the
   # worktree is a phase's to write, so the run catches this rather than committing it into the project
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in worker*) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
+  # …and a process of its own left working in the project, in a session of its own so the run's own group signal
+  # never reaches it: the run names what it can see in the tree it may not be written, and this case ends the
+  # process afterwards. The survivor writes nothing and ends by itself after 30 s, so a case that fails early
+  # leaves nothing behind but a sleeping process.
+  cat >> "$d/worker-action.sh" <<ACTION
+case "\$1" in
+  worker*)
+    ( cd "\$LOOP_CHILD_ROOT" && exec setsid bash -c 'printf "%s\n" "\$\$" > $d/writer.pid; sleep 30' ) >/dev/null 2>&1 &
+    ;;
+esac
+ACTION
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child"
+  writer=""
+  for i in $(seq 1 100); do [ -f "$d/writer.pid" ] && { writer=$(cat "$d/writer.pid"); break; }; sleep 0.1; done
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
     "a write outside the worktree blocks the item"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "outside the worktree" \
     "the reason names the tree that changed"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "?? demo-owned.txt" \
+    "the reason the escalation carries names the path that appeared, so the decision is answerable"
+  # The one line that carries the finding, quoted with the status line it was: a bare path would not say whether
+  # the file was changed or created, and the line this replaces said only that the tree had changed.
+  line=$(grep '^LOOP-OUTSIDE-WRITE: ' "$report" | tail -1)
+  assert_contains "$line" "the project tree changed while this process ran: ?? demo-owned.txt" \
+    "the transcript names the status line the child's write produced"
+  assert_contains "$line" "process(es) whose working directory is inside the project: " \
+    "and the processes the project still shows"
+  [ -n "$writer" ] || fail "the stub child's process in the project never named itself"
+  assert_contains "$line" "$writer " "…among them the one the child left behind, named by pid"
+  # (c) of the finding: the block's escalation is the only thing a person reads, so the paths have to reach the
+  # tracker's comment and not only the run's state.
+  assert_contains "$(cat "$GH_STUB_RECORD")" "?? demo-owned.txt" \
+    "the escalation's comment on the tracker carries the path as well"
+  # The process is the case's own to end: the run names a survivor, it does not end one it did not start.
+  alive=1
+  for i in $(seq 1 100); do kill -0 "$writer" 2>/dev/null || { alive=0; break; }; sleep 0.1; done
+  [ "$alive" -eq 1 ] || fail "the child's process in the project was gone before this case could name it"
+  kill -9 -- -"$writer" 2>/dev/null || kill -9 "$writer" 2>/dev/null
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
 }
 

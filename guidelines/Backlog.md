@@ -312,6 +312,17 @@ into an 8 h budget — two questions nobody had asked, and two of its three deci
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line, the
 second its branch, which is what a later pass escalates.
 
+What it does with a write in the project's own tree: it reads that tree before and after every child — its
+`git status --porcelain` lines plus its own answer to "am I a work tree" — and, on any difference, appends one
+machine-readable line to the child's transcript, `LOOP-OUTSIDE-WRITE: the project tree changed while this process
+ran: <the status lines that appeared>; process(es) whose working directory is inside the project: <pid> <command>`,
+and records the item `blocked` with those words as its reason, so the escalation's question names the path to
+restore and the process to look at. A difference that is only the work-tree answer is named as exactly that
+(`work-tree=false`), because that line is how a repository flipped `core.bare=true` is caught (#241). Measured
+2026-10-23 (issue #285): #274's round-2 worker was blocked by the constant sentence this replaces, while every
+write in its own transcript went to `.pi/worktrees/loop/**` and `git status --porcelain` was empty before and
+after the run — the round's work was lost to `needs-decision` on an event nobody could attribute or reproduce.
+
 The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
 identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never
 an invented one, because a fresh container or CI runner has neither and the item would block on its own

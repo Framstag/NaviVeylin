@@ -353,6 +353,15 @@ MUTATIONS=(
   '53.1@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the leftovers recorded under the item whose work the tree holds, and escalated (issue #284)@s|^        if \[ "\$dry_run" -eq 0 \] \&\& \[ -n "\$owner_item" \]; then$|        if false; then|'
   '53.2@-@tools/loop/state.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@one record per item, a second account joining the note the item already has (issue #284)@s|^      if (\[\.items\[\] \| select(\.issue == \$i)\] \| length) == 0 then$|      if true then|'
   '53.3@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the stop reason naming the item the leftovers belong to and the files it found (issue #284)@s|^        stop_run "the item could not be started: the worktree is not clean .*$|        stop_run "the item could not be started: $(printf %s "$start_out" \| head -1)"|'
+  # 53.1 — the report scans the kept worktree's own scratch root beside its own (issue #274). Measured 2026-10-23:
+  # four `loop-selftest.*` trees and four poll loops under `.pi/worktrees/loop/.pi/tmp`, three of the trees past the
+  # 120-minute threshold, and `loop-clean` printed its heading with no entry — the root a suite writes into is the
+  # root of the tree it runs in, and the gate runs the suite inside the worktree.
+  '53.4@-@tools/loop/loop-clean.sh@clean#reportsTheWorktreesScratchTreesToo@the report resolving the kept worktree own scratch root (issue #274)@s|^  worktree_tmp=\$(loop_tmp_dir_for "\$tree")$|  worktree_tmp=""|'
+  # 53.2 — the two roots are compared as directories, so `--worktree .` (the same root written `$LOOP_ROOT/.`) is scanned
+  # once instead of twice. Measured 2026-10-23 (issue #274's round-1 review): the strings never matched, so that
+  # spelling printed two headings for one root and counted one tree's bytes twice.
+  '53.5@-@tools/loop/loop-clean.sh@clean#worktreeDotSweepsTheOneRootOnce@the two roots compared as directories rather than as written (issue #274 review)@s|^  loop_same_dir "\$worktree_tmp" "\$LOOP_TMP_DIR" && worktree_tmp=""$|  : # the dedup removed|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

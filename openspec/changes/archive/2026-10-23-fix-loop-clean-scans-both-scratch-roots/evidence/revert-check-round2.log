@@ -1,0 +1,10 @@
+Taken 2026-10-23T16:00:56Z — `bash tools/loop-mutations.sh --only "53.1 53.2"` (the two records for issue #274: the second root is resolved, and the two roots are compared as directories).
+loop-mutations: selected 2 of 113 records (labels: 53.1 53.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.lFsyN3
+RED    53.1  clean#reportsTheWorktreesScratchTreesToo   (the report resolving the kept worktree own scratch root (issue #274))
+restore 53.1 clean#reportsTheWorktreesScratchTreesToo green again
+RED    53.2  clean#worktreeDotSweepsTheOneRootOnce   (the two roots compared as directories rather than as written (issue #274 review))
+restore 53.2 clean#worktreeDotSweepsTheOneRootOnce green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+exit=0

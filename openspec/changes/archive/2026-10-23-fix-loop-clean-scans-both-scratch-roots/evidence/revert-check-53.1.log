@@ -1,0 +1,6 @@
+loop-mutations: selected 1 of 112 records (labels: 53.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.GBgqiU
+RED    53.1  clean#reportsTheWorktreesScratchTreesToo   (the report resolving the kept worktree own scratch root (issue #274))
+restore 53.1 clean#reportsTheWorktreesScratchTreesToo green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

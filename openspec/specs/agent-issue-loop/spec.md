@@ -406,7 +406,18 @@ change.
 - **WHEN** a difference is recorded and the run was not started with `--strict-outside-write yes`
 - **THEN** the item keeps the outcome its own work earned, because the comparison measures a tree the run, a
   peer session and every landing also write, and two readings of it are not evidence about one child — and a base
-  that is still not clean when the item lands is refused by the landing rule, with the path named
+  that is still not clean when the item lands is refused by the landing rule, with the path named; a difference
+  the run *can* place in the child's own tree does decide, and that placement is the attribution this requirement
+  states
+
+#### Scenario: A difference is attributed while the writer is alive
+
+- **WHEN** the project's own tree changes while a child runs
+- **THEN** the run reads the difference from the heartbeat ticking beside that child, names the processes alive
+  at that moment whose working directory is inside the project and outside the worktree, and marks the ones that
+  belong to this child's own process tree — its process group or its descendants — because a writer is gone by the
+  time the child's transcript is written, and a difference nobody can place is not evidence about the child
+- **Case**: `run#aWriterTheRunCanPlaceBlocksTheItem`
 
 #### Scenario: `--strict-outside-write yes` makes the difference decide the item
 
@@ -1808,6 +1819,7 @@ name that item and the files it found, and the candidate that could not start SH
   the stop reason names that item and the files — not the refusal's first line — and the item that could not start
   keeps no record of its own
 - **Case**: `run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds`
+
 ### Requirement: A case's files select it, and the gate hands a suite the base it measured
 
 A case SHALL declare the files it can be affected by in the first line of its body (`# files: <token> …`), and

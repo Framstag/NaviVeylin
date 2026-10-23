@@ -607,32 +607,84 @@ outside_write_clause() { # <cap> — stdin: one line per item → `a; b; …`, `
                    END { if (n > cap) printf "%s and %d more", (cap > 0 ? "; " : ""), n - cap }'
 }
 
+# What changed, as the clause a note carries — the difference between the two readings, bounded. A constant
+# sentence said only that the tree had changed, so neither the run nor a later reader could tell which path to
+# restore (issue #285).
+outside_write_clause_of() { # <before> <after> → one clause, quoted as read
+  local paths
+  paths=$(project_state_diff "$1" "$2" | cut -c1-120 | outside_write_clause 10)
+  printf '%s' "${paths:-(no status line differs — only the work-tree answer changed)}"
+}
+
+# Whether a pid belongs to the tree the run started: the child leads its own process group (`set -m` before it is
+# started), and a descendant that gave itself its own session is in no group the cap signals but still names the
+# child among its ancestors (the #272 survivor). A pid outside both is not this child's, whatever it wrote — that
+# is the difference between evidence and a guess about whichever process the run happened to be running.
+pid_in_child_tree() { # <pid> <child> → 0 when the pid is the child or below it
+  local pid="$1" child="$2" p hops=0
+  [ -n "$pid" ] && [ -n "$child" ] || return 1
+  [ "$pid" = "$child" ] && return 0
+  [ "$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')" = "$child" ] && return 0
+  p=$(sed -n 's/^[0-9][0-9]* ([^)]*) [A-Z] \([0-9][0-9]*\).*/\1/p' "/proc/$pid/stat" 2>/dev/null)
+  while [ -n "$p" ] && [ "$p" != "0" ] && [ "$p" != "1" ] && [ "$hops" -lt 64 ]; do
+    [ "$p" = "$child" ] && return 0
+    p=$(sed -n 's/^[0-9][0-9]* ([^)]*) [A-Z] \([0-9][0-9]*\).*/\1/p' "/proc/$p/stat" 2>/dev/null)
+    hops=$((hops + 1))
+  done
+  return 1
+}
+
 # The processes the project shows that no phase may be working in: a survivor still names the tree it works in as
 # its working directory, which is the question `loop_pids_under` already answers for the cap's own sweep (issue
-# #272), and a working directory inside the worktree is a tree a phase *may* write. `loop_pids_under` skips this
-# shell and its parent; the caller runs the sweep from a directory outside the tree as well, so the shell that
-# reads the answer is never part of it.
-outside_write_pids() { # <root> <worktree> → one `<pid> <command>` line per process
-  local pid cwd
-  for pid in $(loop_pids_under "$1"); do
+# #272), and a working directory inside the worktree is a tree a phase *may* write. A caller that is itself
+# standing in the project passes its own pid as an extra skip; the sweep is run from `/` so its own shell is never
+# part of the answer.
+outside_write_pids() { # <root> <worktree> [pid to skip …] → one `<pid> <command>` line per process
+  local root="$1" wt="$2" pid cwd skip s; shift 2
+  for pid in $(loop_pids_under "$root"); do
+    skip=0
+    for s in "$@"; do [ "$pid" = "$s" ] && skip=1; done
+    [ "$skip" -eq 1 ] && continue
     cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
-    case "${cwd% (deleted)}" in "$2"|"$2"/*) continue ;; esac
+    case "${cwd% (deleted)}" in "$wt"|"$wt"/*) continue ;; esac
     printf '%s %s\n' "$pid" "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | cut -c1-80 | sed 's/[[:space:]]*$//')"
   done
 }
 
 # The one line a child's transcript gains when the project's own tree moved while it ran: what changed, by the
-# status line it changed to, and who else could have changed it. Both halves are what makes the note answerable —
-# which path to restore, and which process to look at (issue #285: #274's round-2 worker was blocked by a line that
-# named no path, and the work was lost to a decision nobody could answer).
+# status line it changed to, and who else could have changed it (issue #285: #274's round-2 worker was blocked by a
+# line that named no path, and the work was lost to a decision nobody could answer).
 outside_write_line() { # outside_write_line <before> <after> → one `LOOP-OUTSIDE-WRITE: …` line
-  local paths holders
-  paths=$(project_state_diff "$1" "$2" | cut -c1-120 | outside_write_clause 10)
+  local holders
   holders=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" | cut -c1-120 | outside_write_clause 5 )
   printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran: %s' \
-    "${paths:-(no status line differs — only the work-tree answer changed)}"
+    "$(outside_write_clause_of "$1" "$2")"
   [ -z "$holders" ] || printf '; process(es) whose working directory is inside the project: %s' "$holders"
   printf '\n'
+}
+
+# What decides an item: a difference the run can tie to the tree it started — a process of the child's own tree
+# was alive when the tree changed — or a run that declared the tree exclusive (`--strict-outside-write yes`). A
+# difference it can tie to nothing is recorded and does not decide anything (issue #286).
+outside_write_decides() { # → 0 when the recorded difference decides the phase
+  [ -n "${outside_write_note:-}" ] &&
+    { [ -n "${outside_write_attributed:-}" ] || [ "$strict_outside_write" = "yes" ]; }
+}
+
+# The difference read *while the child runs*, with the processes that were alive at that moment and the ones of
+# them that belong to this child's own tree. A write is only evidence about the child when the two coincide, and
+# the child is gone by the time its transcript is written — so the reading has to be taken during its life, from
+# the heartbeat that is already ticking beside it (issue #286's attribution step).
+outside_write_seen() { # <before> <now> <child> <own pid> → two `LOOP-OUTSIDE-WRITE-*` lines
+  local before="$1" now="$2" child="$3" own="$4" alive attributed="" one pid
+  alive=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -c1-120 | outside_write_clause 5 )
+  for pid in $( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -d' ' -f1 ); do
+    pid_in_child_tree "$pid" "$child" || continue
+    attributed="${attributed:+$attributed,}$pid"
+  done
+  printf 'LOOP-OUTSIDE-WRITE-FIRST: the project tree changed at %s — %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "$(outside_write_clause_of "$before" "$now")"
+  printf 'LOOP-OUTSIDE-WRITE-ALIVE: %s · attributed=%s\n' "${alive:-(none)}" "${attributed:-none}"
 }
 
 # The diff a review round is handed is the change, not the generated output a change is archived beside:
@@ -734,20 +786,9 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   stop="$2.progress-stop"
   rm -f "$stop"
   : > "$2"
+  rm -f "$2.outside-write"
   started=$(date +%s)
   printf 'loop: %s started (log %s)\n' "$phase" "$2"
-  ( ticks=0
-    while [ ! -e "$stop" ]; do
-      sleep 1
-      [ -e "$stop" ] && break
-      ticks=$((ticks + 1))
-      [ $((ticks % interval)) -eq 0 ] || continue
-      printf 'loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n' \
-        "$phase" "$(fmt_elapsed "$ticks")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
-        "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \
-        "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
-    done ) >&2 &
-  hb=$!
   # `set -m` on the one command that starts the child, immediately undone: a background job of a shell with job
   # control is its own process group, which is what lets the cap end the child *and its descendants* — a Gradle
   # gate leaves daemons and test workers behind, and those are the memory the next item needs. Its stdin is
@@ -758,6 +799,29 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   child=$!
   active_child="$child"
   set +m
+  ( ticks=0
+    hb_pid=$BASHPID
+    while [ ! -e "$stop" ]; do
+      sleep 1
+      [ -e "$stop" ] && break
+      ticks=$((ticks + 1))
+      [ $((ticks % interval)) -eq 0 ] || continue
+      # The difference is read *while the child runs*, because a writer is gone by the time the transcript is
+      # written: only here can the run say which processes were alive at the moment the tree changed, and which of
+      # them belong to this child's own tree. One reading per child — the first difference is the one a reader of
+      # the item needs, and a tree another process keeps rewriting would otherwise fill the item's directory.
+      if [ ! -e "$2.outside-write" ]; then
+        now=$(project_state)
+        if [ "$now" != "$before" ]; then
+          outside_write_seen "$before" "$now" "$child" "$hb_pid" > "$2.outside-write" 2>/dev/null || true
+        fi
+      fi
+      printf 'loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n' \
+        "$phase" "$(fmt_elapsed "$ticks")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
+        "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \
+        "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
+    done ) >&2 &
+  hb=$!
   # The wait ends on the **child's own completion record**, not on `kill -0` of its pid and not on `wait`: a child
   # that the shell has already reaped answers nothing, and a `wait` on a pid bash no longer tracks returns no
   # status, so a poll that believes the child is gone can leave the run blocked behind a `wait` for ever. Measured
@@ -803,8 +867,20 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   printf 'loop: %s finished in %s (exit %s, log %s B)\n' "$phase" \
     "$(fmt_elapsed $(( $(date +%s) - started )))" "$rc" "$(wc -c < "$2" 2>/dev/null || printf 0)"
   after=$(project_state)
+  # What the in-time reading found, appended to the child's transcript so the item carries it: the paths as they
+  # first differed, and the processes alive then with the ones of this child's own tree marked.
+  outside_write_attributed=""
+  outside_write_note=""
+  if [ -s "$2.outside-write" ]; then
+    outside_write_note=$(sed -n 's/^LOOP-OUTSIDE-WRITE-FIRST: //p' "$2.outside-write" | head -1)
+    outside_write_attributed=$(sed -n 's/^LOOP-OUTSIDE-WRITE-ALIVE: .* · attributed=//p' "$2.outside-write" | head -1)
+    case "$outside_write_attributed" in none|'') outside_write_attributed="" ;; esac
+    cat "$2.outside-write" >> "$2"
+  fi
   if [ "$before" != "$after" ]; then
     outside_write_line "$before" "$after" >> "$2"
+    [ -n "$outside_write_note" ] ||
+      outside_write_note="the project tree changed while this process ran: $(outside_write_clause_of "$before" "$after")"
   fi
   return "$rc"
 }
@@ -1055,13 +1131,14 @@ while true; do
   carried=0
   if [ -d "$change_evidence" ] && [ -n "$(ls -A "$change_evidence" 2>/dev/null)" ]; then carried=1; fi
 
-  # A difference the run cannot attribute is recorded and does not decide the item (#274, #276, #285): the tree it
-  # measures is one the run's own landings fast-forward in the project and a peer session writes too, so two
-  # readings of it are not evidence about the one child the run started. `--strict-outside-write yes` buys the
-  # verdict back for a tree that is exclusive, and then the item is blocked as it used to be.
-  if [ -n "$outside_write" ] && [ "$strict_outside_write" != "yes" ]; then
-    loop_state step A --name outside-write --status ok --note "$outside_write" >/dev/null 2>&1 || true
-    progress note "$outside_write"
+  # A difference the run cannot tie to this child is recorded and does not decide the item (#274, #276, #285,
+  # #286): the tree it measures is one the run's own landings fast-forward in the project and a peer session
+  # writes too, so two readings of it are not evidence about the one child the run started. A write the in-time
+  # reading tied to this child's own tree — or any difference at all, when the run declared the tree exclusive
+  # (`--strict-outside-write yes`) — is evidence, and decides.
+  if [ -n "$outside_write_note" ] && ! outside_write_decides; then
+    loop_state step A --name outside-write --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
+    progress note "$outside_write_note"
   fi
   outcome="closed"
   blocked_reason=""
@@ -1070,8 +1147,8 @@ while true; do
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
     # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
     if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
-  elif [ -n "$outside_write" ] && [ "$strict_outside_write" = "yes" ]; then
-    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write"
+  elif outside_write_decides; then
+    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
   elif [ "$verdict_claim" = "skipped" ] && [ "${skip_verdict:-}" = "falsified" ] \
     && [ -n "$falsified_mechanism" ] && [ -n "$falsified_measurement" ] && [ "$head_now" = "$base" ]; then
     # Measured 2026-10-20: three of the first four items of one run (#89, #99, #137) were items whose premise the
@@ -1118,7 +1195,6 @@ while true; do
       write_review_diff "$diff_base" "$diff_file"
       before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
-      before_project=$(project_state)
       reviewer_report="$item_dir/reviewer-report-$round.md"
       render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md" "$correction_scope"
       # The round is announced on the branch *before* the reviewer starts, so an answer that never arrives is a
@@ -1161,20 +1237,17 @@ while true; do
         outcome="blocked"; blocked_reason="the review round was discarded: the working tree changed while the reviewer ran"
         break
       fi
-      # The project's own tree is read as well, and it is not the reviewer's either — but it is not only the
-      # reviewer's to change either (#274, #276, #285): the difference is recorded, and decides the round only when
-      # the run was asked to judge it (`--strict-outside-write yes`).
-      after_project=$(project_state)
-      if [ "$before_project" != "$after_project" ]; then
-        outside_write=$(outside_write_line "$before_project" "$after_project")
-        printf '%s\n' "$outside_write" >> "$reviewer_report"
-        if [ "$strict_outside_write" = "yes" ]; then
-          review_verdict="reviewer-wrote"
-          outcome="blocked"; blocked_reason="the review round was discarded: the project's own tree changed while the reviewer ran — $outside_write"
-          break
-        fi
-        loop_state step A --name outside-write-review-$round --status ok --note "$outside_write" >/dev/null 2>&1 || true
-        progress note "$outside_write"
+      # The project's own tree is read as well, by the child's own run (the in-time reading), and it is not the
+      # reviewer's either — but it is not only the reviewer's to change either (#274, #276, #285, #286): a write
+      # the run can tie to the reviewer's own tree, or any difference in a run that declared the tree exclusive,
+      # discards the round; anything else is recorded and the round stands.
+      if outside_write_decides; then
+        review_verdict="reviewer-wrote"
+        outcome="blocked"; blocked_reason="the review round was discarded: the project's own tree changed while the reviewer ran — $outside_write_note${outside_write_attributed:+ (attributed to this round: $outside_write_attributed)}"
+        break
+      elif [ -n "$outside_write_note" ]; then
+        loop_state step A --name outside-write-review-$round --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
+        progress note "$outside_write_note"
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
       # with a non-zero count contradicts itself and is read as a refusal, and a refusal with a zero count is
@@ -1229,16 +1302,16 @@ while true; do
         >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"
       outside_write=$(report_field "$item_dir/worker-report-round2.md" LOOP-OUTSIDE-WRITE)
-      if [ -n "$outside_write" ] && [ "$strict_outside_write" = "yes" ]; then
+      if outside_write_decides; then
         # Named for what it is: a write outside the worktree, not a second failed review round.
         review_verdict="outside-write"
         outcome="blocked"
-        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write"
+        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
         break
-      elif [ -n "$outside_write" ]; then
-        # Recorded and not acted on, for the reason the worker's own difference is (#274, #276, #285).
-        loop_state step A --name outside-write-round-2 --status ok --note "$outside_write" >/dev/null 2>&1 || true
-        progress note "$outside_write"
+      elif [ -n "$outside_write_note" ]; then
+        # Recorded and not acted on, for the reason the worker's own difference is (#274, #276, #285, #286).
+        loop_state step A --name outside-write-round-2 --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
+        progress note "$outside_write_note"
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
       write_review_diff "$diff_base" "$item_dir/review-$((round + 1)).diff"

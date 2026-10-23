@@ -268,7 +268,13 @@ rewrites (every landing fast-forwards the base in the project tree) and that a p
 readings of it are not evidence about one child. `--strict-outside-write yes`
 (`LOOP_STRICT_OUTSIDE_WRITE_DEFAULT`, default `no`) restores the verdict for a tree that is exclusive: the
 worker's item is blocked, the round-2 worker's item is blocked, and a review round that ran during a difference
-is discarded. What is not relaxed is the landing rule — a base that is still not clean when the item lands
+is discarded. A difference the run **can** place decides in both modes: the heartbeat beside every child reads the
+project's tree once per `LOOP_PROGRESS_SECONDS` and, at the first difference, names the processes alive then whose
+working directory is inside the project and outside the worktree, marking the ones in the child's own process tree
+— its process group, or an ancestor chain that reaches it. A writer is gone when the transcript is written, so a
+reading taken afterwards attributes nothing: measured 2026-10-23 while adding it, the exit-time sweep found no
+process for a child's one-shot write and the case built on it failed with `expected 'blocked', got 'done'`.
+What is not relaxed is the landing rule — a base that is still not clean when the item lands
 refuses the merge and records the status line it carries, because that guard is about what may be merged onto,
 not about who wrote it.
 

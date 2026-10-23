@@ -145,6 +145,7 @@ LOOP_SHELL_CASES=(
   'run#hostAboveTheFloorRunsTheItem'
   'run#hostWithoutTheReadingPasses'
   'run#childWriteOutsideTheWorktreeIsNoted'
+  'run#aWriterTheRunCanPlaceBlocksTheItem'
   'run#dirtyBaseRefusesTheMergeAndNamesThePath'
   'run#strictOutsideWriteBlocksTheItem'
   'run#strictOutsideWriteDiscardsTheReviewRound'
@@ -394,6 +395,7 @@ loop_run_shell_case() {
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
     'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
     'run#childWriteOutsideTheWorktreeIsNoted') fn=case_run_childWriteOutsideTheWorktreeIsNoted ;;
+    'run#aWriterTheRunCanPlaceBlocksTheItem') fn=case_run_aWriterTheRunCanPlaceBlocksTheItem ;;
     'run#dirtyBaseRefusesTheMergeAndNamesThePath') fn=case_run_dirtyBaseRefusesTheMergeAndNamesThePath ;;
     'run#strictOutsideWriteBlocksTheItem') fn=case_run_strictOutsideWriteBlocksTheItem ;;
     'run#strictOutsideWriteDiscardsTheReviewRound') fn=case_run_strictOutsideWriteDiscardsTheReviewRound ;;
@@ -3520,6 +3522,27 @@ case_run_hostWithoutTheReadingPasses() {
 # transcripts lay under `.pi/worktrees/loop/` or the item's evidence directory. So the difference is recorded and
 # the item keeps the outcome its work earned; `--strict-outside-write yes` restores the verdict for a tree that is
 # exclusive, and the two strict cases pin it.
+case_run_aWriterTheRunCanPlaceBlocksTheItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # A child that writes the project's own tree and leaves a process of its own standing there: the file is taken
+  # back before the child ends, so the reading at its exit sees nothing. Only the reading taken *while* it ran can
+  # tie the write to the child — that is the evidence this change adds, and it decides the item (#286).
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in worker*) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt"
+       ( cd "$LOOP_CHILD_ROOT" && exec sleep 2 ) &
+       sleep 3; rm -f "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
+  ( export LOOP_PROGRESS_SECONDS=1
+    run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 ) || fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a write the run can place in the child's own tree decides the item"
+  note=$(jq -r '.items[0].note' "$(state_file "$p")")
+  assert_contains "$note" "outside the worktree" "the reason names the tree that changed"
+  assert_contains "$note" "attributed to this child" "and says the run tied the difference to this child"
+}
+
 case_run_childWriteOutsideTheWorktreeIsNoted() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out note
@@ -3543,6 +3566,8 @@ case_run_childWriteOutsideTheWorktreeIsNoted() {
   assert_eq "1" "$(jq -r '[.steps[] | select(.name == "outside-write-review-1")] | length' "$(state_file "$p")")" \
     "and the review round that ran during one is recorded under its own name"
   assert_contains "$out" "loop: note ·" "the difference is on the transcript a person tails, not only in the state"
+  assert_contains "$(cat "$(find "$p/.pi/issue-loop/items" -name 'worker-report.md' | head -1)")" "LOOP-OUTSIDE-WRITE:" \
+    "the child's own transcript carries it as a machine-readable line, not only the run's note"
   assert_eq "1" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is closed"
 }
 

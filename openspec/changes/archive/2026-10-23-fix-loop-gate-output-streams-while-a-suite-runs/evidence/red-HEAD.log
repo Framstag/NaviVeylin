@@ -1,0 +1,6 @@
+  the suite's own first line reaches the console while the suite runs: gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.okudZM/case.daFlIs/suite.sh: 'case: a note is read' not found in: gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.okudZM/case.daFlIs/suite.sh
+FAIL gate#theSuitesOutputReachesTheConsoleWhileItRuns
+ended 3339805 — its working directory is inside loop-selftest.okudZM
+ended 3339834 — its working directory is inside loop-selftest.okudZM
+ended 3339835 — its working directory is inside loop-selftest.okudZM
+ended 3339836 — its working directory is inside loop-selftest.okudZM

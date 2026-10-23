@@ -83,7 +83,7 @@ half: whether each record still *applies*, which is 87 `sed` calls and no case r
    <file>`, exit 1; exit 0 only when every selected record applies. No case runs, nothing in the tree is mutated.
 3. `tools/loop/loop.conf`: `LOOP_GATE_SUITES` owes `bash tools/loop-mutations.sh --check` for `tools/loop/*` and for
    `tools/loop-mutations.sh`.
-4. Three cases (`tools/loop-cases.sh`) and three records (`41.1`–`41.3`) that falsify them; `.pi/skills/revert-check`
+4. Three cases (`tools/loop-cases.sh`) and three records (`43.1`–`43.3`) that falsify them; `.pi/skills/revert-check`
    names the check.
 
 ## Non-goals

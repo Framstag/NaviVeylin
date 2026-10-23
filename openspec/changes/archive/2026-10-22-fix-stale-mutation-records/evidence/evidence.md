@@ -160,3 +160,62 @@ is 0, so nothing can reach it — and it was re-verified on the paths that own t
 passed`; the three records `41.1`–`41.3` → three `RED` and three `green again`, `not-noticed: 0`
 (`post-gate-cleanup.log`). The gate was not run a second time; `tools/loop-selftest.sh`, the only suite the removal
 could conceivably touch, exercises `run.sh` and the engine, not an uncalled function of the harness.
+
+## Re-based onto the two changes that landed beside it, and the labels 41.x → 43.x
+
+The run that produced the evidence above was reported as `LOOP-OUTSIDE-WRITE` and escalated to
+`agent/needs-decision` (issue #264, run 2026-10-22T20:11–20:35Z). The finding was a sibling session's, not this
+child's: `#265` committed to the project's own tree at 22:13:35 CEST, inside that window, and the child's own tool
+calls never touched the project root (`events.jsonl`; one answer comment on the item records it). The item was
+answered *continue* and the branch was re-based onto `main` at `81e25fe` (`#265`, `#266`), which touched the same
+engine.
+
+Two conflicts, both resolved by keeping the base's half whole and adding this change's half beside it:
+
+- `openspec/specs/agent-issue-loop/spec.md` — `#265`/`#266` added two requirements at the position this change adds
+  its own; all three stand.
+- `tools/loop-mutations.sh` — the base's `41.x`/`42.x` records stayed as they are, and this change's three records
+  were **renumbered `43.x`**, because `#265` took `41.x` first and a label names one invariant for good. The
+  records `41.1`–`41.3` named in the logs and prose above are the same three checks under their numbers at the
+  time; a label is a name, a case name is the invariant (`mutation#aStaleRecordIsNamed`,
+  `gate#anEnginePathOwesTheRecordCheck`, `mutation#everyDeclaredRecordApplies`).
+
+## The gate, on the re-based tree
+
+Run in a separate worktree at `81e25fe`, one suite at a time, each its own log.
+
+```
+$ tools/loop-selftest.sh
+loop-selftest: all 172 cases passed (JDK 27, offline, no token, no sandbox)
+$ bash tools/loop-mutations.sh --check
+loop-mutations: all 94 cases passed — every selected record applies to the file it names
+$ tools/loop-mutations-selftest.sh
+loop-mutations-selftest: all 34 cases passed — the harness reports an unapplied mutation, an unnoticed one and
+  a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land
+  and it bounds a run by the files a change touched
+$ tools/check-doc-routes.sh
+check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+$ bash tools/gen-feature-list.sh --check-classification
+classified: 180 · unclassified: 0 · delta spec ids: 0 · stale: 3
+```
+
+`gate.sh --plan --base main` names a sixth check for this delta, `./gradlew test -PforceTests --no-build-cache`,
+because `LOOP_GATE_COMPILED_PATTERNS` carries `*.xml` and the diff of an *archived* change contains its own gate
+tallies (`evidence/gate-tallies/*.xml`). The delta touches no compiled path — a tally is an artifact, not source —
+so the build's gate was **not** run, and that is the exclusion this record names; it is the same run the earlier gate
+made before those tallies existed.
+
+`stale: 3` is not this change's: the same command on unmodified `main` prints `stale: 3` as well, and it exits 0.
+
+## The three new records falsify again on the re-based tree
+
+`mutations-43-rebased.log`:
+
+```
+$ bash tools/loop-mutations.sh --only '43.1 43.2 43.3'
+RED    43.1  mutation#aStaleRecordIsNamed            restore 43.1 … green again
+RED    43.2  gate#anEnginePathOwesTheRecordCheck     restore 43.2 … green again
+RED    43.3  mutation#everyDeclaredRecordApplies     restore 43.3 … green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+```

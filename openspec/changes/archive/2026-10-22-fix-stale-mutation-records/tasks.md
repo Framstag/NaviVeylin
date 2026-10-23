@@ -41,9 +41,9 @@ compiled file changes.
   the check is cheap enough for the gate and the whole set is not. **Verify**:
   `bash tools/loop/gate.sh --plan --base 9f10749` names `bash tools/loop-mutations.sh --check`, and
   `bash tools/loop-selftest.sh --case 'gate#anEnginePathOwesTheRecordCheck'` passes.
-- [x] 4.2 Falsify each new case with its own record (`41.1`–`41.3`). **Verify**:
-  `bash tools/loop-mutations.sh --only '41.1 41.2 41.3'` → three `RED`, three `green again`, `not-noticed: 0` —
-  `.pi/issue-loop/items/264/mutations-41.log`.
+- [x] 4.2 Falsify each new case with its own record (`43.1`–`43.3`, `41.x` before the re-base). **Verify**:
+  `bash tools/loop-mutations.sh --only '43.1 43.2 43.3'` → three `RED`, three `green again`, `not-noticed: 0` —
+  `evidence/mutations-43-rebased.log` (`mutations-41.log` is the same three under their labels at the time).
 
 ## 5. Documentation
 

@@ -57,7 +57,7 @@ Two halves, one mechanism — a record is a quote, and a quote needs comparing a
 
 | file | change |
 |---|---|
-| `tools/loop-mutations.sh` | 2 records rewritten (9.9, 12.2), 3 records added (41.1–41.3), `--check` mode, header |
+| `tools/loop-mutations.sh` | 2 records rewritten (9.9, 12.2), 3 records added (43.1–43.3; `41.x` was taken by `#265` when this change was re-based), `--check` mode, header |
 | `tools/loop/loop.conf` | 2 `;`-pairs appended to `LOOP_GATE_SUITES` |
 | `tools/loop-cases.sh` | 3 cases, in the list, the dispatcher and the file's end |
 | `.pi/skills/revert-check/SKILL.md` | `--check` in the usage block and the paragraph that owns the hand-run rule |

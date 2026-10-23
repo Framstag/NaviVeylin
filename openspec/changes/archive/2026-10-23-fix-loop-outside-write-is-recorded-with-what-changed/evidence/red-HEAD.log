@@ -1,0 +1,24 @@
+Taken 2026-10-23T17:58:26Z — the four cases of this change against the engine at HEAD f084f734 (throwaway worktree
+`git worktree add --detach /tmp/red-engine-274 f084f734`, with only `tools/loop-cases.sh` copied in), one
+`bash tools/loop-selftest.sh --case <name>` per case.
+
+=== run#childWriteOutsideTheWorktreeIsNoted
+  a difference outside the worktree is recorded, not turned into a verdict about the item: expected 'done', got 'blocked'
+FAIL run#childWriteOutsideTheWorktreeIsNoted
+loop-selftest: 1 of 1 cases failed
+
+=== run#dirtyBaseRefusesTheMergeAndNamesThePath
+  the reason is the landing rule, which is the run's own: 'is not clean' not found in: the worker wrote outside the worktree — the project's own tree changed while it ran
+FAIL run#dirtyBaseRefusesTheMergeAndNamesThePath
+loop-selftest: 1 of 1 cases failed
+
+=== run#strictOutsideWriteBlocksTheItem
+  the run itself failed
+FAIL run#strictOutsideWriteBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+
+=== run#strictOutsideWriteDiscardsTheReviewRound
+  the run itself failed
+FAIL run#strictOutsideWriteDiscardsTheReviewRound
+loop-selftest: 1 of 1 cases failed
+

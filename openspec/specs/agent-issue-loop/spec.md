@@ -396,8 +396,24 @@ change.
 #### Scenario: A process that writes outside its tree is caught
 
 - **WHEN** an agent process changes the project's own tree while an item is in flight
+- **THEN** the run records one line naming what changed — the differing status entries and any process whose
+  working directory is inside the project and outside the worktree — and none of that write is committed into
+  the item's change, because the worktree is the only tree a phase may write
+- **Case**: `run#childWriteOutsideTheWorktreeIsNoted`, `run#dirtyBaseRefusesTheMergeAndNamesThePath`
+
+#### Scenario: A difference the run cannot attribute does not decide the item
+
+- **WHEN** a difference is recorded and the run was not started with `--strict-outside-write yes`
+- **THEN** the item keeps the outcome its own work earned, because the comparison measures a tree the run, a
+  peer session and every landing also write, and two readings of it are not evidence about one child — and a base
+  that is still not clean when the item lands is refused by the landing rule, with the path named
+
+#### Scenario: `--strict-outside-write yes` makes the difference decide the item
+
+- **WHEN** a worker's difference is recorded and the run was started with `--strict-outside-write yes`
 - **THEN** the item is recorded as blocked with that reason and none of that write is committed into the
-  item's change, because the worktree is the only tree a phase may write
+  item's change
+- **Case**: `run#strictOutsideWriteBlocksTheItem`
 
 #### Scenario: The reviewer is not the writer
 
@@ -406,9 +422,10 @@ change.
 
 #### Scenario: A reviewer that writes is discarded
 
-- **WHEN** the working tree changed while the reviewer ran
+- **WHEN** the working tree changed while the reviewer ran and the run was started with `--strict-outside-write yes`
 - **THEN** that review round is discarded with a reason, because a reviewer that wrote cannot have been
   the reviewer
+- **Case**: `run#strictOutsideWriteDiscardsTheReviewRound`
 
 #### Scenario: Review rounds are bounded, and a corrective refusal earns one more
 

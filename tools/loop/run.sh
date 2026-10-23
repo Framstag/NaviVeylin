@@ -19,7 +19,8 @@
 # file state the same end (#184).
 #
 # Usage: run.sh [--items N] [--minutes M] [--review on|off] [--may-close yes|no] [--push yes|no]
-#               [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off] [--dry-run]
+#               [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off]
+#               [--strict-outside-write yes|no] [--dry-run]
 #               [--clean-worktree] [--reset-worktree] [--base <sha>]
 set -uo pipefail
 
@@ -35,6 +36,7 @@ max_decisions=""
 max_review_rounds=""
 push="no"
 read_only="on"
+strict_outside_write=""
 dry_run=0
 clean_worktree=0
 reset_worktree=0
@@ -49,11 +51,12 @@ while [ $# -gt 0 ]; do
     --max-decisions) need_value "$@"; max_decisions="${2:-}"; shift 2 ;;
     --max-review-rounds) need_value "$@"; max_review_rounds="${2:-}"; shift 2 ;;
     --review-read-only) need_value "$@"; read_only="${2:-}"; shift 2 ;;
+    --strict-outside-write) need_value "$@"; strict_outside_write="${2:-}"; shift 2 ;;
     --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     --clean-worktree) clean_worktree=1; shift ;;
     --reset-worktree) reset_worktree=1; shift ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) loop_die "run: unknown argument $1" ;;
   esac
 done
@@ -81,6 +84,11 @@ measure_cmd="${LOOP_MEASURE_CMD:-}"
 : "${may_close:=$(loop_conf_value LOOP_MAY_CLOSE_DEFAULT)}"
 : "${max_decisions:=$(loop_conf_value LOOP_MAX_DECISIONS_DEFAULT)}"
 : "${max_review_rounds:=$(loop_conf_value LOOP_MAX_REVIEW_ROUNDS_DEFAULT)}"
+# Whether a difference in the project's own tree decides an item (#274, #276, #285). Recorded, because it is a
+# fact about a project: a tree no peer session and no concurrent run writes can carry the verdict, and one that a
+# landing fast-forwards cannot (`worktree.sh merge-item` merges the base in the project tree).
+: "${strict_outside_write:=$(loop_conf_value LOOP_STRICT_OUTSIDE_WRITE_DEFAULT)}"
+: "${strict_outside_write:=no}"
 
 for pair in "items=$items" "minutes=$minutes" "max-decisions=$max_decisions"; do
   case "${pair#*=}" in ''|*[!0-9]*) loop_die "run: ${pair%%=*} must be a non-negative integer" ;; esac
@@ -92,6 +100,9 @@ case "$review" in on|off) ;; *) loop_die "run: --review must be on or off" ;; es
 case "$may_close" in yes|no) ;; *) loop_die "run: --may-close must be yes or no" ;; esac
 case "$push" in yes|no) ;; *) loop_die "run: --push must be yes or no" ;; esac
 case "$read_only" in on|off) ;; *) loop_die "run: --review-read-only must be on or off" ;; esac
+[ "$strict_outside_write" = on ] || [ "$strict_outside_write" = off ] || [ "$strict_outside_write" = yes ] ||
+  [ "$strict_outside_write" = no ] || loop_die "run: --strict-outside-write must be yes or no"
+case "$strict_outside_write" in yes|on) strict_outside_write=yes ;; *) strict_outside_write=no ;; esac
 
 # The one indirection through which every child is started (D3, D15). An empty value would start nothing
 # and report success for it, so it stops the run instead.
@@ -134,9 +145,9 @@ free_mib=$(host_free_mib)
 # could not be merged" — the real cause never named (issue #241, measured 2026-10-21: five refused
 # fast-forwards, `git config --get core.bare` → `true`, `git rev-parse --is-inside-work-tree` → `false`, and one
 # `git config core.bare false` fixed all of it). The run refuses before it writes anything, and says what to do.
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s child-max-seconds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
+printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
   "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$child_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
+  "$read_only" "$strict_outside_write" "$child_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -577,8 +588,52 @@ project_state() {
   git -C "$LOOP_ROOT" status --porcelain 2>/dev/null
 }
 # …and the base it recorded, so a child that commits on the project's own branch without touching a file is
-# still a change of the tree the run promised to build on. `project_state` is compared before and after every
-# child, which is what catches a write outside the worktree.
+# still a change of the tree the run promised to build on. `project_state` is read before and after every child,
+# and what the two readings differ by is recorded (below) — a difference is evidence, not a verdict about the one
+# child the run knows nothing about (#274, #276, #285).
+
+# The difference between two readings, which is what a report needs: the lines one reading carries and the other
+# does not. A constant sentence said only that the tree had changed, so neither the run nor a later reader of the
+# item could tell which path to restore — or whether a path had changed at all, since the tree's own answer to
+# "am I a work tree" travels in the same reading (issue #285).
+project_state_diff() { # project_state_diff <before> <after> → the lines only one of the two readings carries
+  { printf '%s\n' "$1"; printf '%s\n' "$2"; } | sed '/^[[:space:]]*$/d' | sort | uniq -u
+}
+
+# One clause out of a list of lines, quoted as it was read and bounded: a damaged tree carries thousands of
+# `git status` lines, and a note is a sentence a person reads on the tracker.
+outside_write_clause() { # <cap> — stdin: one line per item → `a; b; …`, `; and N more` past the cap
+  awk -v cap="$1" 'NF { n++; if (n <= cap) printf "%s%s", (n > 1 ? "; " : ""), $0 }
+                   END { if (n > cap) printf "%s and %d more", (cap > 0 ? "; " : ""), n - cap }'
+}
+
+# The processes the project shows that no phase may be working in: a survivor still names the tree it works in as
+# its working directory, which is the question `loop_pids_under` already answers for the cap's own sweep (issue
+# #272), and a working directory inside the worktree is a tree a phase *may* write. `loop_pids_under` skips this
+# shell and its parent; the caller runs the sweep from a directory outside the tree as well, so the shell that
+# reads the answer is never part of it.
+outside_write_pids() { # <root> <worktree> → one `<pid> <command>` line per process
+  local pid cwd
+  for pid in $(loop_pids_under "$1"); do
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
+    case "${cwd% (deleted)}" in "$2"|"$2"/*) continue ;; esac
+    printf '%s %s\n' "$pid" "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | cut -c1-80 | sed 's/[[:space:]]*$//')"
+  done
+}
+
+# The one line a child's transcript gains when the project's own tree moved while it ran: what changed, by the
+# status line it changed to, and who else could have changed it. Both halves are what makes the note answerable —
+# which path to restore, and which process to look at (issue #285: #274's round-2 worker was blocked by a line that
+# named no path, and the work was lost to a decision nobody could answer).
+outside_write_line() { # outside_write_line <before> <after> → one `LOOP-OUTSIDE-WRITE: …` line
+  local paths holders
+  paths=$(project_state_diff "$1" "$2" | cut -c1-120 | outside_write_clause 10)
+  holders=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" | cut -c1-120 | outside_write_clause 5 )
+  printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran: %s' \
+    "${paths:-(no status line differs — only the work-tree answer changed)}"
+  [ -z "$holders" ] || printf '; process(es) whose working directory is inside the project: %s' "$holders"
+  printf '\n'
+}
 
 # The diff a review round is handed is the change, not the generated output a change is archived beside:
 # item #126's round-3 diff (issue #204) carried 9 935 changed lines, 9 364 of them gate HTML and XML, against
@@ -749,7 +804,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     "$(fmt_elapsed $(( $(date +%s) - started )))" "$rc" "$(wc -c < "$2" 2>/dev/null || printf 0)"
   after=$(project_state)
   if [ "$before" != "$after" ]; then
-    printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran\n' >> "$2"
+    outside_write_line "$before" "$after" >> "$2"
   fi
   return "$rc"
 }
@@ -1000,6 +1055,14 @@ while true; do
   carried=0
   if [ -d "$change_evidence" ] && [ -n "$(ls -A "$change_evidence" 2>/dev/null)" ]; then carried=1; fi
 
+  # A difference the run cannot attribute is recorded and does not decide the item (#274, #276, #285): the tree it
+  # measures is one the run's own landings fast-forward in the project and a peer session writes too, so two
+  # readings of it are not evidence about the one child the run started. `--strict-outside-write yes` buys the
+  # verdict back for a tree that is exclusive, and then the item is blocked as it used to be.
+  if [ -n "$outside_write" ] && [ "$strict_outside_write" != "yes" ]; then
+    loop_state step A --name outside-write --status ok --note "$outside_write" >/dev/null 2>&1 || true
+    progress note "$outside_write"
+  fi
   outcome="closed"
   blocked_reason=""
   if [ "$worker_exit" -ne 0 ]; then
@@ -1007,8 +1070,8 @@ while true; do
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
     # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
     if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
-  elif [ -n "$outside_write" ]; then
-    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran"
+  elif [ -n "$outside_write" ] && [ "$strict_outside_write" = "yes" ]; then
+    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write"
   elif [ "$verdict_claim" = "skipped" ] && [ "${skip_verdict:-}" = "falsified" ] \
     && [ -n "$falsified_mechanism" ] && [ -n "$falsified_measurement" ] && [ "$head_now" = "$base" ]; then
     # Measured 2026-10-20: three of the first four items of one run (#89, #99, #137) were items whose premise the
@@ -1053,8 +1116,9 @@ while true; do
       review_rounds=$round
       diff_file="$item_dir/review-$round.diff"
       write_review_diff "$diff_base" "$diff_file"
-      before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
+      before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
+      before_project=$(project_state)
       reviewer_report="$item_dir/reviewer-report-$round.md"
       render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md" "$correction_scope"
       # The round is announced on the branch *before* the reviewer starts, so an answer that never arrives is a
@@ -1089,13 +1153,28 @@ while true; do
           break
         fi
       fi
-      after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
+      after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       if [ "$read_only" = "on" ] && [ "$before" != "$after" ]; then
-        # The reviewer wrote, so it cannot have been the reviewer: the round is discarded (D3).
+        # The reviewer wrote in the tree it reads, so it cannot have been the reviewer: the round is discarded (D3).
         review_verdict="reviewer-wrote"
         outcome="blocked"; blocked_reason="the review round was discarded: the working tree changed while the reviewer ran"
         break
+      fi
+      # The project's own tree is read as well, and it is not the reviewer's either — but it is not only the
+      # reviewer's to change either (#274, #276, #285): the difference is recorded, and decides the round only when
+      # the run was asked to judge it (`--strict-outside-write yes`).
+      after_project=$(project_state)
+      if [ "$before_project" != "$after_project" ]; then
+        outside_write=$(outside_write_line "$before_project" "$after_project")
+        printf '%s\n' "$outside_write" >> "$reviewer_report"
+        if [ "$strict_outside_write" = "yes" ]; then
+          review_verdict="reviewer-wrote"
+          outcome="blocked"; blocked_reason="the review round was discarded: the project's own tree changed while the reviewer ran — $outside_write"
+          break
+        fi
+        loop_state step A --name outside-write-review-$round --status ok --note "$outside_write" >/dev/null 2>&1 || true
+        progress note "$outside_write"
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
       # with a non-zero count contradicts itself and is read as a refusal, and a refusal with a zero count is
@@ -1150,12 +1229,16 @@ while true; do
         >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"
       outside_write=$(report_field "$item_dir/worker-report-round2.md" LOOP-OUTSIDE-WRITE)
-      if [ -n "$outside_write" ]; then
+      if [ -n "$outside_write" ] && [ "$strict_outside_write" = "yes" ]; then
         # Named for what it is: a write outside the worktree, not a second failed review round.
         review_verdict="outside-write"
         outcome="blocked"
-        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran"
+        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write"
         break
+      elif [ -n "$outside_write" ]; then
+        # Recorded and not acted on, for the reason the worker's own difference is (#274, #276, #285).
+        loop_state step A --name outside-write-round-2 --status ok --note "$outside_write" >/dev/null 2>&1 || true
+        progress note "$outside_write"
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
       write_review_diff "$diff_base" "$item_dir/review-$((round + 1)).diff"

@@ -136,9 +136,10 @@ LOOP_SHELL_CASES=(
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
   'run#hostWithoutTheReadingPasses'
-  'run#childWriteOutsideTheWorktreeIsBlocked'
-
-  'run#reviewerWriteInTheProjectIsDiscarded'
+  'run#childWriteOutsideTheWorktreeIsNoted'
+  'run#dirtyBaseRefusesTheMergeAndNamesThePath'
+  'run#strictOutsideWriteBlocksTheItem'
+  'run#strictOutsideWriteDiscardsTheReviewRound'
   'run#leftoverBranchIsRecordedNotDropped'
   'run#branchThatAppearsWhileTheRunIsOpenIsSetAside'
   'run#mergesAFinishedAttemptAndClosesTheItem'
@@ -341,8 +342,10 @@ loop_run_shell_case() {
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
     'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
-    'run#childWriteOutsideTheWorktreeIsBlocked') fn=case_run_childWriteOutsideTheWorktreeIsBlocked ;;
-    'run#reviewerWriteInTheProjectIsDiscarded') fn=case_run_reviewerWriteInTheProjectIsDiscarded ;;
+    'run#childWriteOutsideTheWorktreeIsNoted') fn=case_run_childWriteOutsideTheWorktreeIsNoted ;;
+    'run#dirtyBaseRefusesTheMergeAndNamesThePath') fn=case_run_dirtyBaseRefusesTheMergeAndNamesThePath ;;
+    'run#strictOutsideWriteBlocksTheItem') fn=case_run_strictOutsideWriteBlocksTheItem ;;
+    'run#strictOutsideWriteDiscardsTheReviewRound') fn=case_run_strictOutsideWriteDiscardsTheReviewRound ;;
     'run#leftoverBranchIsRecordedNotDropped') fn=case_run_leftoverBranchIsRecordedNotDropped ;;
     'run#branchThatAppearsWhileTheRunIsOpenIsSetAside') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside ;;
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
@@ -3347,35 +3350,90 @@ case_run_hostWithoutTheReadingPasses() {
   assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "and the item closes as usual"
 }
 
-case_run_childWriteOutsideTheWorktreeIsBlocked() {
-  local d p
+# The project's own tree is not the child's: the run's own landings fast-forward the base there
+# (`worktree.sh merge-item`), a peer session writes it, and the two readings the run compares are taken up to a
+# child's whole wall-clock apart. Measured 2026-10-23 (#274, #276, #285): 5 of 139 items were blocked by that
+# comparison and the three cases of that day had written nothing there — every write target in the three
+# transcripts lay under `.pi/worktrees/loop/` or the item's evidence directory. So the difference is recorded and
+# the item keeps the outcome its work earned; `--strict-outside-write yes` restores the verdict for a tree that is
+# exclusive, and the two strict cases pin it.
+case_run_childWriteOutsideTheWorktreeIsNoted() {
+  local d p out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  # a child that does its work in the worktree and also writes in the project's own tree: only the
-  # worktree is a phase's to write, so the run catches this rather than committing it into the project
+  # The measured shape: another process wrote the project's own tree while a child ran, and took it back again
+  # before the item landed. The run records the difference twice — the worker's write and the reviewer's
+  # removal — and the item keeps the outcome its work earned, because a difference is not a verdict about the
+  # child the run started (#274, #276, #285).
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in worker*) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;; reviewer*) rm -f "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a difference outside the worktree is recorded, not turned into a verdict about the item"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the item closes on its own work"
+  note=$(jq -r '[.steps[] | select(.name | startswith("outside-write")) | .note] | join(" | ")' "$(state_file "$p")")
+  assert_contains "$note" "the project tree changed while this process ran" "the run records each difference it saw"
+  assert_contains "$note" "demo-owned.txt" "and names the path that changed, so the note is answerable"
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "outside-write")] | length' "$(state_file "$p")")" \
+    "the worker's own difference is recorded, not only the round that followed it"
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "outside-write-review-1")] | length' "$(state_file "$p")")" \
+    "and the review round that ran during one is recorded under its own name"
+  assert_contains "$out" "loop: note ·" "the difference is on the transcript a person tails, not only in the state"
+  assert_eq "1" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is closed"
+}
+
+case_run_dirtyBaseRefusesTheMergeAndNamesThePath() {
+  local d p note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The difference that is still there when the item lands. The run does not invent a verdict about the child for
+  # it: the merge declines a base that is not clean — its own safety rule, unchanged by this change — and the
+  # reason it records names the path, which is what makes the escalation answerable (#285's naming, folded here).
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in worker*) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
-    "a write outside the worktree blocks the item"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "outside the worktree" \
-    "the reason names the tree that changed"
+    "a base that is still dirty cannot be merged onto"
+  note=$(jq -r '.items[0].note' "$(state_file "$p")")
+  assert_contains "$note" "is not clean" "the reason is the landing rule, which is the run's own"
+  assert_contains "$note" "demo-owned.txt" "and it names the path, so the owner can act on it"
+  case "$note" in *"wrote outside the worktree"*)
+    fail "the reason still blames the child for a difference the run cannot attribute: $note" ;; esac
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
 }
 
-case_run_reviewerWriteInTheProjectIsDiscarded() {
-  local d p
+case_run_strictOutsideWriteBlocksTheItem() {
+  local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  # a reviewer that stays inside the worktree is caught by its own round; this one writes in the project's
-  # tree, which the round reads as well — a process that wrote cannot have been the reviewer either way
+  # `--strict-outside-write yes` is the run that asks to judge the tree: the same write blocks the item, as it did
+  # for every run before 2026-10-23
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'case "$1" in worker*) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
+  run_loop "$p" --items 1 --minutes 90 --review on --strict-outside-write yes >/dev/null 2>&1 ||
+    fail "the run itself failed"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a write outside the worktree blocks the item when the run asked to judge it"
+  note=$(jq -r '.items[0].note' "$(state_file "$p")")
+  assert_contains "$note" "outside the worktree" "the reason names the tree that changed"
+  assert_contains "$note" "demo-owned.txt" "and the path, because the strict run is answerable too"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is not closed"
+}
+
+case_run_strictOutsideWriteDiscardsTheReviewRound() {
+  local d p note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # the strict run reads a reviewer that wrote anywhere it may not as no reviewer at all
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in reviewer*) printf "the reviewer wrote\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;; esac'
-  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  run_loop "$p" --items 1 --minutes 90 --review on --strict-outside-write yes >/dev/null 2>&1 ||
+    fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
-    "a reviewer that wrote in the project cannot have been the reviewer"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "working tree changed" \
-    "the round is discarded with a reason"
+    "a reviewer that wrote in the project cannot have been the reviewer under --strict-outside-write yes"
+  note=$(jq -r '.items[0].note' "$(state_file "$p")")
+  assert_contains "$note" "the review round was discarded" "the round is discarded with a reason"
+  assert_contains "$note" "demo-owned.txt" "and the reason names the path that changed"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a discarded round"
 }
 

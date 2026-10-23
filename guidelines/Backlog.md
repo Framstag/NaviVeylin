@@ -257,6 +257,21 @@ outcome from what it reads itself (I10).
 What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
 is the script's (I8); and the tracker credential is not in the agent's environment (§5).
 
+What it does **not** claim: the project's own tree is not the child's, so a difference between the two readings of
+it taken around a child is recorded and not turned into a verdict. The transcript gains one line naming what
+changed — the differing status entries and any process whose working directory is inside the project but outside
+the worktree — the item keeps the outcome its work earned, and a review round that ran during a difference stands.
+Measured 2026-10-23 (#274, #276, #285): 5 of 139 items across four runs were blocked by that comparison, and in
+the three cases of that day the child had written nothing there — every write target in the three transcripts lay
+under `.pi/worktrees/loop/` or the item's evidence directory. The comparison measures a tree the run itself
+rewrites (every landing fast-forwards the base in the project tree) and that a peer session writes too, so two
+readings of it are not evidence about one child. `--strict-outside-write yes`
+(`LOOP_STRICT_OUTSIDE_WRITE_DEFAULT`, default `no`) restores the verdict for a tree that is exclusive: the
+worker's item is blocked, the round-2 worker's item is blocked, and a review round that ran during a difference
+is discarded. What is not relaxed is the landing rule — a base that is still not clean when the item lands
+refuses the merge and records the status line it carries, because that guard is about what may be merged onto,
+not about who wrote it.
+
 What bounds it: the budget is consulted between items, so the run also bounds **one child** by its own
 recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 45 min). A child that outlasts it is ended together with
 everything it started — a gate leaves daemons and test workers behind, and those are the memory the next item

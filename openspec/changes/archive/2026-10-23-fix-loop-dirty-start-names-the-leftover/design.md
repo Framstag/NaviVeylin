@@ -31,8 +31,9 @@ One arm, `*"not clean"*`, placed after the two arms the tree can already disting
 Plus one correction in `state.sh` that the arm cannot do without: `done` keeps **one record per item**. A second
 account of an item this run already recorded (the normal case — the owner is recorded before the tree is
 inspected) joins that record's note and writes the escalation label it earned, instead of appending a second entry.
-A duplicate entry is not cosmetic: `report.sh` derives four tallies and `budgetLeft` from `.items` (`report.sh:60`–
-`63`, `:54`) and `state.sh next` reads `.items[-2:]` for "two consecutive items ended blocked" (`state.sh:260`), so
+A duplicate entry is not cosmetic: `report.sh` derives four tallies and `budgetLeft` from `.items` (`tools/loop/report.sh:60`–
+`63`, `:54`) and `state.sh next` reads `.items[-2:]` for "two consecutive items ended blocked"
+(`tools/loop/state.sh:260`), so
 one duplicated item is a wrong count in five places and a run that stops for a reason it does not have.
 
 ## Why this is one change and not a fork

@@ -71,10 +71,11 @@ counts realigned by declaring the records inside `MUTATIONS=( … )` — `git sh
 item could not be started: $(printf'` → 1.
 
 Counted before the plan was fixed, command by command: `git show HEAD:tools/loop/run.sh | grep -c 'the item could
-not be started: $(printf'` → **1** (the catch-all arm, the whole defect); `grep -rn 'loop-branch'
-tools/loop/*.sh` → **6** (three writers in `worktree.sh`, one reader in `run.sh`, one in `worktree.sh`'s
-`adopt-item`, and one in `run.sh`'s pre-flight that this change turns into the shared `owner_of_marker`);
-`git show HEAD:tools/loop/run.sh | grep -c 'owner_item'` → **6** (all of them in that pre-flight, none mid-run);
+not be started: $(printf'` → **1** (the catch-all arm, the whole defect); `git grep -n 'loop-branch' f2d2773 -- 'tools/loop/*.sh' | wc -l` → **5** at the base
+(`run.sh` 1, `worktree.sh` 4 — three writers, one reader in `adopt-item`; the `run.sh` one is the pre-flight that
+this change turns into the shared `owner_of_marker`), and **6** in this tree, the refusal arm's read being the
+sixth; `git show HEAD:tools/loop/run.sh | grep -c 'owner_item'` → **6** (all of them in that pre-flight,
+none mid-run);
 `grep -c 'items | length' tools/loop-cases.sh` → **11** cases asserting how many records the run wrote — every one
 of them a place the duplicate entry would have shown up. The start-refusal behaviour itself is asserted by
 `worktree#oneBranchPerItemOffTheBase` (the refusal, at the `worktree.sh` seam) and by

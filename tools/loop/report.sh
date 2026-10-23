@@ -80,7 +80,7 @@ is_num() { case "${1:-}" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 # two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
 # file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
 # printed while it is still going.
-stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
+stop_reason=""
 
 # A run that wrote this state and is not running any more is not a run that is going: the state names the
 # process that wrote it, and a run that recorded no stop while its process is gone is a run that was killed
@@ -225,6 +225,16 @@ while IFS=$'\t' read -r branch ahead; do
   fi
 done <<< "$branch_table"
 
+# A label write the tracker refused is an obligation no other source can discharge: the run recorded it, and the
+# item's state on the tracker is stale in a way a reader who trusts only the tracker cannot see — an item with no
+# decision at all where the run recorded one, or an in-progress mark on an item nothing is working (issue #279).
+while IFS=$'\t' read -r issue failed; do
+  [ -n "${issue:-}" ] || continue
+  [ -n "${failed:-}" ] || continue
+  actions[${#actions[@]}]="set #$issue's tracker state by hand — the run could not write $failed, so the item's state there is stale — gh issue view $issue"
+done < <(jq -r '.items[] | select(((.labelFailures // []) | length) > 0)
+  | [(.issue | tostring), ((.labelFailures // []) | join(" "))] | @tsv' "$state_file")
+
 # An item that ended without a gate result is the one failure a caller cannot reconstruct from the table:
 # the transcript beside its id says how far the item got.
 while IFS=$'\t' read -r issue; do
@@ -248,8 +258,8 @@ fi
 
 printf 'actions the caller owes:\n'
 if [ "${#actions[@]}" -eq 0 ]; then
-  # Empty only when every one of the five sources was read and empty — not because a list was skipped.
-  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no refused citation\n'
+  # Empty only when every one of the six sources was read and empty — not because a list was skipped.
+  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no refused citation, no label write the tracker refused\n'
 else
   n=1
   for action in "${actions[@]}"; do

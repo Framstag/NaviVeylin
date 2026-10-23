@@ -1451,7 +1451,14 @@ $review_notes_text"
         --events "$events_file" --decision-label "$escalated_label" >/dev/null
       ;;
     *)
-      loop_labels unpick "$issue" >&2 || true
+      # A label write the tracker refuses is a fact of the run, not a swallow (issue #279): measured
+      # 2026-10-23T11:38Z, a run recorded item #260 blocked with `escalatedLabel: ""` while its six neighbours
+      # carried the decision label, and left `agent/in-progress` on an item nothing was working any more — so the
+      # decision list did not hold it, the cap did not count it, and the next attempt was told nothing. The run
+      # clears its own `in_progress` variable on this path, so no later step retries the write: the transition that
+      # failed is recorded with the item, and the report names what the tracker does not carry.
+      label_failures=""
+      loop_labels unpick "$issue" >&2 || label_failures="unpick"
       # A blocked item is escalated in the same pass, exactly as a skipped one is: the reason is held in the
       # run state, and the next run replaces that state wholesale, so a block that left the tracker untouched
       # would vanish — the decision list would not hold it, the decision cap would not count it, and the next
@@ -1482,11 +1489,20 @@ question the item asked; a retry costs another attempt, and an abandonment remov
       if loop_labels escalate "$issue" --reason "$escalation_reason" \
         --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
         escalated_label="$decision_label"   # the block's own escalation
+      else
+        label_failures="${label_failures:+$label_failures }escalate"
+      fi
+      # The item's own reason carries the failure too, so the state's own table (`state.sh report`) names an item
+      # whose decision was never written, and not only the report's action list does.
+      blocked_note="${blocked_reason:-the item was blocked}"
+      if [ -n "$label_failures" ]; then
+        blocked_note="$blocked_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"
       fi
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
-        --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_reason" \
-        --events "$events_file" --decision-label "$escalated_label" >/dev/null
+        --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
+        --events "$events_file" --decision-label "$escalated_label" \
+        --label-failures "$label_failures" >/dev/null
       ;;
   esac
   detail="${change:-$blocked_reason}"

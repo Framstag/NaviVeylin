@@ -1,0 +1,9 @@
+taken 2026-10-23T16:36:45Z
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 7 pairs confirmed, 5 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 386 resolved and in range, 8 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0

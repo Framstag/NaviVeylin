@@ -296,6 +296,12 @@ MUTATIONS=(
   # the dead arm stayed on `origin/fix/issue-262-…` until a person amended it by hand at 05:05. The mutation
   # restores the unconditional commit, so the case reads a branch the run must have left at the base.
   '45.1@-@tools/loop/run.sh@run#treeOfAChildTheCapEndedIsNotCommitted@the guard that leaves the tree of a child the run ended uncommitted (issue #271)@s|^  if \[ "\$worker_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then$|  if false; then|'
+  # 45.2 is the same rule at the second commit site, and it is a separate record because it is a separate guard:
+  # the first one leaving the item's own worker uncommitted says nothing about the worker a refusing review round
+  # sends the change back with (issue #271, found by that change's round-1 review — the requirement was universal
+  # and this call site was left as it stood). The mutation restores the unconditional `end-item` there, so the
+  # rework worker's half-applied tree lands in a commit on top of the item's own fix.
+  '45.2@-@tools/loop/run.sh@run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted@the guard that leaves the tree of a rework worker the cap ended uncommitted (issue #271)@s|^      if \[ "\$round2_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$round2_timeout" \]; then$|      if false; then|'
   # 46.1 is the stream that carries a suite output to the console while the suite runs. Measured 2026-10-23
   # (issue #269): the gate held a suite's whole output in a variable, so a gate that ran for eleven minutes
   # carried two lines and neither an operator nor a worker could tell a long suite from a stopped one. The

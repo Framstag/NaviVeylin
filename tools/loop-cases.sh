@@ -143,6 +143,7 @@ LOOP_SHELL_CASES=(
   'run#childOutlastingTheWallClockIsBlocked'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
+  'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
@@ -397,6 +398,7 @@ loop_run_shell_case() {
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
+    'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
@@ -3519,6 +3521,10 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
     "the report carries the line that says the run ended the child"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
     "an item whose child was ended by the cap is recorded blocked"
+  # The run's own line is part of the contract, not only the branch: a person reads the log to learn that the
+  # commit was skipped rather than made, so the sentence the requirement states is asserted here too.
+  assert_contains "$out" "end-item skipped" \
+    "the run's own line says the commit was skipped — the branch is not the only record of it"
   # The branch is the assertion: `end-item` committed the tree the ended child left, so the item's branch carries a
   # commit of work the child never claimed — and the half-applied file with it.
   assert_eq "$base" "$(git -C "$tree" rev-parse HEAD)" \
@@ -3527,6 +3533,53 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
   assert_contains "$files" "half-applied.txt" \
     "and the tree the ended child left is kept as it left it, named for the person who repairs it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+}
+
+# The same rule at the second commit site (issue #271, found by that change's round-1 review): a reviewer's refusal
+# sends the same change to a rework worker, and the run commits that worker's tree at `end-item` there without
+# reading its status either. A rework worker the cap ends leaves the tree in whatever state it was doing, exactly
+# as the item's own worker does — and a refusal is not a licence to assert work nobody claimed — so the commit is
+# skipped there too, the item is blocked with the round's own transcript, and the tree stays as the child left it.
+# Measured 2026-10-23: the shipped requirement was universal while this call site was left as it stood.
+case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted() {
+  local d p conf status out tree report files
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  # Round 1's reviewer refuses the change, so the run starts the rework worker; that worker writes its
+  # half-applied file and then outlasts the 2 s cap, which is the tree the run must not commit.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: the demo scenario names no case
+LOOP-BLOCKING: 1
+VERDICT: FAIL' "case \"\$1\" in
+  worker-prompt-round2.md)
+    printf \"half-applied\\n\" > half-applied.txt
+    sleep 30
+    ;;
+esac"
+  tree="$p/.pi/worktrees/loop"
+  export LOOP_CONF="$conf"
+  run_loop "$p" --items 1 --minutes 90 --review on > "$d/out" 2>&1; status=$?
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a rework worker the run itself ended is not a failed run"
+  report="$p/.pi/issue-loop/items/21/worker-report-round2.md"
+  [ -f "$report" ] || fail "the rework round kept no transcript of the child that was ended"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
+    "the round's report carries the line that says the run ended the child"
+  # The branch is the assertion: `end-item` would have committed the tree the ended rework worker left, on top of
+  # whatever the item's own worker and the round's announcement already earned, and the half-applied file with it.
+  assert_eq "0" "$(git -C "$tree" log --format=%H --name-only | grep -c 'half-applied.txt' || true)" \
+    "the tree a rework worker the cap ended left behind is committed nowhere — the branch carries only what the item's own worker earned"
+  files=$(git -C "$tree" status --porcelain)
+  assert_contains "$files" "half-applied.txt" \
+    "and the tree that worker left is kept as it left it, for the person who repairs it"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose rework worker was ended by the cap is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not committed" \
+    "and the reason says the round's tree was not committed"
+  assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" \
+    "nothing is closed on a rework worker the run ended"
 }
 
 # `run_child` returns the child's status and nothing else, so the caller could not tell a child whose argv the

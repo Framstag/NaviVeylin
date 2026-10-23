@@ -1327,6 +1327,7 @@ while true; do
       printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \
         >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"
+      round2_exit=$?
       outside_write=$(report_field "$item_dir/worker-report-round2.md" LOOP-OUTSIDE-WRITE)
       if outside_write_decides; then
         # Named for what it is: a write outside the worktree, not a second failed review round.
@@ -1338,6 +1339,20 @@ while true; do
         # Recorded and not acted on, for the reason the worker's own difference is (#274, #276, #285, #286).
         loop_state step A --name outside-write-round-2 --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
         progress note "$outside_write_note"
+      fi
+      # The rule the item's own commit follows is the same one here (issue #271): the run commits a child's tree
+      # only once that child has finished by its own exit. A round-2 worker the cap ended is unfinished exactly as
+      # the item's worker was — the tree is whatever it was doing, and a reviewer's refusal is not a licence to
+      # assert work nobody claimed — so this commit is skipped too, the item is blocked with the round's own
+      # transcript, and the tree stays as the child left it. Measured 2026-10-23 (the round-1 review of #271): the
+      # shipped requirement was universal and this call site was left as it stood, so the sentence and the code
+      # disagreed until the reviewer read them against each other.
+      round2_timeout=$(report_field "$item_dir/worker-report-round2.md" LOOP-TIMEOUT)
+      if [ "$round2_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$round2_timeout" ]; then
+        review_verdict="round2-ended"
+        outcome="blocked"
+        blocked_reason="the cap ended the rework worker of the refusing round, so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
+        break
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
       write_review_diff "$diff_base" "$item_dir/review-$((round + 1)).diff"

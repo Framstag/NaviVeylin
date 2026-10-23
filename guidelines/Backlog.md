@@ -290,8 +290,12 @@ is inside <tree>`). Measured 2026-10-22: the mutation harness a child had starte
 the worktree for seven minutes after the run had recorded the child as ended, and its last restore is what
 left that tree dirty for the next run (#272). What such a child leaves is **not committed**: at the moment the cap
 fires the tree holds whatever the child was doing, so a commit of it asserts work the child never claimed — the
-run reads the child's status before it commits, skips `end-item`, and the branch stays at the base, the tree kept
-exactly as the child left it (nothing is discarded without `--reset-worktree`). Measured 2026-10-22: the worker of
+run reads the child's status before it commits, skips `end-item`, and the branch stays where it stood (at the base,
+when the item's own worker is the one the cap ended), the tree kept exactly as the child left it (nothing is
+discarded without `--reset-worktree`). The rule covers both commits a run makes for an item: the item's worker, and
+the rework worker a refusing review round starts, whose round blocked the item instead of committing what it left
+(the round-1 review of #271 found that second site unguarded, one day after the rule was written as if it were
+universal). Measured 2026-10-22: the worker of
 #262 was ended at 23:48 with mutation 19.2 applied to `tools/loop/run.sh`, the run committed that tree 18 s later,
 and `if false; then` in place of the corrective-round test stayed on `origin/fix/issue-262-…` until a person
 amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's

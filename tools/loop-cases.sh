@@ -9,7 +9,7 @@
 #   LOOP_FIXTURES        `tools/loop/fixtures` (the stub `pi` and the scenario issues)
 #   LOOP_ISSUE_FIXTURES  `tools/issues/fixtures` (the stub `gh`, the profile)
 #   LOOP_PROJECT_ROOT    the real repository (for the profile and the structural checks)
-#   ISSUES_CORE_CLASSES  the Java core, already compiled by the driver
+#   ISSUES_CORE_CLASSES  the Java core, once a case has asked for it (`core_ensure`)
 #   LOOP_TMP             a scratch directory under the gitignored `.pi/tmp/`
 # and puts the stub `pi` and the stub `gh` first on PATH.
 #
@@ -196,6 +196,8 @@ LOOP_SHELL_CASES=(
   'usage#bareValueFlagDoesNotSwallowTheNextFlag'
   'usage#bareValueFlagInASingleShotHarnessIsAUsageError'
   'usage#noUnguardedValueFlagRemains'
+  'driver#aCaseThatAsksForNoCoreCompilesNothing'
+  'driver#aCaseThatAsksForTheCoreGetsItOrRefuses'
 )
 
 loop_shell_cases() {
@@ -385,6 +387,8 @@ loop_run_shell_case() {
     'clean#reportsAndEndsAProcessLeftInAScratchTree') fn=case_clean_reportsAndEndsAProcessLeftInAScratchTree ;;
     'clean#endsARunWhoseTreeIsAlreadyDeleted') fn=case_clean_endsARunWhoseTreeIsAlreadyDeleted ;;
     'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
+    'driver#aCaseThatAsksForNoCoreCompilesNothing') fn=case_driver_aCaseThatAsksForNoCoreCompilesNothing ;;
+    'driver#aCaseThatAsksForTheCoreGetsItOrRefuses') fn=case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -469,7 +473,9 @@ run_worktree() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/worktree.s
 run_clean() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/loop-clean.sh" "$@" ); }
 run_labels() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/labels.sh" "$@" ); }
 run_report() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/report.sh" "$@" ); }
-run_loop() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/run.sh" "$@" ); }
+# A case that starts the engine asks for the core first: the engine writes through `tools/issues/*.sh`, whose Java
+# core the driver compiles on request rather than before the case list is known (issue #261).
+run_loop() { core_ensure; local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/run.sh" "$@" ); }
 
 scenario() { printf '%s\n' "$LOOP_FIXTURES/scenarios/$1"; }
 
@@ -747,6 +753,7 @@ case_state_secondRunRefusesWithExit5() {
 
   # `--review off`, because PI_STUB_WAIT blocks every child that is started while it is set and this
   # case needs exactly one blocked child (the second run's lock refusal is what is under test).
+  core_ensure
   ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/first.log" 2>&1 &
   first=$!
   local waited=0
@@ -755,6 +762,7 @@ case_state_secondRunRefusesWithExit5() {
 
   gh_log_content=$(cat "$GH_STUB_RECORD")
   # The second run is bounded: a run that does not refuse must not hang the suite on a child.
+  core_ensure
   second=$( ( cd "$p" && timeout 120 bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 ) 2>&1); status=$?
   assert_eq "5" "$status" "a second run refuses while the first holds the lock"
   assert_contains "$second" "another run holds" "the refusal names the lock"
@@ -781,6 +789,7 @@ case_state_aRefusedRunLeavesTheLiveStateAlone() {
   block="$d/fifo"; mkfifo "$block"
   export PI_STUB_WAIT="$block"
 
+  core_ensure
   ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/first.log" 2>&1 &
   first=$!
   local waited=0
@@ -793,6 +802,7 @@ case_state_aRefusedRunLeavesTheLiveStateAlone() {
   live_sum=$(sha256sum "$sf" | cut -c1-16)
 
   # The second run is bounded: a run that does not refuse must not hang the suite on a child.
+  core_ensure
   second=$( ( cd "$p" && timeout 120 bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 ) 2>&1); status=$?
   assert_eq "5" "$status" "a second run refuses while the first holds the lock"
   assert_contains "$second" "another run holds" "the refusal names the lock"
@@ -1947,6 +1957,7 @@ case_labels_trapRemovesInProgressOnSignal() {
   assert_contains "$(grep -n 'INT' "$LOOP_ENGINE/run.sh" | grep -c 'on_signal')" "1" "the run traps SIGINT as well"
   block="$d/fifo"; mkfifo "$block"; export PI_STUB_WAIT="$block"
   # `--review off`: PI_STUB_WAIT blocks every child started while it is set, and this case needs one.
+  core_ensure
   ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/run.log" 2>&1 &
   first=$!
   waited=0
@@ -1980,6 +1991,7 @@ case_labels_neverWritesReservedLabel() {
 
   # and the tooling refuses it on every path, including the removal path the loop now uses
   p=$(new_project)
+  core_ensure
   out=$( cd "$p" && bash "$LOOP_ISSUES_ENGINE/update.sh" 21 --remove-label agent/eligible 2>&1 ); status=$?
   assert_eq "3" "$status" "the tooling refuses to remove the reserved label"
   assert_contains "$out" "label-reserved" "with the reserved-label reason"
@@ -2199,6 +2211,7 @@ case_prompt_packageIsAFileAndNotInlined() {
   # the package file is the core's own output for that issue, not a paraphrase
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   issue_json=$(gh issue view 21 --json number,title,body,labels,author,state)
+  core_ensure
   expected=$(printf '%s' "$issue_json" |
     java -cp "$ISSUES_CORE_CLASSES" WorkPackage --profile "$p/tools/tooling.json" --issue - \
       --fingerprint "$(printf '%s' "$issue_json" | jq -r '.body // ""' | sha256sum | cut -c1-16)" \
@@ -5266,5 +5279,81 @@ case_gate_anEnginePathOwesTheRecordCheck() {
   plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
   assert_contains "$plan" "loop-mutations.sh --check" \
     "a path under the engine owes the record check, so a stale record fails the gate: $plan"
+  return 0
+}
+
+# ------------------------------------------------------- cases: the driver's own Java core
+
+# The driver compiles the issue tooling's Java core when a case asks for it, not before the case list is known
+# (issue #261: a `--case` run that narrowed one shell case paid a fixed second for a compile nothing used). The
+# probe proves the compile did not happen rather than timing it: `javac` is a shim that records the invocation and
+# fails, so a compile the selection does not need shows up as a failed run, and a compile that should have
+# happened cannot pass silently.
+case_driver_aCaseThatAsksForNoCoreCompilesNothing() {
+  local d bin log out status
+  d=$(scratch); bin="$d/bin"; log="$d/javac.log"
+  mkdir -p "$bin"
+  cat > "$bin/javac" <<SHIM
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$log"
+echo "javac: this probe does not compile anything" >&2
+exit 1
+SHIM
+  chmod +x "$bin/javac"
+  out=$(PATH="$bin:$PATH" bash "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" --case 'state#initAndShowRoundTrips' 2>&1); status=$?
+  assert_eq "0" "$status" "a case that asks for no core runs without one: $out"
+  assert_contains "$out" "PASS state#initAndShowRoundTrips" "and the case is the one that passed: $out"
+  assert_eq "" "$(cat "$log" 2>/dev/null)" "the driver compiled nothing for it (javac was invoked: $(cat "$log" 2>/dev/null))"
+  return 0
+}
+
+# The laziness removes neither the classpath nor the refusal: a case that asks for the core is handed the classes
+# the driver compiled for it, and when the core cannot compile the suite ends the way it did before — exit 1, with
+# the line that names the cause. The case runs in the driver's own scratch tree, so the compile is the only thing
+# under test.
+case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses() {
+  local d nested tmp conf bin out status
+  d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
+  mkdir -p "$nested/tools" "$tmp"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  cat > "$nested/tools/loop-cases.sh" <<'CASES'
+LOOP_SHELL_CASES=('stub#asksForTheCore')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  declare -F core_ensure >/dev/null || {
+    echo "the driver hands a case no way to ask for the core" >&2
+    exit 1
+  }
+  core_ensure
+  [ -f "${ISSUES_CORE_CLASSES:-/nonexistent}/Cases.class" ] || {
+    echo "the driver handed the case no compiled class path: '${ISSUES_CORE_CLASSES:-}'" >&2
+    exit 1
+  }
+}
+CASES
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+
+  # The suite this case runs inside may have compiled a core of its own (`ISSUES_CORE_CLASSES`); the nested
+  # driver is asked to compile its own, so what it hands the case is the nested driver's work.
+  out=$( ( unset ISSUES_CORE_CLASSES; bash "$nested/tools/loop-selftest.sh" --case 'stub#asksForTheCore' ) 2>&1); status=$?
+  assert_eq "0" "$status" "a case that asks for the core is handed the compiled class path: $out"
+  assert_contains "$out" "PASS stub#asksForTheCore" "and the case is the one that passed: $out"
+
+  # A scratch root of its own, so the classes the first half compiled are not what this half runs on.
+  bin="$d/bin"; mkdir -p "$bin" "$tmp/broken"
+  cat > "$bin/javac" <<'SHIM'
+#!/usr/bin/env bash
+echo "javac: this probe does not compile anything" >&2
+exit 1
+SHIM
+  chmod +x "$bin/javac"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp/broken\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  out=$( ( unset ISSUES_CORE_CLASSES; PATH="$bin:$PATH" bash "$nested/tools/loop-selftest.sh" --case 'stub#asksForTheCore' ) 2>&1); status=$?
+  assert_eq "1" "$status" "a case that asks for a core that cannot compile fails the suite: $out"
+  assert_contains "$out" "the issue tooling's Java core does not compile" "and the refusal names the cause: $out"
   return 0
 }

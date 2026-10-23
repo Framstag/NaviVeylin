@@ -91,10 +91,27 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 mkdir -p "$tmp/classes"
+# The two paths the compile uses are named for the driver, not `tmp`: a case may declare `local tmp` of its own (five
+# do), and a `local` of that name shadows the driver's scratch directory for the function that calls `core_ensure` —
+# measured in this change's first gate run, `tmp ist nicht gesetzt` out of `clean#reportsWithoutApplyAndRemovesWithIt`.
+readonly selftest_classes="$tmp/classes"
+readonly selftest_core_marker="$tmp/core-compiled"
 
-javac --release 17 -d "$tmp/classes" "$root"/tools/issues/core/*.java || {
-  echo "loop-selftest: the issue tooling's Java core does not compile" >&2
-  exit 1
+# The issue tooling's Java core is compiled when a case first asks for it, not before the case list is known: an
+# invocation that narrowed one shell case paid a fixed second for a compile nothing used (issue #261). A case asks
+# by calling `core_ensure` — `tools/loop-cases.sh` calls it at every place that starts the engine or the core — and
+# the marker is how the case *after* it learns the classes are already there, because a case runs in a subshell of
+# its own and what that subshell exports does not come back to the driver.
+core_ensure() {
+  if [ ! -f "$selftest_core_marker" ]; then
+    javac --release 17 -d "$selftest_classes" "$root"/tools/issues/core/*.java || {
+      rm -rf "$selftest_classes"
+      echo "loop-selftest: the issue tooling's Java core does not compile" >&2
+      exit 1
+    }
+    : > "$selftest_core_marker"
+  fi
+  export ISSUES_CORE_CLASSES="$selftest_classes"
 }
 
 export LOOP_PROJECT_ROOT="$root"
@@ -104,7 +121,6 @@ export LOOP_ENGINE="${LOOP_ENGINE:-$root/tools/loop}"
 export LOOP_ISSUES_ENGINE="$root/tools/issues"
 export LOOP_FIXTURES="$root/tools/loop/fixtures"
 export LOOP_ISSUE_FIXTURES="$root/tools/issues/fixtures"
-export ISSUES_CORE_CLASSES="$tmp/classes"
 export LOOP_TMP="$tmp"
 export GH_STUB_DIR="$LOOP_ISSUE_FIXTURES"
 chmod +x "$LOOP_FIXTURES/pi" "$LOOP_ISSUE_FIXTURES/gh" 2>/dev/null || true

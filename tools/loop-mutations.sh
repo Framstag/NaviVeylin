@@ -298,6 +298,10 @@ MUTATIONS=(
   # none executed. The mutation puts the fabrication back beside the error count, so the case that names it sees the
   # phantom case and the phantom failure both.
   '47.1@-@tools/loop/gate.sh@gate#aFailingSuiteWithNoSummaryInventsNoTest@the error count that keeps a suite which reported no summary from being tallied as one failing test (issue #268)@s|^  err=0$|  err=0; [ "$rc" -eq 0 ] \|\| { n=1; f=1; }|'
+  # 48.1 puts the compile back above the case list, which is where it was before a `--case` run of a shell-only case
+  # paid for it (issue #261). It is the one call site a selection cannot skip: the driver reaches it before it knows
+  # which cases it runs, so the poisoned `javac` the case installs is invoked whatever the selection is.
+  '48.1@-@../loop-selftest.sh@driver#aCaseThatAsksForNoCoreCompilesNothing@the compile at the first case that asks for it, not above the case list (issue #261)@s|^source "$root/tools/loop-cases.sh"$|core_ensure\nsource "$root/tools/loop-cases.sh"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

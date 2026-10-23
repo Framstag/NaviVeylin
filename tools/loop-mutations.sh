@@ -279,6 +279,13 @@ MUTATIONS=(
   '43.1@-@../loop-mutations.sh@mutation#aStaleRecordIsNamed@the exit that fails a set whose record no longer applies (issue #264)@s|^  if \[ "$stale" -ne 0 \]; then$|  if false; then|'
   '43.2@-@tools/loop/loop.conf@gate#anEnginePathOwesTheRecordCheck@the profile pair that owes the record check for a path under the engine (issue #264)@s#tools/loop/\*|bash tools/loop-mutations\.sh --check;##'
   '43.3@-@tools/loop/run.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1" \&\& printf|'
+  # 44.x — a compiled path is read by the tree it sits in, and not by what its name ends in (issue #273). The rule
+  # has two halves and either alone leaves the case it names green: 44.1 puts the basename pattern back, which makes
+  # an archived evidence tally a compiled file again, and 44.2 removes the matcher's `set -f`, so the pattern
+  # anchored to a module's tree is replaced by the names it matched in the working directory and the module's own
+  # resource stops owing the build.
+  '44.1@-@tools/loop/loop.conf@gate#anArchivedArtefactOwesNoBuild@the profile reading a compiled path by its tree rather than by its name@s|^LOOP_GATE_COMPILED_PATTERNS="\*/src/\*|LOOP_GATE_COMPILED_PATTERNS="*.xml */src/*|'
+  '44.2@-@tools/loop/gate.sh@gate#aModuleResourceOwesTheBuild@the matcher reading an anchored pattern as a pattern@s|set -f|true|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

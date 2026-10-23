@@ -75,6 +75,11 @@ fi
 # The paths the change touches: what it committed since the base, plus whatever is still uncommitted — a gate
 # run before the run's own commit measures the same work. A base git cannot answer is named, never treated as
 # "no change": a range that cannot be resolved is the one thing a gate must not read as green.
+#
+# The same base is what a suite can narrow itself with: a profile's command may carry the token `{base}`, which is
+# replaced by this base before the command runs, so the self-test of `tools/loop/**` owes the cases the delta's own
+# files declare instead of the whole set (issue #276 — a two-file delta paid 723 s). The token is the engine's, not a
+# project fact: `gate.sh` does not know which suite narrows itself, only that a suite may ask for the base it measured.
 if [ -z "$base" ]; then
   base=$(git merge-base HEAD origin/main 2>/dev/null || git rev-parse --verify --quiet 'HEAD~1' 2>/dev/null || true)
 fi
@@ -102,12 +107,13 @@ owed=""
 if [ -n "$compiled_patterns" ] && [ -n "$compiled_cmd" ]; then
   while IFS= read -r p; do
     [ -n "$p" ] || continue
-    if matches "$compiled_patterns" "$p"; then owed="$owed$compiled_cmd"$'\n'; break; fi
+    if matches "$compiled_patterns" "$p"; then owed="$owed${compiled_cmd//\{base\}/$base}"$'\n'; break; fi
   done <<< "$paths"
 fi
 if [ -n "$suites" ]; then
   while IFS='|' read -r glob cmd; do
     [ -n "${glob:-}" ] && [ -n "${cmd:-}" ] || continue
+    cmd=${cmd//\{base\}/$base}
     while IFS= read -r p; do
       [ -n "$p" ] || continue
       # shellcheck disable=SC2254 # the same: a pattern from the profile

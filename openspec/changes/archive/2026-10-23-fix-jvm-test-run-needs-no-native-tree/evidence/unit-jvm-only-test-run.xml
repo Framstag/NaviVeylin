@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.testing.JvmOnlyTestRunTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-23T20:16:27.713Z" hostname="dingens" time="0.045">
+  <properties/>
+  <testcase name="anUnreadableValueIsRefusedWithActionableText" classname="com.naviveylin.build.testing.JvmOnlyTestRunTest" time="0.037"/>
+  <testcase name="aTestOnlyInvocationIsNeverRefused" classname="com.naviveylin.build.testing.JvmOnlyTestRunTest" time="0.001"/>
+  <testcase name="absentPropertyIsNotAJvmOnlyRun" classname="com.naviveylin.build.testing.JvmOnlyTestRunTest" time="0.0"/>
+  <testcase name="thePropertyRequestsIt" classname="com.naviveylin.build.testing.JvmOnlyTestRunTest" time="0.0"/>
+  <testcase name="everyPackagingEntryPointIsRefused" classname="com.naviveylin.build.testing.JvmOnlyTestRunTest" time="0.003"/>
+  <testcase name="packagingTasksInKeepsTheRequestedNames" classname="com.naviveylin.build.testing.JvmOnlyTestRunTest" time="0.0"/>
+  <testcase name="theRefusalNamesTheTaskAndTheProperty" classname="com.naviveylin.build.testing.JvmOnlyTestRunTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

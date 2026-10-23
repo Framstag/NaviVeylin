@@ -1,0 +1,1 @@
+check-jvm-test-graph-selftest: all 3 cases passed (--dry-run configurations, no build, no network)

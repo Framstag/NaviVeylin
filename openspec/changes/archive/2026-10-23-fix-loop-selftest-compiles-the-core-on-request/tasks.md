@@ -40,7 +40,7 @@
       record's own line, three suites and 314 cases, none failed
       (`evidence/gate-round-1/gate.log`) and `evidence/gate-round-1/tools_loop-selftest.sh.xml`
       (`tests="180" failures="0"`). The round-1 files were moved into that subdirectory when round 2's gate run
-      replaced `evidence/gate.log` — the same run, kept under the name that says which round it belongs to.
+      took the top-level names — the same run, kept under the name that says which round it belongs to.
 - [x] 4.2 Copy every cited transcript and XML into `evidence/` and check the change's pointers:
       `bash .pi/skills/fix-loop/scripts/evidence-check.sh
       openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request --root .`
@@ -61,8 +61,8 @@
 - [x] 5.2 **The gate record covered three suites, not the ones the pathspec owes.** `tools/loop/loop.conf` owes
       `bash tools/gen-feature-list.sh --check-classification` and `tools/check-doc-routes.sh` for the `openspec/`
       and `*.md` paths this change adds, and `gate.log` named three suites. Re-run the gate once on the archived
-      tree, after every artifact including this file. Verify: `evidence/gate.log` — the suites it names, the
-      summary line, and the tallies in `evidence/gate-tallies/`. Round 3 found this run's own tree stale (the last
+      tree, after every artifact including this file. Verify: `evidence/gate-round-2.log` — the suites it names, the
+      summary line, and the tallies in `evidence/gate-tallies-round-2/`. Round 3 found this run's own tree stale (the last
       write of `tools/loop-cases.sh` was 96 s after `gate.log` closed); `evidence/gate-final-tree.log` and
       `evidence/gate-tallies-final/` are the run of the tree this change leaves — see 6.1.
 - [x] 5.3 **The sibling-driver sentence was false.** `tools/check-portability-selftest.sh:71` precompiles the core
@@ -76,7 +76,7 @@
       (`tools/loop-mutations.sh:550` prints the record and the case name). Say in `evidence/verification.md` that the
       "right reason" is read from the case's own assertions, not quoted from that log.
 - [x] 5.5 **A note in `verification.md`:** its "six cases … `evidence/green-fix.log`" cited a file that holds the
-      two new cases only. The six are in `gate.log` (`:6`, `:7`, `:148`, `:149`, `:278`, `:589`); the row now says
+      two new cases only. The six are in `gate-round-1/gate.log` (`:6`, `:7`, `:148`, `:149`, `:278`, `:589`); the row now says
       so, and `evidence/green-correction.log` carries the focused re-run of six affected cases.
 - [x] 5.6 **A note in the case:** `driver#aCaseThatAsksForTheCoreGetsItOrRefuses` rewrote its nested loop
       configuration into the file `sed` was reading, so the second half ran on an empty one and its isolation held
@@ -88,3 +88,23 @@
 - [x] 5.8 **A note in the cases file's header:** it described `ISSUES_CORE_CLASSES` and not the convention a case
       author must follow — call `core_ensure` where you use the tooling. Added to the header of
       `tools/loop-cases.sh`.
+
+## 6. Round 3 — the decision the review left, worked as option (a)
+
+- [x] 6.1 **The gate record predated the tree (round 2's one blocking finding).** Re-ran the gate on the tree this
+      change leaves, after the merge with `main` at `2284a998`: the gate's own line reports 328 cases, none failed — five
+      suites, the shell ones 187 + 107 + 34 = 328, and no compiled step (since #273 a compiled path is read by the
+      tree it sits in, and this delta holds no compiled path). Verify: `evidence/gate-final-tree.log`,
+      `evidence/gate-tallies-final/`.
+- [x] 6.2 **The four stale pointers the review named.** `gate-attribution.md` and the focused-cases row now name
+      `gate-round-1/`; `green-fix.xml`'s sentence quoting a tally that had moved is gone; the sibling-driver
+      sentence says 27 shell cases of which 17 are `resolver#…`. The round-2 record is named `gate-round-2.log` /
+      `gate-tallies-round-2/`, so the top-level name no longer means two runs.
+- [x] 6.3 **The merge with `main`, and the label it moved.** #273 and #275 landed while this change waited on a
+      decision, and #275 took `49.1`–`49.4`; the marker record is now `48.2` (one label, one invariant). Re-ran both
+      records on the merged tree: `evidence/revert-check-48.1.log`, `evidence/revert-check-48.2.log` —
+      red-when-mutated 1 · not-noticed 0 · restore-failures 0 each. The pre-merge run is kept as
+      `evidence/revert-check-49.1-before-the-merge.log`.
+- [x] 6.4 **The merged tree still holds both changes.** The driver carries `core_ensure` beside #275's selection
+      filter, `--case` runs still print the `all N cases passed` line the cases assert, and the spec carries both
+      requirements. Verify: `tools/loop-selftest.sh --list | wc -l` → 187, and the gate above.

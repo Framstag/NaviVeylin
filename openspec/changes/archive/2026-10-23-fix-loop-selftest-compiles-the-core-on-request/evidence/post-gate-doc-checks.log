@@ -1,5 +1,5 @@
-=== focused re-run of the two doc suites after evidence/verification.md was finalised (2026-10-23T11:03:46Z)
-$ bash tools/gen-feature-list.sh --check-classification
+# the two doc suites, re-run focused after the last prose edit (round 3)
+# 2026-10-23T15:21:29+02:00
 gen-feature-list: stale classification entry for a spec that no longer exists:
   search-name-matching
   search-result-row-icon
@@ -7,11 +7,10 @@ gen-feature-list: stale classification entry for a spec that no longer exists:
 specs read: 177
 classified: 180
 unclassified: 0
-delta spec ids: 1
+delta spec ids: 0
 stale: 3
 car-only areas: 1
 highlights: 19
 exit=0
-$ tools/check-doc-routes.sh
 check-doc-routes: all 152 section references resolve, all 4 skill references resolve
 exit=0

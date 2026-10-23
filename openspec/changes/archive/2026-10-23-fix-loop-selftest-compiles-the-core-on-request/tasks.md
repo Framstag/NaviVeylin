@@ -33,15 +33,54 @@
 ## 4. Gate and evidence
 
 - [x] 4.1 Run the project's gate once: `./tools/loop/gate.sh` → `gate.log` and `gate-tallies/` in
-      `evidence/`, green, with the loop's suite (`tools/loop-cases.sh|tools/loop-selftest.sh`) among the suites that
-      ran. The first run is red on a defect this change introduced (`core_ensure` read `$tmp`, which five cases
-      shadow with a `local`); it is kept in `evidence/gate-first-red/` and attributed in
-      `evidence/gate-attribution.md`, and the run whose verdict counts is the one after the fix. Verify:
-      `evidence/gate.log` (the gate's summary line, three suites, 314 cases, none failed) and
-      `evidence/gate-tallies/tools_loop-selftest.sh.xml` (`tests="180" failures="0"`).
+      `evidence/gate-round-1/`, green, with the loop's suite (`tools/loop-cases.sh|tools/loop-selftest.sh`) among the
+      suites that ran. The first run is red on a defect this change introduced (`core_ensure` read `$tmp`, which
+      five cases shadow with a `local`); it is kept in `evidence/gate-first-red/` and attributed in
+      `evidence/gate-attribution.md`, and the run whose verdict counts is the one after the fix. Verify: the round-1
+      record's own line, three suites and 314 cases, none failed
+      (`evidence/gate-round-1/gate.log`) and `evidence/gate-round-1/tools_loop-selftest.sh.xml`
+      (`tests="180" failures="0"`). The round-1 files were moved into that subdirectory when round 2's gate run
+      replaced `evidence/gate.log` — the same run, kept under the name that says which round it belongs to.
 - [x] 4.2 Copy every cited transcript and XML into `evidence/` and check the change's pointers:
-      `bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/fix-loop-selftest-compiles-the-core-on-request --root .`
+      `bash .pi/skills/fix-loop/scripts/evidence-check.sh
+      openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request --root .`
       → PASS (C1–C5; C3 reports the measurement's own `mktemp -d .pi/tmp/…` command as a note, which is the
       re-runnable form of it). Written up in `evidence/verification.md`.
 - [x] 4.3 Archive the change and confirm `openspec/changes/archive/…-fix-loop-selftest-compiles-the-core-on-request/`
       exists and that the requirement is in `openspec/specs/agent-issue-loop/spec.md`.
+
+## 5. Round 2 — the review's three blocking findings and its notes
+
+- [x] 5.1 **"at most once per suite" had no case.** Add `driver#theCoreIsCompiledOncePerSuite` to
+      `tools/loop-cases.sh`: a nested driver whose two stub cases both ask for the core, with a `javac` probe on
+      `PATH` that records every invocation and writes the class file they look for, asserting exactly one
+      invocation. Add record `49.1` to `tools/loop-mutations.sh` (the marker guard dropped to `if true`). Verify:
+      the case PASSes on this tree (`evidence/green-correction.log`), and `bash tools/loop-mutations.sh --only 49.1`
+      → red-when-mutated 1 · not-noticed 0 · restore-failures 0 (`evidence/revert-check-49.1.log`).
+- [x] 5.2 **The gate record covered three suites, not the ones the pathspec owes.** `tools/loop/loop.conf` owes
+      `bash tools/gen-feature-list.sh --check-classification` and `tools/check-doc-routes.sh` for the `openspec/`
+      and `*.md` paths this change adds, and `gate.log` named three suites. Re-run the gate once on the archived
+      tree, after every artifact including this file. Verify: `evidence/gate.log` — the suites it names, the
+      summary line, and the tallies in `evidence/gate-tallies/`.
+- [x] 5.3 **The sibling-driver sentence was false.** `tools/check-portability-selftest.sh:71` precompiles the core
+      for `tools/portability-cases.sh`'s 27 shell cases, and `tools/resolve-stale-selftest.sh:50` does the same for
+      `tools/resolve-stale-cases.sh`'s 27 `resolver#…` cases, so a `--case` run of theirs does pay the same second.
+      Correct `proposal.md` and `design.md`, "What is not changed" to say exactly that, with the command that shows
+      it: `grep -c 'java' tools/portability-cases.sh` → `1` (a `grep` target at `:354`).
+- [x] 5.4 **A note in the evidence: the revert-check log states no reason.** `evidence/revert-check-48.1.log`
+      carries the harness's `RED`/`restore` lines and neither a timestamp nor the case's own output
+      (`tools/loop-mutations.sh:550` prints the record and the case name). Say in `evidence/verification.md` that the
+      "right reason" is read from the case's own assertions, not quoted from that log.
+- [x] 5.5 **A note in `verification.md`:** its "six cases … `evidence/green-fix.log`" cited a file that holds the
+      two new cases only. The six are in `gate.log` (`:6`, `:7`, `:148`, `:149`, `:278`, `:589`); the row now says
+      so, and `evidence/green-correction.log` carries the focused re-run of six affected cases.
+- [x] 5.6 **A note in the case:** `driver#aCaseThatAsksForTheCoreGetsItOrRefuses` rewrote its nested loop
+      configuration into the file `sed` was reading, so the second half ran on an empty one and its isolation held
+      by `lib.sh`'s fallback. The broken configuration is now `$d/loop-broken.conf`. Verify:
+      `bash tools/loop-selftest.sh --case 'driver#aCaseThatAsksForTheCoreGetsItOrRefuses'` → PASS.
+- [x] 5.7 **A note in the spec's wording:** "SHALL end the suite with exit 1" overstates a mid-suite ask (the case
+      fails, the remaining cases still run, the run exits 1). Reworded to "SHALL fail with exit 1 … and the run
+      SHALL end with exit 1", in the delta and in the shipped requirement.
+- [x] 5.8 **A note in the cases file's header:** it described `ISSUES_CORE_CLASSES` and not the convention a case
+      author must follow — call `core_ensure` where you use the tooling. Added to the header of
+      `tools/loop-cases.sh`.

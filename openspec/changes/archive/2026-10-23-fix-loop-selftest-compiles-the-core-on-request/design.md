@@ -43,10 +43,14 @@ Three properties of the fix are load-bearing:
 
 - **once per suite.** A case runs in a subshell of the driver (`run_case`, `tools/loop-selftest.sh:138`–`148`), so
   a flag set in the driver's own shell is not visible to the next case's subshell; the marker in the suite's own
-  scratch tree is, and it is removed with the tree.
+  scratch tree is, and it is removed with the tree. This is measured, not argued: `driver#theCoreIsCompiledOncePerSuite`
+  runs a two-case suite whose cases both ask with a `javac` probe that records each invocation, and asserts exactly
+  one — `evidence/green-correction.log`; the mutation `49.1` drops the marker guard and the case goes red
+  (`evidence/revert-check-49.1.log`).
 - **the refusal is the driver's.** The message, the exit status 1 and the reader (stderr) are the ones
   `tools/loop-selftest.sh:95`–`98` printed before (base commit `abeffcad`'s numbering); a case that asks for a core
-  that cannot compile ends the suite with that line, as a full suite did.
+  that cannot compile fails with that line, and the run ends with exit 1, as a full suite did. The line is the
+  case's, the run's status comes from the failing count — which for a one-case selection is the same `exit 1`.
 - **a forgotten call is not a failure.** A case that reaches the tooling without asking is served by
   `issues_core_classes` (`tools/issues/lib.sh:189`), which compiles into its own digest-keyed cache under
   `$TMPDIR` when `ISSUES_CORE_CLASSES` is empty. The invariant therefore costs a redundant compile in the worst
@@ -57,9 +61,9 @@ Three properties of the fix are load-bearing:
 | file | change |
 |---|---|
 | `tools/loop-selftest.sh` | 3 lines and 1 export → `core_ensure`; the tool and JDK checks above it unchanged |
-| `tools/loop-cases.sh` | 1 header sentence, 1 call in `run_loop`, 7 calls at direct uses, 2 cases |
-| `tools/loop-mutations.sh` | record `48.1` |
-| `openspec/specs/agent-issue-loop/spec.md` | 1 requirement, 2 scenarios (on archive) |
+| `tools/loop-cases.sh` | 1 header sentence, 1 call in `run_loop`, 7 calls at direct uses, 3 cases |
+| `tools/loop-mutations.sh` | records `48.1` and `49.1` |
+| `openspec/specs/agent-issue-loop/spec.md` | 1 requirement, 3 scenarios (on archive) |
 
 No file format, no on-disk state, no prompt and no engine script changes; the case list, the case names and the
 exit codes of every invocation path are unchanged.
@@ -92,8 +96,11 @@ sites. Nothing else reads the marker, and the scratch tree that carries it is re
 
 The five sibling drivers that precompile the same core
 (`tools/issue-tooling-selftest.sh:49`, `tools/sensor-selftest.sh:38`, `tools/resolve-stale-selftest.sh:50`,
-`tools/check-portability-selftest.sh:71`, `tools/issues/metadata-mutations.sh:45`). Their selections are the issue
-tooling's own cases (`core`, `core_class`, `resolver`, the real scripts), so a `--case` run of theirs that asks for
-no core does not exist; the probe that would justify the change there is a different measurement, and the item
-measured the loop's driver. The proposal carries the count so the next reader can widen it if that measurement
-changes.
+`tools/check-portability-selftest.sh:71`, `tools/issues/metadata-mutations.sh:45`). Three of them run case sets that
+reach the core (the issue tooling's `core` cases, the sensor driver's `core_class`, the metadata harness's real
+entry points). **Two do not** — `tools/check-portability-selftest.sh:71` and `tools/resolve-stale-selftest.sh:50`
+compile it for case sets (`tools/portability-cases.sh`, `tools/resolve-stale-cases.sh`, 27 shell cases each) that
+never invoke Java, so a `--case` run of theirs pays the same fixed second. They are the obvious widening and are
+*not* changed here because the item measured the loop's driver and each of them owes its own measurement and its
+own case: leaving them unchanged is a bound, not a claim that they are exempt. The proposal carries the check that
+found this (`grep -c 'java' tools/portability-cases.sh` → `1`, the mention a `grep` target at `:354`).

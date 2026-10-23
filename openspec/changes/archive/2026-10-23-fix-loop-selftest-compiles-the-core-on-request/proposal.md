@@ -12,11 +12,13 @@ was therefore paid by every invocation, including a `--case` run whose one case 
 **Root cause, one sentence.** The compile sits above the case list, so it runs before the driver knows which cases
 the invocation selects, and a selection that asks for no core still pays for one.
 
-**Measured, 2026-10-23T10:03:40Z.** The compile itself is 0.72 s and 0.82 s of wall clock over two runs on this host
-(`javac --release 17 -d "$(mktemp -d .pi/tmp/javac-measure.XXXXXX)" tools/issues/core/*.java` → `0,818 total` / `0,724 total`; 486 % and 528 % CPU);
-the item's own measurement of a `--case` invocation on 2026-10-22 was 1.0 s. The cost is the driver's, not the
-case's: `driver#aCaseThatAsksForNoCoreCompilesNothing` shows that the compile is the *only* thing between a
-`--case` run of a shell-only case and its result.
+**Measured, 2026-10-23T10:03:40Z and again at 10:40:50Z.** The compile itself is 0.72 s and 0.82 s of wall clock over
+two runs on this host (`javac --release 17 -d "$(mktemp -d .pi/tmp/javac-measure.XXXXXX)"
+tools/issues/core/*.java` → `0,818 total` / `0,724 total`; 486 % and 528 % CPU), and 0.904 s and 0.869 s over two
+runs taken after this change — the re-runnable form and its output are `evidence/compile-measurement.log`. The
+item's own measurement of a `--case` invocation on 2026-10-22 was 1.0 s. The cost is the driver's, not the case's:
+`driver#aCaseThatAsksForNoCoreCompilesNothing` shows that the compile is the *only* thing between a `--case` run of
+a shell-only case and its result.
 
 **The red test.** `driver#aCaseThatAsksForNoCoreCompilesNothing` (`tools/loop-cases.sh`, added by this change):
 `javac` on `PATH` is a probe that records its invocation and exits 1, and the driver is asked for one case that
@@ -34,9 +36,16 @@ FAIL driver#aCaseThatAsksForNoCoreCompilesNothing
 
 The change has a second case, `driver#aCaseThatAsksForTheCoreGetsItOrRefuses`, which is red on HEAD for the other
 half — a case has no way to ask for the core at all, so it cannot be handed one
-(`evidence/red-HEAD-core-request.xml`, `tests="1" failures="1"`). Its refusal half (a `javac` that fails ends the
-suite with exit 1 and the driver's own line) is green on HEAD and stays as the guard that the laziness removed
-nothing.
+(`evidence/red-HEAD-core-request.xml`, `tests="1" failures="1"`). Its refusal half (a `javac` that fails makes the
+asking case fail with the driver's own line, and the run end with exit 1) is green on HEAD and stays as the guard
+that the laziness removed nothing.
+
+Its third case, `driver#theCoreIsCompiledOncePerSuite`, is green on the tree as soon as `core_ensure` exists, and
+that is the point of it: "at most once per suite" is a count, and nothing in the suite notices a missing marker —
+every asking case would simply compile again and stay green. The case therefore counts: a nested driver runs a
+two-case suite whose cases both ask, with a `javac` probe that records each invocation. Its falsification is not
+HEAD but a mutation of the marker (`49.1`, `evidence/revert-check-49.1.log`), which is how the requirement's third
+scenario is red.
 
 **Owning requirement.** `agent-issue-loop`. The spec owns what the loop's own checks do — its driver is the suite
 the requirement "A suite ended by a signal removes its scratch tree" and its neighbours are asserted through — and
@@ -64,12 +73,16 @@ compile nothing uses is what that iteration pays. The protocol states the rule a
   (`tools/loop-cases.sh:12`) says what the driver now hands a case instead of "already compiled by the driver".
 - **`tools/loop-cases.sh`** — the two cases above, added at the end of the case list, plus the driver's own
   function being available to a case is what the second one asserts.
+- **`tools/loop-cases.sh`** — a third case, `driver#theCoreIsCompiledOncePerSuite`, is what makes "at most once per
+  suite" observable: a nested driver whose two stub cases both ask, with a `javac` probe that records each
+  invocation, so the requirement's third scenario asserts a count and not a claim.
 - **`tools/loop-mutations.sh`** — record `48.1`, which restores the eager compile, so the new invariant is
-  falsified by a mutation like every other (red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0).
+  falsified by a mutation like every other (red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0), and record
+  `49.1`, which drops the marker, so "once per suite" is falsified as well.
 - **the spec `agent-issue-loop`** — one ADDED requirement, "The self-test compiles the Java core when a case asks
-  for it", with its two scenarios naming the two cases.
+  for it", with its three scenarios naming the three cases.
 
-surface: 2 cases added, 0 rewritten, 0 fixtures realigned — `grep -rn "javac --release 17\|ISSUES_CORE_CLASSES" tools/loop-selftest.sh tools/loop-cases.sh tools/loop/ tools/loop/fixtures`
+surface: 3 cases added, 0 rewritten, 0 fixtures realigned — `grep -rn "javac --release 17\|ISSUES_CORE_CLASSES" tools/loop-selftest.sh tools/loop-cases.sh tools/loop/ tools/loop/fixtures`
 
 Surface, before the plan was fixed: `grep -rn "javac --release 17\|ISSUES_CORE_CLASSES" tools/loop-selftest.sh
 tools/loop-cases.sh tools/loop/ tools/loop/fixtures` → the compile at `tools/loop-selftest.sh:95` and its export at
@@ -80,9 +93,16 @@ that the core was compiled — **2 cases added, 0 rewritten, 0 fixtures realigne
 
 Five other drivers precompile the same core at the top of their own file
 (`tools/issue-tooling-selftest.sh:49`, `tools/sensor-selftest.sh:38`, `tools/resolve-stale-selftest.sh:50`,
-`tools/check-portability-selftest.sh:71`, `tools/issues/metadata-mutations.sh:45`) and are **not** changed here:
-their case sets are the issue tooling's own — `core` (`tools/issue-tooling-cases.sh:245`), `core_class`
-(`tools/sensor-cases.sh:165`), `resolver` (`tools/resolve-stale-cases.sh:192`), the real scripts in
-`tools/check-portability-selftest.sh` — so a selection of theirs that asks for no core does not exist, and the
-`--case` run this item measured is the loop's driver, whose cases are mostly shell. The delta stays inside the
-loop's own driver.
+`tools/check-portability-selftest.sh:71`, `tools/issues/metadata-mutations.sh:45`) and are **not** changed here.
+Two of the five are owed the same measurement and were not part of this delta's bound:
+`tools/check-portability-selftest.sh:71` compiles the core for `tools/portability-cases.sh`, whose 27 cases are
+shell cases (`discovery#…`, `foreign#…`, `porting#…`) and whose only mention of `java` is a `grep` target at
+`tools/portability-cases.sh:354`, and `tools/resolve-stale-selftest.sh:50` compiles it for
+`tools/resolve-stale-cases.sh`'s 27 `resolver#…` cases, which drive the shell citation classifier through
+`tools/issues/lib.sh` (`grep -c 'java' tools/portability-cases.sh` → `1`; `grep -n 'java\|core_classes'
+tools/issues/resolve-stale.sh tools/issues/update.sh` → nothing). A `--case` run of one of their cases pays the same
+fixed second this item removes, so widening to them is a real option — it is a separate measurement per driver, and
+the item measured the loop's driver. The other three run case sets that do reach the core: the issue tooling's
+`core` case (`tools/issue-tooling-cases.sh:247`), the sensor driver's `core_class` (`tools/sensor-cases.sh:167`),
+and `tools/issues/metadata-mutations.sh`, whose probes are the real entry points of the tooling. The delta stays
+inside the loop's own driver.

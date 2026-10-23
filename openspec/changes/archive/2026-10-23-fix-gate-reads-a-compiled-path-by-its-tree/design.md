@@ -52,8 +52,7 @@ that name wherever it sits (`docs/notes.toml` owes the build too; `evidence/coun
 name-based half is deliberately kept: narrowing `*.toml` to a toolchain name was eliminated rather than chosen,
 because it would stop gating the file that decides which JDK the build runs on, while the defect this item measured
 — an archived evidence tally, a fixture that mimics build output — is reached by no name-based pattern. `*.gradle` matches no tracked
-file today (`git ls-files '*.gradle'` → 0) and stays so a Groovy build script would be gated. No name-based pattern
-reaches what the item measured: an archived evidence tally, or a fixture that mimics build output.
+file today (`git ls-files '*.gradle'` → 0) and stays so a Groovy build script would be gated.
 
 The matcher gains the guard that makes any anchored pattern work at all:
 
@@ -148,6 +147,16 @@ and `tools/check-doc-routes.sh`, and `openspec/*` to `tools/gen-feature-list.sh 
 doc-route check — are rerun after the archive move in `evidence/post-archive-checks.log`; the two suite tallies are
 the pre-move gate's, in `evidence/gate-round2.log` with its tallies under `evidence/gate-tallies-round2/`, and the
 move compiles nothing. Round 3's wording correction re-ran the three prose checks
-(`evidence/post-archive-checks-round3.log`) and the gate over the corrected tree (`evidence/gate-round3.log`, its
-tallies under `evidence/gate-tallies-round3/`). The two cases are falsified by records `44.1` and `44.2` (each mutates the half its
-case asserts), and a gate run after the fix must still name the five checks this tree's own delta owes.
+(`evidence/post-archive-checks-round3.log`) and the gate over the corrected tree with the profile pinned to that
+tree — `LOOP_CONF=<tree>/tools/loop/loop.conf`, `evidence/gate-round3-pinned.log` — which names the five checks
+and no build, `exit=0`, its tallies under `evidence/gate-tallies-round3-pinned/` (176 + 98 + 34 + 0 + 0, the gate's
+record summing them to 308 cases and 0 failures). `evidence/gate-round3.log` and `evidence/gate-tallies-round3/` are the earlier **unpinned**
+run of the same tree: it inherits `LOOP_CONF` from the run, so it reads the project's profile — the one this change
+replaces — and names `./gradlew test -PforceTests --no-build-cache` first, with a sixth tally
+(`._gradlew_test_-PforceTests_--no-build-cache.xml`, `tests="0"`). Both are kept because that contrast is this
+change's own measurement: the profile it replaces owes the build for this delta, the one it ships owes none. The
+sixth tally is also a dotfile — `gate.sh` derives a tally's name from the command with `tr '/ ' '__'` and
+`./gradlew`'s leading `.` survives — so a plain `ls` shows five where the directory holds six; the pointer check
+reads them with `grep -r` and sees all six. The pointer check, the doc-route check and the classification check
+are re-run on the corrected bytes in `evidence/post-archive-checks-round3-correction.log`. The two cases are falsified by records `44.1` and `44.2` (each mutates
+the half its case asserts), and a gate run after the fix must still name the five checks this tree's own delta owes.

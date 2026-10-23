@@ -27,7 +27,11 @@
 - [x] 6. Gate once, from the change root: `./tools/loop/gate.sh`.
       **Verification:** the `LOOP-GATE:` line, its tallies copied to `<change>/evidence/gate-tallies/`
       (`evidence/gate.log`, before the archive) and to `<change>/evidence/gate-tallies-round2/`
-      (`evidence/gate-round2.log`, after the round-2 wording correction).
+      (`evidence/gate-round2.log`, after the round-2 wording correction). Round 3's correction re-ran it with
+      `LOOP_CONF` pinned to the tree under test — five checks, no build, `exit=0`, the five tallies adding to 308
+      cases and 0 failures (`evidence/gate-round3-pinned.log`, tallies under
+      `evidence/gate-tallies-round3-pinned/`) — against the unpinned run of the same tree that names the build
+      (`evidence/gate-round3.log`).
 - [x] 7. Evidence and archive: the XMLs copied into `<change>/evidence/`, the pointer check
       (`bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/fix-gate-reads-a-compiled-path-by-its-tree
       --root .`) and the archive move.

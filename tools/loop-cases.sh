@@ -19,6 +19,14 @@
 # than of a red suite.
 #
 # A case runs in a subshell; it prints nothing on success and a reason on failure, exiting non-zero.
+#
+# **The first line of a case body declares the files the case can be affected by** — `# files: <token> …`, tokens
+# being repository-relative paths, a token ending in `/` for a directory and `*` for "any file at all".
+# `tools/loop-selftest.sh --files <path> …` / `--from-git <base>` selects the cases a delta's paths declare, which
+# is what lets the gate of a `tools/loop/**` delta run a handful of the 190 cases instead of all of them (723 s,
+# measured 2026-10-23; issue #276). The declaration is over-approximated on purpose — a case costs seconds, a
+# missed red case costs a landing — and a case that names nothing is declared `*`, so it is owed for any delta.
+# `driver#everyCaseDeclaresTheFilesItCanReach` is what keeps a new case from arriving without one.
 set -uo pipefail
 
 LOOP_SHELL_CASES=(
@@ -218,10 +226,51 @@ LOOP_SHELL_CASES=(
   'driver#aCaseThatAsksForNoCoreCompilesNothing'
   'driver#aCaseThatAsksForTheCoreGetsItOrRefuses'
   'driver#theCoreIsCompiledOncePerSuite'
+  'driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns'
+  'driver#aFileSetThatNamesNoCaseIsRefused'
+  'driver#aCoreFileOwesEveryCase'
+  'driver#everyCaseDeclaresTheFilesItCanReach'
+  'gate#theDeltaHandsASuiteTheBaseItMeasured'
 )
 
 loop_shell_cases() {
   printf '%s\n' "${LOOP_SHELL_CASES[@]}"
+}
+
+# The files a delta must touch for the *whole* case set to be owed, whatever the cases declare. Every engine script
+# sources `lib.sh` and the profile, every case is dispatched by this file and run by the driver, so a delta to one of
+# them is owed everything: the declaration narrows a script's own cases, never the suite's own machinery.
+loop_case_core_files() {
+  printf '%s\n' 'tools/loop/lib.sh tools/loop/loop.conf tools/loop-cases.sh tools/loop-selftest.sh'
+}
+
+# The engine paths a case inherits by calling one of this file's helpers — `run_worktree` starts `worktree.sh`,
+# `new_project` copies these two. The declaration above is what the driver selects on; this map is what
+# `driver#everyCaseDeclaresTheFilesItCanReach` compares it against, so a helper that starts a new script, or a case
+# that calls a helper and declares nothing it reaches, is named instead of silently narrowing the gate.
+loop_case_helper_files() {
+  printf '%s\n' \
+    'run_state|tools/loop/state.sh' \
+    'run_prescreen|tools/loop/prescreen.sh' \
+    'run_worktree|tools/loop/worktree.sh' \
+    'run_clean|tools/loop/loop-clean.sh' \
+    'run_labels|tools/loop/labels.sh' \
+    'run_report|tools/loop/report.sh' \
+    'run_loop|tools/loop/run.sh' \
+    'init_state|tools/loop/state.sh' \
+    'new_project|tools/pi-child-events.sh tools/tooling.json'
+}
+
+# The repository paths a case body names, with the engine's own variables read as the paths they stand for — the same
+# reading the declaration `# files:` line was written with, so the two can be compared. Kept out of the case that
+# compares them: a table of substitutions inside a case body is a table of paths that case would have to declare.
+loop_case_body_paths() { # stdin: a case body → the paths it names, one per line, unsorted
+  sed -e 's#\${LOOP_ENGINE}/#tools/loop/#g' -e 's#\$LOOP_ENGINE/#tools/loop/#g' \
+      -e 's#\${LOOP_FIXTURES}/#tools/loop/fixtures/#g' -e 's#\$LOOP_FIXTURES/#tools/loop/fixtures/#g' \
+      -e 's#\${LOOP_ISSUE_FIXTURES}/#tools/issues/fixtures/#g' -e 's#\$LOOP_ISSUE_FIXTURES/#tools/issues/fixtures/#g' \
+      -e 's#\${LOOP_PROJECT_ROOT}##g' -e 's#\$LOOP_PROJECT_ROOT##g' \
+      -e 's#\${root}##g' -e 's#\$root##g' |
+    grep -o 'tools/[A-Za-z0-9_./-]*[A-Za-z0-9_-]' | sort -u
 }
 
 # The dispatcher resolves a name to a function and then returns 0 unconditionally: a case signals failure
@@ -425,6 +474,11 @@ loop_run_shell_case() {
     'driver#aCaseThatAsksForNoCoreCompilesNothing') fn=case_driver_aCaseThatAsksForNoCoreCompilesNothing ;;
     'driver#aCaseThatAsksForTheCoreGetsItOrRefuses') fn=case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses ;;
     'driver#theCoreIsCompiledOncePerSuite') fn=case_driver_theCoreIsCompiledOncePerSuite ;;
+    'driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns') fn=case_driver_aFileFilterRunsOnlyTheCasesTheDeltaOwns ;;
+    'driver#aFileSetThatNamesNoCaseIsRefused') fn=case_driver_aFileSetThatNamesNoCaseIsRefused ;;
+    'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
+    'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
+    'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -601,6 +655,7 @@ run_one_item() { # run_one_item <project> <dir> [run.sh args…]
 # ----------------------------------------------------------------------------- cases: state
 
 case_state_initAndShowRoundTrips() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p base out sf
   p=$(new_project)
   base=$(git -C "$p" rev-parse HEAD)
@@ -631,6 +686,7 @@ case_state_initAndShowRoundTrips() {
 }
 
 case_state_nextHonoursEveryStopCondition() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p sf out status
 
   p=$(new_project); sf=$(state_file "$p")
@@ -692,6 +748,7 @@ case_state_nextHonoursEveryStopCondition() {
 # as its lower bound. Both numbers the refusal compared are named, so an operator can see whether the floor
 # is honest.
 case_state_floorIsDerivedFromTheFinishedItemsWallTimes() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p conf_floor out status i
   local queue='[{"issue":21,"class":"bug","verdict":"eligible","rank":1},
                 {"issue":22,"class":"bug","verdict":"eligible","rank":2},
@@ -753,6 +810,7 @@ case_state_floorIsDerivedFromTheFinishedItemsWallTimes() {
 }
 
 case_state_floorWithNoHistoryIsTheConfiguredMinimum() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p conf_floor out status
   conf_floor=$(sed -n 's/^LOOP_ITEM_FLOOR_MINUTES=//p' "$LOOP_CONF")
   [ -n "$conf_floor" ] || fail "the configuration records no LOOP_ITEM_FLOOR_MINUTES"
@@ -780,6 +838,7 @@ case_state_floorWithNoHistoryIsTheConfiguredMinimum() {
 }
 
 case_state_secondRunRefusesWithExit5() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p block first second status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -818,6 +877,7 @@ case_state_secondRunRefusesWithExit5() {
 # merged that run's unfinished item into main, closed it, and was refused at the lock two minutes into a
 # 240-minute budget).
 case_state_aRefusedRunLeavesTheLiveStateAlone() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p block first second status live_started live_sum sf
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -859,6 +919,7 @@ case_state_aRefusedRunLeavesTheLiveStateAlone() {
 # the next run takes it over and says so (measured 2026-10-22: the run killed at 19:19 left the lock, and
 # the run that started at 19:34 was refused by it after having replaced the live run's state).
 case_state_aDeadOwnersLockIsTakenOver() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p lock out status dead
   p=$(new_project)
   init_state "$p" 1 90
@@ -883,6 +944,7 @@ case_state_aDeadOwnersLockIsTakenOver() {
 # kept first, under the start time it carries itself, so a run that has ended can still be asked what it did
 # after the next run has started (issue #207).
 case_state_initKeepsTheStateItReplaces() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p sf runs first_started archived out
   p=$(new_project)
   init_state "$p" 2 90
@@ -908,6 +970,7 @@ case_state_initKeepsTheStateItReplaces() {
 # confirm would make a crashed run unstartable — but the state it loses is announced on stderr, not dropped
 # silently (issue #207).
 case_state_initAnnouncesARunWithoutAStop() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 1 90
@@ -923,6 +986,7 @@ case_state_initAnnouncesARunWithoutAStop() {
 }
 
 case_state_defaultsComeFromLoopConf() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p conf_items conf_minutes conf_review conf_may_close conf_max_decisions
   p=$(new_project)
   # read the recorded defaults from the same file the loop reads them from, so the case fails when a
@@ -942,6 +1006,7 @@ case_state_defaultsComeFromLoopConf() {
 }
 
 case_state_projectKeysAreReadFromLoopConf() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf prompt
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -962,6 +1027,7 @@ case_state_projectKeysAreReadFromLoopConf() {
 }
 
 case_state_agentCommandIsTheOnlyIndirection() {
+  # files: tools/loop/fixtures/pi tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p wrapper
   d=$(scratch); p=$(new_project)
   wrapper="$d/my-agent.sh"
@@ -984,6 +1050,7 @@ EOF
 }
 
 case_state_agentCommandRefusesAnEmptyValue() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf out status
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -1005,6 +1072,7 @@ case_state_agentCommandRefusesAnEmptyValue() {
 # outside the tree this process resolved is not this tree's run, and is ignored. `run_child` keeps exporting
 # them, because a fixture's run is a real run and its stub child reads them too.
 case_state_inheritedStatePathOutsideTheTreeIsIgnored() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p foreign before after
   d=$(scratch); p=$(new_project)
   foreign="$d/foreign-run.json"
@@ -1021,6 +1089,7 @@ case_state_inheritedStatePathOutsideTheTreeIsIgnored() {
 # ----------------------------------------------------------------------------- cases: prescreen
 
 case_prescreen_ranksBugsFirstAndKeepsFeatures() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   init_state "$p" 3 90
@@ -1038,6 +1107,7 @@ case_prescreen_ranksBugsFirstAndKeepsFeatures() {
 # One harness improvement after every four other items: it is mixed in, never leading, and it does not push an
 # app bug back. The fixture has one harness improvement and nine app bugs, so the improvement takes rank 5.
 case_prescreen_oneHarnessImprovementPerFourAppItems() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   init_state "$p" 10 90
@@ -1053,6 +1123,7 @@ case_prescreen_oneHarnessImprovementPerFourAppItems() {
 # A profile may still refuse a class, and then the pre-screen refuses it exactly as before: the feature path is
 # this project's configuration, not an assertion of the engine.
 case_prescreen_aRefusedClassStillStopsTheScreen() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   init_state "$p" 3 90
@@ -1065,6 +1136,7 @@ case_prescreen_aRefusedClassStillStopsTheScreen() {
 }
 
 case_prescreen_missingPathYieldsStale() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 3 90
@@ -1080,6 +1152,7 @@ case_prescreen_missingPathYieldsStale() {
 # itself is written to the tracker by the run's own script, the authorisation label is left as the owner
 # put it, and a dry run writes nothing.
 case_prescreen_refusalLeavesATraceInTheTracker() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out log
   p=$(new_project)
   init_state "$p" 3 90
@@ -1108,6 +1181,7 @@ case_prescreen_refusalLeavesATraceInTheTracker() {
 # item's own text — the recorded path, a file under it, or the submodule by name — and nothing fuzzier, because a
 # false exclusion costs an item.
 case_prescreen_aFixInTheSubmoduleIsAPersonsPatch() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status reason
   p=$(new_project)
   init_state "$p" 3 90
@@ -1127,6 +1201,7 @@ case_prescreen_aFixInTheSubmoduleIsAPersonsPatch() {
 }
 
 case_prescreen_doesNotClaimJudgementGates() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   init_state "$p" 3 90
@@ -1142,6 +1217,7 @@ case_prescreen_doesNotClaimJudgementGates() {
 }
 
 case_prescreen_refusesReservedLabelInSelection() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   init_state "$p" 3 90
@@ -1154,6 +1230,7 @@ case_prescreen_refusesReservedLabelInSelection() {
 }
 
 case_prescreen_withoutTheOptInIsNeverQueued() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 3 90
@@ -1169,6 +1246,7 @@ case_prescreen_withoutTheOptInIsNeverQueued() {
 }
 
 case_prescreen_settledItemIsDropped() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 3 90
@@ -1184,6 +1262,7 @@ case_prescreen_settledItemIsDropped() {
 }
 
 case_prescreen_deviceItemIsAVerdictNotWork() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 3 90
@@ -1200,6 +1279,7 @@ case_prescreen_deviceItemIsAVerdictNotWork() {
 # where they are read: rename the device verdict there and the pre-screen's verdict for a device-gated item
 # changes with it, which is what tells a literal from a value read at run time (issue #162, D16).
 case_prescreen_readsTheVerdictsFromTheProfile() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 3 90
@@ -1237,6 +1317,7 @@ landed_branch() { # <repo> <issue> <slug> → the branch the base's history carr
 # would throw a reviewed change away. The decision is recorded where a person reads it, before any item is
 # picked and before a budget slot is spent on it; the start's own check stays the authoritative one.
 case_prescreen_aFinishedAttemptBranchIsADecision() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out base branch
   p=$(new_project)
   init_state "$p" 3 90
@@ -1281,6 +1362,7 @@ case_prescreen_aFinishedAttemptBranchIsADecision() {
 # of its own — and the one archived change its history did add came in on an unrelated item's commit, which made
 # the adoption refusal name a change with no relation to the item.
 case_prescreen_aBlockedAttemptBranchIsWork() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out base branch state
   p=$(new_project)
   init_state "$p" 3 90
@@ -1321,6 +1403,7 @@ case_prescreen_aBlockedAttemptBranchIsWork() {
 # and a leftover is not a decision: the item is startable, and a run's own branch that was landed by hand stops
 # spending one of the run's decision slots (#228).
 case_prescreen_landedBranchIsNotADecision() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out base branch
   p=$(new_project)
   init_state "$p" 2 90
@@ -1341,6 +1424,7 @@ case_prescreen_landedBranchIsNotADecision() {
 # verdict is the run's own decision verdict, but marked as already escalated so the run does not post the same
 # comment again.
 case_prescreen_itemAwaitingADecisionIsNotQueued() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out issue status base branch
   p=$(new_project)
   init_state "$p" 3 90
@@ -1391,6 +1475,7 @@ case_prescreen_itemAwaitingADecisionIsNotQueued() {
 # held item was escalated with a boilerplate sentence and counted against `--max-decisions` until the cap
 # stopped every future run (measured 2026-10-20: 12 items against a cap of 3).
 case_prescreen_aHoldWithNoDecisionIsNotADecision() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status log
   p=$(new_project)
   init_state "$p" 1 90
@@ -1416,6 +1501,7 @@ case_prescreen_aHoldWithNoDecisionIsNotADecision() {
 # overwrite it with a label name. Before this ordering the two fixes together made adoption unreachable (#185
 # review): every escalated item lost the only field the adoption path selects on.
 case_prescreen_escalatedItemKeepsItsBranchAsEvidence() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p base branch out status
   p=$(new_project)
   init_state "$p" 4 90
@@ -1452,6 +1538,7 @@ case_prescreen_escalatedItemKeepsItsBranchAsEvidence() {
 # category in the classes `firstCategoryClasses` names (here, bugs). A harness improvement is not another
 # harness defect: it is mixed in after every `firstCategoryEvery` other item instead of leading.
 case_prescreen_harnessItemsLeadTheQueue() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   init_state "$p" 5 90
@@ -1474,6 +1561,7 @@ case_prescreen_harnessItemsLeadTheQueue() {
 # fixture's `category/ui` bug leads the queue, above a harness bug — the key is the declared value, not a
 # spelling this change happens to ship. Its improvement is mixed in, not led.
 case_prescreen_aRenamedLeadingCategoryLeads() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   init_state "$p" 5 90
@@ -1492,6 +1580,7 @@ case_prescreen_aRenamedLeadingCategoryLeads() {
 # empty list is a project that wants no category priority, and an absent key is a half-adapted profile that
 # must stop the script rather than silently rank by class.
 case_prescreen_priorityCategoriesAreReadFromTheProfile() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 5 90
@@ -1514,6 +1603,7 @@ case_prescreen_priorityCategoriesAreReadFromTheProfile() {
 # The category key is a rank, not a gate: an item in a leading category that is on hold is excluded exactly as
 # any other held item, writes no label and takes no rank, so the priority can never queue work the gate refused.
 case_prescreen_priorityDoesNotBypassTheGate() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out log
   p=$(new_project)
   init_state "$p" 5 90
@@ -1537,6 +1627,7 @@ case_prescreen_priorityDoesNotBypassTheGate() {
 # Every role the script reads is required, not merely the one this change added: a half-adapted profile that
 # omits the hold verdict would otherwise report an empty verdict instead of stopping with a named reason.
 case_prescreen_anUndeclaredRoleStopsTheScreen() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 1 90
@@ -1551,6 +1642,7 @@ case_prescreen_anUndeclaredRoleStopsTheScreen() {
 # The mixing interval is a role too: a profile that omits it is half-adapted and stops, rather than ranking
 # silently on a default the engine invented.
 case_prescreen_anUndeclaredLeadingIntervalStopsTheScreen() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 1 90
@@ -1569,6 +1661,7 @@ case_prescreen_anUndeclaredLeadingIntervalStopsTheScreen() {
 # seeding — the directory populated, the local properties and the gitignored skills present, none of
 # which a fresh worktree inherits.
 case_worktree_seedsAllFourInputs() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
@@ -1581,6 +1674,7 @@ case_worktree_seedsAllFourInputs() {
 }
 
 case_worktree_checksOutTheSubmoduleTheLoopConfigNames() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p d nested conf out
   p=$(new_project); d=$(scratch)
   nested="$d/nested"; mkdir -p "$nested"
@@ -1609,6 +1703,7 @@ case_worktree_checksOutTheSubmoduleTheLoopConfigNames() {
 }
 
 case_worktree_oneBranchPerItemOffTheBase() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w base out status
   p=$(new_project); w="$p/.pi/worktrees/loop"
   base=$(git -C "$p" rev-parse HEAD)
@@ -1632,6 +1727,7 @@ case_worktree_oneBranchPerItemOffTheBase() {
 }
 
 case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w base out
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
@@ -1655,6 +1751,7 @@ case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn() {
 # The reuse is decided by patch identity too: a branch whose every commit the base carries by patch carries no
 # work of its own, however it was landed, so the item starts instead of blocking for ever (#228).
 case_worktree_reusesABranchWhoseWorkAlreadyLanded() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w base out
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
@@ -1669,6 +1766,7 @@ case_worktree_reusesABranchWhoseWorkAlreadyLanded() {
 }
 
 case_worktree_refusesABranchCarryingAPreviousAttempt() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w out status
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
@@ -1695,6 +1793,7 @@ case_worktree_refusesABranchCarryingAPreviousAttempt() {
 # parked on a decision nobody stated (#232). #230 was parked this way from 2026-10-21 and its fix stayed on the
 # branch while `main` kept the defect.
 case_worktree_setsAsideABlockedAttemptAndStartsFresh() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w out status attempt left_branch base
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
@@ -1725,6 +1824,7 @@ case_worktree_setsAsideABlockedAttemptAndStartsFresh() {
 # its branch held #126's commit, and the adoption refusal named 2026-10-19-fix-i18n-gate-state-field-text
 # (issue #232).
 case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p out status branch
   p=$(new_project)
   init_state "$p" 1 90
@@ -1748,6 +1848,7 @@ case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue() {
 }
 
 case_worktree_refusesWhenMainAdvanced() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w base out status tip
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 2 90
@@ -1766,6 +1867,7 @@ case_worktree_refusesWhenMainAdvanced() {
 }
 
 case_worktree_keepsByDefaultAndRemovesOnRequest() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -1788,6 +1890,7 @@ case_worktree_keepsByDefaultAndRemovesOnRequest() {
 # of which `app/build` alone was 1.9 GB, and nothing removed it. The removal is confined to the tree: a
 # recorded path that is a symlink out of it is left exactly where it is, and so is everything git holds.
 case_worktree_keepsSourcesNotBuildOutput() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p w outside out bytes branch
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
   outside="$d/outside"; mkdir -p "$outside"
@@ -1830,6 +1933,7 @@ ACTION
 }
 
 case_worktree_noPushWithoutTheFlag() {
+  # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local d p trace hits
   hits=$(grep -rn 'gh pr create' "$LOOP_PROJECT_ROOT/tools/loop/" || true)
   [ -z "$hits" ] || fail "the loop opens a change request: $hits"
@@ -1852,6 +1956,7 @@ case_worktree_noPushWithoutTheFlag() {
 # (measured 2026-10-23 on #277, in a run that read green everywhere else). The flag publishes what still exists;
 # a merged and released branch is a named skip.
 case_worktree_pushSkipsABranchItAlreadyMerged() {
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/fixtures/scenarios/ tools/tooling.json tools/pi-child-events.sh
   local d p origin out branch
   d=$(scratch); p=$(new_project); origin="$d/origin.git"
   # A remote that answers: without one, a push of a branch that *does* exist would fail as well, and the case
@@ -1870,6 +1975,7 @@ case_worktree_pushSkipsABranchItAlreadyMerged() {
 }
 
 case_worktree_refusesABranchWhoseReviewFailed() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   # A branch that carries one archived change and a green verification is adoptable by every input the run
   # checked before #185 — and one the reviewer refused looks exactly the same from the outside. The verdict
   # therefore travels inside the change's own evidence directory, and adoption reads it there.
@@ -1913,6 +2019,7 @@ case_worktree_refusesABranchWhoseReviewFailed() {
 # change (issue #262). The round is therefore announced on the branch *before* the reviewer starts, so an answer
 # that never arrives is a fact a later run reads: the branch is not adopted, and its silence is the owner's.
 case_worktree_refusesABranchWhoseReviewRoundNeverAnswered() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p out status branch state
   p=$(new_project)
   init_state "$p" 1 90
@@ -1945,6 +2052,7 @@ case_worktree_refusesABranchWhoseReviewRoundNeverAnswered() {
 
 
 case_labels_verdictToLabelMatrix() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
   local d p log out status
   p=$(new_project); d=$(scratch)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -1985,6 +2093,7 @@ case_labels_verdictToLabelMatrix() {
 }
 
 case_labels_holdCarriesItsReason() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
   local d p log out status
   p=$(new_project); d=$(scratch)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2005,6 +2114,7 @@ case_labels_holdCarriesItsReason() {
 }
 
 case_labels_trapRemovesInProgressOnSignal() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p block first waited
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2038,6 +2148,7 @@ case_labels_trapRemovesInProgressOnSignal() {
 }
 
 case_labels_neverWritesReservedLabel() {
+  # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local hits count p out status
   # The engine's scripts, not the fixtures: a fixture issue carries the label because that is what a
   # fixture *is* (an expectation). No code path of the loop can write it.
@@ -2057,6 +2168,7 @@ case_labels_neverWritesReservedLabel() {
 }
 
 case_labels_writesOnlyBetweenChildren() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p before after n i b a
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2077,6 +2189,7 @@ case_labels_writesOnlyBetweenChildren() {
 # ----------------------------------------------------------------------------- cases: prompts
 
 case_prompt_workerNamesEveryPhaseAndSkill() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt skills skill
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2095,6 +2208,7 @@ case_prompt_workerNamesEveryPhaseAndSkill() {
 # A feature is work too, and its prompt says how it enters: the run hands the item's class to the child, the
 # child plans `add-<slug>` before production code, and the acceptance scenario is its red case.
 case_prompt_workerCarriesTheFeaturePath() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2107,6 +2221,7 @@ case_prompt_workerCarriesTheFeaturePath() {
 }
 
 case_prompt_workerNamesTheDecisionField() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2122,6 +2237,7 @@ case_prompt_workerNamesTheDecisionField() {
 }
 
 case_run_skipEscalationCarriesTheDecision() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p skip_report out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2139,6 +2255,7 @@ case_run_skipEscalationCarriesTheDecision() {
 # A recorded decision is the owner's policy, not a claim to re-verify (issue #196: a fresh worker spent a run
 # re-deriving a fork a person had already answered, and asked it again with a different option list).
 case_prompt_workerTreatsARecordedDecisionAsSettled() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2150,6 +2267,7 @@ case_prompt_workerTreatsARecordedDecisionAsSettled() {
 }
 
 case_prompt_reviewerCarriesTheEightItems() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2176,6 +2294,7 @@ case_prompt_reviewerCarriesTheEightItems() {
 # 4 h 40 m change and the parent had to steer it back to reading. The case asserts the bound the task states,
 # because "read-only" alone was not enough to stop it: the gate and the suite have to be named.
 case_prompt_reviewerIsBoundedToReading() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf prompt text cap
   d=$(scratch); p=$(new_project)
   # The bound in the text is the run's own recorded value, so the case writes a value of its own: a template
@@ -2207,6 +2326,7 @@ case_prompt_reviewerIsBoundedToReading() {
 # The same bound reaches a session that spawns its own reviewer (issue #236): the loop's prompt is the one
 # skeleton, and the iteration protocol is where a session is told to hand it over. Two surfaces, one rule.
 case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton() {
+  # files: tools/loop/prompts/reviewer.md
   local doc
   doc=$(cat "$LOOP_PROJECT_ROOT/guidelines/Build.md")
   # the document is quoted whole, so a `case` is used instead of `assert_contains`: the failure names the rule
@@ -2229,6 +2349,7 @@ case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton() {
 # the iteration levers, never the surface of the change itself, so this case holds the rule to the two surfaces
 # it needs: the worker prompt a run renders, and the guideline that owns the text.
 case_prompt_workerNamesTheChangeSurfaceBeforeThePlan() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt text
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2243,6 +2364,7 @@ case_prompt_workerNamesTheChangeSurfaceBeforeThePlan() {
 # The rule has one home for its text (`guidelines/Build.md` §2, the iteration protocol) and one for the act (the
 # worker prompt above). A session that plans a change outside the loop reads the first, so both are asserted.
 case_prompt_iterationProtocolNamesTheChangeSurface() {
+  # files: *
   local doc
   doc=$(cat "$LOOP_PROJECT_ROOT/guidelines/Build.md")
   # quoted whole, so a `case` is used instead of `assert_contains`: the failure names the rule that is missing
@@ -2258,6 +2380,7 @@ case_prompt_iterationProtocolNamesTheChangeSurface() {
 }
 
 case_prompt_packageIsAFileAndNotInlined() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt package expected
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2279,6 +2402,7 @@ case_prompt_packageIsAFileAndNotInlined() {
 }
 
 case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p package prompt
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario injection)
@@ -2308,6 +2432,7 @@ case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
 # answered. The item's body still says "bounds to settle", because nothing amends it — the package is where a
 # settled question has to be readable.
 case_run_workPackageCarriesTheRecordedDecision() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p package
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decided)
@@ -2327,6 +2452,7 @@ case_run_workPackageCarriesTheRecordedDecision() {
 # counts the queue then refuses runs over an item nobody can answer — measured 2026-10-20 on #81, which was
 # closed and still listed (issue #225).
 case_labels_closeRemovesTheDecisionLabel() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
   local d p log
   p=$(new_project); d=$(scratch)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
@@ -2342,6 +2468,7 @@ case_labels_closeRemovesTheDecisionLabel() {
 # and call it a decision, the run states the only choice a block leaves — retry the item, or abandon it — so
 # the queue holds something a person can answer (issues #225, #194).
 case_run_blockedItemAsksItsOwnQuestion() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out body
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2358,6 +2485,7 @@ case_run_blockedItemAsksItsOwnQuestion() {
 # item, so closing it as mis-diagnosed is the same two artifacts a fix closure posts (openspec change
 # `falsified-items-close-in-the-loop`).
 case_run_falsifiedSkipClosesWithItsMeasurement() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2378,6 +2506,7 @@ case_run_falsifiedSkipClosesWithItsMeasurement() {
 
 # Without the number the claim is a question again: two of the three halves is an escalation, not a finding.
 case_run_falsificationWithoutAMeasurementIsEscalated() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2394,6 +2523,7 @@ case_run_falsificationWithoutAMeasurementIsEscalated() {
 # Closure disabled: the evidence is posted and the item stays open — the run does not reopen the question it
 # already answered.
 case_run_mayCloseNoKeepsAFalsificationOpen() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2413,6 +2543,7 @@ case_run_mayCloseNoKeepsAFalsificationOpen() {
 # so the claim is read again after the review: a falsified item whose tree moved is a change, and closing it as
 # mis-diagnosed would close on evidence nobody reviewed.
 case_run_falsificationWithAChangedTreeIsBlocked() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2446,6 +2577,7 @@ ACTION
 # ----------------------------------------------------------------------------- cases: run
 
 case_run_preflightRefusalStopsBeforeAnyWork() {
+  # files: tools/issues/fixtures/scenarios/outsider/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR="$LOOP_ISSUE_FIXTURES/scenarios/outsider"
@@ -2459,6 +2591,7 @@ case_run_preflightRefusalStopsBeforeAnyWork() {
 }
 
 case_run_decisionCapRefusesToStart() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
@@ -2477,6 +2610,7 @@ case_run_decisionCapRefusesToStart() {
 # not take (issue #241, measured 2026-10-21: five refused fast-forwards in the project tree, `core.bare` → `true`,
 # `rev-parse --is-inside-work-tree` → `false`). The run refuses before it writes, and says what repairs it.
 case_run_refusesARepositoryThatIsNotAWorkTree() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2496,6 +2630,7 @@ case_run_refusesARepositoryThatIsNotAWorkTree() {
 # mapping — `LOOP_GATE_COMPILED_PATTERNS` and `LOOP_GATE_SUITES` in `loop.conf` — and the engine names neither a
 # project path nor a suite of its own.
 case_gate_theDeltaSelectsTheSuitesItTouches() {
+  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf plan base
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -2531,6 +2666,7 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
 # from a stopped one, and the failure text of a red one survived only as the last three lines of a tally. The
 # stream is `tee`d, so the console and the tally read the one observation.
 case_gate_theSuitesOutputReachesTheConsoleWhileItRuns() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base log pid out
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -2579,6 +2715,7 @@ SUITE
 # the run's check reads and the lines an operator saw are the same bytes. A failing suite keeps the gate's exit
 # status and its own failing line, so the verdict is still the suite's and the failure text is not lost.
 case_gate_aFailingSuiteIsReadFromTheSameStream() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base out rc
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -2621,6 +2758,7 @@ SUITE
 # kept apart: the case and failure counts are the suite's own, and a suite that failed without a summary carries
 # `tests="0"` with `errors="1"`.
 case_gate_aFailingSuiteWithNoSummaryInventsNoTest() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base out rc
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -2663,6 +2801,7 @@ SUITE
 # refused a round on a tally that was present. The `./` prefix is stripped before the name is built, so every
 # reader that lists or globs finds the file.
 case_gate_aCompiledStepsTallyIsNotHidden() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base out visible f globbed
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -2703,6 +2842,7 @@ GRADLEW
 # are printed beside its own command, carried in the summary the run records as its gate claim, and written into
 # the tally the run's own check reads.
 case_gate_theSummaryNamesWhatEachSuiteCost() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base out tally seconds line_seconds
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"
@@ -2748,6 +2888,7 @@ SUITE
 # the checks that pathspec owes, and the tallies the tree already carries. The block is what the item's bound
 # asks for — one call per measurement, not one call per file.
 case_measure_namesTheOwedChecksInOneBlock() {
+  # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local d p conf base out canary
   d=$(scratch); p=$(new_project)
   conf="$d/measure.conf"
@@ -2787,6 +2928,7 @@ case_measure_namesTheOwedChecksInOneBlock() {
 # The numbers a reviewer asks for by item: a scenario that names no case is a plan defect, and the tally a green
 # claim quotes has to be in the block the worker holds, or the reviewer has to reconstruct it (issue #246).
 case_measure_printsTheNumbersTheReviewerAsksFor() {
+  # files: tools/loop-cases.sh tools/loop/fixtures/scenarios/ tools/loop/loop.conf tools/loop/measure.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf base out change
   d=$(scratch); p=$(new_project)
   conf="$d/measure.conf"
@@ -2829,6 +2971,7 @@ case_measure_printsTheNumbersTheReviewerAsksFor() {
 # A name resolves under the open changes and, because a correction round works on a change that is already
 # archived, under the archive too.
 case_measure_refusesToGuessWhichChangeItMeasures() {
+  # files: tools/loop/loop.conf tools/loop/measure.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf base out
   d=$(scratch); p=$(new_project)
   conf="$d/measure.conf"
@@ -2869,6 +3012,7 @@ case_measure_refusesToGuessWhichChangeItMeasures() {
 # block stopped at its limit and said nothing, so a reader took the silence for the whole tree. The line that
 # says how many it withheld is what makes the cap a fact rather than a truncation.
 case_measure_saysHowManyTalliesItWithheld() {
+  # files: tools/loop/loop.conf tools/loop/measure.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf base out i
   d=$(scratch); p=$(new_project)
   conf="$d/measure.conf"
@@ -2893,6 +3037,7 @@ case_measure_saysHowManyTalliesItWithheld() {
 }
 
 case_prompt_workerIsHandedTheMeasureBlock() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt text measure conf
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -2912,6 +3057,7 @@ case_prompt_workerIsHandedTheMeasureBlock() {
 }
 
 case_run_oneItemOrderIsFixed() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompts
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2930,6 +3076,7 @@ case_run_oneItemOrderIsFixed() {
 }
 
 case_run_childClaimWithoutCommitIsBlocked() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2944,6 +3091,7 @@ case_run_childClaimWithoutCommitIsBlocked() {
 }
 
 case_run_blockedItemIsEscalatedWithItsReason() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -2966,6 +3114,7 @@ case_run_blockedItemIsEscalatedWithItsReason() {
 }
 
 case_run_childStartsInTheProjectRoot() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p logs prompt
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -2985,6 +3134,7 @@ case_run_childStartsInTheProjectRoot() {
 }
 
 case_run_childReportsWhileItWaits() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3015,6 +3165,7 @@ case_run_childReportsWhileItWaits() {
 # nothing on the console said where a person could look meanwhile (issue #191). The header therefore names the
 # step that follows it, the state directory, and the command that shows what the run is doing.
 case_run_headerNamesTheLiveView() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3033,6 +3184,7 @@ case_run_headerNamesTheLiveView() {
 # instead left the run's own phase line as the only mid-flight evidence, which a capture-and-replay would also
 # print.
 case_run_prescreenAnnouncesItselfBeforeItReturns() {
+  # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local d p log pid out tools p2 rc
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3084,6 +3236,7 @@ case_run_prescreenAnnouncesItselfBeforeItReturns() {
 # with an elapsed field, one line per crossing, and terminal output only — a line that leaked into the state
 # file or into the report would make a heartbeated run a different run from a quiet one.
 case_run_everyPhaseBoundaryIsPrinted() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out sf report
   d=$(scratch); p=$(new_project)
   out=$(run_one_item "$p" "$d" --review off 2>&1) || fail "the run failed"
@@ -3111,6 +3264,7 @@ case_run_everyPhaseBoundaryIsPrinted() {
 # the one line that says so, and the item is recorded `blocked` with that transcript instead of spending the
 # run's clock (issue #203).
 case_run_childOutlastingTheWallClockIsBlocked() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo pid i status out report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3169,6 +3323,7 @@ case_run_childOutlastingTheWallClockIsBlocked() {
 # writer in the worktree and leaves it in a session of its own. On the tree before the fix that writer outlives
 # the run, with the fix it is ended and named before the item's outcome is written.
 case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo pid i status report tree writer alive out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3244,6 +3399,7 @@ case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
 # the tree at the base never read the item: that is the run's own fault, recorded once as its stop, and the
 # item stays exactly as its owner set it.
 case_run_childThatNeverStartedIsTheRunsFault() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status log sf
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3280,6 +3436,7 @@ case_run_childThatNeverStartedIsTheRunsFault() {
 # suite happens to have, and the third one can point the reading at a file that does not exist.
 
 case_run_hostBelowTheFloorBlocksTheItemAndStops() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3314,6 +3471,7 @@ case_run_hostBelowTheFloorBlocksTheItemAndStops() {
 }
 
 case_run_hostAboveTheFloorRunsTheItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3334,6 +3492,7 @@ case_run_hostAboveTheFloorRunsTheItem() {
 }
 
 case_run_hostWithoutTheReadingPasses() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3362,6 +3521,7 @@ case_run_hostWithoutTheReadingPasses() {
 # the item keeps the outcome its work earned; `--strict-outside-write yes` restores the verdict for a tree that is
 # exclusive, and the two strict cases pin it.
 case_run_childWriteOutsideTheWorktreeIsNoted() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3387,6 +3547,7 @@ case_run_childWriteOutsideTheWorktreeIsNoted() {
 }
 
 case_run_dirtyBaseRefusesTheMergeAndNamesThePath() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3407,6 +3568,7 @@ case_run_dirtyBaseRefusesTheMergeAndNamesThePath() {
 }
 
 case_run_strictOutsideWriteBlocksTheItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3425,6 +3587,7 @@ case_run_strictOutsideWriteBlocksTheItem() {
 }
 
 case_run_strictOutsideWriteDiscardsTheReviewRound() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3442,6 +3605,7 @@ case_run_strictOutsideWriteDiscardsTheReviewRound() {
 }
 
 case_run_leftoverBranchIsRecordedNotDropped() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p log branch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3489,6 +3653,7 @@ ACTION
 # attempt (commits, no archived change of its own) is renamed aside and the item worked, so an attempt that
 # appears while the run is open cannot park the item on a decision nobody stated (#232).
 case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -3538,6 +3703,7 @@ case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside() {
 # A branch is a later run's only view of an earlier attempt, so the verdict a reviewer reached has to live on
 # it: the run commits the refusal into the change's own evidence directory, on the item's branch (#185).
 case_run_recordsAFailedReviewOnTheBranch() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p branch files out
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3559,6 +3725,7 @@ case_run_recordsAFailedReviewOnTheBranch() {
 # (issue #262). Without the announcement the only record of a round is its refusal or its pass, so a reviewer
 # killed mid-answer left a branch that read exactly like a passed one.
 case_run_announcesAndRecordsTheReviewRound() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p evidence commits
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3575,6 +3742,7 @@ case_run_announcesAndRecordsTheReviewRound() {
 }
 
 case_run_mergesAFinishedAttemptAndClosesTheItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status branch base log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3628,6 +3796,7 @@ case_run_mergesAFinishedAttemptAndClosesTheItem() {
 # read the refusal as a closure would say `status/fixed-by` about a fix only a branch has; the same command on a
 # clean tree is the merge the run's own success path takes (issue #229).
 case_worktree_refusesToMergeOverADirtyProjectTree() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w base out status branch tip
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
@@ -3659,6 +3828,7 @@ case_worktree_refusesToMergeOverADirtyProjectTree() {
 # reviewed. The recorded base is what decides, so a base that moved under the branch — a person's commit, a
 # hand-merged attempt — refuses it instead of replaying the change onto the moved tree (issue #229).
 case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w moved out status branch tip
   p=$(new_project); w="$p/.pi/worktrees/loop"
   init_state "$p" 1 90
@@ -3698,6 +3868,7 @@ case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom() {
 # #201, whose two commits a person fast-forwarded onto `main` by hand 35 minutes later (issue #229). The run
 # merges the branch it committed before it closes the item.
 case_run_mergesItsCommittedBranchBeforeClosing() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p runlog branch commits c log
   d=$(scratch); p=$(new_project)
   runlog="$d/run.txt"
@@ -3740,6 +3911,7 @@ case_run_mergesItsCommittedBranchBeforeClosing() {
 # falsification was recorded `skipped` because the tree was compared with a base several merges old. Two items
 # closed by merge in one run — the second one's prompt and diff carry nothing of the first.
 case_run_theBaseAdvancesWithEveryMerge() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p run_log first_merge prompt diff run_start
   d=$(scratch); p=$(new_project)
   run_start=$(git -C "$p" rev-parse main)
@@ -3779,6 +3951,7 @@ case_run_theBaseAdvancesWithEveryMerge() {
 # test-results XML exists in the tree" refusal could not fire against it. The first item here leaves a green XML in
 # the worktree; the second writes a change and claims a gate, but no XML of its own.
 case_run_staleTestResultsAreNotThisChildsGate() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p run_log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -3812,6 +3985,7 @@ case_run_staleTestResultsAreNotThisChildsGate() {
 # Here the dirt is a person's and is there before the run starts, so no write of the run's is being blamed: the
 # tree is simply not one the merge may land in, and the item stays open with its branch named (issue #229).
 case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p base branch log
   d=$(scratch); p=$(new_project)
   printf 'work in progress\n' > "$p/uncommitted.txt"
@@ -3840,6 +4014,7 @@ case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
 # verification record — a blocked attempt carries only the red-on-HEAD XML — keeps its refusal, its escalation
 # and the person who owns the decision, and nothing is merged (issue #176).
 case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status branch base log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3881,6 +4056,7 @@ case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
 # that ends a run with an exit code and no item is the "nothing processed and no reason" outcome the report
 # exists to prevent, on the path where it is most likely — a killed or crashed run.
 case_run_dirtyKeptWorktreeIsARecordedRefusal() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status log head_before
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
@@ -3910,6 +4086,7 @@ case_run_dirtyKeptWorktreeIsARecordedRefusal() {
 # it, it takes neither the commits on the previous branches nor the tracker with it, and it is never
 # implied — without the flag the leftovers stay and the run refuses (issue #173).
 case_run_resetWorktreeDiscardsWhatItNames() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
@@ -3939,6 +4116,7 @@ case_run_resetWorktreeDiscardsWhatItNames() {
 # the files it found, and stops: the tree is still dirty and nothing is discarded without --reset-worktree, so
 # no later candidate could start either.
 case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds() {
+  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/fixtures/scenarios/ tools/tooling.json
   local d p out f reason log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -3976,6 +4154,7 @@ case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds() {
 }
 
 case_run_aSkipClearsTheInProgressMark() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p skip_report
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3994,6 +4173,7 @@ case_run_aSkipClearsTheInProgressMark() {
 }
 
 case_run_claimedGateWithoutEvidenceIsBlocked() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4016,6 +4196,7 @@ ACTION
 }
 
 case_run_citedEvidenceMustTravelWithTheChange() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4038,6 +4219,7 @@ ACTION
 }
 
 case_run_needsDecisionIsEscalatedWithTheWork() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p skip_report log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4056,6 +4238,7 @@ case_run_needsDecisionIsEscalatedWithTheWork() {
 }
 
 case_run_noGateStillRuns() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf
   d=$(scratch); p=$(new_project)
   # a project with no build system: the phases still run, and the report says the gate was skipped
@@ -4070,6 +4253,7 @@ case_run_noGateStillRuns() {
 }
 
 case_run_dryRunTouchesNothing() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4091,6 +4275,7 @@ case_run_dryRunTouchesNothing() {
 }
 
 case_run_reviewRoundsCapAtTwo() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4109,6 +4294,7 @@ case_run_reviewRoundsCapAtTwo() {
 # The round budget was the literal `2` in the loop, so a project that reviews harder could not raise it and a
 # reviewer that asked only for corrections still ended the run's work on the item (#187).
 case_run_reviewBudgetIsARecordedValue() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4124,6 +4310,7 @@ case_run_reviewBudgetIsARecordedValue() {
 # Zero rounds is not a cheap review: the item would be blocked on a round that never ran, and the branch would
 # carry a `review-failed-round-0` that refuses it for ever (review of #187).
 case_run_aZeroRoundBudgetIsRefused() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4137,6 +4324,7 @@ case_run_aZeroRoundBudgetIsRefused() {
 # answer it — so a corrective refusal at the cap earns exactly one more round, and a second refusal blocks
 # (#187). The extension is `LOOP-CORRECTIONS-ONLY: yes` in the reviewer's report, which the prompt asks for.
 case_run_aCorrectiveRefusalEarnsOneMoreRound() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4157,6 +4345,7 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
 # The assertions are the absences that make it so: the round-3 diff carries the correction's hunk and not the
 # line it replaced, and the round-3 prompt carries the finding the round exists to decide.
 case_run_aCorrectiveRoundIsHandedTheCorrections() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f diff prompt first
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4224,6 +4413,7 @@ esac"
 # round was spent, and the notes travel to the item instead of buying a second reviewer process (#205). The
 # report also asks for corrections, which is the shape of a refusal: there is none here, so no round is bought.
 case_run_aZeroBlockingRefusalClosesWithItsNotes() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f notes log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4253,6 +4443,7 @@ VERDICT: FAIL'
 # The other half of the same line: a report that counts blocking findings refuses exactly as the loop has always
 # refused — the change goes back for a second round, and a second refusal blocks the item (#205).
 case_run_aBlockingRefusalStillTakesTheRoundTwoPath() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4278,6 +4469,7 @@ VERDICT: FAIL'
 # answer decides it, not its content: a cut answer ends mid-word and lacks the line the prompt asks for last, so
 # the round is retried once, the item closes on the answer that arrived, and the cut attempt stays as evidence.
 case_run_aCutReportIsRetriedInsteadOfRefused() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4320,6 +4512,7 @@ ACTION
 # leaves — "the change failed its last review round" — and the branch must carry no review-failure marker, or a
 # later run refuses to adopt a change no reviewer ever refused (#224).
 case_run_aReportCutTwiceBlocksAsTheTransportsFault() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4350,6 +4543,7 @@ ACTION
 # question, the options and the recommendation (#186). The reason alone ("a decision is needed") is what the
 # owner had to reconstruct.
 case_run_escalationCarriesTheDecision() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4366,6 +4560,7 @@ LOOP-DECISION: merge as it stands, apply the corrections, or abandon it | recomm
 }
 
 case_run_mayCloseNoLeavesTheIssueOpen() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" --may-close no >/dev/null || fail "the run failed"
@@ -4377,6 +4572,7 @@ case_run_mayCloseNoLeavesTheIssueOpen() {
 }
 
 case_run_metricsRecordedPerItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4397,6 +4593,7 @@ case_run_metricsRecordedPerItem() {
 # `run.sh` keeps the stream beside the item's reports and records the sums with the wall time; the table prints
 # them. The fixture is a hand-written event stream: no model, no network, and every number below is asserted.
 case_run_childUsageIsRecordedPerItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p f row
   d=$(scratch); p=$(new_project)
   cat > "$d/events.jsonl" <<'JSONL'
@@ -4452,6 +4649,7 @@ JSONL
 # did: nothing about the run may depend on the stream. The item is worked, recorded and reported, and the three
 # new columns say `-` rather than a zero nobody measured.
 case_run_plainTextChildStillReports() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf f row
   d=$(scratch); p=$(new_project)
   conf="$d/loop.conf"
@@ -4467,6 +4665,7 @@ case_run_plainTextChildStillReports() {
 }
 
 case_run_commitsWithoutAnAmbientIdentity() {
+  # files: tools/issues/fixtures/login.txt tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   # A container or a CI runner has no `user.name`/`user.email` anywhere: git then refuses every commit, and
   # the run would block on its own commit (measured 2026-10-18, issue #167). The throwaway repository's local
   # identity is removed as well, so the case is the runner's environment and not the developer's.
@@ -4497,6 +4696,7 @@ case_run_commitsWithoutAnAmbientIdentity() {
 }
 
 case_run_emptyQueueIsNotAFailure() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out status
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario none)
@@ -4513,6 +4713,7 @@ case_run_emptyQueueIsNotAFailure() {
 }
 
 case_run_reviewerWriteInvalidatesTheRound() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4525,6 +4726,7 @@ case_run_reviewerWriteInvalidatesTheRound() {
 }
 
 case_run_reviewReadOnlyOffOnlyForDiagnosis() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4542,6 +4744,7 @@ case_run_reviewReadOnlyOffOnlyForDiagnosis() {
 # diff where an extension filter would have dropped it, and the prompt names the exclusion so the reviewer
 # reads neither the absence nor a missing artefact.
 case_run_reviewDiffExcludesTheEvidenceArchive() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p diff prompt
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4577,6 +4780,7 @@ esac'
 }
 
 case_run_engineNamesNoProjectFact() {
+  # files: tools/check-portability.sh tools/loop/fixtures/scenarios/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local hits sbxdir newpath d p
   hits=$(grep -rn 'pi --print' "$LOOP_ENGINE"/*.sh 2>/dev/null || true)
   [ -z "$hits" ] || fail "a script names the agent command instead of reading it: $hits"
@@ -4609,6 +4813,7 @@ case_run_engineNamesNoProjectFact() {
 # parser that hangs again fails this case instead of taking the suite with it. Each assertion names the flag
 # too: `needs a value` alone would also pass if the refusal named the *next* flag.
 case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError() {
+  # files: tools/issues/create.sh tools/loop/prescreen.sh tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/mutate.sh
   local line flag out status
   for line in \
     'tools/loop/run.sh --items 100 --minutes 480 --push' \
@@ -4627,6 +4832,7 @@ case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError() {
 }
 
 case_usage_bareValueFlagDoesNotSwallowTheNextFlag() {
+  # files: tools/issues/create.sh tools/loop-selftest.sh tools/loop/run.sh tools/sensor-selftest.sh
   local pair flag line out status
   for pair in \
     '--push:tools/loop/run.sh --items 100 --push --dry-run' \
@@ -4649,6 +4855,7 @@ case_usage_bareValueFlagDoesNotSwallowTheNextFlag() {
 # `--only` runs the whole mutation set, which rewrites and restores the tree. The assertion is the refusal
 # before anything starts, and it is separate from the sweep because the sweep can only read the shape.
 case_usage_bareValueFlagInASingleShotHarnessIsAUsageError() {
+  # files: tools/build-inputs-mutations.sh tools/build-inputs-selftest.sh tools/check-portability-selftest.sh tools/issue-tooling-selftest.sh tools/issues/check-metadata-selftest.sh tools/issues/metadata-mutations.sh tools/loop-selftest.sh tools/resolve-stale-selftest.sh tools/sensor-mutations.sh tools/sensor-selftest.sh
   local line flag out status
   for line in \
     'bash tools/loop-selftest.sh --case' \
@@ -4679,6 +4886,7 @@ case_usage_bareValueFlagInASingleShotHarnessIsAUsageError() {
 # harness, and this file quotes the shape it looks for. An arm is guarded when it carries `need_value "$@"`,
 # the inline `[ $# -ge 2 ]` check, or the message it produces.
 case_usage_noUnguardedValueFlagRemains() {
+  # files: *
   local offenders n
   offenders=$(grep -rnF -e 'shift 2 ;;' -e '${2:-}' "$LOOP_PROJECT_ROOT/tools" --include='*.sh' 2>/dev/null |
     grep -v -- '-cases.sh:' |
@@ -4701,6 +4909,7 @@ case_usage_noUnguardedValueFlagRemains() {
 # adapter and not on an agent, a model or a token. A project that has no adapter — the porting recipe deletes
 # it and names a plain command — has nothing to assert here.
 case_adapter_modeFlagIsItsOwnArgument() {
+  # files: tools/pi-child-events.sh
   local d prompt recorder got
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
   d=$(scratch)
@@ -4726,6 +4935,7 @@ case_adapter_modeFlagIsItsOwnArgument() {
 # for a reason nothing recorded (#184). The assertion is that the three readers agree: the run's own output,
 # the state file, and the report printed afterwards.
 case_run_stopReasonIsPrintedAndReported() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out f run_part stop_line recorded
   d=$(scratch); p=$(new_project)
   out=$(run_one_item "$p" "$d" 2>&1) || fail "the run itself failed"
@@ -4747,6 +4957,7 @@ case_run_stopReasonIsPrintedAndReported() {
 # then the report reads "ended without recording a reason" while its counters belong to a run nobody can name
 # (#184). Measured 2026-10-20 on a live run whose base advanced while it worked.
 case_run_staleBaseStopsTheRunWithItsReason() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out f
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
@@ -4764,6 +4975,7 @@ case_run_staleBaseStopsTheRunWithItsReason() {
 # an item that already carries the escalation label is not a new decision: escalating it again posts a second
 # identical comment, which is what #110 collected three of (#183).
 case_run_awaitingDecisionIsNotEscalatedAgain() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out log
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
@@ -4798,6 +5010,7 @@ case_run_awaitingDecisionIsNotEscalatedAgain() {
 # itself is the run's own leftover. Measured 2026-10-22: 43 of the 53 local branches were already merged
 # into the base, and nothing removed them — the run creates a branch per item and never took one away.
 case_run_aMergedBranchIsRemoved() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p w branch head
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4816,6 +5029,7 @@ case_run_aMergedBranchIsRemoved() {
 # behind" removes the branches whose patches are in the base, and keeps the ones that carry work and the ones
 # a worktree holds.
 case_clean_sweepsOnlyWhatIsInTheBase() {
+  # files: tools/loop/loop-clean.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   # A branch whose patch is in the base: it was merged, so it carries nothing.
@@ -4856,6 +5070,7 @@ case_clean_sweepsOnlyWhatIsInTheBase() {
 # carry — and answers it twice: a branch that carries work is an action, a branch that carries nothing is
 # named as removable.
 case_report_landedBranchesAreNamedAsRemovable() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   git -C "$p" switch -c fix/issue-1-landed >/dev/null 2>&1 || fail "could not create the branch"
@@ -4880,6 +5095,7 @@ case_report_landedBranchesAreNamedAsRemovable() {
 
 # A run's report of what it did is the run's product, and a branch it made is part of it.
 case_report_headerAndTableShape() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out rows
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -4894,6 +5110,7 @@ case_report_headerAndTableShape() {
 }
 
 case_report_yieldIsCountedFromState() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out rows
   p=$(new_project)
   init_state "$p" 3 90
@@ -4913,6 +5130,7 @@ case_report_yieldIsCountedFromState() {
 # delivered — and it is not asked for a gate it never had (openspec change
 # `falsified-items-close-in-the-loop`).
 case_report_misdiagnosedIsCountedApart() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
   p=$(new_project)
   init_state "$p" 3 90
@@ -4934,6 +5152,7 @@ case_report_misdiagnosedIsCountedApart() {
 decisions_line() { printf '%s\n' "$1" | sed -n 's/^decisions the owner owes: //p'; }
 
 case_report_escalatedSkipNamesTheLabelWritten() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out line log named escalated
   d=$(scratch); p=$(new_project)
   # Two candidates, one budget slot: the queue never empties, so the run's own second pre-screen pass —
@@ -4958,6 +5177,7 @@ LOOP-RED-TEST: Demo#case was never reached' 'VERDICT: PASS'
 }
 
 case_report_failedReviewEscalationIsNamed() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p out line
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
@@ -4971,6 +5191,7 @@ case_report_failedReviewEscalationIsNamed() {
 }
 
 case_report_aVerdictAloneIsNoEscalation() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out line
   p=$(new_project)
   init_state "$p" 2 90
@@ -4987,6 +5208,7 @@ case_report_aVerdictAloneIsNoEscalation() {
 # `--state` reports on a state the next run replaced, so what a finished run attempted, spent and recorded as
 # its end is still readable afterwards; without it the report is the run in place, as before (issue #207).
 case_report_archivedStateIsReported() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p archived out
   p=$(new_project)
   init_state "$p" 4 480
@@ -5019,6 +5241,7 @@ case_report_archivedStateIsReported() {
 # re-initialised the file, reported as `budget left -421 min` about a 480-minute run (issue #207) — so the line
 # names whose numbers these are instead of printing an impossible one.
 case_report_impossibleBudgetNamesAnotherRun() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p sf started deadline started_at deadline_at out
   p=$(new_project); sf=$(state_file "$p")
   init_state "$p" 2 30
@@ -5051,6 +5274,7 @@ case_report_impossibleBudgetNamesAnotherRun() {
 # stop line names the process that is not running (measured 2026-10-22: the run killed at 19:19 left a
 # state that read `not stopped — the run is still going` with 217 minutes of budget left).
 case_report_aKilledRunIsNotALiveRun() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p sf out dead
   p=$(new_project); sf=$(state_file "$p")
   dead=999999999
@@ -5082,6 +5306,7 @@ actions_block() { printf '%s\n' "$1" | sed -n '/^actions the caller owes:/,$p'; 
 # (`tools`, `tokens`, `context`, #211) are appended after the wall time, and this case keeps the shape of the
 # row honest: the earlier columns stay where they were.
 case_report_wallTimeAndReasonInTheTable() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out header row_done row_blocked
   p=$(new_project)
   init_state "$p" 2 90
@@ -5114,6 +5339,7 @@ case_report_wallTimeAndReasonInTheTable() {
 # measurement nobody made: the row says `-` where nothing was reported. The event stream in this case is a
 # complete turn whose usage is zero, which is what a non-reporting provider leaves behind (issue #211).
 case_report_zeroUsagePrintsDashNotZero() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p row
   d=$(scratch); p=$(new_project)
   cat > "$d/zero.jsonl" <<'JSONL'
@@ -5142,6 +5368,7 @@ JSONL
 # branch that carries a patch the base does not have, named with the item that owns it. `none` may not stand
 # in for a branch that carries work.
 case_report_actionsNameDecisionAndBranch() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out block
   p=$(new_project)
   init_state "$p" 2 90
@@ -5170,6 +5397,7 @@ case_report_actionsNameDecisionAndBranch() {
 # The action list is read from what a branch carries, and a branch whose every patch the base carries carries
 # nothing to land: naming it sends a person to delete a leftover that needs no decision at all (#228).
 case_report_landedBranchIsNoAction() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out block branch base
   p=$(new_project)
   init_state "$p" 1 90
@@ -5185,6 +5413,7 @@ case_report_landedBranchIsNoAction() {
 # An action list is empty only when the state and git say so — and it says it, rather than leaving the
 # question unanswered by omission.
 case_report_emptyRunSaysNone() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out block lines
   p=$(new_project)
   init_state "$p" 1 90
@@ -5205,6 +5434,7 @@ case_report_emptyRunSaysNone() {
 # own), which is also the root `loop-clean` reports; `SIGKILL` is not tested because nothing can trap it, and
 # those trees are what `loop-clean` is for.
 case_clean_interruptedSuiteRemovesItsScratchTree() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
   local d nested suite pid status tree i tmp conf
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
   mkdir -p "$nested/tools" "$tmp"
@@ -5242,6 +5472,7 @@ CASES
 # without removing, removes with `--apply`, removes only the recorded build paths and only scratch trees old
 # enough that no suite can be writing into them, and finds nothing on a second run (issue #210).
 case_clean_reportsWithoutApplyAndRemovesWithIt() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p w tmp conf out n1 n2
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -5290,6 +5521,7 @@ case_clean_reportsWithoutApplyAndRemovesWithIt() {
 # deleted. The driver starts a case in a process group of its own (`set -m`) and signals that group, so a case
 # that leaves a child of its own behind is the proof: both pids it wrote down must be gone when the suite is.
 case_clean_interruptedSuiteEndsItsProcessGroup() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
   local d nested tmp conf pid status i p survivors driver_alive
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
   mkdir -p "$nested/tools" "$tmp"
@@ -5348,6 +5580,7 @@ PROBE
 # tree it would remove, and ends them with `--apply` — and never signals a process inside a tree it keeps, which
 # is a live suite's.
 case_clean_reportsAndEndsAProcessLeftInAScratchTree() {
+  # files: tools/loop/loop-clean.sh tools/pi-child-events.sh tools/tooling.json
   local d p tmp conf out stale fresh i alive
   d=$(scratch); p=$(new_project); tmp="$d/tmp"
   mkdir -p "$tmp/loop-selftest.stale" "$tmp/loop-selftest.fresh"
@@ -5392,6 +5625,7 @@ case_clean_reportsAndEndsAProcessLeftInAScratchTree() {
 # them at 6 h 53 min to 8 min of age, three long past their 90-minute budget. The report scans both roots with
 # the same age rule and the same process evidence, so a tree a live suite is writing into is still kept.
 case_clean_reportsTheWorktreesScratchTreesToo() {
+  # files: tools/loop/loop-clean.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop-selftest.sh tools/loop-cases.sh tools/loop/fixtures/scenarios/ tools/tooling.json tools/pi-child-events.sh
   local d p w tmp conf out stale i alive
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"; tmp="$d/tmp"
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -5431,6 +5665,7 @@ case_clean_reportsTheWorktreesScratchTreesToo() {
 # report whose total is a lie (issue #274, round-1 review). `--apply` hides it (the second pass finds the tree already
 # gone), so the report is what this case reads: one heading, one entry, one count.
 case_clean_worktreeDotSweepsTheOneRootOnce() {
+  # files: tools/loop/loop-clean.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop-selftest.sh tools/loop-cases.sh tools/loop/fixtures/scenarios/ tools/tooling.json tools/pi-child-events.sh
   local d p out headings entries
   d=$(scratch); p=$(new_project)
   mkdir -p "$p/.pi/tmp/loop-selftest.stale"
@@ -5450,6 +5685,7 @@ case_clean_worktreeDotSweepsTheOneRootOnce() {
 # person's `kill` takes mid-item — used to end the run and leave the child working. The stub child blocks on a
 # fifo, which is a child in the middle of its phase, and both the run and the child must be gone afterwards.
 case_run_interruptedRunEndsTheChildItStarted() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo pid i status child alive
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -5503,6 +5739,7 @@ case_run_interruptedRunEndsTheChildItStarted() {
 # suite matched neither `loop-clean.sh`'s tree test nor its process test (issues #213, #233): the run was there,
 # at a path that no longer existed, and was invisible to both.
 case_clean_endsARunWhoseTreeIsAlreadyDeleted() {
+  # files: *
   local d tree pid seen survived
   d=$(scratch); tree="$d/suite.tree/case.1"
   mkdir -p "$tree" || fail "could not create the scratch tree"
@@ -5536,6 +5773,7 @@ case_clean_endsARunWhoseTreeIsAlreadyDeleted() {
 # single agent-command indirection, the child started in the project — were asserted by nothing. The check reads
 # the set the engine declares and the files that set names. It runs no case, which is what lets the gate owe it.
 case_mutation_everyDeclaredRecordApplies() {
+  # files: tools/loop-mutations.sh
   local declared out status
   declared=$(sed -n '/^MUTATIONS=(/,/^)/p' "$LOOP_ENGINE/../loop-mutations.sh" | grep -c "^  '")
   [ "$declared" -gt 0 ] || fail "could not read the declared set out of $LOOP_ENGINE/../loop-mutations.sh"
@@ -5552,6 +5790,7 @@ case_mutation_everyDeclaredRecordApplies() {
 # half of the same lie. The stale record is built in a throwaway copy of the set, so no case edits the project's
 # own records.
 case_mutation_aStaleRecordIsNamed() {
+  # files: tools/loop-mutations.sh
   local d harness at label file out status
   d=$(scratch)
   harness="$d/loop-mutations.sh"
@@ -5580,6 +5819,7 @@ case_mutation_aStaleRecordIsNamed() {
 # path under the engine and never the records against the files they name, so a record that stopped applying sat
 # unnoticed until somebody ran the whole set by hand. The profile's suite map is what owes it for an engine path.
 case_gate_anEnginePathOwesTheRecordCheck() {
+  # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local d p plan base
   d=$(scratch); p=$(new_project)
   mkdir -p "$p/tools/loop"
@@ -5601,6 +5841,7 @@ case_gate_anEnginePathOwesTheRecordCheck() {
 # fails, so a compile the selection does not need shows up as a failed run, and a compile that should have
 # happened cannot pass silently.
 case_driver_aCaseThatAsksForNoCoreCompilesNothing() {
+  # files: tools/loop-selftest.sh
   local d bin log out status
   d=$(scratch); bin="$d/bin"; log="$d/javac.log"
   mkdir -p "$bin"
@@ -5623,6 +5864,7 @@ SHIM
 # the line that names the cause. The case runs in the driver's own scratch tree, so the compile is the only thing
 # under test.
 case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
   local d nested tmp conf bin out status
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
   mkdir -p "$nested/tools" "$tmp"
@@ -5678,6 +5920,7 @@ SHIM
 # so the number of invocations has to be counted: `javac` on PATH is a probe that records each invocation, writes
 # the class file the two stub cases look for, and exits 0.
 case_driver_theCoreIsCompiledOncePerSuite() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
   local d nested tmp bin log out status conf invocations
   d=$(scratch); nested="$d/nested"; tmp="$d/tmp"; bin="$d/bin"; log="$d/javac.log"
   mkdir -p "$nested/tools" "$tmp" "$bin"
@@ -5757,6 +6000,7 @@ CASES
 # `--group` runs that group's cases and no other group's, and `--case` with a pattern selects the same set: the
 # two filters are one mechanism, so a change that narrows an iteration with either pays for what it selected.
 case_driver_aGroupFilterRunsOnlyItsOwnCases() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
   local d nested out rc
   d=$(scratch); driver_selection_probe "$d"; nested="$d/nested"
   out=$(bash "$nested/tools/loop-selftest.sh" --group alpha 2>&1); rc=$?
@@ -5784,6 +6028,7 @@ case_driver_aGroupFilterRunsOnlyItsOwnCases() {
 # would otherwise read exit 0 as "the cases I asked for all passed" — the same rule `tools/loop-mutations.sh`
 # applies to a file filter that names no record.
 case_driver_aFilterThatNamesNoCaseRefuses() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
   local d nested out rc
   d=$(scratch); driver_selection_probe "$d"; nested="$d/nested"
   out=$(bash "$nested/tools/loop-selftest.sh" --group nope 2>&1); rc=$?
@@ -5801,6 +6046,7 @@ case_driver_aFilterThatNamesNoCaseRefuses() {
 # run, so a worker can size an iteration before paying for it, and an unfiltered list still prints the whole
 # declared set.
 case_driver_theListIsFilteredTheSameWayASuiteRunIs() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
   local d nested out
   d=$(scratch); driver_selection_probe "$d"; nested="$d/nested"
   out=$(bash "$nested/tools/loop-selftest.sh" --list --group alpha 2>&1)
@@ -5827,6 +6073,7 @@ profile_value() { # <key>
 # `./gradlew test -PforceTests --no-build-cache` first on the same tree after it, whose only matching paths were
 # four evidence `.xml`.
 case_gate_anArchivedArtefactOwesNoBuild() {
+  # files: tools/fixtures/ tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p base plan compiled
   d=$(scratch); p=$(new_project)
   compiled=$(profile_value LOOP_GATE_COMPILED_CMD)
@@ -5862,6 +6109,7 @@ case_gate_anArchivedArtefactOwesNoBuild() {
 # tree that holds that directory, the plan owed `fake-build` with `set -f` in the matcher and nothing at all
 # without it, because `for glob in $1` had already replaced the pattern with the names it matched.
 case_gate_aModuleResourceOwesTheBuild() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p base plan compiled
   d=$(scratch); p=$(new_project)
   compiled=$(profile_value LOOP_GATE_COMPILED_CMD)
@@ -5890,6 +6138,7 @@ case_gate_aModuleResourceOwesTheBuild() {
 # tell the numbers came from it. The pin is a line of the log, and a profile read from outside the tree the engine
 # sits in is named as pinned beside the one the engine ships.
 case_gate_theGateNamesTheProfileItRead() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base out
   d=$(scratch); p=$(new_project)
   conf="$d/pinned.conf"
@@ -5916,6 +6165,7 @@ case_gate_theGateNamesTheProfileItRead() {
 # replacing (its round-3 log owed the build where the tree's own profile owed five shell checks and no build), the
 # log could not say so, and the repair was a hand-pinned re-run.
 case_gate_theChildReadsTheProfileOfTheTreeItWorksIn() {
+  # files: tools/issues/ tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local d p log pin
   d=$(scratch); p=$(new_project)
   # The fixture's worktree carries an engine of its own, the way the project's does: a profile beside it, and the
@@ -5943,5 +6193,212 @@ case_gate_theChildReadsTheProfileOfTheTreeItWorksIn() {
   assert_contains "$log" "LOOP-GATE-PROFILE: $pin" \
     "the gate of the tree the child works in reads the profile beside that tree's engine: $log"
   assert_contains "$log" "handed=<none>" "and the run hands the child no profile of its own: $log"
+  return 0
+}
+
+# ── the file set a delta's paths select (issue #276) ─────────────────────────────────────────────────────────
+# A case declares the files it can be affected by in the first line of its body (`# files: …`, see the header), and
+# `tools/loop-selftest.sh --files <path> …` / `--from-git <base>` selects what declares one of those paths. The
+# three cases below observe the selection through a nested copy of the driver whose cases file is a stub of four
+# cases with declarations of their own — the shape `driver#aCaseThatAsksForNoCoreCompilesNothing` established — so
+# what is asserted is the rule and not the cost of running the real 190.
+
+# A nested copy of the driver beside a cases file of the case's own: the engine and the issue tooling are symlinks
+# into this tree, and the configuration is this suite's with a scratch root inside `<dir>`. Prints the driver and the
+# configuration it must be run with; the cases file is read from stdin.
+nested_suite() { # nested_suite <dir> → "<driver>\n<conf>"
+  local d="$1"
+  mkdir -p "$d/nested/tools" "$d/tmp" || fail "could not create the nested suite's directory"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$d/nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$d/nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$d/nested/tools/issues"
+  cat > "$d/nested/tools/loop-cases.sh"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$d/tmp\"|" "$LOOP_CONF" > "$d/loop.conf" \
+    || fail "could not write the loop configuration"
+  printf '%s\n%s\n' "$d/nested/tools/loop-selftest.sh" "$d/loop.conf"
+}
+
+# Four stub cases, one declaration each: a script, a second script, a directory and a path no case owns. `*` is not
+# among them, because a case declared `*` is owed for any delta and would make every selection below read as `4 of 4`.
+STUB_SELECTION_CASES='LOOP_SHELL_CASES=("stub#ownsGate" "stub#ownsRun" "stub#ownsFixtureDir" "stub#ownsNothing")
+loop_shell_cases() { printf "%s\n" "${LOOP_SHELL_CASES[@]}"; }
+loop_case_core_files() { printf "%s\n" "tools/loop/lib.sh"; }
+stub_ran() { printf "%s\n" "$1" >> "$STUB_RUN_LOG"; }
+case_stub_ownsGate() {
+  # files: tools/loop/gate.sh
+  stub_ran "stub#ownsGate"
+}
+case_stub_ownsRun() {
+  # files: tools/loop/run.sh
+  stub_ran "stub#ownsRun"
+}
+case_stub_ownsFixtureDir() {
+  # files: tools/loop/fixtures/scenarios/
+  stub_ran "stub#ownsFixtureDir"
+}
+case_stub_ownsNothing() {
+  # files: tools/elsewhere.sh
+  stub_ran "stub#ownsNothing"
+}
+loop_run_shell_case() { "case_${1%%#*}_${1#*#}"; }'
+
+case_driver_aFileFilterRunsOnlyTheCasesTheDeltaOwns() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d driver conf ran out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<< "$STUB_SELECTION_CASES") || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  export STUB_RUN_LOG="$d/ran.log"; : > "$STUB_RUN_LOG"
+
+  # Two paths a delta could carry: the script one case declares, and a file below the directory another declares.
+  out=$(LOOP_CONF="$conf" bash "$driver" --files 'tools/loop/gate.sh tools/loop/fixtures/scenarios/one' 2>&1); status=$?
+  assert_eq "0" "$status" "a file set that names cases runs them: $out"
+  ran=$(cat "$STUB_RUN_LOG")
+  assert_eq "stub#ownsGate
+stub#ownsFixtureDir" "$ran" "only the cases the delta's files declare ran"
+  assert_contains "$out" "selected 2 of 4 cases" "and the selection is stated against the declared set: $out"
+  assert_contains "$out" "all 2 cases passed" "with the count the run actually made: $out"
+
+  # …and the same selection is what `--list` answers, without running anything.
+  : > "$STUB_RUN_LOG"
+  out=$(LOOP_CONF="$conf" bash "$driver" --list --files tools/loop/run.sh 2>/dev/null)
+  assert_eq "stub#ownsRun" "$out" "the list is the file filter's cases and no others"
+  assert_eq "" "$(cat "$STUB_RUN_LOG")" "and listing runs none of them"
+  return 0
+}
+
+case_driver_aFileSetThatNamesNoCaseIsRefused() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d driver conf out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<< "$STUB_SELECTION_CASES") || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  export STUB_RUN_LOG="$d/ran.log"; : > "$STUB_RUN_LOG"
+
+  # A path that exists nowhere in the declaration — the typo a caller makes — and one that exists in the tree and
+  # belongs to no case: both are the same refusal, because the answer that must not be a pass is "nothing was
+  # selected".
+  out=$(LOOP_CONF="$conf" bash "$driver" --files tools/nobody-owns-this.sh 2>&1); status=$?
+  assert_eq "2" "$status" "a file set that names no case is refused: $out"
+  assert_contains "$out" "names no case of the 4 declared" "and the refusal names what it could not resolve: $out"
+  assert_eq "" "$(cat "$STUB_RUN_LOG")" "no case ran"
+
+  out=$(LOOP_CONF="$conf" bash "$driver" --files tools/loop-cases.sh 2>&1); status=$?
+  assert_eq "2" "$status" "a path in the tree that no case declares is the same refusal: $out"
+  return 0
+}
+
+case_driver_aCoreFileOwesEveryCase() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d driver conf ran out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<< "$STUB_SELECTION_CASES") || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  export STUB_RUN_LOG="$d/ran.log"; : > "$STUB_RUN_LOG"
+
+  # Every engine script sources the library and the profile, so a delta to one of them is owed the whole set however
+  # narrow the declarations are — the rule the nested cases file declares with `loop_case_core_files`.
+  out=$(LOOP_CONF="$conf" bash "$driver" --files tools/loop/lib.sh 2>&1); status=$?
+  assert_eq "0" "$status" "a core file runs the suite: $out"
+  assert_eq "4" "$(wc -l < "$STUB_RUN_LOG")" "every declared case ran for a core file: $(cat "$STUB_RUN_LOG")"
+  assert_contains "$out" "selected 4 of 4 cases" "and the statement says the whole set: $out"
+  return 0
+}
+
+# The declaration is only worth what it covers: a case that declares `tools/loop/gate.sh` and then starts the
+# worktree is owed for a `gate.sh` delta and skipped for a `worktree.sh` one, and a gate narrowed that way is green
+# on the delta that broke it (issue #276). So the declaration is checked against the case and not trusted: the
+# driver's `--case-files` is the declaration, the case's own body is the case, and the two must agree on every path
+# the body names — after the same `$LOOP_ENGINE/…` normalisation the declaration was written with — and on every
+# engine script one of the helpers it calls starts. A path the body names and the declaration lacks is the defect;
+# a declaration wider than the body is the over-approximation the rule is allowed to make.
+case_driver_everyCaseDeclaresTheFilesItCanReach() {
+  # files: tools/loop-cases.sh tools/loop-selftest.sh
+  local declared name files body p tok helper hfiles missing=""
+  declared=$(bash "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" --case-files 2>&1) \
+    || fail "the driver could not print the declared file set: $declared"
+
+  covers() { # covers <declared set> <path>
+    local t
+    for t in $1; do
+      [ "$t" = '*' ] && return 0
+      case "$t" in
+        */) case "$2" in "$t"*) return 0 ;; esac ;;
+        *) [ "$t" = "$2" ] && return 0 ;;
+      esac
+    done
+    return 1
+  }
+  # A path with a `..` segment is read as the normalised form the declaration was written with.
+  normalise() {
+    local q="$1"
+    while case "$q" in *'/../'*) true ;; *) false ;; esac; do
+      q="${q%%/../*}/${q#*/../}"
+    done
+    printf '%s' "$q"
+  }
+
+  while IFS=$'\t' read -r name files; do
+    [ -n "$name" ] || continue
+    case "$files" in '<undeclared>'|'') missing="$missing $name(no-declaration)"; continue ;; esac
+    body=$(awk -v fn="case_${name%%#*}_${name#*#}" '
+      $0 == fn "() {" { seen = 1; next }
+      seen && /^\}$/ { exit }
+      seen { print }
+    ' "$LOOP_PROJECT_ROOT/tools/loop-cases.sh")
+    # What the body names, read the way the declaration was: the engine's own variables resolved to their paths, a
+    # directory named as one (a case that builds a throwaway project owns the fixture directory, not its files).
+    while IFS= read -r p; do
+      [ -n "$p" ] || continue
+      p=$(normalise "$p")
+      if [ -d "$LOOP_PROJECT_ROOT/$p" ]; then p="$p/"; fi
+      [ -e "$LOOP_PROJECT_ROOT/${p%/}" ] || continue
+      covers "$files" "$p" || missing="$missing $name:$p"
+    done < <(printf '%s\n' "$body" | loop_case_body_paths)
+    # What it reaches by calling a helper, which starts a script the body never names.
+    while IFS='|' read -r helper hfiles; do
+      [ -n "$helper" ] || continue
+      printf '%s\n' "$body" | grep -qE "(^|[^A-Za-z0-9_.-])$helper([^A-Za-z0-9_-]|\$)" || continue
+      for p in $hfiles; do covers "$files" "$p" || missing="$missing $name:$p($helper)"; done
+    done < <(loop_case_helper_files)
+    # …and every token it declares is a path this tree has, so a renamed script is a red case rather than a
+    # selection that silently matches nothing.
+    for tok in $files; do
+      [ "$tok" = '*' ] && continue
+      [ -e "$LOOP_PROJECT_ROOT/${tok%/}" ] || missing="$missing $name:$tok(no-such-path)"
+    done
+  done <<< "$declared"
+
+  [ -z "$missing" ] || fail "a case does not declare what it can be reached by:$missing"
+  return 0
+}
+
+# A profile's suite command may carry `{base}`, and the gate replaces it with the base it resolved — the same base
+# whose diff produced the pathspec — so a suite narrows itself to the delta being measured. The engine knows no
+# suite by name: it hands over the base and nothing else.
+case_gate_theDeltaHandsASuiteTheBaseItMeasured() {
+  # files: tools/loop/ tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf base plan
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=compiled-gate\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="tools/loop/*|tools/narrow.sh --from-git {base};notes/*|notes-check"\n'
+  } >> "$conf"
+
+  mkdir -p "$p/tools/loop" && printf 'a tool\n' > "$p/tools/loop/a.sh"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'an engine path' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/narrow.sh --from-git $base" \
+    "the suite is handed the base the gate resolved: $plan"
+  assert_not_contains "$plan" "{base}" "and no token reaches a shell: $plan"
+  assert_not_contains "$plan" "notes-check" "a suite the delta does not owe is not handed it: $plan"
   return 0
 }

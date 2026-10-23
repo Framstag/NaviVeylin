@@ -362,6 +362,17 @@ MUTATIONS=(
   # once instead of twice. Measured 2026-10-23 (issue #274's round-1 review): the strings never matched, so that
   # spelling printed two headings for one root and counted one tree's bytes twice.
   '53.5@-@tools/loop/loop-clean.sh@clean#worktreeDotSweepsTheOneRootOnce@the two roots compared as directories rather than as written (issue #274 review)@s|^  loop_same_dir "\$worktree_tmp" "\$LOOP_TMP_DIR" && worktree_tmp=""$|  : # the dedup removed|'
+  # 53.x — the case set is selected by the files a delta touches (issue #276). 190 cases and 723 s of self-test were
+  # owed for every `tools/loop/**` gate run because a case had no record of which file it exercises, while the
+  # mutation harness had carried exactly that field since #235. One mutation per half: 53.6 leaves the profile's
+  # `{base}` token unsubstituted, 53.7 makes the file set select every case, 53.8 removes the refusal a file set that
+  # names nothing gets, 53.9 drops the rule that a core file owes the whole set, and 53.10 removes one token from a
+  # case's declaration so the declaration is narrower than the case that carries it.
+  '53.6@-@tools/loop/gate.sh@gate#theDeltaHandsASuiteTheBaseItMeasured@the base substituted into the suite the delta owes (issue #276)@s|^    cmd=\${cmd//\\{base\\}/\$base}$|    : # the mutation substitutes no base|'
+  '53.7@-@../loop-selftest.sh@driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns@the file set narrowing the selection instead of selecting everything (issue #276)@s|^  if ! files_select "\$case_name"; then continue; fi$|  : # the mutation selects every case|'
+  '53.8@-@../loop-selftest.sh@driver#aFileSetThatNamesNoCaseIsRefused@a file set that names no case refused rather than read as an empty suite (issue #276)@s|^if \[ "\$only_files" != " " \] && \[ "\$(count_files_matching)" -eq 0 \]; then$|if false; then|'
+  '53.9@-@../loop-selftest.sh@driver#aCoreFileOwesEveryCase@a core file owing the whole set whatever the cases declare (issue #276)@s|^  core_files=\$(loop_case_core_files)$|  core_files=""|'
+  '53.10@-@../loop-cases.sh@driver#everyCaseDeclaresTheFilesItCanReach@a declaration narrower than the case that carries it (issue #276)@s|^  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json$|  # files: tools/pi-child-events.sh tools/tooling.json|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

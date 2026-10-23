@@ -316,6 +316,20 @@ to itself, because a child works in the worktree and runs that tree's own engine
 where the tree's own profile owed five shell checks and no build, and it carried no pin at all, so the round-3
 reviewer could only refuse the round and the repair was a hand-pinned re-run.
 
+A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
+the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
+they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a
+directory), `tools/loop-selftest.sh --files <path> …` / `--from-git <base>` selects on that declaration, and a file
+set that names no case is refused with exit 2 rather than read as an empty suite — the rule the mutation harness
+has applied to its own records since #235. A delta to the library, the profile, the case file or the driver itself
+owes the whole set, and so does the archive: a case reaches behaviour through the scripts it starts, and only a
+hand-run of all of them covers that. Measured 2026-10-23 (issue #276): 190 cases and 723 s were owed for every
+`tools/loop/**` gate run, a delta to `tools/loop/worktree.sh` alone is declared by 31 of them, and a delta to
+`tools/loop/run.sh` by 110 — the end-to-end `run#*` cases are the half that cannot narrow. Measured the same day:
+the declaration was generated once from the case bodies and is kept honest by
+`driver#everyCaseDeclaresTheFilesItCanReach`, which reads every body and refuses a declaration narrower than the
+case it describes.
+
 What it does with a child that never started: a status alone cannot tell a child whose argv the environment
 refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
 that ended non-zero, wrote no verdict and left the tree at the base commit never read the item. That is the

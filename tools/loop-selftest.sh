@@ -26,7 +26,7 @@ while [ $# -gt 0 ]; do
       [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }
       if [ "$1" = "--case" ]; then only_case="${2:-}"; else only_group="${2:-}"; fi
       shift 2 ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
     *) echo "loop-selftest: unknown argument $1" >&2; exit 2 ;;
   esac
 done

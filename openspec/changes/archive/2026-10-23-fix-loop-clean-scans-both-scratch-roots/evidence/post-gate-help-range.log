@@ -1,0 +1,44 @@
+# The `--help` range after the header grew
+#
+# The header comment gained three lines for the second scratch root, and `--help` prints a fixed range of it
+# (`sed -n '2,38p'`, was `2,35p'`): without the repair the help output stopped mid-sentence at the
+# `--worktree` description and lost `--apply` and `--quiet`. No case reads the header, so the gate ran before
+# this one-line repair and its numbers stand for the tree it measured. Taken 2026-10-23T15:56:44Z:
+
+# loop-clean.sh — what the loop has left behind, in one report, and one way to remove it.
+#
+# The run keeps its worktree on purpose (the next run inherits a warm checkout), and a suite killed with
+# `SIGKILL` leaves its scratch tree behind because nothing can trap that signal. Both are the loop's own
+# leftovers, and until now both accumulated unmeasured: measured 2026-10-20 (issue #210), a root filesystem at
+# 88 % with one kept worktree at 3.2 GB — of which 1.9 GB was module build output no item ever reads — and
+# 90 MB of `loop-selftest.*` trees from four killed suites.
+#
+# This is the one command that answers "what did the loop leave, and how much is it": without `--apply` it
+# prints every path it would remove with its size and removes nothing, and with `--apply` it removes exactly
+# those paths. It is idempotent — a second run finds nothing and says so.
+#
+# What it never touches: a kept worktree's tracked or untracked *source*. It removes only the project's
+# recorded build paths (`LOOP_WORKTREE_SCRATCH_PATHS`, the same list and the same four refusals the run's own
+# `worktree.sh strip-scratch` uses) and only scratch trees older than `LOOP_TMP_STALE_MINUTES` that carry the
+# self-test's own name — a suite writing into its tree right now is younger than that and is left alone. It scans
+# **two** scratch roots, because a suite creates its trees under the root of the tree it runs in: the root this
+# invocation resolved and the one the kept worktree resolves, where a gate that runs the suite inside the worktree
+# writes them (measured 2026-10-23, issue #274: four trees, 305 MB, and four poll loops under
+# `.pi/worktrees/loop/.pi/tmp`, and this report printed no entry at all).
+#
+# A tree is not all a killed suite leaves: the processes that were working in it keep running, and nothing in
+# the tooling used to notice them (measured 2026-10-20, issue #213 — five `run.sh` processes, 55 to 100 min
+# after their suites ended, at a working directory that had already been deleted). Their working directory is
+# the evidence: a process standing inside a scratch tree this command is about to remove is reported with the
+# tree and ended with `--apply`. A process inside a tree that is kept belongs to a live suite and is never
+# signalled.
+#
+# Exit: 0 nothing to do, or done; 2 usage or an unusable configuration.
+#
+# Usage:
+#   tools/loop/loop-clean.sh [--worktree <dir>] [--apply] [--quiet]
+#
+#   --worktree <dir>  the tree to look in (default: the loop's worktree; a relative name is relative to the
+#                     project root)
+#   --apply           remove what the report names; without it nothing is removed
+#   --quiet           print the summary only, not one line per path

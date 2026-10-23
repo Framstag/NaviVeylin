@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the new case, against `tools/loop/loop-clean.sh` as the base commit
+     6683376ebc5d86b05fca917defc80da1340233c3 carries it (2026-10-23T15:36:22Z): `bash
+     tools/loop-selftest.sh --case 'clean#reportsTheWorktreesScratchTreesToo'` — FAIL, exit 1. A single-case run
+     prints no suite summary line, so the tally below is that one case and its one failure; the transcript is
+     red-HEAD.log beside this file. The case puts a stale `loop-selftest.stale` tree and a young
+     `loop-selftest.fresh` tree under the kept worktree's own `.pi/tmp` (where a gate run inside the worktree
+     creates them) and leaves the invocation's own scratch root empty: HEAD scans the invocation's root only, so
+     it names that empty root and no tree at all. -->
+<testsuite name="loop-selftest --case clean#reportsTheWorktreesScratchTreesToo" tests="1" failures="1" errors="0">
+  <testcase name="clean#reportsTheWorktreesScratchTreesToo">
+    <failure>the report names the kept worktree's own scratch root beside the invocation's: 'self-test scratch trees under .pi/worktrees/loop/.pi/tmp' not found in: loop-clean: build output in .pi/worktrees/loop
+loop-clean: self-test scratch trees under /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.q1j82r/case.TVFSuX/tmp older than 120 min
+loop-clean: branches of the loop whose patches are in the base
+FAIL clean#reportsTheWorktreesScratchTreesToo</failure>
+  <system-out>FAIL clean#reportsTheWorktreesScratchTreesToo</system-out>
+</testsuite>

@@ -80,7 +80,7 @@ is_num() { case "${1:-}" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 # two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
 # file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
 # printed while it is still going.
-stop_reason=""
+stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
 
 # A run that wrote this state and is not running any more is not a run that is going: the state names the
 # process that wrote it, and a run that recorded no stop while its process is gone is a run that was killed

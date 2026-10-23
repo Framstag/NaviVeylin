@@ -97,6 +97,8 @@ LOOP_SHELL_CASES=(
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
   'gate#anEnginePathOwesTheRecordCheck'
+  'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
+  'gate#aFailingSuiteIsReadFromTheSameStream'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
   'measure#namesTheOwedChecksInOneBlock'
@@ -285,6 +287,8 @@ loop_run_shell_case() {
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
     'gate#anEnginePathOwesTheRecordCheck') fn=case_gate_anEnginePathOwesTheRecordCheck ;;
+    'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
+    'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
@@ -2445,6 +2449,93 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
   base=$(git -C "$p" rev-parse HEAD)
   plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
   assert_contains "$plan" "nothing owed" "a delta no pattern covers owes nothing: $plan"
+}
+
+# The gate's log moves while a suite runs (issue #269). A suite's output was captured into a variable
+# (`out=$($cmd 2>&1)`) and replayed only after the command exited, so a suite that ran for a quarter of an hour
+# left the gate's console at two lines for the whole of its wall clock: an operator could not tell a long suite
+# from a stopped one, and the failure text of a red one survived only as the last three lines of a tally. The
+# stream is `tee`d, so the console and the tally read the one observation.
+case_gate_theSuitesOutputReachesTheConsoleWhileItRuns() {
+  local d p conf base log pid out
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # A suite that prints, then works, then prints its summary: the first line is on the console while the suite
+  # is still running only if the output is streamed rather than held in a variable.
+  cat > "$d/suite.sh" <<'SUITE'
+printf 'case: a note is read\n'
+printf 'progress: the suite is still working\n' >&2
+sleep 3
+printf 'notes: all 1 cases passed\n'
+SUITE
+  # A path the profile's suite map gates, so the gate owes this suite and nothing else.
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  log="$d/gate.log"
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1 &
+  pid=$!
+  sleep 1.5
+  out=$(cat "$log")
+  assert_contains "$out" "gate: bash" "the suite is announced before it runs"
+  assert_contains "$out" "case: a note is read" \
+    "the suite's own first line reaches the console while the suite runs: $out"
+  assert_not_contains "$out" "notes: all 1 cases passed" \
+    "and the summary it has not printed yet does not: the output is streamed, not replayed"
+  wait "$pid" || fail "the gate failed"
+  out=$(cat "$log")
+  assert_contains "$out" "progress: the suite is still working" \
+    "the rest of the stream reaches the console as well, its stderr included"
+  assert_contains "$out" "LOOP-GATE: tests=1 failures=0" "and the gate's tally is read from the same run"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="1" failures="0"' \
+    "the tally the run's own check reads carries that suite's numbers"
+  return 0
+}
+
+# The tally is derived from the streamed output and not from a second observation of it (issue #269): the numbers
+# the run's check reads and the lines an operator saw are the same bytes. A failing suite keeps the gate's exit
+# status and its own failing line, so the verdict is still the suite's and the failure text is not lost.
+case_gate_aFailingSuiteIsReadFromTheSameStream() {
+  local d p conf base out rc
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  cat > "$d/suite.sh" <<'SUITE'
+printf 'FAIL notes#aCaseThatFails — the reason it failed\n'
+printf 'notes: 2 of 3 cases failed\n'
+exit 1
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "1" "$rc" "a failing suite still fails the gate: $out"
+  assert_contains "$out" "FAIL notes#aCaseThatFails — the reason it failed" \
+    "the failing case's own line is on the console, which is where an operator reads the failure"
+  assert_contains "$out" "LOOP-GATE: tests=3 failures=2" "the verdict carries the summary's numbers: $out"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="3" failures="2"' \
+    "and the tally is the summary the same stream carried, not a re-run's"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" "FAIL notes#aCaseThatFails" \
+    "with the failure text kept, so the evidence names what went red"
+  return 0
 }
 
 # One call answers what the worker used to spend a run of calls finding out (issue #246): the change's pathspec,

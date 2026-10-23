@@ -286,6 +286,12 @@ MUTATIONS=(
   # is the same `loop_pids_under` test the self-test's teardown and `loop-clean.sh` report with, run over the
   # tree the survivor still names as its working directory.
   '44.1@-@tools/loop/run.sh@run#detachedProcessInTheWorktreeIsEndedByTheCap@the cap ending the processes the child left working in the tree, and naming each one (issue #272)@s|^    sweep=\$(loop_end_pids_under "$LOOP_WORKTREE")$|    sweep=""|'
+  # 46.1 is the stream that carries a suite output to the console while the suite runs. Measured 2026-10-23
+  # (issue #269): the gate held a suite's whole output in a variable, so a gate that ran for eleven minutes
+  # carried two lines and neither an operator nor a worker could tell a long suite from a stopped one. The
+  # mutation restores the command substitution and leaves the tally reading the same bytes — only the console
+  # goes silent, which is what the case that names it asserts.
+  '46.1@-@tools/loop/gate.sh@gate#theSuitesOutputReachesTheConsoleWhileItRuns@the stream that carries a suite output to the console while the suite runs (issue #269)@s|^    \$cmd 2>&1 \| tee "\$stream"$|    out=$($cmd 2>&1); printf %s "$out" > "$stream"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

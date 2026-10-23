@@ -271,6 +271,13 @@ left that tree dirty for the next run (#272). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
+Inside that bound the project's gate is what fills the log, and it streams: each suite's output is `tee`d as the
+suite writes it, and the summary, the tally and the failure text are read from that same file, so a suite that
+runs for a quarter of an hour shows its own lines instead of a two-line log. Measured 2026-10-23: a gate run held
+its log at two lines while `tools/loop-selftest.sh` ran past eleven minutes, and an earlier red — a build that
+died at configuration in 21 s — was found only in the Gradle daemon log, because the gate had kept its output in
+a variable (#269).
+
 What it does with a child that never started: a status alone cannot tell a child whose argv the environment
 refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
 that ended non-zero, wrote no verdict and left the tree at the base commit never read the item. That is the

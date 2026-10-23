@@ -104,12 +104,29 @@ cases=0
 failures=0
 failed_suites=""
 ran=""
+# A suite's output is streamed, not replayed: `tee` writes it to the console as the suite writes it, and the
+# file it tees into is what the summary is parsed from — one observation feeds the log and the tally. Measured
+# 2026-10-23 (issue #269): `out=$($cmd 2>&1)` held the whole output until the command exited, so a gate that ran
+# a suite for eleven minutes carried two lines, and neither an operator nor a worker could tell a long suite
+# from a stopped one, nor see which case a failure was in.
+stream=$(mktemp "${TMPDIR:-/tmp}/loop-gate-output.XXXXXX") \
+  || loop_die "gate: cannot create the file that carries a suite's output"
+trap 'rm -f "$stream"' EXIT
 while IFS= read -r cmd; do
   [ -n "$cmd" ] || continue
   ran="$ran${ran:+, }$cmd"
   say "gate: $cmd"
-  out=$($cmd 2>&1)
-  rc=$?
+  # `--quiet` keeps the console for the verdict, but the file is written either way: the tally is read from it.
+  # The status is the suite's own, never the stream's (`pipefail` would answer that too, but only for the last
+  # command of the pipeline, and this one names the answer explicitly).
+  if [ "$quiet" -eq 1 ]; then
+    $cmd >"$stream" 2>&1
+    rc=$?
+  else
+    $cmd 2>&1 | tee "$stream"
+    rc=${PIPESTATUS[0]}
+  fi
+  out=$(cat "$stream")
   [ "$rc" -eq 0 ] || failed_suites="$failed_suites $cmd"
   # The suite's own summary line: `<name>: all N cases passed` or `<name>: M of N cases failed`.
   n=$(printf '%s\n' "$out" | sed -n 's/.*all \([0-9][0-9]*\) cases passed.*/\1/p' | tail -1)

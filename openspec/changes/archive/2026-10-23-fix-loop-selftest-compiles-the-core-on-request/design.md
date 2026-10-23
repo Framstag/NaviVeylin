@@ -45,8 +45,8 @@ Three properties of the fix are load-bearing:
   a flag set in the driver's own shell is not visible to the next case's subshell; the marker in the suite's own
   scratch tree is, and it is removed with the tree. This is measured, not argued: `driver#theCoreIsCompiledOncePerSuite`
   runs a two-case suite whose cases both ask with a `javac` probe that records each invocation, and asserts exactly
-  one — `evidence/green-correction.log`; the mutation `49.1` drops the marker guard and the case goes red
-  (`evidence/revert-check-49.1.log`).
+  one — `evidence/green-correction.log`; the mutation `48.2` drops the marker guard and the case goes red
+  (`evidence/revert-check-48.2.log`).
 - **the refusal is the driver's.** The message, the exit status 1 and the reader (stderr) are the ones
   `tools/loop-selftest.sh:95`–`98` printed before (base commit `abeffcad`'s numbering); a case that asks for a core
   that cannot compile fails with that line, and the run ends with exit 1, as a full suite did. The line is the
@@ -62,7 +62,7 @@ Three properties of the fix are load-bearing:
 |---|---|
 | `tools/loop-selftest.sh` | 3 lines and 1 export → `core_ensure`; the tool and JDK checks above it unchanged |
 | `tools/loop-cases.sh` | 1 header sentence, 1 call in `run_loop`, 7 calls at direct uses, 3 cases |
-| `tools/loop-mutations.sh` | records `48.1` and `49.1` |
+| `tools/loop-mutations.sh` | records `48.1` and `48.2` |
 | `openspec/specs/agent-issue-loop/spec.md` | 1 requirement, 3 scenarios (on archive) |
 
 No file format, no on-disk state, no prompt and no engine script changes; the case list, the case names and the

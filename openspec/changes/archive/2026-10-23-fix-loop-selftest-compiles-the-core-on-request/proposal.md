@@ -44,7 +44,7 @@ Its third case, `driver#theCoreIsCompiledOncePerSuite`, is green on the tree as 
 that is the point of it: "at most once per suite" is a count, and nothing in the suite notices a missing marker —
 every asking case would simply compile again and stay green. The case therefore counts: a nested driver runs a
 two-case suite whose cases both ask, with a `javac` probe that records each invocation. Its falsification is not
-HEAD but a mutation of the marker (`49.1`, `evidence/revert-check-49.1.log`), which is how the requirement's third
+HEAD but a mutation of the marker (`48.2`, `evidence/revert-check-48.2.log`), which is how the requirement's third
 scenario is red.
 
 **Owning requirement.** `agent-issue-loop`. The spec owns what the loop's own checks do — its driver is the suite
@@ -78,7 +78,7 @@ compile nothing uses is what that iteration pays. The protocol states the rule a
   invocation, so the requirement's third scenario asserts a count and not a claim.
 - **`tools/loop-mutations.sh`** — record `48.1`, which restores the eager compile, so the new invariant is
   falsified by a mutation like every other (red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0), and record
-  `49.1`, which drops the marker, so "once per suite" is falsified as well.
+  `48.2`, which drops the marker, so "once per suite" is falsified as well.
 - **the spec `agent-issue-loop`** — one ADDED requirement, "The self-test compiles the Java core when a case asks
   for it", with its three scenarios naming the three cases.
 

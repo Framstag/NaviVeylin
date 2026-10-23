@@ -16,7 +16,7 @@ Read against the change's own artifacts and evidence, after the round-1 review a
 | the affected cases were run focused | six cases — the two new ones, the once-per-suite one, `state#initAndShowRoundTrips`, `run#oneItemOrderIsFixed`, `clean#reportsWithoutApplyAndRemovesWithIt` — all PASS; the six whose call site the change touched are in the gate's own transcript | `evidence/green-correction.log`; `evidence/gate-round-1/gate.log` (`:6`, `:7`, `:148`, `:149`, `:278`, `:589` of that transcript's numbering) |
 | the compile the selection pays for | 0.904 s and 0.869 s of wall clock over two runs, 500–504 % CPU; the re-runnable command is in the file | `evidence/compile-measurement.log` |
 | the change touches no compiled file | three shell files, the spec delta and the change's own artifacts; no `*.kt`, `*.java`, `*.cpp`, no Gradle file | `git diff --stat` |
-| the two doc suites were re-run after this file was finalised | `gen-feature-list.sh --check-classification` and `check-doc-routes.sh`, both exit 0 — a focused re-run of the paths this prose edit touches, not a second gate | `evidence/post-gate-doc-checks.log` |
+| the two doc suites were re-run over the paths this prose touches | `gen-feature-list.sh --check-classification` and `check-doc-routes.sh`, both exit 0 — a focused re-run, not a second gate. The order is stated rather than assumed: this file and `tasks.md` are edited after that record, and neither suite reads them (`tools/check-doc-routes.sh:15`–`:16`: an archived change artifact is history, neither checked nor rewritten) | `evidence/post-gate-doc-checks.log` |
 | no guideline was rewritten, and none was owed | `guidelines/Build.md` §2a states the iteration rule and quotes no measurement, so it asserts no compile to correct | `proposal.md`, "Owning guideline section" |
 | the record names the tree it measured | `2284a998` — the merge that resolved this branch against `main`; the gate ran after every artifact that precedes it, and the prose after it is the doc suites' focused re-run | `evidence/gate-final-tree.log` (first line `gate: tools/loop-selftest.sh`), `evidence/post-gate-doc-checks.log` |
 
@@ -37,16 +37,17 @@ Read against the change's own artifacts and evidence, after the round-1 review a
    the review named. That run owes no compiled step, because #273 landed in between and now reads a compiled path by
    the tree it sits in.
 3. **`evidence/revert-check-48.1.log` states no reason.** The harness prints the record, the case and the verdict
-   (`RED`/`restore`) and neither a timestamp nor the case's own output (`tools/loop-mutations.sh:550`). The "right
+   (`RED`/`restore`) and neither a timestamp nor the case's own output (`tools/loop-mutations.sh:576`, `:583`). The "right
    reason" is therefore read from the case's assertions — a poisoned `javac` reachable above `source` makes
    `assert_eq "0" "$status"` fail — and not quoted from that log. `evidence/revert-check-48.2.log` has the same
    shape: the case it names fails on `assert_eq "1" "${invocations}"`, because the mutation makes the probe record
    two invocations.
 4. **`evidence/green-fix.log` holds two cases, not eight.** The affected-cases row above therefore cites the gate's
    transcript and, for the focused re-run, `evidence/green-correction.log`.
-5. **The compiled step's tally carries `tests="0"`.** Gradle prints `BUILD SUCCESSFUL in 4m 6s` and no
-   `all N cases passed` line, so the gate counts no case for it — the shape every archived gate record in this
-   repository shows, and the reason the gate's sum is the three shell suites' 187 + 107 + 34 = 328.
+5. **Round 2's record carried a compiled step; this one does not.** Gradle printed `BUILD SUCCESSFUL in 4m 6s` and no
+   `all N cases passed` line, so the gate counted no case for it — the shape every archived gate record in this
+   repository shows. The final run owes no compiled step at all: #273 landed in between and reads a compiled path by
+   the tree it sits in, so the two `tests="0"` tallies under `gate-tallies-final/` are the doc suites.
 6. **The mutation label was renumbered at the merge with `main`.** The marker record was `49.1` until #273's merge
    took `49.1`–`49.4` for its own invariants; it is `48.2` in the tree, and the pre-merge run is kept as
    `evidence/revert-check-49.1-before-the-merge.log` — a dated log quotes the label it ran under.

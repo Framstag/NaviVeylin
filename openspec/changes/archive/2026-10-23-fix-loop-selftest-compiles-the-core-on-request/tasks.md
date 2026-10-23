@@ -13,6 +13,10 @@
 
 ## 2. The driver
 
+Line numbers in this section and in 1.x are the base commit `abeffcad`'s numbering, which is where the red cases
+were measured; the merge with `main` moved them, and the current numbers are in the tree (`run_loop` at
+`tools/loop-cases.sh:497`, `core_ensure` at `tools/loop-selftest.sh:114`, its two `readonly` names at `:106`–`:107`).
+
 - [x] 2.1 Replace `javac …` and `export ISSUES_CORE_CLASSES` at `tools/loop-selftest.sh:95`–`107` with
       `core_ensure` (`tools/loop-selftest.sh:105`), which compiles once (marker `selftest_core_marker`), exports the
       class directory, and keeps the refusal line and its exit 1. Verify: `bash -n tools/loop-selftest.sh`, then
@@ -57,7 +61,7 @@
       invocation. Add record `48.2` to `tools/loop-mutations.sh` (the marker guard dropped to `if true`; it was
       numbered `49.1` before #273's merge took that label). Verify:
       the case PASSes on this tree (`evidence/green-correction.log`), and `bash tools/loop-mutations.sh --only 48.2`
-      → red-when-mutated 1 · not-noticed 0 · restore-failures 0 (`evidence/revert-check-49.1.log`).
+      → red-when-mutated 1 · not-noticed 0 · restore-failures 0 (`evidence/revert-check-48.2.log`).
 - [x] 5.2 **The gate record covered three suites, not the ones the pathspec owes.** `tools/loop/loop.conf` owes
       `bash tools/gen-feature-list.sh --check-classification` and `tools/check-doc-routes.sh` for the `openspec/`
       and `*.md` paths this change adds, and `gate.log` named three suites. Re-run the gate once on the archived

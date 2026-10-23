@@ -1,5 +1,5 @@
 # the two doc suites, re-run focused after the last prose edit (round 3)
-# 2026-10-23T15:21:29+02:00
+# 2026-10-23T15:27:12+02:00 — after tasks.md, verification.md and the round-3 review records
 gen-feature-list: stale classification entry for a spec that no longer exists:
   search-name-matching
   search-result-row-icon

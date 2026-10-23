@@ -204,6 +204,7 @@ LOOP_SHELL_CASES=(
   'clean#sweepsOnlyWhatIsInTheBase'
   'clean#interruptedSuiteEndsItsProcessGroup'
   'clean#reportsAndEndsAProcessLeftInAScratchTree'
+  'clean#reportsTheWorktreesScratchTreesToo'
   'clean#endsARunWhoseTreeIsAlreadyDeleted'
   'run#interruptedRunEndsTheChildItStarted'
   'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
@@ -409,6 +410,7 @@ loop_run_shell_case() {
     'clean#sweepsOnlyWhatIsInTheBase') fn=case_clean_sweepsOnlyWhatIsInTheBase ;;
     'clean#interruptedSuiteEndsItsProcessGroup') fn=case_clean_interruptedSuiteEndsItsProcessGroup ;;
     'clean#reportsAndEndsAProcessLeftInAScratchTree') fn=case_clean_reportsAndEndsAProcessLeftInAScratchTree ;;
+    'clean#reportsTheWorktreesScratchTreesToo') fn=case_clean_reportsTheWorktreesScratchTreesToo ;;
     'clean#endsARunWhoseTreeIsAlreadyDeleted') fn=case_clean_endsARunWhoseTreeIsAlreadyDeleted ;;
     'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
     'driver#aCaseThatAsksForNoCoreCompilesNothing') fn=case_driver_aCaseThatAsksForNoCoreCompilesNothing ;;
@@ -5247,6 +5249,47 @@ case_clean_reportsAndEndsAProcessLeftInAScratchTree() {
   kill -0 "$fresh" 2>/dev/null || fail "--apply ended a process inside a tree it kept"
   [ ! -e "$tmp/loop-selftest.stale" ] || fail "the stale tree survived --apply"
   [ -d "$tmp/loop-selftest.fresh" ] || fail "--apply removed a tree younger than the stale threshold"
+}
+
+# The scratch trees a suite leaves are made under the root of the tree the suite runs *in*, and the gate runs
+# `tools/loop-selftest.sh` inside the kept worktree — so the trees that accumulate are under the worktree's own
+# `.pi/tmp`, which a report run from the project never looked in (issue #274). Measured 2026-10-23: four
+# `loop-selftest.*` trees there, 305 MB in total, three of them past the 120-minute threshold, and
+# `loop-clean` printed `self-test scratch trees under .pi/tmp` with no entry; four `run.sh` poll loops stood in
+# them at 6 h 53 min to 8 min of age, three long past their 90-minute budget. The report scans both roots with
+# the same age rule and the same process evidence, so a tree a live suite is writing into is still kept.
+case_clean_reportsTheWorktreesScratchTreesToo() {
+  local d p w tmp conf out stale i alive
+  d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"; tmp="$d/tmp"
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  mkdir -p "$w/.pi/tmp/loop-selftest.stale" "$w/.pi/tmp/loop-selftest.fresh" "$tmp"
+  touch -d '3 hours ago' "$w/.pi/tmp/loop-selftest.stale"
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  # The process half reads the same evidence in the same tree: a process standing inside the worktree's stale
+  # tree is what a killed suite left, and one in its fresh tree is a live suite's.
+  ( cd "$w/.pi/tmp/loop-selftest.stale" && exec sleep 300 ) &
+  stale=$!
+  CASE_SLEEPS="$stale"
+  trap 'kill -9 $CASE_SLEEPS 2>/dev/null; CASE_SLEEPS=""' EXIT
+
+  out=$(run_clean "$p") || fail "loop-clean failed: $out"
+  assert_contains "$out" "self-test scratch trees under .pi/worktrees/loop/.pi/tmp" \
+    "the report names the kept worktree's own scratch root beside the invocation's"
+  assert_contains "$out" "loop-selftest.stale" "and the tree a killed suite left there"
+  assert_contains "$out" "would end process $stale" "and the process standing in it"
+  assert_contains "$out" "loop-selftest.fresh" "while the tree a live suite may be writing into is kept"
+  [ -d "$w/.pi/tmp/loop-selftest.stale" ] || fail "the report removed a scratch tree without --apply"
+
+  out=$(run_clean "$p" --apply) || fail "loop-clean --apply failed: $out"
+  assert_contains "$out" "removed" "--apply removes what it named"
+  [ ! -e "$w/.pi/tmp/loop-selftest.stale" ] || fail "the worktree's stale scratch tree survived --apply"
+  [ -d "$w/.pi/tmp/loop-selftest.fresh" ] || fail "--apply removed a tree younger than the stale threshold"
+  alive=1
+  for i in $(seq 1 50); do kill -0 "$stale" 2>/dev/null || { alive=0; break; }; sleep 0.1; done
+  [ "$alive" -eq 0 ] || fail "the process inside the worktree's tree survived --apply"
+  [ -f "$w/demo-fix.txt" ] || fail "the cleanup removed a source file from the worktree"
 }
 
 # A run ended by a signal ends the child it started (issue #213). The child is put in a process group of its own

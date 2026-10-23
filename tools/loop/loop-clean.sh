@@ -13,9 +13,12 @@
 #
 # What it never touches: a kept worktree's tracked or untracked *source*. It removes only the project's
 # recorded build paths (`LOOP_WORKTREE_SCRATCH_PATHS`, the same list and the same four refusals the run's own
-# `worktree.sh strip-scratch` uses) and only scratch trees under the loop's temporary root that are older
-# than `LOOP_TMP_STALE_MINUTES` and carry the self-test's own name — a suite writing into its tree right now
-# is younger than that and is left alone.
+# `worktree.sh strip-scratch` uses) and only scratch trees older than `LOOP_TMP_STALE_MINUTES` that carry the
+# self-test's own name — a suite writing into its tree right now is younger than that and is left alone. It scans
+# **two** scratch roots, because a suite creates its trees under the root of the tree it runs in: the root this
+# invocation resolved and the one the kept worktree resolves, where a gate that runs the suite inside the worktree
+# writes them (measured 2026-10-23, issue #274: four trees, 305 MB, and four poll loops under
+# `.pi/worktrees/loop/.pi/tmp`, and this report printed no entry at all).
 #
 # A tree is not all a killed suite leaves: the processes that were working in it keep running, and nothing in
 # the tooling used to notice them (measured 2026-10-20, issue #213 — five `run.sh` processes, 55 to 100 min
@@ -47,7 +50,7 @@ while [ $# -gt 0 ]; do
     --worktree) need_value "$@"; tree_arg="${2:-}"; shift 2 ;;
     --apply) apply=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,38p' "$0"; exit 0 ;;
     *) loop_die "loop-clean: unknown argument $1" ;;
   esac
 done
@@ -86,7 +89,18 @@ else
 fi
 
 # ── the scratch trees a killed suite left, and the processes still standing in them ─────────────
+# Two roots, reported as two lines: this process resolved the first, and the kept worktree resolves the second —
+# the trees a gate run inside the worktree leaves are made there, so a report that looked only at its own root
+# answered "nothing to do" while they accumulated (issue #274). `--worktree .` names this tree, and then the two
+# roots are one: it is scanned once, so a tree is never listed or counted twice.
+worktree_tmp=""
+if [ -d "$tree" ]; then
+  worktree_tmp=$(loop_tmp_dir_for "$tree")
+  [ "$worktree_tmp" = "$LOOP_TMP_DIR" ] && worktree_tmp=""
+fi
 say "loop-clean: self-test scratch trees under ${LOOP_TMP_DIR#"$LOOP_ROOT"/} older than ${stale_minutes} min"
+[ -z "$worktree_tmp" ] ||
+  say "loop-clean: self-test scratch trees under ${worktree_tmp#"$LOOP_ROOT"/} older than ${stale_minutes} min"
 
 # The processes a killed suite left. A tree is not all of it: a case's `run.sh` and the child it waited for keep
 # polling a tree that no longer exists — measured 2026-10-20 (issue #213), five such processes 55 to 100 min
@@ -112,7 +126,8 @@ leftover_pids() { # <dir> → one pid per line
   done
 }
 
-for dir in "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"*; do
+for dir in "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"* \
+           ${worktree_tmp:+"$worktree_tmp/$LOOP_SELFTEST_PREFIX"*}; do
   { [ -e "$dir" ] || [ -L "$dir" ]; } || continue
   if [ -L "$dir" ] || [ ! -d "$dir" ]; then
     say "  kept ${dir##*/} — a symlink, never followed"

@@ -158,6 +158,25 @@ loop_tmp_resolve() {
   esac
 }
 
+# The scratch root *another tree* resolves, which is not the one this process resolved. A suite creates its trees
+# under the root of the tree it runs in, so a gate that runs `tools/loop-selftest.sh` inside the kept worktree makes
+# them under the worktree's own `.pi/tmp` — the root a report run from the project never looked in while 305 MB of
+# trees and four poll loops accumulated there (measured 2026-10-23, issue #274). The key is read from that tree's
+# configuration, the same file `loop_resolve` sources when it runs there, and it is **read, never sourced**: a
+# report looks at a tree, it does not run that tree's configuration.
+loop_tmp_dir_for() { # <tree> → that tree's scratch root, resolved against that tree
+  local tree="${1:-}" recorded=""
+  if [ -n "$tree" ] && [ -f "$tree/tools/loop/loop.conf" ]; then
+    recorded=$(sed -n 's/^LOOP_TMP_DIR\="\{0,1\}\([^"\]*\)"\{0,1\}[[:space:]]*$/\1/p' \
+      "$tree/tools/loop/loop.conf" | tail -1)
+  fi
+  case "$recorded" in
+    "") printf '%s\n' "$tree/.pi/tmp" ;;
+    /*) printf '%s\n' "$recorded" ;;
+    *) printf '%s\n' "$tree/$recorded" ;;
+  esac
+}
+
 loop_conf_value() { # print one configuration key's value by name
   local key="$1"
   eval "printf '%s' \"\${$key:-}\""

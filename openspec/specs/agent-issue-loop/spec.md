@@ -898,8 +898,9 @@ reports.
 The tooling SHALL have one entry point that answers what the loop left on disk and how much it is: without
 `--apply` it SHALL name every path it would remove with its size and remove nothing, with `--apply` it SHALL
 remove exactly those paths, and a second run SHALL find nothing. It SHALL remove the recorded build paths of a
-worktree, the scratch trees old enough that no suite can be writing into them, and the branches whose patches
-the base already holds, and it SHALL NOT touch a worktree's tracked or untracked source.
+worktree, the branches whose patches the base already holds, and the scratch trees old enough that no suite can be
+writing into them — in **both** the scratch root the invocation resolves and the one the kept worktree resolves —
+and it SHALL NOT touch a worktree's tracked or untracked source.
 
 #### Scenario: The report removes nothing
 
@@ -929,6 +930,15 @@ the base already holds, and it SHALL NOT touch a worktree's tracked or untracked
 - **THEN** that branch is removed, a branch that still carries unlanded work and a branch a worktree holds
   are kept and named, and a second run finds nothing left to remove
 - **Case**: `clean#sweepsOnlyWhatIsInTheBase`
+
+#### Scenario: The kept worktree's own scratch root is scanned beside the invocation's
+
+- **WHEN** the kept worktree carries a stale `loop-selftest.*` tree under its own `.pi/tmp` — where a gate run
+  inside the worktree creates one — and a process stands inside it, while the invocation's own scratch root is
+  empty
+- **THEN** the report names that root as its own line, names the stale tree and the process, keeps a tree of that
+  root younger than `LOOP_TMP_STALE_MINUTES`, and `--apply` removes the stale tree and ends the process
+- **Case**: `clean#reportsTheWorktreesScratchTreesToo`
 
 ### Requirement: A suite ended by a signal ends the case it was in, and its processes
 

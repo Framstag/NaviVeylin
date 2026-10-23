@@ -1739,3 +1739,23 @@ The gate SHALL resolve its configuration from the profile beside its own engine 
 - **WHEN** a run starts a worker whose change root is a worktree carrying its own engine, and the worker runs that engine's gate there
 - **THEN** the gate names the profile beside the worktree's engine, and the run's own profile is not in the child's environment
 - **Case**: `gate#theChildReadsTheProfileOfTheTreeItWorksIn`
+
+### Requirement: The publish publishes what still exists
+
+The run's only push SHALL publish what still exists when it runs: a branch the run has already merged and released
+SHALL be a named skip rather than a git error, and a push that fails for another reason SHALL say so on one line.
+
+#### Scenario: A branch the run merged and released is a named skip
+
+- **WHEN** a run is asked to publish and the item's branch has already been merged into the base and removed by the
+  run's own release
+- **THEN** the run prints that there is nothing to publish for that branch and why, and hands git no refspec at all
+  — the closure it belongs to is unaffected, and no `does not match any` reaches the run log
+- **AND** the remote carries no branch of a closed item
+- **Case**: `worktree#pushSkipsABranchItAlreadyMerged`
+
+#### Scenario: A push that fails says what it means
+
+- **WHEN** the branch still exists and the push does not succeed
+- **THEN** the run prints one line naming the branch and where its commits stayed — the run tree, not the remote —
+  so a caller reads a publishing failure as one instead of as git's own error text

@@ -66,6 +66,7 @@ LOOP_SHELL_CASES=(
   'worktree#keepsByDefaultAndRemovesOnRequest'
   'worktree#keepsSourcesNotBuildOutput'
   'worktree#noPushWithoutTheFlag'
+  'worktree#pushSkipsABranchItAlreadyMerged'
   'worktree#reusesABranchThatCarriesNoWorkOfItsOwn'
   'worktree#reusesABranchWhoseWorkAlreadyLanded'
   'worktree#refusesABranchCarryingAPreviousAttempt'
@@ -269,6 +270,7 @@ loop_run_shell_case() {
     'worktree#keepsByDefaultAndRemovesOnRequest') fn=case_worktree_keepsByDefaultAndRemovesOnRequest ;;
     'worktree#keepsSourcesNotBuildOutput') fn=case_worktree_keepsSourcesNotBuildOutput ;;
     'worktree#noPushWithoutTheFlag') fn=case_worktree_noPushWithoutTheFlag ;;
+    'worktree#pushSkipsABranchItAlreadyMerged') fn=case_worktree_pushSkipsABranchItAlreadyMerged ;;
     'worktree#reusesABranchThatCarriesNoWorkOfItsOwn') fn=case_worktree_reusesABranchThatCarriesNoWorkOfItsOwn ;;
     'worktree#reusesABranchWhoseWorkAlreadyLanded') fn=case_worktree_reusesABranchWhoseWorkAlreadyLanded ;;
     'worktree#refusesABranchCarryingAPreviousAttempt') fn=case_worktree_refusesABranchCarryingAPreviousAttempt ;;
@@ -1833,6 +1835,29 @@ case_worktree_noPushWithoutTheFlag() {
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
   [ -s "$trace" ] || fail "git was not traced, so the case would prove nothing"
   assert_eq "0" "$(grep -c 'git push' "$trace" || true)" "a run that was not asked to publish does not push"
+}
+
+# The push runs after the item is done, and a closed item's branch is gone by then: the run merged it and the
+# release deleted it. `git push origin fix/issue-N-…` with no such local ref fails with `src refspec … does not
+# match any`, so a run asked to publish printed git's two error lines for the branch it had removed itself
+# (measured 2026-10-23 on #277, in a run that read green everywhere else). The flag publishes what still exists;
+# a merged and released branch is a named skip.
+case_worktree_pushSkipsABranchItAlreadyMerged() {
+  local d p origin out branch
+  d=$(scratch); p=$(new_project); origin="$d/origin.git"
+  # A remote that answers: without one, a push of a branch that *does* exist would fail as well, and the case
+  # could not tell the skip from a remote that is not there.
+  git init -q --bare "$origin" >/dev/null 2>&1 || fail "could not create the remote"
+  git -C "$p" remote add origin "$origin" >/dev/null 2>&1 || fail "could not add the remote"
+  out="$d/run.txt"
+  run_one_item "$p" "$d" --review on --push yes >"$out" 2>&1 || fail "the run itself failed: $(cat "$out")"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the reviewed item is closed"
+  branch=$(jq -r '.items[0].merged.branch' "$(state_file "$p")")
+  assert_contains "$(cat "$out")" "nothing to publish for $branch" \
+    "a branch the run merged and released is a named skip, not git's refspec error"
+  assert_not_contains "$(cat "$out")" "does not match any" "the run never hands git a refspec it deleted"
+  assert_eq "" "$(git -C "$origin" for-each-ref "refs/heads/$branch")" \
+    "the remote carries no branch of a closed item"
 }
 
 case_worktree_refusesABranchWhoseReviewFailed() {

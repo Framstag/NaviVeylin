@@ -490,8 +490,19 @@ printf 'worktree: %s on %s from %s\n' "$worktree" "$branch" "${base:0:12}"
 progress worktree "ready — $(basename "$worktree") on $branch from ${base:0:12}"
 
 # The only push in the loop, and only when the run asked to publish (D4): no pull request is opened by
-# this change at all.
-push_branch() { git -C "$worktree" push --set-upstream origin "$1" >&2; }
+# this change at all. It runs after the item is done, and a closed item's branch is gone by then — the run
+# merged it and `release-branch` deleted it a few lines earlier. Pushing a refspec whose local ref no longer
+# exists fails with git's `src refspec … does not match any`, so a run asked to publish printed two error lines
+# for the branch it had removed itself (measured 2026-10-23 on #277, inside an otherwise green run). The flag
+# publishes what still exists; a branch whose work is in the base is a skip, and the run says which it did.
+push_branch() { # push_branch <branch>
+  if ! git -C "$worktree" rev-parse --verify --quiet "refs/heads/$1" >/dev/null; then
+    printf 'run: nothing to publish for %s — the run merged it and released the branch, so its work is in the base\n' "$1" >&2
+    return 0
+  fi
+  git -C "$worktree" push --set-upstream origin "$1" >&2 ||
+    printf 'run: the push of %s failed — its commits stay in the run tree, not on the remote\n' "$1" >&2
+}
 
 report_field() { # report_field <file> <FIELD>
   sed -n "s/^${2}: //p" "$1" 2>/dev/null | tail -1

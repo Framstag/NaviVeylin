@@ -1,0 +1,25 @@
+2026-10-23T07:00:27Z
+== RED on HEAD: the change's two cases against the engine and profile as HEAD has them
+base=b1b8de08c6e1673601adf54638fda18c51a51258  engine=/tmp/red273.Z400hf/tools/loop (as HEAD has it)
+-- profile: LOOP_GATE_COMPILED_PATTERNS="*.kt *.java *.kts *.gradle *.toml *.xml *.c *.cpp *.cc *.h *.hpp CMakeLists.txt app/src/main/cpp/* app/src/main/res/*"
+-- gate.sh's matcher as HEAD has it:
+   | matches() { # <space-separated globs> <path>
+   |   local glob
+   |   for glob in $1; do
+   |     # shellcheck disable=SC2254 # the glob is the point: a pattern, not a literal
+   |     case "$2" in $glob) return 0 ;; esac
+   |   done
+   |   return 1
+   | }
+-- gate#anArchivedArtefactOwesNoBuild
+  an archived evidence tally owes no compiled command: ./gradlew test -PforceTests --no-build-cache
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh: './gradlew test -PforceTests --no-build-cache' should not appear in: ./gradlew test -PforceTests --no-build-cache
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh
+FAIL gate#anArchivedArtefactOwesNoBuild
+exit=1
+-- gate#aModuleResourceOwesTheBuild
+PASS gate#aModuleResourceOwesTheBuild
+exit=0
+tmp=/tmp/red273.Z400hf

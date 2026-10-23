@@ -307,6 +307,15 @@ MUTATIONS=(
   '49.2@-@../loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23)@s|^  printf .%s. "\$n"$|  printf .%s. 1|'
   '49.3@-@tools/loop/gate.sh@gate#theSummaryNamesWhatEachSuiteCost@the wall clock the gate records beside the suite that spent it (2026-10-23)@s|^  took=\$((SECONDS - t0))$|  took=0|'
   '49.4@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the summary that names the selection a filtered run made (2026-10-23, review round 1 P1)@s|^\[ -n "\$only_group" \] && selection=" --group \$only_group"$|: # the mutation names no selection|'
+  # 50.x — a compiled path is read by the tree it sits in, and not by what its name ends in (issue #273). The rule
+  # has two halves and either alone leaves the case it names green: 50.1 puts the basename pattern back, which makes
+  # an archived evidence tally a compiled file again, and 50.2 removes the matcher's `set -f`, so the pattern
+  # anchored to a module's tree is replaced by the names it matched in the working directory and the module's own
+  # resource stops owing the build. The labels are 50.x and not 44.x because #272's sweep landed first with 44.1,
+  # and a label names one invariant for good; the change's own archived evidence still prints `RED 44.1`/`RED 44.2`
+  # from the runs it measured before this merge, which is what a dated log is.
+  '50.1@-@tools/loop/loop.conf@gate#anArchivedArtefactOwesNoBuild@the profile reading a compiled path by its tree rather than by its name@s|^LOOP_GATE_COMPILED_PATTERNS="\*/src/\*|LOOP_GATE_COMPILED_PATTERNS="*.xml */src/*|'
+  '50.2@-@tools/loop/gate.sh@gate#aModuleResourceOwesTheBuild@the matcher reading an anchored pattern as a pattern@s|\*) set -f|\*) true|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -63,12 +63,19 @@ fi
 git rev-parse --verify --quiet "$base" >/dev/null || loop_die "gate: '$base' is not a commit this tree knows"
 paths=$( { git diff --name-only "$base" 2>/dev/null; git status --porcelain 2>/dev/null | sed 's/^...//'; } | sort -u)
 
+# A pattern is data, and only the second argument is a path: unquoted, `for glob in $1` lets the shell expand the
+# profile's *pattern list* against the directory the gate happens to run in, so a pattern that names a tree is
+# replaced by the names it matched and then compared literally. Measured 2026-10-23 (issue #273): with the profile's
+# own `app/src/main/res/*` and a new file under that directory, the plan owed nothing, and with `set -f` here it
+# owed the build — which is why two anchored patterns the profile already declared were dead weight.
 matches() { # <space-separated globs> <path>
-  local glob
+  local glob was_f=0
+  case $- in *f*) was_f=1 ;; *) set -f ;; esac
   for glob in $1; do
     # shellcheck disable=SC2254 # the glob is the point: a pattern, not a literal
-    case "$2" in $glob) return 0 ;; esac
+    case "$2" in $glob) [ "$was_f" -eq 1 ] || set +f; return 0 ;; esac
   done
+  [ "$was_f" -eq 1 ] || set +f
   return 1
 }
 

@@ -104,6 +104,8 @@ LOOP_SHELL_CASES=(
   'driver#aGroupFilterRunsOnlyItsOwnCases'
   'driver#aFilterThatNamesNoCaseRefuses'
   'driver#theListIsFilteredTheSameWayASuiteRunIs'
+  'gate#anArchivedArtefactOwesNoBuild'
+  'gate#aModuleResourceOwesTheBuild'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
   'measure#namesTheOwedChecksInOneBlock'
@@ -299,6 +301,8 @@ loop_run_shell_case() {
     'driver#aGroupFilterRunsOnlyItsOwnCases') fn=case_driver_aGroupFilterRunsOnlyItsOwnCases ;;
     'driver#aFilterThatNamesNoCaseRefuses') fn=case_driver_aFilterThatNamesNoCaseRefuses ;;
     'driver#theListIsFilteredTheSameWayASuiteRunIs') fn=case_driver_theListIsFilteredTheSameWayASuiteRunIs ;;
+    'gate#anArchivedArtefactOwesNoBuild') fn=case_gate_anArchivedArtefactOwesNoBuild ;;
+    'gate#aModuleResourceOwesTheBuild') fn=case_gate_aModuleResourceOwesTheBuild ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
@@ -5409,5 +5413,76 @@ case_driver_theListIsFilteredTheSameWayASuiteRunIs() {
   assert_eq "$(printf 'alpha#one\nalpha#two\nbeta#three')" "$out" \
     "and an unfiltered list is still the whole declared set: $out"
   [ ! -e "$d/ran" ] || fail "listing runs no case, and one ran: $(cat "$d/ran")"
+  return 0
+}
+
+# One value of the profile the engine under test carries. A case that asked the gate with a profile of its own
+# could not catch a wrong pattern, and the mutation harness points `LOOP_ENGINE` at a mutated copy of the engine.
+profile_value() { # <key>
+  ( . "$LOOP_ENGINE/loop.conf"; eval "printf '%s' \"\${$1:-}\"" )
+}
+
+# A compiled file is one a tree the build reads holds, so where a path sits decides it — never what its name ends
+# in (issue #273). `*.xml` matched `openspec/changes/archive/<x>/evidence/gate-tallies/a.xml` and the gate-timings
+# fixture that mimics a test report, so a delta that touches no compiled file owed the full Kotlin suite: measured
+# 2026-10-23 finishing #262, `LOOP-GATE: tests=202 failures=0 (tools/loop-selftest.sh,
+# tools/loop-mutations-selftest.sh, tools/check-doc-routes.sh)` in 13 min 15 s before the archive commit, and
+# `./gradlew test -PforceTests --no-build-cache` first on the same tree after it, whose only matching paths were
+# four evidence `.xml`.
+case_gate_anArchivedArtefactOwesNoBuild() {
+  local d p base plan compiled
+  d=$(scratch); p=$(new_project)
+  compiled=$(profile_value LOOP_GATE_COMPILED_CMD)
+  [ -n "$compiled" ] || fail "the profile names no compiled command, so this case would prove nothing"
+
+  mkdir -p "$p/openspec/changes/archive/x/evidence/gate-tallies"
+  printf '<testsuite name="a" tests="1" failures="0"/>\n' \
+    > "$p/openspec/changes/archive/x/evidence/gate-tallies/a.xml"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'an archived tally' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_not_contains "$plan" "$compiled" "an archived evidence tally owes no compiled command: $plan"
+  assert_contains "$plan" "check-classification" "and the check the delta does owe is still named: $plan"
+
+  # The fixture beside the build is the same defect in a second tree, which is why an exclusion for the archive
+  # would have been an instance patched rather than the rule read. It is added with `-f`: the throwaway project
+  # ignores every `build/` directory, and this path is one — in this repository the fixture is tracked.
+  mkdir -p "$p/tools/fixtures/gate-timings/root/app/build/test-results/x"
+  printf '<testsuite name="b" tests="1" failures="0"/>\n' \
+    > "$p/tools/fixtures/gate-timings/root/app/build/test-results/x/TEST-b.xml"
+  git -C "$p" add -f tools/fixtures >/dev/null 2>&1 && git -C "$p" commit -qm 'a gate fixture' >/dev/null 2>&1 \
+    || fail "could not commit the second change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_not_contains "$plan" "$compiled" "a fixture that mimics a test report owes no compiled command: $plan"
+  return 0
+}
+
+# The other half of the same rule: bounding the patterns to the trees the build reads must lose no tree a module
+# compiles — and an anchored pattern is only a pattern when the matcher does not expand the list against the
+# directory the gate runs in. Measured 2026-10-23 (issue #273): with the profile's own `app/src/main/res/*` in a
+# tree that holds that directory, the plan owed `fake-build` with `set -f` in the matcher and nothing at all
+# without it, because `for glob in $1` had already replaced the pattern with the names it matched.
+case_gate_aModuleResourceOwesTheBuild() {
+  local d p base plan compiled
+  d=$(scratch); p=$(new_project)
+  compiled=$(profile_value LOOP_GATE_COMPILED_CMD)
+  [ -n "$compiled" ] || fail "the profile names no compiled command, so this case would prove nothing"
+
+  mkdir -p "$p/app/src/main/res/values"
+  printf '<resources/>\n' > "$p/app/src/main/res/values/strings.xml"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a module resource' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "$compiled" "a module's resource still owes the build: $plan"
+
+  printf '<lint><issue id="UnusedResources"/>\n' > "$p/app/lint.xml"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a lint configuration' >/dev/null 2>&1 \
+    || fail "could not commit the second change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "$compiled" "a module's lint configuration still owes the build: $plan"
   return 0
 }

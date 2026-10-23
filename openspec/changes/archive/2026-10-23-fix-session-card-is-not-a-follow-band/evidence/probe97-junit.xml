@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.ProbeFollowInsetDuringNavSessionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-22T11:27:24.243Z" hostname="dingens" time="7.482">
+  <properties/>
+  <testcase name="probeThePublishedBottomInsetWhileTheSessionCardIsOpenDuringNavigation" classname="com.naviveylin.ui.map.ProbeFollowInsetDuringNavSessionTest" time="6.831"/>
+  <testcase name="probeThePublishedBottomInsetWhileTheSessionCardIsOpenInBrowsing" classname="com.naviveylin.ui.map.ProbeFollowInsetDuringNavSessionTest" time="0.356"/>
+  <system-out><![CDATA[PROBE97 navigating=1 cardComposed=true rootPx=891.0 cardPx=378 fyWithoutPanel=0.7707070707070708 fyWithPanel=0.5181818181818182 delta=0.2525252525252526 expectedFyIfCardIsTheInset=0.5181818181818182
+PROBE97-browse navigating=0 cardComposed=true rootPx=891.0 cardPx=378 fyWithoutPanel=0.9 fyWithPanel=0.9 expectedFyIfCardIsTheInset=0.5181818181818182
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

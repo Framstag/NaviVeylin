@@ -286,6 +286,11 @@ MUTATIONS=(
   # is the same `loop_pids_under` test the self-test's teardown and `loop-clean.sh` report with, run over the
   # tree the survivor still names as its working directory.
   '44.1@-@tools/loop/run.sh@run#detachedProcessInTheWorktreeIsEndedByTheCap@the cap ending the processes the child left working in the tree, and naming each one (issue #272)@s|^    sweep=\$(loop_end_pids_under "$LOOP_WORKTREE")$|    sweep=""|'
+  # 45.1 — the commit that outlived the child it belongs to. Measured 2026-10-22 (issue #271): the worker of
+  # #262 was ended by the cap at 23:48 with mutation 19.2 applied, `end-item` committed that tree 18 s later, and
+  # the dead arm stayed on `origin/fix/issue-262-…` until a person amended it by hand at 05:05. The mutation
+  # restores the unconditional commit, so the case reads a branch the run must have left at the base.
+  '45.1@-@tools/loop/run.sh@run#treeOfAChildTheCapEndedIsNotCommitted@the guard that leaves the tree of a child the run ended uncommitted (issue #271)@s|^  if \[ "\$worker_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then$|  if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

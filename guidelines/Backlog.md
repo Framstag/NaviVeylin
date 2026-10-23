@@ -267,7 +267,13 @@ the cap signals, so the run also ends every process still working in the change 
 `loop_pids_under` owns — and names each one in the transcript (`LOOP-ENDED: ended <pid> — its working directory
 is inside <tree>`). Measured 2026-10-22: the mutation harness a child had started kept mutating and restoring
 the worktree for seven minutes after the run had recorded the child as ended, and its last restore is what
-left that tree dirty for the next run (#272). Measured 2026-10-19: an item's
+left that tree dirty for the next run (#272). What such a child leaves is **not committed**: at the moment the cap
+fires the tree holds whatever the child was doing, so a commit of it asserts work the child never claimed — the
+run reads the child's status before it commits, skips `end-item`, and the branch stays at the base, the tree kept
+exactly as the child left it (nothing is discarded without `--reset-worktree`). Measured 2026-10-22: the worker of
+#262 was ended at 23:48 with mutation 19.2 applied to `tools/loop/run.sh`, the run committed that tree 18 s later,
+and `if false; then` in place of the corrective-round test stayed on `origin/fix/issue-262-…` until a person
+amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
@@ -279,8 +285,8 @@ written, nothing is escalated, the in-progress mark comes off and the item stays
 Measured 2026-10-20: both children of that run died in under 4 s with the same 35-byte complaint, the run
 recorded two items `blocked`, escalated both, and stopped on "two consecutive items ended blocked" 3 minutes
 into an 8 h budget — two questions nobody had asked, and two of its three decision slots (#212). A child the run ended
-itself, and one that left work behind, stay blocked items: the first carries its own transcript line, the
-second its branch, which is what a later pass escalates.
+itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
+commit, the second its branch, which is what a later pass escalates.
 
 The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
 identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never

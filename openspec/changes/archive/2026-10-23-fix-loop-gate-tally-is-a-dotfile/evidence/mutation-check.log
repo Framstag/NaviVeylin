@@ -1,0 +1,3 @@
+loop-mutations: selected 5 of 108 records (files: tools/loop/gate.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.SdLgwo
+loop-mutations: all 5 cases passed — every selected record applies to the file it names

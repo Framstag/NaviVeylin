@@ -1,0 +1,25 @@
+# The red-on-HEAD measurement of issue #268 (2026-10-23).
+
+# 1. The new case against the engine as the base commit f5c32df2 carries it:
+#    `bash tools/loop-selftest.sh --case 'gate#aFailingSuiteWithNoSummaryInventsNoTest'` — FAIL, exit 1.
+#    The suite it runs writes no summary and exits 1; HEAD's gate invents the failure it did not see.
+  the gate's line states the suite reported no case, and one error: gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sABzhU/case.9Mqxzu/suite.sh
+Could not create task :app:mergeNativeSbom
+BUILD FAILED in 21s
+LOOP-GATE: tests=0 failures=1 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sABzhU/case.9Mqxzu/suite.sh) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sABzhU/case.9Mqxzu/suite.sh: 'LOOP-GATE: tests=0 failures=0 errors=1' not found in: gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sABzhU/case.9Mqxzu/suite.sh
+Could not create task :app:mergeNativeSbom
+BUILD FAILED in 21s
+LOOP-GATE: tests=0 failures=1 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sABzhU/case.9Mqxzu/suite.sh) — failing: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.sABzhU/case.9Mqxzu/suite.sh
+FAIL gate#aFailingSuiteWithNoSummaryInventsNoTest
+
+# 2. The same defect in the tally HEAD writes, taken directly against HEAD's engine with a probe suite that
+#    writes `BUILD FAILED in 21s` and exits 1 (`LOOP_CONF=<probe>/gate.conf bash tools/loop/gate.sh --base
+#    f5c32df23dfaf88df2fd58fed4761a33924a3b23`): the suite ran no test, and the tally says one failed.
+gate: bash /tmp/g268/suite.sh
+Could not create task :app:mergeNativeSbom
+BUILD FAILED in 21s
+LOOP-GATE: tests=0 failures=1 (bash /tmp/g268/suite.sh) — failing: bash /tmp/g268/suite.sh
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash /tmp/g268/suite.sh" tests="1" failures="1" errors="0">
+  <system-out>Could not create task :app:mergeNativeSbom BUILD FAILED in 21s</system-out>
+</testsuite>

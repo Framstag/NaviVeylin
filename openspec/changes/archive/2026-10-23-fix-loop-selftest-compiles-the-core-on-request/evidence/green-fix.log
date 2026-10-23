@@ -1,0 +1,4 @@
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+rc1=0
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+rc2=0

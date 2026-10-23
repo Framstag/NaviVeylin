@@ -1,5 +1,5 @@
-loop-mutations: selected 1 of 100 records (labels: 48.1)
-loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.hT583Z
+loop-mutations: selected 1 of 107 records (labels: 48.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/261/.pi/tmp/loop-mutations.t9misP
 RED    48.1  driver#aCaseThatAsksForNoCoreCompilesNothing   (the compile at the first case that asks for it, not above the case list (issue #261))
 restore 48.1 driver#aCaseThatAsksForNoCoreCompilesNothing green again
 

@@ -6,19 +6,28 @@
 # (change 1) and the stub `pi` on PATH. Nothing here needs a token, a network, a model, a device or a
 # sandbox tool: git is never stubbed, because the git logic is part of what is being tested (D13).
 #
-# Usage: bash tools/loop-selftest.sh [--list] [--case <group#name>]
+# Usage: bash tools/loop-selftest.sh [--list] [--case <group#name|glob>] [--group <group>]
 # Exit:  0 every case passed (or there are no cases), 1 a case failed, 2 the environment is unusable.
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
-case "${1:-}" in
-  --list) list_only=1; only_case="" ;;
-  --case) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; list_only=0; only_case="${2:-}" ;;
-  "") list_only=0; only_case="" ;;
-  -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
-  *) echo "loop-selftest: unknown argument $1" >&2; exit 2 ;;
-esac
+# A case is named `<group>#<name>`, and the selection is a filter over that name: `--case` takes a name and,
+# because a name may carry a glob, a pattern; `--group` takes the group alone. Both may be given at once, and
+# then both have to hold. A filter that names nothing is a refusal (exit 2) and never a suite that selected no
+# case and reported success — the rule `tools/loop-mutations.sh` already applies to a file filter.
+list_only=0
+only_case=""
+only_group=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --list) list_only=1; shift ;;
+    --case) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_case="${2:-}"; shift 2 ;;
+    --group) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_group="${2:-}"; shift 2 ;;
+    -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
+    *) echo "loop-selftest: unknown argument $1" >&2; exit 2 ;;
+  esac
+done
 
 for tool in bash jq git java javac; do
   command -v "$tool" >/dev/null 2>&1 || {
@@ -147,27 +156,54 @@ run_case() { # <case name> → the case's own status
   return "$rc"
 }
 
-if [ "$list_only" -eq 1 ]; then
-  printf '%s\n' "$shell_cases" | grep -v '^$'
-  exit 0
+# `matches <case> <pattern>` — the case's name against a filter value, where the value is a glob and not a
+# quoted literal: `run#*` is a pattern, `run#recordsAFailedReviewOnTheBranch` a name that matches itself.
+matches() {
+  # shellcheck disable=SC2254 # the pattern is the point, exactly as in `gate.sh`'s `matches`
+  case "$1" in $2) return 0 ;; esac
+  return 1
+}
+is_glob() { # a filter value that carries a wildcard rather than a name
+  case "$1" in *'*'*|*'?'*|*'['*) return 0 ;; esac
+  return 1
+}
+
+count_matching() { # <pattern> → how many declared cases it names
+  local pattern="$1" n=0 case_name
+  for case_name in $shell_cases; do
+    [ -n "$case_name" ] || continue
+    matches "$case_name" "$pattern" && n=$((n + 1))
+  done
+  printf '%s' "$n"
+}
+
+# A filter is refused before anything runs, and each one is checked against the whole declared set: an
+# intersection that came out empty would otherwise blame whichever filter was read second.
+if [ -n "$only_group" ] && [ "$(count_matching "$only_group#*")" -eq 0 ]; then
+  printf 'loop-selftest: no case carries the group: %s (--list prints every case, its group being the prefix)\n' "$only_group" >&2
+  exit 2
+fi
+if [ -n "$only_case" ] && [ "$(count_matching "$only_case")" -eq 0 ]; then
+  printf 'loop-selftest: no such case: %s\n' "$only_case" >&2
+  exit 2
 fi
 
-if [ -n "$only_case" ]; then
-  if printf '%s\n' "$shell_cases" | grep -qxF "$only_case"; then
-    if run_case "$only_case"; then
-      printf 'PASS %s\n' "$only_case"
-      exit 0
-    fi
-    printf 'FAIL %s\n' "$only_case"
-    exit 1
-  fi
-  echo "loop-selftest: no such case: $only_case" >&2
-  exit 2
+selected=""
+for case_name in $shell_cases; do
+  [ -n "$case_name" ] || continue
+  if [ -n "$only_case" ] && ! matches "$case_name" "$only_case"; then continue; fi
+  if [ -n "$only_group" ] && ! matches "$case_name" "$only_group#*"; then continue; fi
+  selected="$selected$case_name"$'\n'
+done
+
+if [ "$list_only" -eq 1 ]; then
+  printf '%s' "$selected"
+  exit 0
 fi
 
 total=0
 failed=0
-for case_name in $shell_cases; do
+for case_name in $selected; do
   total=$((total + 1))
   if run_case "$case_name"; then
     printf 'PASS %s\n' "$case_name"
@@ -185,5 +221,15 @@ if [ "$failed" -gt 0 ]; then
   echo "loop-selftest: $failed of $total cases failed"
   exit 1
 fi
-echo "loop-selftest: all $total cases passed (JDK $feature, offline, no token, no sandbox)"
+# One case named with `--case` and no pattern keeps the output every caller already reads — the `PASS` line and
+# the exit status, with no summary — because the mutation harness and the leftovers cases invoke exactly that
+# shape and read nothing else. A filtered run names its selection beside the count, so a green suite that ran a
+# seventh of its cases never reads like the whole one.
+selection=""
+[ -n "$only_group" ] && selection=" --group $only_group"
+[ -n "$only_case" ] && selection="$selection --case $only_case"
+if [ "$total" -eq 1 ] && [ -n "$only_case" ] && [ -z "$only_group" ] && ! is_glob "$only_case"; then
+  exit 0
+fi
+echo "loop-selftest: all $total cases passed (JDK $feature, offline, no token, no sandbox)${selection:+ — selection:$selection}"
 exit 0

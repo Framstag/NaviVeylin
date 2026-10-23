@@ -25,6 +25,8 @@ shadow them by accident, and a future case that declares one of those names fail
 reading nothing.
 
 **The second run is not a retry of the first.** The first run was red for a defect the change introduced and the
-change then removed; `gate.log` is the run of the tree that carries the fix — three suites, 314 cases, none failed,
-and the loop's suite `tests="180" failures="0"` in `gate-tallies/tools_loop-selftest.sh.xml` — and the first run is
-kept here so the attribution is a record rather than a claim.
+change then removed; `evidence/gate-round-1/` is the run of the tree that carries the fix — three suites, 314 cases, none failed,
+and the loop's suite `tests="180" failures="0"` in `gate-round-1/tools_loop-selftest.sh.xml` — and the first run is
+kept here so the attribution is a record rather than a claim. That run's own tree predates the last write of
+`tools/loop-cases.sh` (round 2's note), so the record of the tree this change leaves is
+`evidence/gate-final-tree.log`; this file stays the attribution of the two early runs.

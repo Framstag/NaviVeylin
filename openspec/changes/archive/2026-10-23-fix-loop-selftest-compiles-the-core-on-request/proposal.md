@@ -98,7 +98,8 @@ Two of the five are owed the same measurement and were not part of this delta's 
 `tools/check-portability-selftest.sh:71` compiles the core for `tools/portability-cases.sh`, whose 27 cases are
 shell cases (`discovery#…`, `foreign#…`, `porting#…`) and whose only mention of `java` is a `grep` target at
 `tools/portability-cases.sh:354`, and `tools/resolve-stale-selftest.sh:50` compiles it for
-`tools/resolve-stale-cases.sh`'s 27 `resolver#…` cases, which drive the shell citation classifier through
+`tools/resolve-stale-cases.sh`'s 27 shell cases (`resolver#…` is 17 of them; the rest are 7 `classifier#…`, 1
+`prescreen#…` and 2 `pipeline#…`), which drive the shell citation classifier through
 `tools/issues/lib.sh` (`grep -c 'java' tools/portability-cases.sh` → `1`; `grep -n 'java\|core_classes'
 tools/issues/resolve-stale.sh tools/issues/update.sh` → nothing). A `--case` run of one of their cases pays the same
 fixed second this item removes, so widening to them is a real option — it is a separate measurement per driver, and

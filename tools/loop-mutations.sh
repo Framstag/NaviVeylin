@@ -298,15 +298,36 @@ MUTATIONS=(
   # none executed. The mutation puts the fabrication back beside the error count, so the case that names it sees the
   # phantom case and the phantom failure both.
   '47.1@-@tools/loop/gate.sh@gate#aFailingSuiteWithNoSummaryInventsNoTest@the error count that keeps a suite which reported no summary from being tallied as one failing test (issue #268)@s|^  err=0$|  err=0; [ "$rc" -eq 0 ] \|\| { n=1; f=1; }|'
+  # 48.x — the driver's compile, on the selection that needs it (issue #261). The labels are 48.x because
+  # #273's merge took 49.x and 50.x while this change waited on a decision, and a label names one invariant for
+  # good: the change's own dated evidence still prints `RED 49.1` from the run it measured before that merge.
   # 48.1 puts the compile back above the case list, which is where it was before a `--case` run of a shell-only case
   # paid for it (issue #261). It is the one call site a selection cannot skip: the driver reaches it before it knows
   # which cases it runs, so the poisoned `javac` the case installs is invoked whatever the selection is.
   '48.1@-@../loop-selftest.sh@driver#aCaseThatAsksForNoCoreCompilesNothing@the compile at the first case that asks for it, not above the case list (issue #261)@s|^source "$root/tools/loop-cases.sh"$|core_ensure\nsource "$root/tools/loop-cases.sh"|'
-  # 49.1 is the other half of 48.1: the marker is what makes the compile *once per suite* rather than once per
+  # 48.2 is the other half of 48.1: the marker is what makes the compile *once per suite* rather than once per
   # asking case. Without it a suite of two asking cases is still green — each case compiles again and is handed a
   # class path — so the invariant is invisible to an assertion and only a count catches it: the case installs a
   # `javac` that records every invocation, and the mutation makes it record two.
-  '49.1@-@../loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^  if \[ ! -f "$selftest_core_marker" \]; then$|  if true; then|'
+  '48.2@-@../loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^  if \[ ! -f "$selftest_core_marker" \]; then$|  if true; then|'
+  # 49.x — the suite's own selection and its record of what it cost. Measured 2026-10-23: one case under
+  # `tools/loop/**` owes the whole self-test (723 s for 163 cases, serial) and the gate said nothing about it, so an
+  # item that touched two files paid 723 s on every iteration (#261 paid eight) and the twelve minutes could only
+  # be established with a stopwatch and a `ps`. One mutation per invariant: the group filter, the refusal of a
+  # filter that names nothing, the duration in the gate's record.
+  '49.1@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the group filter that keeps a suite from running the cases of another group (2026-10-23)@s|^  if \[ -n "\$only_group" \] && ! matches "\$case_name" "\$only_group#\*"; then continue; fi$|  : # the mutation runs every case the suite declares|'
+  '49.2@-@../loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23)@s|^  printf .%s. "\$n"$|  printf .%s. 1|'
+  '49.3@-@tools/loop/gate.sh@gate#theSummaryNamesWhatEachSuiteCost@the wall clock the gate records beside the suite that spent it (2026-10-23)@s|^  took=\$((SECONDS - t0))$|  took=0|'
+  '49.4@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the summary that names the selection a filtered run made (2026-10-23, review round 1 P1)@s|^\[ -n "\$only_group" \] && selection=" --group \$only_group"$|: # the mutation names no selection|'
+  # 50.x — a compiled path is read by the tree it sits in, and not by what its name ends in (issue #273). The rule
+  # has two halves and either alone leaves the case it names green: 50.1 puts the basename pattern back, which makes
+  # an archived evidence tally a compiled file again, and 50.2 removes the matcher's `set -f`, so the pattern
+  # anchored to a module's tree is replaced by the names it matched in the working directory and the module's own
+  # resource stops owing the build. The labels are 50.x and not 44.x because #272's sweep landed first with 44.1,
+  # and a label names one invariant for good; the change's own archived evidence still prints `RED 44.1`/`RED 44.2`
+  # from the runs it measured before this merge, which is what a dated log is.
+  '50.1@-@tools/loop/loop.conf@gate#anArchivedArtefactOwesNoBuild@the profile reading a compiled path by its tree rather than by its name@s|^LOOP_GATE_COMPILED_PATTERNS="\*/src/\*|LOOP_GATE_COMPILED_PATTERNS="*.xml */src/*|'
+  '50.2@-@tools/loop/gate.sh@gate#aModuleResourceOwesTheBuild@the matcher reading an anchored pattern as a pattern@s|\*) set -f|\*) true|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

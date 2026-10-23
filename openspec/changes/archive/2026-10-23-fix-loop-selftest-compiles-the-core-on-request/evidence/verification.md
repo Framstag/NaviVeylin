@@ -7,8 +7,8 @@ Read against the change's own artifacts and evidence, after the round-1 review a
 |---|---|---|
 | the requirement's scenario 1 has a case, and the case is red on HEAD | `driver#aCaseThatAsksForNoCoreCompilesNothing` — red: `tests="1" failures="1"`, green after the fix | `evidence/red-HEAD.xml`, `evidence/green-fix.xml` |
 | the requirement's scenario 2 has a case, and the case is red on HEAD | `driver#aCaseThatAsksForTheCoreGetsItOrRefuses` — red: `tests="1" failures="1"`, green after the fix | `evidence/red-HEAD-core-request.xml`, `evidence/green-fix.xml` |
-| the requirement's scenario 3 has a case, and it is falsified | `driver#theCoreIsCompiledOncePerSuite` — a nested two-case suite whose cases both ask, counting the probe's invocations; green on this tree, red under record `49.1` | `evidence/green-correction.log`, `evidence/revert-check-49.1.log` |
-| the invariant is falsified by a mutation | record `48.1` (the eager compile restored): red-when-mutated 1 · not-noticed 0 · restore-failures 0; record `49.1` (the marker dropped): the same three numbers | `evidence/revert-check-48.1.log`, `evidence/revert-check-49.1.log` |
+| the requirement's scenario 3 has a case, and it is falsified | `driver#theCoreIsCompiledOncePerSuite` — a nested two-case suite whose cases both ask, counting the probe's invocations; green on this tree, red under record `48.2` | `evidence/green-correction.log`, `evidence/revert-check-48.2.log` |
+| the invariant is falsified by a mutation | record `48.1` (the eager compile restored): red-when-mutated 1 · not-noticed 0 · restore-failures 0; record `48.2` (the marker dropped): the same three numbers | `evidence/revert-check-48.1.log`, `evidence/revert-check-48.2.log` |
 | the declared mutation set still applies | 101 of 101 records | `evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml` |
 | the gate is green on the tree the change leaves | six suites, none failed — the gate's own `LOOP-GATE` line is in `evidence/gate.log`, and the three shell suites' counts sum to it: 181 + 101 + 34 = 316 cases | `evidence/gate.log`, `evidence/gate-tallies/` |
 | the suites the pathspec owes ran | the loop's driver (`tests="181" failures="0"`), the record check (`tests="101"`), the harness's own suite (`tests="34"`), the classification gate and the section-reference check (both `tests="0"`, neither prints a case count), and the compiled step — `BUILD SUCCESSFUL in 4m 6s`, tallied `tests="0"` because Gradle prints no `all N cases passed` | `evidence/gate-tallies/`, `evidence/gate-tallies/._gradlew_test_-PforceTests_--no-build-cache.xml` |
@@ -36,7 +36,7 @@ Read against the change's own artifacts and evidence, after the round-1 review a
 3. **`evidence/revert-check-48.1.log` states no reason.** The harness prints the record, the case and the verdict
    (`RED`/`restore`) and neither a timestamp nor the case's own output (`tools/loop-mutations.sh:550`). The "right
    reason" is therefore read from the case's assertions — a poisoned `javac` reachable above `source` makes
-   `assert_eq "0" "$status"` fail — and not quoted from that log. `evidence/revert-check-49.1.log` has the same
+   `assert_eq "0" "$status"` fail — and not quoted from that log. `evidence/revert-check-48.2.log` has the same
    shape: the case it names fails on `assert_eq "1" "${invocations}"`, because the mutation makes the probe record
    two invocations.
 4. **`evidence/green-fix.log` holds two cases, not eight.** The affected-cases row above therefore cites the gate's

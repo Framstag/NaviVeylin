@@ -1655,3 +1655,57 @@ line `loop-selftest: the issue tooling's Java core does not compile`, and the ru
   records each invocation and succeeds
 - **THEN** both cases are handed the compiled class directory and the probe records exactly one invocation
 - **Case**: `driver#theCoreIsCompiledOncePerSuite`
+
+### Requirement: A suite run selects what it was asked for and the gate records what it cost
+
+The loop's self-test SHALL select over its declared cases: `--group <g>` for one group, `--case` for a name or a
+pattern, both at once, and `--list` printing the same selection. A filter that names no declared case SHALL be
+refused with exit 2 before any case runs. The gate SHALL record each suite's wall clock in seconds, on its own
+line, in the `LOOP-GATE:` summary and in the tally.
+
+#### Scenario: A group filter runs that group's cases and no other group's
+
+- **WHEN** the driver is run with `--group <g>` against a declared set of cases in two groups, one of which fails
+  whenever it is executed
+- **THEN** only the group's cases run, the suite exits 0, and the selection is named in the summary line
+- **Case**: `driver#aGroupFilterRunsOnlyItsOwnCases`
+
+#### Scenario: A filter that names no case is refused before a case runs
+
+- **WHEN** `--group <unknown>` or `--case <pattern matching nothing>` is passed
+- **THEN** the driver exits 2 naming the group or the pattern it could not resolve, and no case has been executed
+- **Case**: `driver#aFilterThatNamesNoCaseRefuses`
+
+#### Scenario: The list answers the same question the run does
+
+- **WHEN** `--list` is asked with a filter, and then without one
+- **THEN** it prints exactly that filter's cases, and then the whole declared set, and runs nothing either time
+- **Case**: `driver#theListIsFilteredTheSameWayASuiteRunIs`
+
+#### Scenario: The gate's record names what each suite cost
+
+- **WHEN** the gate runs a suite whose own wall clock is known, and it passes
+- **THEN** the suite's line, the `LOOP-GATE:` summary beside the command and the tally's `time` attribute all carry
+  that number of seconds
+- **Case**: `gate#theSummaryNamesWhatEachSuiteCost`
+
+### Requirement: A path is compiled by the tree it sits in or a build input's convention
+
+The gate SHALL decide that a path is compiled from the tree it sits in — a module's `src/` tree or its `lint.xml` —
+or from a name that is the convention for a build input (a `.gradle.kts` or `.gradle` script, a `.toml`, `CMakeLists.txt`), which classify wherever they sit; an extension that names anything else — `*.xml`, `*.kt`, `*.java`, `*.c`, `*.h` — SHALL NOT be enough. Every pattern SHALL be compared as a pattern, not expanded against the directory it runs in.
+
+#### Scenario: An archived artefact owes no compiled command
+
+- **WHEN** a delta's only paths are an archived change's evidence tally, and then a gate fixture that mimics a test
+  report, and the gate is asked what each delta owes without running anything
+- **THEN** the plan names no compiled command for either, and names the checks each delta does owe — the archived
+  tally's delta owes `check-classification` — so a delta that touches no compiled file is not made to run the build
+- **Case**: `gate#anArchivedArtefactOwesNoBuild`
+
+#### Scenario: A module's source tree and its lint configuration still owe the build
+
+- **WHEN** a delta touches a resource in a module's `src/` tree, and then that module's `lint.xml`, in a tree that
+  holds the directory the pattern names
+- **THEN** the plan names the compiled command for each, because a pattern is matched as a pattern and a module's
+  sources and lint configuration are what the build reads
+- **Case**: `gate#aModuleResourceOwesTheBuild`

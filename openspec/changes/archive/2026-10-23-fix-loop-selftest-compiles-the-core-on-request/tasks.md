@@ -54,17 +54,21 @@
 - [x] 5.1 **"at most once per suite" had no case.** Add `driver#theCoreIsCompiledOncePerSuite` to
       `tools/loop-cases.sh`: a nested driver whose two stub cases both ask for the core, with a `javac` probe on
       `PATH` that records every invocation and writes the class file they look for, asserting exactly one
-      invocation. Add record `49.1` to `tools/loop-mutations.sh` (the marker guard dropped to `if true`). Verify:
-      the case PASSes on this tree (`evidence/green-correction.log`), and `bash tools/loop-mutations.sh --only 49.1`
+      invocation. Add record `48.2` to `tools/loop-mutations.sh` (the marker guard dropped to `if true`; it was
+      numbered `49.1` before #273's merge took that label). Verify:
+      the case PASSes on this tree (`evidence/green-correction.log`), and `bash tools/loop-mutations.sh --only 48.2`
       → red-when-mutated 1 · not-noticed 0 · restore-failures 0 (`evidence/revert-check-49.1.log`).
 - [x] 5.2 **The gate record covered three suites, not the ones the pathspec owes.** `tools/loop/loop.conf` owes
       `bash tools/gen-feature-list.sh --check-classification` and `tools/check-doc-routes.sh` for the `openspec/`
       and `*.md` paths this change adds, and `gate.log` named three suites. Re-run the gate once on the archived
       tree, after every artifact including this file. Verify: `evidence/gate.log` — the suites it names, the
-      summary line, and the tallies in `evidence/gate-tallies/`.
+      summary line, and the tallies in `evidence/gate-tallies/`. Round 3 found this run's own tree stale (the last
+      write of `tools/loop-cases.sh` was 96 s after `gate.log` closed); `evidence/gate-final-tree.log` and
+      `evidence/gate-tallies-final/` are the run of the tree this change leaves — see 6.1.
 - [x] 5.3 **The sibling-driver sentence was false.** `tools/check-portability-selftest.sh:71` precompiles the core
       for `tools/portability-cases.sh`'s 27 shell cases, and `tools/resolve-stale-selftest.sh:50` does the same for
-      `tools/resolve-stale-cases.sh`'s 27 `resolver#…` cases, so a `--case` run of theirs does pay the same second.
+      `tools/resolve-stale-cases.sh`'s 27 shell cases (`resolver#…` 17 of them, the rest 7 `classifier#…`, 1
+      `prescreen#…`, 2 `pipeline#…`), so a `--case` run of theirs does pay the same second.
       Correct `proposal.md` and `design.md`, "What is not changed" to say exactly that, with the command that shows
       it: `grep -c 'java' tools/portability-cases.sh` → `1` (a `grep` target at `:354`).
 - [x] 5.4 **A note in the evidence: the revert-check log states no reason.** `evidence/revert-check-48.1.log`

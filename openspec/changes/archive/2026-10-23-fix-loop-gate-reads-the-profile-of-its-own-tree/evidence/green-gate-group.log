@@ -1,0 +1,27 @@
+# bash tools/loop-selftest.sh --group gate — 2026-10-23T14:20:44Z
+PASS gate#theDeltaSelectsTheSuitesItTouches
+PASS gate#anEnginePathOwesTheRecordCheck
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
+PASS gate#aFailingSuiteIsReadFromTheSameStream
+PASS gate#aFailingSuiteWithNoSummaryInventsNoTest
+PASS gate#aCompiledStepsTallyIsNotHidden
+PASS gate#theSummaryNamesWhatEachSuiteCost
+PASS gate#anArchivedArtefactOwesNoBuild
+PASS gate#aModuleResourceOwesTheBuild
+PASS gate#theGateNamesTheProfileItRead
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142052')
+HEAD ist jetzt bei d7f4318 an engine of its own
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (c8f4793)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (e2ab253)
+HEAD ist jetzt bei e2ab253 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war e2ab253).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+loop-selftest: all 11 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group gate
+exit=0

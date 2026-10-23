@@ -2,7 +2,7 @@
 
 ### Requirement: The gate reads the profile of the tree it measures
 
-The gate SHALL resolve its configuration from the profile beside its own engine — the tree whose paths it measures — and SHALL name that profile in the log it writes, calling a profile read from outside that tree pinned, beside the one the engine ships. A run SHALL resolve its own configuration and SHALL NOT hand it to a child that works in another tree.
+The gate SHALL resolve its configuration from the profile beside its own engine — the tree whose paths it measures — unless `LOOP_CONF` pins one, and SHALL name that profile in the log it writes, calling a profile read from outside that tree pinned, beside the one the engine ships. A run SHALL resolve its own configuration and SHALL NOT hand it to a child that works in another tree.
 
 #### Scenario: A gate names the profile it read
 

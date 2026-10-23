@@ -1,0 +1,4 @@
+# sha256sum of the profile this tree ships and the one the run pinned for this worker — 2026-10-23T14:57:12Z
+91d3ebb4680e212a4460d0f7c2bf553514ba8aa33a5862105fe946b17ffb9679  tools/loop/loop.conf
+91d3ebb4680e212a4460d0f7c2bf553514ba8aa33a5862105fe946b17ffb9679  /home/tim/projects/NaviVeylin/tools/loop/loop.conf
+equal=yes

@@ -44,17 +44,28 @@
 
 - [x] 4.1 The delta `specs/agent-issue-loop/spec.md` adds "The gate reads the profile of the tree it measures" with
       its two scenarios naming the two cases. **Verification:** `openspec validate
-      fix-loop-gate-reads-the-profile-of-its-own-tree --strict`.
+      fix-loop-gate-reads-the-profile-of-its-own-tree --strict` (`evidence/structural-checks.log`) and the archive's
+      own record (`evidence/archive.log`: `Task status: ✓ Complete`, `Specs updated successfully.`), which also
+      carries the validator's one warning — the proposal's `Why` section exceeds 1000 characters, left as written.
 - [x] 4.2 `guidelines/Backlog.md`, its section "The loop": one paragraph stating which profile a gate reads and that its log
       names it. **Verification:** `tools/check-doc-routes.sh`, which the profile owes for a `.md` path.
 
 ## 5. The gate and the archive
 
-- [x] 5.1 The project's gate, run once from the change root: `./tools/loop/gate.sh`. The delta touches no compiled
-      file, so the gate owes the shell suites and none of the build. **Verification:** the gate's own line and the
-      tallies it wrote (`evidence/gate.log`, `evidence/gate-tallies/`).
-- [x] 5.2 Evidence and archive: every cited XML copied into `evidence/`, the pointers checked mechanically
-      (`bash .pi/skills/fix-loop/scripts/evidence-check.sh
-      openspec/changes/fix-loop-gate-reads-the-profile-of-its-own-tree --root .`), the change archived and its delta
-      confirmed in `openspec/specs/agent-issue-loop/spec.md`. **Verification:** the check's output and the archive
-      directory (`evidence/archive.log`).
+- [x] 5.1 The project's gate, run once from the change root on the tree this change ships, its `openspec` artifacts
+      included: `./tools/loop/gate.sh --base 850dea2cbc64b7c6eba4061aa143bb82b2f43d44`. The pathspec reaches
+      `tools/loop/**` and `openspec/**`, so the profile owes five checks — `tools/loop-selftest.sh`,
+      `bash tools/loop-mutations.sh --check`, `tools/loop-mutations-selftest.sh`,
+      `bash tools/gen-feature-list.sh --check-classification` and `tools/check-doc-routes.sh` — and none of the build.
+      **Verification:** `evidence/gate.log`, whose first line names the profile it read and whose last line sums the
+      tallies of the five checks, written beside it (`evidence/*.xml`); and `evidence/profile-digest.log`, the
+      `sha256sum` of the profile this tree ships and of the one the run pinned for this worker — equal, which is why
+      a line that says "pinned" still attests this tree's rule.
+- [x] 5.2 Evidence and archive: every cited XML copied into `evidence/` — `mutation-check.log` and `archive.log`
+      included, which round 1 left only in the change's tree under `openspec/changes/archive/` — the archive
+      directory confirmed, and the pointers checked mechanically **after** the archive, against the path the change
+      lives at now: `bash .pi/skills/fix-loop/scripts/evidence-check.sh
+      openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree --root .`. **Verification:**
+      `evidence/evidence-check.log`, exit 0. The pre-archive invocation named
+      `openspec/changes/fix-loop-gate-reads-the-profile-of-its-own-tree`, which stopped resolving at the archive, and
+      its output was not kept.

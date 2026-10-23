@@ -47,8 +47,8 @@ nothing else, because `measure.sh` reads that output as its check list.
 
 - `tools/loop/lib.sh:39`–`42`, `:120`–`122` — the global and the one assignment.
 - `tools/loop/gate.sh:56`–`74` — the guard, the two pin lines, and the comment that says why `--plan` stays pure.
-- `tools/loop/run.sh:63`–`72` — one export replaced by `export -n`, and the empty-agent refusal naming
-  `LOOP_CONF_PATH` at `:100`.
+- `tools/loop/run.sh:63`–`71` — one export replaced by `export -n`, and the empty-agent refusal naming
+  `LOOP_CONF_PATH` at `:99`.
 - `tools/loop/measure.sh:45`–`48` — one `LOOP-MEASURE-PROFILE` line.
 - `tools/loop-cases.sh` — two cases and their declarations.
 - `tools/loop-mutations.sh` — records `52.1`–`52.3`.

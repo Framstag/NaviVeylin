@@ -73,5 +73,6 @@ existing sentence asserts which profile the gate reads; this change adds one.
 surface: 2 cases added, 0 rewritten, 0 fixtures realigned — `grep -rn "LOOP_CONF" tools/loop-cases.sh
 tools/loop-selftest.sh tools/loop/prompts tools/loop/fixtures` (80 lines, 2 files, both of them case code) and
 `grep -rn "LOOP_CONF" tools/loop/*.sh` (12 sites in four engine files: `lib.sh` 4, `gate.sh` 4, `run.sh` 3,
-`measure.sh` 1). No case asserts which profile a child's gate reads — the eleven `gate#` cases pin `LOOP_CONF` per
-invocation and read only the plan — and no prompt or fixture names the profile of a child's tree.
+`measure.sh` 1). No case asserts which profile a child's gate reads — the nine `gate#` cases the change inherits
+pin `LOOP_CONF` per invocation, and the two it adds assert the pin line — and no prompt or fixture names the profile
+of a child's tree.

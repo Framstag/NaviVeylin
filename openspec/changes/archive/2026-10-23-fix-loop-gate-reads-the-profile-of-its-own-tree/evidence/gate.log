@@ -1,3 +1,4 @@
+# ./tools/loop/gate.sh --base 850dea2cbc64b7c6eba4061aa143bb82b2f43d44 — 2026-10-23T14:43:09Z
 LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/tools/loop/loop.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
 gate: tools/loop-selftest.sh
 PASS state#initAndShowRoundTrips
@@ -10,13 +11,13 @@ PASS state#aDeadOwnersLockIsTakenOver
 PASS state#initKeepsTheStateItReplaces
 PASS state#initAnnouncesARunWithoutAStop
 PASS state#defaultsComeFromLoopConf
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142210')
-HEAD ist jetzt bei 18cfbf7 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144327')
+HEAD ist jetzt bei 282e6f8 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (bac0afd)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c5df5bd)
-HEAD ist jetzt bei c5df5bd review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c5df5bd).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6457620)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f38cebb)
+HEAD ist jetzt bei f38cebb review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f38cebb).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -24,13 +25,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS state#projectKeysAreReadFromLoopConf
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142218')
-HEAD ist jetzt bei b9ac236 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144334')
+HEAD ist jetzt bei 941f3e5 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (7a56ec0)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f60e840)
-HEAD ist jetzt bei f60e840 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f60e840).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (813af71)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (478854a)
+HEAD ist jetzt bei 478854a review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 478854a).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -53,7 +54,7 @@ PASS prescreen#deviceItemIsAVerdictNotWork
 PASS prescreen#readsTheVerdictsFromTheProfile
 PASS prescreen#aFinishedAttemptBranchIsADecision
 PASS prescreen#aBlockedAttemptBranchIsWork
-state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.cEHG3L/case.O4gWjb/repo/.pi/issue-loop/runs/2026-10-23T14:22:35Z.json
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.Wky0xS/case.JbxjdW/repo/.pi/issue-loop/runs/2026-10-23T14:43:51Z.json
 PASS prescreen#landedBranchIsNotADecision
 PASS prescreen#itemAwaitingADecisionIsNotQueued
 PASS prescreen#aHoldWithNoDecisionIsNotADecision
@@ -67,31 +68,31 @@ PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
 PASS prescreen#refusalLeavesATraceInTheTracker
 PASS prescreen#aFixInTheSubmoduleIsAPersonsPatch
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei 0bbc7d9 init
+HEAD ist jetzt bei bd1a9d2 init
 PASS worktree#seedsAllFourInputs
 PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei 0bbc7d9 init
+HEAD ist jetzt bei 743a7cf init
 Zu neuem Branch 'fix/issue-22-other' gewechselt
 PASS worktree#oneBranchPerItemOffTheBase
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei b57f8bd init
+HEAD ist jetzt bei 743a7cf init
 Zu neuem Branch 'fix/issue-21-demo' gewechselt
 PASS worktree#refusesWhenMainAdvanced
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142248')
-HEAD ist jetzt bei b57f8bd init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144405')
+HEAD ist jetzt bei 3640526 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (aaa7240)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (6c2a287)
-HEAD ist jetzt bei 6c2a287 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 6c2a287).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f5a815f)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (e1323ec)
+HEAD ist jetzt bei e1323ec review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war e1323ec).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
 closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
-Zu neuem Branch 'loop-20261023-142255' gewechselt
+Zu neuem Branch 'loop-20261023-144412' gewechselt
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
 unpick #21
@@ -102,13 +103,13 @@ pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS worktree#keepsByDefaultAndRemovesOnRequest
 PASS worktree#keepsSourcesNotBuildOutput
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142308')
-HEAD ist jetzt bei ac0bbd0 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144425')
+HEAD ist jetzt bei 30551c6 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6954493)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (8248383)
-HEAD ist jetzt bei 8248383 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 8248383).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f94216b)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (83c476d)
+HEAD ist jetzt bei 83c476d review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 83c476d).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -117,44 +118,44 @@ pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS worktree#noPushWithoutTheFlag
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei 3dec0b2 init
+HEAD ist jetzt bei c36810b init
 Zu neuem Branch 'fix/issue-21-demo' gewechselt
-state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.cEHG3L/case.h5TBxw/repo/.pi/issue-loop/runs/2026-10-23T14:23:14Z.json
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.Wky0xS/case.gZixNc/repo/.pi/issue-loop/runs/2026-10-23T14:44:31Z.json
 PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei a9f0327 init
-state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.cEHG3L/case.OobREl/repo/.pi/issue-loop/runs/2026-10-23T14:23:15Z.json
+HEAD ist jetzt bei 7dac074 init
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.Wky0xS/case.fle0xO/repo/.pi/issue-loop/runs/2026-10-23T14:44:32Z.json
 PASS worktree#reusesABranchWhoseWorkAlreadyLanded
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei a9f0327 init
+HEAD ist jetzt bei 7dac074 init
 Zu neuem Branch 'fix/issue-21-demo' gewechselt
 PASS worktree#refusesABranchCarryingAPreviousAttempt
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei ef1de01 init
+HEAD ist jetzt bei be972d1 init
 Zu neuem Branch 'fix/issue-21-demo' gewechselt
 PASS worktree#setsAsideABlockedAttemptAndStartsFresh
 PASS worktree#doesNotAdoptAChangeCreditedToAnotherIssue
 PASS worktree#refusesABranchWhoseReviewFailed
 PASS worktree#refusesABranchWhoseReviewRoundNeverAnswered
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei 57afcf1 init
+HEAD ist jetzt bei 7ed45bb init
 Zu neuem Branch 'fix/issue-21-demo' gewechselt
 PASS worktree#refusesToMergeOverADirtyProjectTree
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei 0584f5d init
+HEAD ist jetzt bei a218a97 init
 Zu neuem Branch 'fix/issue-21-demo' gewechselt
 PASS worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
 PASS labels#verdictToLabelMatrix
 PASS labels#holdCarriesItsReason
 PASS labels#trapRemovesInProgressOnSignal
 PASS labels#neverWritesReservedLabel
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142325')
-HEAD ist jetzt bei aa7c05c init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144442')
+HEAD ist jetzt bei fb6013a init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (cfbc8a9)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (caf10f8)
-HEAD ist jetzt bei caf10f8 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war caf10f8).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (9162636)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (0c68841)
+HEAD ist jetzt bei 0c68841 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 0c68841).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -163,13 +164,13 @@ pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS labels#writesOnlyBetweenChildren
 PASS labels#closeRemovesTheDecisionLabel
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142333')
-HEAD ist jetzt bei 9f9a098 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144450')
+HEAD ist jetzt bei c363b42 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e51e3d0)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (454e5fa)
-HEAD ist jetzt bei 454e5fa review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 454e5fa).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (17e3c5a)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (8155af2)
+HEAD ist jetzt bei 8155af2 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 8155af2).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -177,13 +178,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS prompt#workerNamesEveryPhaseAndSkill
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142341')
-HEAD ist jetzt bei ca5e01d init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144458')
+HEAD ist jetzt bei f27f68b init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (33ed7da)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (ba655d3)
-HEAD ist jetzt bei ba655d3 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war ba655d3).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (d211a2a)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5efb702)
+HEAD ist jetzt bei 5efb702 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5efb702).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -191,13 +192,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS prompt#workerCarriesTheFeaturePath
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142348')
-HEAD ist jetzt bei 36cff78 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144506')
+HEAD ist jetzt bei faf5a8f init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (76f700d)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (dadf681)
-HEAD ist jetzt bei dadf681 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war dadf681).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e187174)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (8e66b61)
+HEAD ist jetzt bei 8e66b61 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 8e66b61).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -205,13 +206,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS prompt#workerNamesTheDecisionField
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142356')
-HEAD ist jetzt bei a62b091 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144514')
+HEAD ist jetzt bei 8f40b60 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6675932)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (693683d)
-HEAD ist jetzt bei 693683d review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 693683d).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (90af180)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (cb1ea39)
+HEAD ist jetzt bei cb1ea39 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war cb1ea39).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -219,13 +220,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS prompt#workerTreatsARecordedDecisionAsSettled
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142403')
-HEAD ist jetzt bei 3332a82 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144521')
+HEAD ist jetzt bei 3f4054b init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (39276d5)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (38f704e)
-HEAD ist jetzt bei 38f704e review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 38f704e).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (1875fef)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (87f6e4d)
+HEAD ist jetzt bei 87f6e4d review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 87f6e4d).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -233,13 +234,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS prompt#reviewerCarriesTheEightItems
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142411')
-HEAD ist jetzt bei a3ab21b init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144529')
+HEAD ist jetzt bei 6424099 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (aa30482)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (0f55277)
-HEAD ist jetzt bei 0f55277 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 0f55277).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (fdff915)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (6f2368a)
+HEAD ist jetzt bei 6f2368a review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 6f2368a).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -248,13 +249,13 @@ pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS prompt#reviewerIsBoundedToReading
 PASS prompt#iterationProtocolHandsTheReviewerTheSameSkeleton
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142418')
-HEAD ist jetzt bei 7eecb46 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144536')
+HEAD ist jetzt bei 5c45b1c init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ca4e9cc)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (b9abb86)
-HEAD ist jetzt bei b9abb86 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war b9abb86).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (37e3aa3)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c3b6aea)
+HEAD ist jetzt bei c3b6aea review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c3b6aea).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -263,13 +264,13 @@ pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS prompt#workerNamesTheChangeSurfaceBeforeThePlan
 PASS prompt#iterationProtocolNamesTheChangeSurface
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142425')
-HEAD ist jetzt bei 4c1cc0a init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144544')
+HEAD ist jetzt bei c6034f5 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ea6fefa)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (6bf0c22)
-HEAD ist jetzt bei 6bf0c22 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 6bf0c22).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (5104571)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (db51ea9)
+HEAD ist jetzt bei db51ea9 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war db51ea9).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -299,13 +300,13 @@ PASS driver#theListIsFilteredTheSameWayASuiteRunIs
 PASS gate#anArchivedArtefactOwesNoBuild
 PASS gate#aModuleResourceOwesTheBuild
 PASS gate#theGateNamesTheProfileItRead
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142527')
-HEAD ist jetzt bei 6f19793 an engine of its own
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144647')
+HEAD ist jetzt bei b02fcb8 an engine of its own
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (d1b5eeb)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2fc6510)
-HEAD ist jetzt bei 2fc6510 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2fc6510).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (a43035b)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (a48e680)
+HEAD ist jetzt bei a48e680 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war a48e680).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -319,13 +320,13 @@ PASS measure#namesTheOwedChecksInOneBlock
 PASS measure#printsTheNumbersTheReviewerAsksFor
 PASS measure#refusesToGuessWhichChangeItMeasures
 PASS measure#saysHowManyTalliesItWithheld
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142536')
-HEAD ist jetzt bei 27a3446 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144656')
+HEAD ist jetzt bei 2f402df init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (fa93d9b)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (cdfb438)
-HEAD ist jetzt bei cdfb438 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war cdfb438).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (5143c74)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (fc368d5)
+HEAD ist jetzt bei fc368d5 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war fc368d5).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -333,13 +334,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS prompt#workerIsHandedTheMeasureBlock
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142543')
-HEAD ist jetzt bei 6599034 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144703')
+HEAD ist jetzt bei ff03c82 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (5ea86ea)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (44c3e05)
-HEAD ist jetzt bei 44c3e05 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 44c3e05).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (9c30eaf)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (92e06d7)
+HEAD ist jetzt bei 92e06d7 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 92e06d7).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -349,13 +350,13 @@ pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
 PASS run#oneItemOrderIsFixed
 PASS run#childClaimWithoutCommitIsBlocked
 PASS run#blockedItemIsEscalatedWithItsReason
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142600')
-HEAD ist jetzt bei 422ee48 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144721')
+HEAD ist jetzt bei f063bcf init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (e62812e)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (eda8a46)
-HEAD ist jetzt bei eda8a46 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war eda8a46).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (533f06d)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (ae6cafd)
+HEAD ist jetzt bei ae6cafd review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war ae6cafd).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -380,13 +381,13 @@ PASS run#branchThatAppearsWhileTheRunIsOpenIsSetAside
 PASS run#mergesAFinishedAttemptAndClosesTheItem
 PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
 PASS run#mergesItsCommittedBranchBeforeClosing
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142744')
-HEAD ist jetzt bei 574f79a init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-144905')
+HEAD ist jetzt bei 720c7ad init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (7bc6dab)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (36014bc)
-HEAD ist jetzt bei 36014bc review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 36014bc).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (7db5fb0)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (695c92f)
+HEAD ist jetzt bei 695c92f review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 695c92f).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -399,13 +400,13 @@ PASS run#staleTestResultsAreNotThisChildsGate
 PASS run#doesNotCloseOnAMergeTheBaseCannotTake
 PASS run#recordsAFailedReviewOnTheBranch
 PASS run#announcesAndRecordsTheReviewRound
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142842')
-HEAD ist jetzt bei 49702f4 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145003')
+HEAD ist jetzt bei 0568c29 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (edfc619)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (ad71c16)
-HEAD ist jetzt bei ad71c16 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war ad71c16).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (27ca32c)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (1452217)
+HEAD ist jetzt bei 1452217 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 1452217).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -413,13 +414,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS run#dirtyKeptWorktreeIsARecordedRefusal
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142850')
-HEAD ist jetzt bei 7dfb700 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145011')
+HEAD ist jetzt bei 09aceec init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (548b122)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (180a525)
-HEAD ist jetzt bei 180a525 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 180a525).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (23b02bb)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (197dbfe)
+HEAD ist jetzt bei 197dbfe review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 197dbfe).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -433,13 +434,13 @@ PASS run#workPackageCarriesTheRecordedDecision
 PASS run#claimedGateWithoutEvidenceIsBlocked
 PASS run#citedEvidenceMustTravelWithTheChange
 PASS run#needsDecisionIsEscalatedWithTheWork
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-142932')
-HEAD ist jetzt bei bef1c08 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145053')
+HEAD ist jetzt bei 0927f30 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (7910fd6)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (3bf83ca)
-HEAD ist jetzt bei 3bf83ca review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 3bf83ca).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (868d2f4)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c6ac041)
+HEAD ist jetzt bei c6ac041 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c6ac041).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -447,9 +448,9 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS run#noGateStillRuns
-state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.cEHG3L/case.RMJert/repo/.pi/issue-loop/runs/2026-10-23T14:29:39Z.json
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.Wky0xS/case.u33MAQ/repo/.pi/issue-loop/runs/2026-10-23T14:51:00Z.json
 Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
-HEAD ist jetzt bei 8bf0986 init
+HEAD ist jetzt bei 894e6b4 init
 PASS run#dryRunTouchesNothing
 PASS run#reviewRoundsCapAtTwo
 PASS run#reviewBudgetIsARecordedValue
@@ -461,26 +462,26 @@ PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
 PASS run#aCutReportIsRetriedInsteadOfRefused
 PASS run#aReportCutTwiceBlocksAsTheTransportsFault
 PASS run#escalationCarriesTheDecision
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143130')
-HEAD ist jetzt bei 954013b init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145256')
+HEAD ist jetzt bei 9c9cc8c init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (a3713de)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (eceea3c)
-HEAD ist jetzt bei eceea3c review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war eceea3c).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (5f4bd27)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (7b5b77a)
+HEAD ist jetzt bei 7b5b77a review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 7b5b77a).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 commented on #21 (left open)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS run#mayCloseNoLeavesTheIssueOpen
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143138')
-HEAD ist jetzt bei d86611a init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145304')
+HEAD ist jetzt bei 041a6e7 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0c9de01)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5c25a16)
-HEAD ist jetzt bei 5c25a16 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5c25a16).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6483633)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (59f5418)
+HEAD ist jetzt bei 59f5418 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 59f5418).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -488,24 +489,24 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS run#metricsRecordedPerItem
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143145')
-HEAD ist jetzt bei c61a0a2 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145312')
+HEAD ist jetzt bei e5e8299 init
 stub gh: recorded `gh issue edit`
-HEAD ist jetzt bei 5c9536a fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5c9536a).
+HEAD ist jetzt bei 4ff28ca fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4ff28ca).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
 closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143151')
-HEAD ist jetzt bei a6d230f init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145318')
+HEAD ist jetzt bei 88bad97 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (9d8a4af)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (e9a2766)
-HEAD ist jetzt bei e9a2766 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war e9a2766).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (27c2f7d)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2ab0d85)
+HEAD ist jetzt bei 2ab0d85 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2ab0d85).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -513,13 +514,13 @@ closed #21 (completed)
 pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
 PASS run#childUsageIsRecordedPerItem
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143158')
-HEAD ist jetzt bei d1e4d59 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145326')
+HEAD ist jetzt bei 637e795 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4a71f33)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (27eda20)
-HEAD ist jetzt bei 27eda20 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 27eda20).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (78a7884)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (32061c6)
+HEAD ist jetzt bei 32061c6 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 32061c6).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -531,13 +532,13 @@ PASS run#emptyQueueIsNotAFailure
 PASS run#stopReasonIsPrintedAndReported
 PASS run#staleBaseStopsTheRunWithItsReason
 PASS run#awaitingDecisionIsNotEscalatedAgain
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143223')
-HEAD ist jetzt bei e5972c0 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145354')
+HEAD ist jetzt bei 111df00 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (2423fd5)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (d1fd3b0)
-HEAD ist jetzt bei d1fd3b0 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d1fd3b0).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (63c3de5)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (25c27e3)
+HEAD ist jetzt bei 25c27e3 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 25c27e3).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -548,13 +549,13 @@ PASS run#commitsWithoutAnAmbientIdentity
 PASS run#reviewerWriteInvalidatesTheRound
 PASS run#reviewReadOnlyOffOnlyForDiagnosis
 PASS run#reviewDiffExcludesTheEvidenceArchive
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143253')
-HEAD ist jetzt bei a689c0d init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145427')
+HEAD ist jetzt bei 08cebc8 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (81158fe)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (9a87a27)
-HEAD ist jetzt bei 9a87a27 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 9a87a27).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ac5db2c)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f42c9f1)
+HEAD ist jetzt bei f42c9f1 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f42c9f1).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -564,13 +565,13 @@ pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
 PASS run#engineNamesNoProjectFact
 PASS adapter#modeFlagIsItsOwnArgument
 PASS state#inheritedStatePathOutsideTheTreeIsIgnored
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143300')
-HEAD ist jetzt bei 8cd7a7c init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145435')
+HEAD ist jetzt bei 38e1ff3 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (76c5ad2)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c486d28)
-HEAD ist jetzt bei c486d28 review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c486d28).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0c2e702)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f91393e)
+HEAD ist jetzt bei f91393e review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f91393e).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -585,24 +586,24 @@ PASS report#aVerdictAloneIsNoEscalation
 PASS report#misdiagnosedIsCountedApart
 PASS report#archivedStateIsReported
 PASS report#impossibleBudgetNamesAnotherRun
-state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.cEHG3L/case.OQJWlV/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (a0e6f8578094527a → ff88c1791060a1a4); a field was edited outside this script
+state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.Wky0xS/case.XIbT96/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (01fd9579cbd7a9fc → 1833e2f656a4ef9b); a field was edited outside this script
 PASS report#aKilledRunIsNotALiveRun
 PASS report#wallTimeAndReasonInTheTable
-state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.cEHG3L/case.6MIJOg/repo/.pi/issue-loop/runs/2026-10-23T14:33:27Z.json
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.Wky0xS/case.WsHNAp/repo/.pi/issue-loop/runs/2026-10-23T14:55:04Z.json
 PASS report#zeroUsagePrintsDashNotZero
 PASS report#actionsNameDecisionAndBranch
-state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.cEHG3L/case.aLXykw/repo/.pi/issue-loop/runs/2026-10-23T14:33:28Z.json
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.Wky0xS/case.wDxyGE/repo/.pi/issue-loop/runs/2026-10-23T14:55:05Z.json
 PASS report#landedBranchIsNoAction
 PASS report#landedBranchesAreNamedAsRemovable
 PASS report#emptyRunSaysNone
 PASS clean#interruptedSuiteRemovesItsScratchTree
-Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-143331')
-HEAD ist jetzt bei 5cc21a8 init
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-145509')
+HEAD ist jetzt bei 45026e3 init
 stub gh: recorded `gh issue edit`
-recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ffedfe4)
-recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5ca87fc)
-HEAD ist jetzt bei 5ca87fc review: 2026-01-01-fix-demo round 1 passed (#21)
-Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5ca87fc).
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4f4f9a0)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (9673d30)
+HEAD ist jetzt bei 9673d30 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 9673d30).
 released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
@@ -623,13 +624,13 @@ PASS driver#aCaseThatAsksForNoCoreCompilesNothing
 PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
 PASS driver#theCoreIsCompiledOncePerSuite
 loop-selftest: all 190 cases passed (JDK 27, offline, no token, no sandbox)
-ended 12632 — its working directory is inside loop-selftest.cEHG3L
-ended 350522 — its working directory is inside loop-selftest.cEHG3L
-gate: tools/loop-selftest.sh — 717s
+ended 1089677 — its working directory is inside loop-selftest.Wky0xS
+ended 518950 — its working directory is inside loop-selftest.Wky0xS
+gate: tools/loop-selftest.sh — 742s
 gate: bash tools/loop-mutations.sh --check
-loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.l1Kg5s
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.FAM0E5
 loop-mutations: all 111 cases passed — every selected record applies to the file it names
-gate: bash tools/loop-mutations.sh --check — 0s
+gate: bash tools/loop-mutations.sh --check — 1s
 gate: tools/loop-mutations-selftest.sh
 ok   a non-matching mutation exits non-zero
 ok   and it is named as such
@@ -666,8 +667,22 @@ ok   and nothing else
 ok   and it says the same selection the file set named
 ok   and the copy is byte-identical to the pristine one again
 loop-mutations-selftest: all 34 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched
-gate: tools/loop-mutations-selftest.sh — 71s
+gate: tools/loop-mutations-selftest.sh — 90s
+gate: bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 177
+classified: 180
+unclassified: 0
+delta spec ids: 1
+stale: 3
+car-only areas: 1
+highlights: 19
+gate: bash tools/gen-feature-list.sh --check-classification — 3s
 gate: tools/check-doc-routes.sh
 check-doc-routes: all 152 section references resolve, all 4 skill references resolve
 gate: tools/check-doc-routes.sh — 0s
-LOOP-GATE: tests=335 failures=0 errors=0 (tools/loop-selftest.sh 717s, bash tools/loop-mutations.sh --check 0s, tools/loop-mutations-selftest.sh 71s, tools/check-doc-routes.sh 0s)
+LOOP-GATE: tests=335 failures=0 errors=0 (tools/loop-selftest.sh 742s, bash tools/loop-mutations.sh --check 1s, tools/loop-mutations-selftest.sh 90s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 0s)
+exit=0

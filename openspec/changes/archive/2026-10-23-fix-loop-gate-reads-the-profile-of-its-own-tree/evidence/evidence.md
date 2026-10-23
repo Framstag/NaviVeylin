@@ -39,30 +39,50 @@ the restore.
 
 ## The gate
 
-`gate.log` — `./tools/loop/gate.sh --base 850dea2cbc64b7c6eba4061aa143bb82b2f43d44`, exit 0. Its first line names the
-profile, and its last line is the gate's own record of what the four suites it ran reported — the line is quoted
-here without its numbers, because the four numbers are the tallies' own and are cited one by one below:
+`gate.log` — `./tools/loop/gate.sh --base 850dea2cbc64b7c6eba4061aa143bb82b2f43d44`, exit 0, run on the tree this
+change ships, its `openspec` artifacts included. The pathspec reaches `tools/loop/**` and `openspec/**`, so the
+profile owes five checks: the three shell suites, `bash tools/gen-feature-list.sh --check-classification` and
+`tools/check-doc-routes.sh`. Its first line names the profile, its last line sums the five tallies written beside
+this file:
 
 ```
 LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/tools/loop/loop.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
 …
-LOOP-GATE: <the sum of the four tallies below> (tools/loop-selftest.sh 717s, bash tools/loop-mutations.sh --check 0s, tools/loop-mutations-selftest.sh 71s, tools/check-doc-routes.sh 0s)
+LOOP-GATE: <the sum of the five tallies below> (tools/loop-selftest.sh 742s, bash tools/loop-mutations.sh --check 1s, tools/loop-mutations-selftest.sh 90s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 0s)
 ```
 
-The four tallies that line sums are the ones the gate wrote, beside this file:
-`tools_loop-selftest.sh.xml` (`tests="190" failures="0"`), `bash_tools_loop-mutations.sh_--check.xml`
-(`tests="111" failures="0"`), `tools_loop-mutations-selftest.sh.xml` (`tests="34" failures="0"`) and
-`tools_check-doc-routes.sh.xml` (`tests="0" failures="0"`) — 335 cases, none failing, none erroring, which is the
-number the gate's own line carries in `gate.log`.
+The five tallies that line sums are the ones the gate wrote, beside this file: `tools_loop-selftest.sh.xml`
+(`tests="190" failures="0"`), `bash_tools_loop-mutations.sh_--check.xml` (`tests="111" failures="0"`),
+`tools_loop-mutations-selftest.sh.xml` (`tests="34" failures="0"`),
+`bash_tools_gen-feature-list.sh_--check-classification.xml` (`tests="0" failures="0"`, its verdict on stdout in the
+transcript) and `tools_check-doc-routes.sh.xml` (`tests="0" failures="0"`) — 335 cases, none failing, none erroring.
+
+**Correction, round 2.** Round 1's gate ran before this change's `openspec` artifacts landed, so its plan named the
+`tools/` and `guidelines/` paths only and the fifth check never entered its log; `tasks.md` 5.1 read as full
+coverage of a delta it covered by half. This run is the same command over the final tree, and its last line names
+the fifth check.
 
 **Why the pin line says "pinned".** This change's own gate run inherited `LOOP_CONF` from the run that started this
 worker, and that run's `run.sh` is HEAD's — the export this change removes. A child cannot change the environment its
 parent already exported, so the first line of `gate.log` is the defect observed live, written by the fix that makes it
-visible. The numbers still attest this tree, and the two facts that say so are measured: the profile the gate read is
-byte-identical to the tree's own (`sha256sum` on both is
-`91d3ebb4680e212a4460d0f7c2bf553514ba8aa33a5862105fe946b17ffb9679`), and the diff since the base touches no
-`tools/loop/loop.conf` at all (`git diff --name-only 850dea2c -- tools/loop/loop.conf` prints nothing), so the rule
-the two files name is the same rule; every suite ran from the change root.
+visible. The numbers still attest this tree, and the two facts that say so are measured:
+`profile-digest.log` — `sha256sum tools/loop/loop.conf /home/tim/projects/NaviVeylin/tools/loop/loop.conf` is
+`91d3ebb4680e212a4460d0f7c2bf553514ba8aa33a5862105fe946b17ffb9679` for both, `equal=yes` — and
+`git diff --name-only 850dea2c -- tools/loop/loop.conf` prints nothing, so the rule the two files name is the same
+rule; every suite ran from the change root.
 
 The gate owes no compiled command: the delta touches no compiled file (`tools/loop/loop.conf`'s compiled patterns and
 suite map are unchanged), which is the rule `agent-issue-loop` already states and this change does not alter.
+
+## The pointers
+
+`evidence-check.log` — the mechanical check, run **after** the archive against the path the change lives at now:
+`bash .pi/skills/fix-loop/scripts/evidence-check.sh
+openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree --root .` — `C1` 0 references
+checked (archived pointers exempted), `C2` every quoted tally confirmed with no drift, `C3` no `/tmp` pointer, `C4`
+no mutation marker left in `app/src`, `C5` all 340 `file:line` pointers resolved and in range, `evidence-check:
+PASS`, exit 0.
+
+`archive.log` — the archive's own record: `Task status: ✓ Complete`, `agent-issue-loop: update`, `+ 1 added`,
+`Specs updated successfully.`, and the change directory the archive created. It also carries the validator's one
+warning — the proposal's `Why` section exceeds 1000 characters — left as written.

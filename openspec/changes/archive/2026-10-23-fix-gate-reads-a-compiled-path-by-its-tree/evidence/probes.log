@@ -1,0 +1,28 @@
+== probe 1: the plan on HEAD's profile and HEAD's engine, for this tree's own diff (issue #273)
+date=2026-10-23T07:00:43Z
+base=5491e71ea819e0808d0d9336e004ad5ce456202b
+compiled-extension paths in the diff: 0
+xml paths in the diff: 4
+-- the xml paths:
+   openspec/changes/archive/2026-10-23-fix-loop-unanswered-review-round-is-not-adopted/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+   openspec/changes/archive/2026-10-23-fix-loop-unanswered-review-round-is-not-adopted/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml
+   openspec/changes/archive/2026-10-23-fix-loop-unanswered-review-round-is-not-adopted/evidence/gate-tallies/tools_loop-selftest.sh.xml
+   openspec/changes/archive/2026-10-23-fix-loop-unanswered-review-round-is-not-adopted/evidence/red-HEAD.xml
+-- the plan HEAD prints for it:
+   ./gradlew test -PforceTests --no-build-cache
+   tools/loop-selftest.sh
+   bash tools/loop-mutations.sh --check
+   tools/loop-mutations-selftest.sh
+   bash tools/gen-feature-list.sh --check-classification
+   tools/check-doc-routes.sh
+
+== probe 2: an anchored pattern the profile already declares, in a tree that holds the directory
+-- profile: LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
+LOOP_GATE_COMPILED_PATTERNS="app/src/main/res/*"
+-- HEAD's matcher, for a delta that adds app/src/main/res/values/colors.xml:
+   LOOP-GATE: nothing owed — no path this profile gates changed since 9c7ba0e0c2d2ea1d803c59d23308cc92d3c2f48d
+-- this change's matcher, the same delta and the same profile:
+   fake-build
+-- and the bounded list this change ships, on this tree's profile:
+   LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
+tmp=/tmp/probeev.zM77YQ

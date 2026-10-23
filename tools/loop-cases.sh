@@ -142,6 +142,7 @@ LOOP_SHELL_CASES=(
   'run#everyPhaseBoundaryIsPrinted'
   'run#childOutlastingTheWallClockIsBlocked'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
+  'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
@@ -395,6 +396,7 @@ loop_run_shell_case() {
     'run#everyPhaseBoundaryIsPrinted') fn=case_run_everyPhaseBoundaryIsPrinted ;;
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
+    'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
@@ -3453,6 +3455,78 @@ case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
     "the transcript names the process the group signal could not reach"
   out=$(loop_pids_under "$tree")
   [ -z "$out" ] || fail "process(es) of the ended child are still working in the worktree: $out"
+}
+
+# A child the run itself ended is unfinished, and the tree at that moment is whatever it was doing: a
+# half-applied mutation, a half-written file, a gate's scratch directory. The run committed that tree by calling
+# `end-item` before it knew the child was over — measured 2026-10-22 (issue #271): the worker of #262 was ended at
+# 23:48 with mutation 19.2 applied (`if false; then` in place of the corrective-round test), `end-item` committed
+# the tree 18 s later, and the dead arm stayed on `origin/fix/issue-262-…` until it was amended by hand at 05:05.
+# The assertion is the branch, not the report: a commit that carries the child's half-written file is the whole
+# defect, and the tree the child left is kept rather than discarded (nothing is discarded without
+# `--reset-worktree`, `run.sh`'s own rule for the kept worktree).
+case_run_treeOfAChildTheCapEndedIsNotCommitted() {
+  local d p conf fifo pid i status out tree base report files
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The child's own work, half applied: a file in the worktree it never finished, written before it blocks on the
+  # fifo. The mutation harness of #262 has the same shape — the tree carries the edit and the child has no report.
+  {
+    printf 'case "$1" in\n'
+    printf '  worker*)\n'
+    printf '    printf "half-applied\\n" > half-applied.txt\n'
+    printf '    ;;\n'
+    printf 'esac\n'
+  } > "$d/worker-action.sh"
+  export PI_STUB_ACTION="$d/worker-action.sh"
+  tree="$p/.pi/worktrees/loop"
+  base=$(git -C "$p" rev-parse HEAD)
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  if [ ! -e "$fifo.ready" ]; then
+    kill -9 "$pid" 2>/dev/null
+    fail "the stub child never started"
+  fi
+  # The case holds the fifo's writer side for its whole life, so releasing a child never blocks and never leaves a
+  # writer behind. The child is never released: the 2 s cap ends it with its file written.
+  exec 8> "$fifo"
+  for i in $(seq 1 200); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    # The diagnosis has to clean up after itself: the run's own group dies here, and the fifo line the child never
+    # got is written so a child still waiting on it leaves too.
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 20 s on a child that outlasted its 2 s cap"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child that was ended"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
+    "the report carries the line that says the run ended the child"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child was ended by the cap is recorded blocked"
+  # The branch is the assertion: `end-item` committed the tree the ended child left, so the item's branch carries a
+  # commit of work the child never claimed — and the half-applied file with it.
+  assert_eq "$base" "$(git -C "$tree" rev-parse HEAD)" \
+    "the tree a child the run ended left behind is not committed — the branch stays at the base"
+  files=$(git -C "$tree" status --porcelain)
+  assert_contains "$files" "half-applied.txt" \
+    "and the tree the ended child left is kept as it left it, named for the person who repairs it"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
 }
 
 # `run_child` returns the child's status and nothing else, so the caller could not tell a child whose argv the

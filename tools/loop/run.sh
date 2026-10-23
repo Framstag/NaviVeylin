@@ -1096,9 +1096,24 @@ while true; do
 
   # The run verifies rather than trusts: it commits the child's work itself and then reads the tree, the
   # archive and the gate's evidence, instead of repeating the child's claims (D3, D8).
-  commit_out=$(bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" 2>&1)
+  #
+  # A child the run itself ended is unfinished, and the tree at that moment is whatever it was doing — a
+  # half-applied mutation, a half-written file, a gate's scratch directory — so committing it asserts work the
+  # child never claimed. Measured 2026-10-22 (issue #271): the worker of #262 was ended at 23:48 with mutation
+  # 19.2 applied (`if false; then` in place of the corrective-round test), `end-item` committed that tree 18 s
+  # later and the dead arm stayed on `origin/fix/issue-262-…` until it was amended by hand at 05:05. A commit is
+  # the run's statement about a child that finished, so a child the run ended gets none: the branch stays at the
+  # base, the item is blocked with the transcript, and the tree is kept exactly as the child left it — nothing is
+  # discarded without `--reset-worktree` (issue #173), and the next start refuses it and names it.
+  commit_out=""
   head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
-  progress commit "end-item returned — HEAD ${head_now:0:12} (base ${base:0:12})"
+  if [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$timeout_claim" ]; then
+    progress commit "end-item skipped — the run ended this child, so its tree is not committed; HEAD is ${head_now:0:12} (base ${base:0:12})"
+  else
+    commit_out=$(bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" 2>&1)
+    head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+    progress commit "end-item returned — HEAD ${head_now:0:12} (base ${base:0:12})"
+  fi
 
   # A child that never started is the run's fault, not the item's (issue #212). `run_child` returns the child's
   # status and nothing else, so a status alone cannot tell a child whose argv the environment refused — measured

@@ -278,6 +278,14 @@ its log at two lines while `tools/loop-selftest.sh` ran past eleven minutes, and
 died at configuration in 21 s — was found only in the Gradle daemon log, because the gate had kept its output in
 a variable (#269).
 
+A suite's numbers are only ever the suite's own: a suite that fails without writing a summary contributes an
+**error**, never a case. Its tally carries `tests="0"` with `errors="1"`, and the gate's own line carries the
+error count beside the case and failure counts, so a reader can tell "no case ran and it failed" from "one case
+failed". Measured 2026-10-23 (issue #268): a hand-run gate's compiled step died at configuration
+(`Could not create task ':app:mergeNativeSbom'`, `BUILD FAILED in 21s`, no test task reached its action) and its
+tally read `tests="1" failures="1"` — a number the suite never reported, in the record the run's own check
+reads for a green claim.
+
 What it does with a child that never started: a status alone cannot tell a child whose argv the environment
 refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
 that ended non-zero, wrote no verdict and left the tree at the base commit never read the item. That is the

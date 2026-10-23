@@ -179,7 +179,7 @@ LOOP-SKIP-VERDICT: <one of the gate's verdicts, when LOOP-VERDICT is skipped>
 LOOP-CHANGE: <the change name, or - when nothing was planned>
 LOOP-ROOT-CAUSE: <one line>
 LOOP-RED-TEST: <case name> fails on HEAD — XML tests=<n> failures=<n> (<timestamp>)
-LOOP-GATE: tests=<n> failures=<n> (<flavour/module coverage>)
+LOOP-GATE: tests=<n> failures=<n> errors=<n> (<flavour/module coverage>)
 LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why>
 LOOP-FALSIFIED: <the mechanism the item blames, quoted — only with LOOP-SKIP-VERDICT: falsified>
 LOOP-MEASURED: <the number you measured instead, and how you took it: case name, command, or probe>

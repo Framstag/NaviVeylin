@@ -292,6 +292,12 @@ MUTATIONS=(
   # mutation restores the command substitution and leaves the tally reading the same bytes — only the console
   # goes silent, which is what the case that names it asserts.
   '46.1@-@tools/loop/gate.sh@gate#theSuitesOutputReachesTheConsoleWhileItRuns@the stream that carries a suite output to the console while the suite runs (issue #269)@s|^    \$cmd 2>&1 \| tee "\$stream"$|    out=$($cmd 2>&1); printf %s "$out" > "$stream"|'
+  # 47.1 is the two fallbacks that turned a failed suite with no summary into one failing case (issue #268).
+  # Measured 2026-10-23: a compiled step that died at configuration (`BUILD FAILED in 21s`, no test task reached its
+  # action) was tallied `tests="1" failures="1"`, and the tally the run's own check reads said a test exists where
+  # none executed. The mutation puts the fabrication back beside the error count, so the case that names it sees the
+  # phantom case and the phantom failure both.
+  '47.1@-@tools/loop/gate.sh@gate#aFailingSuiteWithNoSummaryInventsNoTest@the error count that keeps a suite which reported no summary from being tallied as one failing test (issue #268)@s|^  err=0$|  err=0; [ "$rc" -eq 0 ] \|\| { n=1; f=1; }|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

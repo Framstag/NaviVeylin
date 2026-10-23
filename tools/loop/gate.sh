@@ -102,6 +102,7 @@ fi
 
 cases=0
 failures=0
+errors=0
 failed_suites=""
 ran=""
 # A suite's output is streamed, not replayed: `tee` writes it to the console as the suite writes it, and the
@@ -137,24 +138,31 @@ while IFS= read -r cmd; do
   case "$n" in ''|*[!0-9]*) n=0 ;; esac
   f=0
   [ "$rc" -eq 0 ] || f=$(printf '%s\n' "$out" | sed -n 's/.*: \([0-9][0-9]*\) of [0-9][0-9]* cases failed.*/\1/p' | tail -1)
-  case "$f" in ''|*[!0-9]*) [ "$rc" -eq 0 ] || f=1 ;; esac
+  case "$f" in ''|*[!0-9]*) f=0 ;; esac
+  # A failed suite's *absence of a summary* is not a failing case: `n` and `f` stay the suite's own numbers, and the
+  # failure is kept apart as an error. Measured 2026-10-23 (issue #268): a compiled step that died at configuration
+  # (`BUILD FAILED in 21s`, no test task reached its action) was tallied `tests="1" failures="1"`, because the
+  # former `n=1`/`f=1` fallbacks stated a case and a failure the suite never reported — a tally meant to prove what
+  # ran became evidence that something did.
+  err=0
+  [ "$rc" -eq 0 ] || [ "$f" -gt 0 ] || err=1
   cases=$((cases + n))
   failures=$((failures + f))
+  errors=$((errors + err))
   # One tally per suite, under the directory the profile names (`*test-results*`, so the run's own check finds
   # it) and only when it names one: the engine may hold no project path, and the portability check is what says so.
   if [ -n "$tally_root" ]; then
     mkdir -p "$tally_root" 2>/dev/null || true
     name=$(printf '%s' "$cmd" | tr '/ ' '__' | cut -c1-80)
-    [ "$rc" -eq 0 ] || [ "$n" -gt 0 ] || n=1
-    printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="0">\n  <system-out>%s</system-out>\n</testsuite>\n' \
-      "$cmd" "$n" "$f" "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="%s">\n  <system-out>%s</system-out>\n</testsuite>\n' \
+      "$cmd" "$n" "$f" "$err" "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \
       > "$tally_root/$name.xml" 2>/dev/null || true
   fi
 done <<< "$owed"
 
 if [ -n "$failed_suites" ]; then
-  printf 'LOOP-GATE: tests=%s failures=%s (%s) — failing:%s\n' "$cases" "$failures" "$ran" "$failed_suites"
+  printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s) — failing:%s\n' "$cases" "$failures" "$errors" "$ran" "$failed_suites"
   exit 1
 fi
-printf 'LOOP-GATE: tests=%s failures=%s (%s)\n' "$cases" "$failures" "$ran"
+printf 'LOOP-GATE: tests=%s failures=%s errors=%s (%s)\n' "$cases" "$failures" "$errors" "$ran"
 exit 0

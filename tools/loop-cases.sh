@@ -99,6 +99,7 @@ LOOP_SHELL_CASES=(
   'gate#anEnginePathOwesTheRecordCheck'
   'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
   'gate#aFailingSuiteIsReadFromTheSameStream'
+  'gate#aFailingSuiteWithNoSummaryInventsNoTest'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
   'measure#namesTheOwedChecksInOneBlock'
@@ -289,6 +290,7 @@ loop_run_shell_case() {
     'gate#anEnginePathOwesTheRecordCheck') fn=case_gate_anEnginePathOwesTheRecordCheck ;;
     'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
+    'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
@@ -2535,6 +2537,50 @@ SUITE
     "and the tally is the summary the same stream carried, not a re-run's"
   assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" "FAIL notes#aCaseThatFails" \
     "with the failure text kept, so the evidence names what went red"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'errors="0"' \
+    "and a suite that reported its own failure count is not also an error"
+  return 0
+}
+
+# A suite that reported nothing is recorded as an error, never as one failing test (issue #268). The gate's tally
+# said `tests="1" failures="1"` for a compiled step that died at configuration (`BUILD FAILED in 21s`, no test task
+# reached its action), because `n=1` and `f=1` existed so a failing suite could not contribute zero — a number the
+# suite never reported, so a tally meant to prove what ran became evidence that something ran. The two facts are
+# kept apart: the case and failure counts are the suite's own, and a suite that failed without a summary carries
+# `tests="0"` with `errors="1"`.
+case_gate_aFailingSuiteWithNoSummaryInventsNoTest() {
+  local d p conf base out rc
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # A suite that dies before a single case can run: it writes no summary line at all.
+  cat > "$d/suite.sh" <<'SUITE'
+printf 'Could not create task :app:mergeNativeSbom\n' >&2
+printf 'BUILD FAILED in 21s\n' >&2
+exit 1
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "1" "$rc" "a suite that reported nothing still fails the gate: $out"
+  assert_contains "$out" "LOOP-GATE: tests=0 failures=0 errors=1" \
+    "the gate's line states the suite reported no case, and one error: $out"
+  assert_contains "$out" "failing: bash $d/suite.sh" \
+    "and it is still named as the suite that failed: $out"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="0" failures="0" errors="1"' \
+    "the tally the run's own check reads invents no test: $(cat "$d"/tally/*.xml 2>/dev/null)"
+  assert_not_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="1"' \
+    "no phantom case is recorded where none executed"
   return 0
 }
 

@@ -424,13 +424,27 @@ cmd_done() {
   # figure nothing reported stays null, which the report prints as `-` (issue #211).
   usage=$(child_usage_json "$events")
   patch_state '
-    .items += [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
-                escalatedLabel:$dl,
-                merged:{branch:$mb, commits:$mc, evidence:$me},
-                metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
-                         closed:$closed, rootCause:$rc, redTest:$rt,
-                         tools:$usage.tools, tokens:$usage.tokens, cost:$usage.cost,
-                         context:$usage.context}}]
+    # One item keeps one record (#284): the run records an item a second time when it finds that item own work
+    # still in the worktree, and a second entry counted one item twice in every figure the report derives from
+    # `.items` — the budget left and the four tallies — and made `next` read one block as two consecutive ones.
+    # A second account therefore joins the record the item already has: its note is added and the escalation
+    # label it earned is written, and nothing the first record established (its result, its metrics, its change)
+    # is replaced by an account that arrived later.
+    .items = (
+      if ([.items[] | select(.issue == $i)] | length) == 0 then
+        .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
+                  escalatedLabel:$dl,
+                  merged:{branch:$mb, commits:$mc, evidence:$me},
+                  metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
+                           closed:$closed, rootCause:$rc, redTest:$rt,
+                           tools:$usage.tools, tokens:$usage.tokens, cost:$usage.cost,
+                           context:$usage.context}}]
+      else
+        .items | map(if .issue == $i then
+          .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
+          | .escalatedLabel = (if $dl == "" then .escalatedLabel else $dl end)
+        else . end)
+      end)
     | .queue = [.queue[] | select(.issue != $i)]
     | (if $mb == "" then . else .excluded = [.excluded[] | select(.issue != $i)] end)
     | (if .current != null and .current.issue == $i then .current = null else . end)

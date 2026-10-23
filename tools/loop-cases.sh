@@ -152,6 +152,7 @@ LOOP_SHELL_CASES=(
   'run#announcesAndRecordsTheReviewRound'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
+  'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds'
   'run#aSkipClearsTheInProgressMark'
   'run#skipEscalationCarriesTheDecision'
   'run#workPackageCarriesTheRecordedDecision'
@@ -355,6 +356,7 @@ loop_run_shell_case() {
     'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
+    'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds') fn=case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
     'run#workPackageCarriesTheRecordedDecision') fn=case_run_workPackageCarriesTheRecordedDecision ;;
@@ -3863,6 +3865,52 @@ case_run_resetWorktreeDiscardsWhatItNames() {
   # base still carries it (the run removed that run's branch, because the run merged it).
   git -C "$p" ls-tree -r --name-only main | grep -q 'openspec/changes/archive/2026-01-01-fix-demo/proposal.md' ||
     fail "the repair discarded the work the previous run did"
+}
+
+# A start the worktree refuses mid-run is the *previous* item's leftover, not the candidate's failure:
+# `start-item` refuses a dirty tree ("one writer per tree") and the run's catch-all arm ended the whole run on it.
+# The item whose work the tree held was already recorded for another reason, the leftover was attributed nowhere,
+# and the item that could not start was left in the queue untouched. Measured 2026-10-23: the run stopped at
+# 16:24 with `the item could not be started: loop: the worktree is not clean — refusing to start #270:` 166
+# minutes into an 8 h budget, 7 eligible items unworked and #270 carrying no state entry at all (#284). The
+# tree's own branch marker names its item, so the run records the leftovers there, escalates that item, names
+# the files it found, and stops: the tree is still dirty and nothing is discarded without --reset-worktree, so
+# no later candidate could start either.
+case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds() {
+  local d p out f reason log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  # The dirt is staged where an item's own commit cannot take it: the stub installs a `pre-commit` hook that
+  # refuses both of `end-item`'s commits, so #21 ends with its work still in the tree, as #274's round-2
+  # correction was left behind. How the tree came to be dirty is not what this case decides — the refusal is.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'h=$(git rev-parse --git-path hooks); mkdir -p "$h"; printf "#!/bin/sh\nexit 1\n" > "$h/pre-commit"; chmod +x "$h/pre-commit"'
+  out=$(run_loop "$p" --items 2 --minutes 90 2>&1)
+  f=$(state_file "$p")
+  assert_eq "1" "$(jq -r '.items | length' "$f")" "the run records one item, not one per account of it"
+  assert_eq "21" "$(jq -r '.items[0].issue' "$f")" "and that item is the one whose work the tree holds"
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  assert_contains "$reason" "the worktree is not clean" "the stop reason says what the refusal was"
+  assert_contains "$reason" "#21" "and names the item whose work the tree holds, not only the candidate"
+  assert_contains "$reason" "demo-fix.txt" "with the files a reader has to work from"
+  assert_contains "$reason" "#22" "the candidate that could not start is named too"
+  # The leftover is recorded against the item that left it, and one item keeps one record: the reason #21 ended
+  # and the work it still owes are one account, so the report cannot count one item twice.
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f")" "the item that left the work is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "still at the base commit" "its own reason is kept"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "leftovers" "and the leftovers join it instead of replacing it"
+  assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel' "$f")" \
+    "the escalation the run wrote is recorded with the item it belongs to"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_contains "$log" "agent/needs-decision" "the leftover is escalated to a person"
+  assert_contains "$log" "fix/issue-21-" "with the branch that holds it as the evidence"
+  assert_eq "0" "$(grep -c 'issue close' <<<"$log" || true)" "nothing is closed on a tree nobody can start on"
+  # The candidate did nothing wrong and is not recorded: it stands in the queue as its owner set it.
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the run starts no second child, because no second item can start"
+  [ -f "$p/.pi/worktrees/loop/demo-fix.txt" ] || fail "the leftovers were discarded without --reset-worktree"
+  assert_eq "0" "$(git -C "$p/.pi/worktrees/loop" rev-list --count main..HEAD)" \
+    "and nothing was committed onto the branch"
 }
 
 case_run_aSkipClearsTheInProgressMark() {

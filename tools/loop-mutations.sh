@@ -341,6 +341,17 @@ MUTATIONS=(
   '52.1@-@tools/loop/run.sh@gate#theChildReadsTheProfileOfTheTreeItWorksIn@the run keeping its own profile out of a child that works in another tree (issue #277)@s|^export -n LOOP_CONF$|export LOOP_CONF="${LOOP_CONF:-$LOOP_DIR/loop.conf}"|'
   '52.2@-@tools/loop/gate.sh@gate#theGateNamesTheProfileItRead@the profile the gate read, named in the log it wrote (issue #277)@s|^    say "LOOP-GATE-PROFILE: \$LOOP_CONF_PATH"$|    : # the mutation names no profile|'
   '52.3@-@tools/loop/gate.sh@gate#theGateNamesTheProfileItRead@a pinned profile named as pinned, beside the one the engine ships (issue #277)@s|^  \[ "\$resolved/\$(basename "\$LOOP_CONF_PATH")" = "\$engine/loop.conf" \]$|  true|'
+  # 53.x — a start the worktree refuses mid-run, and the three things the run owes when it ends on one (issue #284).
+  # Measured 2026-10-23: the run stopped 166 minutes into an 8 h budget with `the item could not be started: loop:
+  # the worktree is not clean — refusing to start #270:`, 7 eligible items unworked, the item whose work the tree
+  # held named nowhere, and #270 carrying no state entry at all. One record per invariant, and each makes the same
+  # case red on its own: 53.1 leaves the leftovers unattributed (no escalation, no account under the item that left
+  # them), 53.2 records the item a second time instead of joining its one record — which is what counted one item
+  # twice in every figure the report derives from `.items` and let `next` read one block as two consecutive ones —
+  # and 53.3 puts the refusal's first line back as the stop reason, which names neither the item nor the files.
+  '53.1@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the leftovers recorded under the item whose work the tree holds, and escalated (issue #284)@s|^        if \[ "\$dry_run" -eq 0 \] \&\& \[ -n "\$owner_item" \]; then$|        if false; then|'
+  '53.2@-@tools/loop/state.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@one record per item, a second account joining the note the item already has (issue #284)@s|^      if (\[\.items\[\] \| select(\.issue == \$i)\] \| length) == 0 then$|      if true then|'
+  '53.3@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the stop reason naming the item the leftovers belong to and the files it found (issue #284)@s|^        stop_run "the item could not be started: the worktree is not clean .*$|        stop_run "the item could not be started: $(printf %s "$start_out" \| head -1)"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -373,12 +373,18 @@ worktree_is_dirty() {
   git -C "$LOOP_ROOT" worktree list --porcelain 2>/dev/null | grep -qx "worktree $worktree" &&
     [ -n "$(git -C "$worktree" status --porcelain 2>/dev/null)" ]
 }
+# The item whose work a worktree holds: `start-item` writes the item's branch into the tree's own branch marker,
+# so a tree somebody left mid-work still says whose it is. One reading, two readers — the start-time pre-flight
+# below, and the start a refusal stops mid-run (issue #284) — because a second copy of the rule is a second rule.
+owner_of_marker() { # owner_of_marker <branch> → the item that branch names, or nothing
+  printf '%s\n' "${1:-}" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1
+}
 if [ -d "$worktree" ] && worktree_is_dirty; then
   leftovers=$(git -C "$worktree" status --porcelain)
   # The item the leftovers belong to: `start-item` writes the item's branch into the worktree's own branch
   # marker, so a tree a killed run left behind still names the item it was working on.
   marker=$(cat "$worktree/.pi/loop-branch" 2>/dev/null || true)
-  owner_item=$(printf '%s\n' "$marker" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1)
+  owner_item=$(owner_of_marker "$marker")
   if [ "$reset_worktree" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
     printf 'reset-worktree: discarding what a previous run left in %s:\n' "$worktree"
     printf '%s\n' "$leftovers" | sed 's/^/  /'
@@ -846,6 +852,41 @@ while true; do
           --decision-label "$escalated_label" >/dev/null
         in_progress=""
         continue
+        ;;
+      *"not clean"*)
+        # The dirt is the *previous* item's unfinished work, not this candidate's failure (#284). The run used to
+        # record only the first line of the refusal and end, so the item whose work the tree held — already
+        # recorded for another reason — was named nowhere, the leftovers were attributed nowhere, and the item
+        # that could not start went back into the queue untouched (measured 2026-10-23: 166 minutes into an 8 h
+        # budget, 7 eligible items unworked). The tree's own branch marker names the item, so the leftovers are
+        # recorded there and escalated exactly as the start-time pre-flight records them (#173), and the stop
+        # reason names the files instead of the refusal's first line (issue #284, item (b) and (c)).
+        # The candidate is not recorded and not escalated: nothing was done to it, and it stands in the queue as
+        # its owner set it. Continuing down the queue is not an alternative and is not taken: the tree stays
+        # dirty, nothing is discarded without `--reset-worktree`, so every later candidate would be refused the
+        # same way and one cause would leave a blocked item per candidate.
+        marker=$(cat "$worktree/.pi/loop-branch" 2>/dev/null || true)
+        owner_item=$(owner_of_marker "$marker")
+        leftovers=$(git -C "$worktree" status --porcelain 2>/dev/null)
+        leftover_files=$(printf '%s\n' "$leftovers" | sed '/^$/d' | paste -sd, - | sed 's/,/, /g')
+        if [ -n "$owner_item" ]; then
+          leftover_owner="the leftovers are #$owner_item's (branch $marker)"
+        else
+          leftover_owner="the worktree is on ${marker:-an unknown branch}, which names no item"
+        fi
+        if [ "$dry_run" -eq 0 ] && [ -n "$owner_item" ]; then
+          escalated_label=""
+          if loop_labels escalate "$owner_item" \
+            --reason "a start was refused mid-run because the worktree is not clean — the leftovers are this item's" \
+            --evidence "branch ${marker:-unknown}, worktree $worktree: $leftover_files" >&2; then
+            escalated_label="$decision_label"
+          fi
+          loop_state done "$owner_item" --result blocked --verdict blocked \
+            --note "the worktree was not clean when #$issue was started: the leftovers are #$owner_item's, and no item can start until they are dealt with — $leftover_files" \
+            --decision-label "$escalated_label" >/dev/null
+        fi
+        stop_run "the item could not be started: the worktree is not clean — $leftover_owner, so #$issue and no item after it can start until they are dealt with: $leftover_files (repair: --reset-worktree discards them, and names them before it does)"
+        break
         ;;
       *) stop_run "the item could not be started: $(printf '%s' "$start_out" | head -1)"; break ;;
     esac

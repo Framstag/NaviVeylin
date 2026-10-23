@@ -312,6 +312,22 @@ into an 8 h budget — two questions nobody had asked, and two of its three deci
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line, the
 second its branch, which is what a later pass escalates.
 
+What it does with a start the worktree refuses: a tree that is not clean is the *previous* item's unfinished work
+— `start-item` refuses it, because committing over it would attribute two changes to one branch — so the run
+attributes the refusal before it ends on it. The worktree's own branch marker names the item whose branch the tree
+is on, which is the reading the start-time pre-flight already makes, and that item is recorded `blocked` with the
+leftovers and escalated, exactly as that pre-flight records it; the stop reason names the item and the files it
+found, not the refusal's first line. The candidate that could not start is neither recorded nor escalated:
+nothing was done to it, so it stands in the queue as its owner set it. The run then stops, and continuing is not
+an alternative it has — the tree is still dirty and nothing is discarded without `--reset-worktree`, so every
+later candidate would be refused the same way and one cause would leave one blocked item per candidate. While
+this happens one item keeps one record: a second account of an item the run already recorded joins the note that
+record has, because the report's four tallies, its budget-left figure and the "two consecutive items ended
+blocked" stop condition are all derived from the same list of records. Measured 2026-10-23: the run stopped 166
+minutes into an 8 h budget with `the item could not be started: loop: the worktree is not clean — refusing to
+start #270:`, 7 eligible items unworked, the leftovers attributed to nothing and #270 carrying no state entry at
+all (#284).
+
 The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
 identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never
 an invented one, because a fresh container or CI runner has neither and the item would block on its own

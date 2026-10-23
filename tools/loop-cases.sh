@@ -105,6 +105,7 @@ LOOP_SHELL_CASES=(
   'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
   'gate#aFailingSuiteIsReadFromTheSameStream'
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
+  'gate#aCompiledStepsTallyIsNotHidden'
   'gate#theSummaryNamesWhatEachSuiteCost'
   'driver#aGroupFilterRunsOnlyItsOwnCases'
   'driver#aFilterThatNamesNoCaseRefuses'
@@ -305,6 +306,7 @@ loop_run_shell_case() {
     'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
+    'gate#aCompiledStepsTallyIsNotHidden') fn=case_gate_aCompiledStepsTallyIsNotHidden ;;
     'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
     'driver#aGroupFilterRunsOnlyItsOwnCases') fn=case_driver_aGroupFilterRunsOnlyItsOwnCases ;;
     'driver#aFilterThatNamesNoCaseRefuses') fn=case_driver_aFilterThatNamesNoCaseRefuses ;;
@@ -2613,6 +2615,47 @@ SUITE
     "the tally the run's own check reads invents no test: $(cat "$d"/tally/*.xml 2>/dev/null)"
   assert_not_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="1"' \
     "no phantom case is recorded where none executed"
+  return 0
+}
+
+# The tally of the profile's own compiled command is a dotfile (issue #278): a tally's name is the command
+# sanitised, and `./gradlew test -PforceTests --no-build-cache` keeps its leading `.`, so the one tally that
+# records the build was `._gradlew_test_-PforceTests_--no-build-cache.xml` — a plain `ls` printed five files where
+# the directory held six, and `tally/*.xml` missed it. The round-3 reviewer of #273 read that copy as short and
+# refused a round on a tally that was present. The `./` prefix is stripped before the name is built, so every
+# reader that lists or globs finds the file.
+case_gate_aCompiledStepsTallyIsNotHidden() {
+  local d p conf base out visible f globbed
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD="./gradlew test"\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS="*.kt"\n'
+    printf 'LOOP_GATE_SUITES=""\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # The command the profile names runs from the project root, which is where `./` resolves: a stub of that shape,
+  # so the case reads the name the gate builds and nothing about Gradle.
+  cat > "$p/gradlew" <<'GRADLEW'
+printf 'notes: all 1 cases passed\n'
+GRADLEW
+  chmod +x "$p/gradlew"
+  printf 'class A\n' > "$p/a.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 ) \
+    || fail "the gate failed: $out"
+  # A reader that lists the directory without `-A`: a dotfile is the one tally a plain `ls` does not print.
+  visible=$(ls -1 "$d/tally" 2>/dev/null | grep -c . || true)
+  assert_eq "1" "$visible" \
+    "a plain ls prints the compiled step's tally (the directory holds: $(ls -A "$d/tally" 2>/dev/null | tr '\n' ' '))"
+  # …and the shell glob the round's evidence was read with finds the same file, under the command's own name.
+  globbed=""
+  for f in "$d"/tally/*.xml; do [ -f "$f" ] && globbed="$globbed$(basename "$f") "; done
+  assert_eq "gradlew_test.xml " "$globbed" \
+    "a *.xml glob finds the tally of a ./ command, named after the command without its ./ prefix (the directory holds: $(ls -A "$d/tally" 2>/dev/null | tr '\n' ' '))"
   return 0
 }
 

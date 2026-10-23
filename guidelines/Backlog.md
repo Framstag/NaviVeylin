@@ -286,6 +286,12 @@ failed". Measured 2026-10-23 (issue #268): a hand-run gate's compiled step died 
 tally read `tests="1" failures="1"` — a number the suite never reported, in the record the run's own check
 reads for a green claim.
 
+A tally's name is the command that wrote it, and it is never a dotfile: the profile's compiled command runs as
+`./gradlew`, and the `./` is dropped before the name is built, so `ls` and a `*.xml` glob find the one tally that
+records the build as well as `find` and `grep -r` do. Measured 2026-10-23 (issue #278): the name had kept the
+leading `.`, and the round-3 reviewer of #273 counted five files where the directory held six, refusing a round on
+a tally that was present.
+
 What it does with a child that never started: a status alone cannot tell a child whose argv the environment
 refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
 that ended non-zero, wrote no verdict and left the tree at the base commit never read the item. That is the

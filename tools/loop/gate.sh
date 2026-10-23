@@ -170,7 +170,12 @@ while IFS= read -r cmd; do
   # it) and only when it names one: the engine may hold no project path, and the portability check is what says so.
   if [ -n "$tally_root" ]; then
     mkdir -p "$tally_root" 2>/dev/null || true
-    name=$(printf '%s' "$cmd" | tr '/ ' '__' | cut -c1-80)
+    # The name is the command, and a tally's name is never a dotfile: the profile's compiled command is the `./`-form
+    # a program in the project root needs, and that leading `.` survived sanitising into `._<name>.xml`, so a plain
+    # `ls` printed five files where the directory held six and the pattern a reader globs missed the one tally that
+    # records the build — the round-3 reviewer of #273 read that copy as short and refused a round on a tally that
+    # was present (measured 2026-10-23, issue #278).
+    name=$(printf '%s' "${cmd#./}" | tr '/ ' '__' | cut -c1-80)
     printf '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="%s" tests="%s" failures="%s" errors="%s" time="%s">\n  <system-out>%s</system-out>\n</testsuite>\n' \
       "$cmd" "$n" "$f" "$err" "$took" \
       "$(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-400)" \

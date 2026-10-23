@@ -328,6 +328,10 @@ MUTATIONS=(
   # from the runs it measured before this merge, which is what a dated log is.
   '50.1@-@tools/loop/loop.conf@gate#anArchivedArtefactOwesNoBuild@the profile reading a compiled path by its tree rather than by its name@s|^LOOP_GATE_COMPILED_PATTERNS="\*/src/\*|LOOP_GATE_COMPILED_PATTERNS="*.xml */src/*|'
   '50.2@-@tools/loop/gate.sh@gate#aModuleResourceOwesTheBuild@the matcher reading an anchored pattern as a pattern@s|\*) set -f|\*) true|'
+  # 51.1 — a tally's name is never a dotfile (issue #278). The profile's own command starts `./`, and a name taken
+  # straight from the command keeps that leading `.`, so the one tally that records the build is hidden from a plain
+  # `ls` and from a `*.xml` glob — the round-3 reviewer of #273 counted five files where the directory held six.
+  '51.1@-@tools/loop/gate.sh@gate#aCompiledStepsTallyIsNotHidden@the ./ prefix stripped before the tally is named (issue #278)@s|\${cmd#\./}|\$cmd|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

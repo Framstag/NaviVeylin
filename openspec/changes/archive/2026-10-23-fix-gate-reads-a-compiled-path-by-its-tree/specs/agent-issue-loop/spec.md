@@ -2,12 +2,11 @@
 
 ## ADDED Requirements
 
-### Requirement: A path is compiled because of the tree it sits in, not its name
+### Requirement: A path is compiled by the tree it sits in or a build input's convention
 
-The gate SHALL decide that a path is compiled from the tree it sits in — a module's `src/` tree, its `lint.xml`,
-or a build script — and never from a file name alone, so an archived artefact, a fixture that mimics build output
-or a tool beside the build owes no compiled command. It SHALL compare the profile's patterns as patterns, never
-expanded against the directory the gate runs in.
+The gate SHALL decide that a path is compiled from the tree it sits in — a module's `src/` tree or its `lint.xml` —
+or from a build input's naming convention (a Gradle script, a toolchain `.toml`, `CMakeLists.txt`), never from an
+extension alone, and SHALL compare every pattern as a pattern, not expanded against the directory it runs in.
 
 #### Scenario: An archived artefact owes no compiled command
 

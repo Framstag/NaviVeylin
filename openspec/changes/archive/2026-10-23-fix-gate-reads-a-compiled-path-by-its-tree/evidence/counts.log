@@ -1,0 +1,20 @@
+2026-10-23T07:19:51Z
+== counts for the profile residual (issue #273, round 2)
+-- archived evidence XMLs (grows with every archive):
+   git ls-files '*.xml' | grep -c '^openspec/changes/archive/' -> 741
+-- name-based patterns against tracked files:
+   git ls-files '*.gradle' | wc -l -> 0
+   git ls-files '*.toml' -> hmm_mise.toml 
+   git ls-files '*.gradle.kts' -> app/build.gradle.kts auto/build.gradle.kts build.gradle.kts buildSrc/build.gradle.kts core/build.gradle.kts osmscout-client-java/build.gradle.kts settings.gradle.kts tools/gate-timings.init.gradle.kts 
+-- the shipped profile, read the way gate.sh matches() reads it (pathname expansion off):
+   LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
+   tools/gate-timings.init.gradle.kts                                     -> compiled
+   hmm_mise.toml                                                          -> compiled
+   app/build.gradle.kts                                                   -> compiled
+   buildSrc/src/main/kotlin/x.kt                                          -> compiled
+   app/lint.xml                                                           -> compiled
+   app/src/main/AndroidManifest.xml                                       -> compiled
+   openspec/changes/archive/x/evidence/gate-tallies/a.xml                 -> not-compiled
+   tools/fixtures/gate-timings/root/app/build/test-results/x/TEST-b.xml   -> not-compiled
+   tools/issues/core/Foo.java                                             -> not-compiled
+   README.md                                                              -> not-compiled

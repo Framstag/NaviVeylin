@@ -5,9 +5,9 @@
 The gate answers "is this path compiled?" with one call, and that call only ever sees a file name:
 
 ```
-tools/loop/loop.conf:136  LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
+tools/loop/loop.conf:140  LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMakeLists.txt"
                           (at HEAD: "*.kt … *.xml … app/src/main/cpp/* app/src/main/res/*")
-tools/loop/gate.sh:68-76  matches() { case $- in *f*) was_f=1 ;; *) set -f ;; esac; for glob in $1; do …
+tools/loop/gate.sh:68-77  matches() { case $- in *f*) was_f=1 ;; *) set -f ;; esac; for glob in $1; do …
 tools/loop/gate.sh:83     if matches "$compiled_patterns" "$p"; then owed=compiled_cmd
 ```
 
@@ -21,7 +21,7 @@ Two things are wrong inside that call, and the second was invisible until the fi
 2. **The list is expanded before it is matched.** `for glob in $1` is unquoted, so the shell performs pathname
    expansion on the *pattern list* against the directory the gate runs in; a pattern that names a tree is replaced
    by the names it happened to match, and then compared literally. Measured 2026-10-23
-   (`evidence/probes.log` probe 2): with `LOOP_GATE_COMPILED_PATTERNS="app/src/main/res/*"` — a shape the profile
+   (`evidence/probes.log` probes 1–2; probe 1 carries the run's `date=` line): with `LOOP_GATE_COMPILED_PATTERNS="app/src/main/res/*"` — a shape the profile
    already declares twice — and a new `app/src/main/res/values/colors.xml`, the plan says
    `LOOP-GATE: nothing owed — no path this profile gates changed`; the same tree with `set -f` in the matcher owes
    `fake-build`.
@@ -38,9 +38,17 @@ LOOP_GATE_COMPILED_PATTERNS="*/src/* */lint.xml *.gradle.kts *.gradle *.toml CMa
 
 `*/src/*` is a module's source tree whatever the module is called — sources, resources, manifests, the native
 `cpp/` tree are all under a module's `src/` — so a module added later is gated without this line being edited.
-`*/lint.xml` is a module's lint configuration, which the build reads. `*.gradle.kts`, `*.gradle` and `*.toml` stay
-name-based on purpose: a build script and a version catalog are identified by their naming convention, and no
-artefact or fixture carries one.
+`*/lint.xml` is a module's lint configuration, which the build reads. `*.gradle.kts`, `*.gradle`, `*.toml` and
+`CMakeLists.txt` stay name-based on purpose: a Gradle build script, a toolchain file and a CMake list are read by
+convention, and the convention is a closed list rather than an extension.
+
+**The residual that keeps, stated rather than claimed away.** Two files in this tree are classified compiled by
+their name alone: `tools/gate-timings.init.gradle.kts`, a Gradle init script beside the build, and `hmm_mise.toml`,
+the mise toolchain file at the repository root (measured 2026-10-23, `evidence/counts.log`). Both configure the
+toolchain the build runs on, so a delta touching either owes the build and that is defensible — but it is not the
+rule "never from a file name alone", and the requirement says what the profile does. `*.gradle` matches no tracked
+file today (`git ls-files '*.gradle'` → 0) and stays so a Groovy build script would be gated. No name-based pattern
+reaches what the item measured: an archived evidence tally, or a fixture that mimics build output.
 
 The matcher gains the guard that makes any anchored pattern work at all:
 
@@ -100,10 +108,24 @@ Revert four files: the profile line, the matcher guard, the two cases and the tw
 no state file, label, archive shape or evidence convention moves — and the change's archive carries the red run,
 so a revert reintroduces exactly the defect `gate#anArchivedArtefactOwesNoBuild` names.
 
+## Round 2 — the wording correction the review asked for
+
+Review 1 refused the change on one blocking finding: the shipped requirement promised that a compiled path is
+decided "never from a file name alone", while the profile it ships keeps `*.gradle.kts`, `*.gradle` and `*.toml`
+matched by name — so `tools/gate-timings.init.gradle.kts` and `hmm_mise.toml` are compiled to the gate. The
+correction narrows the contract to what the profile does, renames the requirement to match, and states the residual
+here instead of leaving design's untrue justification ("no artefact or fixture carries one") in its place. Two
+alternatives were eliminated rather than chosen: dropping `*.toml` would stop gating `hmm_mise.toml`, the file that
+decides which JDK the build runs on, so the gate would miss a toolchain change; re-scoping the patterns further
+would re-open the change and add a case for a defect the item did not measure. What the item measured — an archived
+evidence tally, a fixture that mimics build output — no name-based pattern reaches, and
+`gate#anArchivedArtefactOwesNoBuild` still holds it.
+
 ## Verification
 
 The change touches no compiled file (`*.sh`, `*.conf` and `openspec/**`), so it owes no build: the structural
 checks are `tools/loop/gate.sh` — whose profile maps `tools/loop/**` to `tools/loop-selftest.sh`, the record check
 and `tools/check-doc-routes.sh`, and `openspec/*` to `tools/gen-feature-list.sh --check-classification` — plus
-`openspec validate --strict`. The two cases are falsified by records `44.1` and `44.2` (each mutates the half its
+`openspec validate agent-issue-loop --strict`. All five are in `evidence/post-archive-checks.log`, and the gate's
+own `LOOP-GATE:` line is in `evidence/gate-round2.log` with its tallies under `evidence/gate-tallies-round2/`. The two cases are falsified by records `44.1` and `44.2` (each mutates the half its
 case asserts), and a gate run after the fix must still name the five checks this tree's own delta owes.

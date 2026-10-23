@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-mutations.sh --only 53.x" tests="0" failures="0" errors="0" time="0">
+  <system-out>restore 53.5 driver#everyCaseDeclaresTheFilesItCanReach green again  red-when-mutated: 5 · not-noticed: 0 · restore-failures: 0 </system-out>
+</testsuite>

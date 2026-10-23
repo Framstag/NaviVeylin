@@ -261,7 +261,13 @@ What bounds it: the budget is consulted between items, so the run also bounds **
 recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 45 min). A child that outlasts it is ended together with
 everything it started — a gate leaves daemons and test workers behind, and those are the memory the next item
 needs — its transcript gains one machine-readable line (`LOOP-TIMEOUT: the child exceeded <n> s`), and the item
-is recorded `blocked` with that transcript rather than spending the run's clock. Measured 2026-10-19: an item's
+is recorded `blocked` with that transcript rather than spending the run's clock. "Everything it started" is
+more than the child's process group: a descendant that gave itself its own session (`setsid`) is in no group
+the cap signals, so the run also ends every process still working in the change root — the test
+`loop_pids_under` owns — and names each one in the transcript (`LOOP-ENDED: ended <pid> — its working directory
+is inside <tree>`). Measured 2026-10-22: the mutation harness a child had started kept mutating and restoring
+the worktree for seven minutes after the run had recorded the child as ended, and its last restore is what
+left that tree dirty for the next run (#272). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 

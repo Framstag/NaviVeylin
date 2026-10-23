@@ -113,6 +113,7 @@ LOOP_SHELL_CASES=(
   'run#prescreenAnnouncesItselfBeforeItReturns'
   'run#everyPhaseBoundaryIsPrinted'
   'run#childOutlastingTheWallClockIsBlocked'
+  'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
@@ -300,6 +301,7 @@ loop_run_shell_case() {
     'run#prescreenAnnouncesItselfBeforeItReturns') fn=case_run_prescreenAnnouncesItselfBeforeItReturns ;;
     'run#everyPhaseBoundaryIsPrinted') fn=case_run_everyPhaseBoundaryIsPrinted ;;
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
+    'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
@@ -2860,6 +2862,80 @@ case_run_childOutlastingTheWallClockIsBlocked() {
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "exceeded 2 s" \
     "and the reason on the item names the cap that ended it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+}
+
+# The cap ends the child's *process group*, and a descendant that gave itself its own session is not a member of
+# it: the run recorded the child as ended at 23:48 and the mutation harness the child had started kept mutating
+# and restoring the worktree until 23:55, its last restore being what left that tree dirty, so the next run
+# refused to start (measured 2026-10-22, issue #272). A survivor still names the tree it is working in as its
+# working directory — the reader `loop_pids_under` already owns — so the case is a stub child that starts a
+# writer in the worktree and leaves it in a session of its own. On the tree before the fix that writer outlives
+# the run, with the fix it is ended and named before the item's outcome is written.
+case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
+  local d p conf fifo pid i status report tree writer alive out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  tree="$p/.pi/worktrees/loop"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The child's own work: a writer at the worktree's root, in a session of its own, which names itself and then
+  # keeps writing the tree the run reads — the shape of the harness that survived the cap in #272.
+  {
+    printf 'case "$1" in\n'
+    printf '  worker*)\n'
+    printf '    setsid bash -c %s >/dev/null 2>&1 &\n' \
+      "'printf \"%s\\n\" \"\$\$\" > $d/writer.pid; while :; do printf x >> survivor.txt; sleep 0.2; done'"
+    printf '    ;;\n'
+    printf 'esac\n'
+  } > "$d/worker-action.sh"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  if [ ! -e "$fifo.ready" ]; then
+    kill -9 "$pid" 2>/dev/null
+    fail "the stub child never started"
+  fi
+  # The case holds the fifo's writer side for its whole life, so releasing a child never blocks and never leaves a
+  # writer behind.
+  exec 8> "$fifo"
+  writer=""
+  for i in $(seq 1 100); do [ -f "$d/writer.pid" ] && { writer=$(cat "$d/writer.pid"); break; }; sleep 0.1; done
+  # Twenty seconds is a bound on this case, not on the run: the run is supposed to end itself well inside it.
+  for i in $(seq 1 200); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    # The diagnosis has to clean up after itself: the run's own group dies here, and the fifo line the child never
+    # got is written so a child still waiting on it leaves too.
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    [ -n "$writer" ] && kill -9 "$writer" 2>/dev/null
+    fail "the run was still waiting after 20 s on a child that outlasted its 2 s cap"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  [ -n "$writer" ] || fail "the stub child's detached writer never named itself"
+  # The survivor is the whole of what this case is about: an assertion that only read the report would stay green
+  # while the process went on writing the tree.
+  alive=1
+  for i in $(seq 1 100); do kill -0 "$writer" 2>/dev/null || { alive=0; break; }; sleep 0.1; done
+  if [ "$alive" -eq 1 ]; then
+    kill -9 "$writer" 2>/dev/null
+    fail "the process the ended child left in the worktree (pid $writer) outlived the run — the cap must end what the child started, and a session of its own is not a group the cap reaches"
+  fi
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child that was ended"
+  assert_contains "$(cat "$report")" "LOOP-ENDED: ended $writer — its working directory is inside" \
+    "the transcript names the process the group signal could not reach"
+  out=$(loop_pids_under "$tree")
+  [ -z "$out" ] || fail "process(es) of the ended child are still working in the worktree: $out"
 }
 
 # `run_child` returns the child's status and nothing else, so the caller could not tell a child whose argv the

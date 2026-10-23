@@ -644,7 +644,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase stop hb started interval cap child timed_out=0
+  local before after rc phase stop hb started interval cap child timed_out=0 sweep
   before=$(project_state)
   phase=$(basename "$1" .md)
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
@@ -708,6 +708,16 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   active_child=""
   if [ "$timed_out" -eq 1 ]; then
     printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
+    # …and "everything it started" is more than the group: a descendant that gave itself its own session
+    # (`setsid`) is a member of no group the signals above reach, so it kept mutating and restoring the
+    # worktree for seven minutes after a run had recorded the child as ended, its last restore leaving that
+    # tree dirty for the next run (measured 2026-10-22, issue #272). A survivor still names the tree it works
+    # in as its working directory, which is the test `loop_pids_under` already owns (#213, #233), and each
+    # process the sweep ends is named in the transcript a reader of the blocked item is handed.
+    sweep=$(loop_end_pids_under "$LOOP_WORKTREE")
+    if [ -n "$sweep" ]; then
+      printf '%s\n' "$sweep" | sed 's/^/LOOP-ENDED: /' >> "$2"
+    fi
     rc="$LOOP_CHILD_TIMEOUT"
   fi
   : > "$stop"

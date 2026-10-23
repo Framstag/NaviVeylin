@@ -279,6 +279,13 @@ MUTATIONS=(
   '43.1@-@../loop-mutations.sh@mutation#aStaleRecordIsNamed@the exit that fails a set whose record no longer applies (issue #264)@s|^  if \[ "$stale" -ne 0 \]; then$|  if false; then|'
   '43.2@-@tools/loop/loop.conf@gate#anEnginePathOwesTheRecordCheck@the profile pair that owes the record check for a path under the engine (issue #264)@s#tools/loop/\*|bash tools/loop-mutations\.sh --check;##'
   '43.3@-@tools/loop/run.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1" \&\& printf|'
+  # 44.1 is the cap reaching further than the child's process group. The group is what `set -m` gives the child,
+  # and a descendant that called `setsid` is in no group the two signals name: measured 2026-10-22 (issue #272),
+  # the mutation harness a child had started kept mutating and restoring the worktree until seven minutes after
+  # the run had recorded the child as ended, its last restore leaving the tree dirty for the next run. The sweep
+  # is the same `loop_pids_under` test the self-test's teardown and `loop-clean.sh` report with, run over the
+  # tree the survivor still names as its working directory.
+  '44.1@-@tools/loop/run.sh@run#detachedProcessInTheWorktreeIsEndedByTheCap@the cap ending the processes the child left working in the tree, and naming each one (issue #272)@s|^    sweep=\$(loop_end_pids_under "$LOOP_WORKTREE")$|    sweep=""|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

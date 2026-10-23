@@ -1,0 +1,7 @@
+gate: ./gradlew test -PforceTests --no-build-cache
+gate: tools/loop-selftest.sh
+gate: bash tools/loop-mutations.sh --check
+gate: tools/loop-mutations-selftest.sh
+gate: bash tools/gen-feature-list.sh --check-classification
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=306 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, bash tools/loop-mutations.sh --check, tools/loop-mutations-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)

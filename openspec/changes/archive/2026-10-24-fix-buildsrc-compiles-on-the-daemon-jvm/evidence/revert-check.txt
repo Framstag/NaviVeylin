@@ -1,0 +1,44 @@
+revert-check — issue #92, change fix-buildsrc-compiles-on-the-daemon-jvm
+measured 2026-10-24, worktree .pi/worktrees/issue92 at main (49dfd7db)
+
+Mutation: the Java 17 toolchain returns to buildSrc/build.gradle.kts — the defect itself, not a bound this fix
+introduced, which is the one mutation the whole change is about.
+
+  base revision   md5 b22bc8000af6cd3031cb96ad3ff56a5d   one `languageVersion = JavaLanguageVersion.of(17)` line
+  fixed state     md5 2407c71758f8e73b29418070832214bc   (fixed-md5.txt)
+
+1. The CI step refuses the mutation. `git checkout -- buildSrc/build.gradle.kts`, then the step body
+   (evidence/ci-step-revert-red.log):
+
+     13:    toolchain {
+     14:        languageVersion = JavaLanguageVersion.of(17)
+     ::error file=buildSrc/build.gradle.kts::buildSrc must declare no JVM toolchain of its own — a toolchain it
+     cannot provision fails the configuration on a machine without that JDK; it compiles with the daemon JVM the
+     criteria select (guidelines/Build.md §2d, issue #92)
+     ciExit=1
+
+2. The named case fails on the mutation (evidence/revert-red.xml):
+
+     BuildSrcJvmRequirementTest > the build script names no JVM of its own FAILED
+     tests="4" skipped="0" failures="1" errors="0" timestamp="2026-10-24T07:45:39.250Z"
+
+   The other three cases stay green in this mutation because only buildSrc is reverted: the workflow predicate is
+   already there, so "a reintroduced toolchain is refused" is satisfied — which is what makes the pair of
+   surfaces two independent guards rather than one reading taken twice.
+
+3. The same invocation in this repository is the defect's own reproduction (evidence/repro-on-head.log):
+
+     ./gradlew -Dorg.gradle.java.installations.auto-detect=false help   →   BUILD FAILED
+
+   The criteria' JDK 21 is found/provisioned (buildSrc's build has no settings.gradle.kts of its own, so Gradle
+   may only auto-detect the 17 the pin asks for) — the message names the JVM, not the file.
+
+4. Restored byte-identically and re-run, forced (`-PforceTests -PjvmTestsOnly --no-build-cache` for the class):
+
+     md5sum -c fixed-md5.txt      →  buildSrc/build.gradle.kts: OK / .github/workflows/build.yml: OK
+     BuildSrcJvmRequirementTest   →  tests="4" skipped="0" failures="0" errors="0"
+                                     timestamp="2026-10-24T07:46:26.185Z", wall clock 2026-10-24T07:46:27Z
+                                     (evidence/green-restored.xml)
+     bash guard.tmp.sh            →  daemon JVM criteria: version 21, no vendor, no package id, no buildSrc
+                                     toolchain.   exit 0
+     ./gradlew -Dorg.gradle.java.installations.auto-detect=false help  →  BUILD SUCCESSFUL (evidence/repro-after.log)

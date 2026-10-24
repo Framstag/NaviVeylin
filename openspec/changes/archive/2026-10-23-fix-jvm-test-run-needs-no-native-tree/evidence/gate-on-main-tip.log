@@ -1,0 +1,915 @@
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :osmscout-client-java:compileTestJava UP-TO-DATE
+> Task :osmscout-client-java:processTestResources UP-TO-DATE
+> Task :osmscout-client-java:testClasses UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :auto:checkHardcodedStrings
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :core:kspDebugKotlin UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :core:compileDebugKotlin UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :auto:preDebugUnitTestBuild
+> Task :auto:mapDebugUnitTestSourceSetPaths UP-TO-DATE
+> Task :auto:generateDebugUnitTestResources UP-TO-DATE
+> Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
+> Task :core:createFullJarDebug UP-TO-DATE
+> Task :core:writeDebugAarMetadata UP-TO-DATE
+> Task :core:extractDeepLinksDebug UP-TO-DATE
+> Task :core:processDebugManifest UP-TO-DATE
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets UP-TO-DATE
+> Task :core:preDebugUnitTestBuild
+> Task :core:generateDebugUnitTestStubRFile UP-TO-DATE
+> Task :core:koverFindJar UP-TO-DATE
+> Task :core:kspDebugUnitTestKotlin UP-TO-DATE
+> Task :auto:mergeDebugUnitTestResources UP-TO-DATE
+> Task :core:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :core:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :core:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:hiltSyncDebugUnitTest UP-TO-DATE
+> Task :core:hiltAggregateDepsDebugUnitTest UP-TO-DATE
+> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :core:transformDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :app:checkHardcodedStrings
+> Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :auto:createFullJarDebug UP-TO-DATE
+> Task :auto:checkDebugUnitTestAarMetadata UP-TO-DATE
+> Task :app:checkNativeParity
+> Task :auto:mergeDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestManifest UP-TO-DATE
+> Task :auto:processDebugUnitTestResources UP-TO-DATE
+> Task :auto:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
+> Task :auto:mergeDebugUnitTestAssets UP-TO-DATE
+> Task :auto:packageDebugUnitTestForUnitTest UP-TO-DATE
+> Task :auto:generateDebugUnitTestConfig UP-TO-DATE
+> Task :auto:koverFindJar UP-TO-DATE
+> Task :auto:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preAutomotiveDebugBuild
+> Task :app:generateAutomotiveDebugBuildConfig UP-TO-DATE
+> Task :app:generateAutomotiveDebugResources UP-TO-DATE
+> Task :app:packageAutomotiveDebugResources UP-TO-DATE
+> Task :app:processAutomotiveDebugNavigationResources UP-TO-DATE
+> Task :app:parseAutomotiveDebugLocalResources UP-TO-DATE
+> Task :app:generateAutomotiveDebugRFile UP-TO-DATE
+> Task :app:kspAutomotiveDebugKotlin UP-TO-DATE
+> Task :app:compileAutomotiveDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileAutomotiveDebug UP-TO-DATE
+> Task :app:compileAutomotiveDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncAutomotiveDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsAutomotiveDebug UP-TO-DATE
+> Task :app:hiltJavaCompileAutomotiveDebug UP-TO-DATE
+> Task :app:checkAutomotiveDebugAarMetadata UP-TO-DATE
+> Task :app:mapAutomotiveDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileAutomotiveDebugNavigationResources UP-TO-DATE
+> Task :app:mergeAutomotiveDebugResources UP-TO-DATE
+> Task :app:createAutomotiveDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksAutomotiveDebug UP-TO-DATE
+> Task :app:processAutomotiveDebugMainManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugManifestForPackage UP-TO-DATE
+> Task :app:processAutomotiveDebugResources UP-TO-DATE
+> Task :app:transformAutomotiveDebugClassesWithAsm UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:generateAutomotiveDebugAssets UP-TO-DATE
+> Task :app:mergeAutomotiveDebugAssets UP-TO-DATE
+> Task :app:preAutomotiveDebugUnitTestBuild
+> Task :app:packageAutomotiveDebugUnitTestForUnitTest UP-TO-DATE
+> Task :app:mergeAutomotiveDebugUnitTestManifest UP-TO-DATE
+> Task :app:processAutomotiveDebugUnitTestManifest UP-TO-DATE
+> Task :app:generateAutomotiveDebugUnitTestConfig UP-TO-DATE
+> Task :app:koverFindJar UP-TO-DATE
+> Task :app:processAutomotiveDebugJavaRes UP-TO-DATE
+> Task :app:bundleAutomotiveDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspAutomotiveDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileAutomotiveDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processAutomotiveDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:javaPreCompileAutomotiveDebugUnitTest UP-TO-DATE
+> Task :app:compileAutomotiveDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncAutomotiveDebugUnitTest UP-TO-DATE
+> Task :app:hiltAggregateDepsAutomotiveDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileAutomotiveDebugUnitTest NO-SOURCE
+> Task :app:transformAutomotiveDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :osmscout-client-java:test
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :core:testDebugUnitTest
+> Task :auto:testDebugUnitTest
+> Task :core:test
+> Task :app:testAutomotiveDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :auto:test
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :app:preMobileDebugBuild
+> Task :app:generateMobileDebugBuildConfig UP-TO-DATE
+> Task :app:generateMobileDebugResources UP-TO-DATE
+> Task :app:packageMobileDebugResources UP-TO-DATE
+> Task :app:processMobileDebugNavigationResources UP-TO-DATE
+> Task :app:parseMobileDebugLocalResources UP-TO-DATE
+> Task :app:generateMobileDebugRFile UP-TO-DATE
+> Task :app:kspMobileDebugKotlin UP-TO-DATE
+> Task :app:compileMobileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileMobileDebug UP-TO-DATE
+> Task :app:compileMobileDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncMobileDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebug UP-TO-DATE
+> Task :app:checkMobileDebugAarMetadata UP-TO-DATE
+> Task :app:mapMobileDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileMobileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeMobileDebugResources UP-TO-DATE
+> Task :app:createMobileDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksMobileDebug UP-TO-DATE
+> Task :app:processMobileDebugMainManifest UP-TO-DATE
+> Task :app:processMobileDebugManifest UP-TO-DATE
+> Task :app:processMobileDebugManifestForPackage UP-TO-DATE
+> Task :app:processMobileDebugResources UP-TO-DATE
+> Task :app:transformMobileDebugClassesWithAsm UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:generateMobileDebugAssets UP-TO-DATE
+> Task :app:mergeMobileDebugAssets UP-TO-DATE
+> Task :app:preMobileDebugUnitTestBuild
+> Task :app:packageMobileDebugUnitTestForUnitTest UP-TO-DATE
+> Task :app:mergeMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:processMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:generateMobileDebugUnitTestConfig UP-TO-DATE
+> Task :app:processMobileDebugJavaRes UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :app:testMobileDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:test
+
+BUILD SUCCESSFUL in 5m 25s
+164 actionable tasks: 16 executed, 148 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 325s
+gate: tools/loop-selftest.sh --from-git 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e
+loop-selftest: selected 207 of 207 cases (files: .github/workflows/build.yml app/build.gradle.kts buildSrc/src/main/kotlin/com/naviveylin/build/testing/JvmOnlyTestRun.kt buildSrc/src/test/kotlin/com/naviveylin/build/testing/JvmOnlyTestRunTest.kt guidelines/Build.md openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/design.md openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/bash_tools_loop-mutations.sh_--check.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/evidence.md openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/gate.log openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/green-dry-run.log openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/green-full-run.log openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/green-merge-task.log openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/green-refusal.log openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/module-tallies/app-automotive.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/module-tallies/app-mobile.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/module-tallies/auto.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/module-tallies/buildSrc.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/module-tallies/core.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/module-tallies/osmscout-client-java.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/red-HEAD.log openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/revert-check.md openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/suite.log openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/tools_check-action-runtimes-selftest.sh.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/tools_check-doc-routes.sh.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/tools_check-jvm-test-graph-selftest.sh.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/tools_loop-mutations-selftest.sh.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/tools_loop-selftest.sh_--from-git_f2d27735818acd6d05095a9b331f4ee2bae1bb74.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/evidence/unit-jvm-only-test-run.xml openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/proposal.md openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/specs/build-sbom/spec.md openspec/changes/archive/2026-10-23-fix-jvm-test-run-needs-no-native-tree/tasks.md openspec/specs/build-sbom/spec.md tools/check-jvm-test-graph-selftest.sh tools/loop/loop.conf)
+PASS state#initAndShowRoundTrips
+PASS state#nextHonoursEveryStopCondition
+PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+PASS state#secondRunRefusesWithExit5
+PASS state#aRefusedRunLeavesTheLiveStateAlone
+PASS state#aDeadOwnersLockIsTakenOver
+PASS state#initKeepsTheStateItReplaces
+PASS state#initAnnouncesARunWithoutAStop
+PASS state#defaultsComeFromLoopConf
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064206')
+HEAD ist jetzt bei 06e3793 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (29838d9)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (99a577a)
+HEAD ist jetzt bei 99a577a review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 99a577a).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS state#projectKeysAreReadFromLoopConf
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064215')
+HEAD ist jetzt bei 50340fc init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6605d2b)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (44581ec)
+HEAD ist jetzt bei 44581ec review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 44581ec).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS state#agentCommandIsTheOnlyIndirection
+PASS state#agentCommandRefusesAnEmptyValue
+PASS prescreen#ranksBugsFirstAndKeepsFeatures
+PASS prescreen#oneHarnessImprovementPerFourAppItems
+stub gh: recorded `gh issue edit`
+exclude-feature #25
+PASS prescreen#aRefusedClassStillStopsTheScreen
+PASS prescreen#missingPathYieldsStale
+PASS prescreen#doesNotClaimJudgementGates
+PASS prescreen#refusesReservedLabelInSelection
+PASS prescreen#withoutTheOptInIsNeverQueued
+PASS prescreen#settledItemIsDropped
+PASS prescreen#deviceItemIsAVerdictNotWork
+PASS prescreen#readsTheVerdictsFromTheProfile
+PASS prescreen#aFinishedAttemptBranchIsADecision
+PASS prescreen#aBlockedAttemptBranchIsWork
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DOjuoc/case.nm2Lsl/repo/.pi/issue-loop/runs/2026-10-24T06:42:38Z.json
+PASS prescreen#landedBranchIsNotADecision
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS prescreen#harnessItemsLeadTheQueue
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+PASS prescreen#priorityDoesNotBypassTheGate
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+PASS prescreen#anUndeclaredLeadingIntervalStopsTheScreen
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+PASS prescreen#refusalLeavesATraceInTheTracker
+PASS prescreen#aFixInTheSubmoduleIsAPersonsPatch
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 8cbb44d init
+PASS worktree#seedsAllFourInputs
+PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 3155679 init
+Zu neuem Branch 'fix/issue-22-other' gewechselt
+PASS worktree#oneBranchPerItemOffTheBase
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 3155679 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesWhenMainAdvanced
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064257')
+HEAD ist jetzt bei 3ef8936 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (32a62be)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (8bfdf72)
+HEAD ist jetzt bei 8bfdf72 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 8bfdf72).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+Zu neuem Branch 'loop-20261024-064307' gewechselt
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+unpick #21
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+escalate #21
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#keepsByDefaultAndRemovesOnRequest
+PASS worktree#keepsSourcesNotBuildOutput
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064322')
+HEAD ist jetzt bei a9bca7f init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4b333a5)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (da2ec1f)
+HEAD ist jetzt bei da2ec1f review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war da2ec1f).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#noPushWithoutTheFlag
+PASS worktree#pushSkipsABranchItAlreadyMerged
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei e62adcf init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DOjuoc/case.AaOu4B/repo/.pi/issue-loop/runs/2026-10-24T06:43:39Z.json
+PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei fcfb95b init
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DOjuoc/case.5KB6pH/repo/.pi/issue-loop/runs/2026-10-24T06:43:40Z.json
+PASS worktree#reusesABranchWhoseWorkAlreadyLanded
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei e13d18d init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesABranchCarryingAPreviousAttempt
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei e13d18d init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#setsAsideABlockedAttemptAndStartsFresh
+PASS worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+PASS worktree#refusesABranchWhoseReviewFailed
+PASS worktree#refusesABranchWhoseReviewRoundNeverAnswered
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei 1ded3b5 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesToMergeOverADirtyProjectTree
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei bece6d1 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
+PASS labels#verdictToLabelMatrix
+PASS labels#holdCarriesItsReason
+PASS labels#trapRemovesInProgressOnSignal
+PASS labels#neverWritesReservedLabel
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064355')
+HEAD ist jetzt bei b720967 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ac5576f)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (1784966)
+HEAD ist jetzt bei 1784966 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 1784966).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS labels#writesOnlyBetweenChildren
+PASS labels#closeRemovesTheDecisionLabel
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064404')
+HEAD ist jetzt bei faea3d7 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f416bdd)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (534f94c)
+HEAD ist jetzt bei 534f94c review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 534f94c).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerNamesEveryPhaseAndSkill
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064414')
+HEAD ist jetzt bei f7d7053 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (cc1bd3f)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (fe7d80e)
+HEAD ist jetzt bei fe7d80e review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war fe7d80e).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerCarriesTheFeaturePath
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064423')
+HEAD ist jetzt bei b247de0 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (541190f)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (416b605)
+HEAD ist jetzt bei 416b605 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 416b605).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerNamesTheDecisionField
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064432')
+HEAD ist jetzt bei 5ff51be init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (85e28d5)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (170ecc3)
+HEAD ist jetzt bei 170ecc3 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 170ecc3).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerTreatsARecordedDecisionAsSettled
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064441')
+HEAD ist jetzt bei ec0268a init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (00e7d3e)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (4a8d75e)
+HEAD ist jetzt bei 4a8d75e review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4a8d75e).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#reviewerCarriesTheEightItems
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064450')
+HEAD ist jetzt bei cd07b4c init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (cf7b8a3)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2cff340)
+HEAD ist jetzt bei 2cff340 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2cff340).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#reviewerIsBoundedToReading
+PASS prompt#iterationProtocolHandsTheReviewerTheSameSkeleton
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064500')
+HEAD ist jetzt bei 3a6d7e2 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (5e55bdc)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (ab53450)
+HEAD ist jetzt bei ab53450 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war ab53450).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerNamesTheChangeSurfaceBeforeThePlan
+PASS prompt#iterationProtocolNamesTheChangeSurface
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064509')
+HEAD ist jetzt bei cff1623 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (36d6e30)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c4070c2)
+HEAD ist jetzt bei c4070c2 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c4070c2).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#packageIsAFileAndNotInlined
+PASS prompt#inlineInjectionCannotReachTheInstructionPosition
+PASS run#preflightRefusalStopsBeforeAnyWork
+PASS run#blockedItemAsksItsOwnQuestion
+PASS run#falsifiedSkipClosesWithItsMeasurement
+PASS run#falsificationWithoutAMeasurementIsEscalated
+PASS run#mayCloseNoKeepsAFalsificationOpen
+PASS run#falsificationWithAChangedTreeIsBlocked
+PASS run#decisionCapRefusesToStart
+PASS run#refusesARepositoryThatIsNotAWorkTree
+PASS gate#theDeltaSelectsTheSuitesItTouches
+PASS gate#anEnginePathOwesTheRecordCheck
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
+PASS gate#aFailingSuiteIsReadFromTheSameStream
+PASS gate#aFailingSuiteWithNoSummaryInventsNoTest
+PASS gate#aCompiledStepsTallyIsNotHidden
+PASS gate#theSummaryNamesWhatEachSuiteCost
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS gate#anArchivedArtefactOwesNoBuild
+PASS gate#aModuleResourceOwesTheBuild
+PASS gate#theGateNamesTheProfileItRead
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064625')
+HEAD ist jetzt bei 92d1935 an engine of its own
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (1e65d83)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (b4a25a9)
+HEAD ist jetzt bei b4a25a9 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war b4a25a9).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+PASS mutation#everyDeclaredRecordApplies
+PASS mutation#aStaleRecordIsNamed
+PASS measure#namesTheOwedChecksInOneBlock
+PASS measure#printsTheNumbersTheReviewerAsksFor
+PASS measure#refusesToGuessWhichChangeItMeasures
+PASS measure#saysHowManyTalliesItWithheld
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064636')
+HEAD ist jetzt bei 6935c22 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0f9b18f)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2cc4162)
+HEAD ist jetzt bei 2cc4162 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2cc4162).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prompt#workerIsHandedTheMeasureBlock
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064645')
+HEAD ist jetzt bei fa65f09 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (51350c0)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5246b58)
+HEAD ist jetzt bei 5246b58 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5246b58).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#oneItemOrderIsFixed
+PASS run#childClaimWithoutCommitIsBlocked
+PASS run#blockedItemIsEscalatedWithItsReason
+PASS run#aFailedEscalationWriteIsNamed
+PASS run#aFailedUnpickIsNamed
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-064720')
+HEAD ist jetzt bei 2209c37 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (7a5db57)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (3bf1a5b)
+HEAD ist jetzt bei 3bf1a5b review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 3bf1a5b).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#childStartsInTheProjectRoot
+PASS run#childReportsWhileItWaits
+PASS run#headerNamesTheLiveView
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+PASS run#everyPhaseBoundaryIsPrinted
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#detachedProcessInTheWorktreeIsEndedByTheCap
+PASS run#treeOfAChildTheCapEndedIsNotCommitted
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#childThatNeverStartedIsTheRunsFault
+PASS run#hostBelowTheFloorBlocksTheItemAndStops
+PASS run#hostAboveTheFloorRunsTheItem
+PASS run#hostWithoutTheReadingPasses
+PASS run#childWriteOutsideTheWorktreeIsNoted
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#dirtyBaseRefusesTheMergeAndNamesThePath
+PASS run#strictOutsideWriteBlocksTheItem
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+PASS run#leftoverBranchIsRecordedNotDropped
+PASS run#branchThatAppearsWhileTheRunIsOpenIsSetAside
+PASS run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
+PASS run#mergesItsCommittedBranchBeforeClosing
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065029')
+HEAD ist jetzt bei 0a29f73 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (daad0e7)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (dc78346)
+HEAD ist jetzt bei dc78346 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war dc78346).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aMergedBranchIsRemoved
+PASS run#theBaseAdvancesWithEveryMerge
+PASS run#staleTestResultsAreNotThisChildsGate
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake
+PASS run#recordsAFailedReviewOnTheBranch
+PASS run#announcesAndRecordsTheReviewRound
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065138')
+HEAD ist jetzt bei 96205ca init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (ef4ca01)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (b0f79e2)
+HEAD ist jetzt bei b0f79e2 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war b0f79e2).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#dirtyKeptWorktreeIsARecordedRefusal
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065148')
+HEAD ist jetzt bei e930738 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (c619b9d)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (c1358ca)
+HEAD ist jetzt bei c1358ca review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war c1358ca).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#resetWorktreeDiscardsWhatItNames
+PASS run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+PASS run#aSkipClearsTheInProgressMark
+PASS run#stateNamesTheItemInProgress
+PASS run#skipEscalationCarriesTheDecision
+PASS run#workPackageCarriesTheRecordedDecision
+PASS run#claimedGateWithoutEvidenceIsBlocked
+PASS run#citedEvidenceMustTravelWithTheChange
+PASS run#needsDecisionIsEscalatedWithTheWork
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065255')
+HEAD ist jetzt bei e427e83 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (f48f92d)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f4f0b16)
+HEAD ist jetzt bei f4f0b16 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f4f0b16).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#noGateStillRuns
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DOjuoc/case.M85KxH/repo/.pi/issue-loop/runs/2026-10-24T06:53:03Z.json
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei ab8f33a init
+PASS run#dryRunTouchesNothing
+PASS run#reviewRoundsCapAtTwo
+PASS run#reviewBudgetIsARecordedValue
+PASS run#aZeroRoundBudgetIsRefused
+PASS run#aCorrectiveRefusalEarnsOneMoreRound
+PASS run#aCorrectiveRoundIsHandedTheCorrections
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+PASS run#aBlockingRefusalStillTakesTheRoundTwoPath
+PASS run#aCutReportIsRetriedInsteadOfRefused
+PASS run#aReportCutTwiceBlocksAsTheTransportsFault
+PASS run#escalationCarriesTheDecision
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065514')
+HEAD ist jetzt bei 8b63e25 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (06d0324)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (05b9294)
+HEAD ist jetzt bei 05b9294 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 05b9294).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+commented on #21 (left open)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#mayCloseNoLeavesTheIssueOpen
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065523')
+HEAD ist jetzt bei 24bc9fe init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (16649e0)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (25e1afe)
+HEAD ist jetzt bei 25e1afe review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 25e1afe).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#metricsRecordedPerItem
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065532')
+HEAD ist jetzt bei de0b301 init
+stub gh: recorded `gh issue edit`
+HEAD ist jetzt bei 90c6ef4 fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 90c6ef4).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065539')
+HEAD ist jetzt bei 207a084 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (2fa7f56)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (6f52fc0)
+HEAD ist jetzt bei 6f52fc0 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 6f52fc0).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#childUsageIsRecordedPerItem
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065548')
+HEAD ist jetzt bei f383a49 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (58f7057)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (1feaadb)
+HEAD ist jetzt bei 1feaadb review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 1feaadb).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#plainTextChildStillReports
+PASS run#emptyQueueIsNotAFailure
+PASS run#stopReasonIsPrintedAndReported
+PASS run#staleBaseStopsTheRunWithItsReason
+PASS run#awaitingDecisionIsNotEscalatedAgain
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065621')
+HEAD ist jetzt bei 6e97044 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (fb4d88b)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (e488a52)
+HEAD ist jetzt bei e488a52 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war e488a52).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#commitsWithoutAnAmbientIdentity
+PASS run#reviewerWriteInvalidatesTheRound
+PASS run#reviewReadOnlyOffOnlyForDiagnosis
+PASS run#reviewDiffExcludesTheEvidenceArchive
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065657')
+HEAD ist jetzt bei 9facbda init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (2810afd)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (8d0cf35)
+HEAD ist jetzt bei 8d0cf35 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 8d0cf35).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#engineNamesNoProjectFact
+PASS adapter#modeFlagIsItsOwnArgument
+PASS state#inheritedStatePathOutsideTheTreeIsIgnored
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065706')
+HEAD ist jetzt bei a76b979 init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (b364a75)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5a43afc)
+HEAD ist jetzt bei 5a43afc review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5a43afc).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS report#headerAndTableShape
+PASS report#yieldIsCountedFromState
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#aVerdictAloneIsNoEscalation
+PASS report#misdiagnosedIsCountedApart
+PASS report#archivedStateIsReported
+PASS report#impossibleBudgetNamesAnotherRun
+state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DOjuoc/case.vMaRBF/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (203b1041c53afe81 → 637fca08a04f523b); a field was edited outside this script
+PASS report#aKilledRunIsNotALiveRun
+PASS report#wallTimeAndReasonInTheTable
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DOjuoc/case.Jp3h9m/repo/.pi/issue-loop/runs/2026-10-24T06:57:37Z.json
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#actionsNameDecisionAndBranch
+state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.DOjuoc/case.BucGnY/repo/.pi/issue-loop/runs/2026-10-24T06:57:39Z.json
+PASS report#landedBranchIsNoAction
+PASS report#landedBranchesAreNamedAsRemovable
+PASS report#emptyRunSaysNone
+PASS clean#interruptedSuiteRemovesItsScratchTree
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065743')
+HEAD ist jetzt bei 0a8e87c init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (0030969)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (ba929cb)
+HEAD ist jetzt bei ba929cb review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war ba929cb).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS clean#reportsWithoutApplyAndRemovesWithIt
+PASS clean#sweepsOnlyWhatIsInTheBase
+PASS clean#interruptedSuiteEndsItsProcessGroup
+PASS clean#reportsAndEndsAProcessLeftInAScratchTree
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261024-065758')
+HEAD ist jetzt bei 1d3d30f init
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (903e8bf)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (304aad4)
+HEAD ist jetzt bei 304aad4 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 304aad4).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS clean#reportsTheWorktreesScratchTreesToo
+PASS clean#worktreeDotSweepsTheOneRootOnce
+PASS clean#endsARunWhoseTreeIsAlreadyDeleted
+PASS run#interruptedRunEndsTheChildItStarted
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+PASS usage#bareValueFlagDoesNotSwallowTheNextFlag
+PASS usage#bareValueFlagInASingleShotHarnessIsAUsageError
+PASS usage#noUnguardedValueFlagRemains
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+loop-selftest: 1 of 207 cases failed
+ended 1387730 — its working directory is inside loop-selftest.DOjuoc
+gate: tools/loop-selftest.sh --from-git 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e — 1014s
+gate: bash tools/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.CgF42B
+loop-mutations: all 128 cases passed — every selected record applies to the file it names
+gate: bash tools/loop-mutations.sh --check — 1s
+gate: tools/check-action-runtimes-selftest.sh
+ok: this repository's workflows pin a Node 24 major
+ok: pins at or above the Node 24 floor pass
+ok: a Node 20 upload-artifact pin fails
+ok: a Node 20 checkout pin fails
+ok: a subpath of a recorded action resolves to the action's floor
+ok: an action with no recorded runtime fails
+ok: an unverifiable ref fails
+ok: a container action and a local action are skipped
+ok: a workflow with no action pin passes
+ok: a tree with no workflow directory is a layout error
+check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
+gate: tools/check-action-runtimes-selftest.sh — 0s
+gate: bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 177
+classified: 180
+unclassified: 0
+delta spec ids: 1
+stale: 3
+car-only areas: 1
+highlights: 19
+gate: bash tools/gen-feature-list.sh --check-classification — 4s
+gate: tools/check-doc-routes.sh
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+gate: tools/check-doc-routes.sh — 0s
+gate: tools/check-jvm-test-graph-selftest.sh
+check-jvm-test-graph-selftest: all 3 cases passed (--dry-run configurations, no build, no network)
+gate: tools/check-jvm-test-graph-selftest.sh — 4s
+LOOP-GATE: tests=348 failures=1 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 325s, tools/loop-selftest.sh --from-git 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e 1014s, bash tools/loop-mutations.sh --check 1s, tools/check-action-runtimes-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 0s, tools/check-jvm-test-graph-selftest.sh 4s) — failing: tools/loop-selftest.sh --from-git 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e

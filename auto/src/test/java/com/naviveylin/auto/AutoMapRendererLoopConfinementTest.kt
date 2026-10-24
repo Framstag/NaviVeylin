@@ -89,7 +89,7 @@ class AutoMapRendererLoopConfinementTest {
         rendererWithSurface()
         val now = System.currentTimeMillis()
         // A frame must be on the surface: the following ticks update it by blitting the overrun
-        // buffer (same shape as the follow-blit case in AutoMapRendererTest).
+        // buffer (same shape as the follow-blit case in AutoMapRendererBlitTest).
         renderer.renderFrame()
         assertEquals(1, renderer.fullRenderCount)
         renderer.setGpsMarker(51.5142273, 7.4652789, 45.0, 10.0, speedKmH = 10.0, timeMs = now)

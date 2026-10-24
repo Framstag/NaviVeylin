@@ -3,7 +3,8 @@ package com.framstag.libosmscout.client
 /**
  * Test double for [OSMScoutClient] that returns dummy pixel data.
  * Lives in the client package to access the package-private constructor.
- * Used by [com.naviveylin.auto.AutoMapRendererTest] to avoid loading the native library.
+ * Used by the [com.naviveylin.auto.AutoMapRendererTestSupport] cases to avoid loading the native
+ * library.
  */
 class FakeAutoRenderClient : OSMScoutClient() {
 

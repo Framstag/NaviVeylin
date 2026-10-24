@@ -1,0 +1,3 @@
+$ bash tools/check-portability.sh
+check-portability: OK — 47 engines and 2 templates name no project value (105 value(s) read from the project)
+EXIT_CODE=0

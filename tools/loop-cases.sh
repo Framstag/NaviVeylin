@@ -4393,7 +4393,8 @@ case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom() {
 # branch while the base stays where it was — the run then re-reads the unchanged base, records it, and closes the
 # item with its fix on neither (issue #302, from the read-only review of #301, 2026-10-24). The merge verifies the
 # precondition it depends on and names both branches it found; the pre-screen's adoption merges into the same
-# tree, so its refusal is this one and is taken before the evidence it would check the branch for.
+# tree, so its refusal is this one and is taken before the evidence it would check the branch for. A detached HEAD
+# is the same refusal with no branch to name: the guard reads the checkout, so the state is named instead.
 case_worktree_refusesToMergeIntoATreeOffTheBaseBranch() {
   # files: tools/loop/state.sh tools/loop/worktree.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local p w base branch tip out status off
@@ -4429,6 +4430,25 @@ case_worktree_refusesToMergeIntoATreeOffTheBaseBranch() {
   [ ! -f "$p/demo-fix.txt" ] || fail "adoption landed the work in a tree off the base branch"
   if git -C "$p" merge-base --is-ancestor "$tip" a-persons-branch; then
     fail "the item's commit reached the branch the tree was left on"
+  fi
+
+  # The clause has a second arm: a detached HEAD has no branch to name, so the guard names the state. Left there, the
+  # tree refuses the same two commands before anything is merged into it.
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return the project tree to the base branch"
+  git -C "$p" switch --detach >/dev/null 2>&1 || fail "could not detach the project tree's HEAD"
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a project tree on a detached HEAD refuses the merge"
+  assert_contains "$out" "detached HEAD" "the refusal names the state instead of a branch"
+  assert_contains "$out" "main" "and the base branch it would have landed on"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
+  [ ! -f "$p/demo-fix.txt" ] || fail "the fix reached a tree on a detached HEAD"
+
+  out=$(run_worktree "$p" adopt-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "adoption into a tree on a detached HEAD is refused too"
+  assert_contains "$out" "detached HEAD" "and names the state instead of a branch"
+  [ ! -f "$p/demo-fix.txt" ] || fail "adoption landed the work in a tree on a detached HEAD"
+  if git -C "$p" merge-base --is-ancestor "$tip" HEAD; then
+    fail "the item's commit reached the detached HEAD"
   fi
 }
 

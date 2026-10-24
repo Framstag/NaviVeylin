@@ -119,6 +119,11 @@ and file the gap as its own item.
 - [x] The three free corrections of round 3's report: `evidence.md`'s surface grep count, task 5's "the seven
       beside it" (six), and `gate-round3.log`'s missing exit marker, each replaced with what the artifact
       records; `invalid-3a-bare-invocation-old-profile.log` stays as the bare invocation's record.
+- [x] The gate, once, on the merged tree: `evidence/gate-round4.log`, eight commands, `--base a06ef5ca`,
+      `LOOP-GATE: tests=375 failures=1`, exit 1 — the single failure `run#aWriterTheRunCanPlaceBlocksTheItem`
+      fails identically on the base (`evidence/round4-baseline-failure.log`, `a06ef5ca` clean) and is filed as
+      #287/#288, so it is attributed to the base and not to this change. The delta's own cases and mutations are
+      green (`evidence/round4-green-cases.log`, `evidence/round4-mutations.log`).
 - [x] The four mutation records are renumbered **54.1–54.4**: 40.1–40.3 are already
       `run#aCorrectiveRoundIsHandedTheCorrections`, so `--only "40.1 …"` selected seven records rather than
       four. Re-run and captured as `evidence/round4-mutations.log` (`06:11Z`), both cases as

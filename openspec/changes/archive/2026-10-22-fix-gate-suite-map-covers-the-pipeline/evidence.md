@@ -174,7 +174,12 @@ file the path-side gap as **#289**. The round-4 artifacts, all on the merged bas
 - `evidence/round4-map-vs-pipeline.txt` — the map against the pipeline on the merged base: the map is 58 pairs,
   the `comm -13` leaves nothing, and the pin's strip of the gate's own `--from-git {base}` is what makes the
   loop pairs comparable with the pipeline's commands.
-- `evidence/gate-round4.log` — the gate, once, from the change root, `--base a06ef5ca`.
+- `evidence/gate-round4.log` — the gate, once, from the change root, `--base a06ef5ca`: eight commands,
+  `LOOP-GATE: tests=375 failures=1`, exit 1. The one failure is `run#aWriterTheRunCanPlaceBlocksTheItem`,
+  which is **not this change's**: it fails identically on the base (`evidence/round4-baseline-failure.log`,
+  the case run on a clean checkout of `a06ef5ca`), and it is already filed as #287/#288. Every other case the
+  delta owes is green, the two gate-map cases among them (`evidence/round4-green-cases.log`), and the four
+  mutation records are RED-then-restored (`evidence/round4-mutations.log`).
 
 The rounds-1–3 logs keep their original record ids (40.x); the renumbering to 54.x is what a reader of
 `tools/loop-mutations.sh` sees, and the round-2 logs are history rather than the current set.

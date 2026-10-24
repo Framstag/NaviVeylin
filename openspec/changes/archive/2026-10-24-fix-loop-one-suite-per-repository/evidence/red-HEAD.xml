@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest --case driver#aSecondSuiteInOneRepositoryIsRefused" tests="1" failures="1" errors="0">
+  <testcase name="driver#aSecondSuiteInOneRepositoryIsRefused">
+    <failure>the suite this case started never took the lock at /home/tim/projects/NaviVeylin/.pi/worktrees/i295/.pi/tmp/.loop-selftest.lock</failure>
+  </testcase>
+  <system-out>FAIL driver#aSecondSuiteInOneRepositoryIsRefused — loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

@@ -1,0 +1,36 @@
+2026-10-24T09:28:36Z
+--- harnesses standing in this repository's trees (ps, one line each) ---
+ 510624    5758     440 bash tools/loop/gate.sh
+ 510900  510624     440 bash tools/loop-selftest.sh --from-git a0ca0f3544894dafb4d099eed4e53cc233686896
+ 672270    5758     272 bash /home/tim/projects/NaviVeylin/.pi/worktrees/issue-227/tools/loop/run.sh --items 1 --minutes 90 --review off
+ 849365  849364      93 bash tools/loop/gate.sh --base c4c727fb
+ 849525  849365      93 bash tools/loop-selftest.sh --from-git c4c727fb
+ 904058    5758      40 /bin/zsh -c setopt nonomatch noequals; cd /home/tim/projects/NaviVeylin/.pi/worktrees/i295 && date -u +%Y-%m-%dT%H:%M:%SZ > /tmp/i295-full-suite-start.txt && (timeout 2700 bash tools/loop-selftest.sh > /tmp/i295-full-suite-1.log 2>&1; echo "loop-selftest exit=$?" >> /tmp/i295-full-suite-1.log) > /dev/null 2>&1 & echo "started pid=$!"
+ 904059  904058      40 timeout 2700 bash tools/loop-selftest.sh
+ 904060  904059      40 bash tools/loop-selftest.sh
+ 949252  510900       4 bash tools/loop-selftest.sh --from-git a0ca0f3544894dafb4d099eed4e53cc233686896
+ 949310  949252       4 bash /home/tim/projects/NaviVeylin/.pi/worktrees/issue-227/tools/loop/run.sh --items 1 --minutes 90
+ 950421  904060       3 bash tools/loop-selftest.sh
+ 950468  950421       3 bash /home/tim/projects/NaviVeylin/.pi/worktrees/i295/tools/loop/run.sh --items 1 --minutes 90
+ 954651  949310       1 bash /home/tim/projects/NaviVeylin/.pi/worktrees/issue-227/tools/loop/run.sh --items 1 --minutes 90
+ 955526  950468       1 bash /home/tim/projects/NaviVeylin/.pi/worktrees/i295/tools/loop/run.sh --items 1 --minutes 90
+ 955969  849525       0 bash tools/loop-selftest.sh --from-git c4c727fb
+ 956081  955969       0 bash tools/loop-selftest.sh --from-git c4c727fb
+--- git worktrees ---
+/home/tim/projects/NaviVeylin                                   536c1a1a [fix/issue-288-the-outside-write-case-fails-on-a-clean]
+/home/tim/projects/NaviVeylin/.pi/worktrees/242                 49dfd7db [fix/issue-242-the-loop-s-gate-is-the-gradle-test-task]
+/home/tim/projects/NaviVeylin/.pi/worktrees/271                 a06ef5ca [fix/issue-271-a-run-that-ended-its-own-child-still-com]
+/home/tim/projects/NaviVeylin/.pi/worktrees/baseline271-base    f5f2a2a7 (detached HEAD)
+/home/tim/projects/NaviVeylin/.pi/worktrees/baseline271-maintip 23c9f944 (detached HEAD)
+/home/tim/projects/NaviVeylin/.pi/worktrees/i287                c4c727fb [fix/issue-287-the-prescreen-case-reads-the-stream]
+/home/tim/projects/NaviVeylin/.pi/worktrees/i288-baseline       9e77cd69 (detached HEAD)
+/home/tim/projects/NaviVeylin/.pi/worktrees/i288-final          8aeb4823 [fix/issue-288-the-writer-is-read-before-the-sweep]
+/home/tim/projects/NaviVeylin/.pi/worktrees/i295                a0ca0f35 [fix/issue-295-the-second-suite-in-one-repository]
+/home/tim/projects/NaviVeylin/.pi/worktrees/issue-227           9398a016 [fix/issue-227-a-loop-child-outlives-its-deadline]
+/home/tim/projects/NaviVeylin/.pi/worktrees/issue233            a0ca0f35 [fix/issue-233-a-suite-that-ends-normally-leaves-its-run]
+/home/tim/projects/NaviVeylin/.pi/worktrees/issue92             0f4b5b09 [fix/issue-92-buildsrc-toolchain]
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop                9281534d [fix/issue-270-gradlew-test-cannot-be-configured-withou]
+/home/tim/projects/NaviVeylin/.pi/worktrees/t191                ea194c38 (detached HEAD)
+/home/tim/projects/NaviVeylin/.pi/worktrees/t270                e12cf971 (detached HEAD)
+/home/tim/projects/NaviVeylin/.pi/worktrees/t288c               c4c727fb (detached HEAD)
+/tmp/nv-fix                                                     80df3a3c [fix/pre-loop-blockers]

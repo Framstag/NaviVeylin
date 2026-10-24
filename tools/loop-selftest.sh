@@ -8,7 +8,10 @@
 #
 # Usage: bash tools/loop-selftest.sh [--list] [--case <group#name|glob>] [--group <group>]
 #                                    [--files <path> ...] [--from-git <base>] [--case-files]
-# Exit:  0 every case passed (or there are no cases), 1 a case failed, 2 the environment is unusable.
+#        A run that may execute more than one case holds this tree's lock; `--list`, `--case-files` and one named
+#        `--case` hold none.
+# Exit:  0 every case passed (or there are no cases), 1 a case failed, 2 the environment is unusable — including a
+#        second suite in this tree, which is refused rather than run (issue #295).
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -42,7 +45,7 @@ while [ $# -gt 0 ]; do
       for _wanted in ${2:-}; do only_files="$only_files$_wanted "; done; shift 2 ;;
     --from-git) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; from_git="${2:-}"; shift 2 ;;
     --case-files) list_declared=1; shift ;;
-    -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
     *) echo "loop-selftest: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -95,6 +98,9 @@ tmp=$(mktemp -d "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"XXXXXX) || {
 # *does* leave its tree, and the processes it leaves, behind; those are the leftovers `tools/loop/loop-clean.sh`
 # reports and ends after `LOOP_TMP_STALE_MINUTES`.
 case_pgid=""
+# The repository's lock, set only on the way through `selftest_lock_take` that took it (issue #295). Empty
+# until then, and named here rather than beside the function because `on_exit` may run before that line.
+selftest_lock=""
 on_exit() {
   local rc=$?
   trap - EXIT
@@ -111,12 +117,105 @@ on_exit() {
   # is removed, so a run still standing in it is named, ended and attributed to this suite.
   loop_end_pids_under "$tmp"
   rm -rf "$tmp"
+  # …and the repository's lock last, when nothing of this suite is left that a second one could be refused by.
+  # Only the suite that took it releases it: the path is set on that one way through `selftest_lock_take`.
+  [ -z "$selftest_lock" ] || rm -rf "$selftest_lock"
   exit "$rc"
 }
 trap on_exit EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+# ── one suite per repository (issue #295) ───────────────────────────────────────────────────────────────
+# Two suites in one repository redden different sets of cases: measured 2026-10-24, a run of 210 cases and a
+# control run of the same suite from a pristine base, same host and same day, failed two triples of cases whose
+# intersection was one case — and that one was another item's stable red. The victim moves between the runs, so
+# the failing set of a suite depends on the other suite, and a red gate then reads as a defect in the change
+# under test. What this refuses is a second *suite* in one repository, and the refusal names whose lock it found;
+# that is the bound the issue states, and it is the whole of what a lock can give.
+#
+# The lock is a lease, not a tombstone, exactly as the loop's own run lock is (`state.sh lock`, D12): it names the
+# pid that took it and the moment it did, a suite whose owner is not running any more takes it over and says so,
+# and a live owner is the refusal. It stands in the scratch root this invocation resolved — so a suite in another
+# repository, in another worktree of this one, or in a nested suite that resolves a root of its own, is not refused
+# by it: two worktrees of one repository are one repository and two scratch roots, and the load a suite in the
+# neighbouring tree puts on this one is the host's, not this lock's business.
+#
+# Three bounds, named rather than implied. (1) An unreadable owner is read again before it is read as "no owner",
+# because the directory exists a moment before its owner file does; a lock that stays unreadable is taken over.
+# (2) A stale lock is removed and re-created, so two suites that read the *same* dead owner and remove it in the
+# same instant can both end up holding it — the gap between that removal and the `mkdir` is the bound, and it is the
+# same shape and the same bound as the run's own lock; refusing instead of taking over would leave a repository
+# blocked until a person removed the lock, which is the state the lease exists to avoid. (3) A `kill -9`ed suite
+# whose pid is later reused by a long-lived process refuses this repository until that process exits; the refusal
+# prints the repair. The lock is also not one of the leftovers `loop-clean.sh` reports — its glob is the
+# `loop-selftest.` prefix of the scratch trees — which is why the takeover above has to recover it.
+#
+# An invocation that cannot run more than one case takes no lock, because it cannot be the suite the issue is
+# about: `--list` and `--case-files` run no case at all, and one *named* case is one behaviour — the shape the
+# mutation harness and the cases that start a nested suite use, and the shape the driver already treats as a
+# single-case run when it prints no summary below. The selection decides, never a case's cost: a `--case` pattern,
+# a `--group`, a `--files`/`--from-git` selection and an unfiltered run are all suites, and the gate's own
+# `--from-git` run — the selection that was red on 2026-10-24 — is one of them.
+is_glob() { # a filter value that carries a wildcard rather than a name
+  case "$1" in *'*'*|*'?'*|*'['*) return 0 ;; esac
+  return 1
+}
+
+selftest_runs_one_named_case() { # the shapes that are not a suite: a listing, and one named case
+  if [ "$list_only" -eq 1 ] || [ "$list_declared" -eq 1 ]; then return 0; fi
+  [ -n "$only_case" ] && ! is_glob "$only_case" || return 1
+  [ -z "$only_group" ] && [ -z "$from_git" ] && [ "$only_files" = " " ]
+}
+
+selftest_lock_take() {
+  local lock="$LOOP_TMP_DIR/.loop-selftest.lock" holder holder_pid attempt
+  if ! mkdir "$lock" 2>/dev/null; then
+    holder=""
+    for attempt in 1 2 3 4 5 6 7 8 9 10; do
+      holder=$(cat "$lock/owner" 2>/dev/null || printf '')
+      [ -n "$holder" ] && break
+      sleep 0.1
+    done
+    holder_pid=${holder%% *}
+    case "$holder_pid" in ''|*[!0-9]*) holder_pid=0 ;; esac
+    if [ "$holder_pid" -gt 0 ] && kill -0 "$holder_pid" 2>/dev/null; then
+      printf 'loop-selftest: another suite holds %s (owner %s) — one suite per repository: two suites in one repository make the failing set of each depend on the other (issue #295)\n' \
+        "$lock" "$holder" >&2
+      printf 'loop-selftest: wait for it, run this suite in another worktree, or remove %s if that process is not a suite\n' "$lock" >&2
+      # A gate that runs this suite reads exit 2 as a refused suite, not as a failed case: it is the environment,
+      # and the run that owes the gate is the one that reschedules it.
+      exit 2
+    fi
+    # A suite ended by a signal no trap can catch leaves its lock behind, and a lock whose owner is gone must not
+    # refuse every suite that follows it: the next one takes it over and says whose it was. Only a lock that still
+    # carries the record this suite read is removed, and the `mkdir` below is what decides between two suites that
+    # took the same dead lock over at once. The bound is the gap between that removal and that `mkdir` — the same
+    # shape, and the same bound, as the run's own lock (`state.sh lock`); an advisory `flock` would close it and is
+    # not a tool this suite may require of a host.
+    if [ "$(cat "$lock/owner" 2>/dev/null)" != "$holder" ]; then
+      printf 'loop-selftest: the lock %s changed hands while this suite read it — one suite per repository\n' "$lock" >&2
+      exit 2
+    fi
+    rm -rf "$lock" 2>/dev/null || true
+    mkdir "$lock" 2>/dev/null || {
+      printf 'loop-selftest: another suite took %s while this one read it — one suite per repository\n' "$lock" >&2
+      exit 2
+    }
+    printf 'loop-selftest: took over the lock %s: its owner %s is not running any more\n' "$lock" "${holder:-an unknown process}" >&2
+  fi
+  if ! printf '%s %s\n' "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$lock/owner" 2>/dev/null; then
+    # A lock that cannot say who holds it cannot be released by its holder, and leaving it behind would refuse the
+    # next suite as a dead owner's: remove what this suite just made and refuse.
+    rm -rf "$lock" 2>/dev/null || true
+    printf 'loop-selftest: cannot write the owner of %s — no lock is held\n' "$lock" >&2
+    exit 2
+  fi
+  selftest_lock="$lock"
+}
+selftest_runs_one_named_case || selftest_lock_take
+
 mkdir -p "$tmp/classes"
 # The two paths the compile uses are named for the driver, not `tmp`: a case may declare `local tmp` of its own (five
 # do), and a `local` of that name shadows the driver's scratch directory for the function that calls `core_ensure` —
@@ -238,10 +337,6 @@ run_case() { # <case name> → the case's own status
 matches() {
   # shellcheck disable=SC2254 # the pattern is the point, exactly as in `gate.sh`'s `matches`
   case "$1" in $2) return 0 ;; esac
-  return 1
-}
-is_glob() { # a filter value that carries a wildcard rather than a name
-  case "$1" in *'*'*|*'?'*|*'['*) return 0 ;; esac
   return 1
 }
 

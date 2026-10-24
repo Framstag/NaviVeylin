@@ -16,3 +16,12 @@ ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
 ok   C5 file:line: 380 resolved and in range, 1 unresolved or ambiguous
 ----
 evidence-check: PASS
+
+# evidence-check (archived, after the closure)
+ok   C1 §references: 4 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 1 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 401 resolved and in range, 1 unresolved or ambiguous
+----
+evidence-check: PASS

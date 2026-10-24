@@ -67,4 +67,6 @@
       Verify: archived as `2026-10-24-fix-loop-suite-normal-exit-leftover`; the shipped requirement at
       `openspec/specs/agent-issue-loop/spec.md:979` now carries the body and the new scenario, its existing
       scenario byte-identical.
-- [ ] 4.3 Close #233 naming the archived change and the evidence.
+- [x] 4.3 Close #233 naming the archived change and the evidence.
+      Verify: `evidence/closure.md` — `closed #233 (completed)`, `status/fixed-by`, `state=CLOSED
+      reason=COMPLETED`; the landed commit is `f947886a` on `main`.

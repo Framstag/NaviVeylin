@@ -1,0 +1,4 @@
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei f2b8c0b init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS worktree#refusesToMergeIntoATreeOffTheBaseBranch

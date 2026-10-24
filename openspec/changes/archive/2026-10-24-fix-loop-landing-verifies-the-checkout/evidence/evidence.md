@@ -19,32 +19,36 @@ FAIL state#setBaseRefusesACommitTheBaseBranchDoesNotCarry
 - `state#setBaseRefusesACommitTheBaseBranchDoesNotCarry` — PASS (exit 0).
 - The three cases beside them, unchanged: `worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom`,
   `worktree#refusesToMergeOverADirtyProjectTree`, `state#recordsTheBaseBranchNotTheCheckout` — PASS.
+- The same case's detached-HEAD arm, added in round 2 (`tools/loop-cases.sh:4435`–`:4452`): `detached-arm.log`, PASS on
+  the corrected tree, `2026-10-24T20:36Z` — with HEAD detached, both the merge and the pre-screen's adoption are
+  refused, `a detached HEAD` and the base branch are named, and neither the base nor the item's commit moved.
 
 ## Falsified
 
-`revert-check-57.1-57.2.log`: `bash tools/loop-mutations.sh --only '57.1 57.2'` → `selected 2 of 145 records`,
-`RED 57.1` / `restore 57.1 … green again`, `RED 57.2` / `restore 57.2 … green again`,
+`revert-check-57.1-57.2.log` (round 1) and `revert-check-57.1-57.2-round2.log` (round 2, after the detached-HEAD arm
+was added: `bash tools/loop-mutations.sh --only '57.1 57.2'`, `HEAD 0b89f079`, `2026-10-24T20:37Z`):
+`selected 2 of 145 records`, `RED 57.1` / `restore 57.1 … green again`, `RED 57.2` / `restore 57.2 … green again`,
 `red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0`. Mutation `57.1` replaces the checkout comparison
 with `if false; then`, `57.2` replaces the ancestry test with `true ||`; each names the case above as the one that
-must notice it.
+must notice it. `57.1` guards both arms of the case — the tree switched to another branch and the detached HEAD —
+because both are the one comparison it mutates.
 
 ## The gate
 
-`gate.log` and the seven tallies beside it, from the delta's one gate run,
-`./tools/loop/gate.sh` (base `db888dd8b7c509cfba82854a21427ae5c9c8e192`). Its own line, as printed, reads `397`
-tests over seven suites with `1` failure and `0` errors, failing the loop suite; the tallies carry the same
-numbers, one pair each: `tools/loop-selftest.sh --from-git db888dd8…` `tests="218" failures="1"`,
-`bash tools/loop-mutations.sh --check` `tests="145" failures="0"`, `tools/loop-mutations-selftest.sh`
-`tests="34" failures="0"`, and four structural checks with no case of their own.
-
-The one failure is **not** a behaviour: `driver#everyCaseDeclaresTheFilesItCanReach` refused the two new cases'
+**Round 1** (`gate.log`, `db888dd8b7c509cfba82854a21427ae5c9c8e192`): red — its line reports one failing case of
+397, and that case was **not** a behaviour: `driver#everyCaseDeclaresTheFilesItCanReach` refused the two new cases'
 `# files:` declarations, which named the engine paths but not the two the `new_project` helper copies
 (`tools/pi-child-events.sh`, `tools/tooling.json`). The declarations were corrected and the same case re-run on the
-corrected tree — `gate-failure-recheck.log`, PASS, exit 0 — the gate itself was not re-run: a second attempt at
-one gate is not the worker's to make. The gate is red in this record and the item is reported `blocked` with that
-decision, not closed on it.
+corrected tree — `gate-failure-recheck.log`, PASS, exit 0.
 
-## Off-base tally, for the same reason
+**Round 2** (`gate-round2.log`, `HEAD 0b89f079`, started `2026-10-24T20:37Z`, ended `20:56Z`): the reviewer refused
+the round-1 record because no full-gate execution had the corrected tree as its subject, so the gate was run once
+on that tree — which also carries the detached-HEAD arm added in round 2. Its final line (quoted from
+`gate-round2.log`) reports **403 cases over ten suites, zero failures, zero errors**, the loop suite alone taking
+`974s` of the run; `gate.log` keeps the round-1 line beside it.
+The tallies beside it carry the same numbers, one pair each: `tools/loop-selftest.sh --from-git db888dd8…`
+`tests="218" failures="0"`, `bash tools/loop-mutations.sh --check` `tests="145" failures="0"`,
+`tools/loop-mutations-selftest.sh` `tests="34" failures="0"`, `tools/check-openspec-hygiene-selftest.sh`
+`tests="6" failures="0"`, and six structural checks with no case of their own (`tests="0" failures="0"`).
+218 + 145 + 34 + 6 = 403.
 
-The other 396 of the gate's 397 tests passed in that run, including both cases this change adds and every case of
-the `state`, `worktree`, `run` and `driver` groups.

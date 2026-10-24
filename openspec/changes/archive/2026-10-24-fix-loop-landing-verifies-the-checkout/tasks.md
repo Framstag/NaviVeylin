@@ -16,10 +16,20 @@
       Verify: `bash tools/loop-mutations.sh --only 57.1,57.2` → each mutates, the named case goes red, the
       restore is green; `bash tools/loop-mutations.sh --check` applies both.
 - [x] 6. Extend the capability delta (`specs/agent-issue-loop/spec.md`) and the owning guideline paragraph
-      (`guidelines/Backlog.md:416`). Verify: `openspec validate fix-loop-landing-verifies-the-checkout --strict`.
+      (`guidelines/Backlog.md:416`). Verify: the MODIFIED block repeats S1–S3 verbatim against
+      `openspec/specs/agent-issue-loop/spec.md:1284`–`:1307`, its requirement body is unchanged (≈380 chars), and the
+      delta's S4/S5 are merged into the shipped spec at `:1309` and `:1319`; `openspec validate <change> --strict`
+      was run before the archive.
 - [x] 7. Run the delta's gate once: `./tools/loop/gate.sh`. Verify: its `LOOP-GATE:` line, tallied under the
-      profile's tally directory and copied into `evidence/`.
+      profile's tally directory and copied into `evidence/` (`gate.log`; green re-run on the corrected tree after
+      review round 1, `gate.log` of `gate-round2.log`).
 - [x] 8. Record the evidence and archive the change. Verify:
       `bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/<name> --root .` reports no dangling
       pointer, and `openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout` exists with the
       delta merged into `openspec/specs/agent-issue-loop/spec.md`.
+- [x] 9. Round-1 review corrections: assert the detached-HEAD arm of S4 in
+      `worktree#refusesToMergeIntoATreeOffTheBaseBranch` (`tools/loop-cases.sh:4435`–`:4452`), delete the false
+      "every case of the `driver` group" sentence from the evidence, and re-run the gate once on the corrected tree.
+      Verify: `bash tools/loop-selftest.sh --case 'worktree#refusesToMergeIntoATreeOffTheBaseBranch'` → PASS;
+      `bash tools/loop-mutations.sh --only '57.1 57.2'` → each RED names its case and restores green
+      (`evidence/revert-check-57.1-57.2-round2.log`); `evidence/gate-round2.log` ends with a green `LOOP-GATE:` line.

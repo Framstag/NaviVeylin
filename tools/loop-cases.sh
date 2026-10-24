@@ -3334,10 +3334,23 @@ case_run_headerNamesTheLiveView() {
 # The pre-screen's own text has to reach the terminal *while* the call runs and not after it returns, and the
 # same bytes have to stay where a path can read them afterwards. Both halves are measured against a stand-in
 # *pre-screen* — one line, a 3 s hold, a second line — because that shape is the only one that separates
-# streaming from capture-and-replay: read 1.5 s in, the console must carry the first line and must not carry
-# the second, and the kept text must carry both once the run is over (issue #191). Holding the issue listing
-# instead left the run's own phase line as the only mid-flight evidence, which a capture-and-replay would also
-# print.
+# streaming from capture-and-replay: the console must carry the first line while the stand-in holds and must not
+# carry the second, and the kept text must carry both once the run is over (issue #191). Holding the issue
+# listing instead left the run's own phase line as the only mid-flight evidence, which a capture-and-replay would
+# also print.
+#
+# The reading *waits* for that first line instead of taking it at an instant fixed before the run can have
+# reached it (issue #287, measured 2026-10-24): the run compiles the issue tooling's Java core, writes its state
+# and counts the open decisions before it calls the pre-screen — the compile alone is 4.1 s on a cold host, and
+# the phase line lands 0.628–0.760 s in even when it is warm — so the `sleep 1.5` this case used to sample at read
+# an empty console when the case ran alone and, on a loaded host, a console holding only the header. Both readings
+# reported the host's own start-up cost as a red case, on an engine that had printed the line. The wait has a
+# bound of its own (30 s), so a phase whose text never reaches the console still fails here — the mutation
+# record `34.1` is what keeps that half honest — and so does one that is replayed after the call returns,
+# because the moment the first line is read then already carries the line the stand-in had not printed yet (that
+# shape is exercised by a hand probe rather than by a record, because the harness's one-line substitution cannot
+# restructure the pipeline into a capture; the probe's reading is kept as `replay-probe.log` beside this
+# change's evidence).
 case_run_prescreenAnnouncesItselfBeforeItReturns() {
   # files: tools/loop/ tools/pi-child-events.sh tools/tooling.json
   local d p log pid out tools p2 rc
@@ -3356,8 +3369,15 @@ case_run_prescreenAnnouncesItselfBeforeItReturns() {
   log="$d/console.log"
   ( LOOP_ENGINE="$tools/loop" run_loop "$p" --items 1 --minutes 90 --review off ) > "$log" 2>&1 &
   pid=$!
-  sleep 1.5
-  out=$(cat "$log")
+  # Wait for the stand-in's own first line: it is printed after the phase line the run writes before the call and
+  # while the call still runs, so it is the earliest a reader can tell streamed from replayed — and waiting for it
+  # is independent of how long the run's own start-up took (the comment above).
+  out=""
+  for _ in $(seq 600); do
+    out=$(cat "$log")
+    case "$out" in *'pre-screen: first record'*) break ;; esac
+    sleep 0.05
+  done
   assert_contains "$out" "loop: pre-screen" "the phase is announced on the console"
   assert_contains "$out" "started" "as started, while the pre-screen is still running"
   assert_matches "$out" '^loop: pre-screen · [0-9]+(m[0-9]{2})?s · started — .*prescreen\.log$' \

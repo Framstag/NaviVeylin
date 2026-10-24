@@ -200,6 +200,10 @@ loop_conf_value() { # print one configuration key's value by name
 # recorded that branch's commit and refused its own first item as a stale base). One definition, because the
 # same name is read by `state.sh` (what a run records), `worktree.sh` (`check_base`), `run.sh` (what a merge
 # advances) and `loop-clean.sh` (what a sweep compares against): a second copy of the rule is a second rule.
+#
+# The name itself is the project's, so it is recorded in `loop.conf` as `LOOP_BASE_REF` — this expansion is what
+# reads it, and `main` is only the fallback for a configuration that records none (issue #303: the branch name was
+# reachable through the environment alone, which a ported project can neither commit nor audit).
 loop_base_ref() { printf '%s\n' "${LOOP_BASE_REF:-main}"; }
 
 # ── the build output a kept worktree does not need ────────────────────────────────────────────────

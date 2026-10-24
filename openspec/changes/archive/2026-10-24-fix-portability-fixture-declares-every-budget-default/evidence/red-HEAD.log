@@ -1,0 +1,5 @@
+tree: /home/tim/projects/NaviVeylin (clean checkout of 30c23b52)
+$ bash tools/check-portability-selftest.sh --case foreign#fixtureDeclaresEveryBudgetDefault
+  every budget default the loop's engine reads is declared by the fixture's loop.conf: expected nothing, got:  LOOP_STRICT_OUTSIDE_WRITE_DEFAULT
+FAIL foreign#fixtureDeclaresEveryBudgetDefault
+EXIT_CODE=1

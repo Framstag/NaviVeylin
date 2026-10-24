@@ -40,6 +40,7 @@ LOOP_SHELL_CASES=(
   'state#initKeepsTheStateItReplaces'
   'state#initAnnouncesARunWithoutAStop'
   'state#recordsTheBaseBranchNotTheCheckout'
+  'state#baseBranchIsAConfigurationKey'
   'state#defaultsComeFromLoopConf'
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
@@ -302,6 +303,7 @@ loop_run_shell_case() {
     'state#initKeepsTheStateItReplaces') fn=case_state_initKeepsTheStateItReplaces ;;
     'state#initAnnouncesARunWithoutAStop') fn=case_state_initAnnouncesARunWithoutAStop ;;
     'state#recordsTheBaseBranchNotTheCheckout') fn=case_state_recordsTheBaseBranchNotTheCheckout ;;
+    'state#baseBranchIsAConfigurationKey') fn=case_state_baseBranchIsAConfigurationKey ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
@@ -1043,6 +1045,32 @@ case_state_recordsTheBaseBranchNotTheCheckout() {
   assert_not_contains "$out" "base moved" "the run is not refused as a stale base"
   assert_eq "$tip" "$(git -C "$p/.pi/worktrees/loop" rev-parse HEAD)" \
     "the item's tree is cut from the base branch's commit"
+}
+
+# The base branch is one of *this project's* values, so it is a `loop.conf` key rather than a literal in the shared
+# library: a project whose base branch is not `main` edits the key where it edits its gate command, and an inherited
+# `LOOP_BASE_REF` only overrides it, because the configuration is sourced after the environment and fills what the
+# environment left unset (issue #303).
+case_state_baseBranchIsAConfigurationKey() {
+  # files: tools/loop/loop.conf tools/loop/lib.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p other tip env_tip
+  [ -n "$(sed -n 's/^LOOP_BASE_REF=//p' "$LOOP_CONF")" ] ||
+    fail "loop.conf records no LOOP_BASE_REF — the base branch is then a value of the shared library, and a project whose base branch is named otherwise can change it only through the environment"
+
+  p=$(new_project)
+  tip=$(git -C "$p" rev-parse main)
+  init_state "$p" 1 90
+  assert_eq "$tip" "$(run_state "$p" get run.base)" "the base is the branch the configuration names"
+
+  # An inherited value wins over the recorded one: the key is written as a value that fills only what is unset, and
+  # a configuration that assigned the branch outright would silently ignore the caller's environment.
+  other="a-base-branch-from-the-environment"
+  git -C "$p" switch -q -c "$other" >/dev/null 2>&1 || fail "could not create the environment's branch"
+  git -C "$p" commit --allow-empty -qm "a commit on the environment's branch" >/dev/null 2>&1
+  env_tip=$(git -C "$p" rev-parse "$other")
+  ( export LOOP_BASE_REF="$other"; run_state "$p" init --items 1 --minutes 30 >/dev/null 2>&1 ) ||
+    fail "init with an inherited base branch failed"
+  assert_eq "$env_tip" "$(run_state "$p" get run.base)" "an inherited LOOP_BASE_REF wins over the recorded key"
 }
 
 case_state_defaultsComeFromLoopConf() {

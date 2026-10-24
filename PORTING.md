@@ -52,9 +52,13 @@ deliberately not a submodule, a package or a published binary (see *What an upda
    derived from.
 3. **`tools/loop/loop.conf`** — how a child agent is started (`LOOP_AGENT_CMD`), which of the
    project's skills the worker is told to use (`LOOP_WORKER_SKILLS`), **how the project's gate is
-   run** (`LOOP_GATE_CMD`) and the submodule a fresh worktree has to check out (`LOOP_SUBMODULE_PATH`,
-   empty for a project without one). The gate command is the project's: leave it empty for a project
-   with no build, and the phases still run while the report says the gate was skipped.
+   run** (`LOOP_GATE_CMD`), the submodule a fresh worktree has to check out (`LOOP_SUBMODULE_PATH`,
+   empty for a project without one) and **the branch every item descends from** (`LOOP_BASE_REF`,
+   written `LOOP_BASE_REF="${LOOP_BASE_REF:-main}"` because the file is sourced *after* the environment:
+   the expansion is what lets an inherited value win, and a plain assignment would ignore it). The gate
+   command is the project's: leave it empty for a project with no build, and the phases still run while
+   the report says the gate was skipped. The base branch is the project's too — a project on `trunk` or
+   `develop` records it here, so nothing about the branch lives in the engine.
 
 ## What to delete
 

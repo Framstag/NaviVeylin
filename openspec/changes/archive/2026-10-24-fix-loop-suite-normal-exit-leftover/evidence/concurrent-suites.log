@@ -1,0 +1,14 @@
+2026-10-24T08:47:31Z
+1643153 3992777  Sa Okt 24 10:25:20 2026    1329 /bin/bash -c cd /home/tim/projects/NaviVeylin && E=openspec/changes/fix-loop-attribution-is-read-before-the-sweep/evidence && (time bash tools/loop/gate.sh --base 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e > $E/gate.log 2>&1) 2>&1 | tail -3; grep -E '^LOOP-GATE|^gate: .* — [0-9]+s' $E/gate.log
+1643156 1643153  Sa Okt 24 10:25:20 2026    1329 /bin/bash -c cd /home/tim/projects/NaviVeylin && E=openspec/changes/fix-loop-attribution-is-read-before-the-sweep/evidence && (time bash tools/loop/gate.sh --base 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e > $E/gate.log 2>&1) 2>&1 | tail -3; grep -E '^LOOP-GATE|^gate: .* — [0-9]+s' $E/gate.log
+1643158 1643156  Sa Okt 24 10:25:20 2026    1329 bash tools/loop/gate.sh --base 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e
+1836397 1643158  Sa Okt 24 10:31:12 2026     977 bash tools/loop-selftest.sh --from-git 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e
+2069579    5758  Sa Okt 24 10:34:02 2026     807 bash /home/tim/projects/NaviVeylin/tools/loop/run.sh --items 1 --minutes 90 --review off
+2428850 2428848  Sa Okt 24 10:39:05 2026     504 bash tools/loop-mutations.sh --files tools/loop/run.sh --out openspec/changes/fix-loop-child-outlives-its-deadline/evidence/mutation-run-sh.log
+3030187 2428850  Sa Okt 24 10:47:21 2026       9 timeout 240 bash /home/tim/projects/NaviVeylin/.pi/worktrees/issue-227/tools/loop-selftest.sh --case run#aSkipClearsTheInProgressMark
+3030188 3030187  Sa Okt 24 10:47:21 2026       9 bash /home/tim/projects/NaviVeylin/.pi/worktrees/issue-227/tools/loop-selftest.sh --case run#aSkipClearsTheInProgressMark
+3031231 1836397  Sa Okt 24 10:47:22 2026       8 bash tools/loop-selftest.sh --from-git 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e
+3031247 3031231  Sa Okt 24 10:47:22 2026       8 bash tools/loop-selftest.sh --from-git 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e
+3031248 3031247  Sa Okt 24 10:47:22 2026       8 bash /home/tim/projects/NaviVeylin/tools/loop/run.sh --items 1 --minutes 90 --review on
+3039548 3031248  Sa Okt 24 10:47:29 2026       1 bash /home/tim/projects/NaviVeylin/tools/loop/run.sh --items 1 --minutes 90 --review on
+3039859 3030188  Sa Okt 24 10:47:29 2026       0 bash /home/tim/projects/NaviVeylin/.pi/worktrees/issue-227/tools/loop-selftest.sh --case run#aSkipClearsTheInProgressMark

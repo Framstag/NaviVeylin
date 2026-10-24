@@ -226,6 +226,7 @@ LOOP_SHELL_CASES=(
   'clean#reportsTheWorktreesScratchTreesToo'
   'clean#worktreeDotSweepsTheOneRootOnce'
   'clean#endsARunWhoseTreeIsAlreadyDeleted'
+  'clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft'
   'run#interruptedRunEndsTheChildItStarted'
   'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
   'usage#bareValueFlagDoesNotSwallowTheNextFlag'
@@ -486,6 +487,7 @@ loop_run_shell_case() {
     'clean#reportsTheWorktreesScratchTreesToo') fn=case_clean_reportsTheWorktreesScratchTreesToo ;;
     'clean#worktreeDotSweepsTheOneRootOnce') fn=case_clean_worktreeDotSweepsTheOneRootOnce ;;
     'clean#endsARunWhoseTreeIsAlreadyDeleted') fn=case_clean_endsARunWhoseTreeIsAlreadyDeleted ;;
+    'clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft') fn=case_clean_suiteThatEndsNormallyEndsTheProcessItsCaseLeft ;;
     'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
     'driver#aCaseThatAsksForNoCoreCompilesNothing') fn=case_driver_aCaseThatAsksForNoCoreCompilesNothing ;;
     'driver#aCaseThatAsksForTheCoreGetsItOrRefuses') fn=case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses ;;
@@ -6101,6 +6103,52 @@ case_clean_endsARunWhoseTreeIsAlreadyDeleted() {
     sleep 0.1
   done
   [ "$survived" -eq 0 ] || { loop_end_pid "$pid"; fail "the sweep reported the process but did not end it (pid $pid)"; }
+}
+
+# A suite that ends *normally* left the `run.sh` its case had started behind (issue #233): `run_case` clears
+# `case_pgid` once the last case has been waited for, so the normal exit had no group left to signal, and a process
+# the case had put in a group of its own — the shape `run_child` needs for the wall-clock cap — outlived its suite
+# by hours at a tree that was then removed (44 of them, 2 to 4.6 h old, a `sleep 1` child each). `on_exit` now sweeps
+# the suite's own scratch root on every exit path; this case is the normal one, with no signal at all: the nested
+# case starts a process in a group of its own at a working directory inside the suite's scratch root and returns
+# while it polls, and the suite must end it before it removes the tree.
+case_clean_suiteThatEndsNormallyEndsTheProcessItsCaseLeft() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d nested tmp conf pid status out alive i
+  d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
+  mkdir -p "$nested/tools" "$tmp"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  # The probe case leaves the process behind on purpose: `set -m` gives it a process group of its own — the shape
+  # `run_child` uses, which the group signal `on_exit` sends for the case cannot reach once the case is gone — and
+  # its working directory is the suite's own scratch tree (`LOOP_TMP`), which is what the sweep reads.
+  cat > "$nested/tools/loop-cases.sh" <<'PROBE'
+LOOP_SHELL_CASES=('stub#leavesAProcessBehind')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  cd "$LOOP_TMP" || exit 1
+  set -m
+  sleep 300 &
+  printf '%s\n' "$!" > "$PROBE_PID"
+  exit 0
+}
+PROBE
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export LOOP_CONF="$conf" PROBE_PID="$d/probe-pid"
+
+  out=$(bash "$nested/tools/loop-selftest.sh" --case 'stub#leavesAProcessBehind' 2>&1); status=$?
+  assert_eq "0" "$status" "a suite whose case leaves a process behind still ends normally: $out"
+  [ -f "$PROBE_PID" ] || fail "the probe case never recorded the process it left behind: $out"
+  pid=$(head -1 "$PROBE_PID")
+  case "$pid" in ''|*[!0-9]*) fail "the probe case recorded no pid: $(cat "$PROBE_PID")" ;; esac
+  alive=1
+  for i in $(seq 1 50); do
+    kill -0 "$pid" 2>/dev/null || { alive=0; break; }
+    sleep 0.1
+  done
+  [ "$alive" -eq 0 ] || { kill -9 "$pid" 2>/dev/null; fail "the suite ended normally and left the process its case started (pid $pid) polling at a tree it then removed — the leftover of issue #233"; }
 }
 
 # A declared mutation record quotes one line of one engine file, and nothing compared the two until issue #264:

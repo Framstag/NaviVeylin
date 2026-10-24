@@ -1,0 +1,12 @@
+=== clean#interruptedSuiteEndsItsProcessGroup
+PASS clean#interruptedSuiteEndsItsProcessGroup
+exit=0
+=== clean#endsARunWhoseTreeIsAlreadyDeleted
+PASS clean#endsARunWhoseTreeIsAlreadyDeleted
+exit=0
+=== clean#interruptedSuiteRemovesItsScratchTree
+PASS clean#interruptedSuiteRemovesItsScratchTree
+exit=0
+=== driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+exit=0

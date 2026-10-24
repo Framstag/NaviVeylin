@@ -1,0 +1,16 @@
+pre-change run.sh (deadline lines: 0)
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childOutlastingTheWallClockIsBlocked
+FAIL run#childOutlastingTheWallClockIsBlocked
+loop-selftest: 1 of 1 cases failed
+PASS run#childOutlastingTheWallClockIsBlocked
+with the change (deadline lines: 1)
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childOutlastingTheWallClockIsBlocked
+PASS run#childOutlastingTheWallClockIsBlocked
+FAIL run#childOutlastingTheWallClockIsBlocked
+loop-selftest: 1 of 1 cases failed
+PASS run#childOutlastingTheWallClockIsBlocked
+ 11:53:08 up 16 days,  5:51,  2 users,  load average: 9,81, 8,79, 7,98
+DONE

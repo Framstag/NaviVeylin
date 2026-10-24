@@ -1,0 +1,3 @@
+  the run was still waiting 60 s after its own recorded deadline passed
+FAIL run#childIsEndedAtTheRunsDeadline
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,12 @@
+Attribution: bash tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem
+engine: clean detached worktree at main's tip f5f2a2a7, WITHOUT the #263 change
+taken: 2026-10-24T05:23:12Z
+--- run 1
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+--- run 2
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+--- run 3
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem

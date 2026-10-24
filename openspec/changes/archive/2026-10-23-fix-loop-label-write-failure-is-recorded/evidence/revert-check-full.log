@@ -1,0 +1,79 @@
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.Vapzqw
+RED    9.1  state#secondRunRefusesWithExit5   (the lock that keeps one run per repository)
+restore 9.1 state#secondRunRefusesWithExit5 green again
+RED    9.2  worktree#refusesWhenMainAdvanced   (the stale-base refusal)
+restore 9.2 worktree#refusesWhenMainAdvanced green again
+RED    9.3  labels#writesOnlyBetweenChildren   (one writer per tree: the child runs while the wrapper writes state)
+restore 9.3 labels#writesOnlyBetweenChildren green again
+RED    9.4  labels#trapRemovesInProgressOnSignal   (the signal trap that removes the in-progress label)
+restore 9.4 labels#trapRemovesInProgressOnSignal green again
+RED    9.5  run#childClaimWithoutCommitIsBlocked   (the run verifying instead of trusting the child)
+restore 9.5 run#childClaimWithoutCommitIsBlocked green again
+RED    9.6  run#decisionCapRefusesToStart   (the decision cap that stops a run)
+restore 9.6 run#decisionCapRefusesToStart green again
+RED    9.7  run#mayCloseNoLeavesTheIssueOpen   (the closure opt-out)
+restore 9.7 run#mayCloseNoLeavesTheIssueOpen green again
+RED    9.8  worktree#oneBranchPerItemOffTheBase   (one branch per item)
+restore 9.8 worktree#oneBranchPerItemOffTheBase green again
+RED    9.9  state#agentCommandIsTheOnlyIndirection   (the single agent-command indirection)
+restore 9.9 state#agentCommandIsTheOnlyIndirection green again
+RED    9.10  run#reviewerWriteInvalidatesTheRound   (the reviewer read-only comparison)
+restore 9.10 run#reviewerWriteInvalidatesTheRound green again
+RED    9.11  state#projectKeysAreReadFromLoopConf   (the project facts living in loop.conf)
+restore 9.11 state#projectKeysAreReadFromLoopConf green again
+RED    12.1  run#commitsWithoutAnAmbientIdentity   (the commit is attributed to the run's own identity)
+restore 12.1 run#commitsWithoutAnAmbientIdentity green again
+RED    12.2  run#childStartsInTheProjectRoot   (the child started in the project, where the project's own policy is resolved)
+restore 12.2 run#childStartsInTheProjectRoot green again
+RED    12.3  run#childWriteOutsideTheWorktreeIsNoted   (the run recording a child write left outside the worktree)
+restore 12.3 run#childWriteOutsideTheWorktreeIsNoted green again
+RED    12.4  run#strictOutsideWriteDiscardsTheReviewRound   (the round discarded on a difference the run can place or was told to judge)
+restore 12.4 run#strictOutsideWriteDiscardsTheReviewRound green again
+RED    12.9  run#strictOutsideWriteBlocksTheItem   (the strict run turning the difference into a verdict about the item)
+restore 12.9 run#strictOutsideWriteBlocksTheItem green again
+RED    12.10  run#aWriterTheRunCanPlaceBlocksTheItem   (the reading taken while the child runs, which is what ties a write to it)
+restore 12.10 run#aWriterTheRunCanPlaceBlocksTheItem green again
+RED    12.5  worktree#reusesABranchThatCarriesNoWorkOfItsOwn   (the reuse of a branch that carries nothing of its own)
+restore 12.5 worktree#reusesABranchThatCarriesNoWorkOfItsOwn green again
+RED    12.6  worktree#refusesABranchCarryingAPreviousAttempt   (the refusal of a branch that carries an archived change of its own)
+restore 12.6 worktree#refusesABranchCarryingAPreviousAttempt green again
+RED    12.7  worktree#setsAsideABlockedAttemptAndStartsFresh   (the blocked attempt branch renamed aside so the item is worked)
+restore 12.7 worktree#setsAsideABlockedAttemptAndStartsFresh green again
+RED    13.1  prescreen#aFinishedAttemptBranchIsADecision   (the pre-screen asking git for a previous attempt on the item branch prefix)
+restore 13.1 prescreen#aFinishedAttemptBranchIsADecision green again
+RED    13.2  run#leftoverBranchIsRecordedNotDropped   (the pre-screen verdicts that need a decision being escalated by the run)
+restore 13.2 run#leftoverBranchIsRecordedNotDropped green again
+RED    13.3  run#dirtyKeptWorktreeIsARecordedRefusal   (the start-time pre-flight on a kept worktree a previous run left dirty)
+restore 13.3 run#dirtyKeptWorktreeIsARecordedRefusal green again
+RED    13.4  run#dirtyKeptWorktreeIsARecordedRefusal   (the refusal being recorded under the item its branch marker names)
+restore 13.4 run#dirtyKeptWorktreeIsARecordedRefusal green again
+RED    13.5  run#resetWorktreeDiscardsWhatItNames   (the start-time repair discarding what it named)
+restore 13.5 run#resetWorktreeDiscardsWhatItNames green again
+RED    13.6  state#secondRunRefusesWithExit5   (the refusal of a live owner's lock)
+restore 13.6 state#secondRunRefusesWithExit5 green again
+RED    13.7  worktree#keepsByDefaultAndRemovesOnRequest   (the end-of-run form honoured wherever the run ends)
+restore 13.7 worktree#keepsByDefaultAndRemovesOnRequest green again
+RED    12.8  run#aSkipClearsTheInProgressMark   (the skip exit path clearing the in-progress mark)
+restore 12.8 run#aSkipClearsTheInProgressMark green again
+RED    14.1  report#escalatedSkipNamesTheLabelWritten   (the decision list read from the label the escalation recorded, not the verdict)
+restore 14.1 report#escalatedSkipNamesTheLabelWritten green again
+RED    14.2  report#escalatedSkipNamesTheLabelWritten   (the skip escalation recording the label it wrote)
+restore 14.2 report#escalatedSkipNamesTheLabelWritten green again
+RED    14.3  report#failedReviewEscalationIsNamed   (the blocked exit path recording the label its escalation wrote)
+restore 14.3 report#failedReviewEscalationIsNamed green again
+RED    14.5  run#blockedItemIsEscalatedWithItsReason   (the blocked exit path escalating the reason the run holds)
+restore 14.5 run#blockedItemIsEscalatedWithItsReason green again
+RED    14.4  report#aVerdictAloneIsNoEscalation   (the list naming only the items this run escalated)
+restore 14.4 report#aVerdictAloneIsNoEscalation green again
+RED    14.6  run#aFailedEscalationWriteIsNamed   (the blocked exit path recording the write the tracker refused)
+restore 14.6 run#aFailedEscalationWriteIsNamed green again
+RED    14.7  run#aFailedUnpickIsNamed   (the blocked exit path recording the in-progress mark it could not clear)
+restore 14.7 run#aFailedUnpickIsNamed green again
+RED    14.8  run#aFailedEscalationWriteIsNamed   (the report naming the item whose label write the tracker refused)
+restore 14.8 run#aFailedEscalationWriteIsNamed green again
+RED    15.1  prescreen#refusalLeavesATraceInTheTracker   (the pre-screen writing its refusal to the tracker instead of only to the run)
+restore 15.1 prescreen#refusalLeavesATraceInTheTracker green again
+RED    16.1  run#stopReasonIsPrintedAndReported   (the run recording the stop condition `next` named, on every path that leaves the loop)
+restore 16.1 run#stopReasonIsPrintedAndReported green again
+RED    16.2  run#stopReasonIsPrintedAndReported   (the run printing the stop condition it was given)
+restore 16.2 run#stopReasonIsPrintedAndReported green again

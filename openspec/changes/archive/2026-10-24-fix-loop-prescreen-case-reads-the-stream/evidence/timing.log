@@ -1,0 +1,14 @@
+# How long after the run starts the phase line reaches the console — 2026-10-24, one reading per tree
+#
+# Taken with evidence/timing-probe.sh <tree>, on the host the item was filed from, while a gate suite of the
+# neighbouring session ran beside it — so these are readings from a loaded host, not from a quiet one.
+#
+# for t in .pi/worktrees/t191 .pi/worktrees/t270 .; do bash .pi/tmp/timing287.sh "$(cd $t && pwd)"; done
+#
+# .pi/worktrees/t191 = ea194c38  the commit that added the phase line (issue #191)
+# .pi/worktrees/t270 = e12cf971  the tip #270 landed on (main before #288)
+# .                  = c4c727fb  this change's base (the pushed #288 tip)
+
+/home/tim/projects/NaviVeylin/.pi/worktrees/t191: header 101ms, pre-screen line 628ms
+/home/tim/projects/NaviVeylin/.pi/worktrees/t270: header 101ms, pre-screen line 741ms
+/home/tim/projects/NaviVeylin: header 101ms, pre-screen line 760ms

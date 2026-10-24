@@ -1251,6 +1251,19 @@ report.
 - **AND** the status the run decides on is still the pre-screen's own, not the stream's
 - **Case**: `run#prescreenAnnouncesItselfBeforeItReturns`
 
+#### Scenario: A phase line is read from the stream, not at a fixed instant
+
+- **WHEN** a case that guards a run's phase line reads the console while the run is still working, to assert
+  that the line has reached it
+- **THEN** it waits, within a bound, for the line the phase itself prints, and does not read at an instant
+  fixed before the run can have reached the phase — because the driver's compile of the issue tooling's core,
+  the run's state write and its decision count all precede the phase, and a fixed instant reports their cost as
+  a verdict about the run
+- **AND** the wait does not soften the guard: the console of a run that captured the phase's output and
+  replayed it after the call returned still fails the assertion, because the moment the waited-for line is read
+  then carries the line the phase had not printed yet
+- **Case**: `run#prescreenAnnouncesItselfBeforeItReturns`
+
 #### Scenario: Every boundary outside a child prints one line in one format
 
 - **WHEN** the run crosses a boundary that is not a child process — the pre-screen, the worktree, the picked

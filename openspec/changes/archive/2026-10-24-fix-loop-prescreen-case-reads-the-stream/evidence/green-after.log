@@ -1,0 +1,4 @@
+# `bash tools/loop-selftest.sh --case 'run#prescreenAnnouncesItselfBeforeItReturns'` with the change applied
+# Tree: this change root, branch fix/issue-287-… off c4c727fb. Taken 2026-10-24T09:58:40Z.
+
+PASS run#prescreenAnnouncesItselfBeforeItReturns

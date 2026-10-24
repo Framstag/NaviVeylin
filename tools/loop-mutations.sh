@@ -438,6 +438,16 @@ MUTATIONS=(
   # *after* the environment — so the caller's `LOOP_BASE_REF` silently loses and every later reader descends from
   # the recorded branch instead.
   '56.3@-@tools/loop/loop.conf@state#baseBranchIsAConfigurationKey@the base branch recorded as a value an inherited environment may override (issue #303)@s|^LOOP_BASE_REF=.*$|LOOP_BASE_REF="main"|'
+  # 57.1 — the landing step verifies that the project's own tree has the base branch checked out before it merges
+  # into it (issue #302). Without the guard the merge acts on whatever branch that tree holds: a checkout that
+  # merely fast-forwards absorbs the item's commits, the base stays where it was, and the item closes with its fix
+  # on neither — the mechanism measured 2026-10-24 in `worktree#refusesToMergeIntoATreeOffTheBaseBranch`, where
+  # HEAD answered 0 where 5 is owed.
+  '57.1@-@tools/loop/worktree.sh@worktree#refusesToMergeIntoATreeOffTheBaseBranch@the checkout the landing step merges into being the base branch@s|^  if \[ "\$branch" != "\$(base_ref)" \]; then$|  if false; then|'
+  # 57.2 — the base a run records is a commit the base *branch* carries, never just a commit `rev-parse` resolves
+  # (issue #302). Without the ancestry test the record takes whatever the run computed, which is how an absorbed
+  # merge read as an advance and the closure named a base that never carried the fix.
+  '57.2@-@tools/loop/state.sh@state#setBaseRefusesACommitTheBaseBranchDoesNotCarry@the ancestry of a recorded base against the base branch@s|^  git -C "\$LOOP_ROOT" merge-base --is-ancestor "\$sha" "\$branch" 2>/dev/null \|\|$|  true \|\||'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

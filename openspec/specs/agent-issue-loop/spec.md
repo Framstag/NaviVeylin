@@ -1306,6 +1306,25 @@ claim, so a closure the tree does not back is a blocked item with its branch nam
   branch onto a tree nobody reviewed, so the branch's commits stay off the base
 - **Case**: `worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom`
 
+#### Scenario: The landing step verifies the tree it merges into
+
+- **WHEN** the merge of an item's branch is asked for — by the run's success path or by the pre-screen's
+  adoption — and the project's own tree, which the merge lands in, has a branch other than the base branch
+  checked out, or a detached HEAD
+- **THEN** the merge is refused before anything is merged, naming the branch the tree is on and the base branch
+  it would have landed on, so neither the base branch nor the branch the tree holds moves and no item is closed
+  against a tree that never carried its commits
+- **Case**: `worktree#refusesToMergeIntoATreeOffTheBaseBranch`
+
+#### Scenario: The recorded base is a commit the base branch carries
+
+- **WHEN** the run records a new base after a merge and the commit it hands the record is not one the base branch
+  descends from
+- **THEN** the record refuses it, naming the base branch, and keeps the base it already names: a closure is
+  recorded against a base the base branch carries, never against a commit the tree that closed the item does not
+  have
+- **Case**: `state#setBaseRefusesACommitTheBaseBranchDoesNotCarry`
+
 ### Requirement: The package carries the last recorded decision and its question
 
 A work package SHALL carry the item's last recorded decision together with the question that decision answered,

@@ -41,6 +41,7 @@ LOOP_SHELL_CASES=(
   'state#initAnnouncesARunWithoutAStop'
   'state#recordsTheBaseBranchNotTheCheckout'
   'state#baseBranchIsAConfigurationKey'
+  'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry'
   'state#defaultsComeFromLoopConf'
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
@@ -86,6 +87,7 @@ LOOP_SHELL_CASES=(
   'worktree#refusesABranchWhoseReviewRoundNeverAnswered'
   'worktree#refusesToMergeOverADirtyProjectTree'
   'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom'
+  'worktree#refusesToMergeIntoATreeOffTheBaseBranch'
   'labels#verdictToLabelMatrix'
   'labels#holdCarriesItsReason'
   'labels#trapRemovesInProgressOnSignal'
@@ -304,6 +306,7 @@ loop_run_shell_case() {
     'state#initAnnouncesARunWithoutAStop') fn=case_state_initAnnouncesARunWithoutAStop ;;
     'state#recordsTheBaseBranchNotTheCheckout') fn=case_state_recordsTheBaseBranchNotTheCheckout ;;
     'state#baseBranchIsAConfigurationKey') fn=case_state_baseBranchIsAConfigurationKey ;;
+    'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry') fn=case_state_setBaseRefusesACommitTheBaseBranchDoesNotCarry ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
@@ -350,6 +353,7 @@ loop_run_shell_case() {
     'worktree#refusesABranchWhoseReviewRoundNeverAnswered') fn=case_worktree_refusesABranchWhoseReviewRoundNeverAnswered ;;
     'worktree#refusesToMergeOverADirtyProjectTree') fn=case_worktree_refusesToMergeOverADirtyProjectTree ;;
     'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom') fn=case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom ;;
+    'worktree#refusesToMergeIntoATreeOffTheBaseBranch') fn=case_worktree_refusesToMergeIntoATreeOffTheBaseBranch ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
     'labels#holdCarriesItsReason') fn=case_labels_holdCarriesItsReason ;;
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
@@ -4379,6 +4383,85 @@ case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom() {
   fi
   assert_eq "$moved" "$(run_state "$p" get run.base)" \
     "and the run's record still names the base it compared the branch against"
+}
+
+# The landing step merges into the project's **own tree**, and what a merge there moves is the branch that tree has
+# checked out — never "the base" in the abstract. `check_base` compares the base *ref* with the base this run
+# recorded, which answers nothing about the checkout: a person switching the project tree while the run is open
+# either gets a failed fast-forward at the merge (an item's whole budget spent for a refusal a guard could have
+# taken first) or, when the checkout merely fast-forwards to the item's branch, has the merge absorbed by that
+# branch while the base stays where it was — the run then re-reads the unchanged base, records it, and closes the
+# item with its fix on neither (issue #302, from the read-only review of #301, 2026-10-24). The merge verifies the
+# precondition it depends on and names both branches it found; the pre-screen's adoption merges into the same
+# tree, so its refusal is this one and is taken before the evidence it would check the branch for.
+case_worktree_refusesToMergeIntoATreeOffTheBaseBranch() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local p w base branch tip out status off
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  init_state "$p" 1 90
+  base=$(run_state "$p" get run.base)
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  run_worktree "$p" start-item 21 demo >/dev/null || fail "the item did not start"
+  branch=fix/issue-21-demo
+  printf 'the fix\n' > "$w/demo-fix.txt"
+  git -C "$w" add -A >/dev/null 2>&1
+  git -C "$w" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: demo (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the fix"
+  tip=$(git -C "$p" rev-parse "$branch")
+
+  # a person switches the project's own tree while the run is open, and the item's branch is fast-forwardable
+  # from where they left it — the shape the silent absorb needs
+  git -C "$p" switch -c a-persons-branch >/dev/null 2>&1 || fail "could not switch the project tree"
+  off=$(git -C "$p" rev-parse a-persons-branch)
+
+  out=$(run_worktree "$p" merge-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "a project tree off the base branch refuses the merge"
+  assert_contains "$out" "a-persons-branch" "the refusal names the branch the tree is on"
+  assert_contains "$out" "main" "and the base branch it would have landed on"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
+  assert_eq "$off" "$(git -C "$p" rev-parse a-persons-branch)" \
+    "and the branch the tree is on absorbed nothing, so no third branch carries the item's commits unseen"
+  [ ! -f "$p/demo-fix.txt" ] || fail "the fix reached a tree off the base branch"
+
+  out=$(run_worktree "$p" adopt-item 21 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "adoption into a tree off the base branch is refused too"
+  assert_contains "$out" "a-persons-branch" "and names the branch the tree is on"
+  [ ! -f "$p/demo-fix.txt" ] || fail "adoption landed the work in a tree off the base branch"
+  if git -C "$p" merge-base --is-ancestor "$tip" a-persons-branch; then
+    fail "the item's commit reached the branch the tree was left on"
+  fi
+}
+
+# The base a run records is the commit every later item descends from, and the closure that follows a merge is
+# recorded against it — so a commit the base branch does not carry is a closure against a tree that never had the
+# fix. `set-base` accepted any commit the run computed (`tools/loop/state.sh`), the ancestry of the base branch
+# being nobody's question, which is what let the absorbed merge of issue #302 be recorded as an advance: the run
+# re-read the unchanged base, `set-base` took it, and the item closed with `status/fixed-by` on a fix the base never
+# had. The command refuses such a commit, naming the branch it asked, and the base it recorded stays where it was.
+case_state_setBaseRefusesACommitTheBaseBranchDoesNotCarry() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p base side out status
+  p=$(new_project)
+  init_state "$p" 1 90
+  base=$(run_state "$p" get run.base)
+  # a commit off the base, which is what a merge taken on another branch leaves behind
+  git -C "$p" switch -c a-persons-branch >/dev/null 2>&1 || fail "could not create a branch off the base"
+  printf 'the owner\n' > "$p/owner.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "work the base does not have" >/dev/null 2>&1 ||
+    fail "could not commit off the base"
+  side=$(git -C "$p" rev-parse HEAD)
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base branch"
+
+  out=$(run_state "$p" set-base "$side" 2>&1); status=$?
+  assert_eq "5" "$status" "a commit the base branch does not carry is refused"
+  assert_contains "$out" "main" "the refusal names the base branch the commit was asked of"
+  assert_eq "$base" "$(run_state "$p" get run.base)" "and the recorded base is unchanged"
+
+  run_state "$p" set-base "$(git -C "$p" rev-parse main)" >/dev/null 2>&1 ||
+    fail "the commit the base branch carries was refused"
+  assert_eq "$(git -C "$p" rev-parse main)" "$(run_state "$p" get run.base)" \
+    "a commit the base branch carries still advances the record"
 }
 
 # A run's success path commits the item's work on the item's own branch and then closes the item; the only

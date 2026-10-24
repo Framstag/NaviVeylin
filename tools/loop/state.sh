@@ -355,14 +355,22 @@ cmd_start() {
 
 # The base the run recorded is the commit every item descends from. A finished attempt merged onto it (issue
 # #176) advances it by that merge's own commits, so the run records the new commit rather than refusing its
-# own action as a stale base the next `start-item` would see.
+# own action as a stale base the next `start-item` would see. What the commit has to be is a commit the base
+# *branch* carries: the closure that follows a merge is recorded against this base, so a commit the branch does
+# not have would record `status/fixed-by` against a tree that never carried the fix — which is how the absorbed
+# merge of issue #302 was recorded as an advance (the run re-read the unchanged base and `set-base` took it).
 cmd_set_base() {
   require_state
   [ $# -gt 0 ] || loop_die "set-base: usage: state.sh set-base <commit>"
-  local sha="$1"
+  local sha="$1" branch
   [ -n "$sha" ] || loop_die "set-base: the commit is empty"
   git -C "$LOOP_ROOT" rev-parse --verify --quiet "$sha^{commit}" >/dev/null ||
     loop_die "set-base: $sha is not a commit"
+  branch=$(loop_base_ref)
+  git -C "$LOOP_ROOT" rev-parse --verify --quiet "$branch^{commit}" >/dev/null ||
+    loop_refuse "set-base: there is no base branch $branch to advance — the base every closure is recorded against has to be a branch this repository has"
+  git -C "$LOOP_ROOT" merge-base --is-ancestor "$sha" "$branch" 2>/dev/null ||
+    loop_refuse "set-base: $sha is not on $branch — recording it would close items against a base that never carried their fix"
   patch_state '.run.base = $sha' --arg sha "$sha"
   printf 'state: base advanced to %s\n' "${sha:0:12}"
 }

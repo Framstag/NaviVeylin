@@ -125,6 +125,23 @@ check_base() {
   fi
 }
 
+# The landing step merges into the project's **own tree**, so what a merge there moves is the branch that tree has
+# checked out — never "the base" in the abstract. `check_base` compares the base *ref* with the base this run
+# recorded and answers nothing about the checkout, so the precondition the two merge commands' comments assert is
+# verified here instead of being relied on: a tree switched to another branch mid-run — the start's own guard
+# (#301) covers the tree a run is opened on, not one a person switches while it is open — either fails the
+# fast-forward after an item's whole budget, or, when the checkout merely fast-forwards to the item's branch,
+# absorbs the merge while the base stays where it was. The run then re-reads the unchanged base, records it, and
+# closes the item with its fix on neither (issue #302, from the read-only review of #301). Both branches are named,
+# because the repair is a `switch` to the second one.
+check_checkout() {
+  local branch
+  branch=$(gitr symbolic-ref --quiet --short HEAD 2>/dev/null) || branch=""
+  if [ "$branch" != "$(base_ref)" ]; then
+    loop_refuse "the project tree is on ${branch:-a detached HEAD}, not the base branch $(base_ref) — the merge lands in this tree, so switch it to $(base_ref) first"
+  fi
+}
+
 cmd_start_item() {
   local issue="${1:-}" slug="${2:-}"
   case "$issue" in ''|*[!0-9]*) loop_die "start-item: usage: worktree.sh start-item <issue> <slug>" ;; esac
@@ -337,6 +354,7 @@ cmd_adopt_item() {
   # The merge lands in the project's own tree, where the base branch is checked out — the pre-screen's
   # adoption happens before the run's worktree exists, so the worktree is not required here.
   check_base
+  check_checkout
   local base change evidence dirty commits who_name who_email review_state
   base=$(state_base)
   gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
@@ -386,8 +404,10 @@ cmd_merge_item() { # <issue> <branch>
   local issue="${1:-}" branch="${2:-}" base commits dirty
   case "$issue" in ''|*[!0-9]*) loop_die "merge-item: usage: worktree.sh merge-item <issue> <branch>" ;; esac
   [ -n "$branch" ] || loop_die "merge-item: usage: worktree.sh merge-item <issue> <branch>"
-  # The merge lands in the project's own tree, where the base branch is checked out.
+  # The merge lands in the project's own tree, where the base branch is checked out, and that is verified: over a
+  # checkout off the base branch the merge has no tree to land in (issue #302).
   check_base
+  check_checkout
   base=$(state_base)
   gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
     loop_refuse "there is no branch $branch to merge"

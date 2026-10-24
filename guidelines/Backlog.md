@@ -419,6 +419,14 @@ base branch is checked out in is not clean, or the branch does not descend from 
 item with its branch as the evidence rather than closing it, because `status/fixed-by` and "the fix is in the
 tree" have to be one claim: measured 2026-10-20, a run closed #201 with its two commits still on
 `fix/issue-201-…` and the base at the run's base, and a person fast-forwarded `main` 35 minutes later (#229).
+The merge lands in the project's **own** tree, and what a merge there moves is the branch that tree holds — so
+the landing step reads the checkout instead of assuming it, and refuses a tree switched off the base branch
+while the run is open, naming both branches (the start's own guard covers only the tree a run is *opened* on,
+#301). Without it a checkout that merely fast-forwards absorbs the merge: the item's commits land on a third
+branch, `main` does not move, the run re-reads the unchanged base and closes the item with `status/fixed-by` on
+a fix the base never had (issue #302, from #301's review, 2026-10-24). For the same reason the base the run
+records is only ever a commit the base *branch* carries: `set-base` asks the branch and refuses anything else,
+so a closure cannot be recorded against a tree the base does not have.
 No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s
 decision, taken on what a stranger to the run can check. A review round is part of that record, in both
 directions: the run commits the round onto the branch before its reviewer starts and commits the answer when

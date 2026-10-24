@@ -1899,11 +1899,14 @@ case_prioritise_writesLabelAndMarkerTogether() {
 # A body that quotes the grammar is not a body that carries a marker. The writer composed the new body by
 # replacing the first line that *contains* the opening delimiter, so re-scoring an item that documents the
 # grammar replaced the quotation with the marker and lost that prose — and left the fenced excerpt standing as a
-# second marker (issue #293). The composed body is what `update.sh` is handed, so both halves are asserted on it.
+# second marker (issue #293). The composed body is what `update.sh` is handed, so both arms are asserted on it:
+# the append (a body with no marker of its own) and the replace (a body whose stored marker line is the one line
+# the write may change), so mutating `NR == n` away from the record's line fails this case.
 case_prioritise_theWriteKeepsAQuotation() {
-  local dir composed quoted marker read_band
+  local dir composed quoted stored marker read_band
   dir=$(scratch)
   quoted='<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->'
+  stored='<!-- prio: band=p2 score=1 sev=1 reach=1 conf=1 occ=1 basis=deadbeefdeadbeef at=2026-01-01 -->'
   jq -n --arg q "$quoted" '[{number: 1,
     title: "a finding that quotes the grammar",
     labels: [{name: "class/bug"}, {name: "category/ui"}, {name: "status/open"}],
@@ -1926,6 +1929,30 @@ case_prioritise_theWriteKeepsAQuotation() {
     "the fence's two lines are left as they stand"
   read_band=$( ( source "$ISSUES_ENGINE/lib.sh"; issues_prio_field "$(issues_prio_marker "$composed")" band ) )
   assert_eq "p2" "$read_band" "and the record read back is the pass's own band, not the quoted one"
+
+  # the replace arm: the same body, now carrying the record the pass wrote last time. That line — and only it —
+  # is what the next write changes; a quotation is never the line that stands in for it. The marker is composed
+  # again, because the stored marker's own `at` moves the freshness bucket and therefore the basis the marker
+  # text carries.
+  jq -n --arg q "$quoted" --arg s "$stored" '[{number: 1,
+    title: "a finding that quotes the grammar",
+    labels: [{name: "class/bug"}, {name: "category/ui"}, {name: "status/open"}],
+    body: ("the pass appends `" + $q + "` on the body'"'"'s last line:\n\n```\n" + $q + "\n```\n\n" + $s + "\n"),
+    author: {login: "Framstag"}}]' > "$dir/issues.json"
+
+  marker=$(bash "$ISSUES_ENGINE/prioritise.sh" --json --scores "$dir/scores.json" --profile "$(profile_path)" |
+    jq -r '.writes[0].marker') || fail "the run could not compose a marker for the stored body"
+  [ -n "$marker" ] || fail "the stored body was taken as needing no write"
+  composed=$(bash "$ISSUES_ENGINE/prioritise.sh" --scores "$dir/scores.json" --body-of 1 --profile "$(profile_path)") ||
+    fail "the composed body of the stored record could not be read"
+  assert_eq "1" "$(printf '%s\n' "$composed" | grep -cF "$marker" || true)" \
+    "the stored body keeps exactly one marker line"
+  assert_eq "0" "$(printf '%s\n' "$composed" | grep -cF "$stored" || true)" \
+    "the stored record's own line is the line replaced, not a quotation beside it"
+  assert_eq "2" "$(printf '%s\n' "$composed" | grep -cF "$quoted" || true)" \
+    "and both quotations still survive"
+  read_band=$( ( source "$ISSUES_ENGINE/lib.sh"; issues_prio_field "$(issues_prio_marker "$composed")" band ) )
+  assert_eq "p2" "$read_band" "and the record read back is still the pass's own band"
   return 0
 }
 

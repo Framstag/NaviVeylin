@@ -2,7 +2,7 @@
   {
     "number": 31,
     "title": "a finding that quotes the marker grammar",
-    "body": "- **Observed** ✗: the pass appends `<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->` on the body's last line.\n\nThe same grammar, as an excerpt:\n\n```\n<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->\n```\n\nThat span is a quotation of the grammar, not a record of this item.",
+    "body": "- **Observed** ✗: the pass appends `<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->` on the body's last line.\n\nThe same grammar, as an excerpt:\n\n```\n<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->\n```\n\n- **Reproduced** on #292's own body, whose prose line ends at the close: <!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->\n\n<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 --> is the grammar the pass writes, quoted here at column 0 and continued after the close.\n\nThat span is a quotation of the grammar, not a record of this item.",
     "labels": [{ "name": "class/bug" }, { "name": "prio/p2" }]
   }
 ]

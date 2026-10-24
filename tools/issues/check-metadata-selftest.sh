@@ -147,6 +147,7 @@ case_labelWithoutMarkerFails() {
 # span anywhere in the body as the item's own marker (issue #293). The two cases below are the pair that fixes
 # the shape: a quotation is prose, and the marker's own line is still the record beside one.
 case_aQuotationIsNotAMarker() {
+  local body marker
   run_check --issues "$fixtures/quoted-grammar.json"
   expect "a body that only quotes the grammar exits non-zero" "1" "$CHECK_STATUS"
   expect_contains "and the missing record is what is reported" "label-without-marker" "$CHECK_OUT"
@@ -154,6 +155,19 @@ case_aQuotationIsNotAMarker() {
   # the quoted band says p3 and the label says p2: on HEAD that disagreement was reported as the item's own
   expect_not_contains "the quotation is not matched against the label" "band-mismatch" "$CHECK_OUT"
   expect_not_contains "and the quotation is not read as an incomplete record" "marker-incomplete" "$CHECK_OUT"
+
+  # The shape's two anchors, one body line each, asserted through the reader itself so neither clause can be
+  # dropped without this case going red: the fixture carries a prose line that *ends* at the close (excluded by
+  # the column-0 clause) and a line that *starts* at the open but continues past the close (excluded by the end
+  # anchor). `revert-check-293.sh` mutates each of the two and expects this case to fail. A reader that is not
+  # there at all answers `missing` rather than nothing, so a tree without the predicate cannot read as green.
+  body=$(jq -r '.[0].body' "$fixtures/quoted-grammar.json")
+  expect "the prose line that ends at the close is not the record" "" \
+    "$( ( source "$root/tools/issues/lib.sh"
+          declare -F issues_prio_marker_line >/dev/null 2>&1 || { printf 'missing'; exit 0; }
+          issues_prio_marker_line "$body" ) )"
+  marker=$( ( source "$root/tools/issues/lib.sh"; issues_prio_marker "$body" ) )
+  expect "and the line that starts at the open but does not close is not one either" "" "$marker"
 }
 
 case_aMarkerLineBesideAQuotationIsTheRecord() {

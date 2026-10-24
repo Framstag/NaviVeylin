@@ -159,11 +159,11 @@ the moment of reading rather than stored with the priority.
 
 ### Requirement: The marker is read where the pass writes it
 
-The stored marker SHALL be the block comment the pass writes on a line of its own — at the start of the line and closing at its end — outside a fenced code span. Any other occurrence in the body SHALL be prose and SHALL NOT decide whether the item carries a marker or which band it records.
+The stored marker SHALL be the block comment the pass writes on a line of its own — at the start of the line and closing at its end, trailing whitespace allowed — outside a fenced code span. Any other occurrence in the body SHALL be prose and SHALL NOT decide whether the item carries a marker or which band it records.
 
 #### Scenario: A quotation of the grammar is prose
 
-- **WHEN** an item's body quotes the marker grammar — inline, or in a fenced span that puts it on a line of its own — and carries no marker of its own
+- **WHEN** an item's body quotes the marker grammar — inline, in a fenced span that puts it on a line of its own, on a prose line that ends at the close, or on a line that starts at the open and continues past it — and carries no marker of its own
 - **THEN** the item is read as carrying no marker, so a band label without a stored record is reported as such instead of being matched against the quotation
 - **Case**: `check#aQuotationIsNotAMarker`
 

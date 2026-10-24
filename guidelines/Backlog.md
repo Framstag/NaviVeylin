@@ -737,7 +737,7 @@ is in the change's `design.md`; this is the map, so a reader can find it and so 
 | reopen rather than re-file; hysteresis; escalation | the record of a fix that did not hold is the valuable part | 4 |
 | ownership scope on a check's reach | a subverted pipeline must still not touch what it does not own | 4 |
 | priority persisted with a recorded basis | recomputation proportional to the backlog is the cost being removed | 5 |
-| a band label **and** a body marker, written together by one script | the label is the cheap selector and the marker is the reason: a label alone cannot decide whether to recompute, and a marker alone makes every selection read a body | 5 |
+| a band label **and** a body marker, written together by one script | the label is the cheap selector and the marker is the reason: a label alone cannot decide whether to recompute, and a marker alone makes every selection read a body — so the marker is a line of its own at column 0, closing at its end and outside a fenced span, and a body that quotes the grammar is prose rather than a record (issue #293) | 5 |
 | classification rides the same pass | two queues, two write paths and two CI steps for one selection mechanic; and keeping it here is what lets classification write a kind and an area and nothing else | 5 |
 | only the changed subset interpreted, bounded per run | a vocabulary change must not become a sweep | 5 |
 | priority is not authorisation | else a threshold or a check could promote work into the loop | 5 |

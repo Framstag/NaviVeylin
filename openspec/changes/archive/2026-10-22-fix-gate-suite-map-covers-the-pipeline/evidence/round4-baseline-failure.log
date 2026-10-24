@@ -1,3 +1,9 @@
+== round 4 baseline, 2026-10-24T07:02:11Z
+== tree: detached worktree at a06ef5ca (main's tip when the round-4 gate ran)
+== command: bash tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem
+== git status (clean):
+== output:
   a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
 FAIL run#aWriterTheRunCanPlaceBlocksTheItem
 loop-selftest: 1 of 1 cases failed
+exit=1

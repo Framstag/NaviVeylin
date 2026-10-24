@@ -392,10 +392,12 @@ flavors one expects (§134.65).
 The gate above is only as wide as the profile's map: `LOOP_GATE_SUITES` (`tools/loop/loop.conf`) has to reach
 every `bash`/`sh` command a `Check …` step of the pipeline runs, or a landing the pipeline refuses is green in
 the run — which is what reddened `main` on 2026-10-21 (issue #242). The map's unit is a pipeline *step*: a path
-maps to every command that step runs — the check, its self-test and its mutation list — and
-`gate#theMapCoversEveryPipelineStep` pins the command side against the pipeline the profile names in
-`LOOP_GATE_PIPELINE`, so a step the pipeline gains and the map does not carry fails the loop's own suite and
-names the missing commands. The pin closes the command side only, and two edges stay residual. Which *paths* a
+carries the triple of the tool it belongs to — the check, its self-test and its mutation list — and each other
+command a step runs is carried by the path of the tool that command belongs to (`tools/issues/*` owes the issue
+tooling's self-test, the tracker sets owe their own `tools/mutate.sh … --list`), so a step's commands are covered
+even where no single path reaches all of them. `gate#theMapCoversEveryPipelineStep` pins the command side against
+the pipeline the profile names in `LOOP_GATE_PIPELINE`, so a step the pipeline gains and the map does not carry
+fails the loop's own suite and names the missing commands. The pin closes the command side only, and two edges stay residual. Which *paths* a
 step reads is named by no workflow — `tools/check-portability.sh` reads `tools/loop/loop.conf`, `tools/tooling.json`
 and `tools/sensors/sensors.json`, none of which is mapped to a command of `Check portability` — so a delta
 touching one of them is not gated by that step. And a step whose check is inline shell or a Gradle task is

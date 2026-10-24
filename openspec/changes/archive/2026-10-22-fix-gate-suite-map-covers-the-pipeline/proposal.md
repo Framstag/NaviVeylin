@@ -48,11 +48,13 @@ Measured in `.pi/worktrees/loop` on `ee95d71` (evidence: `.pi/issue-loop/items/2
 
 surface: 2 cases added, 0 rewritten, 0 fixtures realigned, 4 mutation records added, 1 profile map completed
 (24 → 58 pairs) — `grep -rl 'LOOP_GATE' --include='*.sh' --include='*.md' --include='*.conf' --include='*.yml'
---include='*.json' . | grep -v '^./openspec/changes/archive' | grep -v '^./.pi/'` → 11 files, of which the map
+--include='*.json' . | grep -v '^./openspec/changes/archive' | grep -v '^./.pi/'` → 12 files, of which the map
 itself (`loop.conf`), its two readers (`gate.sh`, `measure.sh`), the case runner (`loop-cases.sh`), the
-falsification harness (`loop-mutations.sh`), the portability check (it reads `LOOP_GATE_CMD` as a value) and
-`guidelines/Build.md` §3 assert the behaviour; `PORTING.md` and `guidelines/Backlog.md` document
-`LOOP_GATE_CMD` only and are untouched.
+falsification harness (`loop-mutations.sh`), the portability check (it reads `LOOP_GATE_CMD` as a value),
+`tools/loop/run.sh` and `guidelines/Build.md` §3 assert the behaviour; `guidelines/Backlog.md` and `PORTING.md`
+document `LOOP_GATE_CMD` only and are untouched, and `tools/fixtures/foreign-project/tools/loop/loop.conf` is the
+fixture that proves a foreign profile runs, with `openspec/specs/agent-issue-loop/spec.md` carrying the shipped
+requirement.
 
 ## What Changes
 

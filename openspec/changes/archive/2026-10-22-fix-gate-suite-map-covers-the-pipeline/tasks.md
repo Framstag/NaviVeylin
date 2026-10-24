@@ -49,7 +49,7 @@
 
 - [x] `./tools/loop/gate.sh` from the change root, once, quoted with its tally: `LOOP-GATE: tests=157
       failures=0` over the eight commands the gate ran, with one tally XML per suite
-      (`evidence/gate-round3.log`, `evidence/tools_loop-selftest.sh.xml` and the seven beside it in that
+      (`evidence/gate-round3.log`, `evidence/tools_loop-selftest.sh.xml` and the six beside it in that
       directory; round 2's `evidence/gate.log` ran the same eight and is kept as history). The invocation and
       the `LOOP_CONF` it ran under are recorded in `evidence.md`, because the run exports the project tree's
       older profile.
@@ -116,9 +116,13 @@ and file the gap as its own item.
       `--from-git {base}` narrowing): the map keeps main's refined pairs and adds the missing commands, and the
       pin strips the gate's `--from-git {base}` suffix before comparing a map command with the pipeline's, so
       the narrowing is not read as part of the command itself.
-- [x] The three free corrections of round 3's report: `evidence.md`'s surface grep count, task 5's "the seven
-      beside it" (six), and `gate-round3.log`'s missing exit marker, each replaced with what the artifact
-      records; `invalid-3a-bare-invocation-old-profile.log` stays as the bare invocation's record.
+- [x] Round 3's three free corrections, each made the way the tree allows: the surface grep count lives in
+      `proposal.md` and is corrected **11 → 12** (`grep -rl 'LOOP_GATE' … | grep -v archive | grep -v .pi/`
+      returns 12 at HEAD and returned 12 at `0c09b152`); task 5's "the seven beside it" is corrected to **"the
+      six beside it"** (`evidence/` holds seven `*.xml` tallies in total, the Gradle command leaving none); and
+      `gate-round3.log` **carries no exit marker and none was added** — it carries the `LOOP-GATE: tests=157
+      failures=0` summary line, and adding an `exit=` line to a captured log by hand would falsify evidence.
+      `invalid-3a-bare-invocation-old-profile.log` stays as the bare invocation's record.
 - [x] The gate, once, on the merged tree: `evidence/gate-round4.log`, eight commands, `--base a06ef5ca`,
       `LOOP-GATE: tests=375 failures=1`, exit 1 — the single failure `run#aWriterTheRunCanPlaceBlocksTheItem`
       fails identically on the base (`evidence/round4-baseline-failure.log`, `a06ef5ca` clean) and is filed as
@@ -132,3 +136,22 @@ and file the gap as its own item.
       four. Re-run and captured as `evidence/round4-mutations.log` (`06:11Z`), both cases as
       `evidence/round4-green-cases.log` (`06:12:56Z`), the comparison as `evidence/round4-map-vs-pipeline.txt`,
       and the reviewer's refusal moved to `evidence/review-3-refused.md` so it is not read as a live refusal.
+
+## 9. Review round 4 — one surviving universal, and corrections recorded but not made
+
+A read-only reviewer took the merged tree (`evidence/review-round4-corrections.md`, `a06ef5ca..84ba96ad`) and
+returned `VERDICT: FAIL` on two text-only findings, both fixed here:
+
+- [x] The same family of universal survived in mirror at `guidelines/Build.md` §3, `tools/loop/loop.conf` and
+      `design.md`: *"a path maps to every `bash`/`sh` command the step whose tools read it runs"* is false where
+      a step's commands do not share one glob — `Check issue tooling` runs 6 commands and `tools/issues/*`
+      carries 1, `Check agent issue loop` runs 2 and `tools/loop/*` carries 1, `Check portability` runs 4 and
+      `tools/check-portability*` carries 3. All three sites now say the per-tool form: a pair carries the triple
+      of the tool it belongs to, and each other command a step runs is carried by the path of the tool that
+      command belongs to. The map, the two cases, the mutation set and the spec's SHALL were already correct
+      and are unchanged.
+- [x] The round-3 "three free corrections" were recorded as applied and were not in the tree: `proposal.md`'s
+      surface count is corrected **11 → 12**, task 5's "the seven beside it" **→ "the six beside it"**, and the
+      bullet now says `gate-round3.log` carries the summary line and **no** exit marker, with none added (adding
+      one by hand would falsify the capture). `evidence/round4-baseline-failure.log` was re-taken with a header
+      naming the tree, the base and the command.

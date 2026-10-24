@@ -1,0 +1,49 @@
+# Where the attribution's second went, and what the base actually read
+
+Raw `date +%s.%N` stamps from instrumented runs of the writer's case (`run#aWriterTheRunCanPlaceBlocksTheItem`,
+`LOOP_PROGRESS_SECONDS=1`) on this host, 2026-10-24. The instrumentation was temporary and is **not** part of
+the change: a stamp line in the heartbeat around `project_state` and around each sweep in `outside_write_seen`,
+and three markers in the case's own writer action (`write`, `sleeper <pid>`, `removed`). Epoch stamps: `…342.nnn`
+= the base (`9e77cd69`), `…398.nnn` and `…399.nnn` = the tree carrying this change.
+
+## The base's own reading
+
+```
+write            1792825342.062565634   the child's write into the project's own tree (demo-owned.txt)
+sleeper forked   1792825342.114798274   `( cd "$LOOP_CHILD_ROOT" && exec sleep 2 ) &` — dies 344.11
+removed          1792825345.118007886   the writer's `sleep 3; rm -f`
+
+1792825343.049958674 tick=1             the heartbeat's first tick: 0.99 s after the write
+1792825343.056698312 state-read         `project_state` — 6 ms
+1792825343.057990850 scan-alive-start   sweep 1 (the note's holder list)
+1792825344.111057976 scan-alive-end     1.05 s — the writer died at 344.11, inside this window
+1792825345.246905696 scan-attr-end attributed=none
+1792825347.764874692 tick=1             the next phase's heartbeat (the reviewer's)
+```
+
+Two things follow. The answer was taken 2.19 s after the difference was read, when the writer was gone
+(`attributed=none` → the item keeps `done` → the case's `expected 'blocked', got 'done'`). And the answer was
+taken from a **second** sweep at all: `evidence/sweeps.log` shows sweep 1 listing nine pids standing in the
+project and sweep 2, 1.1 s later, listing none of them — so the pids the attribution tested were the ones the
+sweep had just stopped seeing, and `attributed` was empty whatever the timing.
+
+## The same case on the tree carrying this change
+
+```
+write            1792825398.486980629
+sleeper forked   1792825398.539711464   dies 400.54
+removed          1792825401.543534140
+
+1792825399.470729873 tick
+1792825399.814398989 prototype-attr=2301731,2301733,2301742,2301754   0.34 s after the tick
+1792825400.905775193 prototype-alive-end                               the host-wide sweep, after the decision
+```
+
+(The stamp run predates the narrow rule; its four marked pids are the child chain **and** the writer. What the
+final rule marks is `evidence/mark.log`: the writer alone.)
+
+## What the sweep costs
+
+`evidence/sweep-cost.log`, same host: 731 processes visible, a bare `readlink` of every `/proc/<pid>/cwd`
+0.59 s, `loop_pids_under` 0.96 s, and the same through a command substitution — how `outside_write_pids` calls
+it — 1.04 s. Two sweeps in the deciding path are therefore ~2 s, against a writer that lives 2 s.

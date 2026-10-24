@@ -1,0 +1,19 @@
+pids visible: 731
+
+--- `readlink /proc/<pid>/cwd` for every pid ---
+
+real	0m0,593s
+user	0m0,242s
+sys	0m0,364s
+
+--- loop_pids_under <project> (what outside_write_pids sweeps with) ---
+
+real	0m0,955s
+user	0m0,501s
+sys	0m0,494s
+
+--- the same, into a command substitution, as outside_write_pids calls it ---
+
+real	0m1,039s
+user	0m0,534s
+sys	0m0,546s

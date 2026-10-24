@@ -1,0 +1,12 @@
+$ bash tools/loop-selftest.sh --case run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem   # 5 runs
+
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+exit=0
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+exit=0
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+exit=0
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+exit=0
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+exit=0

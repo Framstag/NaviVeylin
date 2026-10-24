@@ -1,0 +1,13 @@
+# What the narrowed rule marks, per candidate, in the writer's case (instrumented once, reverted)
+#
+# $WT = $ROOT/.pi/worktrees/loop, the tree a phase may write; "stands" = cwd under $ROOT and not under $WT;
+# "left-worktree" = an ancestor of the pid works in $WT. MARKED is the attribution the item is decided by.
+
+cand pid=3509249 own=no stands=yes left-worktree=no cwd=$ROOT cmd=bash /home/tim/projects/NaviVeylin/tools/loop/run.sh --items 1 --minut
+cand pid=3509251 own=no stands=yes left-worktree=no cwd=$ROOT cmd=bash tools/pi-child-events.sh pi /home/tim/projects/NaviVeylin/.pi/tmp
+cand pid=3509259 own=no stands=no left-worktree=no cwd=$WT cmd=bash /home/tim/projects/NaviVeylin/tools/loop/fixtures/pi --mode json 
+cand pid=3509260 own=no stands=yes left-worktree=no cwd=$ROOT cmd=bash tools/pi-child-events.sh pi /home/tim/projects/NaviVeylin/.pi/tmp
+cand pid=3509267 own=no stands=no left-worktree=yes cwd=$WT cmd=bash /home/tim/projects/NaviVeylin/.pi/tmp/loop-selftest.ipDNNg/case.W
+cand pid=3509271 own=no stands=yes left-worktree=yes cwd=$ROOT cmd=sleep 2 
+cand pid=3509272 own=no stands=no left-worktree=yes cwd=$WT cmd=sleep 3 
+MARKED 3509271

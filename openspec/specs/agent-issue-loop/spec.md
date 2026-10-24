@@ -413,11 +413,23 @@ change.
 #### Scenario: A difference is attributed while the writer is alive
 
 - **WHEN** the project's own tree changes while a child runs
-- **THEN** the run reads the difference from the heartbeat ticking beside that child, names the processes alive
-  at that moment whose working directory is inside the project and outside the worktree, and marks the ones that
-  belong to this child's own process tree — its process group or its descendants — because a writer is gone by the
-  time the child's transcript is written, and a difference nobody can place is not evidence about the child
+- **THEN** the run reads the difference from the heartbeat ticking beside that child and places it — it marks the
+  processes of this child's own process tree, its process group or its descendants, whose working directory is
+  inside the project and outside the worktree *and* which came out of the worktree — and it reads that tree before it
+  lists the other processes standing in the project, because that listing walks every process on the host while a
+  writer is already gone: a writer is gone by the time the child's transcript is written, and a difference nobody
+  can place is not evidence about the child
 - **Case**: `run#aWriterTheRunCanPlaceBlocksTheItem`
+
+#### Scenario: The run's own child chain is not a writer
+
+- **WHEN** a difference in the project's own tree is read while the child is alive and only the child's own shells —
+  which the run starts in the project and which stand there for the whole item — are processes of that child's tree
+  standing in the project
+- **THEN** the difference is recorded and the item keeps the outcome its own work earned, because a run that marked
+  its own child chain would decide every difference in the project's tree, which is the verdict no measurement of
+  that tree supports
+- **Case**: `run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem`
 
 #### Scenario: `--strict-outside-write yes` makes the difference decide the item
 

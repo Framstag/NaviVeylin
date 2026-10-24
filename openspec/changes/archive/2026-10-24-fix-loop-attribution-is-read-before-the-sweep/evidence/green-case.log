@@ -1,0 +1,12 @@
+$ bash tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem   # 5 runs, this tree (main 0f366176 + this change)
+
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+exit=0
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+exit=0
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+exit=0
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+exit=0
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+exit=0

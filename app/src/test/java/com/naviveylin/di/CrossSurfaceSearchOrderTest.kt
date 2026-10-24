@@ -17,6 +17,8 @@ import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
 import com.naviveylin.test.MainDispatcherRule
 import com.naviveylin.ui.map.MapCanvasViewModel
+import com.naviveylin.ui.map.cancelScopeForTest
+import com.naviveylin.ui.map.mergeSearchResults
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After

@@ -2,7 +2,7 @@
 # run.sh — the runner: select the rows whose cadence is due, run each, interpret its verdict, and
 # dispatch to the three verbs.
 #
-#   run.sh [--due] [--within <minutes>] [--rows <id,id>] [--only <id>] [--apply] [--json] [--input <file>] [--now <time>]
+#   run.sh [--due] [--within <minutes>] [--since <time>] [--rows <id,id>] [--only <id>] [--apply] [--json] [--input <file>] [--now <time>]
 #          [--registry <file>] [--profile <file>]
 #
 # `--rows <id,id>` (repeatable) restricts the candidates to the rows it names — a pipeline step runs one
@@ -16,6 +16,12 @@
 # tick needs; the pipeline declares a window as wide as its own cadence. A value that is not a count of
 # minutes is refused rather than narrowed, because a silently narrowed window is the defect this flag
 # exists to fix (issue #166).
+#
+# `--since <time>` is the interval `--due` selects over, as an exclusive lower bound: a row is due when
+# its cron matches any minute in `(since, this tick's minute]`. It is what the pipeline passes — the
+# previous tick's start — so a tick GitHub skipped leaves its minutes in the next tick's interval and the
+# row whose cadence fell into the gap is measured instead of lost (issue #256). `--since` takes
+# precedence over `--within` when both are given.
 #
 # `--dry-run` is the default, as everywhere else in this tooling: without `--apply` nothing is written to
 # the tracker and every intended write is printed instead (design D9).
@@ -40,12 +46,13 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=tools/sensors/lib.sh
 source "$here/lib.sh"
 
-usage() { sed -n '2,36p' "$0"; }
+usage() { sed -n '2,42p' "$0"; }
 
 due=0
 only_id=""
 rows_ids=""
 within=1
+since_arg=""
 json=0
 input=""
 now=""
@@ -55,6 +62,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --due) due=1; shift ;;
     --within) need_value "$@"; within="${2:-}"; shift 2 ;;
+    --since) need_value "$@"; since_arg="${2:-}"; shift 2 ;;
     --only) need_value "$@"; only_id="${2:-}"; shift 2 ;;
     --rows) need_value "$@"; rows_ids="${rows_ids:+$rows_ids,}${2:-}"; shift 2 ;;
     --dry-run) SENSORS_DRY_RUN=1; shift ;;
@@ -86,6 +94,10 @@ sensors_resolve --profile "$profile_arg" --registry "$registry_arg"
 SENSORS_NOW="${now:-${SENSORS_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}}"
 export SENSORS_NOW
 epoch=$(sensors_epoch "$SENSORS_NOW") || sensors_die "run: --now '$SENSORS_NOW' is neither an epoch nor an ISO-8601 instant"
+since_epoch=0
+if [ -n "$since_arg" ]; then
+  since_epoch=$(sensors_epoch "$since_arg") || sensors_die "run: --since '$since_arg' is neither an epoch nor an ISO-8601 instant"
+fi
 
 # The identity the run would write as is the gate's only attributable term, so it is checked before any
 # row is selected — a run that may not write must not report a working set either (design D2).
@@ -111,7 +123,11 @@ while IFS= read -r row; do
   if [ -n "$only_id" ]; then
     [ "$id" = "$only_id" ] || continue
   elif [ "$due" -eq 1 ]; then
-    sensors_cron_due "$(sensors_row_field "$row" cron)" "$epoch" "$within" || continue
+    if [ -n "$since_arg" ]; then
+      sensors_cron_since "$(sensors_row_field "$row" cron)" "$since_epoch" "$epoch" || continue
+    else
+      sensors_cron_due "$(sensors_row_field "$row" cron)" "$epoch" "$within" || continue
+    fi
   fi
   selected+=("$id")
 done < <(sensors_rows)

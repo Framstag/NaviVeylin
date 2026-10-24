@@ -11,10 +11,10 @@ name: Sensors
 # skipped run, not four failed checks. The tick's minutes must cover every minute the registry's rows
 # declare, which `workflow#tickMinutesCoverTheRegistryCrons` asserts.
 #
-# Each scheduled step passes `--within 30`: the window a tick selects over, as wide as the tick's own
-# cadence, so a run GitHub fires minutes late still measures the rows it was scheduled for, while two
-# consecutive ticks' windows tile the hour and select no row twice
-# (`workflow#theTickDeclaresItsWindow`).
+# Each scheduled step passes `--since` the previous tick's start time: the interval a tick selects over,
+# so a run GitHub fires minutes late still measures the rows it was scheduled for, and a tick GitHub
+# skipped leaves its minutes in the next tick's interval rather than losing them (#256). Two consecutive
+# ticks' intervals tile the hour and select no row twice (`workflow#theTickDeclaresItsWindow`).
 #
 # `schedule` only fires from the default branch; a dispatch can select any ref, so the first step is a
 # runtime guard rather than a line of YAML to be trusted (design D1, D3).
@@ -95,6 +95,14 @@ jobs:
               exit "$status"
             fi
           fi
+          # The previous Sensors run's start time: the lower bound this tick's interval reaches back to.
+          # A tick GitHub skipped leaves its minutes in this interval, so the row whose cadence fell into
+          # the gap is selected by the next tick that runs, whatever the gap (issue #256). With no previous
+          # run — the first tick — the interval is the schedule's own cadence.
+          prev=$(gh run list --workflow sensors.yml --branch main --status completed --limit 1 \
+            --json createdAt --jq '.[0].createdAt // empty' 2>/dev/null || true)
+          [ -n "$prev" ] || prev=$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          echo "since=$prev" >> "$GITHUB_OUTPUT"
 
       # The labels the checks file under are declared by the registry (`sensor/<id>`) and by the profile,
       # so they are created from that declaration before anything files: a filing under a label the tracker
@@ -144,7 +152,8 @@ jobs:
         if: steps.record.outputs.ready == 'true' && steps.record.outputs.conclusion == 'success'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: bash tools/sensors/run.sh --due --within 30 --rows build-duration,package-size,coverage "$SENSORS_MODE"
+          SENSORS_SINCE: ${{ steps.record.outputs.since }}
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows build-duration,package-size,coverage "$SENSORS_MODE"
 
       # Every other row runs for any record, none of them reading an output a red build cannot produce:
       # `broken-main` reads the result record the publisher always writes, `pr-conflicts` the API, `hotspot`
@@ -154,7 +163,8 @@ jobs:
         if: steps.record.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
-        run: bash tools/sensors/run.sh --due --within 30 --rows broken-main,pr-conflicts,hotspot,source-size,stale-citations "$SENSORS_MODE"
+          SENSORS_SINCE: ${{ steps.record.outputs.since }}
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,stale-citations "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

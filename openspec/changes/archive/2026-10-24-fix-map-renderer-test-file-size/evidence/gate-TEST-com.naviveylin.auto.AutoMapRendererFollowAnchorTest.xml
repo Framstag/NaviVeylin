@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-24T21:04:33.171Z" hostname="dingens" time="0.357">
+  <properties/>
+  <testcase name="defaultFollowAnchorKeepsCenterFraming" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.048"/>
+  <testcase name="fullRenderPreservesDisplayInFollowMode" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.029"/>
+  <testcase name="reengageFollowAnchorsViewportToFix" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.036"/>
+  <testcase name="hostPaneClampsTheLeadingEdgeAnchorOnly" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.035"/>
+  <testcase name="followDiagnosticLineKeepsNumbersLocaleIndependent" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.033"/>
+  <testcase name="bottomRowAnchorClampsAboveHostBottomChrome" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.026"/>
+  <testcase name="reengageFollowKeepsTheReanchoredCommitBlitEligible" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.037"/>
+  <testcase name="reengageFollowReengagesWithoutSnapping" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.023"/>
+  <testcase name="hostTopInsetStoredClampedAndNoopsOnRepeat" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.023"/>
+  <testcase name="offCenterAnchorShiftsFollowRenderTarget" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.024"/>
+  <testcase name="reengageFollowSchedulesTheFrameItReanchored" classname="com.naviveylin.auto.AutoMapRendererFollowAnchorTest" time="0.043"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+# case roster — HEAD's single AutoMapRendererTest against the five classes that replaced it
+#   old cases: 82   new cases: 82
+#   $ git show HEAD:auto/src/test/java/com/naviveylin/auto/AutoMapRendererTest.kt | grep -o '^    fun [A-Za-z0-9_]*' | sort
+#   $ grep -ho '^    fun [A-Za-z0-9_]*' auto/src/test/java/com/naviveylin/auto/AutoMapRenderer{,Test,LifecycleTest,BlitTest,FollowAnchorTest,ZoomWalkTest}.kt | sort   (brace form: five files + support)
+# diff <old> <new> (empty = every case survived the split under its own name):
+#   identical — no case added, renamed or dropped
+# taken 2026-10-24T21:03:11Z at 3cc62e15

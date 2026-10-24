@@ -1,0 +1,209 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :core:kspDebugKotlin UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :core:compileDebugKotlin UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:checkHardcodedStrings
+> Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
+> Task :core:createFullJarDebug UP-TO-DATE
+> Task :core:writeDebugAarMetadata UP-TO-DATE
+> Task :core:extractDeepLinksDebug UP-TO-DATE
+> Task :core:processDebugManifest UP-TO-DATE
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets UP-TO-DATE
+> Task :app:checkNativeParity
+> Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :auto:createFullJarDebug UP-TO-DATE
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preMobileDebugBuild
+> Task :app:generateMobileDebugBuildConfig UP-TO-DATE
+> Task :app:generateMobileDebugResources UP-TO-DATE
+> Task :app:packageMobileDebugResources UP-TO-DATE
+> Task :app:processMobileDebugNavigationResources UP-TO-DATE
+> Task :app:parseMobileDebugLocalResources UP-TO-DATE
+> Task :app:generateMobileDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileMobileDebug UP-TO-DATE
+> Task :app:checkMobileDebugAarMetadata UP-TO-DATE
+> Task :app:mapMobileDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileMobileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeMobileDebugResources UP-TO-DATE
+> Task :app:createMobileDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksMobileDebug UP-TO-DATE
+> Task :app:processMobileDebugMainManifest UP-TO-DATE
+> Task :app:processMobileDebugManifest UP-TO-DATE
+> Task :app:processMobileDebugManifestForPackage UP-TO-DATE
+> Task :app:processMobileDebugResources UP-TO-DATE
+> Task :app:generateMobileDebugAssets UP-TO-DATE
+> Task :app:mergeMobileDebugAssets UP-TO-DATE
+> Task :app:preMobileDebugUnitTestBuild
+> Task :app:packageMobileDebugUnitTestForUnitTest UP-TO-DATE
+> Task :app:mergeMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:processMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:generateMobileDebugUnitTestConfig UP-TO-DATE
+> Task :app:koverFindJar UP-TO-DATE
+> Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
+> Task :app:kspMobileDebugKotlin
+> Task :app:compileMobileDebugKotlin
+> Task :app:compileMobileDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncMobileDebug
+> Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebug UP-TO-DATE
+> Task :app:processMobileDebugJavaRes UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToCompileJar
+> Task :app:kspMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:transformMobileDebugClassesWithAsm
+> Task :app:compileMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:bundleMobileDebugClassesToRuntimeJar
+> Task :app:hiltSyncMobileDebugUnitTest
+> Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
+
+> Task :app:testMobileDebugUnitTest
+
+DiagnosticLineLocaleTest > theFollowLineKeepsItsNumbersOnADecimalCommaLocale FAILED
+    org.junit.ComparisonFailure: the same state must print the same line on a decimal-comma locale expected:<...1700000000000 spd=50[.0 brg=87 avg=29.0 gps=30.0 eff=27.0 savg=28.8 dec=false stp=false off=3.4,-1.]4 clamped=false> but was:<...1700000000000 spd=50[,0 brg=87 avg=29,0 gps=30,0 eff=27,0 savg=28,8 dec=false stp=false off=3,4,-1,]4 clamped=false>
+        at app//org.junit.Assert.assertEquals(Assert.java:117)
+        at com.naviveylin.ui.map.DiagnosticLineLocaleTest.theFollowLineKeepsItsNumbersOnADecimalCommaLocale(DiagnosticLineLocaleTest.kt:118)
+
+DiagnosticLineLocaleTest > theGpsFixLineKeepsItsNumbersOnADecimalCommaLocale FAILED
+    org.junit.ComparisonFailure: the fix line is read off a German install's logcat, so its numbers carry dots expected:<GPS fix acc=5[.0 bearing=45.0 speed=30.]0 follow=false> but was:<GPS fix acc=5[,0 bearing=45,0 speed=30,]0 follow=false>
+        at app//org.junit.Assert.assertEquals(Assert.java:117)
+        at com.naviveylin.ui.map.DiagnosticLineLocaleTest$theGpsFixLineKeepsItsNumbersOnADecimalCommaLocale$1.invokeSuspend(DiagnosticLineLocaleTest.kt:173)
+        at com.naviveylin.ui.map.DiagnosticLineLocaleTest$theGpsFixLineKeepsItsNumbersOnADecimalCommaLocale$1.invoke(DiagnosticLineLocaleTest.kt)
+        at com.naviveylin.ui.map.DiagnosticLineLocaleTest$theGpsFixLineKeepsItsNumbersOnADecimalCommaLocale$1.invoke(DiagnosticLineLocaleTest.kt)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)
+        at app//kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+        at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)
+        at app//kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+        at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+        at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+        at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+        at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+        at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:160)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+        at com.naviveylin.ui.map.DiagnosticLineLocaleTest.theGpsFixLineKeepsItsNumbersOnADecimalCommaLocale(DiagnosticLineLocaleTest.kt:160)
+
+DiagnosticLineLocaleTest > theFollowLineKeepsItsUnknownFields FAILED
+    org.junit.ComparisonFailure: expected:<... avg=NaN gps=- eff=0[.0 savg=0.0 dec=false stp=true off=0.0,0.]0 clamped=false> but was:<... avg=NaN gps=- eff=0[,0 savg=0,0 dec=false stp=true off=0,0,0,]0 clamped=false>
+        at app//org.junit.Assert.assertEquals(Assert.java:117)
+        at app//org.junit.Assert.assertEquals(Assert.java:146)
+        at com.naviveylin.ui.map.DiagnosticLineLocaleTest.theFollowLineKeepsItsUnknownFields(DiagnosticLineLocaleTest.kt:150)
+
+MapCanvasViewModelBrowseReCenterTest > theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale FAILED
+    java.lang.AssertionError: the re-center evidence line must print its numbers with a dot: off=400,0px vis=true mag=15,00
+        at org.junit.Assert.fail(Assert.java:89)
+        at org.junit.Assert.assertTrue(Assert.java:42)
+        at com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest$theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale$1.invokeSuspend$lambda$2(MapCanvasViewModelBrowseReCenterTest.kt:260)
+        at com.naviveylin.test.DefaultLocaleRule$Companion.withLocale(DefaultLocaleRule.kt:40)
+        at com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest$theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale$1.invokeSuspend(MapCanvasViewModelBrowseReCenterTest.kt:248)
+        at com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest$theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale$1.invoke(MapCanvasViewModelBrowseReCenterTest.kt)
+        at com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest$theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale$1.invoke(MapCanvasViewModelBrowseReCenterTest.kt)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)
+        at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+        at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)
+        at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+        at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+        at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+        at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+        at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+        at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+        at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+        at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+        at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:160)
+        at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+        at com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest.theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale(MapCanvasViewModelBrowseReCenterTest.kt:244)
+
+27 tests completed, 4 failed
+
+> Task :app:testMobileDebugUnitTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testMobileDebugUnitTest'.
+> There were failing tests. See the report at: file:///home/tim/projects/NaviVeylin/.pi/worktrees/issue44/app/build/reports/tests/testMobileDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 41s
+96 actionable tasks: 19 executed, 77 up-to-date

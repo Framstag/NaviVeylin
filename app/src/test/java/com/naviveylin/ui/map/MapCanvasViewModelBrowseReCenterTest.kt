@@ -16,7 +16,9 @@ import com.naviveylin.data.ViewportStorage
 import com.naviveylin.location.GpsFix
 import com.naviveylin.location.LocationService
 import com.naviveylin.share.SharedLocationHandler
+import com.naviveylin.test.DefaultLocaleRule
 import com.naviveylin.test.MainDispatcherRule
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -33,6 +35,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 
 /**
  * Verifies the derived BROWSE re-center rule (spec: map-modes — Browse
@@ -232,6 +235,36 @@ class MapCanvasViewModelBrowseReCenterTest {
         emitFix()
         awaitDwellAndRefresh()
     }
+
+    // --- the evidence line's locale (spec: i18n-l10n — Log and diagnostic numbers are
+    // locale-independent, issue #44) ---
+
+    @Test
+    fun theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // The case runs on the decimal-comma locale the rule is about; the rule puts it back
+            // whatever the outcome (spec: i18n-l10n — Log and diagnostic numbers are
+            // locale-independent, issue #44).
+            DefaultLocaleRule.withLocale(Locale.GERMANY) {
+                ShadowLog.clear()
+                moveViewportBy(400.0, 0.0)
+                emitFix()
+                advanceUntilIdle()
+                fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+                assertTrue("the reveal is what publishes the evidence line", awaitReveal())
+
+                // Both sinks of [MapCanvasViewModel.logBrowseReCenter] reach logcat, the file-backed
+                // one under the `Diag/RECENTER` tag — the exported line a German install would
+                // otherwise write as `off=400,0px ... mag=15,00`.
+                val line = ShadowLog.getLogs().map { it.msg }.firstOrNull { it.startsWith("off=") }
+                assertTrue(
+                    "the re-center evidence line must print its numbers with a dot: $line",
+                    line != null &&
+                        Regex("""off=-?\d+\.\d+px vis=(true|false) mag=\d+\.\d+$""")
+                            .containsMatchIn(line)
+                )
+            }
+        }
 
     // --- projection helper (task 2.2) ---
 

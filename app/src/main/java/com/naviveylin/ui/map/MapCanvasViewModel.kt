@@ -1494,9 +1494,12 @@ class MapCanvasViewModel @Inject constructor(
                 lastSpeedFixTime = fix.time
 
                 if (logCount++ % 30 == 0) {
-                    Log.d(TAG, "GPS fix acc=${"%.1f".format(fix.accuracy)} " +
-                            "bearing=${if (!fix.markerBearing.isNaN()) "%.1f".format(fix.markerBearing) else "-"} " +
-                            "speed=${if (!fix.speedKmH.isNaN()) "%.1f".format(fix.speedKmH) else "-"} " +
+                    // Every number in a log or diagnostic line goes through [diagnosticNumber]: it is
+                    // evidence, not display text, so a German install must not print a decimal comma
+                    // (spec: i18n-l10n — Log and diagnostic numbers are locale-independent, issue #44).
+                    Log.d(TAG, "GPS fix acc=${diagnosticNumber("%.1f", fix.accuracy)} " +
+                            "bearing=${if (!fix.markerBearing.isNaN()) diagnosticNumber("%.1f", fix.markerBearing) else "-"} " +
+                            "speed=${if (!fix.speedKmH.isNaN()) diagnosticNumber("%.1f", fix.speedKmH) else "-"} " +
                             "follow=${_uiState.value.followMode}")
                 }
 
@@ -1742,10 +1745,10 @@ class MapCanvasViewModel @Inject constructor(
                             // must not land the whole difference in one frame: start (or
                             // extend) the bounded walk from the displayed frame.
                             beginZoomWalk(stepped)
-                            Log.d(TAG, "autoZoom commit speed=" + "%.1f".format(filteredSpeed) +
+                            Log.d(TAG, "autoZoom commit speed=" + diagnosticNumber("%.1f", filteredSpeed) +
                                     "target=$target mag=$stepped")
                         } else if (logCount++ % 30 == 0) {
-                            Log.d(TAG, "autoZoom hold speed=" + "%.1f".format(filteredSpeed) +
+                            Log.d(TAG, "autoZoom hold speed=" + diagnosticNumber("%.1f", filteredSpeed) +
                                     "target=$target current=$newMag")
                         }
                         lastSpeedBandIndex = currentBand
@@ -3896,12 +3899,16 @@ class MapCanvasViewModel @Inject constructor(
      * this never touches the file on the caller's thread.
      */
     private fun logBrowseReCenter(offsetPx: Double, visible: Boolean) {
-        val offset = if (offsetPx.isNaN()) "-" else "%.1f".format(offsetPx)
+        // Both sinks carry the same fixed-locale numbers: the logcat line and the file-backed entry the
+        // diagnostics view and the share sheet show are read by a grep, so a German install must not
+        // print `off=400,0px` (spec: i18n-l10n — Log and diagnostic numbers are locale-independent,
+        // issue #44).
+        val offset = if (offsetPx.isNaN()) "-" else diagnosticNumber("%.1f", offsetPx)
         Log.d(TAG, "browse re-center off=" + offset + "px vis=" + visible)
         com.naviveylin.core.DiagnosticsLog.log(
             "RECENTER",
             "off=" + offset + "px vis=" + visible +
-                " mag=%.2f".format(_uiState.value.viewport.magnification)
+                " mag=" + diagnosticNumber("%.2f", _uiState.value.viewport.magnification)
         )
     }
 

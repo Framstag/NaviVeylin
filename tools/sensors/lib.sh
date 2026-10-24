@@ -292,6 +292,78 @@ sensors_cron_due() { # <cron> <epoch> [<minutes>] → 0 when the expression matc
   return 1
 }
 
+# The minutes a cron's minute field names, newest first, so a backward search stops at the latest match.
+sensors_cron_minutes() { # <minute-field> → the minutes 0-59, one per line, newest first
+  awk -v spec="$1" '
+    function field_match(spec, value, lo, hi, i, n, parts, part, sp, step, range) {
+      if (spec == "*") return 1
+      n = split(spec, parts, ",")
+      for (i = 1; i <= n; i++) {
+        part = parts[i]; step = 1
+        if (index(part, "/") > 0) { split(part, sp, "/"); part = sp[1]; step = sp[2] + 0 }
+        if (part == "*") { lo = 0; hi = 59 }
+        else if (index(part, "-") > 0) { split(part, range, "-"); lo = range[1] + 0; hi = range[2] + 0 }
+        else { lo = part + 0; hi = lo }
+        if (value >= lo && value <= hi && step > 0 && ((value - lo) % step) == 0) return 1
+      }
+      return 0
+    }
+    BEGIN { for (m = 59; m >= 0; m--) if (field_match(spec, m)) print m }'
+}
+
+# The interval a late or a skipped tick selects over: (since, now]. The tick GitHub fires late (or the tick
+# GitHub skipped entirely) measures every row whose cadence fell in the interval since the previous tick,
+# so a missing tick delays a measurement instead of losing it (issue #256). The search walks backwards a
+# day at a time and only enters the hours of a matching day, so a gap of months costs a bounded number of
+# minute conversions rather than one per minute; the lower bound is exclusive, so a row measured by the
+# previous tick's interval is not measured twice. 2 = cannot tell: a malformed expression, or an interval
+# that is not a forward span.
+sensors_cron_since() { # <cron> <since-epoch> <now-epoch> → 0 when the expression matches a minute in (since, now]
+  local cron="$1" since="$2" now="$3" day_cron hour_cron candidates now_day day_limit day_start last_hour h hour_start m epoch
+  # A malformed expression cannot answer; a valid one answers 0 or 1 for this single minute.
+  sensors_cron_minute "$cron" "$now" >/dev/null 2>&1
+  [ $? -ne 2 ] || return 2
+  case "$since" in ''|*[!0-9]*) return 2 ;; esac
+  case "$now" in ''|*[!0-9]*) return 2 ;; esac
+  [ "$since" -le "$now" ] || return 2
+  # Cron names minutes, not seconds.
+  now=$((now - now % 60))
+  since=$((since - since % 60))
+  [ "$since" -lt "$now" ] || return 1
+  # The day-only and day+hour predicates, and the minutes the minute field names, newest first.
+  day_cron=$(printf '%s\n' "$cron" | awk '{$1="*"; $2="*"; print}')
+  hour_cron=$(printf '%s\n' "$cron" | awk '{$1="*"; print}')
+  candidates=$(sensors_cron_minutes "$(printf '%s\n' "$cron" | awk '{print $1}')") || return 2
+  # Walk backwards a day at a time. A five-field expression matches at least once in four years (29 February
+  # is the coarsest day), so the search is bounded by four years and a day.
+  now_day=$((now - now % 86400))
+  day_limit=$((since - since % 86400))
+  day_start=$now_day
+  while [ "$day_start" -ge "$day_limit" ]; do
+    if sensors_cron_minute "$day_cron" "$day_start" >/dev/null 2>&1; then
+      last_hour=$(( (now - day_start) / 3600 ))
+      [ "$last_hour" -gt 23 ] && last_hour=23
+      h=$last_hour
+      while [ "$h" -ge 0 ]; do
+        hour_start=$((day_start + h * 3600))
+        if sensors_cron_minute "$hour_cron" "$hour_start" >/dev/null 2>&1; then
+          while IFS= read -r m; do
+            [ -n "$m" ] || continue
+            epoch=$((hour_start + m * 60))
+            [ "$epoch" -gt "$now" ] && continue
+            [ "$epoch" -le "$since" ] && continue
+            return 0
+          done <<< "$candidates"
+        fi
+        h=$((h - 1))
+      done
+    fi
+    [ $((now_day - day_start)) -ge $((1461 * 86400)) ] && break
+    day_start=$((day_start - 86400))
+  done
+  return 1
+}
+
 # --------------------------------------------------------------------------- a finding
 
 # The condition's identity: the digest of the fields the row declares. A sensor computes it with this

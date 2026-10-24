@@ -22,6 +22,7 @@ SENSOR_CASES=(
   'lib#rejectsAMalformedFinding'
   'run#selectsOnlyDueRows'
   'run#aDelayedTickSelectsTheRowsItWasScheduledFor'
+  'run#aSkippedTickLeavesItsRowsForTheNextTick'
   'run#theWindowDoesNotSelectThePreviousTicksRow'
   'run#rowsSelectsSeveralRows'
   'run#rowsRefusesAnUndeclaredId'
@@ -75,6 +76,7 @@ sensor_run_case() {
     'lib#rejectsAMalformedFinding') case_lib_rejectsAMalformedFinding ;;
     'run#selectsOnlyDueRows') case_run_selectsOnlyDueRows ;;
     'run#aDelayedTickSelectsTheRowsItWasScheduledFor') case_run_aDelayedTickSelectsTheRowsItWasScheduledFor ;;
+    'run#aSkippedTickLeavesItsRowsForTheNextTick') case_run_aSkippedTickLeavesItsRowsForTheNextTick ;;
     'run#theWindowDoesNotSelectThePreviousTicksRow') case_run_theWindowDoesNotSelectThePreviousTicksRow ;;
     'run#rowsSelectsSeveralRows') case_run_rowsSelectsSeveralRows ;;
     'run#rowsRefusesAnUndeclaredId') case_run_rowsRefusesAnUndeclaredId ;;
@@ -531,6 +533,38 @@ case_run_aDelayedTickSelectsTheRowsItWasScheduledFor() {
   assert_eq "0" "$status" "an unwindowed late tick is green: $out"
   assert_contains "$out" "no rows selected" \
     "without a declared window a late tick measures nothing and says nothing was due"
+}
+
+# A tick GitHub skipped entirely leaves its minutes in the interval the next tick selects over, so the
+# row whose cadence fell into the gap is measured by the next tick that runs, whatever the gap (issue #256).
+case_run_aSkippedTickLeavesItsRowsForTheNextTick() {
+  local dir findings out status
+  dir=$(scratch); issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 1 case alpha)")
+
+  # The previous tick started at 01:00 and the next one is at 04:00: the interval (01:00, 04:00] reaches
+  # the 03:00 row that no tick in between measured.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --since 2026-10-17T01:00:00Z --now 2026-10-17T04:00:00Z --rows fixture-emit \
+    --input "$findings" --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the next tick's run is green: $out"
+  assert_contains "$out" "fixture-emit" "the row whose minute fell into the gap is selected"
+
+  # The previous tick's own minute is outside the interval: a row it measured is not measured again.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --since 2026-10-17T03:00:00Z --now 2026-10-17T04:00:00Z --rows fixture-emit \
+    --input "$findings" --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the next tick's run is green: $out"
+  assert_not_contains "$out" "fixture-emit" "the row the previous tick's interval covered is not selected"
+  assert_contains "$out" "no rows selected" "no row is selected from the previous tick's own minute"
+
+  # The second row's own minute is in the interval: it is selected even though the first row's is not.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine run.sh --due --since 2026-10-17T03:00:00Z --now 2026-10-17T04:00:00Z --rows fixture-error \
+    --input "$findings" --registry "$(fixture registry.json)" 2>&1)
+  assert_contains "$out" "fixture-error" "the row whose minute is the tick's own minute is selected"
 }
 
 # The window's bound is what keeps a late tick from measuring a row the previous tick already measured.
@@ -1476,48 +1510,28 @@ case_workflow_onlyTwoTriggers() {
     fail "CODEOWNERS does not cover the workflow directory"
 }
 
-# The window is not a constant the engine assumes: it is the tick's own cadence, so a tick's window ends
-# where its successor's begins and a delayed tick still covers the minute it was scheduled for (#166).
+# The interval is not a constant the engine assumes: the pipeline declares its lower bound, the previous
+# tick's start time, so a tick GitHub skipped leaves its minutes in the next tick's interval (#256).
 case_workflow_theTickDeclaresItsWindow() {
-  local workflow cron cadence total declared
+  local workflow steps total declared prev_query
   workflow="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
   [ -f "$workflow" ] || fail "no sensor pipeline file"
 
-  cron=$(awk '/^on:/ { inside = 1; next } /^[^[:space:]]/ { inside = 0 }
-              inside && /^[[:space:]]*-[[:space:]]*cron:/ { sub(/^[^:]*:[[:space:]]*/, ""); gsub(/["'"'"']/, ""); print; exit }' \
-    "$workflow")
-  [ -n "$cron" ] || fail "the pipeline declares no schedule tick, so no row can ever be due"
-
-  # The cadence, read from the schedule's own cron: the minutes its minute field names, and the shortest
-  # distance between two of them, an hour wrapping. `0,30` is 30; a single minute is 60.
-  cadence=$(printf '%s\n' "$cron" | awk '{
-    n = split($1, parts, ","); m = 0
-    for (i = 1; i <= n; i++) {
-      part = parts[i]; step = 1
-      if (index(part, "/") > 0) { split(part, sp, "/"); part = sp[1]; step = sp[2] + 0 }
-      if (part == "*") { lo = 0; hi = 59 }
-      else if (index(part, "-") > 0) { split(part, range, "-"); lo = range[1] + 0; hi = range[2] + 0 }
-      else { lo = part + 0; hi = lo }
-      if (step < 1) step = 1
-      for (v = lo; v <= hi; v += step) { m++; minutes[m] = v }
-    }
-    if (m == 0) exit 1
-    for (i = 1; i <= m; i++) for (j = 1; j <= m; j++) {
-      gap = minutes[j] - minutes[i]; if (gap <= 0) gap += 60
-      if (smallest == 0 || gap < smallest) smallest = gap
-    }
-    print smallest
-  }')
-  [ -n "$cadence" ] && [ "$cadence" -ge 1 ] || fail "the cadence could not be read from the tick '$cron'"
-
-  # Every scheduled invocation of the runner names its window, and the window is the cadence: a step that
-  # goes back to asking about one minute alone is the defect this case exists for (issue #166).
+  # Every scheduled invocation of the runner names the interval it selects over, and the interval's lower
+  # bound is the previous tick's start time rather than the tick's own minute.
   steps=$(grep '^[[:space:]]*run: .*run\.sh --due' "$workflow" || true)
   total=$(printf '%s\n' "$steps" | grep -c . || true)
   [ "$total" -ge 1 ] || fail "no scheduled tick runs the runner"
-  declared=$(printf '%s\n' "$steps" | grep -c -- "--within $cadence" || true)
+  declared=$(printf '%s\n' "$steps" | grep -c -- '--since "\$SENSORS_SINCE"' || true)
   assert_eq "$total" "$declared" \
-    "every scheduled tick passes --within $cadence, the window its cadence ($cron) declares"
+    "every scheduled tick passes --since the previous tick's start time"
+
+  # The workflow obtains that start time from its own run history, with a fallback of the schedule's own
+  # cadence when there is no previous run.
+  prev_query=$(grep -n 'gh run list' "$workflow" || true)
+  [ -n "$prev_query" ] || fail "the workflow does not read the previous run's start time"
+  grep -q 'SENSORS_SINCE' "$workflow" ||
+    fail "the workflow does not pass the previous tick's start time to the runner"
 }
 
 # ----------------------------------------------------------------------------- 7. the engine's portability

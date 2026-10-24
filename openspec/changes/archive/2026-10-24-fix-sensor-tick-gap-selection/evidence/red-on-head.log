@@ -1,0 +1,14 @@
+# The red case on HEAD (run.sh before the fix)
+$ bash tools/sensor-selftest.sh --case 'run#aSkippedTickLeavesItsRowsForTheNextTick'
+  the next tick's run is green: sensors: run: unknown argument --since: expected '0', got '2'
+FAIL run#aSkippedTickLeavesItsRowsForTheNextTick
+exit=1
+
+# The same case after the fix
+$ bash tools/sensor-selftest.sh --case 'run#aSkippedTickLeavesItsRowsForTheNextTick'
+PASS run#aSkippedTickLeavesItsRowsForTheNextTick
+exit=0
+
+# The whole sensor suite after the fix
+$ bash tools/sensor-selftest.sh
+sensor-selftest: all 46 cases passed (JDK 27, offline, no token)

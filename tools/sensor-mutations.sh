@@ -39,7 +39,7 @@ MUTATIONS=(
   '8.10@tools/sensors/run.sh@s/for id in \$rows_list; do/for id in; do/@run#rowsRefusesAnUndeclaredId@a row a step names must be a row the registry declares'
   '8.11@.github/workflows/sensors.yml@s/conclusion == /conclusion != /@workflow#aRedRecordRunsNoRecordRow@the record rows wait for a build that succeeded'
   '8.12@tools/sensors/lib.sh@s/ minutes="${3:-1}" back=0/ minutes=1 back=0/@run#aDelayedTickSelectsTheRowsItWasScheduledFor@the window reaches back over the minutes since the previous tick'
-  '8.13@.github/workflows/sensors.yml@s/ --within 30//g@workflow#theTickDeclaresItsWindow@every scheduled tick declares the window it selects over'
+  '8.13@.github/workflows/sensors.yml@s/ --since / /g@workflow#theTickDeclaresItsWindow@every scheduled tick declares the interval it selects over'
   '8.14@tools/sensors/run.sh@s/sensors_die "run: --within/: "run: --within/@run#theWindowDoesNotSelectThePreviousTicksRow@a window that is not a count of minutes is refused'
   '8.15@tools/sensors/lib.sh@s|condition:\[ \]\*\\\\{.*\\\\}|condition:[ ]*[^>]*|@sensors#aRecordedConditionParsesToItsObject@the recorded condition parses to its object, not to the marker tail'
   '8.16@tools/sensors/guard.sh@s|\[ "$status" -eq "$SENSORS_UNREACHABLE" \]|[ "$status" -eq 0 ]|@guard#eachCheckHasItsOwnReason@the identity guard reports an unread tracker instead of turning it into a verdict (issue #231)'

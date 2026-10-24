@@ -143,6 +143,7 @@ LOOP_SHELL_CASES=(
   'run#prescreenAnnouncesItselfBeforeItReturns'
   'run#everyPhaseBoundaryIsPrinted'
   'run#childOutlastingTheWallClockIsBlocked'
+  'run#childIsEndedAtTheRunsDeadline'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
@@ -400,6 +401,7 @@ loop_run_shell_case() {
     'run#prescreenAnnouncesItselfBeforeItReturns') fn=case_run_prescreenAnnouncesItselfBeforeItReturns ;;
     'run#everyPhaseBoundaryIsPrinted') fn=case_run_everyPhaseBoundaryIsPrinted ;;
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
+    'run#childIsEndedAtTheRunsDeadline') fn=case_run_childIsEndedAtTheRunsDeadline ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
@@ -3460,6 +3462,71 @@ case_run_childOutlastingTheWallClockIsBlocked() {
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "exceeded 2 s" \
     "and the reason on the item names the cap that ended it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+}
+
+# The child cap is not the only clock a child can outlive (issue #227): the run's deadline is consulted between
+# items, so a child started before it holds the run past the budget it was given. Measured 2026-10-20: of fifteen
+# stuck runs eleven were past their own `--minutes 90`, the longest heartbeat read `291m30s`, and not one carried
+# a `LOOP-TIMEOUT` line although the cap was 2 700 s — the budget was spent invisibly and no stop reason was
+# recorded. The wait reads the run's own deadline from the state it wrote, ends the child and everything it
+# started when the deadline passes, names the clock that ended it in the transcript, and records the stop.
+case_run_childIsEndedAtTheRunsDeadline() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo pid i status out report state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The child cap is an hour, so only the deadline can end this child.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=3600' "$conf" || fail "this case could not lengthen the child cap in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  # The child blocks on the fifo and is never released: only the deadline can end it. The item cap is three, so
+  # the run's own stop is the deadline and not a cap it would reach first with a budget of one.
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 3 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  for i in $(seq 1 300); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  [ -e "$fifo.ready" ] || fail "the stub child never started; the run said: $(cat "$d/out")"
+  exec 8> "$fifo"
+  # The run's deadline arrives now. The clock the poll must read is the run's own recorded one — the state file
+  # `report.sh` and `next` read — and moving it is the only way to reach the bound without waiting the 90
+  # minutes the budget names: a shorter `--minutes` is refused by the item floor before any child starts, which
+  # is the run behaving correctly. The hand edit is reported as drift by the state's next reader, as designed.
+  state=$(state_file "$p")
+  jq '.run.deadlineEpoch = ((now | floor) + 2) | .run.deadlineAt = "an earlier moment"' "$state" > "$state.tmp" &&
+    mv "$state.tmp" "$state" || fail "this case could not move the run's recorded deadline"
+  # 60 s is a bound on this case, not on the run: the deadline is 2 s away and a poll that reads it ends the
+  # child a second or two after it passes.
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s after its own recorded deadline passed"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a child the run ended at its own deadline is not a failed run"
+  assert_contains "$out" "loop: worker-prompt finished in" "the wait is reported as finished, not abandoned"
+  assert_contains "$out" "exit 124" "with the timeout's own status, distinct from a child's failure"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child the deadline ended"
+  assert_contains "$(cat "$report")" "LOOP-DEADLINE: the run's deadline passed at an earlier moment" \
+    "the transcript names the clock that ended the child"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded" \
+    "and still carries the machine-readable line the run reads as its own timeout"
+  assert_not_contains "$(cat "$report")" "3600 s" "the cap is not the bound that ended it"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" \
+    "an item whose child was ended is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "exceeded" \
+    "and the reason on the item names the bound that ended it"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$state")" "deadline passed at" \
+    "the run records the deadline as its stop reason"
 }
 
 # The cap ends the child's *process group*, and a descendant that gave itself its own session is not a member of

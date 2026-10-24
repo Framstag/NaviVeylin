@@ -175,7 +175,12 @@ MUTATIONS=(
   '22.1@-@tools/loop/prescreen.sh@prescreen#harnessItemsLeadTheQueue@the category lead ranking a leading defect ahead of every other item@s#^  | ($lead + $tail) as $order$#  | (($lead + $tail) | sort_by([class_rank($worked), .issue])) as $order#'
   '20.3@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the reason it stopped on every exit path@s|^  loop_state stop "$1" >/dev/null 2>&1 .. true$|  : # the reason is printed and not recorded|'
   '20.4@-@tools/loop/run.sh@run#aZeroRoundBudgetIsRefused@the refusal of a review budget that never runs@s|^case "$max_review_rounds" in .*$|: # the mutation accepts a budget that never runs|'
-  '23.1@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( \$(date +%s) - started )) -ge "\$cap" \]; then$|    if false; then|'
+  '23.1@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( now - started )) -ge "\$cap" \]; then$|    if false; then|'
+  # 23.2 is issue #227's bound: the run's own deadline ends a child instead of the cap alone. The `stop_run` the
+  # same arm writes has no record of its own: on the ordinary path `next` overwrites it with the deadline it names
+  # anyway, so a mutation of that line goes unnoticed — its value is the run killed between the child and `next`,
+  # which no case reaches deterministically.
+  '23.2@-@tools/loop/run.sh@run#childIsEndedAtTheRunsDeadline@the deadline that ends a child outliving the run@s|^    if \[ "\$deadline_epoch" -gt 0 \] \&\& \[ "\$now" -ge "\$deadline_epoch" \]; then$|    if false; then|'
   '24.1@-@tools/loop/run.sh@run#hostBelowTheFloorBlocksTheItemAndStops@the host read that records a starved item instead of starting it (issue #209)@s|^  if \[ -n "\$free_mib" \] && \[ "\$free_mib" -lt "\$min_free_mib" \]; then$|  if false; then|'
   # The adapter sits beside the engine (`tools/pi-child-events.sh`, named by `LOOP_AGENT_CMD`), so its record
   # reaches it through `../` and resolves against the engine directory like every other file here. One string

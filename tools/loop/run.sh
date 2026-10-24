@@ -773,7 +773,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase stop hb started interval cap child timed_out=0 sweep
+  local before after rc phase stop hb started interval cap child timed_out=0 sweep status_file ended_by deadline_epoch now
   before=$(project_state)
   phase=$(basename "$1" .md)
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
@@ -787,6 +787,11 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   rm -f "$stop"
   : > "$2"
   rm -f "$2.outside-write"
+  # The record the wait ends on is cleared **before** the child can write it (issue #227): cleared after the
+  # launch, a child that finished inside the gap between the fork and the `rm` had its own completion record
+  # deleted, and the run then waited the whole cap for a child that had already finished.
+  status_file="$2.status"
+  rm -f "$status_file"
   started=$(date +%s)
   printf 'loop: %s started (log %s)\n' "$phase" "$2"
   # `set -m` on the one command that starts the child, immediately undone: a background job of a shell with job
@@ -828,10 +833,25 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # 2026-10-20/21 (issue #227): fourteen runs sat inside this poll with only a `sleep` child, printing a heartbeat
   # every 30 s for up to 4 h 52 min — 606 lines, `log 0 B`, and not one `LOOP-TIMEOUT` line, although the cap was
   # 2700 s. The subshell writes its own status when it returns, which is the one event the run can wait for.
-  local status_file="$2.status"
-  rm -f "$status_file"
   while [ ! -e "$status_file" ]; do
-    if [ $(( $(date +%s) - started )) -ge "$cap" ]; then
+    now=$(date +%s)
+    # The run's own deadline bounds this wait too (issue #227). The deadline was consulted between items, so a
+    # child was the one clock the run could not enforce: measured 2026-10-20, eleven of fifteen stuck runs were
+    # past their own `--minutes 90` and the longest heartbeat read 291m30s, with no `LOOP-TIMEOUT` line and no
+    # stop reason — the budget was spent invisibly. The bound is read from the run's own state, which is the
+    # record `report.sh` and `state.sh next` read, so the gate and the report cannot disagree about the clock.
+    deadline_epoch=$(jq -r '.run.deadlineEpoch // 0' "$LOOP_STATE_FILE" 2>/dev/null)
+    case "$deadline_epoch" in ''|*[!0-9]*) deadline_epoch=0 ;; esac
+    if [ "$deadline_epoch" -gt 0 ] && [ "$now" -ge "$deadline_epoch" ]; then
+      ended_by=deadline
+      timed_out=1
+      kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+      sleep 1
+      kill -KILL -"$child" 2>/dev/null || true
+      break
+    fi
+    if [ $(( now - started )) -ge "$cap" ]; then
+      ended_by=cap
       timed_out=1
       kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
       sleep 1
@@ -848,7 +868,20 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   if kill -0 "$child" 2>/dev/null; then loop_end_pid "$child"; fi
   active_child=""
   if [ "$timed_out" -eq 1 ]; then
-    printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
+    if [ "$ended_by" = deadline ]; then
+      # The clock that ended this child is the run's budget, and the transcript says which one: "exceeded 58 s"
+      # alone would name a cap that had 3 600 s to run, and the next run must read the deadline as the stop
+      # instead of "the state being replaced never recorded a stop reason" (issue #227). The `LOOP-TIMEOUT` line
+      # stays, because it is the one machine-readable line the run reads as its own timeout.
+      deadline_at=$(jq -r '.run.deadlineAt // "an unrecorded time"' "$LOOP_STATE_FILE" 2>/dev/null)
+      printf 'LOOP-TIMEOUT: the child exceeded %s s — the run%ss deadline at %s ended it and everything it started\n' \
+        "$(( $(date +%s) - started ))" "'" "$deadline_at" >> "$2"
+      printf 'LOOP-DEADLINE: the run%ss deadline passed at %s — the child running then was ended after %s s\n' \
+        "'" "$deadline_at" "$(( $(date +%s) - started ))" >> "$2"
+      stop_run "deadline passed at $deadline_at — the child running when it passed was ended"
+    else
+      printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
+    fi
     # …and "everything it started" is more than the group: a descendant that gave itself its own session
     # (`setsid`) is a member of no group the signals above reach, so it kept mutating and restoring the
     # worktree for seven minutes after a run had recorded the child as ended, its last restore leaving that
@@ -1340,7 +1373,7 @@ while true; do
         progress note "$outside_write_note"
       fi
       # The rule the item's own commit follows is the same one here (issue #271): the run commits a child's tree
-      # only once that child has finished by its own exit. A round-2 worker the cap ended is unfinished exactly as
+      # only once that child has finished by its own exit. A round-2 worker the cap or the deadline ended is unfinished
       # the item's worker was — the tree is whatever it was doing, and a reviewer's refusal is not a licence to
       # assert work nobody claimed — so this commit is skipped too, the item is blocked with the round's own
       # transcript, and the tree stays as the child left it. Measured 2026-10-23 (the round-1 review of #271): the
@@ -1350,7 +1383,7 @@ while true; do
       if [ "$round2_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$round2_timeout" ]; then
         review_verdict="round2-ended"
         outcome="blocked"
-        blocked_reason="the cap ended the rework worker of the refusing round, so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
+        blocked_reason="the run ended the rework worker of the refusing round (its wall-clock or the run's own deadline), so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
         break
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true

@@ -63,3 +63,16 @@ line is read from the stream, not at a fixed instant*.
 - [x] 4.3 `bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/fix-loop-prescreen-case-reads-the-stream --root .` — every pointer resolves.
       Verify: `evidence/structural-checks.log`.
 - [x] 4.4 Archive the change and confirm the scenario merged into `openspec/specs/agent-issue-loop/spec.md`.
+      Verify: the archived change is `openspec/changes/archive/2026-10-24-fix-loop-prescreen-case-reads-the-stream`,
+      and the scenario is in the shipped requirement at `openspec/specs/agent-issue-loop/spec.md:1238`.
+- [x] 4.5 The archived delta's own gate, and the one red between the two green runs attributed: the re-run on a
+      host carrying load average 50 and five other loop suites reported one red among the 208 cases, that red being
+      `gate#theChildReadsTheProfileOfTheTreeItWorksIn`, a case this delta does not touch; it is green alone twice,
+      and the gate is green once the host quietens.
+      Verify: `evidence/gate-archived.log`, `evidence/flake-alone.log`, `evidence/gate-archived-2.log`,
+      `evidence/evidence.md` ("The gate, twice, and the one flake between them").
+- [x] 4.6 Rebasing the change onto the landed base, after `fix/issue-288-…` and `fix/issue-295-…` reached `main`: its
+      two commits replayed onto `07a24aec` with no content change, and the gate re-run there — 213 cases with the
+      landed work — green.
+      Verify: `evidence/gate-on-main.log` (`LOOP-GATE: tests=213 failures=0 errors=0`), and "The rebase onto the
+      landed base" in `evidence/evidence.md`.

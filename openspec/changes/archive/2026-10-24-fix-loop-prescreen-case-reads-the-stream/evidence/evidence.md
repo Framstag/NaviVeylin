@@ -16,7 +16,32 @@ item was filed from. No token, no network, no device, no Gradle suite (nothing c
 | `replay-probe.log` | a hand probe of the *other* broken shape: `run.sh` captures the pre-screen's whole output and prints it after the call returns (`LOOP_ENGINE=<probe>/tools/loop`) — the case goes red with `the text is streamed, not replayed` |
 | `structural-checks.log` | the checks that stand in for a build for a delta that compiles nothing: `bash -n tools/loop-cases.sh`, `openspec validate … --strict`, `openspec doctor`, `tools/check-doc-routes.sh`, `evidence-check.sh` |
 | `gate.log` | the delta's gate: `bash tools/loop/gate.sh --base c4c727fb` |
+| `gate-archived.log` | the same gate over the *archived* delta, on a host carrying load average 50 and five other loop suites: one red among the 208 cases — `gate#theChildReadsTheProfileOfTheTreeItWorksIn`, a case this delta does not touch, with an empty capture |
+| `flake-alone.log` | that case alone, twice, after that run: `PASS` both times — the red is the suite's own load, the class issue #295 owns |
+| `gate-archived-2.log` | the same gate again once the host quietened (load 5.7): `LOOP-GATE: tests=208 failures=0 errors=0` (1179 s) plus the classification and doc-route suites the archived paths add |
+| `gate-on-main.log` | the gate on the base this change lands on, after the change was rebased onto main's tip (`07a24aec`, which carries #288's and #295's landed work) and the suite set had grown with them: `LOOP-GATE: tests=213 failures=0 errors=0` (978 s) |
 | `review.md` | the independent read-only review of the diff against the delta's scenarios |
+
+## The gate, twice, and the one flake between them
+
+`gate.log` (the delta before the archive) and `gate-archived-2.log` (the archived delta) are both
+`LOOP-GATE: tests=208 failures=0 errors=0` over the whole declared set. Between them, `gate-archived.log` ran the
+same set while the host carried load average 50 and five separate loop suites — the condition issue #295 owns —
+and reported exactly one red among its 208 cases, `gate#theChildReadsTheProfileOfTheTreeItWorksIn`, with an empty
+capture. (That run's own tally is superseded by the green re-run's; its log carries the red.) That case
+is not one this delta touches (`tools/loop-cases.sh:case_gate_theChildReadsTheProfileOfTheTreeItWorksIn` reads a
+child's own log after the run, with no fixed instant in it), and it is green alone twice (`flake-alone.log`,
+taken immediately after that run). The green re-run was taken once the host quietened, and one more gate ran on the
+base the change lands on.
+
+## The rebase onto the landed base
+
+While this change was being verified, `fix/issue-288-…` and `fix/issue-295-…` landed on `main` (tips `810be73d`
+and `07a24aec`). The change's two commits were rebased onto `07a24aec` — its own content is unchanged
+(`tools/loop-cases.sh` and the archived change are byte-identical to what `gate-archived-2.log` measured) — and
+gated there: `gate-on-main.log`, `LOOP-GATE: tests=213 failures=0 errors=0`, the set having grown to 213 cases with
+the landed work. The readings taken on `c4c727fb` are kept as they were taken: `c4c727fb` was that branch's tip
+when they were.
 
 ## What is not asserted
 

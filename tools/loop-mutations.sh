@@ -220,7 +220,7 @@ MUTATIONS=(
   # worker and the item is blocked and escalated although every scenario in the report passed (issue #224).
   '31.1@-@tools/loop/run.sh@run#aCutReportIsRetriedInsteadOfRefused@the retry of a report that arrived cut on its way to the file (issue #224)@s|^      if \[ -z "\$(report_field "\$reviewer_report" LOOP-TIMEOUT)" \] &&$|      if false \&\&|'
   # 32.1 — a base that moved under the run stops it with a reason; the silent exit is what the case catches.
-  '32.1@-@tools/loop/run.sh@run#staleBaseStopsTheRunWithItsReason@the stop that records why a stale base ended the run@s|^      \*"base moved"\*) stop_run "the base moved: main advanced|      *"base moved"*) : "the base moved: main advanced|'
+  '32.1@-@tools/loop/run.sh@run#staleBaseStopsTheRunWithItsReason@the stop that records why a stale base ended the run@s|^      \*"base moved"\*) stop_run "|      *"base moved"*) : "|'
   # 33.x — a branch is decided by what it *carries* (issue #232). 33.1 is the credit: without it an archived
   # change another item's commit added is the branch's own, which is how #230's refusal came to name an
   # unrelated change. 33.2 is the verdict: a blocked attempt is work, not a question nobody asked.
@@ -422,6 +422,16 @@ MUTATIONS=(
   '55.2@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the pattern a suite is, told from the one named case that is not (issue #295)@s|^  \[ -n "\$only_case" \] && ! is_glob "\$only_case" \|\| return 1$|  [ -n "$only_case" ] \|\| return 1|'
   '55.3@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the release that leaves the repository free for the suite after it (issue #295)@s|^  \[ -z "\$selftest_lock" \] \|\| rm -rf "\$selftest_lock"$|  : # the mutation never releases the lock|'
   '55.4@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the lease that lets a suite whose owner is gone take the lock over (issue #295)@s|^    if \[ "\$holder_pid" -gt 0 \] && kill -0 "\$holder_pid" 2>/dev/null; then$|    if true; then|'
+  # 56.1 — the base a run records is the base *branch*'s commit, never the commit the project tree happens to have
+  # checked out (issue #301). Measured 2026-10-24: the run was opened on `fix/issue-44-phone-diagnostic-locale`, so
+  # `init` recorded that branch's `a0ca0f35` while `main` was `a0a15fe0`, 12 commits ahead since before the run
+  # opened; the first `start-item` refused it as a stale base and the run ended with 0 items and 0 steps, the whole
+  # pre-screen (3 min) being its only work. The mutation puts the `HEAD` read back in the place of the base branch.
+  '56.1@-@tools/loop/state.sh@state#recordsTheBaseBranchNotTheCheckout@the base recorded from the base branch instead of the commit the checkout has@s|--verify --quiet "\$(loop_base_ref)"|HEAD|'
+  # 56.2 — the run refuses a project tree that is not checked out on the base branch, because the landing step
+  # merges into that tree (issue #301's review). Without the guard the measured state reaches the merge: the item
+  # is blocked after its budget, or — on a fast-forwardable checkout — closed with its work never on the base.
+  '56.2@-@tools/loop/run.sh@run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen@the refusal of a run whose project tree is not on the base branch@s|^if \[ "\$checkout_ref" != "\$(loop_base_ref)" \]; then$|if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -1,0 +1,11 @@
+== tools/loop-mutations.sh --only '56.1 56.2 32.1'
+loop-mutations: selected 3 of 142 records (labels: 56.1 56.2 32.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.BD0tls
+RED    32.1  run#staleBaseStopsTheRunWithItsReason   (the stop that records why a stale base ended the run)
+restore 32.1 run#staleBaseStopsTheRunWithItsReason green again
+RED    56.1  state#recordsTheBaseBranchNotTheCheckout   (the base recorded from the base branch instead of the commit the checkout has)
+restore 56.1 state#recordsTheBaseBranchNotTheCheckout green again
+RED    56.2  run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen   (the refusal of a run whose project tree is not on the base branch)
+restore 56.2 run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

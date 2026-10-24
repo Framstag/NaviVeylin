@@ -195,6 +195,13 @@ loop_conf_value() { # print one configuration key's value by name
   eval "printf '%s' \"\${$key:-}\""
 }
 
+# The branch every item descends from: the run's base is *this* branch's commit, never the commit the project
+# tree happens to have checked out (issue #301 — `state.sh init` read `HEAD`, so a run opened on a feature branch
+# recorded that branch's commit and refused its own first item as a stale base). One definition, because the
+# same name is read by `state.sh` (what a run records), `worktree.sh` (`check_base`), `run.sh` (what a merge
+# advances) and `loop-clean.sh` (what a sweep compares against): a second copy of the rule is a second rule.
+loop_base_ref() { printf '%s\n' "${LOOP_BASE_REF:-main}"; }
+
 # ── the build output a kept worktree does not need ────────────────────────────────────────────────
 # A worktree that has been built carries a full module build tree, which the next run's build regenerates
 # and no item ever reads: measured 2026-10-20 (issue #210), the kept worktree was 3.2 GB, of which one

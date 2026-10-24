@@ -39,6 +39,7 @@ LOOP_SHELL_CASES=(
   'state#aDeadOwnersLockIsTakenOver'
   'state#initKeepsTheStateItReplaces'
   'state#initAnnouncesARunWithoutAStop'
+  'state#recordsTheBaseBranchNotTheCheckout'
   'state#defaultsComeFromLoopConf'
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
@@ -102,6 +103,7 @@ LOOP_SHELL_CASES=(
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
   'run#preflightRefusalStopsBeforeAnyWork'
+  'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen'
   'run#blockedItemAsksItsOwnQuestion'
   'run#falsifiedSkipClosesWithItsMeasurement'
   'run#falsificationWithoutAMeasurementIsEscalated'
@@ -299,6 +301,7 @@ loop_run_shell_case() {
     'state#aDeadOwnersLockIsTakenOver') fn=case_state_aDeadOwnersLockIsTakenOver ;;
     'state#initKeepsTheStateItReplaces') fn=case_state_initKeepsTheStateItReplaces ;;
     'state#initAnnouncesARunWithoutAStop') fn=case_state_initAnnouncesARunWithoutAStop ;;
+    'state#recordsTheBaseBranchNotTheCheckout') fn=case_state_recordsTheBaseBranchNotTheCheckout ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
@@ -363,6 +366,7 @@ loop_run_shell_case() {
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
+    'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen') fn=case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen ;;
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
     'run#falsifiedSkipClosesWithItsMeasurement') fn=case_run_falsifiedSkipClosesWithItsMeasurement ;;
     'run#falsificationWithoutAMeasurementIsEscalated') fn=case_run_falsificationWithoutAMeasurementIsEscalated ;;
@@ -1007,6 +1011,38 @@ case_state_initAnnouncesARunWithoutAStop() {
   run_state "$p" stop "queue empty" >/dev/null || fail "stop failed"
   out=$(run_state "$p" init --items 2 --minutes 30 2>&1 >/dev/null)
   assert_not_contains "$out" "never recorded a stop reason" "a finished run is replaced without a warning"
+}
+
+# The base a run records is the base *branch*'s commit, not the commit the project tree happens to have checked
+# out. A machine somebody works on is on a feature branch, so recording `HEAD` made the run refuse its own first
+# item as a stale base — after the whole pre-screen had been paid for (issue #301, measured 2026-10-24: a run on
+# `fix/issue-44-…` recorded `a0ca0f35` while `main` was `a0a15fe0`, 12 commits ahead since before the run opened;
+# 0 items and 0 steps in 3 minutes of an 8 h budget, with the stop reason claiming `main` had advanced while the
+# run was open). Every other reader of the base names the base branch — `run.sh` after a merge, `loop-clean.sh`,
+# and `worktree.sh`'s `check_base` that refuses a stale one — so `init` was the only place that read `HEAD`.
+case_state_recordsTheBaseBranchNotTheCheckout() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p base tip branch out status
+  p=$(new_project)
+  git -C "$p" commit --allow-empty -qm "a change landed on main" >/dev/null 2>&1 ||
+    fail "could not commit on main"
+  tip=$(git -C "$p" rev-parse main)
+  branch="fix/issue-44-a-feature-branch"
+  git -C "$p" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the feature branch"
+  git -C "$p" commit --allow-empty -qm "work in progress on the feature branch" >/dev/null 2>&1 ||
+    fail "could not commit on the feature branch"
+  [ "$(git -C "$p" rev-parse HEAD)" != "$tip" ] || fail "the feature branch is not ahead of the base branch"
+
+  init_state "$p" 1 90
+  base=$(run_state "$p" get run.base)
+  assert_eq "$tip" "$base" "the base is the base branch's commit, not the checkout's"
+
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  out=$(run_worktree "$p" start-item 21 demo 2>&1); status=$?
+  assert_eq "0" "$status" "a checkout on another branch does not refuse the first item: $out"
+  assert_not_contains "$out" "base moved" "the run is not refused as a stale base"
+  assert_eq "$tip" "$(git -C "$p/.pi/worktrees/loop" rev-parse HEAD)" \
+    "the item's tree is cut from the base branch's commit"
 }
 
 case_state_defaultsComeFromLoopConf() {
@@ -2612,6 +2648,33 @@ case_run_preflightRefusalStopsBeforeAnyWork() {
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created before the identity was checked"
   assert_eq "" "$(cat "$GH_STUB_RECORD" 2>/dev/null || true)" "no label was written"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+}
+
+# A run whose project tree is not checked out on the base branch cannot land anything: the landing step merges
+# into that tree (`worktree.sh` merge-item, and adopt-item from the pre-screen), and nothing there verifies it. The
+# run is refused before the pre-screen is paid for, and the reason and the remedy are on the record — the two
+# alternatives were measured: refusing at the merge spends an item's whole budget, and a checkout that merely
+# fast-forwards to the item's branch closes the item with its fix never on the base (issue #301's review,
+# 2026-10-24).
+case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen() {
+  # files: tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status f reason
+  d=$(scratch); p=$(new_project)
+  git -C "$p" switch -c fix/issue-44-a-feature-branch >/dev/null 2>&1 ||
+    fail "could not create the feature branch"
+  stub_success "$d"
+
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  f=$(state_file "$p")
+  assert_eq "5" "$status" "a run whose checkout is not the base branch is refused"
+  assert_contains "$out" "fix/issue-44-a-feature-branch" "the refusal names the branch the tree is on"
+  assert_contains "$out" "git -C $p switch main" "and the remedy, as a command"
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  assert_contains "$reason" "not the base branch main" "the reason is recorded, so the report can say why"
+  assert_eq "0" "$(jq -r '.queue | length' "$f")" "the pre-screen was not paid for"
+  assert_eq "0" "$(jq -r '.items | length' "$f")" "and no item was started"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+  return 0
 }
 
 case_run_decisionCapRefusesToStart() {
@@ -5426,8 +5489,8 @@ case_run_stopReasonIsPrintedAndReported() {
 # then the report reads "ended without recording a reason" while its counters belong to a run nobody can name
 # (#184). Measured 2026-10-20 on a live run whose base advanced while it worked.
 case_run_staleBaseStopsTheRunWithItsReason() {
-  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p out f
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out f base tip reason
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' 'git -C "$LOOP_CHILD_ROOT" commit -q --allow-empty -m "advance main"'
@@ -5435,8 +5498,17 @@ case_run_staleBaseStopsTheRunWithItsReason() {
   f=$(state_file "$p")
   assert_contains "$out" "base moved" "the refusal is printed"
   assert_eq "1" "$(jq -r '.items | length' "$f")" "the item that was in flight is recorded"
-  assert_contains "$(jq -r '.run.stop.reason // ""' "$f")" "the base moved" \
-    "and the reason is recorded, so the report can name why the run ended"
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  assert_contains "$reason" "the base moved" "and the reason is recorded, so the report can name why the run ended"
+  # What the run knows, it names, and what it does not know, it does not assert: both commits are on the record
+  # (`check_base` printed both), and the reason adds no claim about *when* the base moved — a run opened from a
+  # feature branch was told `main` had advanced "while this run was open" although it had advanced before the
+  # run began (issue #301).
+  base=$(run_state "$p" get run.base)
+  tip=$(git -C "$p" rev-parse main)
+  assert_contains "$reason" "${base:0:12}" "the recorded reason names the base the run recorded"
+  assert_contains "$reason" "${tip:0:12}" "and the commit the base branch stands at"
+  assert_not_contains "$reason" "while this run was open" "it asserts nothing about when the base moved"
   return 0
 }
 

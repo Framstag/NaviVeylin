@@ -175,9 +175,9 @@ done
 # not an ancestor of the base and ancestry named a leftover as work for ever (issue #228). A branch a
 # worktree holds is a tree in use: git refuses to delete it, and the loop's own worktree is on one.
 say "loop-clean: branches of the loop whose patches are in the base"
-base_commit=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${LOOP_BASE_REF:-main}" 2>/dev/null || true)
+base_commit=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$(loop_base_ref)" 2>/dev/null || true)
 if [ -z "$base_commit" ]; then
-  say "  kept every branch — the base ${LOOP_BASE_REF:-main} cannot be read"
+  say "  kept every branch — the base $(loop_base_ref) cannot be read"
   kept=$((kept + 1))
 else
   held=$(loop_worktree_branches "$LOOP_ROOT" | tr '\n' ' ')

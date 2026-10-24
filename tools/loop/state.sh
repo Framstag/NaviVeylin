@@ -24,6 +24,8 @@
 # Usage:
 #   state.sh init --items N --minutes M [--review on|off] [--may-close yes|no]
 #                 [--max-decisions N] [--max-review-rounds N] [--base <sha>]
+#     `--base` defaults to the base branch's commit (`LOOP_BASE_REF`, `main` when unset), never the project
+#     tree's checked-out commit.
 #   state.sh show
 #   state.sh get <jq-path>              # e.g. `get run.base`
 #   state.sh set-base <commit>          # a finished attempt merged onto the base advances it
@@ -176,7 +178,19 @@ cmd_init() {
   case "$max_review_rounds" in ''|*[!0-9]*|0) loop_die "init: --max-review-rounds must be a positive integer" ;; esac
   case "$review" in on|off) ;; *) loop_die "init: --review must be on or off" ;; esac
   case "$may_close" in yes|no) ;; *) loop_die "init: --may-close must be yes or no" ;; esac
-  [ -n "$base" ] || base=$(git -C "$LOOP_ROOT" rev-parse HEAD 2>/dev/null) || loop_die "init: cannot read the current commit"
+  # The base every item descends from is the base *branch*'s commit, not whatever the project tree has checked
+  # out (issue #301): a machine somebody works on is on a feature branch, so reading `HEAD` here made the run
+  # record that branch's commit and refuse its own first item as a stale base — after the whole pre-screen had
+  # been paid for. Every other reader names the base branch (`loop_base_ref`); the checkout is not one of them.
+  # A base branch that does not resolve is named instead of silently replaced: the fallback is the pre-fix value,
+  # and every later reader turns a missing ref into "nothing to compare" (`check_base` notes it and proceeds).
+  if [ -z "$base" ]; then
+    if ! base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$(loop_base_ref)"); then
+      loop_note "init: the base branch '$(loop_base_ref)' does not resolve — the base is the checked-out commit; name this project's base branch in LOOP_BASE_REF"
+      base=$(git -C "$LOOP_ROOT" rev-parse HEAD 2>/dev/null) ||
+        loop_die "init: cannot read the base commit"
+    fi
+  fi
 
   # The process that writes this state is named in it, so a reader can tell a run that is going from one
   # that was killed: a run that recorded no stop and whose process is not running any more is the second,

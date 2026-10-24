@@ -110,7 +110,7 @@ $dirty"
 # The base the run recorded is the commit every item descends from. If the branch the run started on
 # has moved, the next item would be built on a tree nobody reviewed, so it is refused with both
 # commits named (D4).
-base_ref() { printf '%s\n' "${LOOP_BASE_REF:-main}"; }
+base_ref() { loop_base_ref; }
 
 check_base() {
   local base ref current

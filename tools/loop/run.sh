@@ -205,7 +205,7 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
   printf '%s\n' "$out"
   # The merge moved the base branch itself, so the base the run recorded is the commit every later item must
   # descend from — without this the next `start-item` would refuse the run's own merge as a stale base.
-  base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${LOOP_BASE_REF:-main}") || base=""
+  base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$(loop_base_ref)") || base=""
   [ -z "$base" ] || loop_state set-base "$base" >/dev/null 2>&1 || true
   merged_branch=$(printf '%s\n' "$out" | sed -n 's/^adopted: branch \([^ ]*\) .*/\1/p')
   merged_commits=$(printf '%s\n' "$out" | sed -n 's/.* · commits \([^ ·]*\) ·.*/\1/p')
@@ -254,12 +254,12 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
   printf '%s\n' "$out"
   # The merge moved the base branch itself, so the base the run recorded is the commit every later item must
   # descend from — without this the next `start-item` would refuse the run's own merge as a stale base.
-  base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${LOOP_BASE_REF:-main}") || base=""
+  base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$(loop_base_ref)") || base=""
   # A base the tree moved to but the state does not carry is not a warning to swallow: the run hands the next item
   # a commit the tree has left, which is the same defect one step further on. The merge is refused instead, so the
   # item blocks with its branch named rather than closing on a base nobody can reproduce (issue #252).
   if [ -z "$base" ] || ! loop_state set-base "$base" >/dev/null 2>&1; then
-    merge_refusal="the base could not be recorded after the merge — ${LOOP_BASE_REF:-main} did not resolve, or the run's state refused it, so the state and the tree would disagree about what every later item descends from"
+    merge_refusal="the base could not be recorded after the merge — $(loop_base_ref) did not resolve, or the run's state refused it, so the state and the tree would disagree about what every later item descends from"
     printf '%s\n' "$merge_refusal" >&2
     return "$LOOP_REFUSE"
   fi
@@ -370,7 +370,34 @@ init_args+=(--owner-pid "$$")
 loop_state init "${init_args[@]}" || exit $?
 base=$(loop_state get run.base)
 
-# 4. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
+# Why a run ended is the run's own number, not a line on a console that scrolls away: every path that leaves
+# the run records its reason, so `report.sh` prints the end the state file holds (#184). Defined before the first
+# refusal that ends a run *before* it works an item — the checkout guard below — because a function is a command
+# only once its definition has executed.
+stop_run() { # <reason> — printed and recorded, then the caller breaks or exits
+  printf 'stop: %s\n' "$1"
+  loop_state stop "$1" >/dev/null 2>&1 || true
+}
+
+# 4. the checkout. The landing step merges into the project's **own tree**, where the base branch is checked out:
+#    `worktree.sh`'s `merge-item` and `adopt-item` both `git merge` there and neither verifies it, and `adopt-item`
+#    runs from the pre-screen, before the run's worktree exists. So a tree on any other branch — or on a detached
+#    HEAD — cannot land what the run spends items on, and the run is stopped here: before the pre-screen, before
+#    any adoption, before every item. The alternative is what was measured on the state #301 was filed on — a
+#    refusal at the merge, after an item's whole budget — or, when the checkout merely fast-forwards to the item's
+#    branch, a closure claiming a fix that never reached the base (issue #301's review, 2026-10-24).
+checkout_ref=$(git -C "$LOOP_ROOT" symbolic-ref --quiet --short HEAD 2>/dev/null) || checkout_ref=""
+if [ "$checkout_ref" != "$(loop_base_ref)" ]; then
+  printf 'refusing to start: the project tree is on %s, and the landing step merges into it\n' \
+    "${checkout_ref:-a detached HEAD}"
+  printf 'the base branch is %s — switch this tree to it and run again:\n' "$(loop_base_ref)"
+  printf '  git -C %s switch %s\n' "$LOOP_ROOT" "$(loop_base_ref)"
+  stop_run "the project tree is checked out on ${checkout_ref:-a detached HEAD}, not the base branch $(loop_base_ref) — the landing step merges into this tree, so switch to it and re-run"
+  bash "$LOOP_DIR/report.sh"
+  exit "$LOOP_REFUSE"
+fi
+
+# 5. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
 #    previous run's leftovers is the right rule — but the refusal may not end a run with an exit code and no
 #    item: it names the item whose branch the kept tree carries, records the refusal under that item,
 #    escalates it and prints the report, so the "a run that ends with nothing processed and no reason"
@@ -429,7 +456,7 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
   fi
 fi
 
-# 5. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
+# 6. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 open_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
   jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
 if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
@@ -441,7 +468,7 @@ if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   exit "$LOOP_REFUSE"
 fi
 
-# 6. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
+# 7. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
 if [ "$items" -eq 0 ]; then
   printf 'nothing eligible: the run was started with --items 0 (an empty budget is not a failure)\n'
   end_run
@@ -985,13 +1012,6 @@ render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-
     "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
 }
 
-# Why a run ended is the run's own number, not a line on a console that scrolls away: every path that leaves
-# the item loop records its reason, so `report.sh` prints the end the state file holds (#184).
-stop_run() { # <reason> — printed and recorded, then the caller breaks or exits
-  printf 'stop: %s\n' "$1"
-  loop_state stop "$1" >/dev/null 2>&1 || true
-}
-
 # ── the item loop ───────────────────────────────────────────────────────────────────────────────
 
 queue_passes=1
@@ -1042,10 +1062,13 @@ while true; do
   if ! start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" 2>&1); then
     printf '%s\n' "$start_out"
     case "$start_out" in
-      # The base moved: main is not what this run recorded, so nothing may be branched off it. That is a stop
-      # with a reason, not a silent exit — a run that ends without recording why makes its own report read
-      # "ended without recording a reason" and its numbers unattributable (#184, measured 2026-10-20).
-      *"base moved"*) stop_run "the base moved: main advanced while this run was open — $(printf '%s' "$start_out" | head -1)"; break ;;
+      # The base moved: the base branch is not what this run recorded, so nothing may be branched off it. That is a
+      # stop with a reason, not a silent exit — a run that ends without recording why makes its own report read
+      # "ended without recording a reason" and its numbers unattributable (#184, measured 2026-10-20). The reason
+      # repeats what `check_base` observed — both commits — and adds nothing it cannot know: it used to claim the
+      # base had "advanced while this run was open", which was false for a run opened from a feature branch whose
+      # `init` had recorded that branch's commit instead of the base branch's (issue #301).
+      *"base moved"*) stop_run "the base moved: $(printf '%s' "$start_out" | head -1 | sed 's/^base moved: //')"; break ;;
       *"carries commits the base does not"*)
         # A previous attempt left a *finished* change on the item's branch — `start-item` has already set a
         # blocked attempt aside, so what reaches here carries one. What it carries decides: a finished change

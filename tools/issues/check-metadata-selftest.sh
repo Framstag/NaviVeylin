@@ -40,6 +40,8 @@ CASES=(
   'check#neverWritesEligibility'
   'check#incompleteMarkerFails'
   'check#labelWithoutMarkerFails'
+  'check#aQuotationIsNotAMarker'
+  'check#aMarkerLineBesideAQuotationIsTheRecord'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
 )
@@ -140,6 +142,35 @@ case_labelWithoutMarkerFails() {
   expect "the marker written beside it exits 0" "0" "$CHECK_STATUS"
 }
 
+# Item #292 was refused with three violations naming itself because its body *quoted* the marker grammar — an
+# inline code span and a fenced excerpt — to describe the violation it reported, and the reader took the first
+# span anywhere in the body as the item's own marker (issue #293). The two cases below are the pair that fixes
+# the shape: a quotation is prose, and the marker's own line is still the record beside one.
+case_aQuotationIsNotAMarker() {
+  run_check --issues "$fixtures/quoted-grammar.json"
+  expect "a body that only quotes the grammar exits non-zero" "1" "$CHECK_STATUS"
+  expect_contains "and the missing record is what is reported" "label-without-marker" "$CHECK_OUT"
+  expect_contains "naming the item" "#31" "$CHECK_OUT"
+  # the quoted band says p3 and the label says p2: on HEAD that disagreement was reported as the item's own
+  expect_not_contains "the quotation is not matched against the label" "band-mismatch" "$CHECK_OUT"
+  expect_not_contains "and the quotation is not read as an incomplete record" "marker-incomplete" "$CHECK_OUT"
+}
+
+case_aMarkerLineBesideAQuotationIsTheRecord() {
+  local body read_band
+  jq --arg marker '<!-- prio: band=p2 score=9 sev=4 reach=2 conf=1 occ=1 basis=0123456789abcdef at=2026-10-17 -->' \
+    '.[0].body += "\n\n" + $marker' "$fixtures/quoted-grammar.json" > "$tmp/marker-beside.json"
+  run_check --issues "$tmp/marker-beside.json"
+  expect "a marker line beside a quotation exits 0" "0" "$CHECK_STATUS"
+  expect_contains "and nothing is reported" "0 violation(s)" "$CHECK_OUT"
+
+  # the reader itself, not just the check's verdict: the record is the line the pass writes, not the band the
+  # quotation above it names
+  body=$(jq -r '.[0].body' "$tmp/marker-beside.json")
+  read_band=$( ( source "$root/tools/issues/lib.sh"; issues_prio_field "$(issues_prio_marker "$body")" band ) )
+  expect "the reader takes the marker's own line" "p2" "$read_band"
+}
+
 case_unrankedIsNotAViolation() {
   # An issue with no band and no marker is *unranked*, not broken: the check must not fire on the state the
   # whole backlog starts in, or the pass could never be run incrementally.
@@ -166,6 +197,8 @@ if [ -n "$only_case" ]; then
     'check#neverWritesEligibility') case_neverWritesEligibility ;;
     'check#incompleteMarkerFails') case_incompleteMarkerFails ;;
     'check#labelWithoutMarkerFails') case_labelWithoutMarkerFails ;;
+    'check#aQuotationIsNotAMarker') case_aQuotationIsNotAMarker ;;
+    'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
     *) echo "check-metadata-selftest: no such case: $only_case" >&2; exit 2 ;;
@@ -183,6 +216,8 @@ for name in "${CASES[@]}"; do
     'check#neverWritesEligibility') case_neverWritesEligibility ;;
     'check#incompleteMarkerFails') case_incompleteMarkerFails ;;
     'check#labelWithoutMarkerFails') case_labelWithoutMarkerFails ;;
+    'check#aQuotationIsNotAMarker') case_aQuotationIsNotAMarker ;;
+    'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
   esac

@@ -89,6 +89,7 @@ ISSUES_SHELL_CASES=(
   'prioritise#capsTheDueSet'
   'prioritise#secondRunScoresNothing'
   'prioritise#writesLabelAndMarkerTogether'
+  'prioritise#theWriteKeepsAQuotation'
   'prioritise#refusesATaxonomyOutsideValue'
   'prioritise#commentsOnlyOnABandTransition'
   'prioritise#occurrenceAbsenceIsOne'
@@ -109,6 +110,8 @@ ISSUES_SHELL_CASES=(
   'check#neverWritesEligibility'
   'check#incompleteMarkerFails'
   'check#labelWithoutMarkerFails'
+  'check#aQuotationIsNotAMarker'
+  'check#aMarkerLineBesideAQuotationIsTheRecord'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
 )
@@ -197,6 +200,7 @@ issues_run_shell_case() {
     'prioritise#capsTheDueSet') case_prioritise_capsTheDueSet ;;
     'prioritise#secondRunScoresNothing') case_prioritise_secondRunScoresNothing ;;
     'prioritise#writesLabelAndMarkerTogether') case_prioritise_writesLabelAndMarkerTogether ;;
+    'prioritise#theWriteKeepsAQuotation') case_prioritise_theWriteKeepsAQuotation ;;
     'prioritise#refusesATaxonomyOutsideValue') case_prioritise_refusesATaxonomyOutsideValue ;;
     'prioritise#commentsOnlyOnABandTransition') case_prioritise_commentsOnlyOnABandTransition ;;
     'prioritise#occurrenceAbsenceIsOne') case_prioritise_occurrenceAbsenceIsOne ;;
@@ -213,8 +217,9 @@ issues_run_shell_case() {
     'list#unrankedSelector') case_list_unrankedSelector ;;
     'list#eligibleOnlyIgnoresTheBand') case_list_eligibleOnlyIgnoresTheBand ;;
     'check#markerLabelMismatchFails'|'check#outOfRangeBandFails'|'check#neverWritesEligibility'|\
-      'check#incompleteMarkerFails'|'check#labelWithoutMarkerFails'|'check#unrankedIsNotAViolation'|\
-      'check#selfCheckIsGreen') case_check_delegated "$1" ;;
+      'check#incompleteMarkerFails'|'check#labelWithoutMarkerFails'|\
+      'check#aQuotationIsNotAMarker'|'check#aMarkerLineBesideAQuotationIsTheRecord'|\
+      'check#unrankedIsNotAViolation'|'check#selfCheckIsGreen') case_check_delegated "$1" ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -1888,6 +1893,39 @@ case_prioritise_writesLabelAndMarkerTogether() {
     fail "the composed body could not be read"
   assert_eq "1" "$(grep -cF "$marker" <<< "$composed" || true)" "the marker is in the body exactly once"
   assert_eq "1" "$(grep -c 'prio: band=' <<< "$composed" || true)" "and no second marker is"
+  return 0
+}
+
+# A body that quotes the grammar is not a body that carries a marker. The writer composed the new body by
+# replacing the first line that *contains* the opening delimiter, so re-scoring an item that documents the
+# grammar replaced the quotation with the marker and lost that prose — and left the fenced excerpt standing as a
+# second marker (issue #293). The composed body is what `update.sh` is handed, so both halves are asserted on it.
+case_prioritise_theWriteKeepsAQuotation() {
+  local dir composed quoted marker read_band
+  dir=$(scratch)
+  quoted='<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->'
+  jq -n --arg q "$quoted" '[{number: 1,
+    title: "a finding that quotes the grammar",
+    labels: [{name: "class/bug"}, {name: "category/ui"}, {name: "status/open"}],
+    body: ("the pass appends `" + $q + "` on the body'"'"'s last line:\n\n```\n" + $q + "\n```\n"),
+    author: {login: "Framstag"}}]' > "$dir/issues.json"
+  metadata_scores 1 > "$dir/scores.json"
+  export GH_STUB_DIR="$dir"
+
+  marker=$(bash "$ISSUES_ENGINE/prioritise.sh" --json --scores "$dir/scores.json" --profile "$(profile_path)" |
+    jq -r '.writes[0].marker') || fail "the run could not compose a marker"
+  [ -n "$marker" ] || fail "the run composed no marker for issue 1"
+  composed=$(bash "$ISSUES_ENGINE/prioritise.sh" --scores "$dir/scores.json" --body-of 1 --profile "$(profile_path)") ||
+    fail "the composed body could not be read"
+
+  assert_eq "1" "$(printf '%s\n' "$composed" | grep -cF "$marker" || true)" \
+    "the marker the pass wrote is in the body exactly once"
+  assert_eq "2" "$(printf '%s\n' "$composed" | grep -cF "$quoted" || true)" \
+    "and both quotations survive the write"
+  assert_eq "2" "$(printf '%s\n' "$composed" | grep -c '^```$' || true)" \
+    "the fence's two lines are left as they stand"
+  read_band=$( ( source "$ISSUES_ENGINE/lib.sh"; issues_prio_field "$(issues_prio_marker "$composed")" band ) )
+  assert_eq "p2" "$read_band" "and the record read back is the pass's own band, not the quoted one"
   return 0
 }
 

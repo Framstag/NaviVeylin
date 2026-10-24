@@ -345,9 +345,43 @@ ISSUES_PRIO_MARKER_OPEN="<!-- prio:"
 ISSUES_PRIO_MARKER_CLOSE="-->"
 ISSUES_PRIO_FIELDS="band score sev reach conf occ basis at"
 
-# issues_prio_marker <body>  → the marker line, or nothing
+# issues_prio_marker_line <body>  → the 1-based line number of the marker, or nothing
+#
+# The marker's *shape* has the same one home as its grammar, and a reader that searched the body for the
+# delimiters instead of for the line the pass writes let an item's prose decide whether it carries a marker
+# (issue #293: #292's own body quoted the grammar, and the check reported three violations against it). The
+# shape is: a line of its own, at column 0, closing at its end, and not inside a fenced code span — every other
+# occurrence is a quotation of the grammar, a guideline excerpt pasted into a body, or a comment copied in.
+#
+# The fence is not an extra exemption, it is the boundary of the same rule: a fenced line renders as code rather
+# than as a comment, so a body that shows the grammar in a fence is quoting it rather than recording one.
+# Leading indentation is therefore not trimmed (it changes the block the line belongs to), while trailing
+# whitespace is (it changes no rendering). An unterminated fence swallows what follows it, as a renderer does.
+issues_prio_marker_line() {
+  printf '%s\n' "${1:-}" | awk -v mo="$ISSUES_PRIO_MARKER_OPEN" -v mc="$ISSUES_PRIO_MARKER_CLOSE" '
+    function is_fence(line,   t) {
+      t = line
+      sub(/^[ \t]+/, "", t)
+      return t ~ /^(```|~~~)/
+    }
+    function is_marker(line,   t) {
+      t = line
+      sub(/\r$/, "", t)
+      sub(/[ \t]+$/, "", t)
+      return length(t) >= length(mo) + length(mc) && index(t, mo) == 1 &&
+             substr(t, length(t) - length(mc) + 1) == mc
+    }
+    { if (is_fence($0)) { infence = !infence; next }
+      if (infence) next
+      if (is_marker($0)) { print NR; exit } }'
+}
+
+# issues_prio_marker <body>  → the marker's line, or nothing
 issues_prio_marker() {
-  printf '%s' "${1:-}" | grep -o "${ISSUES_PRIO_MARKER_OPEN}[^>]*${ISSUES_PRIO_MARKER_CLOSE}" | head -1
+  local line
+  line=$(issues_prio_marker_line "${1:-}")
+  [ -n "$line" ] || return 0
+  printf '%s' "${1:-}" | sed -n "${line}p" | sed -e 's/[[:space:]]*$//'
 }
 
 # issues_prio_field <marker> <name>  → the field's value, or nothing
@@ -502,11 +536,17 @@ issues_ttl_bucket() { # <at-date> <today> <ttl-days>
   printf '%s\n' "$(((now - from) / ttl))"
 }
 
-# The claim's own digest: the body with the priority marker removed and every whitespace run collapsed, so
-# a reflow, a re-indent or a blank line does not read as a change of claim.
+# The claim's own digest: the body with the priority marker's line removed and every whitespace run collapsed,
+# so a reflow, a re-indent or a blank line does not read as a change of claim — while an edit to a *quotation* of
+# the grammar does, because a quotation is part of the claim (issue #293).
 issues_body_hash() { # <body> → the digest
-  printf '%s' "${1:-}" |
-    sed "s|${ISSUES_PRIO_MARKER_OPEN}[^>]*${ISSUES_PRIO_MARKER_CLOSE}||g" |
+  local line
+  line=$(issues_prio_marker_line "${1:-}")
+  if [ -n "$line" ]; then
+    printf '%s' "${1:-}" | awk -v n="$line" 'NR != n'
+  else
+    printf '%s' "${1:-}"
+  fi |
     tr -s '[:space:]' ' ' | sed -e 's/^ //' -e 's/ $//' | issues_sha256
 }
 
@@ -614,12 +654,14 @@ issues_prio_marker_text() { # band score sev reach conf occ basis at
 
 # The body this pass stores: the marker replaced in place when the body already carries one, appended
 # below a blank line when it does not. Composed here so the writer and the `--body-of` view cannot differ,
-# and so exactly one marker is ever in a body.
+# and so exactly one marker is ever in a body — and so a body that quotes the grammar keeps its quotation
+# instead of having that line overwritten (issue #293).
 issues_body_with_marker() { # <body> <marker> → the new body
-  local body="${1:-}" marker="$2"
-  if [ -n "$(issues_prio_marker "$body")" ]; then
-    printf '%s' "$body" | awk -v marker="$marker" -v open="$ISSUES_PRIO_MARKER_OPEN" '
-      index($0, open) > 0 && !replaced { print marker; replaced = 1; next }
+  local body="${1:-}" marker="$2" line
+  line=$(issues_prio_marker_line "$body")
+  if [ -n "$line" ]; then
+    printf '%s' "$body" | awk -v n="$line" -v marker="$marker" '
+      NR == n { print marker; next }
       { print }'
   else
     printf '%s\n\n%s\n' "$body" "$marker"

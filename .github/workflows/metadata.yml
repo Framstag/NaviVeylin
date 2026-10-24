@@ -1,0 +1,80 @@
+name: Metadata
+
+# The priority pass's schedule: the backlog's stored priority and classification are refreshed on a
+# clock, so ordering the backlog never drifts into "the pass has not run since <date>".
+#
+# Why a pipeline of its own rather than a step in `sensors.yml` or `build.yml`:
+#   * `build.yml` validates a change and must not write to the tracker, so the pass cannot ride it.
+#   * `sensors.yml`'s checks are rows that own their issues (`backlog-sensors`, "A check acts only on what
+#     it owns"); the pass writes priority and classification to every due item, so it is not a row and must
+#     not be one.
+#
+# The pass here is the deterministic stand-in (`helper/backlog-pass.sh`), not the model-reading half of the
+# `issue-metadata` skill: the heuristic tables need no provider key, which is the reason design D10 of
+# `issue-metadata-loop` deferred CI wiring. The model's judgement remains the preferred interpreter when an
+# agent runs the pass; the schedule keeps the stored facts from going stale in between.
+#
+# The pass writes only the band label and its body marker, and the classification's kind and area. It never
+# writes the automation opt-in, and the invariant is verified at the end of the run — a broken write fails
+# this run rather than waiting for the next change's token-free check.
+#
+# The tracker credential is the repository secret's (`SENSORS_TOKEN`), whose scope is `guidelines/Backlog.md`
+# §9: Issues read and write. The run is guarded against a dispatch from a branch and against a tree that is
+# not the published `main`.
+on:
+  schedule:
+    # Daily, 02:15 UTC — ahead of the build pipeline's 03:00 rows, so the queue a run reads is the night's.
+    - cron: '15 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two runs can never write the same item's band at once.
+concurrency:
+  group: metadata-main
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The band label and the body marker are written through `tools/issues/update.sh`, and the
+      # classification's kind and area through the same path.
+      issues: write
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # The guard compares HEAD with the remote main branch's commit, so that ref has to exist. Fetched
+      # by name rather than by the dispatched ref, so a run against a branch still compares against main.
+      - name: Fetch the main branch the guard compares against
+        run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+
+      # The same runtime guards the sensors pipeline uses: on main, HEAD equal to the remote main branch,
+      # a clean tree, an allowlisted identity and a complete registry. A refusal here writes nothing.
+      - name: Guard the run
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: bash tools/sensors/guard.sh --ref "$GITHUB_REF"
+
+      # The pass itself: classify the items with no kind, then rescore every item whose recorded basis no
+      # longer matches its labels (or that carries no band). Selection is the tooling's; an item reported as
+      # `skipped` is not touched. The helper's tables are deterministic, so the run is reproducible and
+      # needs no model provider key.
+      - name: Run the metadata pass
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: bash helper/backlog-pass.sh
+
+      # The invariant the pass must not break: label and marker agree, the band is in the vocabulary, and the
+      # pass wrote no automation opt-in. The helper runs this itself; the step keeps the verdict visible in
+      # the run's own result and fails the run on a violation.
+      - name: Verify the invariant
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+        run: bash tools/issues/check-metadata.sh --live

@@ -467,7 +467,10 @@ An item whose citation nothing accounts for is *not* worked, and it must not be 
 `tools/issues/resolve-stale.sh` repairs what the repository's own records state (the full tracked path, a
 rename, a single surviving declaration, an archived change's new directory) and parks the rest with the
 attempts recorded — so the refusal is a state a person can query instead of a line in a machine-local file
-(`stale-citation-resolution`, D4/D5). A citation that stands only in an item's **title** is never rewritten —
+(`stale-citation-resolution`, D4/D5). Because a parked item is skipped by the next run, the park is reversible
+on request: `--revisit-parked` reopens an item this tool parked once nothing it cites is absent any more — a
+body repaired by hand, a file the tree gained, or a rule that stopped calling a word a citation — and leaves a
+person's own hold alone (#281). A citation that stands only in an item's **title** is never rewritten —
 the resolver writes bodies, so a bare name there is a title for a person to fix. Two outcomes follow from what
 the tree holds: a title naming a file whose tracked path the body already carries leaves the item settled and
 unwritten (the state every item repaired from the doubled-directory form ends in), while a title citing a file

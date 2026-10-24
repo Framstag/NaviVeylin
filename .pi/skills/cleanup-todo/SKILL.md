@@ -235,13 +235,20 @@ never worked. Two commands own that:
 ```bash
 tools/issues/resolve-stale.sh                 # dry run: what it would repair or park, and why not
 tools/issues/resolve-stale.sh --apply --max-items 25
+tools/issues/resolve-stale.sh --revisit-parked --apply --max-items 40   # …and reopen what no longer applies
 ```
 
 What it may and may not do (`stale-citation-resolution`, `Backlog.md` §5): it rewrites **the citation token**
 to the full tracked path when the repository states it (a suffix of a tracked path, a rename in the history, a
 single surviving declaration, or the new directory of an archived change), it parks an item nothing accounts
 for (`status/on-hold`, with the attempts in one comment), and it posts at most one comment per item per run.
-It never writes `agent/*`, never classifies, never closes and never files.
+
+A parked item is skipped by a plain run — the state is the marker a second run reads — which is why
+`--revisit-parked` exists: it visits the items **this tool parked** (the parking comment, or the loop's
+`agent/excluded-stale` when a pre-screen run has since written one) and reopens the ones whose citations all
+resolve again, into `status/open` and without the refusal label. That is the only `agent/*` write it makes, it
+never writes `agent/eligible`, and a person's own hold is never reversed. It never classifies, never closes and
+never files.
 
 Read a quarantine as a queue item for a person, not a defect: `status/on-hold` plus the comment says what was
 tried. The residue is also a declared check (`stale-citations`) — the pipeline reports the count, so a pile

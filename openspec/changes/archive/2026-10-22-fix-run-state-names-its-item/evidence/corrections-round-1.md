@@ -29,14 +29,13 @@ still the shorter pre-`surface:` capture (NOTE, machine-local).
 
 ## The gate, for this round
 
-From the change root, `bash tools/loop/gate.sh --base f5f2a2a7` — 326 tests, **1 failure**, and that one is
-attributed below, not this change's:
+From the change root, `bash tools/loop/gate.sh --base f5f2a2a7`, in a clean worktree at this change's own
+commit — 326 tests, **1 failure**, and that one is attributed below, not this change's. Its suites ran
+`tools/loop-selftest.sh --from-git f5f2a2a7` with tests=203 failures=1, `bash tools/loop-mutations.sh --check`
+with tests=123 failures=0, and `tools/check-doc-routes.sh` and the classification check green.
 
-```
-LOOP-GATE: tests=326 failures=1 errors=0 (tools/loop-selftest.sh --from-git f5f2a2a7 923s, bash tools/loop-mutations.sh --check 1s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 0s) — failing: tools/loop-selftest.sh --from-git f5f2a2a7
-```
-
-`evidence/gate-corrections.log` carries the whole run.
+`evidence/gate-corrections.log` carries the whole run, `LOOP-GATE` line included, and
+`evidence/gate-tallies-corrections/` the four JUnit tallies it derived its numbers from.
 
 ## The one red, attributed
 

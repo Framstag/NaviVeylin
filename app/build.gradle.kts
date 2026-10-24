@@ -1,5 +1,6 @@
 import com.naviveylin.build.testing.CoverageInstrumentation
 import com.naviveylin.build.testing.ForcedTestExecution
+import com.naviveylin.build.testing.JvmOnlyTestRun
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -168,6 +169,19 @@ val forceTests: Boolean =
 // `-PnoCoverage` detaches the Kover agent for an iteration run (spec `test-coverage`).
 val noCoverage: Boolean =
     CoverageInstrumentation.isDisabled(providers.gradleProperty(CoverageInstrumentation.PROPERTY).orNull)
+// A JVM-only test run carries no licence inventory (change `fix-jvm-test-run-needs-no-native-tree`,
+// spec `build-sbom` — "A JVM-only test run does not require the native tree"): `-PjvmTestsOnly`
+// leaves the inventory's asset source unwired, and with it generateLicenseAssets → generateSbom →
+// mergeNativeSbom drops out of the variant graph, so a tree without a vcpkg checkout can run the
+// suite. The same invocation packaging is a misuse, not a variant: an artifact built that way ships
+// without its licenses/ assets, which guidelines/Build.md §9 makes strict — so it is refused here,
+// before any task runs.
+val jvmTestsOnly: Boolean =
+    JvmOnlyTestRun.isRequested(providers.gradleProperty(JvmOnlyTestRun.PROPERTY).orNull)
+if (jvmTestsOnly) {
+    val misuse = JvmOnlyTestRun.refusalFor(gradle.startParameter.taskNames)
+    if (misuse != null) throw GradleException(misuse)
+}
 
 android {
     namespace = "com.naviveylin"
@@ -782,9 +796,17 @@ val mergeNativeSbom = tasks.register("mergeNativeSbom") {
         "Converts every vcpkg package SPDX SBOM (all triplets) to CycloneDX and merges them."
     val vcpkgStatusFile = File(vcpkgRootDir, "installed/vcpkg/status")
     val shareDirs = vcpkgTriplets.map { File(vcpkgRootDir, "installed/$it/share") }
-    inputs.file(vcpkgStatusFile)
-    shareDirs.forEach { inputs.dir(it) }
-    inputs.property("vcpkgPorts", vcpkgTriplets.map { vcpkgPorts(vcpkgStatusFile, it) })
+    // The vcpkg tree is read by the task's own action, so its status file is an input only when it is
+    // there and the port list is a Provider evaluated when the task runs. Reading it eagerly (here, in
+    // the registration block) made a missing checkout fail the *configuration* of every invocation
+    // whose graph happens to include this task — `./gradlew test` among them, because the licence
+    // inventory is a variant asset source (issue #270). A missing tree still fails this task, naming
+    // the file, before its action runs.
+    if (vcpkgStatusFile.isFile) inputs.file(vcpkgStatusFile)
+    shareDirs.forEach { if (it.isDirectory) inputs.dir(it) }
+    inputs.property("vcpkgPorts", providers.provider {
+        vcpkgTriplets.map { vcpkgPorts(vcpkgStatusFile, it) }
+    })
     outputs.file(nativeBomFile)
     dependsOn(downloadSbomCli)
     doLast {
@@ -1493,6 +1515,9 @@ fun ndkNoticeFile(): File? {
 androidComponents {
     onVariants { variant ->
         if (variant.name !in sbomVariants) return@onVariants
+        // `-PjvmTestsOnly`: without the inventory asset source the unit-test asset merge depends on no
+        // SBOM and no native task, which is the whole point of the property (see its definition).
+        if (jvmTestsOnly) return@onVariants
         val variantLabel = variant.name.replaceFirstChar(Char::uppercaseChar)
         val licenseTask = tasks.register(
             "generateLicenseAssets$variantLabel",

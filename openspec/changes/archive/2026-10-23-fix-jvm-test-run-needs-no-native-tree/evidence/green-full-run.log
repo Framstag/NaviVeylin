@@ -1,0 +1,237 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources
+> Task :core:generateDebugResources
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources
+> Task :auto:generateDebugResources
+> Task :core:packageDebugResources
+> Task :auto:packageDebugResources
+> Task :app:checkHardcodedStrings
+> Task :app:checkNativeParity
+> Task :auto:javaPreCompileDebug
+> Task :auto:writeDebugAarMetadata
+> Task :auto:extractDeepLinksDebug
+> Task :core:writeDebugAarMetadata
+> Task :auto:mapDebugSourceSetPaths
+> Task :core:extractDeepLinksDebug
+> Task :core:javaPreCompileDebug
+> Task :core:mapDebugSourceSetPaths
+> Task :core:processDebugManifest
+> Task :auto:processDebugManifest
+> Task :auto:parseDebugLocalResources
+> Task :core:parseDebugLocalResources
+> Task :auto:compileDebugLibraryResources
+> Task :core:compileDebugLibraryResources
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets
+> Task :auto:mergeDebugAssets
+> Task :auto:preDebugUnitTestBuild
+> Task :core:preDebugUnitTestBuild
+> Task :core:koverFindJar
+> Task :core:javaPreCompileDebugUnitTest
+> Task :core:generateDebugRFile
+> Task :auto:generateDebugRFile
+> Task :auto:mapDebugUnitTestSourceSetPaths
+> Task :auto:checkDebugUnitTestAarMetadata
+> Task :core:generateDebugUnitTestStubRFile
+> Task :auto:generateDebugUnitTestResources
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons
+> Task :app:syncSubmoduleStylesheets
+> Task :app:preBuild
+> Task :app:preAutomotiveDebugBuild
+> Task :app:generateAutomotiveDebugBuildConfig
+> Task :app:generateAutomotiveDebugResources
+> Task :auto:mergeDebugUnitTestResources
+> Task :auto:mergeDebugUnitTestManifest
+> Task :osmscout-client-java:compileJava
+> Task :auto:processDebugUnitTestManifest
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes
+> Task :osmscout-client-java:jar
+> Task :app:packageAutomotiveDebugResources
+> Task :auto:generateDebugUnitTestAssets UP-TO-DATE
+> Task :auto:javaPreCompileDebugUnitTest
+> Task :auto:mergeDebugUnitTestAssets
+> Task :auto:koverFindJar
+> Task :osmscout-client-java:compileTestJava
+> Task :osmscout-client-java:processTestResources
+> Task :osmscout-client-java:testClasses
+> Task :auto:processDebugUnitTestResources
+> Task :auto:packageDebugUnitTestForUnitTest
+> Task :app:processAutomotiveDebugNavigationResources
+> Task :auto:generateDebugUnitTestConfig
+> Task :app:javaPreCompileAutomotiveDebug
+> Task :app:parseAutomotiveDebugLocalResources
+> Task :app:checkAutomotiveDebugAarMetadata
+> Task :app:mapAutomotiveDebugSourceSetPaths
+> Task :app:generateAutomotiveDebugRFile
+> Task :app:compileAutomotiveDebugNavigationResources
+> Task :app:createAutomotiveDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksAutomotiveDebug
+> Task :app:mergeAutomotiveDebugResources
+> Task :app:processAutomotiveDebugMainManifest
+> Task :app:processAutomotiveDebugManifest
+> Task :app:generateAutomotiveDebugAssets UP-TO-DATE
+> Task :app:mergeAutomotiveDebugAssets
+> Task :app:preAutomotiveDebugUnitTestBuild
+
+> Task :app:mergeAutomotiveDebugUnitTestManifest
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build/intermediates/tmp/manifest/test/automotive/debug/tempFile2ProcessTestManifest7676976901567175415.xml:83:9-85:35 Warning:
+	meta-data#com.google.android.gms.car.application was tagged at tempFile2ProcessTestManifest7676976901567175415.xml:83 to remove other declarations but no other declaration present
+
+> Task :app:processAutomotiveDebugUnitTestManifest
+> Task :app:koverFindJar
+> Task :app:preMobileDebugBuild
+> Task :app:javaPreCompileAutomotiveDebugUnitTest
+> Task :app:generateMobileDebugBuildConfig
+> Task :app:generateMobileDebugResources
+> Task :app:packageMobileDebugResources
+> Task :app:processMobileDebugNavigationResources
+> Task :app:javaPreCompileMobileDebug
+> Task :app:mapMobileDebugSourceSetPaths
+> Task :app:checkMobileDebugAarMetadata
+> Task :app:parseMobileDebugLocalResources
+> Task :app:compileMobileDebugNavigationResources
+> Task :osmscout-client-java:test
+> Task :app:createMobileDebugCompatibleScreenManifests
+> Task :app:generateMobileDebugRFile
+> Task :app:extractDeepLinksMobileDebug
+> Task :app:mergeMobileDebugResources
+> Task :app:processMobileDebugMainManifest
+> Task :app:processMobileDebugManifest
+> Task :app:generateMobileDebugAssets UP-TO-DATE
+> Task :app:mergeMobileDebugAssets
+> Task :app:preMobileDebugUnitTestBuild
+
+> Task :app:mergeMobileDebugUnitTestManifest
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/debug/AndroidManifest.xml Warning:
+	uses-feature#android.hardware.type.automotive was tagged at AndroidManifest.xml:0 to remove other declarations but no other declaration present
+
+> Task :app:processMobileDebugUnitTestManifest
+> Task :app:javaPreCompileMobileDebugUnitTest
+> Task :app:processAutomotiveDebugManifestForPackage
+> Task :app:processMobileDebugManifestForPackage
+> Task :app:processAutomotiveDebugResources
+> Task :app:packageAutomotiveDebugUnitTestForUnitTest
+> Task :app:generateAutomotiveDebugUnitTestConfig
+> Task :app:processMobileDebugResources
+> Task :app:packageMobileDebugUnitTestForUnitTest
+> Task :app:generateMobileDebugUnitTestConfig
+> Task :core:kspDebugKotlin
+> Task :core:compileDebugKotlin
+> Task :core:compileDebugJavaWithJavac
+> Task :core:processDebugJavaRes
+> Task :core:transformDebugClassesWithAsm
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:bundleLibRuntimeToJarDebug
+> Task :core:createFullJarDebug
+> Task :core:kspDebugUnitTestKotlin
+> Task :core:compileDebugUnitTestKotlin
+> Task :core:processDebugUnitTestJavaRes
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:hiltSyncDebugUnitTest
+> Task :auto:compileDebugKotlin
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:processDebugJavaRes
+> Task :auto:bundleLibCompileToJarDebug
+> Task :auto:bundleLibRuntimeToJarDebug
+> Task :auto:createFullJarDebug
+> Task :core:hiltAggregateDepsDebugUnitTest
+> Task :core:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :core:transformDebugUnitTestClassesWithAsm
+> Task :app:kspAutomotiveDebugKotlin
+> Task :app:kspMobileDebugKotlin
+> Task :auto:compileDebugUnitTestKotlin
+> Task :core:testDebugUnitTest
+> Task :auto:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :auto:processDebugUnitTestJavaRes
+> Task :core:test
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :app:compileAutomotiveDebugKotlin
+> Task :auto:testDebugUnitTest
+> Task :app:compileMobileDebugKotlin
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:compileAutomotiveDebugJavaWithJavac
+> Task :app:hiltSyncAutomotiveDebug
+> Task :app:processAutomotiveDebugJavaRes
+> Task :app:hiltAggregateDepsAutomotiveDebug
+> Task :app:compileMobileDebugJavaWithJavac
+> Task :app:hiltJavaCompileAutomotiveDebug
+> Task :app:bundleAutomotiveDebugClassesToCompileJar
+> Task :app:transformAutomotiveDebugClassesWithAsm
+> Task :app:hiltSyncMobileDebug
+> Task :app:bundleAutomotiveDebugClassesToRuntimeJar
+> Task :app:hiltAggregateDepsMobileDebug
+> Task :app:processMobileDebugJavaRes
+> Task :app:hiltJavaCompileMobileDebug
+> Task :app:bundleMobileDebugClassesToCompileJar
+> Task :app:transformMobileDebugClassesWithAsm
+> Task :app:bundleMobileDebugClassesToRuntimeJar
+> Task :auto:test
+> Task :app:kspAutomotiveDebugUnitTestKotlin
+> Task :app:kspMobileDebugUnitTestKotlin
+> Task :app:compileAutomotiveDebugUnitTestKotlin
+> Task :app:compileMobileDebugUnitTestKotlin
+
+> Task :app:compileAutomotiveDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:131:78 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:51:20 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+
+> Task :app:processAutomotiveDebugUnitTestJavaRes
+> Task :app:compileAutomotiveDebugUnitTestJavaWithJavac NO-SOURCE
+
+> Task :app:compileMobileDebugUnitTestKotlin
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt:131:78 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt:51:20 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+
+> Task :app:hiltSyncAutomotiveDebugUnitTest
+> Task :app:hiltAggregateDepsAutomotiveDebugUnitTest
+> Task :app:processMobileDebugUnitTestJavaRes
+> Task :app:hiltJavaCompileAutomotiveDebugUnitTest NO-SOURCE
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:transformAutomotiveDebugUnitTestClassesWithAsm
+> Task :app:hiltSyncMobileDebugUnitTest
+> Task :app:testAutomotiveDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:hiltAggregateDepsMobileDebugUnitTest
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm
+> Task :app:testMobileDebugUnitTest
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:test
+
+BUILD SUCCESSFUL in 9m 52s
+164 actionable tasks: 161 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

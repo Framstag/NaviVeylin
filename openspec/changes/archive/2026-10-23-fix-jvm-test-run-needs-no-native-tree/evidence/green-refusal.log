@@ -1,0 +1,25 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/app/build.gradle.kts' line: 183
+
+* What went wrong:
+-PjvmTestsOnly was requested together with a packaging task (:app:assembleMobileDebug). The licence inventory is a variant asset source, so an artifact built in this invocation would ship without its licenses/ assets — the guarantee guidelines/Build.md §9 makes strict. Run the test suite and the packaging as two invocations, or drop -PjvmTestsOnly.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 754ms
+3 actionable tasks: 3 up-to-date

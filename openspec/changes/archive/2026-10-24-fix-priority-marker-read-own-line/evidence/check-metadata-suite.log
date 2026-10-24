@@ -1,0 +1,44 @@
+  ok   a hand-edited band exits non-zero
+  ok   and names the issue
+  ok   and the code
+  ok   a benigned copy exits 0
+PASS check#markerLabelMismatchFails
+  ok   a band outside the vocabulary exits non-zero
+  ok   and names the issue
+  ok   and the out-of-vocabulary label
+  ok   and the score outside the model
+  ok   a benigned copy exits 0
+PASS check#outOfRangeBandFails
+  ok   a log carrying the opt-in exits non-zero
+  ok   and names the write
+  ok   and quotes the line
+  ok   the same log without it exits 0
+PASS check#neverWritesEligibility
+  ok   a marker missing fields exits non-zero
+  ok   and names the missing ones
+  ok   naming basis and at
+  ok   a complete marker exits 0
+PASS check#incompleteMarkerFails
+  ok   a band with no marker exits non-zero
+  ok   and names the code
+  ok   the marker written beside it exits 0
+PASS check#labelWithoutMarkerFails
+  ok   a body that only quotes the grammar exits non-zero
+  ok   and the missing record is what is reported
+  ok   naming the item
+  ok   the quotation is not matched against the label
+  ok   and the quotation is not read as an incomplete record
+PASS check#aQuotationIsNotAMarker
+  ok   a marker line beside a quotation exits 0
+  ok   and nothing is reported
+  ok   the reader takes the marker's own line
+PASS check#aMarkerLineBesideAQuotationIsTheRecord
+  ok   the committed fixture exits 0
+  ok   and says how many it checked
+  ok   the JSON form is valid
+  ok   and reports no violations
+PASS check#unrankedIsNotAViolation
+  ok   the self-check exits 0
+  ok   and reports no violation
+PASS check#selfCheckIsGreen
+check-metadata-selftest: all 9 cases passed (offline, no token, no device)

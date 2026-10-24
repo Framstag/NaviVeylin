@@ -1,0 +1,11 @@
+== baseline (unmutated): both named cases
+  PASS check#aQuotationIsNotAMarker
+  PASS check#aMarkerLineBesideAQuotationIsTheRecord
+== mutation 1 — the anchor: 'index(t, mo) == 1' becomes 'index(t, mo) > 0'
+  NOT NOTICED: check#aQuotationIsNotAMarker still passes
+  quiet again: check#aQuotationIsNotAMarker passes
+== mutation 2 — the fence: 'if (infence) next' becomes 'if (0) next'
+  noticed by check#aMarkerLineBesideAQuotationIsTheRecord
+  quiet again: check#aMarkerLineBesideAQuotationIsTheRecord passes
+== the tree is the change's own again
+  lib.sh restored byte for byte

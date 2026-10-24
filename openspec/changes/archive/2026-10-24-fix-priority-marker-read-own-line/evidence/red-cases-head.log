@@ -1,0 +1,19 @@
+=== HEAD: bash tools/issues/check-metadata-selftest.sh --case check#aQuotationIsNotAMarker
+  ok   a body that only quotes the grammar exits non-zero
+  FAIL and the missing record is what is reported: [label-without-marker] not found in: #31 band-mismatch: marker=p3 label=prio/p2
+check-metadata: 1 issue(s) checked · 1 violation(s)
+  ok   naming the item
+  FAIL the quotation is not matched against the label: [band-mismatch] should not appear in: #31 band-mismatch: marker=p3 label=prio/p2
+check-metadata: 1 issue(s) checked · 1 violation(s)
+  ok   and the quotation is not read as an incomplete record
+exit=1
+=== HEAD: bash tools/issues/check-metadata-selftest.sh --case check#aMarkerLineBesideAQuotationIsTheRecord
+  FAIL a marker line beside a quotation exits 0: expected [0] got [1]
+  FAIL and nothing is reported: [0 violation(s)] not found in: #31 band-mismatch: marker=p3 label=prio/p2
+check-metadata: 1 issue(s) checked · 1 violation(s)
+  FAIL the reader takes the marker's own line: expected [p2] got [p3]
+exit=1
+=== HEAD: bash tools/issue-tooling-selftest.sh --case prioritise#theWriteKeepsAQuotation
+  and both quotations survive the write: expected '2', got '1'
+FAIL prioritise#theWriteKeepsAQuotation
+exit=1

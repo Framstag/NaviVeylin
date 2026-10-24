@@ -1,0 +1,5 @@
+# `bash tools/loop-selftest.sh --case 'gate#theSuitesOutputReachesTheConsoleWhileItRuns'` with the fix applied
+# Tree: this change root (.pi/worktrees/i296, branch fix/issue-296-the-gate-case-reads-the-stream off 0f366176).
+# Plain run, the host as it stands.
+
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns

@@ -1792,6 +1792,19 @@ and the suite's exit status SHALL stay the verdict, never the stream's.
   covers the command it ran rather than the writer the command left behind
 - **Case**: `gate#aStepEndsWithItsCommandNotWithItsWatchers`
 
+#### Scenario: A suite's line is read from the stream, not at an instant
+
+- **WHEN** a case that guards the stream reads the gate's console while the gate is still working, to assert that
+  a suite's line has reached it
+- **THEN** it waits, within a bound, for the line the suite itself prints, and does not read at an instant fixed
+  before the gate can have reached the suite — because the profile reads, the `git` calls over the tree and the
+  de-duplication of the owed commands all precede the suite, and a fixed instant reports their cost as a verdict
+  about the stream
+- **AND** the wait does not soften the guard: the console of a gate that captured the suite's output and replayed
+  it after the command returned still fails the assertion, because the moment the waited-for line is read then
+  already carries the summary the suite had not printed yet
+- **Case**: `gate#theSuitesOutputReachesTheConsoleWhileItRuns`
+
 ### Requirement: A suite that reported no summary invents no number
 
 The gate SHALL take a suite's case and failure counts only from that suite's own summary line. A suite that

@@ -1,0 +1,18 @@
+# `bash tools/loop-selftest.sh --case 'gate#theSuitesOutputReachesTheConsoleWhileItRuns'` on the base `0f366176`
+# (main). Tree: `.pi/worktrees/i296-base` (detached at 0f366176), the case unmodified — nothing of this change is
+# in it. Taken 2026-10-24T10:2xZ.
+#
+# 1. The host as it stands — PASS, so neither the tree nor the case is broken:
+$ bash tools/loop-selftest.sh --case 'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
+#
+# 2. The same case on the same tree with the host under contention — 24 spinning shells at nice 0 beside a case
+#    run at nice 19, on 16 cpus (`contend.sh`, kept beside this file) — FAIL, and the reading it printed is the
+#    gate's first line and nothing else: the sample was taken before the gate had announced the suite.
+#
+$ bash contend.sh /home/tim/projects/NaviVeylin/.pi/worktrees/i296-base 24
+contention: 24 spinning shells at nice 0, the case runs at nice 19, on 16 cpus
+  the suite is announced before it runs: 'gate: bash' not found in: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/i296-base/.pi/tmp/loop-selftest.M4KtWO/case.bLMMWz/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/i296-base/tools/loop/loop.conf)
+FAIL gate#theSuitesOutputReachesTheConsoleWhileItRuns
+loop-selftest: 1 of 1 cases failed
+the contended run took 126 s wall, exit=1

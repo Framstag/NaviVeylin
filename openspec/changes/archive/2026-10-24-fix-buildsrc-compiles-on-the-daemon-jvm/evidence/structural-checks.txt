@@ -1,0 +1,32 @@
+=== bash tools/check-doc-routes.sh
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
+
+=== openspec validate fix-buildsrc-compiles-on-the-daemon-jvm --strict
+Change 'fix-buildsrc-compiles-on-the-daemon-jvm' has issues
+⚠ [WARNING] build-jvm-toolchain/spec.md: ADDED "The build logic compiles on the JVM the daemon criteria select": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+  - Ensure change has deltas in specs/: use headers ## ADDED/MODIFIED/REMOVED/RENAMED Requirements
+  - Each requirement MUST include at least one #### Scenario: block
+  - Debug parsed deltas: openspec show fix-buildsrc-compiles-on-the-daemon-jvm --json --deltas-only
+
+=== openspec validate --specs
+  ⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/zoom-transition-scaling
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 177 passed, 0 failed (177 items)
+
+=== workflow parses:
+41
+
+=== re-read after archiving, 2026-10-24:
+$ openspec validate --specs
+    ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  Totals: 177 passed, 0 failed (177 items)
+$ grep -n 'The build logic compiles on the JVM' openspec/specs/build-jvm-toolchain/spec.md
+  154:### Requirement: The build logic compiles on the JVM the daemon criteria select
+$ yq '.jobs.build.steps | length' .github/workflows/build.yml
+  41
+$ bash tools/check-doc-routes.sh   (after archiving, the change's own references are read from the archive)
+  check-doc-routes: all 153 section references resolve, all 4 skill references resolve

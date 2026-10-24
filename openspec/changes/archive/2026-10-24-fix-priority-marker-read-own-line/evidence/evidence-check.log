@@ -1,7 +1,7 @@
 ok   C1 §references: 8 checked, 0 exempted as archived pointers
-ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C2 test tallies: 2 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
 ok   C3 /tmp pointers: none cited
 ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
-ok   C5 file:line: 514 resolved and in range, 0 unresolved or ambiguous
+ok   C5 file:line: 547 resolved and in range, 0 unresolved or ambiguous
 ----
 evidence-check: PASS

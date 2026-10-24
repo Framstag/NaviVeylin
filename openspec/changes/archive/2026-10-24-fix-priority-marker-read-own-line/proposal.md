@@ -33,6 +33,7 @@ RED  a line that starts at the open but does not close carries no marker: expect
 RED  the writer keeps the quoted prose: expected [1] got [0]
 ok   and the writer adds exactly one marker line
 RED  the digest keeps the quotation: expected [different] got [same]
+--- the parser's answer for the fenced body: '<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->'
 RED: 7 of 8 checks failed
 ```
 
@@ -100,9 +101,10 @@ moves; the rule's one home stays `tools/issues/lib.sh`'s grammar comment, which 
   column 0, closing at its end, outside a fenced span), because that is the place a person reads the rule.
 
 **Additive, no breaking change.** The shipped shape of the marker is unchanged — the pass writes the same
-line at column 0, so every body that carries a marker today is read exactly as before, and the digest of a
-body that carries one is byte-identical. Rollback: revert this change's commit — the three helpers return to
-the delimiter search and the red probe reproduces 7 of 8 red.
+line at column 0, so a body that carries a marker today is read exactly as before and its digest is unchanged:
+by construction, because the reader keeps the marker text and drops the same line the old search left behind once
+the delimiter span was removed; no live body was recomputed (the corpus needs a token). Rollback: revert this
+change's commit — the three helpers return to the delimiter search and the red probe reproduces 7 of 8 red.
 
 **Not a native/JNI change, not an app change**: no `:app` source, no Kotlin, no resource, no build logic.
 

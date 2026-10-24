@@ -12,7 +12,7 @@ search on the write path, where a quotation's line is replaced by the marker. `i
 (`tools/issues/lib.sh:507`) strips the delimiters wherever they stand, so a quotation — prose, part of the
 claim — is removed from the digest the basis is computed over.
 
-Measured on HEAD (`evidence/red-probe-head.log`): 5 of 6 probe checks red.
+Measured on HEAD (`evidence/red-probe-head.log`): 7 of 8 probe checks red.
 
 ## The single fix
 
@@ -68,7 +68,8 @@ tree (`evidence/revert-check-anchor.log`): mutating `index(t, mo) == 1` to `inde
 cases green. A probe is a person's argument; the gate runs cases. So the fixture carries one prose line per
 anchor and the case asserts the reader over them directly, and the write path's own arm (`NR == n`) got its
 stored-marker half, which is the only thing that can fail when the replace arm is broken. Round 2's four
-mutations (`evidence/revert-check-293.sh`) each go noticed by a named case.
+mutations (`evidence/revert-check-293.sh`, its log in `evidence/revert-check.log`) each go noticed by a named
+case.
 
 ## Alternatives the evidence eliminated
 
@@ -95,8 +96,12 @@ invariants row in `guidelines/Backlog.md` §4 states where the marker stands. No
 resource, no build logic, no skill text.
 
 The shipped marker is unchanged: the pass writes the same line at column 0 through
-`issues_prio_marker_text`, so every body that carries a marker today is read exactly as before and its digest
-is byte-identical (the stripped line was the whole line then too, and the digest collapses whitespace).
+`issues_prio_marker_text`, so every body that carries a marker today is read exactly as before — by
+construction, not by a corpus comparison: the bytes the reader now keeps are the bytes the old search kept
+(the marker text), and the bytes it drops are the same line, which is what the old search left behind once the
+delimiter span was removed and the digest collapsed whitespace. The live corpus is not reachable offline, so no
+per-item digest was recomputed; the argument is the identity of the two texts, and the suites that read every
+fixture (`issue-tooling-selftest.sh`, 121 cases) are green.
 
 `tools/issues/metadata-mutations.sh`'s `the-writer-skips-the-marker` mutation patches the first `local body=`
 line of `issues_body_with_marker`; that line survives this change, so the mutation still applies and still
@@ -106,7 +111,7 @@ delimiter, it reads the two constants.
 ## Rollback
 
 Revert the change's commit. The three helpers return to the delimiter search, the fixture and the three cases
-disappear with their rosters, and `bash red-probe-head.sh tools/issues/lib.sh` reproduces `5 of 6 checks
+disappear with their rosters, and `bash red-probe-head.sh tools/issues/lib.sh` reproduces `7 of 8 checks
 failed`.
 
 ## Verification

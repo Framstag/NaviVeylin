@@ -2,9 +2,9 @@
 
 ## 1. Red case (fails on HEAD)
 
-- [x] 1.1 Run the probe on HEAD and keep it: `bash red-probe-head.sh lib-head-293.sh` → `RED: 5 of 6 checks
+- [x] 1.1 Run the probe on HEAD and keep it: `bash red-probe-head.sh lib-head-293.sh` → `RED: 7 of 8 checks
       failed`, saved as `evidence/red-probe-head.log` and copied into the work package's evidence directory.
-      Verification: the log's five `RED` and one `ok` line.
+      Verification: the log's seven `RED` lines, its one `ok` line and its parser-answer line.
 - [x] 1.2 Add `tools/issues/fixtures/metadata/quoted-grammar.json`: one item whose body quotes the marker
       grammar in an inline code span, in a fenced span, on a prose line that ends at the close and on a line
       that starts at the open but continues past it, carries `prio/p2` and no marker of its own. Verification:
@@ -16,8 +16,10 @@
       `prioritise#theWriteKeepsAQuotation` to `tools/issue-tooling-cases.sh` (its shell-case list, its dispatch
       arm, and the check's delegated names). Verification: each case fails on HEAD — `bash
       tools/issue-tooling-selftest.sh --case check#aQuotationIsNotAMarker` and the other two names, with the
-      same lib installed from HEAD — and the failure of each is the misread, not a missing helper
-      (`evidence/red-cases-head.log`).
+      same lib installed from HEAD — two of each case's assertions failing on the misread, and the two anchor
+      assertions failing through the absent predicate (`expected [] got [missing]`), which is the branch the
+      case was given in round 2 so that a tree without `issues_prio_marker_line` cannot read as green
+      (`evidence/red-cases-head.log`, 8 failed assertions over the three cases).
 
 ## 2. The parser reads the marker's line
 
@@ -49,7 +51,9 @@
       `check#aQuotationIsNotAMarker`, the fence by `check#aMarkerLineBesideAQuotationIsTheRecord`, and the write
       path's `NR == n` arm by `prioritise#theWriteKeepsAQuotation`. No clause is left to a probe outside the
       tree (round 1's gap, `evidence/review-round-1-requested.md` finding 1), and the script compares the
-      restored file byte for byte.
+      restored file byte for byte. The shipped log is the run on the tree as archived
+      (`2026-10-24T23:18:47Z`–`23:18:56Z`, four mutations noticed, `REVERT-CHECK: PASS`); it replaced the
+      round-1 two-mutation log that recorded mutation 1 as not noticed.
 
 ## 4. Gate, evidence, archive
 

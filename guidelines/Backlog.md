@@ -268,12 +268,20 @@ rewrites (every landing fast-forwards the base in the project tree) and that a p
 readings of it are not evidence about one child. `--strict-outside-write yes`
 (`LOOP_STRICT_OUTSIDE_WRITE_DEFAULT`, default `no`) restores the verdict for a tree that is exclusive: the
 worker's item is blocked, the round-2 worker's item is blocked, and a review round that ran during a difference
-is discarded. A difference the run **can** place decides in both modes: the heartbeat beside every child reads the
-project's tree once per `LOOP_PROGRESS_SECONDS` and, at the first difference, names the processes alive then whose
-working directory is inside the project and outside the worktree, marking the ones in the child's own process tree
-— its process group, or an ancestor chain that reaches it. A writer is gone when the transcript is written, so a
-reading taken afterwards attributes nothing: measured 2026-10-23 while adding it, the exit-time sweep found no
-process for a child's one-shot write and the case built on it failed with `expected 'blocked', got 'done'`.
+is discarded. A difference the run **can** place decides in both modes, and placing one means this: the heartbeat
+beside every child reads the project's tree once per `LOOP_PROGRESS_SECONDS` and, at the first difference, marks the
+processes of the child's own process tree — its process group, or anything descended from it, however it left that
+group — that **left the worktree**: a process whose working directory is inside the project and outside the worktree
+while the tree it came from works in the worktree. The child itself and the shells the run starts it through are
+excluded, because `run_child` starts them in the project and they stand there for the whole item: measured
+2026-10-24 (issue #288), marking that chain turned a peer's write into `blocked` for an item whose work was never
+touched. The child's own tree is read **before** the list of everyone else standing in the project, because that
+list is a `readlink` for every process on the host — 1.0 s for 731 of them when #288 measured it — and the writer
+the mark is about is gone by the time such a reading ends. Two sweeps were what the placement was built on, and
+the second one listed none of the nine pids the first had listed 1.1 s earlier, so nothing was ever placed. A
+writer is gone when the transcript is written, so a reading taken afterwards attributes nothing: measured
+2026-10-23 while adding it, the exit-time sweep found no process for a child's one-shot write and the case built on
+it failed with `expected 'blocked', got 'done'`.
 What is not relaxed is the landing rule — a base that is still not clean when the item lands
 refuses the merge and records the status line it carries, because that guard is about what may be merged onto,
 not about who wrote it.

@@ -616,19 +616,61 @@ outside_write_clause_of() { # <before> <after> → one clause, quoted as read
   printf '%s' "${paths:-(no status line differs — only the work-tree answer changed)}"
 }
 
-# Whether a pid belongs to the tree the run started: the child leads its own process group (`set -m` before it is
-# started), and a descendant that gave itself its own session is in no group the cap signals but still names the
-# child among its ancestors (the #272 survivor). A pid outside both is not this child's, whatever it wrote — that
-# is the difference between evidence and a guess about whichever process the run happened to be running.
-pid_in_child_tree() { # <pid> <child> → 0 when the pid is the child or below it
-  local pid="$1" child="$2" p hops=0
-  [ -n "$pid" ] && [ -n "$child" ] || return 1
-  [ "$pid" = "$child" ] && return 0
-  [ "$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')" = "$child" ] && return 0
-  p=$(sed -n 's/^[0-9][0-9]* ([^)]*) [A-Z] \([0-9][0-9]*\).*/\1/p' "/proc/$pid/stat" 2>/dev/null)
+# The processes of the tree the run started, asked of the kernel one call per level: the group the child leads
+# (`set -m` before it is started) and everything descended from it, because a descendant that gave itself its own
+# session is in no group the cap signals but is still this child's (the #272 survivor). One call per moved process
+# instead of a sweep over every process on the host, which is what the attribution is read with and cannot afford:
+# measured 2026-10-24 (issue #288), a host-wide sweep of 711 processes costs 1.0 s, so an answer read after it
+# names processes that lived a second ago.
+loop_tree_pids() { # <pid> → one pid per line: the child, its process group, and everything below it
+  local child="${1:-}" frontier next seen=" " out="" pid
+  [ -n "$child" ] || return 0
+  frontier="$child $(pgrep -g "$child" 2>/dev/null | tr '\n' ' ')"
+  while [ -n "${frontier// /}" ]; do
+    next=""
+    for pid in $frontier; do
+      case "$seen" in *" $pid "*) continue ;; esac
+      seen="$seen$pid "
+      out="$out$pid"$'\n'
+      next="$next $(pgrep -P "$pid" 2>/dev/null | tr '\n' ' ')"
+    done
+    frontier="$next"
+  done
+  printf '%s' "$out"
+}
+
+# Whether a pid still names the project as its working directory, and the worktree — the one tree a phase may
+# write — as something else. The note's list and the attribution both ask it, so it is asked in one place.
+pid_stands_outside_worktree() { # <pid> <project root> <worktree> → 0 when it does
+  local cwd
+  cwd=$(readlink "/proc/$1/cwd" 2>/dev/null) || return 1
+  cwd=${cwd% (deleted)}
+  [ -n "$cwd" ] || return 1
+  case "$cwd" in "$2"|"$2"/*) ;; *) return 1 ;; esac
+  case "$cwd" in "$3"|"$3"/*) return 1 ;; esac
+  return 0
+}
+
+# The parent of a pid, read from `/proc/<pid>/stat` and not from `ps`: the attribution asks it for every ancestor
+# of every candidate, and a fork per question would cost what the reading cannot pay (issue #288).
+pid_ppid() { # <pid> → its parent, or nothing when the process is gone
+  sed -n 's/^[0-9][0-9]* ([^)]*) [A-Z] \([0-9][0-9]*\).*/\1/p' "/proc/$1/stat" 2>/dev/null
+}
+
+# Whether a process got into the project's own tree *from* the worktree: an ancestor of it worked in the worktree,
+# so the process that stands in the project deliberately left the tree it may write. This is what separates a
+# writer from the run's own child chain, which `run_child` starts **in the project** — the child itself and every
+# shell it was started through stand there for the whole item, so marking those would make every difference in
+# the project's tree decide every item, which is the verdict #274 and #286 refused (issue #288).
+pid_left_the_worktree() { # <pid> <worktree> → 0 when an ancestor of this pid worked in the worktree
+  local p wt="$2" hops=0 cwd
+  p=$(pid_ppid "$1")
   while [ -n "$p" ] && [ "$p" != "0" ] && [ "$p" != "1" ] && [ "$hops" -lt 64 ]; do
-    [ "$p" = "$child" ] && return 0
-    p=$(sed -n 's/^[0-9][0-9]* ([^)]*) [A-Z] \([0-9][0-9]*\).*/\1/p' "/proc/$p/stat" 2>/dev/null)
+    # An ancestor that is already gone answers nothing; the walk continues, because what it stands for is the
+    # chain, not that one process.
+    cwd=$(readlink "/proc/$p/cwd" 2>/dev/null) || cwd=""
+    case "${cwd% (deleted)}" in "$wt"|"$wt"/*) return 0 ;; esac
+    p=$(pid_ppid "$p")
     hops=$((hops + 1))
   done
   return 1
@@ -640,13 +682,12 @@ pid_in_child_tree() { # <pid> <child> → 0 when the pid is the child or below i
 # standing in the project passes its own pid as an extra skip; the sweep is run from `/` so its own shell is never
 # part of the answer.
 outside_write_pids() { # <root> <worktree> [pid to skip …] → one `<pid> <command>` line per process
-  local root="$1" wt="$2" pid cwd skip s; shift 2
+  local root="$1" wt="$2" pid skip s; shift 2
   for pid in $(loop_pids_under "$root"); do
     skip=0
     for s in "$@"; do [ "$pid" = "$s" ] && skip=1; done
     [ "$skip" -eq 1 ] && continue
-    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
-    case "${cwd% (deleted)}" in "$wt"|"$wt"/*) continue ;; esac
+    pid_stands_outside_worktree "$pid" "$root" "$wt" || continue
     printf '%s %s\n' "$pid" "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | cut -c1-80 | sed 's/[[:space:]]*$//')"
   done
 }
@@ -675,13 +716,21 @@ outside_write_decides() { # → 0 when the recorded difference decides the phase
 # them that belong to this child's own tree. A write is only evidence about the child when the two coincide, and
 # the child is gone by the time its transcript is written — so the reading has to be taken during its life, from
 # the heartbeat that is already ticking beside it (issue #286's attribution step).
+#
+# The child's own tree is therefore read FIRST and whole, and the sweep over the host comes after it (issue #288):
+# the sweep is a `readlink` for every process on the machine — 1.0 s for 711 of them, measured 2026-10-24 — and a
+# writer that was alive when the difference was read is gone by the time it ends, so an attribution read after it
+# records a difference the run *can* place as one it cannot. The sweep answers who *else* stands in the project,
+# which is context for a reader of the transcript and may cost what it costs; it must not be what decides.
 outside_write_seen() { # <before> <now> <child> <own pid> → two `LOOP-OUTSIDE-WRITE-*` lines
-  local before="$1" now="$2" child="$3" own="$4" alive attributed="" one pid
-  alive=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -c1-120 | outside_write_clause 5 )
-  for pid in $( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -d' ' -f1 ); do
-    pid_in_child_tree "$pid" "$child" || continue
+  local before="$1" now="$2" child="$3" own="$4" alive attributed="" pid
+  for pid in $(loop_tree_pids "$child"); do
+    [ "$pid" = "$own" ] && continue
+    pid_stands_outside_worktree "$pid" "$LOOP_ROOT" "$LOOP_WORKTREE" || continue
+    pid_left_the_worktree "$pid" "$LOOP_WORKTREE" || continue
     attributed="${attributed:+$attributed,}$pid"
   done
+  alive=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -c1-120 | outside_write_clause 5 )
   printf 'LOOP-OUTSIDE-WRITE-FIRST: the project tree changed at %s — %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     "$(outside_write_clause_of "$before" "$now")"
   printf 'LOOP-OUTSIDE-WRITE-ALIVE: %s · attributed=%s\n' "${alive:-(none)}" "${attributed:-none}"

@@ -152,6 +152,7 @@ LOOP_SHELL_CASES=(
   'run#hostWithoutTheReadingPasses'
   'run#childWriteOutsideTheWorktreeIsNoted'
   'run#aWriterTheRunCanPlaceBlocksTheItem'
+  'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem'
   'run#dirtyBaseRefusesTheMergeAndNamesThePath'
   'run#strictOutsideWriteBlocksTheItem'
   'run#strictOutsideWriteDiscardsTheReviewRound'
@@ -409,6 +410,7 @@ loop_run_shell_case() {
     'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
     'run#childWriteOutsideTheWorktreeIsNoted') fn=case_run_childWriteOutsideTheWorktreeIsNoted ;;
     'run#aWriterTheRunCanPlaceBlocksTheItem') fn=case_run_aWriterTheRunCanPlaceBlocksTheItem ;;
+    'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem') fn=case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem ;;
     'run#dirtyBaseRefusesTheMergeAndNamesThePath') fn=case_run_dirtyBaseRefusesTheMergeAndNamesThePath ;;
     'run#strictOutsideWriteBlocksTheItem') fn=case_run_strictOutsideWriteBlocksTheItem ;;
     'run#strictOutsideWriteDiscardsTheReviewRound') fn=case_run_strictOutsideWriteDiscardsTheReviewRound ;;
@@ -3811,6 +3813,46 @@ case_run_aWriterTheRunCanPlaceBlocksTheItem() {
   note=$(jq -r '.items[0].note' "$(state_file "$p")")
   assert_contains "$note" "outside the worktree" "the reason names the tree that changed"
   assert_contains "$note" "attributed to this child" "and says the run tied the difference to this child"
+}
+
+case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p note
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The run starts the child **in the project** (`run_child`), so the child itself and every shell it was started
+  # through stand in the project's own tree for the whole item. A difference a peer made while such a child is alive
+  # must not decide it, or every difference in that tree would: measured 2026-10-24 (issue #288), an attribution
+  # that marked the child's own standing chain turned a peer's write into `blocked` for an item whose work was never
+  # touched. The child here does nothing to the tree; this case is the peer.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' 'case "$1" in worker*) sleep 14 ;; esac'
+  # The peer keeps the difference in the project's tree until the run has recorded it, and then restores it. The
+  # write has to land after the state the run compares against was read (`run_child`'s `before=$(project_state)`,
+  # which happens just before the transcript file is created), and it has to still be there at a heartbeat tick;
+  # writing once and waiting lands outside that window in about 1 of 40 runs (measured 2026-10-24: the item came
+  # back `blocked`, because the peer's own restoration never happened). Writing until the run has recorded it is
+  # independent of both, and it is what a peer rewriting a tree looks like from the run's side.
+  ( item=""
+    for _ in $(seq 300); do
+      item=$(ls -d "$p"/.pi/issue-loop/items/* 2>/dev/null | head -1)
+      [ -n "$item" ] && break
+      sleep 0.2
+    done
+    [ -n "$item" ] || exit 0
+    for _ in $(seq 300); do [ -e "$item/worker-report.md" ] && break; sleep 0.1; done
+    for _ in $(seq 60); do
+      printf "peer\n" >> "$p/demo-owned.txt"
+      [ -e "$item/worker-report.md.outside-write" ] && break
+      sleep 0.2
+    done
+    sleep 0.5; rm -f "$p/demo-owned.txt" ) &
+  ( export LOOP_PROGRESS_SECONDS=1
+    run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 ) || fail "the run itself failed"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a difference the child's own standing shell did not make must not decide the item"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the item closes on its own work"
+  note=$(jq -r '[.steps[] | select(.name | startswith("outside-write")) | .note] | join(" | ")' "$(state_file "$p")")
+  assert_contains "$note" "demo-owned.txt" "the difference is recorded, with the path that changed"
 }
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {

@@ -2755,6 +2755,17 @@ case_gate_aPipelineCheckIsOwedByItsPaths() {
 # left the gate's console at two lines for the whole of its wall clock: an operator could not tell a long suite
 # from a stopped one, and the failure text of a red one survived only as the last three lines of a tally. The
 # stream is `tee`d, so the console and the tally read the one observation.
+#
+# The reading *waits* for the suite's own first line instead of taking it at an instant fixed before the gate can
+# have reached the suite (issue #296, the same defect #287 fixed in the run's pre-screen case, measured
+# 2026-10-24). The gate's own start-up — `loop_resolve`, the four profile reads, `git diff --name-only` beside
+# `git status --porcelain`, the awk pipeline that de-duplicates the owed commands — is unbounded and is *not* the
+# streaming this case is about; a sample at a fixed 1.5 s is a bound on the host, not on the stream, so a loaded
+# host (a second suite in the repository, a busy machine — the interference #295 owns) reported the gate's start-up
+# cost as a verdict about its stream. The wait has a bound of its own (30 s), so a gate whose suite's text never
+# reaches the console still fails here — the mutation record `46.1` is what keeps that half honest — and so does
+# one that replays the whole output after the command returned, because the moment the waited-for line is read
+# then already carries the summary the suite had not printed yet.
 case_gate_theSuitesOutputReachesTheConsoleWhileItRuns() {
   # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base log pid out
@@ -2784,8 +2795,15 @@ SUITE
   log="$d/gate.log"
   ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1 &
   pid=$!
-  sleep 1.5
-  out=$(cat "$log")
+  # Wait for the stand-in suite's own first line: the gate writes `gate: <command>` before it runs the suite and
+  # the suite writes this line at its start, so it is the earliest moment a reader can tell streamed from replayed
+  # — and waiting for it is independent of how long the gate's own start-up took (the comment above).
+  out=""
+  for _ in $(seq 600); do
+    out=$(cat "$log")
+    case "$out" in *'case: a note is read'*) break ;; esac
+    sleep 0.05
+  done
   assert_contains "$out" "gate: bash" "the suite is announced before it runs"
   assert_contains "$out" "case: a note is read" \
     "the suite's own first line reaches the console while the suite runs: $out"

@@ -1,0 +1,6 @@
+# The fixed case under the same contention the base failed under: 24 spinning shells at nice 0, the case at
+# nice 19, on 16 cpus — `contend.sh` against this change root. Taken 2026-10-24T10:2xZ.
+#
+$ bash contend.sh /home/tim/projects/NaviVeylin/.pi/worktrees/i296 24
+contention: 24 spinning shells at nice 0, the case runs at nice 19, on 16 cpus
+PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns

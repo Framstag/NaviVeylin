@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the one new case, against the engine at 522d69a7ac21aebe8a542983671c5f57963ebf5a
+     (2026-10-22T20:44:30Z). The case failed on HEAD for the reason its own line names; the transcript is
+     red-HEAD.log. Written by hand from that transcript: this suite is a shell suite and prints its summary,
+     not JUnit. -->
+<testsuite name="loop-selftest" tests="1" failures="1" errors="0">
+  <system-out>run#stateNamesTheItemInProgress: the state names the item while it is being worked: expected '21', got 'null'</system-out>
+</testsuite>

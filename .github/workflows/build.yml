@@ -341,6 +341,10 @@ jobs:
             echo "::error file=$f::a vendor criterion excludes the JDK this job installs — drop it (guidelines/Build.md §2)"
             exit 1
           fi
+          if grep -nE '^[[:space:]]*org\.gradle\.java\.home[[:space:]]*=' gradle.properties; then
+            echo "::error file=gradle.properties::the versioned property source must carry no org.gradle.java.home — a machine-local absolute path selects no JVM where the criteria apply and is wrong on every other machine; delete the line (guidelines/Build.md §2, issue #91)"
+            exit 1
+          fi
           echo "daemon JVM criteria: version 21, no vendor, no package id."
 
       # ── Android SDK ──────────────────────────────────────────

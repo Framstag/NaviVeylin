@@ -1,0 +1,16 @@
+# the two doc suites, re-run focused after the last prose edit (round 3)
+# 2026-10-23T15:27:12+02:00 — after tasks.md, verification.md and the round-3 review records
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 177
+classified: 180
+unclassified: 0
+delta spec ids: 0
+stale: 3
+car-only areas: 1
+highlights: 19
+exit=0
+check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+exit=0

@@ -3,18 +3,23 @@
 ## The root cause, one sentence
 
 The profile's `LOOP_GATE_SUITES` is a hand-kept subset of the commands the pipeline's `Check …` steps run —
-eight of thirty-one on `ee95d71` — and `tools/loop/gate.sh:95` reads a path no glob names as owing nothing and
-exits 0, so a delta whose check the map never reaches is green in the run while the pipeline refuses it.
+ten of thirty-one on this change's base — and `tools/loop/gate.sh` reads a path no glob names as owing nothing
+and exits 0, so a delta whose check the map never reaches is green in the run while the pipeline refuses it.
 
 ## The one fix
 
 Two edits to the profile and one to the suite that reads it:
 
-1. **`LOOP_GATE_SUITES` is completed**, 21 pairs naming 8 commands → 55 pairs naming all 31. The unit of a pair
-   is a pipeline *step*, not a command: a path maps to every `bash`/`sh` command that step runs (the check, its
-   self-test, its mutation `--list`), because the pipeline runs the step as a unit and any of its commands can
-   be the one that reddens. No path is mapped to a step whose tools do not read it — that would be option 2 of
-   the item's recorded decision, which the owner rejected.
+1. **`LOOP_GATE_SUITES` is completed**, 24 pairs naming 10 commands → 58 pairs naming all 31 (plus the
+   `--check` record pass the map already carried). The unit of a pair is a pipeline *step*, not a command: a
+   path maps to every `bash`/`sh` command that step runs (the check, its self-test, its mutation `--list`),
+   because the pipeline runs the step as a unit and any of its commands can be the one that reddens. No path is
+   mapped to a step whose tools do not read it — that would be option 2 of the item's recorded decision, which
+   the owner rejected.
+
+   The map keeps the gate's own `--from-git {base}` narrowing on the loop pairs (issue #276), so the pin strips
+   that suffix before comparing a map command with the pipeline's — the suffix is the gate's filter, not part
+   of the command.
 2. **`LOOP_GATE_PIPELINE=".github/workflows/build.yml"`** is recorded: the pipeline file the map is pinned to.
    It is a project fact like the gate command, so it lives in the profile and no engine names it.
 3. **Two cases** in `tools/loop-cases.sh`: the pin (the map against the pipeline's `Check …` steps) and the
@@ -48,8 +53,8 @@ Two edits to the profile and one to the suite that reads it:
 - `tools/loop-cases.sh` — two cases added. Both read the profile; the pin reads the project's own pipeline file
   through `$LOOP_PROJECT_ROOT` and parses only the `bash`/`sh` lines under a step named `Check …`, so a publish
   step (`Publish the sensor inputs` runs `tools/build-inputs.sh --write`) is not one of them.
-- `tools/loop-mutations.sh` — four records, 40.1–40.4, one per assertion: 40.1 and 40.2 remove a pair from the
-  copied profile, 40.3 removes the mutation-list pair, 40.4 adds a pair that reaches the portability check
+- `tools/loop-mutations.sh` — four records, 54.1–54.4, one per assertion: 54.1 and 54.2 remove a pair from the
+  copied profile, 54.3 removes the mutation-list pair, 54.4 adds a pair that reaches the portability check
   through a coarse glob.
 - `guidelines/Build.md` §3 — the gate row states the bound.
 - Cost: a delta on `openspec/**` or a note now owes the whole documentation-routes step (two scripts and one
@@ -72,7 +77,12 @@ map over running every step; the pin makes the omission loud instead of silent, 
 the loop's own suite, whose case names every missing command.
 
 The pin's subject is narrower than "a step's every action", and that is deliberate: it reads the `run:` lines
-that name a script, so a step whose check is inline shell or a Gradle task is outside it. Three `Check …` steps
+that name a script, so a step whose check is inline shell or a Gradle task is outside it. The path side is
+narrower still, and is stated as a residual rather than claimed: which paths a step reads is named by no
+workflow, so a path a check reads but the map does not name is gated by no command of that step.
+`tools/check-portability.sh` reads `tools/loop/loop.conf` (its `LOOP_GATE_CMD` value), `tools/tooling.json` and
+`tools/sensors/sensors.json`, and none of the three maps to a command of `Check portability`; the item filed
+for the residual owns closing it (**#289**). Three `Check …` steps
 run inline shell on `ee95d71` (`Check libosmscout Android-free outside Android/`, `Check OpenSpec artifact
 hygiene`, `Check daemon JVM criteria`) and one runs a Gradle task (`Check license policy`). The one with a
 consequence a reader can hit today is the daemon JVM criterion over `gradle/gradle-daemon-jvm.properties`, a

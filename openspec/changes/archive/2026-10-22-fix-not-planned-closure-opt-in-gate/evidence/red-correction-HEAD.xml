@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Derived from evidence/red-correction-HEAD.log by hand, the way gate.sh derives a suite's tally from its
+     summary line: six probe checks ran, three failed. Taken 2026-10-22T06:59:54Z on the tree the first
+     archive left (HEAD cf752b6), against review round 1's two blocking findings. -->
+<testsuite name="bash evidence/probe-251-correction.sh" tests="6" failures="3" errors="0">
+  <testcase classname="spec" name="completedClosureIsScopedToUnownedItems"><failure message="grep -q 'no declared check owns' openspec/specs/issue-backlog/spec.md matched nothing — the sentence required the opt-in of every completed closure, including the --sensor path tools/issues/close.sh:100-101 exempts"/></testcase>
+  <testcase classname="spec" name="sensorPathNamesItsAuthorisation"><failure message="grep -q &quot;authorised by that check's row&quot; openspec/specs/issue-backlog/spec.md matched nothing"/></testcase>
+  <testcase classname="spec" name="scenarioDropsTheUnassertedWrite"><failure message="'the settled state is written before the close' is asserted by the added scenario, while its case's fixture (item 41) already carries status/retired and tools/issues/update.sh:149-151 writes nothing"/></testcase>
+  <testcase classname="spec" name="deltaMatchesTheMergedRequirement"/>
+  <testcase classname="close" name="notPlannedNeedsNoOptIn"/>
+  <testcase classname="close" name="sensorScopeAllowsItsOwnIssue"/>
+  <system-out>FAIL spec#completedClosureIsScopedToUnownedItems FAIL spec#sensorPathNamesItsAuthorisation FAIL spec#scenarioDropsTheUnassertedWrite PASS spec#deltaMatchesTheMergedRequirement PASS close#notPlannedNeedsNoOptIn PASS close#sensorScopeAllowsItsOwnIssue tests=6 failures=3 EXIT=1 2026-10-22T06:59:54Z…06:59:56Z</system-out>
+</testsuite>

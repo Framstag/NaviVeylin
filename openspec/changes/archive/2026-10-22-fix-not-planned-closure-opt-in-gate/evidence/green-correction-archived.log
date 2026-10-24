@@ -1,0 +1,25 @@
+2026-10-22T07:00:16Z
+PASS spec#completedClosureIsScopedToUnownedItems
+PASS spec#sensorPathNamesItsAuthorisation
+PASS spec#scenarioDropsTheUnassertedWrite
+PASS spec#deltaMatchesTheMergedRequirement
+PASS close#notPlannedNeedsNoOptIn
+PASS close#sensorScopeAllowsItsOwnIssue
+tests=6 failures=0
+PROBE-EXIT=0
+---
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+DOC-ROUTES-EXIT=
+stale: 0
+car-only areas: 1
+highlights: 19
+CLASSIFICATION-EXIT=
+2026-10-22T07:00:20Z
+---
+DOC-ROUTES-EXIT=0
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+CLASSIFICATION-EXIT=0
+stale: 0
+car-only areas: 1
+highlights: 19
+2026-10-22T07:00:24Z

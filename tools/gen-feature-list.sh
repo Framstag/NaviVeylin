@@ -78,6 +78,10 @@ areas_file="$data_dir/areas.json"
 specs_file="$data_dir/specs.json"
 highlights_file="$data_dir/highlights.json"
 maxpara=320   # the paragraph length bound, spec `feature-list-generation` "A paragraph stays short"
+# The word report's cap per area, spec `feature-list-generation` "Prose the run cannot verify is reported for
+# review": the rarest words of an area, shown, plus the count of the ones the gate left out. Ten keeps the report
+# readable (the first real generation produced 352 lines over 12 areas) without burying a vocabulary mismatch.
+max_words=10
 prompts_dir="$data_dir/prompts"
 snapshots_dir="$data_dir/snapshots"
 cache_dir="$data_dir/cache"
@@ -709,11 +713,13 @@ catalogue="$work/FEATURES.md"
 
 gate_failed=0
 
-# Per-bullet gates: the marker resolves and names a user-visible spec, each figure appears in a cited spec,
-# and every content word that appears in none of them is reported for review without failing the run.
+# Per-bullet gates: the marker resolves and names a user-visible spec, each figure appears in a cited spec, and
+# every content word that appears in none of them is reported for review without failing the run — bounded per area
+# to the rarest `max_words` of them, with a count of the ones not shown, because a report nobody reads is a check
+# that does not exist (issue #103).
 # The gate itself is tools/feature-list/gate.awk, so it can be read and run on its own.
 awk -F'\t' -f "$script_dir/feature-list/gate.awk" -v keyfile="$work/cited.txt" \
-  -v entryspecfile="$work/entryspec.tsv" -v maxpara="$maxpara" \
+  -v entryspecfile="$work/entryspec.tsv" -v maxpara="$maxpara" -v maxwords="$max_words" \
   -v vanishedfile="$work/vanished.txt" \
   "$work/spec-text.tsv" "$catalogue" > "$work/gate.out" 2> "$work/gate.err"
 gate_rc=$?
@@ -854,7 +860,7 @@ else
   # Only user-visible capabilities may appear, so the entry passes the same gates as the catalogue: every
   # bullet carries its key, every key resolves, and every key names a spec classified user-visible.
   awk -F'\t' -f "$script_dir/feature-list/gate.awk" -v keyfile="$work/entry-cited.txt" \
-    -v maxpara="$maxpara" -v vanishedfile="$work/vanished.txt" \
+    -v maxpara="$maxpara" -v maxwords="$max_words" -v vanishedfile="$work/vanished.txt" \
     "$work/spec-text.tsv" "$entry" > "$work/entry.gate.out" 2> "$work/entry.gate.err"
   entry_rc=$?
   if [ -s "$work/entry.gate.out" ]; then

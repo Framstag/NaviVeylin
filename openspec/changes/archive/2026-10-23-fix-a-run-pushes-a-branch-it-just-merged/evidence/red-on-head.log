@@ -1,0 +1,83 @@
+  a branch the run merged and released is a named skip, not git's refspec error: 'nothing to publish for fix/issue-21-an-eligible-bug-whose-cited-path-still-e' not found in: agent-issue-loop: items=1 minutes=90 review=on may-close=yes push=yes max-decisions=10 max-review-rounds=2 review-read-only=on child-max-seconds=2700 min-free-mib=1024 free-mib=7644 dry-run=0 reset-worktree=0
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/issue-loop
+lock held: /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/issue-loop/lock (owner 1102760)
+state: budget 1 items / 90 min · review on · may-close yes · max-decisions 10 · max-review-rounds 2 · base f3a23fa3858e
+state: deadline 2026-10-23T17:59:27Z
+loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/issue-loop/prescreen.log
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-162928')
+HEAD ist jetzt bei f3a23fa init
+worktree /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/worktrees/loop on branch loop-20261023-162928 from f3a23fa3858e (1 local.prop* copied)
+worktree: /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/worktrees/loop on loop-20261023-162928 from f3a23fa3858e
+loop: worktree · 1s · ready — loop on loop-20261023-162928 from f3a23fa3858e
+stub gh: recorded `gh issue edit`
+pick #21
+loop: item · 1s · picked #21 — its report is written to /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/issue-loop/items/21/worker-report.md
+loop: worker-prompt started (log /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/issue-loop/items/21/worker-report.md)
+loop: worker-prompt finished in 2s (exit 0, log 223 B)
+loop: commit · 3s · end-item returned — HEAD 22c60f056e26 (base f3a23fa3858e)
+loop: gate · 3s · read — 1 test-results XML in the tree
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (cc6cb21)
+loop: reviewer-prompt-1 started (log /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/issue-loop/items/21/reviewer-report-1.md)
+loop: reviewer-prompt-1 finished in 3s (exit 0, log 14 B)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (986ef8b)
+Aktualisiere f3a23fa..986ef8b
+Fast-forward
+ demo-fix.txt                                                         | 1 +
+ openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml  | 1 +
+ .../archive/2026-01-01-fix-demo/evidence/review-round-1-passed.md    | 4 ++++
+ .../archive/2026-01-01-fix-demo/evidence/review-round-1-requested.md | 5 +++++
+ openspec/changes/archive/2026-01-01-fix-demo/proposal.md             | 1 +
+ 5 files changed, 12 insertions(+)
+ create mode 100644 demo-fix.txt
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-1-passed.md
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-1-requested.md
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+merged: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e -> 986ef8b · commits fa08bcf9d3de653bfcc2114e93a7f3fa3f8471f3,22c60f056e268afef1087b070bc3c45f210cf222,cc6cb217107380e96919e03a6fc8dd3340a54464,986ef8b4240438fa06aae321fa8ba391e3a56bda
+HEAD ist jetzt bei 986ef8b review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 986ef8b).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+close #21
+item #21: closed (2026-01-01-fix-demo) · 4.647s · 1 review round(s)
+Fehler: Src-Refspec fix/issue-21-an-eligible-bug-whose-cited-path-still-e entspricht keiner Referenz.
+Fehler: Fehler beim Versenden einiger Referenzen nach '/tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.9qYcGo/origin.git'
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+stop: item cap reached (1/1)
+**agent-issue-loop — 2026-10-23T16:29:34Z** (budget 1 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base 986ef8b42404)
+
+closed 1 · mis-diagnosed 0 · skipped 0 · blocked 0 · budget left 0 items / 90 min · spent 0 min
+
+stop: item cap reached (1/1)
+
+closed 1 · mis-diagnosed 0 · skipped 0 · blocked 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #21 | bug | closed | 2026-01-01-fix-demo | the fixture has exactly one cause | Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z) | tests=1 failures=0 (fixture) | 1 | 4s | - | - | - | done | - |
+
+merged finished attempts: #21 fix/issue-21-an-eligible-bug-whose-cited-path-still-e · commits fa08bcf9d3de653bfcc2114e93a7f3fa3f8471f3,22c60f056e268afef1087b070bc3c45f210cf222,cc6cb217107380e96919e03a6fc8dd3340a54464,986ef8b4240438fa06aae321fa8ba391e3a56bda · evidence 
+no exclusions
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: none
+decisions the owner owes: none
+branches: loop-20261023-162928
+landed, removable: loop-20261023-162928
+worktree: /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/worktrees/loop (kept for the next run)
+state: /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/issue-loop/run.json
+
+actions the caller owes:
+  1. keep or remove the worktree /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+worktree: removed app/build (4096 B)
+worktree: 1 build path(s) removed from the kept worktree: 4096 B — its sources and its git state stay
+worktree kept for the next run: /tmp/nv283/.pi/tmp/loop-selftest.IPZ0Yo/case.7fnui8/repo/.pi/worktrees/loop
+FAIL worktree#pushSkipsABranchItAlreadyMerged
+loop-selftest: 1 of 1 cases failed

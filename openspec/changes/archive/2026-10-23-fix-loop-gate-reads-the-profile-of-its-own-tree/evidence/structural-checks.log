@@ -1,0 +1,12 @@
+# post-archive structural checks — 2026-10-23T14:36:19Z
+$ openspec validate --change 2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree --strict
+  - Each requirement MUST include at least one #### Scenario: block
+  - Re-run with --json to see structured report
+$ tools/check-doc-routes.sh
+check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+$ bash tools/gen-feature-list.sh --check-classification
+car-only areas: 1
+highlights: 19
+exit=0
+$ grep -n "The gate reads the profile of the tree it measures" openspec/specs/agent-issue-loop/spec.md
+1727:### Requirement: The gate reads the profile of the tree it measures

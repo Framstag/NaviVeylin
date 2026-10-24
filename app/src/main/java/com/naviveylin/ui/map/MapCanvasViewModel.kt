@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.framstag.libosmscout.client.InstalledMaps
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.ObjectDescription
@@ -24,6 +23,7 @@ import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.FreeDrivingStatus
 import com.naviveylin.core.FreeDrivingStatusProvider
 import com.naviveylin.core.MapStyleLoadReporter
+import com.naviveylin.core.mapsource.MapTreeDiscovery
 import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.StartMapSelection
@@ -2321,11 +2321,13 @@ class MapCanvasViewModel @Inject constructor(
         try {
             val mapsDir = File(context.filesDir, "maps")
             // Shared with Android Auto (AutoServiceModule): every database
-            // directory under maps/ (any depth), except the basemap overlay.
-            val installed = InstalledMaps.findDatabaseDirectories(
-                mapsDir.absolutePath,
-                File(mapsDir, "basemap").absolutePath
-            )
+            // directory under maps/ (any depth), except the basemap overlay and
+            // the staging directories an interrupted update left behind — those
+            // are reported, never opened as a map (spec: map-updates).
+            val installed = MapTreeDiscovery.under(
+                mapsDir.toPath(),
+                mapsDir.toPath().resolve("basemap")
+            ).installed.map { it.toString() }
             // Record the database this screen opened, so the next start reopens it (spec:
             // start-map-selection — the last opened map is reopened at the next start; a map opened
             // without the map manager is recorded). The value is normalized to the database directory

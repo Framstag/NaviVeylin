@@ -1,0 +1,4 @@
+started: 2026-10-22T08:40:37Z
+command: ./tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+EXIT=0

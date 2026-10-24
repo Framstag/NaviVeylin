@@ -35,12 +35,15 @@
     "prio": "The four bands. The band EDGES, the scoring table and the TTL are the `bands` section below — one home, so a re-tuned model is one committed file."
   },
   "roles": {
-    "comment": "THE VOCABULARY'S ROLES — for each decision an engine makes about a value of the namespaces above, which value it means. `tools/loop/prescreen.sh` reads `queuedVerdict`, `workedClasses` (rank order), `refusedClasses`, `inFlightStatus`, `deviceStatus` and `settledStatuses`; `tools/loop/labels.sh` reads `holdStatus`, `closeStatus`, `inProgressAgent`, `deviceAgent` and `decisionAgent`; `tools/loop/run.sh`, `report.sh` and `state.sh` read the verdicts the pre-screen writes; `tools/issues/resolve-stale.sh` reads `holdStatus` to park an item; `tools/issues/close.sh` reads `closeStatus` and `retiredStatus`, the settled state a closure records — a fix and a person's decision not to act, respectively. A key another project does not need is declared empty (`\"\"`, `[]`), never omitted: an absent key is a half-adapted profile, and `tools/check-portability.sh` forbids every value declared here in an engine exactly as it forbids the namespaces' values. `tools/loop/prescreen.sh` also reads `firstCategories`: the categories whose items lead the queue, in this order — the tooling, the process and the proof, whose defects are paid again by every item after them.",
+    "comment": "THE VOCABULARY'S ROLES — for each decision an engine makes about a value of the namespaces above, which value it means. `tools/loop/prescreen.sh` reads `queuedVerdict`, `workedClasses` (rank order), `refusedClasses`, `firstCategoryClasses`, `firstCategoryEvery`, `inFlightStatus`, `deviceStatus` and `settledStatuses`; `tools/loop/labels.sh` reads `holdStatus`, `closeStatus`, `inProgressAgent`, `deviceAgent` and `decisionAgent`; `tools/loop/run.sh`, `report.sh` and `state.sh` read the verdicts the pre-screen writes; `tools/issues/resolve-stale.sh` reads `holdStatus` to park an item; `tools/issues/close.sh` reads `closeStatus` and `retiredStatus`, the settled state a closure records — a fix and a person's decision not to act, respectively. A key another project does not need is declared empty (`\"\"`, `[]`), never omitted: an absent key is a half-adapted profile, and `tools/check-portability.sh` forbids every value declared here in an engine exactly as it forbids the namespaces' values. `tools/loop/prescreen.sh` also reads `firstCategories`: the categories whose defects lead the queue, in this order — the tooling, the process and the proof, whose defects are paid again by every item after them. `firstCategoryClasses` names the classes those categories lead on, and `firstCategoryEvery` mixes the categories' other classes in: one after every N other items, 0 to switch the mixing off. `proposeClass` names the class that is planned as an OpenSpec change before production code.",
     "queuedVerdict": "eligible",
     "heldVerdict": "held",
-    "workedClasses": ["bug", "improvement"],
+    "workedClasses": ["bug", "improvement", "feature"],
     "firstCategories": ["build-and-harness", "verification", "specs-and-process"],
-    "refusedClasses": ["feature"],
+    "firstCategoryClasses": ["bug"],
+    "firstCategoryEvery": 4,
+    "proposeClass": "feature",
+    "refusedClasses": [],
     "inFlightStatus": "in-flight",
     "deviceStatus": "open-device",
     "holdStatus": "on-hold",

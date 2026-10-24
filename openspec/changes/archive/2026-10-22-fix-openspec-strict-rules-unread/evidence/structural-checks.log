@@ -1,0 +1,13 @@
+2026-10-22T12:20:04+02:00
+== check-doc-routes
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+EXIT=0
+== gen-feature-list --check-classification
+specs read: 177
+classified: 177
+unclassified: 0
+delta spec ids: 0
+stale: 0
+car-only areas: 1
+highlights: 19
+EXIT=0

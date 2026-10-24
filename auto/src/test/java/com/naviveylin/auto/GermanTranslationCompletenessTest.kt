@@ -37,6 +37,19 @@ class GermanTranslationCompletenessTest {
     }
 
     /**
+     * The retired loading screen's two strings had no other consumer, so a screen that is deleted
+     * and leaves its text behind is dead code with a translation cost (spec:
+     * `route-calculation-feedback` — One wait-notice implementation on the car display).
+     */
+    @Test
+    fun retiredWaitNoticeStringsAreGone() {
+        val values = File("src/main/res/values/strings.xml")
+        val retired = setOf("loading_map_data", "preparing_navigation")
+        val present = keys(values, "string") intersect retired
+        assertTrue("retired wait-notice strings still in values/strings.xml: $present", present.isEmpty())
+    }
+
+    /**
      * The plural resources are a second file per locale, so a count added to `values/plurals.xml`
      * would otherwise reach a German driver in English (spec: i18n-l10n, German is fully supported).
      */

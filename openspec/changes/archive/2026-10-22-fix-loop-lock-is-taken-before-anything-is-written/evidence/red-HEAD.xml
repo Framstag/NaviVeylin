@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the three new cases, against the engine at 9f107493f4e6 (2026-10-22T20:28Z).
+     The three cases failed on HEAD, each for the reason its own line names; the transcript is red-HEAD.log. -->
+<testsuite name="loop-selftest" tests="3" failures="3" errors="0">
+  <system-out>state#aRefusedRunLeavesTheLiveStateAlone: the refused run left the live run's state in place: expected '2026-10-22T18:25:26Z', got '2026-10-22T18:25:28Z'
+state#aDeadOwnersLockIsTakenOver: a lock whose owner is gone is taken over: expected '0', got '5'
+report#aKilledRunIsNotALiveRun: a killed run is not a run that is going: 'the run is still going' should not appear in: **agent-issue-loop — 2026-10-22T18:25:35Z** (budget 2 items / 90 min ...)</system-out>
+</testsuite>

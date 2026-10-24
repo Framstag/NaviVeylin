@@ -1,0 +1,15 @@
+# revert-check for routed-read#route — 2026-10-22T17:03:35Z, root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+
+## routed-read#route — the build row reverted to `Build.md` §2, §3, §4
+[mutated-route-parents] FAIL routed-read#route — the routing table names no sub-section of: §2a §4a
+[mutated-route-parents] red-probe: 1 of 1 cases failed
+[mutated-route-parents] EXIT=1
+
+## routed-read#route — the build row keeps its sub-sections and states no cost
+[mutated-route-cost] FAIL routed-read#route — 1 row(s) name a lettered Build.md sub-section but state no cost: [build, run, force a rerun, read a gate result, or a workflow's action pin]
+[mutated-route-cost] red-probe: 1 of 1 cases failed
+[mutated-route-cost] EXIT=1
+[restored] PASS routed-read#route — the routing table names 29 lettered Build.md sub-sections across 3 priced row(s)
+[restored] red-probe: 0 of 1 cases failed
+[restored] EXIT=0
+EXIT=0

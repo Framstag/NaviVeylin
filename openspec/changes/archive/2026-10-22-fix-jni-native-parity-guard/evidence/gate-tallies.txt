@@ -1,0 +1,24 @@
+# The gate, run twice — round 1 on the tree before the input-declaration guard, round 2 on the final tree
+# ('tools/loop/gate.sh', one run per tree state; round 2 is the evidence the change stands on)
+
+round1: LOOP-GATE: tests=481 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/loop-mutations-selftest.sh, tools/issue-tooling-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+round2: LOOP-GATE: tests=481 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/loop-mutations-selftest.sh, tools/issue-tooling-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+
+# shell suites (the gate's own tallies, app/build/test-results/loop-gate/, round 2)
+name="bash tools/gen-feature-list.sh --check-classification" tests="0" failures="0"
+name="tools/check-action-runtimes-selftest.sh" tests="10" failures="0"
+name="tools/check-doc-routes.sh" tests="0" failures="0"
+name="tools/gen-feature-list-selftest.sh" tests="119" failures="0"
+name="tools/issue-tooling-selftest.sh" tests="117" failures="0"
+name="tools/loop-mutations-selftest.sh" tests="34" failures="0"
+name="tools/loop-selftest.sh" tests="156" failures="0"
+name="tools/sensor-selftest.sh" tests="45" failures="0"
+
+# module suites (each module's build/test-results, sums of the XML root attributes, round 2)
+app mobile: tests=2103 failures=0 errors=0 (NativeOverrideParityGuardTest tests=2 failures=0, timestamp 2026-10-22T11:55:28.104Z)
+app automotive: tests=2103 failures=0 errors=0 (NativeOverrideParityGuardTest tests=2 failures=0, timestamp 2026-10-22T11:53:46.364Z)
+auto: tests=880 failures=0 errors=0
+core: tests=642 failures=0 errors=0
+osmscout-client-java: tests=48 failures=0 errors=0
+buildSrc: tests=5 failures=0 errors=0 (NativeParityScannerTest, timestamp 2026-10-22T11:34:40.670Z — the gate's gradle runs left it up-to-date after that forced rerun; no buildSrc source changed since)
+total module tests: 5781

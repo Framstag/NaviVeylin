@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The focused suite that carries the new case, on the tree this change leaves, 2026-10-23T13:43:03Z:
+     `bash tools/loop-selftest.sh --group gate` — `loop-selftest: all 9 cases passed (JDK 27, offline, no token, no
+     sandbox) — selection: --group gate`. The numbers are that summary line's own (nine cases, none failed); the
+     transcript with every PASS line is green-gate-group.log beside this file. -->
+<testsuite name="loop-selftest --group gate" tests="9" failures="0" errors="0">
+  <testcase name="gate#aCompiledStepsTallyIsNotHidden"/>
+  <system-out>PASS gate#aCompiledStepsTallyIsNotHidden
+loop-selftest: all 9 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group gate</system-out>
+</testsuite>

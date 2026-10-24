@@ -26,12 +26,12 @@
 
 ## 3. The falsification: one mutation per case
 
-- [x] `tools/loop-mutations.sh`: record 40.1 removes `tools/build-inputs*|tools/build-inputs-selftest.sh;` from
-      the map; record 40.2 removes `tools/build-inputs*|tools/build-inputs.sh --check;`; record 40.3 removes the
-      mutation-list pair; record 40.4 adds a pair that reaches `tools/check-portability.sh` through a coarse
+- [x] `tools/loop-mutations.sh`: record 54.1 removes `tools/build-inputs*|tools/build-inputs-selftest.sh;` from
+      the map; record 54.2 removes `tools/build-inputs*|tools/build-inputs.sh --check;`; record 54.3 removes the
+      mutation-list pair; record 54.4 adds a pair that reaches `tools/check-portability.sh` through a coarse
       glob. One record per assertion, so each assertion of the case is driven by a mutation of the production
       invariant it guards.
-      Verify: `bash tools/loop-mutations.sh --only "40.1 40.2 40.3 40.4"` — all four RED on their named case, all
+      Verify: `bash tools/loop-mutations.sh --only "54.1 54.2 54.3 54.4"` — all four RED on their named case, all
       green after the restore, the tree byte-identical (`evidence/round2-mutations.log`, `04:59:45Z`; round 1's
       two-record `evidence/mutations.log`, `04:43:04Z`, is kept as history); and the two round-2 records fail
       for their own assertion, not merely somewhere in the case (`evidence/round2-probe-assertions.log`).
@@ -58,7 +58,7 @@
 
 - [x] The behaviour case asserts what its scenario promises: the step's third command
       (`tools/build-inputs-mutations.sh --list`) and the negative (`tools/check-portability.sh` absent), with
-      mutation records 40.3 and 40.4 making each of the two new assertions fail on its own
+      mutation records 54.3 and 54.4 making each of the two new assertions fail on its own
       (`evidence/green-cases.log`, `evidence/round2-probe-assertions.log`).
 - [x] `evidence/after-final-edit.log` re-taken over the **post-archive** tree, because the first copy predated
       the archive merge and the `openspec/**` writes that followed it. Re-taken a second time in round 3, and
@@ -97,3 +97,25 @@
       `evidence/gate-round3.log`, eight commands, `LOOP-GATE: tests=157 failures=0`, `exit=0`. A bare invocation
       ran first, owed four commands under the project tree's pre-change profile, and is kept as
       `evidence/invalid-3a-bare-invocation-old-profile.log` rather than quoted.
+
+## 8. Review round 3 — the claim narrowed to the command side, and the base refreshed
+
+Round 3 refused the change: the map covers the pipeline's commands in one direction, but the change claimed
+"every pipeline-gated path maps to every step the pipeline runs for it", and three paths a `Check portability`
+step reads (`tools/loop/loop.conf`, `tools/tooling.json`, `tools/sensors/sensors.json`) map to no command of
+that step. The owner's recorded answer was **option 1**: narrow the claim, state the path side as a residual,
+and file the gap as its own item.
+
+- [x] The claim is narrowed in `guidelines/Build.md` §3, the spec's requirement and scenario, `proposal.md`,
+      `design.md` and this file: the pin closes the **command** side — every `bash`/`sh` command a `Check …`
+      step runs is a value of the map — and the path side is a named residual (`tools/check-portability.sh`
+      reads `tools/loop/loop.conf`'s `LOOP_GATE_CMD` value, `tools/tooling.json` and
+      `tools/sensors/sensors.json`, none of which is mapped to a `Check portability` command). The residual is
+      filed as **#289**.
+- [x] The change was rebased onto the base's later work (#273's compiled-pattern refinement and #276's
+      `--from-git {base}` narrowing): the map keeps main's refined pairs and adds the missing commands, and the
+      pin strips the gate's `--from-git {base}` suffix before comparing a map command with the pipeline's, so
+      the narrowing is not read as part of the command itself.
+- [x] The three free corrections of round 3's report: `evidence.md`'s surface grep count, task 5's "the seven
+      beside it" (six), and `gate-round3.log`'s missing exit marker, each replaced with what the artifact
+      records; `invalid-3a-bare-invocation-old-profile.log` stays as the bare invocation's record.

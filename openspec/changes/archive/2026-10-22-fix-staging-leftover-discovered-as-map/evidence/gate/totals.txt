@@ -1,0 +1,32 @@
+fix-staging-leftover-discovered-as-map — the run's gate, taken once with `./tools/loop/gate.sh` (no arguments;
+its base is `git merge-base HEAD origin/main`).
+
+gate command (from the project's profile, `tools/loop/loop.conf`):
+
+    ./tools/loop/gate.sh
+    GATE-RC=0
+    LOOP-GATE: tests=481 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh,
+      tools/loop-mutations-selftest.sh, tools/issue-tooling-selftest.sh, tools/sensor-selftest.sh,
+      tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh,
+      bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+
+`tests=481` is the count the gate reads from the shell suites' own summary lines. The Gradle half's own
+tallies are the JUnit XMLs it wrote, summed here by `*/build/test-results/*/*.xml` (the `loop-gate/` tallies
+excluded):
+
+    module                 suites  tests  failures  errors  skipped
+    :app                      576   4210         0       0        0
+    :auto                      87    880         0       0        0
+    :buildSrc                   1      5         0       0        0
+    :core                      61    646         0       0        0
+    :osmscout-client-java       8     48         0       0        0
+    ALL                       733   5789         0       0        0
+
+The change's own classes in that run: `StartMapResolverTest` tests=9 failures=0 and
+`MapManagerSourceLabelTest` tests=6 failures=0 in both `:app` flavours
+(`app_testMobileDebugUnitTest_…`, `app_testAutomotiveDebugUnitTest_…`), and `MapTreeDiscoveryTest`
+tests=4 failures=0 in `:core` — copied into this directory from the gate run's results.
+
+The change touches `openspec/**` and `*.md`, so the gate also ran
+`bash tools/gen-feature-list.sh --check-classification` (unclassified: 0, delta spec ids: 1, stale: 0) and
+`tools/check-doc-routes.sh` (all 120 section references and all 5 skill references resolve) — both green.

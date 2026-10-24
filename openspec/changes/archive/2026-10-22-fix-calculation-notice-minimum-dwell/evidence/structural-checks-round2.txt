@@ -1,0 +1,59 @@
+### openspec validate route-calculation-feedback (spec, strict)
+Specification 'route-calculation-feedback' has issues
+⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+  - Ensure spec includes ## Purpose and ## Requirements sections
+  - Each requirement MUST include at least one #### Scenario: block
+  - Re-run with --json to see structured report
+exit=1
+
+### openspec validate --specs
+✓ spec/zoom-transition-scaling
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 177 passed, 0 failed (177 items)
+
+### tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+exit=0
+
+### gen-feature-list --check-classification
+specs read: 177
+classified: 177
+unclassified: 0
+delta spec ids: 0
+stale: 0
+car-only areas: 1
+highlights: 19
+exit=0
+
+### requirement body length (shipped spec, chars)
+489
+
+### shipped requirement vs archived delta (must be empty diff)
+diff-exit=0
+
+### Why the single-spec strict run exits 1 — a pre-existing warning, not this change's
+
+`openspec validate route-calculation-feedback --type spec --strict` prints one WARNING and exits 1:
+`requirements[6]: Requirement text is very long (>500 characters)`. `requirements[6]` is 0-based, so it is
+the 7th requirement, "Route calculation is measured without coordinates" (`spec.md:116`) — not the dwell
+requirement, which is `requirements[8]` and whose body is the 489 characters measured above (limit 500).
+
+Probe, on the tree as HEAD has it (`git show HEAD:openspec/specs/route-calculation-feedback/spec.md`
+written back in place, validated, then the corrected file restored — md5 restored to one value):
+
+    openspec validate route-calculation-feedback --type spec --json   →  "level": "WARNING",
+                                                                          "path": "requirements[6]"
+
+The same warning, on a spec whose dwell requirement still carried the round-1 wording. `openspec validate
+--specs` reports `Totals: 177 passed, 0 failed`, so the warning is not a failure and predates this change.
+
+### Archived-change validation (the mode that applies after archive)
+Totals: 343 passed, 50 failed (393 items)
+-- note: 'openspec validate <archived-id> --type change' resolves the archive dir and applies the OPEN-change delta rule, so it reports 'Change must have at least one delta' for an archived change (it resolves no deltas there); --archived is the mode for this state, and it reports this change valid with no issues. The 50 failed items are other archived changes with incomplete tasks, e.g. '2026-07-26-android-project-setup: 12 incomplete tasks (32/44 completed)'.
+    {
+      "id": "2026-10-22-fix-calculation-notice-minimum-dwell",
+      "type": "change",
+      "valid": true,
+      "issues": [],
+      "durationMs": 1

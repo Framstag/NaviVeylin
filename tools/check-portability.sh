@@ -168,9 +168,12 @@ while IFS= read -r namespace; do
 done < <(printf '%s\n' "$namespace_names")
 
 # the profile's `roles` section: which namespace value each of the engines' decisions means, so its values
-# are project values exactly as the namespaces' are
+# are project values exactly as the namespaces' are. A numeric or boolean role is a count or a switch, not a
+# name — `firstCategoryEvery: 4` would otherwise forbid every `$4` in the engines.
 while IFS= read -r value; do add "$value" "tools/tooling.json roles" word; done < <(
-  jq -r '.roles | to_entries[] | select(.key != "comment") | .value | if type == "array" then .[] else . end' "$profile" 2>/dev/null)
+  jq -r '.roles | to_entries[] | select(.key != "comment") | .value
+    | if type == "array" then .[] else . end
+    | select(type != "number" and type != "boolean")' "$profile" 2>/dev/null)
 
 # the registry's declared commands, inputs and escalation labels: paths this project declared belong in
 # the registry, and a label the registry writes belongs there too

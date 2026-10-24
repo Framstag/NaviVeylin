@@ -1,0 +1,40 @@
+# Phase A surface measurements, 2026-10-22, change root (base-tree readings are 'git grep HEAD')
+
+## nothing asserts the pair on the base tree
+$ git grep -lE "NativeParity|native-parity|native parity" HEAD -- tools app/src/test auto/src/test core/src/test buildSrc/src .github guidelines osmscout-client-java/src
+(no output — 0 files)
+
+## gates in the app build, before and after
+$ git show HEAD:app/build.gradle.kts | grep -c "tasks.register(\"check"
+8
+$ grep -c "tasks.register(\"check" app/build.gradle.kts
+9
+
+## the rule as prose, on the base tree
+$ git grep -lE "Mirror upstream APIs|mirror upstream" HEAD -- "*.md" ":!openspec/changes/archive/**" ":!app/src/main/cpp/**"
+HEAD:guidelines/Design.md
+
+## the five overridden files, named on the base tree
+$ git grep -lE "overridden files" HEAD -- "*.md" ":!openspec/changes/archive/**"
+HEAD:.pi/skills/native-bridge-signature-change/SKILL.md
+HEAD:AGENTS.md
+HEAD:guidelines/Design.md
+
+## the declaration-level difference, both directions (package qualifiers normalised)
+$ python3 evidence/native_parity_probe.py
+OSMScoutClient.java: submodule 59 natives, override 59 natives
+   SUBMODULE-ONLY calculateRouteWithObjectsAsync(double,double,long,String,double,double,long,String,RouteCallback)
+   SUBMODULE-ONLY getRegion(double,double)
+   SUBMODULE-ONLY searchLocations(String,int,String,long)
+   SUBMODULE-ONLY setGpsMarker(double,double,double,double)
+   SUBMODULE-ONLY startNavigation(long,NavigationListener)
+   OVERRIDE-ONLY getAddressAt(double,double)
+   OVERRIDE-ONLY getDatabaseBoundingBox(String)
+   OVERRIDE-ONLY getMaxSpeedAt(double,double)
+   OVERRIDE-ONLY reloadBasemap()
+   OVERRIDE-ONLY searchLocationByForm(String,String,String,String,int,long)
+OSMScoutClientBuilder.java: submodule 1 natives, override 1 natives
+BasemapManager.java: submodule 0 natives, override 0 natives
+MapDownloadManager.java: submodule 7 natives, override 7 natives
+AvailableMapEntry.java: submodule 0 natives, override 0 natives
+total deviations: 10

@@ -1,0 +1,4 @@
+gate: tools/loop-selftest.sh
+gate: tools/loop-mutations-selftest.sh
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=202 failures=0 (tools/loop-selftest.sh, tools/loop-mutations-selftest.sh, tools/check-doc-routes.sh)

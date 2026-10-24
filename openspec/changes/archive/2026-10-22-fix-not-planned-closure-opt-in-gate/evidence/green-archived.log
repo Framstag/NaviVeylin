@@ -1,0 +1,7 @@
+2026-10-22T06:35:36Z
+PASS spec#notPlannedExemptionIsStated
+PASS spec#notPlannedScenarioNamesItsCase
+PASS close#notPlannedNeedsNoOptIn
+tests=3 failures=0
+EXIT=0
+2026-10-22T06:35:37Z

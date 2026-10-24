@@ -1,0 +1,10 @@
+2026-10-22T12:19:10+02:00
+== grep -rn '500 characters|MAX_REQUIREMENT_TEXT_LENGTH' AGENTS.md guidelines/ tools/ openspec/specs/
+AGENTS.md:257:- a requirement's body stays at most 500 characters — the body, not its scenarios, which is where an example
+AGENTS.md:259:  `Requirement text is very long (>500 characters)`) and on the shipped spec after archive, a `MODIFIED`
+openspec/specs/documentation-ownership/spec.md:419:body stays at most 500 characters, its scenarios excluded — and the always-read entry document SHALL name
+EXIT=0
+== grep -rl theChangeSetIsValidatedByACommand tools/
+EXIT=1
+== grep -rn 'omits scenario|repeated verbatim' tools/
+EXIT=1

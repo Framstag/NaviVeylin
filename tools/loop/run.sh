@@ -19,7 +19,8 @@
 # file state the same end (#184).
 #
 # Usage: run.sh [--items N] [--minutes M] [--review on|off] [--may-close yes|no] [--push yes|no]
-#               [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off] [--dry-run]
+#               [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off]
+#               [--strict-outside-write yes|no] [--dry-run]
 #               [--clean-worktree] [--reset-worktree] [--base <sha>]
 set -uo pipefail
 
@@ -35,6 +36,7 @@ max_decisions=""
 max_review_rounds=""
 push="no"
 read_only="on"
+strict_outside_write=""
 dry_run=0
 clean_worktree=0
 reset_worktree=0
@@ -49,21 +51,27 @@ while [ $# -gt 0 ]; do
     --max-decisions) need_value "$@"; max_decisions="${2:-}"; shift 2 ;;
     --max-review-rounds) need_value "$@"; max_review_rounds="${2:-}"; shift 2 ;;
     --review-read-only) need_value "$@"; read_only="${2:-}"; shift 2 ;;
+    --strict-outside-write) need_value "$@"; strict_outside_write="${2:-}"; shift 2 ;;
     --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     --clean-worktree) clean_worktree=1; shift ;;
     --reset-worktree) reset_worktree=1; shift ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) loop_die "run: unknown argument $1" ;;
   esac
 done
 
 loop_resolve
 loop_roles_load
-# The resolved paths and the configuration go to every child, so all of them agree on which run and which
-# project they belong to.
+# The resolved paths go to every child, so all of them agree on which run and which project they belong to.
 export LOOP_STATE_FILE="$LOOP_STATE_FILE" LOOP_WORKTREE="$LOOP_WORKTREE"
-export LOOP_CONF="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
+# The profile stays with the process that read it, because the child works in another tree and reads the profile
+# beside that tree's engine. Measured 2026-10-23 finishing #273 (issue #277): the export below was the run's own
+# default, so every gate of a change whose delta edits `loop.conf` measured the profile of the project the run was
+# started in — the rule the change was replacing — and the log could not tell; the repair was a hand-pinned re-run.
+# `LOOP_CONF` is the self-test's seam and is read here (`loop_resolve` records it as `LOOP_CONF_PATH`); `export -n`
+# keeps the value this shell already read and takes it out of every child's environment.
+export -n LOOP_CONF
 
 # The measuring command the worker is handed (issue #246). A project that configures none still renders a task,
 # so the placeholder carries a sentence instead of an empty span, and no render site reads the key directly.
@@ -76,6 +84,11 @@ measure_cmd="${LOOP_MEASURE_CMD:-}"
 : "${may_close:=$(loop_conf_value LOOP_MAY_CLOSE_DEFAULT)}"
 : "${max_decisions:=$(loop_conf_value LOOP_MAX_DECISIONS_DEFAULT)}"
 : "${max_review_rounds:=$(loop_conf_value LOOP_MAX_REVIEW_ROUNDS_DEFAULT)}"
+# Whether a difference in the project's own tree decides an item (#274, #276, #285). Recorded, because it is a
+# fact about a project: a tree no peer session and no concurrent run writes can carry the verdict, and one that a
+# landing fast-forwards cannot (`worktree.sh merge-item` merges the base in the project tree).
+: "${strict_outside_write:=$(loop_conf_value LOOP_STRICT_OUTSIDE_WRITE_DEFAULT)}"
+: "${strict_outside_write:=no}"
 
 for pair in "items=$items" "minutes=$minutes" "max-decisions=$max_decisions"; do
   case "${pair#*=}" in ''|*[!0-9]*) loop_die "run: ${pair%%=*} must be a non-negative integer" ;; esac
@@ -87,11 +100,14 @@ case "$review" in on|off) ;; *) loop_die "run: --review must be on or off" ;; es
 case "$may_close" in yes|no) ;; *) loop_die "run: --may-close must be yes or no" ;; esac
 case "$push" in yes|no) ;; *) loop_die "run: --push must be yes or no" ;; esac
 case "$read_only" in on|off) ;; *) loop_die "run: --review-read-only must be on or off" ;; esac
+[ "$strict_outside_write" = on ] || [ "$strict_outside_write" = off ] || [ "$strict_outside_write" = yes ] ||
+  [ "$strict_outside_write" = no ] || loop_die "run: --strict-outside-write must be yes or no"
+case "$strict_outside_write" in yes|on) strict_outside_write=yes ;; *) strict_outside_write=no ;; esac
 
 # The one indirection through which every child is started (D3, D15). An empty value would start nothing
 # and report success for it, so it stops the run instead.
 if [ -z "$(printf '%s' "${LOOP_AGENT_CMD:-}" | tr -d '[:space:]')" ]; then
-  loop_die "run: LOOP_AGENT_CMD is empty in $LOOP_CONF — the run has no way to start an agent process"
+  loop_die "run: LOOP_AGENT_CMD is empty in $LOOP_CONF_PATH — the run has no way to start an agent process"
 fi
 
 # The run header names every effective value, so a run can be repeated and audited (D2). The child's
@@ -129,9 +145,9 @@ free_mib=$(host_free_mib)
 # could not be merged" — the real cause never named (issue #241, measured 2026-10-21: five refused
 # fast-forwards, `git config --get core.bare` → `true`, `git rev-parse --is-inside-work-tree` → `false`, and one
 # `git config core.bare false` fixed all of it). The run refuses before it writes anything, and says what to do.
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s child-max-seconds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
+printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
   "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$child_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
+  "$read_only" "$strict_outside_write" "$child_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -140,12 +156,8 @@ printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max
 printf 'run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory %s\n' \
   "$(dirname "$LOOP_STATE_FILE")"
 
-init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" \
-  --max-decisions "$max_decisions" --max-review-rounds "$max_review_rounds")
-if [ -n "$base" ]; then init_args+=(--base "$base"); fi
-loop_state init "${init_args[@]}" || exit $?
-base=$(loop_state get run.base)
-
+# The state is written below, after the identity and the lock: the lock is what keeps one run per
+# repository, and the state it would replace belongs to the run that is working.
 separator=$(loop_compat_profile_value namespaceSeparator)
 separator="${separator:-/}"
 # The label an item awaiting a decision carries, and the verdict that means it: both are values of the
@@ -211,6 +223,10 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
     --closed "$closure" --note "$out" \
     --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-evidence "$merged_evidence" \
     >/dev/null
+  # The branch is merged, so the work is in the base and the branch itself is a leftover: the run removes
+  # the branch it merged (a cherry-picked adoption is not an ancestor of the base, so git's safe delete
+  # refuses it and the branch stays for the sweep — which asks the same question by patch identity).
+  bash "$LOOP_DIR/worktree.sh" release-branch "$branch" >&2 || true
   printf 'item #%s: closed (merged %s — a finished attempt the base did not have) · %s review round(s)\n' \
     "$issue" "$merged_branch" 0
 }
@@ -225,7 +241,10 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
 # block's reason.
 merge_refusal=""
 merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed, 5 refused (the reason in merge_refusal)
-  local issue="$1" branch="$2" out base
+  # `base` is deliberately not in this list: the merge moves the run's own base, and every later item is cut from
+  # it. Declared here, the assignment below wrote a copy — the state file advanced and the run kept the commit it
+  # read once at its start, so the next item was handed a base several merges old (issue #252).
+  local issue="$1" branch="$2" out
   merge_refusal=""
   out=$(bash "$LOOP_DIR/worktree.sh" merge-item "$issue" "$branch" 2>&1) || {
     merge_refusal="$out"
@@ -236,7 +255,14 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
   # The merge moved the base branch itself, so the base the run recorded is the commit every later item must
   # descend from — without this the next `start-item` would refuse the run's own merge as a stale base.
   base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${LOOP_BASE_REF:-main}") || base=""
-  [ -z "$base" ] || loop_state set-base "$base" >/dev/null 2>&1 || true
+  # A base the tree moved to but the state does not carry is not a warning to swallow: the run hands the next item
+  # a commit the tree has left, which is the same defect one step further on. The merge is refused instead, so the
+  # item blocks with its branch named rather than closing on a base nobody can reproduce (issue #252).
+  if [ -z "$base" ] || ! loop_state set-base "$base" >/dev/null 2>&1; then
+    merge_refusal="the base could not be recorded after the merge — ${LOOP_BASE_REF:-main} did not resolve, or the run's state refused it, so the state and the tree would disagree about what every later item descends from"
+    printf '%s\n' "$merge_refusal" >&2
+    return "$LOOP_REFUSE"
+  fi
   # The branch and its commits are what a later reader checks the closure against: git lists the branch, nothing
   # else does once the run's state is replaced by the next run's.
   merged_branch=$(printf '%s\n' "$out" | sed -n 's/^merged: branch \([^ ]*\) .*/\1/p')
@@ -298,28 +324,78 @@ if [ "$preflight_status" -ne 0 ]; then
   loop_die "run: the preflight could not be evaluated (exit $preflight_status)"
 fi
 
-# 2. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
+# 2. the lock: one run per repository, and it is taken **before** this run writes anything. The state it
+# would replace, the queue the pre-screen writes into it and the branch the adoption path merges are the
+# live run's, and a run that is refused after any of them has already done the damage (measured 2026-10-22:
+# the run that started at 19:34 replaced the state of the run that started at 18:46, paid for a pre-screen,
+# merged that run's unfinished item into main and closed it, and was refused at the lock two minutes into a
+# 240-minute budget). A lock whose owner is not running any more is taken over and the takeover is
+# announced, so a run that was killed leaves no tombstone that refuses every run after it.
+loop_state lock --owner "$$" || exit $?
+
+in_progress=""
+interrupted=0
+# The process group of the child that is running right now, and nothing else: `run_child` sets it under `set -m`
+# and clears it once it has waited, so the traps below can end the child (and everything the child started) when
+# the run takes a signal — the path a person's `kill`, or an operator's Ctrl-C, takes — while it is waiting for
+# that child (issue #213).
+active_child=""
+on_exit() {
+  local rc=$?
+  trap - EXIT
+  # The child first: a run ended by a signal must not leave the item's agent working in the tree while the run
+  # writes the item's outcome. `loop_end_group` sends `TERM`, so the child's own cleanup runs, and waits for it.
+  loop_end_group "$active_child"
+  active_child=""
+  if [ "$interrupted" -eq 1 ] && [ -n "$in_progress" ]; then
+    # A killed run must leave no item looking in progress: the label comes off and the item is recorded
+    # blocked, so the next run's pre-screen can take it up again (D7).
+    loop_labels unpick "$in_progress" >&2 || true
+    loop_state done "$in_progress" --result blocked --note "interrupted by a signal" >&2 || true
+  fi
+  loop_state unlock --owner "$$" >&2 || true
+  exit "$rc"
+}
+on_signal() { interrupted=1; exit "$1"; }
+trap on_exit EXIT
+trap 'on_signal 130' INT
+trap 'on_signal 143' TERM
+
+# 3. the state: this run's own record, written now that this run is the only one that can write it. The
+# process that writes it is named in it, so a reader can tell a run that is going from one that was killed.
+init_args=(--items "$items" --minutes "$minutes" --review "$review" --may-close "$may_close" \
+  --max-decisions "$max_decisions" --max-review-rounds "$max_review_rounds")
+if [ -n "$base" ]; then init_args+=(--base "$base"); fi
+init_args+=(--owner-pid "$$")
+loop_state init "${init_args[@]}" || exit $?
+base=$(loop_state get run.base)
+
+# 4. the kept worktree. Keeping it is deliberate (the next run inherits its warm checkout, D4) and refusing a
 #    previous run's leftovers is the right rule — but the refusal may not end a run with an exit code and no
 #    item: it names the item whose branch the kept tree carries, records the refusal under that item,
 #    escalates it and prints the report, so the "a run that ends with nothing processed and no reason"
 #    outcome stays impossible on the path where it is most likely — a killed or crashed run (issue #173).
 #    The check is one `git status` in a directory the run already knows: it needs neither the state nor the
 #    lock, so it happens here, before the decision cap is counted and long before the pre-screen is paid for.
-#    A worktree a *live* run is working in is not leftovers, and the lock in the run's own state directory is
-#    the one signal that tells the two apart — read here, never taken (this run takes it further down, and a
-#    run that holds it refuses there as it always has).
+#    A worktree a *live* run is working in is not leftovers: a live run holds the lock, and this run was
+#    refused at that lock before it got here — so a tree that is not clean now is a previous run's.
 worktree="$LOOP_WORKTREE"
-run_lock="$(dirname "$LOOP_STATE_FILE")/lock"
 worktree_is_dirty() {
   git -C "$LOOP_ROOT" worktree list --porcelain 2>/dev/null | grep -qx "worktree $worktree" &&
     [ -n "$(git -C "$worktree" status --porcelain 2>/dev/null)" ]
 }
-if [ -d "$worktree" ] && [ ! -e "$run_lock" ] && worktree_is_dirty; then
+# The item whose work a worktree holds: `start-item` writes the item's branch into the tree's own branch marker,
+# so a tree somebody left mid-work still says whose it is. One reading, two readers — the start-time pre-flight
+# below, and the start a refusal stops mid-run (issue #284) — because a second copy of the rule is a second rule.
+owner_of_marker() { # owner_of_marker <branch> → the item that branch names, or nothing
+  printf '%s\n' "${1:-}" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1
+}
+if [ -d "$worktree" ] && worktree_is_dirty; then
   leftovers=$(git -C "$worktree" status --porcelain)
   # The item the leftovers belong to: `start-item` writes the item's branch into the worktree's own branch
   # marker, so a tree a killed run left behind still names the item it was working on.
   marker=$(cat "$worktree/.pi/loop-branch" 2>/dev/null || true)
-  owner_item=$(printf '%s\n' "$marker" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1)
+  owner_item=$(owner_of_marker "$marker")
   if [ "$reset_worktree" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
     printf 'reset-worktree: discarding what a previous run left in %s:\n' "$worktree"
     printf '%s\n' "$leftovers" | sed 's/^/  /'
@@ -353,7 +429,7 @@ if [ -d "$worktree" ] && [ ! -e "$run_lock" ] && worktree_is_dirty; then
   fi
 fi
 
-# 3. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
+# 5. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 open_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
   jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
 if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
@@ -365,7 +441,7 @@ if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   exit "$LOOP_REFUSE"
 fi
 
-# 4. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
+# 6. the queue. Nothing eligible is an explicit non-error: a stopped clock is not a failed loop (D5).
 if [ "$items" -eq 0 ]; then
   printf 'nothing eligible: the run was started with --items 0 (an empty budget is not a failure)\n'
   end_run
@@ -417,38 +493,6 @@ if [ "$dry_run" -eq 1 ]; then
   exit "$LOOP_OK"
 fi
 
-# ── the lock, and the traps that clean up after an interrupt ────────────────────────────────────
-
-loop_state lock --owner "$$" || exit $?
-
-in_progress=""
-interrupted=0
-# The process group of the child that is running right now, and nothing else: `run_child` sets it under `set -m`
-# and clears it once it has waited, so the traps below can end the child (and everything the child started) when
-# the run takes a signal — the path a person's `kill`, or an operator's Ctrl-C, takes — while it is waiting for
-# that child (issue #213).
-active_child=""
-on_exit() {
-  local rc=$?
-  trap - EXIT
-  # The child first: a run ended by a signal must not leave the item's agent working in the tree while the run
-  # writes the item's outcome. `loop_end_group` sends `TERM`, so the child's own cleanup runs, and waits for it.
-  loop_end_group "$active_child"
-  active_child=""
-  if [ "$interrupted" -eq 1 ] && [ -n "$in_progress" ]; then
-    # A killed run must leave no item looking in progress: the label comes off and the item is recorded
-    # blocked, so the next run's pre-screen can take it up again (D7).
-    loop_labels unpick "$in_progress" >&2 || true
-    loop_state done "$in_progress" --result blocked --note "interrupted by a signal" >&2 || true
-  fi
-  loop_state unlock --owner "$$" >&2 || true
-  exit "$rc"
-}
-on_signal() { interrupted=1; exit "$1"; }
-trap on_exit EXIT
-trap 'on_signal 130' INT
-trap 'on_signal 143' TERM
-
 # ── the working tree, once per run ──────────────────────────────────────────────────────────────
 
 worktree="$LOOP_WORKTREE"
@@ -463,8 +507,19 @@ printf 'worktree: %s on %s from %s\n' "$worktree" "$branch" "${base:0:12}"
 progress worktree "ready — $(basename "$worktree") on $branch from ${base:0:12}"
 
 # The only push in the loop, and only when the run asked to publish (D4): no pull request is opened by
-# this change at all.
-push_branch() { git -C "$worktree" push --set-upstream origin "$1" >&2; }
+# this change at all. It runs after the item is done, and a closed item's branch is gone by then — the run
+# merged it and `release-branch` deleted it a few lines earlier. Pushing a refspec whose local ref no longer
+# exists fails with git's `src refspec … does not match any`, so a run asked to publish printed two error lines
+# for the branch it had removed itself (measured 2026-10-23 on #277, inside an otherwise green run). The flag
+# publishes what still exists; a branch whose work is in the base is a skip, and the run says which it did.
+push_branch() { # push_branch <branch>
+  if ! git -C "$worktree" rev-parse --verify --quiet "refs/heads/$1" >/dev/null; then
+    printf 'run: nothing to publish for %s — the run merged it and released the branch, so its work is in the base\n' "$1" >&2
+    return 0
+  fi
+  git -C "$worktree" push --set-upstream origin "$1" >&2 ||
+    printf 'run: the push of %s failed — its commits stay in the run tree, not on the remote\n' "$1" >&2
+}
 
 report_field() { # report_field <file> <FIELD>
   sed -n "s/^${2}: //p" "$1" 2>/dev/null | tail -1
@@ -533,8 +588,104 @@ project_state() {
   git -C "$LOOP_ROOT" status --porcelain 2>/dev/null
 }
 # …and the base it recorded, so a child that commits on the project's own branch without touching a file is
-# still a change of the tree the run promised to build on. `project_state` is compared before and after every
-# child, which is what catches a write outside the worktree.
+# still a change of the tree the run promised to build on. `project_state` is read before and after every child,
+# and what the two readings differ by is recorded (below) — a difference is evidence, not a verdict about the one
+# child the run knows nothing about (#274, #276, #285).
+
+# The difference between two readings, which is what a report needs: the lines one reading carries and the other
+# does not. A constant sentence said only that the tree had changed, so neither the run nor a later reader of the
+# item could tell which path to restore — or whether a path had changed at all, since the tree's own answer to
+# "am I a work tree" travels in the same reading (issue #285).
+project_state_diff() { # project_state_diff <before> <after> → the lines only one of the two readings carries
+  { printf '%s\n' "$1"; printf '%s\n' "$2"; } | sed '/^[[:space:]]*$/d' | sort | uniq -u
+}
+
+# One clause out of a list of lines, quoted as it was read and bounded: a damaged tree carries thousands of
+# `git status` lines, and a note is a sentence a person reads on the tracker.
+outside_write_clause() { # <cap> — stdin: one line per item → `a; b; …`, `; and N more` past the cap
+  awk -v cap="$1" 'NF { n++; if (n <= cap) printf "%s%s", (n > 1 ? "; " : ""), $0 }
+                   END { if (n > cap) printf "%s and %d more", (cap > 0 ? "; " : ""), n - cap }'
+}
+
+# What changed, as the clause a note carries — the difference between the two readings, bounded. A constant
+# sentence said only that the tree had changed, so neither the run nor a later reader could tell which path to
+# restore (issue #285).
+outside_write_clause_of() { # <before> <after> → one clause, quoted as read
+  local paths
+  paths=$(project_state_diff "$1" "$2" | cut -c1-120 | outside_write_clause 10)
+  printf '%s' "${paths:-(no status line differs — only the work-tree answer changed)}"
+}
+
+# Whether a pid belongs to the tree the run started: the child leads its own process group (`set -m` before it is
+# started), and a descendant that gave itself its own session is in no group the cap signals but still names the
+# child among its ancestors (the #272 survivor). A pid outside both is not this child's, whatever it wrote — that
+# is the difference between evidence and a guess about whichever process the run happened to be running.
+pid_in_child_tree() { # <pid> <child> → 0 when the pid is the child or below it
+  local pid="$1" child="$2" p hops=0
+  [ -n "$pid" ] && [ -n "$child" ] || return 1
+  [ "$pid" = "$child" ] && return 0
+  [ "$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')" = "$child" ] && return 0
+  p=$(sed -n 's/^[0-9][0-9]* ([^)]*) [A-Z] \([0-9][0-9]*\).*/\1/p' "/proc/$pid/stat" 2>/dev/null)
+  while [ -n "$p" ] && [ "$p" != "0" ] && [ "$p" != "1" ] && [ "$hops" -lt 64 ]; do
+    [ "$p" = "$child" ] && return 0
+    p=$(sed -n 's/^[0-9][0-9]* ([^)]*) [A-Z] \([0-9][0-9]*\).*/\1/p' "/proc/$p/stat" 2>/dev/null)
+    hops=$((hops + 1))
+  done
+  return 1
+}
+
+# The processes the project shows that no phase may be working in: a survivor still names the tree it works in as
+# its working directory, which is the question `loop_pids_under` already answers for the cap's own sweep (issue
+# #272), and a working directory inside the worktree is a tree a phase *may* write. A caller that is itself
+# standing in the project passes its own pid as an extra skip; the sweep is run from `/` so its own shell is never
+# part of the answer.
+outside_write_pids() { # <root> <worktree> [pid to skip …] → one `<pid> <command>` line per process
+  local root="$1" wt="$2" pid cwd skip s; shift 2
+  for pid in $(loop_pids_under "$root"); do
+    skip=0
+    for s in "$@"; do [ "$pid" = "$s" ] && skip=1; done
+    [ "$skip" -eq 1 ] && continue
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
+    case "${cwd% (deleted)}" in "$wt"|"$wt"/*) continue ;; esac
+    printf '%s %s\n' "$pid" "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | cut -c1-80 | sed 's/[[:space:]]*$//')"
+  done
+}
+
+# The one line a child's transcript gains when the project's own tree moved while it ran: what changed, by the
+# status line it changed to, and who else could have changed it (issue #285: #274's round-2 worker was blocked by a
+# line that named no path, and the work was lost to a decision nobody could answer).
+outside_write_line() { # outside_write_line <before> <after> → one `LOOP-OUTSIDE-WRITE: …` line
+  local holders
+  holders=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" | cut -c1-120 | outside_write_clause 5 )
+  printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran: %s' \
+    "$(outside_write_clause_of "$1" "$2")"
+  [ -z "$holders" ] || printf '; process(es) whose working directory is inside the project: %s' "$holders"
+  printf '\n'
+}
+
+# What decides an item: a difference the run can tie to the tree it started — a process of the child's own tree
+# was alive when the tree changed — or a run that declared the tree exclusive (`--strict-outside-write yes`). A
+# difference it can tie to nothing is recorded and does not decide anything (issue #286).
+outside_write_decides() { # → 0 when the recorded difference decides the phase
+  [ -n "${outside_write_note:-}" ] &&
+    { [ -n "${outside_write_attributed:-}" ] || [ "$strict_outside_write" = "yes" ]; }
+}
+
+# The difference read *while the child runs*, with the processes that were alive at that moment and the ones of
+# them that belong to this child's own tree. A write is only evidence about the child when the two coincide, and
+# the child is gone by the time its transcript is written — so the reading has to be taken during its life, from
+# the heartbeat that is already ticking beside it (issue #286's attribution step).
+outside_write_seen() { # <before> <now> <child> <own pid> → two `LOOP-OUTSIDE-WRITE-*` lines
+  local before="$1" now="$2" child="$3" own="$4" alive attributed="" one pid
+  alive=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -c1-120 | outside_write_clause 5 )
+  for pid in $( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -d' ' -f1 ); do
+    pid_in_child_tree "$pid" "$child" || continue
+    attributed="${attributed:+$attributed,}$pid"
+  done
+  printf 'LOOP-OUTSIDE-WRITE-FIRST: the project tree changed at %s — %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "$(outside_write_clause_of "$before" "$now")"
+  printf 'LOOP-OUTSIDE-WRITE-ALIVE: %s · attributed=%s\n' "${alive:-(none)}" "${attributed:-none}"
+}
 
 # The diff a review round is handed is the change, not the generated output a change is archived beside:
 # item #126's round-3 diff (issue #204) carried 9 935 changed lines, 9 364 of them gate HTML and XML, against
@@ -550,6 +701,57 @@ write_review_diff() { # write_review_diff <base> <file>
   else
     git -C "$worktree" diff "$1"..HEAD > "$2"
   fi
+}
+
+# The round a corrective refusal buys is handed the corrections, not the change again (issue #245; the decision
+# recorded on the item, option 3). The refusing round said every finding was subtractive, so what the next
+# reviewer has to decide is whether those findings were answered — and the whole change since the base is the
+# wrong reading surface for it: it is the #204 measurement (9 935 changed lines, 9 364 of them generated output)
+# at a smaller scale, and two rounds have already graded it. So the range is the refused round's own HEAD
+# (`git diff <refused>..HEAD`, the ref `write_review_diff` is called with) and the findings are the refusing
+# report, quoted. Nothing is promised that the run does not know: the range is named, and a finding the tree
+# still carries is the round's to refuse.
+review_correction_scope() { # <refused head> <refusing report path>
+  local head="$1" report="$2"
+  printf '## This round verifies the corrections, not the change again\n\n'
+  printf 'The round before this one refused the change and stated `LOOP-CORRECTIONS-ONLY: yes`: every finding it\n'
+  printf 'raised was subtractive, so one worker pass was what it asked for. This round decides whether that pass\n'
+  printf 'answered them.\n\n'
+  printf -- '- the diff under review at `{{DIFF_PATH}}` is `git diff %s..HEAD` — the correction round alone, not\n' "$head"
+  printf '  the whole change since the base. A hunk of the change is absent from it on purpose; read the change\n'
+  printf '  itself in `{{CHANGE_ROOT}}` where a correction needs its context.\n'
+  printf -- '- the refusing round is `%s`, quoted in full below. Each of its findings is what this round\n' "$report"
+  printf '  decides: a finding the tree still carries is a `BLOCKING:` finding, and one the correction answers is\n'
+  printf '  recorded as closed. A correction whose hunk is missing is an unanswered finding, not an absence to\n'
+  printf '  report against the diff.\n\n'
+  printf '### The refusing round%ss findings\n\n' "'"
+  cat "$report"
+  printf '\n'
+}
+
+# Test results are the gate's evidence, and the run reads them out of the worktree after a worker — so a
+# directory an earlier item wrote is indistinguishable from this item's own gate. The kept worktree carries them
+# across items, and a child the round cap ends leaves the half-written state of its own gate behind (issue #253:
+# item #116's killed Gradle left `auto/build/test-results/testDebugUnitTest/binary/in-progress-results-generic.bin`,
+# and the next gate failed with `java.io.EOFException` on infrastructure instead of on a case; the same leftovers
+# defeat the "no test-results XML exists in the tree" refusal below, because there is always an XML).
+#
+# So every worker starts on a worktree without one. What is removed is a directory named `test-results` whose
+# parent is a `build` directory, inside the worktree, through `loop_scratch_remove`, whose four refusals are the
+# whole safety argument: only inside the tree, never through a symlink, never a path git tracks. The reviewer's
+# child is deliberately not covered: the round reads the gate result the worker just wrote, and taking it out of
+# the tree would hand the reviewer a tree the worker's evidence has been removed from.
+clear_stale_test_results() {
+  local dir rel cleared=""
+  [ -d "$worktree" ] || return 0
+  while IFS= read -r dir; do
+    [ -n "$dir" ] || continue
+    rel="${dir#"$worktree"/}"
+    loop_scratch_remove "$worktree" "$rel" --apply || continue
+    cleared="${cleared:+$cleared }$rel"
+  done < <(find "$worktree" -type d -name test-results -path '*/build/test-results' 2>/dev/null | sort)
+  [ -n "$cleared" ] || return 0
+  printf 'run: cleared %s from the worktree before this child — test results an earlier child wrote, which its gate would have counted\n' "$cleared"
 }
 
 # A child's own stream is silent by construction: the adapter the configured agent command names keeps the
@@ -571,9 +773,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase stop hb started interval cap child timed_out=0
+  local before after rc phase stop hb started interval cap child timed_out=0 sweep
   before=$(project_state)
   phase=$(basename "$1" .md)
+  # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
+  # carries no other child's test results (issue #253).
+  case "$phase" in worker*) clear_stale_test_results ;; esac
   interval="${LOOP_PROGRESS_SECONDS:-30}"
   case "$interval" in ''|*[!0-9]*|0) interval=30 ;; esac
   cap="${LOOP_CHILD_MAX_SECONDS:-2700}"
@@ -581,20 +786,9 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   stop="$2.progress-stop"
   rm -f "$stop"
   : > "$2"
+  rm -f "$2.outside-write"
   started=$(date +%s)
   printf 'loop: %s started (log %s)\n' "$phase" "$2"
-  ( ticks=0
-    while [ ! -e "$stop" ]; do
-      sleep 1
-      [ -e "$stop" ] && break
-      ticks=$((ticks + 1))
-      [ $((ticks % interval)) -eq 0 ] || continue
-      printf 'loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n' \
-        "$phase" "$(fmt_elapsed "$ticks")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
-        "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \
-        "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
-    done ) >&2 &
-  hb=$!
   # `set -m` on the one command that starts the child, immediately undone: a background job of a shell with job
   # control is its own process group, which is what lets the cap end the child *and its descendants* — a Gradle
   # gate leaves daemons and test workers behind, and those are the memory the next item needs. Its stdin is
@@ -605,6 +799,29 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   child=$!
   active_child="$child"
   set +m
+  ( ticks=0
+    hb_pid=$BASHPID
+    while [ ! -e "$stop" ]; do
+      sleep 1
+      [ -e "$stop" ] && break
+      ticks=$((ticks + 1))
+      [ $((ticks % interval)) -eq 0 ] || continue
+      # The difference is read *while the child runs*, because a writer is gone by the time the transcript is
+      # written: only here can the run say which processes were alive at the moment the tree changed, and which of
+      # them belong to this child's own tree. One reading per child — the first difference is the one a reader of
+      # the item needs, and a tree another process keeps rewriting would otherwise fill the item's directory.
+      if [ ! -e "$2.outside-write" ]; then
+        now=$(project_state)
+        if [ "$now" != "$before" ]; then
+          outside_write_seen "$before" "$now" "$child" "$hb_pid" > "$2.outside-write" 2>/dev/null || true
+        fi
+      fi
+      printf 'loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n' \
+        "$phase" "$(fmt_elapsed "$ticks")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
+        "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \
+        "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
+    done ) >&2 &
+  hb=$!
   # The wait ends on the **child's own completion record**, not on `kill -0` of its pid and not on `wait`: a child
   # that the shell has already reaped answers nothing, and a `wait` on a pid bash no longer tracks returns no
   # status, so a poll that believes the child is gone can leave the run blocked behind a `wait` for ever. Measured
@@ -632,6 +849,16 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   active_child=""
   if [ "$timed_out" -eq 1 ]; then
     printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
+    # …and "everything it started" is more than the group: a descendant that gave itself its own session
+    # (`setsid`) is a member of no group the signals above reach, so it kept mutating and restoring the
+    # worktree for seven minutes after a run had recorded the child as ended, its last restore leaving that
+    # tree dirty for the next run (measured 2026-10-22, issue #272). A survivor still names the tree it works
+    # in as its working directory, which is the test `loop_pids_under` already owns (#213, #233), and each
+    # process the sweep ends is named in the transcript a reader of the blocked item is handed.
+    sweep=$(loop_end_pids_under "$LOOP_WORKTREE")
+    if [ -n "$sweep" ]; then
+      printf '%s\n' "$sweep" | sed 's/^/LOOP-ENDED: /' >> "$2"
+    fi
     rc="$LOOP_CHILD_TIMEOUT"
   fi
   : > "$stop"
@@ -640,8 +867,20 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   printf 'loop: %s finished in %s (exit %s, log %s B)\n' "$phase" \
     "$(fmt_elapsed $(( $(date +%s) - started )))" "$rc" "$(wc -c < "$2" 2>/dev/null || printf 0)"
   after=$(project_state)
+  # What the in-time reading found, appended to the child's transcript so the item carries it: the paths as they
+  # first differed, and the processes alive then with the ones of this child's own tree marked.
+  outside_write_attributed=""
+  outside_write_note=""
+  if [ -s "$2.outside-write" ]; then
+    outside_write_note=$(sed -n 's/^LOOP-OUTSIDE-WRITE-FIRST: //p' "$2.outside-write" | head -1)
+    outside_write_attributed=$(sed -n 's/^LOOP-OUTSIDE-WRITE-ALIVE: .* · attributed=//p' "$2.outside-write" | head -1)
+    case "$outside_write_attributed" in none|'') outside_write_attributed="" ;; esac
+    cat "$2.outside-write" >> "$2"
+  fi
   if [ "$before" != "$after" ]; then
-    printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran\n' >> "$2"
+    outside_write_line "$before" "$after" >> "$2"
+    [ -n "$outside_write_note" ] ||
+      outside_write_note="the project tree changed while this process ran: $(outside_write_clause_of "$before" "$after")"
   fi
   return "$rc"
 }
@@ -653,8 +892,13 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
 
 # The round's prompt, rendered once per attempt: the same contract and the same diff, only the file it is written
 # to differs, so a retried answer is the same question asked again rather than a second review (#224).
-render_reviewer_prompt() { # render_reviewer_prompt <out file>
+# `CORRECTION_SCOPE` is substituted **first**, not last: `loop_render` replaces one pair at a time on the template it
+# has accumulated so far, and the section names `{{DIFF_PATH}}` and `{{CHANGE_ROOT}}` itself. A section inserted
+# after those pairs would survive verbatim and hand the reviewer a file called `{{DIFF_PATH}}` — the round that
+# exists to verify corrections pointing at a placeholder (item #245's round-1 review).
+render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope]
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
+    "CORRECTION_SCOPE=${2:-}" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir" \
     "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
 }
@@ -704,6 +948,12 @@ while true; do
     break
   }
   title=$(printf '%s' "$issue_json" | jq -r '.title // ""')
+  # The item's class is a work input, not a label the worker guesses: a feature takes the propose-first path
+  # while a bug and an improvement take the fix path (`tools/loop/prompts/worker.md`).
+  class=$(printf '%s' "$issue_json" | jq -r '[.labels[]? | if type == "string" then . else .name end |
+    select(startswith("class/")) | sub("^class/"; "")] | .[0] // ""')
+  # The class that is planned before it is applied is the profile's value, not a word in the skeleton (D16).
+  propose_class=$(loop_role proposeClass)
   slug=$(slugify "$title")
   [ -n "$slug" ] || slug="issue-$issue"
 
@@ -734,6 +984,41 @@ while true; do
         in_progress=""
         continue
         ;;
+      *"not clean"*)
+        # The dirt is the *previous* item's unfinished work, not this candidate's failure (#284). The run used to
+        # record only the first line of the refusal and end, so the item whose work the tree held — already
+        # recorded for another reason — was named nowhere, the leftovers were attributed nowhere, and the item
+        # that could not start went back into the queue untouched (measured 2026-10-23: 166 minutes into an 8 h
+        # budget, 7 eligible items unworked). The tree's own branch marker names the item, so the leftovers are
+        # recorded there and escalated exactly as the start-time pre-flight records them (#173), and the stop
+        # reason names the files instead of the refusal's first line (issue #284, item (b) and (c)).
+        # The candidate is not recorded and not escalated: nothing was done to it, and it stands in the queue as
+        # its owner set it. Continuing down the queue is not an alternative and is not taken: the tree stays
+        # dirty, nothing is discarded without `--reset-worktree`, so every later candidate would be refused the
+        # same way and one cause would leave a blocked item per candidate.
+        marker=$(cat "$worktree/.pi/loop-branch" 2>/dev/null || true)
+        owner_item=$(owner_of_marker "$marker")
+        leftovers=$(git -C "$worktree" status --porcelain 2>/dev/null)
+        leftover_files=$(printf '%s\n' "$leftovers" | sed '/^$/d' | paste -sd, - | sed 's/,/, /g')
+        if [ -n "$owner_item" ]; then
+          leftover_owner="the leftovers are #$owner_item's (branch $marker)"
+        else
+          leftover_owner="the worktree is on ${marker:-an unknown branch}, which names no item"
+        fi
+        if [ "$dry_run" -eq 0 ] && [ -n "$owner_item" ]; then
+          escalated_label=""
+          if loop_labels escalate "$owner_item" \
+            --reason "a start was refused mid-run because the worktree is not clean — the leftovers are this item's" \
+            --evidence "branch ${marker:-unknown}, worktree $worktree: $leftover_files" >&2; then
+            escalated_label="$decision_label"
+          fi
+          loop_state done "$owner_item" --result blocked --verdict blocked \
+            --note "the worktree was not clean when #$issue was started: the leftovers are #$owner_item's, and no item can start until they are dealt with — $leftover_files" \
+            --decision-label "$escalated_label" >/dev/null
+        fi
+        stop_run "the item could not be started: the worktree is not clean — $leftover_owner, so #$issue and no item after it can start until they are dealt with: $leftover_files (repair: --reset-worktree discards them, and names them before it does)"
+        break
+        ;;
       *) stop_run "the item could not be started: $(printf '%s' "$start_out" | head -1)"; break ;;
     esac
   fi
@@ -749,6 +1034,17 @@ while true; do
     break
   }
   in_progress="$issue"
+  # The state names the item from here on and not only a phase: `.current` is what `state.sh show` prints and
+  # what `done` clears, so a person who opens the state of a killed run reads which item was in flight instead
+  # of resolving the worktree's branch marker by hand (issue #263). Its `change` is the name the run asks the
+  # worker for — the same slug the branch carries — because the change the worker files is not known until it
+  # reports, and `done` records that one beside the item.
+  change_hint="$(if [ "$class" = "$propose_class" ]; then printf add; else printf fix; fi)-$slug"
+  loop_state start "$issue" --change "$change_hint" >/dev/null || {
+    printf 'run: could not record #%s as the item in progress\n' "$issue" >&2
+    stop_run "the state could not name #$issue as the item in progress"
+    break
+  }
 
   item_dir="$stage_dir/items/$issue"
   mkdir -p "$item_dir"
@@ -773,7 +1069,8 @@ while true; do
 
   render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
-    "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
+    "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
+    "CLASS=$class" "PROPOSE_CLASS=$propose_class"
 
   started=$(date +%s%3N)
   run_child "$item_dir/worker-prompt.md" "$item_dir/worker-report.md"
@@ -799,9 +1096,23 @@ while true; do
 
   # The run verifies rather than trusts: it commits the child's work itself and then reads the tree, the
   # archive and the gate's evidence, instead of repeating the child's claims (D3, D8).
-  commit_out=$(bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" 2>&1)
+  #
+  # A child the run itself ended is unfinished, and the tree at that moment is whatever it was doing — a
+  # half-applied mutation, a half-written file, a gate's scratch directory — so committing it asserts work the
+  # child never claimed. Measured 2026-10-22 (issue #271): the worker of #262 was ended at 23:48 with mutation
+  # 19.2 applied (`if false; then` in place of the corrective-round test), `end-item` committed that tree 18 s
+  # later and the dead arm stayed on `origin/fix/issue-262-…` until it was amended by hand at 05:05. A commit is
+  # the run's statement about a child that finished, so a child the run ended gets none: the branch stays at the
+  # base, the item is blocked with the transcript, and the tree is kept exactly as the child left it — nothing is
+  # discarded without `--reset-worktree` (issue #173), and the next start refuses it and names it.
   head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
-  progress commit "end-item returned — HEAD ${head_now:0:12} (base ${base:0:12})"
+  if [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$timeout_claim" ]; then
+    progress commit "end-item skipped — the run ended this child, so its tree is not committed; HEAD is ${head_now:0:12} (base ${base:0:12})"
+  else
+    bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
+    head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+    progress commit "end-item returned — HEAD ${head_now:0:12} (base ${base:0:12})"
+  fi
 
   # A child that never started is the run's fault, not the item's (issue #212). `run_child` returns the child's
   # status and nothing else, so a status alone cannot tell a child whose argv the environment refused — measured
@@ -845,6 +1156,15 @@ while true; do
   carried=0
   if [ -d "$change_evidence" ] && [ -n "$(ls -A "$change_evidence" 2>/dev/null)" ]; then carried=1; fi
 
+  # A difference the run cannot tie to this child is recorded and does not decide the item (#274, #276, #285,
+  # #286): the tree it measures is one the run's own landings fast-forward in the project and a peer session
+  # writes too, so two readings of it are not evidence about the one child the run started. A write the in-time
+  # reading tied to this child's own tree — or any difference at all, when the run declared the tree exclusive
+  # (`--strict-outside-write yes`) — is evidence, and decides.
+  if [ -n "$outside_write_note" ] && ! outside_write_decides; then
+    loop_state step A --name outside-write --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
+    progress note "$outside_write_note"
+  fi
   outcome="closed"
   blocked_reason=""
   if [ "$worker_exit" -ne 0 ]; then
@@ -852,8 +1172,8 @@ while true; do
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
     # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
     if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
-  elif [ -n "$outside_write" ]; then
-    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran"
+  elif outside_write_decides; then
+    outcome="blocked"; blocked_reason="the worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
   elif [ "$verdict_claim" = "skipped" ] && [ "${skip_verdict:-}" = "falsified" ] \
     && [ -n "$falsified_mechanism" ] && [ -n "$falsified_measurement" ] && [ "$head_now" = "$base" ]; then
     # Measured 2026-10-20: three of the first four items of one run (#89, #99, #137) were items whose premise the
@@ -889,14 +1209,28 @@ while true; do
     corrective_round_used=0
     # Read once: the same pathspec the round's diff is built with is the one its prompt names.
     review_exclude_spec=$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)
+    # The base a round's diff is taken from, and which is the run's own except for the round a corrective refusal
+    # buys: that one is handed the correction round alone, from the refused round's HEAD (#245). `correction_scope`
+    # is the section the same round's prompt carries instead of an empty placeholder.
+    diff_base="$base"
+    correction_scope=""
     while [ "$round" -le "$round_cap" ]; do
       review_rounds=$round
       diff_file="$item_dir/review-$round.diff"
-      write_review_diff "$base" "$diff_file"
-      before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
+      write_review_diff "$diff_base" "$diff_file"
+      before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       reviewer_report="$item_dir/reviewer-report-$round.md"
-      render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md"
+      render_reviewer_prompt "$item_dir/reviewer-prompt-$round.md" "$correction_scope"
+      # The round is announced on the branch *before* the reviewer starts, so an answer that never arrives is a
+      # fact a later run reads (#262): with only the answer written, a reviewer killed mid-answer left a branch
+      # that read exactly like a passed one, and the next run adopted it. A round that cannot be announced stays
+      # a round the run holds, and the warning names what a later run will read instead.
+      if [ -n "$change" ]; then
+        bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$round" requested >&2 ||
+          printf 'run: review round %s could not be announced on the branch — a later run may adopt %s as if no review had been asked for\n' \
+            "$round" "$change" >&2
+      fi
       run_child "$item_dir/reviewer-prompt-$round.md" "$reviewer_report"
       # An answer cut on its way to the file decides nothing, and it is not a reviewer that stayed quiet either
       # (#224): it is the run's own transport, so the round is asked once more instead of the item being blocked.
@@ -907,7 +1241,7 @@ while true; do
         printf 'run: the round %s answer was cut short (%s) — retrying the round once\n' \
           "$round" "$(last_line "$reviewer_report")" >&2
         reviewer_report="$item_dir/reviewer-report-$round-retry.md"
-        render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md"
+        render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md" "$correction_scope"
         run_child "$item_dir/reviewer-prompt-$round-retry.md" "$reviewer_report"
         if [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
           ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
@@ -920,13 +1254,25 @@ while true; do
           break
         fi
       fi
-      after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; project_state; } |
+      after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
         { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
       if [ "$read_only" = "on" ] && [ "$before" != "$after" ]; then
-        # The reviewer wrote, so it cannot have been the reviewer: the round is discarded (D3).
+        # The reviewer wrote in the tree it reads, so it cannot have been the reviewer: the round is discarded (D3).
         review_verdict="reviewer-wrote"
         outcome="blocked"; blocked_reason="the review round was discarded: the working tree changed while the reviewer ran"
         break
+      fi
+      # The project's own tree is read as well, by the child's own run (the in-time reading), and it is not the
+      # reviewer's either — but it is not only the reviewer's to change either (#274, #276, #285, #286): a write
+      # the run can tie to the reviewer's own tree, or any difference in a run that declared the tree exclusive,
+      # discards the round; anything else is recorded and the round stands.
+      if outside_write_decides; then
+        review_verdict="reviewer-wrote"
+        outcome="blocked"; blocked_reason="the review round was discarded: the project's own tree changed while the reviewer ran — $outside_write_note${outside_write_attributed:+ (attributed to this round: $outside_write_attributed)}"
+        break
+      elif [ -n "$outside_write_note" ]; then
+        loop_state step A --name outside-write-review-$round --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
+        progress note "$outside_write_note"
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
       # with a non-zero count contradicts itself and is read as a refusal, and a refusal with a zero count is
@@ -936,20 +1282,37 @@ while true; do
       if grep -q '^VERDICT: PASS' "$reviewer_report" 2>/dev/null &&
         { [ -z "$blocking" ] || [ "$blocking" -eq 0 ]; }; then
         review_verdict="PASS"
+      elif [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then
+        review_verdict="NOTES"
+      fi
+      # A round that answered is written on the branch as the answer to the round it announced (#262). The
+      # refusal arm is written after the loop (`record-review-failure`), where the run knows the round was the
+      # last one; here the answer is all that is known and all a later run needs.
+      if [ "$review_verdict" = "PASS" ] || [ "$review_verdict" = "NOTES" ]; then
+        if [ -n "$change" ]; then
+          bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$round" passed >&2 ||
+            printf 'run: the round %s answer could not be recorded on the branch — a later run reads %s as never answered\n' \
+              "$round" "$change" >&2
+        fi
+      fi
+      if [ "$review_verdict" = "PASS" ]; then
         break
       fi
-      if [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then
-        review_verdict="NOTES"
+      if [ "$review_verdict" = "NOTES" ]; then
         review_notes_text=$(review_notes "$reviewer_report")
         break
       fi
       if [ "$round" -ge "$round_cap" ]; then
         # A corrective refusal earns one more round, once: a reviewer that says "nothing here adds a claim" has
-        # answered the question its FAIL otherwise leaves open (#186, #187).
+        # answered the question its FAIL otherwise leaves open (#186, #187). That round exists only to decide the
+        # findings the refusing round wrote, so it is handed the correction round — the refused round's own HEAD
+        # as the diff's base — and the refusing report, rather than the whole change again (#245).
         corrections_only=$(report_field "$reviewer_report" LOOP-CORRECTIONS-ONLY)
         if [ "$corrective_round_used" -eq 0 ] && [ "$corrections_only" = "yes" ]; then
           corrective_round_used=1
           round_cap=$((round_cap + 1))
+          diff_base=$(git -C "$worktree" rev-parse HEAD 2>/dev/null || printf '%s' "$base")
+          correction_scope=$(review_correction_scope "$diff_base" "$reviewer_report")
         else
           break
         fi
@@ -958,20 +1321,40 @@ while true; do
       findings=$(cat "$reviewer_report")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
-        "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS"
+        "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
+        "CLASS=$class" "PROPOSE_CLASS=$propose_class"
       printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \
         >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"
+      round2_exit=$?
       outside_write=$(report_field "$item_dir/worker-report-round2.md" LOOP-OUTSIDE-WRITE)
-      if [ -n "$outside_write" ]; then
+      if outside_write_decides; then
         # Named for what it is: a write outside the worktree, not a second failed review round.
         review_verdict="outside-write"
         outcome="blocked"
-        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran"
+        blocked_reason="the round-2 worker wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
+        break
+      elif [ -n "$outside_write_note" ]; then
+        # Recorded and not acted on, for the reason the worker's own difference is (#274, #276, #285, #286).
+        loop_state step A --name outside-write-round-2 --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
+        progress note "$outside_write_note"
+      fi
+      # The rule the item's own commit follows is the same one here (issue #271): the run commits a child's tree
+      # only once that child has finished by its own exit. A round-2 worker the cap ended is unfinished exactly as
+      # the item's worker was — the tree is whatever it was doing, and a reviewer's refusal is not a licence to
+      # assert work nobody claimed — so this commit is skipped too, the item is blocked with the round's own
+      # transcript, and the tree stays as the child left it. Measured 2026-10-23 (the round-1 review of #271): the
+      # shipped requirement was universal and this call site was left as it stood, so the sentence and the code
+      # disagreed until the reviewer read them against each other.
+      round2_timeout=$(report_field "$item_dir/worker-report-round2.md" LOOP-TIMEOUT)
+      if [ "$round2_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$round2_timeout" ]; then
+        review_verdict="round2-ended"
+        outcome="blocked"
+        blocked_reason="the cap ended the rework worker of the refusing round, so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
         break
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
-      write_review_diff "$base" "$item_dir/review-$((round + 1)).diff"
+      write_review_diff "$diff_base" "$item_dir/review-$((round + 1)).diff"
       round=$((round + 1))
     done
     if [ "$review_verdict" = "FAIL" ]; then
@@ -980,7 +1363,8 @@ while true; do
       # The verdict has to outlive this run and travel with the change: the branch is what a later run adopts
       # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185). A
       # falsification has no change to record the verdict against — its tree did not move — so the branch keeps
-      # no review marker and `worktree.sh` is not asked to write one.
+      # no review marker and `worktree.sh` is not asked to write one. The round's announcement is already on the
+      # branch (#262), so the refusal answers a round a later run can see was asked.
       if [ -n "$change" ]; then
         bash "$LOOP_DIR/worktree.sh" record-review-failure "$issue" "$change" "$review_rounds" >&2 ||
           printf 'run: the failed review could not be recorded on the branch — a later run may adopt it\n' >&2
@@ -1010,6 +1394,12 @@ while true; do
       outcome="blocked"
       blocked_reason="the branch fix/issue-$issue-$slug could not be merged onto the base, so the item is not closed on a fix the tree does not have — $merge_refusal"
     }
+    # The branch the run committed for this item is done with once the run merged it: the work is in the
+    # base, and the branch is the run's own leftover. The release frees the worktree from it and the
+    # deletion is git's safe one, which refuses a branch whose work is not in the base.
+    if [ "$outcome" = "closed" ]; then
+      bash "$LOOP_DIR/worktree.sh" release-branch "fix/issue-$issue-$slug" >&2 || true
+    fi
   fi
 
   # The wall time is recorded in milliseconds-derived seconds: a stub run finishes inside one second, and
@@ -1101,7 +1491,14 @@ $review_notes_text"
         --events "$events_file" --decision-label "$escalated_label" >/dev/null
       ;;
     *)
-      loop_labels unpick "$issue" >&2 || true
+      # A label write the tracker refuses is a fact of the run, not a swallow (issue #279): measured
+      # 2026-10-23T11:38Z, a run recorded item #260 blocked with `escalatedLabel: ""` while its six neighbours
+      # carried the decision label, and left `agent/in-progress` on an item nothing was working any more — so the
+      # decision list did not hold it, the cap did not count it, and the next attempt was told nothing. The run
+      # clears its own `in_progress` variable on this path, so no later step retries the write: the transition that
+      # failed is recorded with the item, and the report names what the tracker does not carry.
+      label_failures=""
+      loop_labels unpick "$issue" >&2 || label_failures="unpick"
       # A blocked item is escalated in the same pass, exactly as a skipped one is: the reason is held in the
       # run state, and the next run replaces that state wholesale, so a block that left the tracker untouched
       # would vanish — the decision list would not hold it, the decision cap would not count it, and the next
@@ -1132,11 +1529,20 @@ question the item asked; a retry costs another attempt, and an abandonment remov
       if loop_labels escalate "$issue" --reason "$escalation_reason" \
         --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
         escalated_label="$decision_label"   # the block's own escalation
+      else
+        label_failures="${label_failures:+$label_failures }escalate"
+      fi
+      # The item's own reason carries the failure too, so the state's own table (`state.sh report`) names an item
+      # whose decision was never written, and not only the report's action list does.
+      blocked_note="${blocked_reason:-the item was blocked}"
+      if [ -n "$label_failures" ]; then
+        blocked_note="$blocked_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"
       fi
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
-        --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_reason" \
-        --events "$events_file" --decision-label "$escalated_label" >/dev/null
+        --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
+        --events "$events_file" --decision-label "$escalated_label" \
+        --label-failures "$label_failures" >/dev/null
       ;;
   esac
   detail="${change:-$blocked_reason}"

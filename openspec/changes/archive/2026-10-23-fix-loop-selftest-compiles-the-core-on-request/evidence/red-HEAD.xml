@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the new case, against the driver as abeffcad45997a34b96f45e32486b178517c918e carries it
+     (2026-10-23T10:00:21Z): `bash tools/loop-selftest.sh --case
+     'driver#aCaseThatAsksForNoCoreCompilesNothing'` — FAIL, exit 1. A single-case run prints no suite summary
+     line, so the tally below is that one case and its one failure; the transcript is
+     red-HEAD-driver#aCaseThatAsksForNoCoreCompilesNothing.log beside this file. The probe puts a `javac` on PATH
+     that records its invocation and exits 1; HEAD compiles the issue tooling's Java core at the top of the driver,
+     before the case list is known, so a selection that asks for no core is refused for a compile nothing used. -->
+<testsuite name="loop-selftest --case driver#aCaseThatAsksForNoCoreCompilesNothing" tests="1" failures="1" errors="0">
+  <testcase name="driver#aCaseThatAsksForNoCoreCompilesNothing">
+    <failure>a case that asks for no core runs without one: javac: this probe does not compile anything
+loop-selftest: the issue tooling's Java core does not compile: expected '0', got '1'</failure>
+  <system-out>FAIL driver#aCaseThatAsksForNoCoreCompilesNothing</system-out>
+</testsuite>

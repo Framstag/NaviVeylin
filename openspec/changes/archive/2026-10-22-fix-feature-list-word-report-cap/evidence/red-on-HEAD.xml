@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/gen-feature-list-selftest.sh (whole suite, on the run's base commit 9aac52b)" tests="119" failures="4" errors="0" timestamp="2026-10-22T09:26:32Z">
+  <system-out>Four new cases added, the fix not yet in the tree, 2026-10-22T09:26:32Z, EXIT=1, the suite's own summary `4 of 119 cases failed`. gates: the word report's cap is declared by the tool — no `max_words` in tools/gen-feature-list.sh. gates: the word report shows no more than its cap in one area — expected [10], got [13]: thirteen candidates in one area, thirteen lines. gates: the word report counts the candidates it did not show — no count line exists. gates: the word report names the rarest word first — `marmot at line 16, sole at line 15`, i.e. paragraph order. tests/failures counted from the suite's ok/FAIL lines the way tools/loop/gate.sh derives its per-suite tally.</system-out>
+</testsuite>

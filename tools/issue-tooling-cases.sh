@@ -17,6 +17,7 @@ ISSUES_SHELL_CASES=(
   'lib#noProjectValueInTheEngine'
   'lib#exitCodeConstants'
   'lib#statusPrefixNeedsTheProfile'
+  'lib#questionIsReadFromANonEmptyComment'
   'lib#coreIsCompiledNotLaunched'
   'lib#retriesATransientFailure'
   'lib#reportsAnUnreachableTrackerAfterTheLastRetry'
@@ -38,6 +39,7 @@ ISSUES_SHELL_CASES=(
   'close#requiresReasonAndEvidence'
   'close#recordsStateReason'
   'close#refusesOnPolicyFailure'
+  'close#notPlannedNeedsNoOptIn'
   'list#filtersByEachCriterion'
   'list#idResolvesTheMarker'
   'list#idDoesNotMatchASubstring'
@@ -123,6 +125,7 @@ issues_run_shell_case() {
     'lib#noProjectValueInTheEngine') case_lib_noProjectValueInTheEngine ;;
     'lib#exitCodeConstants') case_lib_exitCodeConstants ;;
     'lib#statusPrefixNeedsTheProfile') case_lib_statusPrefixNeedsTheProfile ;;
+    'lib#questionIsReadFromANonEmptyComment') case_lib_questionIsReadFromANonEmptyComment ;;
     'lib#coreIsCompiledNotLaunched') case_lib_coreIsCompiledNotLaunched ;;
     'lib#retriesATransientFailure') case_lib_retriesATransientFailure ;;
     'lib#reportsAnUnreachableTrackerAfterTheLastRetry') case_lib_reportsAnUnreachableTrackerAfterTheLastRetry ;;
@@ -144,6 +147,7 @@ issues_run_shell_case() {
     'close#requiresReasonAndEvidence') case_close_requiresReasonAndEvidence ;;
     'close#recordsStateReason') case_close_recordsStateReason ;;
     'close#refusesOnPolicyFailure') case_close_refusesOnPolicyFailure ;;
+    'close#notPlannedNeedsNoOptIn') case_close_notPlannedNeedsNoOptIn ;;
     'list#filtersByEachCriterion') case_list_filtersByEachCriterion ;;
     'list#idResolvesTheMarker') case_list_idResolvesTheMarker ;;
     'list#idDoesNotMatchASubstring') case_list_idDoesNotMatchASubstring ;;
@@ -501,6 +505,22 @@ case_lib_statusPrefixNeedsTheProfile() {
     *"status/"*) fail "an unresolved prefix must not answer with a separator-less namespace: $out" ;;
   esac
   return 0
+}
+
+# A comment JSON is the ordinary input, and the empty one is the exception: the parse must not depend on the
+# difference. `"${1:-{}}"` let the expansion's own `}` end the word, so a non-empty argument reached jq as
+# `<json>}`, which jq rejected (`Unmatched '}'`) *after* printing the value — the caller's stdout was still right,
+# so the run looked correct while `issues_question_of` returned 5 (issue #60, `answer.sh --continue`).
+case_lib_questionIsReadFromANonEmptyComment() {
+  # shellcheck source=tools/issues/lib.sh
+  source "$ISSUES_ENGINE/lib.sh"
+  local json out err status dir
+  dir=$(scratch); err="$dir/stderr"
+  json=$(jq -cn '{body: "needs-decision\n\n**The decision:** ship the fixed cut"}')
+  out=$(issues_question_of "$json" 2>"$err"); status=$?
+  assert_eq "0" "$status" "a non-empty comment is read, not a parse error"
+  assert_eq '**The decision:** ship the fixed cut' "$out" "the question sentence is printed"
+  assert_eq "" "$(cat "$err")" "and the parse writes nothing to stderr"
 }
 
 case_policy_preflightRefusesUnknownLogin() {
@@ -1459,6 +1479,31 @@ case_close_commentOnlyLeavesTheIssueOpen() {
   # the same reasons and evidence rules apply on this path
   out=$(run_tool close.sh 21 --comment-only 2>&1); status=$?
   assert_eq "2" "$status" "a comment-only run still owes its reason and evidence"
+  return 0
+}
+
+# A person's not-planned closure records a decision, not work. The opt-in label authorises an unattended
+# child, and demanding it on this path kept every `status/retired` item open (#251): `retired` is a settled
+# status in the profile, 17 items carried it, and no command could close them. Every other refusal still
+# stops the closure, and a *completed* closure still needs the label — that one asserts work that landed.
+case_close_notPlannedNeedsNoOptIn() {
+  local dir log out status
+  dir=$(scratch)
+  status_tracker "$dir" 41 class/bug category/ui status/retired source/agent
+  export GH_STUB_DIR="$dir"
+  log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+
+  out=$(run_tool close.sh 41 --reason "fixed elsewhere" --evidence "the case is green" 2>&1); status=$?
+  assert_eq "3" "$status" "a completed closure of an unauthorised item is still refused"
+  assert_contains "$out" "missing-eligibility-label" "the refusal names the opt-in"
+  [ ! -s "$log" ] || fail "a refused closure posted something: $(cat "$log")"
+
+  out=$(run_tool close.sh 41 --reason "retired by the migration's record" \
+    --evidence "the entry the item carries" --not-planned 2>&1); status=$?
+  assert_eq "0" "$status" "a not-planned closure needs no opt-in: $out"
+  grep -q -- '--reason not\\ planned' "$log" || fail "the CLI spelling of not planned must be used (#195)"
+  [ "$(grep -c 'issue comment' "$log" || true)" -ge 1 ] || fail "the reason and its evidence are posted"
   return 0
 }
 

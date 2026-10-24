@@ -1,0 +1,12 @@
+# revert-check — the new invariant is falsified once, then restored byte-identically
+
+## before: the fixed workflow
+e41120b509d7a21fd5992100c67236d3  .github/workflows/build.yml
+
+## the four CI lines removed again (the falsification)
+  VersionedGradleJavaHomeTest > the pipeline refuses a reintroduced line FAILED
+  3 tests completed, 1 failed  — BUILD FAILED in 2s  (evidence/revert-red.xml, timestamp 2026-10-22T08:48:41.782Z)
+
+## after: restored, md5 identical, the case green again
+e41120b509d7a21fd5992100c67236d3  .github/workflows/build.yml
+  BUILD SUCCESSFUL in 2s — 3 tests, 0 failures (evidence/revert-green.xml, timestamp 2026-10-22T08:48:47.716Z)

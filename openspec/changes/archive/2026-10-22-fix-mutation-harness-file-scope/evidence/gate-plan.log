@@ -1,0 +1,20 @@
+# the project's map (LOOP_CONF as the run exported it)
+./gradlew test -PforceTests --no-build-cache
+tools/loop-selftest.sh
+tools/issue-tooling-selftest.sh
+tools/sensor-selftest.sh
+tools/check-action-runtimes-selftest.sh
+tools/gen-feature-list-selftest.sh
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh
+
+# this change's map (LOOP_CONF=tools/loop/loop.conf of this tree)
+./gradlew test -PforceTests --no-build-cache
+tools/loop-selftest.sh
+tools/loop-mutations-selftest.sh
+tools/issue-tooling-selftest.sh
+tools/sensor-selftest.sh
+tools/check-action-runtimes-selftest.sh
+tools/gen-feature-list-selftest.sh
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh

@@ -24,13 +24,14 @@ quote. (The gate's own tally for the suite is `evidence/tools_loop-selftest.sh.x
 
 ## What the map was missing
 
-`evidence/map-vs-pipeline.txt` — the map named **8** of the pipeline's **31** shell check commands:
-`comm -13` of the two lists leaves **23** missing, among them `tools/build-inputs.sh --check`,
+`evidence/map-vs-pipeline.txt` — the map named **8** of the pipeline's **31** shell check commands (the same
+comparison on this change's refreshed base names **10**):
+`comm -13` of the two lists leaves **23** missing on `ee95d71` (**21** on the refreshed base), among them `tools/build-inputs.sh --check`,
 `tools/check-todo-references.sh`, `tools/resolve-stale-selftest.sh`, `tools/check-compose-sandbox-rule.sh`,
 `tools/mutate-selftest.sh`, and **all eleven** mutation `--list` lines: the eight
 `tools/mutate.sh --mutations <set> --list` lines (`build.yml:176,190,194,198,202,207,283,293`) and the three
 tool-specific ones (`tools/issues/metadata-mutations.sh --list` at :219, `tools/sensor-mutations.sh --list` at
-:252, `tools/build-inputs-mutations.sh --list` at :265). After the change the map is 55 pairs naming all 31,
+:252, `tools/build-inputs-mutations.sh --list` at :265). After the change the map is 58 pairs naming all 31,
 and the same comparison leaves nothing.
 
 `ci-gate-steps.txt` (`phase-a-verification.md`'s 27 commands) is **superseded** by that comparison: it is a

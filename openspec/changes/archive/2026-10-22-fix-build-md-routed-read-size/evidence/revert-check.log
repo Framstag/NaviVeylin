@@ -1,0 +1,47 @@
+revert-check 2026-10-22T17:03:35Z — root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+revert-check 2026-10-22T17:03:35Z — root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+# revert-check for routed-read#verbatim — 2026-10-22T17:03:35Z, root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+
+## routed-read#verbatim — one sentence of §6f reworded
+[mutated] FAIL routed-read#verbatim — 1 line(s) of Build.md are rewritten rather than moved:
+[mutated]     no downloaded result XML. Gradle's short location is the frame of the **test method**: a `runTest`-wrapped
+[mutated] red-probe: 1 of 1 cases failed
+[mutated] EXIT=1
+[restored] PASS routed-read#verbatim — every offender is split into lettered sub-sections and no sentence is rewritten
+[restored] red-probe: 0 of 1 cases failed
+[restored] EXIT=0
+EXIT=0
+# revert-check for routed-read#route — 2026-10-22T17:03:35Z, root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+
+## routed-read#route — the build row reverted to `Build.md` §2, §3, §4
+[mutated-route-parents] FAIL routed-read#route — the routing table names no sub-section of: §2a §4a
+[mutated-route-parents] red-probe: 1 of 1 cases failed
+[mutated-route-parents] EXIT=1
+
+## routed-read#route — the build row keeps its sub-sections and states no cost
+[mutated-route-cost] FAIL routed-read#route — 1 row(s) name a lettered Build.md sub-section but state no cost: [build, run, force a rerun, read a gate result, or a workflow's action pin]
+[mutated-route-cost] red-probe: 1 of 1 cases failed
+[mutated-route-cost] EXIT=1
+[restored] PASS routed-read#route — the routing table names 29 lettered Build.md sub-sections across 3 priced row(s)
+[restored] red-probe: 0 of 1 cases failed
+[restored] EXIT=0
+EXIT=0
+# revert-check for routed-read#bound — 2026-10-22T17:03:35Z, root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+
+## routed-read#bound — §10a–§10j demoted to `###` (section 10 whole again)
+[mutated] FAIL routed-read#bound — 1 section(s) of Build.md exceed 12000 bytes: §10=32707
+[mutated] red-probe: 1 of 1 cases failed
+[mutated] EXIT=1
+[restored] PASS routed-read#bound — every section of Build.md is at most 12000 bytes
+[restored] red-probe: 0 of 1 cases failed
+[restored] EXIT=0
+EXIT=0
+
+## all four cases, restored
+[restored-all] PASS routed-read#bound — every section of Build.md is at most 12000 bytes
+[restored-all] PASS routed-read#numbers — §1-§12 are all present and check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+[restored-all] PASS routed-read#route — the routing table names 29 lettered Build.md sub-sections across 3 priced row(s)
+[restored-all] PASS routed-read#verbatim — every offender is split into lettered sub-sections and no sentence is rewritten
+[restored-all] red-probe: 0 of 4 cases failed
+[restored-all] EXIT=0
+EXIT=0

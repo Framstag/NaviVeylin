@@ -1,0 +1,15 @@
+## after archive and after the round-2 corrections, 2026-10-22
+$ bash tools/gen-feature-list.sh --check-classification
+classified: 177
+unclassified: 0
+delta spec ids: 0
+stale: 0
+car-only areas: 1
+highlights: 19
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+
+$ openspec validate --specs
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 177 passed, 0 failed (177 items)

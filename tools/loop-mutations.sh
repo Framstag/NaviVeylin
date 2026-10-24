@@ -12,22 +12,43 @@
 # It restores every file it touches, restores the current one even when it is killed (EXIT trap), and refuses to
 # restore from a backup that did not land: the backups live under the project's own `.pi/tmp` unless `TMPDIR`
 # says otherwise, because a full `/tmp` (a tmpfs on the measured host) once emptied six engine files — measured
-# 2026-10-21, issue #234. Run the full set before a change that owns `tools/loop/**` is archived; run one with
-# `--only` while iterating.
+# 2026-10-21, issue #234.
 #
-# Exit: 0 every selected mutation went red and its restore went green; 1 a mutation did not apply, was not
-#       noticed, or its restore stayed red; 2 usage, a missing prerequisite, or a backup/restore that could not
-#       be taken safely (nothing is mutated in that case).
+# **The bound.** Each record names the file it mutates (`label@fifo@file@case@desc@exprs`), so a change can run
+# the records whose file it touched instead of paying the whole set (issue #235: 81 records × two case runs is a
+# 21-minute pass): `--files <path> ...` names the files, and `--from-git <base>` derives them from the diff
+# against that base plus the working tree's own state, the two sources `tools/loop/gate.sh` reads for "the paths
+# the change touches". A filtered run states its selection against the declared set (`selected 7 of 81
+# records`), `--list` applies the same filter, and a filter that names no record exits 2 — the harness must never
+# pass by doing nothing. Run the file set of a change while iterating, and the full set before a change that owns
+# `tools/loop/**` is archived.
 #
-# Usage: tools/loop-mutations.sh [--list] [--only <labels>] [--engine <dir>] [--out <file>]
-#                                [--timeout <seconds>]
+# **The check.** A record quotes one line, and a line changes. `--check` applies every selected record's
+# expressions to a copy of the file the record names and reports each record that no longer changes it — no case
+# runs and nothing in the tree is mutated, so it is cheap enough for the project's gate, which owes it for a path
+# under `tools/loop/**` (issue #264: `9.9` and `12.2` had quoted `run.sh`'s child-start line as it was before it
+# carried the child's own completion record, and both reported `MUTATION-DID-NOT-APPLY` until the next hand-run
+# set — two invariants asserted by nothing in the meantime).
+#
+# Exit: 0 every selected mutation went red and its restore went green, or every selected record applies to the
+#       file it names (`--check`); 1 a mutation did not apply, was not noticed, its restore stayed red, or a record
+#       is stale (`--check`); 2 usage, a missing prerequisite, a filter that names no record, or a backup/restore
+#       that could not be taken safely (nothing is mutated in that case).
+#
+# Usage: tools/loop-mutations.sh [--list] [--check] [--only <labels>] [--files <path> ...] [--from-git <base>]
+#                                [--engine <dir>] [--out <file>] [--timeout <seconds>]
 #                                [--probe no-apply|stays-green|empty-backup]
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 list_only=0
+check=0
 only=""
+# The file set, kept space-padded (` path path `) so a membership test is one `case` and no array expansion runs
+# under `set -u`. A record's file is a repository-relative path, so the filter compares paths, never basenames.
+files=" "
+from_git=""
 engine="$root/tools/loop"
 out=""
 case_timeout=240
@@ -35,12 +56,17 @@ probe=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --list) list_only=1; shift ;;
+    --check) check=1; shift ;;
     --only) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only="${2:-}"; shift 2 ;;
+    # Repeatable, and space-separated inside one value, so a caller can pass either shape without a rule.
+    --files) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }
+      for _wanted in ${2:-}; do files="$files$_wanted "; done; shift 2 ;;
+    --from-git) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; from_git="${2:-}"; shift 2 ;;
     --engine) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; engine="${2:-}"; shift 2 ;;
     --out) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; out="${2:-}"; shift 2 ;;
     --timeout) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; case_timeout="${2:-}"; shift 2 ;;
     --probe) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; probe="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) echo "loop-mutations: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -49,6 +75,10 @@ for tool in bash jq git java javac sed; do
   command -v "$tool" >/dev/null 2>&1 || { echo "loop-mutations: $tool is required" >&2; exit 2; }
 done
 [ -d "$engine" ] || { echo "loop-mutations: no engine directory at $engine" >&2; exit 2; }
+# The two prerequisites below are what *running a case* needs, and `--check` runs none: it applies patterns to
+# copies of the files the records name, so it needs the engine and nothing else — which is what lets a caller
+# point it at a bare copy of the set.
+if [ "$check" -eq 0 ]; then
 # The engine reads its dependency as a sibling (`$LOOP_DIR/../issues`), so a copy must keep that layout —
 # `--engine <dir>` wants `<dir>` to be the copied `loop` directory, with `issues` beside it.
 [ -f "$engine/../issues/lib.sh" ] || {
@@ -56,6 +86,7 @@ done
   exit 2
 }
 [ -f "$root/tools/loop-selftest.sh" ] || { echo "loop-mutations: the gate tools/loop-selftest.sh is missing" >&2; exit 2; }
+fi
 
 # The mutations. Fields are `@`-separated (no sed expression below contains one), and one record's sed
 # expressions are separated by `;;`:
@@ -73,22 +104,31 @@ MUTATIONS=(
   '9.6@-@tools/loop/run.sh@run#decisionCapRefusesToStart@the decision cap that stops a run@s|^if \[ "${open_decisions:-0}" -ge "$max_decisions" \]; then|if false; then|'
   '9.7@-@tools/loop/run.sh@run#mayCloseNoLeavesTheIssueOpen@the closure opt-out@s|^      if \[ "$may_close" = "no" \]; then close_args+=(--no-close); fi$|      : # the mutation closes anyway|'
   '9.8@-@tools/loop/worktree.sh@worktree#oneBranchPerItemOffTheBase@one branch per item@s|switch -c "$branch" "$base"|switch -c "fix/loop-branch" "$base"|'
-  '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|^  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1 < /dev/null &$|  ( cd "$LOOP_ROOT" \&\& pi --print "$1" ) > "$2" 2>\&1 \&|'
+  # Records 9.9 and 12.2 (the second one below, in the 12.x block) anchor on the *head* of `run_child`'s
+  # child-start line — the command and its directory — and not on its tail: the tail gained the child's own
+  # completion record (`.status`, issue #227), and a record that quotes the whole line is orphaned by the next
+  # edit to any part of it (issue #264).
+  '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$LOOP_ROOT" \&\& pi --print "$1"; printf|'
   '9.10@-@tools/loop/run.sh@run#reviewerWriteInvalidatesTheRound@the reviewer read-only comparison@s|^      if \[ "$read_only" = "on" \] && \[ "$before" != "$after" \]; then|      if false; then|'
-  '9.11@-@tools/loop/prompts/worker.md@state#projectKeysAreReadFromLoopConf@the project facts living in loop.conf@s|{{WORKER_SKILLS}}|openspec-apply-change build-app run-tests revert-check|'
+  '9.11@-@tools/loop/prompts/worker.md@state#projectKeysAreReadFromLoopConf@the project facts living in loop.conf@s|{{WORKER_SKILLS}}|openspec-propose openspec-apply-change build-app run-tests revert-check|'
   '12.1@-@tools/loop/worktree.sh@run#commitsWithoutAnAmbientIdentity@the commit is attributed to the run'"'"'s own identity@s|-c user.name="\$who_name" -c user.email="\$who_email" ||'
-  '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1" ) > "$2" 2>&1 < /dev/null &$|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$1" ) > "$2" 2>\&1 \&|'
-  '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsBlocked@the run catching a child write left outside the worktree@s|^    printf '"'"'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran\\n'"'"' >> "$2"$|    : # the mutation carries the write instead|'
-  '12.4@-@tools/loop/run.sh@run#reviewerWriteInTheProjectIsDiscarded@the reviewer comparison reading the project tree as well@s|git -C "$worktree" diff; project_state; }|git -C "$worktree" diff; }|'
+  '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$1"; printf|'
+  '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsNoted@the run recording a child write left outside the worktree@s|^    outside_write_line "$before" "$after" >> "$2"$|    : # the mutation carries the write instead|'
+  '12.4@-@tools/loop/run.sh@run#strictOutsideWriteDiscardsTheReviewRound@the round discarded on a difference the run can place or was told to judge@s|^      if outside_write_decides; then$|      if false; then|'
+  '12.9@-@tools/loop/run.sh@run#strictOutsideWriteBlocksTheItem@the strict run turning the difference into a verdict about the item@s|^  elif outside_write_decides; then$|  elif false; then|'
+  '12.10@-@tools/loop/run.sh@run#aWriterTheRunCanPlaceBlocksTheItem@the reading taken while the child runs, which is what ties a write to it@s|^          outside_write_seen "$before" "$now" "$child" "$hb_pid" > "$2.outside-write" 2>/dev/null \|\| true$|          : # the mutation takes no reading while the child runs|'
   '12.5@-@tools/loop/worktree.sh@worktree#reusesABranchThatCarriesNoWorkOfItsOwn@the reuse of a branch that carries nothing of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if false; then|'
   '12.6@-@tools/loop/worktree.sh@worktree#refusesABranchCarryingAPreviousAttempt@the refusal of a branch that carries an archived change of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if true; then|'
   '12.7@-@tools/loop/worktree.sh@worktree#setsAsideABlockedAttemptAndStartsFresh@the blocked attempt branch renamed aside so the item is worked@s|^    elif \[ "\$state" = "unfinished" \]; then$|    elif false; then|'
   '13.1@-@tools/loop/prescreen.sh@prescreen#aFinishedAttemptBranchIsADecision@the pre-screen asking git for a previous attempt on the item branch prefix@s|^  while IFS= read -r branch; do$|  while false; do|'
   '13.2@-@tools/loop/run.sh@run#leftoverBranchIsRecordedNotDropped@the pre-screen verdicts that need a decision being escalated by the run@s|^  \[ -n "$decision_agent" \] \|\| return 0$|  return 0|'
-  '13.3@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the start-time pre-flight on a kept worktree a previous run left dirty@s|^if \[ -d "$worktree" \] && \[ ! -e "$run_lock" \] && worktree_is_dirty; then$|if false; then|'
+  '13.3@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the start-time pre-flight on a kept worktree a previous run left dirty@s|^if \[ -d "$worktree" \] && worktree_is_dirty; then$|if false; then|'
   '13.4@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the refusal being recorded under the item its branch marker names@s|^    if \[ "$dry_run" -eq 0 \] && \[ -n "$owner_item" \]; then$|    if false; then|'
   '13.5@-@tools/loop/run.sh@run#resetWorktreeDiscardsWhatItNames@the start-time repair discarding what it named@s|^    git -C "$worktree" reset -q --hard \|\| loop_die "run: could not reset the kept worktree"$|    : # the mutation discards no tracked change|;;s|^    git -C "$worktree" clean -qfd \|\| loop_die "run: could not clean the kept worktree"$|    : # the mutation discards no untracked file|'
-  '13.6@-@tools/loop/run.sh@state#secondRunRefusesWithExit5@the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers@s|^if \[ -d "$worktree" \] && \[ ! -e "$run_lock" \] && worktree_is_dirty; then$|if [ -d "$worktree" ] \&\& worktree_is_dirty; then|'
+    # 13.6 was the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers. The lock is taken before the
+  # kept worktree is read now, so a live run is refused at the lock and never reaches that check; the invariant
+  # the record still owns is the refusal itself: a live owner'"'"'s lock is a refusal, not a takeover.
+  '13.6@-@tools/loop/state.sh@state#secondRunRefusesWithExit5@the refusal of a live owner'"'"'s lock@s|^      exit "\$LOOP_REFUSE"$|      exit 0 # the mutation accepts a live owner'"'"'s lock|'
   '13.7@-@tools/loop/run.sh@worktree#keepsByDefaultAndRemovesOnRequest@the end-of-run form honoured wherever the run ends@s|^  if \[ "$clean_worktree" -eq 1 \]; then$|  if false; then|'
   '12.8@-@tools/loop/run.sh@run#aSkipClearsTheInProgressMark@the skip exit path clearing the in-progress mark@s|^      loop_labels unpick "$issue" >&2 \|\| true   # the exit path clears the mark$|      : # the mutation keeps the mark|'
   '14.1@-@tools/loop/report.sh@report#escalatedSkipNamesTheLabelWritten@the decision list read from the label the escalation recorded, not the verdict@s|(\.escalatedLabel // "") != ""|(.verdict == $d)|'
@@ -96,24 +136,43 @@ MUTATIONS=(
   '14.3@-@tools/loop/run.sh@report#failedReviewEscalationIsNamed@the blocked exit path recording the label its escalation wrote@s|^        escalated_label="\$decision_label"   # the block.s own escalation$|        : # the mutation records no escalation|'
   '14.5@-@tools/loop/run.sh@run#blockedItemIsEscalatedWithItsReason@the blocked exit path escalating the reason the run holds@s|^      if loop_labels escalate "\$issue" --reason .*$|      if false; then|;;s|^        --evidence "\$item_dir, branch fix/issue-\$issue-\$slug" >&2; then$|        :|'
   '14.4@-@tools/loop/report.sh@report#aVerdictAloneIsNoEscalation@the list naming only the items this run escalated@s|\.escalatedLabel // ""|.issue|'
+  '14.6@-@tools/loop/run.sh@run#aFailedEscalationWriteIsNamed@the blocked exit path recording the write the tracker refused@s|^        label_failures=.*$|        : # the mutation swallows the refused escalation|'
+  '14.7@-@tools/loop/run.sh@run#aFailedUnpickIsNamed@the blocked exit path recording the in-progress mark it could not clear@s|^      loop_labels unpick "\$issue" >&2 \|\| label_failures="unpick"$|      loop_labels unpick "\$issue" >&2 \|\| true|'
+  '14.8@-@tools/loop/report.sh@run#aFailedEscalationWriteIsNamed@the report naming the item whose label write the tracker refused@s|^  actions\[.*="set #\$issue.*$|  : # the mutation names no unwritten label|'
   '15.1@-@tools/loop/prescreen.sh@prescreen#refusalLeavesATraceInTheTracker@the pre-screen writing its refusal to the tracker instead of only to the run@s|^  if \[ "$write" -eq 1 \] && \[ -n "$refusal_labels" \]; then$|  if false; then|'
   '16.1@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the stop condition `next` named, on every path that leaves the loop@s|^  loop_state stop "$1" >/dev/null 2>&1 .. true$|  : # the reason is printed and not recorded|'
   '16.2@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run printing the stop condition it was given@s|^  printf .stop: %s.n. "$1"$|  : # the mutation prints no stop line|'
   '16.3@-@tools/loop/report.sh@run#stopReasonIsPrintedAndReported@the report repeating the recorded stop reason@s|^stop_reason=.*$|stop_reason=""|'
   '17.1@-@tools/loop/prescreen.sh@prescreen#itemAwaitingADecisionIsNotQueued@the clause that leaves an item awaiting a decision to its owner@s|^  if \[ "$verdict" = "$queued_verdict" \] && \[ "$awaiting_decision" -eq 1 \]; then$|  if false; then|'
   '17.2@-@tools/loop/run.sh@run#awaitingDecisionIsNotEscalatedAgain@the run not re-escalating an item that already carries the escalation label@s|^    \| select(.*alreadyEscalated.*$|    \| select(true)|'
-  '18.1@-@tools/loop/worktree.sh@worktree#refusesABranchWhoseReviewFailed@adoption reading the verdict the reviewer left on the branch@s|^  refused_round=.*$|  refused_round=""|'
+  '18.1@-@tools/loop/worktree.sh@worktree#refusesABranchWhoseReviewFailed@adoption deciding on the verdict the reviewer left on the branch@s|^  case "\$review_state" in$|  case "" in|'
   '18.2@-@tools/loop/run.sh@run#recordsAFailedReviewOnTheBranch@the run committing the reviewer verdict onto the item branch@s|^        bash "\$LOOP_DIR/worktree.sh" record-review-failure .*$|        : # the verdict is recorded nowhere but this run|'
+  # 18.3/18.4 — a round whose reviewer never answered must not read like a pass (issue #262): the run announces
+  # the round on the branch before the reviewer starts, and adoption refuses an announcement that holds no
+  # answer. The two halves are separate invariants: without 18.4 nothing is announced at all, and the branch
+  # carries neither a request nor an answer of the round that is running.
+  '18.3@-@tools/loop/worktree.sh@worktree#refusesABranchWhoseReviewRoundNeverAnswered@adoption refusing a round that was announced and never answered@s|review-unanswered|adoptable|'
+  '18.4@-@tools/loop/run.sh@run#announcesAndRecordsTheReviewRound@the run announcing the review round on the item branch before its reviewer starts@s|^        bash "\$LOOP_DIR/worktree.sh" record-review-round .*requested .*$|        : # the round is announced nowhere but this run|'
   '25.1@-@tools/loop/lib.sh@worktree#keepsSourcesNotBuildOutput@the symlink refusal that keeps the cleanup inside a kept worktree@s|^  if \[ -L "$target" \]; then$|  if false; then|'
   '25.2@-@tools/loop/loop-clean.sh@clean#reportsWithoutApplyAndRemovesWithIt@the age gate that keeps a scratch tree a live suite may be writing into@s|^  if \[ -z "$(find "$dir" -maxdepth 0 -mmin +"$stale_minutes" 2>/dev/null)" \]; then$|  if false; then|'
   '19.1@-@tools/loop/run.sh@run#reviewBudgetIsARecordedValue@the round budget coming from the recorded value instead of a literal@s|^    round_cap="$max_review_rounds"$|    round_cap=2|'
   '19.2@-@tools/loop/run.sh@run#aCorrectiveRefusalEarnsOneMoreRound@the extra round a corrective refusal earns@s|^        if \[ "$corrective_round_used" -eq 0 \] && \[ "$corrections_only" = "yes" \]; then$|        if false; then|'
   '19.3@-@tools/loop/run.sh@run#escalationCarriesTheDecision@the escalation carrying the reviewer decision@s|^      if \[ -n "$decision_field" \]; then$|      if false; then|'
+  # The round a corrective refusal buys is handed the corrections, not the change again (issue #245): the diff's
+  # base is that round's own, and the refusing report travels in the prompt. One mutation per half — the case
+  # asserts the narrowed range first and the quoted findings second.
+  '40.1@-@tools/loop/run.sh@run#aCorrectiveRoundIsHandedTheCorrections@the base the extra round_diff is built from@s|^      write_review_diff "\$diff_base" "\$diff_file"$|      write_review_diff "\$base" "\$diff_file"|'
+  '40.2@-@tools/loop/run.sh@run#aCorrectiveRoundIsHandedTheCorrections@the refusing report the extra round reads@s|^          correction_scope=\$(review_correction_scope "\$diff_base" "\$reviewer_report")$|          correction_scope=""|'
+  # The section names `{{DIFF_PATH}}`/`{{CHANGE_ROOT}}` itself, so the pair it is substituted from has to be the
+  # *first* one: rendered last, the paths the section names survive as literal placeholders and the round that
+  # exists to verify corrections points its reviewer at a file called `{{DIFF_PATH}}` (item #245's round-1 review).
+  # Two expressions, because the defect is an order: the pair is deleted from the head and appended after the last.
+  '40.3@-@tools/loop/run.sh@run#aCorrectiveRoundIsHandedTheCorrections@the correction section substituted before the paths it names@s|^    "CORRECTION_SCOPE=\${2:-}" \\$|    "LOOP_REORDERED=1" \\|;;s|^    "REVIEW_EXCLUDE=\${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=\${child_max:-2700}"$|& \\\n    "CORRECTION_SCOPE=${2:-}"|'
   '20.1@-@tools/loop/prescreen.sh@prescreen#itemAwaitingADecisionIsNotQueued@`alreadyEscalated` following the label rather than the hold@s|^    if \[ "$awaiting_label" -eq 1 \]; then$|    if true; then|'
   '20.2@-@tools/loop/prescreen.sh@prescreen#escalatedItemKeepsItsBranchAsEvidence@the awaiting clause not overwriting the branch the adoption path reads@s|^  if \[ "$verdict" = "$queued_verdict" \] && \[ "$awaiting_decision" -eq 1 \]; then$|  if [ "$awaiting_decision" -eq 1 ]; then|'
   '21.1@-@tools/loop/prescreen.sh@prescreen#aHoldWithNoDecisionIsNotADecision@a hold with no recorded decision reported as a hold rather than as a decision@s|^      verdict="$held_verdict"$|      verdict="$decision_verdict"|'
   '21.2@-@tools/loop/labels.sh@labels#holdCarriesItsReason@the reason a hold writes travelling with the state as a comment@s|^    comment_only=1$|    comment_only=0|'
-  '22.1@-@tools/loop/prescreen.sh@prescreen#harnessItemsLeadTheQueue@the category key ranking a leading category ahead of every other category@s|sort_by(\[._lead, ._rank, .issue\])|sort_by([._rank, .issue])|'
+  '22.1@-@tools/loop/prescreen.sh@prescreen#harnessItemsLeadTheQueue@the category lead ranking a leading defect ahead of every other item@s#^  | ($lead + $tail) as $order$#  | (($lead + $tail) | sort_by([class_rank($worked), .issue])) as $order#'
   '20.3@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the reason it stopped on every exit path@s|^  loop_state stop "$1" >/dev/null 2>&1 .. true$|  : # the reason is printed and not recorded|'
   '20.4@-@tools/loop/run.sh@run#aZeroRoundBudgetIsRefused@the refusal of a review budget that never runs@s|^case "$max_review_rounds" in .*$|: # the mutation accepts a budget that never runs|'
   '23.1@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( \$(date +%s) - started )) -ge "\$cap" \]; then$|    if false; then|'
@@ -198,20 +257,152 @@ MUTATIONS=(
   # 39.3 — a directory of more tallies than the block prints is not a directory of twenty (issue #246, review
   # round 1): without the line, the cap reads as the whole tree.
   '39.3@-@tools/loop/measure.sh@measure#saysHowManyTalliesItWithheld@the line that says how many tallies the cap withheld (issue #246)@s|^    item TALLY-MORE|    : # the mutation withholds the count|'
-  # 40.1 — the map covers every command the pipeline's check steps run (issue #242): without the pair, a landing
-  # that breaks the build-inputs step is green in the run and red in the pipeline, which is the shape that reddened
-  # `main` on 2026-10-21. A profile whose map is one long quoted line can only be mutated in place, so the
-  # expression deletes one pair from the copy the case reads.
-  '40.1@-@tools/loop/loop.conf@gate#theMapCoversEveryPipelineStep@the pair that carries the build-inputs step in the map (issue #242)@s#tools/build-inputs\*|tools/build-inputs-selftest.sh;##'
-  # 40.2 — the gate owes that step's check for a path the step reads (issue #242): without the pair the plan answers
+  # 54.x — the map covers every command the pipeline's check steps run (issue #242): without a pair, a landing that
+  # breaks that step is green in the run and red in the pipeline, which is the shape that reddened `main` on
+  # 2026-10-21. A profile whose map is one long quoted line can only be mutated in place, so the expressions delete
+  # a pair from the copy the case reads. The labels are 54.x because 40.x is another change's (`run#aCorrectiveRoundIsHandedTheCorrections`).
+  '54.1@-@tools/loop/loop.conf@gate#theMapCoversEveryPipelineStep@the pair that carries the build-inputs step in the map (issue #242)@s#tools/build-inputs\*|tools/build-inputs-selftest.sh;##'
+  # 54.2 — the gate owes that step's check for a path the step reads (issue #242): without the pair the plan answers
   # `nothing owed` and exits 0 for a delta the pipeline refuses.
-  '40.2@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@the pair that owes the check over a path the step reads (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;##'
-  # 40.3 — the plan names every command the step runs (issue #242, review round 1): without the pair the case's two
+  '54.2@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@the pair that owes the check over a path the step reads (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;##'
+  # 54.3 — the plan names every command the step runs (issue #242, review round 1): without the pair the case's two
   # older assertions still pass, and the mutation set the same step runs is owed by nobody.
-  '40.3@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@the pair that owes the build-inputs mutation list (issue #242)@s#tools/build-inputs\*|tools/build-inputs-mutations.sh --list;##'
-  # 40.4 — the plan names no command of another step (issue #242, review round 1): a pair as coarse as `tools/*`
-  # reaching the portability check makes the map claim the rejected option 2 while every positive assertion passes.
-  '40.4@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@a pair that reaches another step through a coarse glob (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;#tools/build-inputs*|tools/build-inputs.sh --check;tools/build-inputs*|tools/check-portability.sh;#'
+  '54.3@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@the pair that owes the build-inputs mutation list (issue #242)@s#tools/build-inputs\*|tools/build-inputs-mutations.sh --list;##'
+  # 54.4 — the plan names no command of another step (issue #242, review round 1): a pair that reaches the
+  # portability check through the same glob makes the map claim the rejected option 2 while every positive
+  # assertion still passes.
+  '54.4@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@a pair that reaches another step through a coarse glob (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;#tools/build-inputs*|tools/build-inputs.sh --check;tools/build-inputs*|tools/check-portability.sh;#'
+  # 41.x — the lock that keeps one run per repository, taken before the run writes anything (measured
+  # 2026-10-22: the run that started at 19:34 replaced the state of the run that started at 18:46, merged
+  # that run's unfinished item into main and closed it, and was refused at the lock two minutes into a
+  # 240-minute budget). One mutation per invariant: the order, the liveness, the report's wording.
+  '41.1@-@tools/loop/run.sh@state#aRefusedRunLeavesTheLiveStateAlone@the lock taken before the run writes anything@s|^loop_state lock --owner "\$\$" \|\| exit \$?$|: # the mutation takes no lock at all|'
+  '41.2@-@tools/loop/state.sh@state#aDeadOwnersLockIsTakenOver@the liveness of the lock'"'"'s owner@s|^    if \[ -n "\$holder_pid" \] && kill -0 "\$holder_pid" 2>/dev/null; then$|    if true; then|'
+  '41.3@-@tools/loop/report.sh@report#aKilledRunIsNotALiveRun@the report telling a run whose process is gone from one that is going@s|^if \[ "\$owner_pid" -gt 0 \] && \[ -z "\$stop_reason" \] && ! kill -0 "\$owner_pid" 2>/dev/null; then$|if false; then|'
+  # 42.x — the branches the loop made (measured 2026-10-22: 43 of 53 local branches were already in the
+  # base and nothing removed them). One mutation per invariant: the worktree's release, the deletion, the
+  # sweep's own question, and the report's second line.
+  '42.1@-@tools/loop/worktree.sh@run#aMergedBranchIsRemoved@the worktree released from the branch it holds@s|^    gitw switch --detach >&2 \|\| loop_die "release-branch: could not release the worktree from \$branch"$|    : # the mutation leaves the worktree on the branch|'
+  '42.2@-@tools/loop/worktree.sh@run#aMergedBranchIsRemoved@the deletion of the merged branch@s|^  gitr branch -d "\$branch" >&2 \|\| {$|  : # the mutation removes no branch\n  false \|\| {|'
+  '42.3@-@tools/loop/loop-clean.sh@clean#sweepsOnlyWhatIsInTheBase@the sweep asking what a branch carries@s|^    if unlanded=\$(loop_unlanded_commits "\$LOOP_ROOT" "\$base_commit" "\$branch"); then$|    if true; then|'
+  '42.4@-@tools/loop/report.sh@report#landedBranchesAreNamedAsRemovable@the report naming the branches that can be removed@s|^printf .landed, removable: %s\\n. |printf "nothing removable: %s\\n" |'
+  # 43.x — the record check (issue #264): a record quotes one line of one engine file, and nothing compared the two
+  # until the gate owed the comparison: #227 gave `run.sh`'s child-start line the child's own completion record,
+  # and `9.9`/`12.2` quoted the whole line, so both reported `MUTATION-DID-NOT-APPLY` and the two invariants they
+  # own were falsified by nothing. 43.1 is the check's own refusal — without it a stale record is printed and the
+  # check exits 0; 43.2 is the profile pair that makes the gate owe it; 43.3 is the shape of the defect: an edit
+  # to the engine line the records quote, leaving them pointed at a line that is no longer there.
+  # The record names a file *beside* the engine (`../loop-mutations.sh`), the shape records 26.1 and 29.2 already
+  # use for a file the engine's own directory does not hold: `tools/loop-mutations.sh` under the `tools/loop/`
+  # prefix it is not a member of resolves to `$engine/-mutations.sh`. The labels are 43.x and not 41.x because the
+  # lock change took 41.x first (`#265`), and a label names one invariant for good.
+  '43.1@-@../loop-mutations.sh@mutation#aStaleRecordIsNamed@the exit that fails a set whose record no longer applies (issue #264)@s|^  if \[ "$stale" -ne 0 \]; then$|  if false; then|'
+  '43.2@-@tools/loop/loop.conf@gate#anEnginePathOwesTheRecordCheck@the profile pair that owes the record check for a path under the engine (issue #264)@s#tools/loop/\*|bash tools/loop-mutations\.sh --check;##'
+  '43.3@-@tools/loop/run.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1" \&\& printf|'
+  # 44.1 is the cap reaching further than the child's process group. The group is what `set -m` gives the child,
+  # and a descendant that called `setsid` is in no group the two signals name: measured 2026-10-22 (issue #272),
+  # the mutation harness a child had started kept mutating and restoring the worktree until seven minutes after
+  # the run had recorded the child as ended, its last restore leaving the tree dirty for the next run. The sweep
+  # is the same `loop_pids_under` test the self-test's teardown and `loop-clean.sh` report with, run over the
+  # tree the survivor still names as its working directory.
+  '44.1@-@tools/loop/run.sh@run#detachedProcessInTheWorktreeIsEndedByTheCap@the cap ending the processes the child left working in the tree, and naming each one (issue #272)@s|^    sweep=\$(loop_end_pids_under "$LOOP_WORKTREE")$|    sweep=""|'
+  # 45.1 — the commit that outlived the child it belongs to. Measured 2026-10-22 (issue #271): the worker of
+  # #262 was ended by the cap at 23:48 with mutation 19.2 applied, `end-item` committed that tree 18 s later, and
+  # the dead arm stayed on `origin/fix/issue-262-…` until a person amended it by hand at 05:05. The mutation
+  # restores the unconditional commit, so the case reads a branch the run must have left at the base.
+  '45.1@-@tools/loop/run.sh@run#treeOfAChildTheCapEndedIsNotCommitted@the guard that leaves the tree of a child the run ended uncommitted (issue #271)@s|^  if \[ "\$worker_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then$|  if false; then|'
+  # 45.2 is the same rule at the second commit site, and it is a separate record because it is a separate guard:
+  # the first one leaving the item's own worker uncommitted says nothing about the worker a refusing review round
+  # sends the change back with (issue #271, found by that change's round-1 review — the requirement was universal
+  # and this call site was left as it stood). The mutation restores the unconditional `end-item` there, so the
+  # rework worker's half-applied tree lands in a commit on top of the item's own fix.
+  '45.2@-@tools/loop/run.sh@run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted@the guard that leaves the tree of a rework worker the cap ended uncommitted (issue #271)@s|^      if \[ "\$round2_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$round2_timeout" \]; then$|      if false; then|'
+  # 46.1 is the stream that carries a suite output to the console while the suite runs. Measured 2026-10-23
+  # (issue #269): the gate held a suite's whole output in a variable, so a gate that ran for eleven minutes
+  # carried two lines and neither an operator nor a worker could tell a long suite from a stopped one. The
+  # mutation restores the command substitution and leaves the tally reading the same bytes — only the console
+  # goes silent, which is what the case that names it asserts.
+  '46.1@-@tools/loop/gate.sh@gate#theSuitesOutputReachesTheConsoleWhileItRuns@the stream that carries a suite output to the console while the suite runs (issue #269)@s|^    \$cmd 2>&1 \| tee "\$stream"$|    out=$($cmd 2>&1); printf %s "$out" > "$stream"|'
+  # 47.1 is the two fallbacks that turned a failed suite with no summary into one failing case (issue #268).
+  # Measured 2026-10-23: a compiled step that died at configuration (`BUILD FAILED in 21s`, no test task reached its
+  # action) was tallied `tests="1" failures="1"`, and the tally the run's own check reads said a test exists where
+  # none executed. The mutation puts the fabrication back beside the error count, so the case that names it sees the
+  # phantom case and the phantom failure both.
+  '47.1@-@tools/loop/gate.sh@gate#aFailingSuiteWithNoSummaryInventsNoTest@the error count that keeps a suite which reported no summary from being tallied as one failing test (issue #268)@s|^  err=0$|  err=0; [ "$rc" -eq 0 ] \|\| { n=1; f=1; }|'
+  # 48.x — the driver's compile, on the selection that needs it (issue #261). The labels are 48.x because
+  # #273's merge took 49.x and 50.x while this change waited on a decision, and a label names one invariant for
+  # good: the change's own dated evidence still prints `RED 49.1` from the run it measured before that merge.
+  # 48.1 puts the compile back above the case list, which is where it was before a `--case` run of a shell-only case
+  # paid for it (issue #261). It is the one call site a selection cannot skip: the driver reaches it before it knows
+  # which cases it runs, so the poisoned `javac` the case installs is invoked whatever the selection is.
+  '48.1@-@../loop-selftest.sh@driver#aCaseThatAsksForNoCoreCompilesNothing@the compile at the first case that asks for it, not above the case list (issue #261)@s|^source "$root/tools/loop-cases.sh"$|core_ensure\nsource "$root/tools/loop-cases.sh"|'
+  # 48.2 is the other half of 48.1: the marker is what makes the compile *once per suite* rather than once per
+  # asking case. Without it a suite of two asking cases is still green — each case compiles again and is handed a
+  # class path — so the invariant is invisible to an assertion and only a count catches it: the case installs a
+  # `javac` that records every invocation, and the mutation makes it record two.
+  '48.2@-@../loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^  if \[ ! -f "$selftest_core_marker" \]; then$|  if true; then|'
+  # 49.x — the suite's own selection and its record of what it cost. Measured 2026-10-23: one case under
+  # `tools/loop/**` owes the whole self-test (723 s for 163 cases, serial) and the gate said nothing about it, so an
+  # item that touched two files paid 723 s on every iteration (#261 paid eight) and the twelve minutes could only
+  # be established with a stopwatch and a `ps`. One mutation per invariant: the group filter, the refusal of a
+  # filter that names nothing, the duration in the gate's record.
+  '49.1@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the group filter that keeps a suite from running the cases of another group (2026-10-23)@s|^  if \[ -n "\$only_group" \] && ! matches "\$case_name" "\$only_group#\*"; then continue; fi$|  : # the mutation runs every case the suite declares|'
+  '49.2@-@../loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23)@s|^  printf .%s. "\$n"$|  printf .%s. 1|'
+  '49.3@-@tools/loop/gate.sh@gate#theSummaryNamesWhatEachSuiteCost@the wall clock the gate records beside the suite that spent it (2026-10-23)@s|^  took=\$((SECONDS - t0))$|  took=0|'
+  '49.4@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the summary that names the selection a filtered run made (2026-10-23, review round 1 P1)@s|^\[ -n "\$only_group" \] && selection=" --group \$only_group"$|: # the mutation names no selection|'
+  # 50.x — a compiled path is read by the tree it sits in, and not by what its name ends in (issue #273). The rule
+  # has two halves and either alone leaves the case it names green: 50.1 puts the basename pattern back, which makes
+  # an archived evidence tally a compiled file again, and 50.2 removes the matcher's `set -f`, so the pattern
+  # anchored to a module's tree is replaced by the names it matched in the working directory and the module's own
+  # resource stops owing the build. The labels are 50.x and not 44.x because #272's sweep landed first with 44.1,
+  # and a label names one invariant for good; the change's own archived evidence still prints `RED 44.1`/`RED 44.2`
+  # from the runs it measured before this merge, which is what a dated log is.
+  '50.1@-@tools/loop/loop.conf@gate#anArchivedArtefactOwesNoBuild@the profile reading a compiled path by its tree rather than by its name@s|^LOOP_GATE_COMPILED_PATTERNS="\*/src/\*|LOOP_GATE_COMPILED_PATTERNS="*.xml */src/*|'
+  '50.2@-@tools/loop/gate.sh@gate#aModuleResourceOwesTheBuild@the matcher reading an anchored pattern as a pattern@s|\*) set -f|\*) true|'
+  # 51.1 — a tally's name is never a dotfile (issue #278). The profile's own command starts `./`, and a name taken
+  # straight from the command keeps that leading `.`, so the one tally that records the build is hidden from a plain
+  # `ls` and from a `*.xml` glob — the round-3 reviewer of #273 counted five files where the directory held six.
+  '51.1@-@tools/loop/gate.sh@gate#aCompiledStepsTallyIsNotHidden@the ./ prefix stripped before the tally is named (issue #278)@s|\${cmd#\./}|\$cmd|'
+  # 52.x — the gate reads the profile beside its own engine, and says which profile that was (issue #277). Measured
+  # 2026-10-23 finishing #273: the run exported the profile of the project it was started in to every child, so a
+  # change whose delta rewrote `LOOP_GATE_COMPILED_PATTERNS` was gated by the rule it was replacing, and the log named
+  # no profile at all — the round-3 reviewer refused it, and the repair was a hand-pinned re-run. One mutation per
+  # half: 52.1 hands the run's own profile to the child again, 52.2 takes the pin out of the log, and 52.3 makes a
+  # pinned profile claim to be the one the engine ships.
+  '52.1@-@tools/loop/run.sh@gate#theChildReadsTheProfileOfTheTreeItWorksIn@the run keeping its own profile out of a child that works in another tree (issue #277)@s|^export -n LOOP_CONF$|export LOOP_CONF="${LOOP_CONF:-$LOOP_DIR/loop.conf}"|'
+  '52.2@-@tools/loop/gate.sh@gate#theGateNamesTheProfileItRead@the profile the gate read, named in the log it wrote (issue #277)@s|^    say "LOOP-GATE-PROFILE: \$LOOP_CONF_PATH"$|    : # the mutation names no profile|'
+  '52.3@-@tools/loop/gate.sh@gate#theGateNamesTheProfileItRead@a pinned profile named as pinned, beside the one the engine ships (issue #277)@s|^  \[ "\$resolved/\$(basename "\$LOOP_CONF_PATH")" = "\$engine/loop.conf" \]$|  true|'
+  # 53.x — a start the worktree refuses mid-run, and the three things the run owes when it ends on one (issue #284).
+  # Measured 2026-10-23: the run stopped 166 minutes into an 8 h budget with `the item could not be started: loop:
+  # the worktree is not clean — refusing to start #270:`, 7 eligible items unworked, the item whose work the tree
+  # held named nowhere, and #270 carrying no state entry at all. One record per invariant, and each makes the same
+  # case red on its own: 53.1 leaves the leftovers unattributed (no escalation, no account under the item that left
+  # them), 53.2 records the item a second time instead of joining its one record — which is what counted one item
+  # twice in every figure the report derives from `.items` and let `next` read one block as two consecutive ones —
+  # and 53.3 puts the refusal's first line back as the stop reason, which names neither the item nor the files.
+  '53.1@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the leftovers recorded under the item whose work the tree holds, and escalated (issue #284)@s|^        if \[ "\$dry_run" -eq 0 \] \&\& \[ -n "\$owner_item" \]; then$|        if false; then|'
+  '53.2@-@tools/loop/state.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@one record per item, a second account joining the note the item already has (issue #284)@s|^      if (\[\.items\[\] \| select(\.issue == \$i)\] \| length) == 0 then$|      if true then|'
+  '53.3@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the stop reason naming the item the leftovers belong to and the files it found (issue #284)@s|^        stop_run "the item could not be started: the worktree is not clean .*$|        stop_run "the item could not be started: $(printf %s "$start_out" \| head -1)"|'
+  # 53.1 — the report scans the kept worktree's own scratch root beside its own (issue #274). Measured 2026-10-23:
+  # four `loop-selftest.*` trees and four poll loops under `.pi/worktrees/loop/.pi/tmp`, three of the trees past the
+  # 120-minute threshold, and `loop-clean` printed its heading with no entry — the root a suite writes into is the
+  # root of the tree it runs in, and the gate runs the suite inside the worktree.
+  '53.4@-@tools/loop/loop-clean.sh@clean#reportsTheWorktreesScratchTreesToo@the report resolving the kept worktree own scratch root (issue #274)@s|^  worktree_tmp=\$(loop_tmp_dir_for "\$tree")$|  worktree_tmp=""|'
+  # 53.2 — the two roots are compared as directories, so `--worktree .` (the same root written `$LOOP_ROOT/.`) is scanned
+  # once instead of twice. Measured 2026-10-23 (issue #274's round-1 review): the strings never matched, so that
+  # spelling printed two headings for one root and counted one tree's bytes twice.
+  '53.5@-@tools/loop/loop-clean.sh@clean#worktreeDotSweepsTheOneRootOnce@the two roots compared as directories rather than as written (issue #274 review)@s|^  loop_same_dir "\$worktree_tmp" "\$LOOP_TMP_DIR" && worktree_tmp=""$|  : # the dedup removed|'
+  # 53.x — the case set is selected by the files a delta touches (issue #276). 190 cases and 723 s of self-test were
+  # owed for every `tools/loop/**` gate run because a case had no record of which file it exercises, while the
+  # mutation harness had carried exactly that field since #235. One mutation per half: 53.6 leaves the profile's
+  # `{base}` token unsubstituted, 53.7 makes the file set select every case, 53.8 removes the refusal a file set that
+  # names nothing gets, 53.9 drops the rule that a core file owes the whole set, and 53.10 removes one token from a
+  # case's declaration so the declaration is narrower than the case that carries it.
+  '53.6@-@tools/loop/gate.sh@gate#theDeltaHandsASuiteTheBaseItMeasured@the base substituted into the suite the delta owes (issue #276)@s|^    cmd=\${cmd//\\{base\\}/\$base}$|    : # the mutation substitutes no base|'
+  '53.7@-@../loop-selftest.sh@driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns@the file set narrowing the selection instead of selecting everything (issue #276)@s|^  if ! files_select "\$case_name"; then continue; fi$|  : # the mutation selects every case|'
+  '53.8@-@../loop-selftest.sh@driver#aFileSetThatNamesNoCaseIsRefused@a file set that names no case refused rather than read as an empty suite (issue #276)@s|^if \[ "\$only_files" != " " \] && \[ "\$(count_files_matching)" -eq 0 \]; then$|if false; then|'
+  '53.9@-@../loop-selftest.sh@driver#aCoreFileOwesEveryCase@a core file owing the whole set whatever the cases declare (issue #276)@s|^  core_files=\$(loop_case_core_files)$|  core_files=""|'
+  '53.10@-@../loop-cases.sh@driver#everyCaseDeclaresTheFilesItCanReach@a declaration narrower than the case that carries it (issue #276)@s|^  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json$|  # files: tools/pi-child-events.sh tools/tooling.json|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine
@@ -222,14 +413,57 @@ PROBE_RECORDS=(
   'probe-stays-green@-@tools/loop/report.sh@report#headerAndTableShape@a real edit no case in the set asserts@s|^set -uo pipefail$|&\n# a probe as a second line|'
 )
 
-selected() { # selected <label>
-  [ -z "$only" ] && return 0
-  case " $only " in *" $1 "*) return 0 ;; *) return 1 ;; esac
+# `--from-git <base>` adds the paths a change touched to the file set, from the same two sources the loop's gate
+# reads: the diff against the base, and the working tree's own state (a change that is not committed yet).
+if [ -n "$from_git" ]; then
+  git_paths=$(git diff --name-only "$from_git" 2>/dev/null) || {
+    printf 'loop-mutations: --from-git %s is not a base git can diff this working tree against\n' "$from_git" >&2
+    exit 2
+  }
+  status_paths=$(git status --porcelain 2>/dev/null | sed 's/^...//')
+  while IFS= read -r _wanted; do
+    [ -n "$_wanted" ] || continue
+    case "$files" in *" $_wanted "*) continue ;; esac
+    files="$files$_wanted "
+  done < <(printf '%s\n' "$git_paths" "$status_paths")
+fi
+
+# The selection is the record's label against `--only` *and* its file against the file set: the two filters are
+# independent, and a record has to pass both to run.
+selected() { # selected <label> <file>
+  if [ -n "$only" ]; then
+    case " $only " in *" $1 "*) ;; *) return 1 ;; esac
+  fi
+  if [ "$files" != " " ]; then
+    case "$files" in *" $2 "*) ;; *) return 1 ;; esac
+  fi
+  return 0
 }
+
+# What a filter selected, against what the harness declares — counted before anything is mutated, because a
+# selection of zero records is the one answer that must not look like a pass: a caller who mistyped a path would
+# otherwise read exit 0 as "the change's records all held".
+declared=${#MUTATIONS[@]}
+picked=0
+for record in "${MUTATIONS[@]}"; do
+  IFS='@' read -r _label _fifo _file _case _desc _exprs <<< "$record"
+  selected "$_label" "$_file" && picked=$((picked + 1))
+done
+if [ "$picked" -eq 0 ] && { [ -n "$only" ] || [ "$files" != " " ]; }; then
+  printf 'loop-mutations: the selection names no record of the %s declared — a run that mutates nothing would report success, so this is a refusal (--list shows what each record owns)\n' "$declared" >&2
+  exit 2
+fi
+if [ -n "$only" ] || [ "$files" != " " ]; then
+  printf 'loop-mutations: selected %s of %s records' "$picked" "$declared" >&2
+  [ -n "$only" ] && printf ' (labels: %s)' "$only" >&2
+  [ "$files" != " " ] && printf ' (files:%s)' "${files% }" >&2
+  printf '\n' >&2
+fi
 
 if [ "$list_only" -eq 1 ]; then
   for record in "${MUTATIONS[@]}"; do
-    IFS='@' read -r label _fifo _file case_name desc _exprs <<< "$record"
+    IFS='@' read -r label _fifo file case_name desc _exprs <<< "$record"
+    selected "$label" "$file" || continue
     printf '%s\t%s\t%s\n' "$label" "$case_name" "$desc"
   done
   exit 0
@@ -286,6 +520,52 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# `--check`: each selected record's expressions applied to a copy of the file the record names, and reported when
+# one of them changes nothing. Reported per record and not per expression — one stale expression is enough to make
+# the record mutate less than it declares, and `RED` for a partly applied mutation is the silent half of the same
+# lie. `$checked` counts the records whose file exists, so the summary is the set that was actually looked at and
+# not the set that was declared.
+if [ "$check" -eq 1 ]; then
+  checked=0
+  stale=0
+  for record in "${MUTATIONS[@]}"; do
+    IFS='@' read -r label _fifo file _case _desc exprs <<< "$record"
+    selected "$label" "$file" || continue
+    path="$engine/${file#tools/loop/}"
+    if [ ! -f "$path" ]; then
+      printf 'MUTATION-PATTERN-NOFILE %s  %s (the record names a file the engine does not have)\n' "$label" "$file" >&2
+      stale=$((stale + 1))
+      continue
+    fi
+    probe="$scratch/check.$(printf '%s' "$label" | tr -c 'A-Za-z0-9._-' '_')"
+    cp -- "$path" "$probe" 2>/dev/null || {
+      printf 'loop-mutations: could not copy %s to check its records — nothing was mutated\n' "$path" >&2
+      exit 2
+    }
+    record_stale=0
+    while IFS= read -r expr; do
+      [ -n "$expr" ] || continue
+      cp -- "$probe" "$probe.prev" || { printf 'loop-mutations: could not copy %s for the check\n' "$probe" >&2; exit 2; }
+      sed -i "$expr" "$probe"
+      if cmp -s "$probe.prev" "$probe"; then
+        record_stale=1
+        break
+      fi
+    done < <(printf '%s\n' "$exprs" | sed 's/;;/\n/g')
+    checked=$((checked + 1))
+    if [ "$record_stale" -eq 1 ]; then
+      printf 'MUTATION-PATTERN-STALE %s  %s (an expression of this record names no line of this file — fix the record, not the case)\n' "$label" "$file" >&2
+      stale=$((stale + 1))
+    fi
+  done
+  if [ "$stale" -ne 0 ]; then
+    printf 'loop-mutations: %s of %s checked records no longer apply — the set is stale\n' "$stale" "$checked"
+    exit 1
+  fi
+  printf 'loop-mutations: all %s cases passed — every selected record applies to the file it names\n' "$checked"
+  exit 0
+fi
+
 red=0
 not_noticed=0
 failed=0
@@ -338,7 +618,7 @@ one_mutation() { # one_mutation <record>
   local record="$1"
   local label fifo file case_name desc exprs backup
   IFS='@' read -r label fifo file case_name desc exprs <<< "$record"
-  selected "$label" || return 0
+  selected "$label" "$file" || return 0
 
   # The mutation is applied to the *engine* directory, which is this repository's `tools/loop` by default and
   # a throwaway copy when the harness's own self-test drives it (`--engine`). The case then runs against the
@@ -403,6 +683,8 @@ if [ -n "$probe" ]; then
       ;;
     *) echo "loop-mutations: unknown probe $probe" >&2; exit 2 ;;
   esac
+  # A probe is the harness's own guard, not a record of the set: a file set must not silently switch it off.
+  files=" "
   one_mutation "$record"
   printf '\nprobe %s: red %s · not-noticed %s · failed %s\n' "$probe" "$red" "$not_noticed" "$failed"
   [ "$not_noticed" -eq 0 ] || exit 1

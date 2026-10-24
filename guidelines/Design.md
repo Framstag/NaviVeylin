@@ -350,6 +350,15 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   `InstalledMaps` — and produces `libosmscoutclientjava.jar`. Those overrides are Android ports:
   `HttpURLConnection` map downloads (no `java.net.http` desugaring), the debug-suffix library loading
   (`osmscout_client_java` → `osmscout_client_javad`), the `reloadBasemap` declaration, public constructors.
+- **The two sides are compared, and their difference is recorded.** For those five files the override is the
+  only Java copy the APK sees, so a native declared on one side only reaches the other as a `NoSuchMethodError`
+  at the first call — no compiler error, no failing test (issue #174, the drift class §119 fixed by hand). A
+  blanket "submodule natives ⊆ override natives" check is false, because the port diverges on purpose in both
+  directions, so the difference itself is the contract: `osmscout-client-java/native-parity.txt` records every
+  divergence as `file | submodule-only|override-only | name(types) | reason`, and the build gate
+  `:app:checkNativeParity` (buildSrc `NativeParityScanner`, in `preBuild`) fails on any drift the record does
+  not carry, in either direction, and on a recorded line the trees no longer need. A new submodule native is
+  therefore a build failure in the bump's own build: mirror it, or record why the Android port drops it.
 - **A search request carries its generation.** The search entry points take the generation a caller got from
   `beginSearch(slot)` — `searchLocations(query, limit, adminRegionHandle, generation)`,
   `searchLocations(query, limit, defaultRegion, generation)`, `searchLocationByForm(…, generation)`,
@@ -578,7 +587,12 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   so the installation a running client renders stays usable throughout; data a
   failed or interrupted attempt left in the maps tree is *recognised* by
   `SlotInstall.stagingTargetOf` rather than only hidden, and the app-start path
-  removes it (spec: `map-updates`). The repository update check runs at most once
+  removes it (spec: `map-updates`). Every reader that opens, lists, centres on or
+  records a database — the start-map resolution, the map manager's installed list,
+  the phone canvas, the car session — goes through `MapTreeDiscovery`, which applies
+  that classification and names each leftover it drops in the diagnostics together
+  with the installation it belongs to; none of them reads the raw `InstalledMaps`
+  scan itself, and the update check, which does, reports the leftovers on its own. The repository update check runs at most once
   a day on the app-start path (`MapUpdates`, process-scoped) and persists its
   result — the last completed check and the installations found — in the settings
   file under the same serialised transaction as every other setting.

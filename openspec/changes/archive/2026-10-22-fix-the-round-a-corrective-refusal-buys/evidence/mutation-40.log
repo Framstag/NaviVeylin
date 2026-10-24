@@ -1,0 +1,17 @@
+started: 2026-10-22T08:15:35Z
+command: bash tools/loop-mutations.sh --only '40.1 40.2 40.3'
+pre-run diff fingerprint of the mutated files: f6364732b3f4cc7b
+loop-mutations: selected 3 of 84 records (labels: 40.1 40.2 40.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.DjBZ2E
+RED    40.1  run#aCorrectiveRoundIsHandedTheCorrections   (the base the extra round_diff is built from)
+restore 40.1 run#aCorrectiveRoundIsHandedTheCorrections green again
+RED    40.2  run#aCorrectiveRoundIsHandedTheCorrections   (the refusing report the extra round reads)
+restore 40.2 run#aCorrectiveRoundIsHandedTheCorrections green again
+RED    40.3  run#aCorrectiveRoundIsHandedTheCorrections   (the correction section substituted before the paths it names)
+restore 40.3 run#aCorrectiveRoundIsHandedTheCorrections green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+post-run diff fingerprint: f6364732b3f4cc7b
+restore proof: identical — the tree is what the change left it
+finished: 2026-10-22T08:17:17Z
+EXIT=0

@@ -1,0 +1,27 @@
+## openspec validate --strict
+zsh:1: keine Berechtigung: ./openspec
+Change 'fix-jni-native-parity-guard' is valid
+
+## tools/check-doc-routes.sh
+check-doc-routes: all 120 section references resolve, all 5 skill references resolve
+
+## tools/gen-feature-list.sh --check-classification
+unclassified: 0
+delta spec ids: 1
+stale: 0
+car-only areas: 1
+highlights: 19
+
+## tools/declared-cases.sh fix-jni-native-parity-guard
+  rules     declared 2 · touched 1 · mention 0 · union of declared,touched,mention
+
+  # rule     module  last time test class
+──────────────────────────────────────────────────────────────────────────────
+  1 declared app     0.235     com.naviveylin.build.NativeOverrideParityGuardTest
+  2 declared app     0.008     com.naviveylin.build.VersionedGradleJavaHomeTest
+──────────────────────────────────────────────────────────────────────────────
+selected 2 of 435 test classes; measured class time 0.2s
+The suite's wall time is not that sum: it runs at the declared fork count, every invocation pays the
+Robolectric fork bootstrap plus the daemon and (when test sources changed) the test compile, so the
+floor is ~30s, not 10s. And a pre-gate run is NOT gate evidence: run the unfiltered module suite
+before marking the change complete.

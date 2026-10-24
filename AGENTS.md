@@ -30,11 +30,11 @@ which also lists the sections this table does not route.
 | search, favourites, settings, persistence | `Design.md` §9 "Data, persistence & search", `UI.md` §6a "Phone search surface" |
 | logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `Build.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
 | route data and the numbers derived from it | `MapRendering.md` §19 |
-| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §2 — its "Agent iteration protocol" subsection is the iteration loop, its "The actions' Node runtime" subsection owns a `uses:` pin and the check that gates one —, §3, §4 |
+| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §2 and §4 are indexes of their sub-sections; read the one that owns the question: §2a "Agent iteration protocol" (the iteration loop), §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" (a `uses:` pin and the check that gates one), §3 "Commands reference", §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover", §4d "Attributing a red run", §4f "Artifacts, evidence rules and native verification" — 1.7–5.3 kB per section (bytes/1000, one decimal), against 23.2 kB and 23.4 kB for §2 and §4 before the split (measured 2026-10-22); §4c and §4e are reached through the §4 index — |
 | the native build — CMake sources, the ABI→triplet selection, vcpkg dependencies, stylesheet packaging | `Build.md` §12 |
-| writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `Build.md` §6 "Test constraints", §7 "Code coverage", `Design.md` §11 "Testing" |
+| writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `Build.md` §6a "The JNI stub and the classloader sandbox" (the rule a stub-loading test follows), §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions and declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion measured", §6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub for unit tests" (what the committed stub is and where it ships) — 1.1–5.3 kB each (bytes/1000, one decimal), against 22.1 kB for §6 before the split —, §7 "Code coverage", `Design.md` §11 "Testing" |
 | release, versioning, SBOM, licence inventory | `Build.md` §5, §8, §9 |
-| on-device evidence — car crash triage, phone UI measurement | `Build.md` §10, §11 |
+| on-device evidence — car crash triage, phone UI measurement | `Build.md` §10a "Booting the AAOS AVD and driving the car UI", §10b "Judging the car surface and the render loop", §10c "Footprint, the app's host sends and route numbers", §10d "Rejected mutations, the error notice and database registration", §10e "Expectation baselines and the car search scope", §10f "Two checks that need evidence before a behaviour is specified", §10g "Start-map selection on the phone", §10h "Stylesheet load count per start", §10i "Device recipes that cost a round every time", §10j "A calculated route's length" — 0.9–6.8 kB each (bytes/1000, one decimal), against 31.6 kB for §10 before the split —, §11 |
 | what one project metrics report run measures, its metric definitions, its excluded classes, its surface rule | `Metrics.md` §1 "Invocation and exit status", §2 "What one run measures, and what it does not", §3, §4, §5, §6 "Surface convention" |
 | legal, regulatory, Play policy, privacy, diagnostics disclosure | `Regulatory.md` §2, §3, §4, §6, §9 |
 | engineering principles, and the checklist before an apply pass | `Design.md` §12, "Appendix A — Quick checklist (apply phase)" |
@@ -176,11 +176,11 @@ the tracker:
 | `triage-todo` | read-only — rank what is open from the persisted band and name the next change |
 | `cleanup-todo` | tracker hygiene: label/status repair, duplicates by fingerprint, `nvid` collisions, evidence before a closure |
 | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
-| `fix-loop` | run the user-budgeted loop that closes defect-shaped items — bugs, and improvements that clear the same bar — one command (`tools/loop/run.sh --items N --minutes M`) → per item: pre-screen, a fresh agent process on a prepared package, an independent review, archive, labels and closure; strict eligibility (one root cause, one fix, host-decidable), one fresh child per item so the context window survives, and the run's script as the mechanical item/time cap |
+| `fix-loop` | reference for the budgeted loop: where its contract (the spec `agent-issue-loop`), the worker's contract and the eligibility gate live, and the script that checks a change's evidence pointers; the entry is `tools/loop/run.sh --items N --minutes M` |
 
 ## Agent iteration loop (measure first)
 
-The loop is `guidelines/Build.md` §2, "Agent iteration protocol": **look then measure before changing code;
+The loop is `guidelines/Build.md` §2a, "Agent iteration protocol": **look then measure before changing code;
 iterate with focused suites and gate once; batch independent questions; one builder per working tree.** It
 exists because those rules cost the most rounds in `ki_processing_failures.log` — rules 1-3 from a change
 whose single visual symptom needed many review rounds, rule 4 from the shared-worktree collisions
@@ -193,8 +193,9 @@ What this file owns about the loop is only where its parts live:
 - the iteration levers and the measurements behind them: `guidelines/Build.md` §4, §6, §7;
 - a defect fix inside the loop owes a test that fails on HEAD *before* the fix, and an independent read-only
   reviewer before archive — that includes a defect-shaped improvement, whose red case asserts the bound it is
-  missing; the loop, its budget and its eligibility gate are `.pi/skills/fix-loop`, whose entry is
-  `tools/loop/run.sh` (the gate for `tools/loop/**` is `tools/loop-selftest.sh`, offline);
+  missing; the loop's contract is the spec `agent-issue-loop`, the eligibility gate the worker applies is
+  `tools/loop/prompts/worker.md`, and the entry is `tools/loop/run.sh` (the gate for `tools/loop/**` is
+  `tools/loop-selftest.sh`, offline);
 - the device loop, an emulator with maps, and a Compose geometry assertion: the `device-check`,
   `provision-phone-emulator` and `compose-geometry` skills;
 - the build, test and falsification skills: `build-app`, `run-tests`, `revert-check`, and the wrapper and
@@ -247,11 +248,28 @@ Three artifact rules are CI-gated (`.github/workflows/build.yml`, step "Check Op
   by hand (2026-10-21). The requirement that owns this is
   `openspec/specs/documentation-ownership/spec.md`.
 
+Two more rules are the validator's own, and an author meets them in the round after the artifact is written
+unless they are read here first: `openspec validate <change> --strict` fails on both, while the plain command
+passes the second with the severity it carries.
+
+- a `MODIFIED` block replaces its requirement when the change archives, so it carries every scenario the
+  shipped spec still has, the ones it does not change repeated verbatim — a renamed scenario is a removal plus
+  an addition, which the validator reports as the shipped name omitted.
+- a requirement's body stays at most 500 characters — the body, not its scenarios, which is where an example
+  or an edge case belongs — and the limit is read on an `ADDED` block before it lands (the validator's
+  `Requirement text is very long (>500 characters)`) and on the shipped spec after archive, a `MODIFIED`
+  block exempt because its text is the existing requirement kept whole.
+
+Run `openspec validate <change> --strict` — or `openspec validate --changes --strict` over the open set — before
+the artifact is finished rather than at archive time. Both rules and their rationale are owned by
+`openspec/specs/documentation-ownership/spec.md`, "The validator's own strict rules are read before the first
+write".
+
 ## Build & Test
 
 Everything executable — the command table (build, assemble, force a rerun, coverage), the gate's result
 evaluation and evidence rules, the test constraints, the on-device recipes, and the native build with vcpkg
-— is `guidelines/Build.md` (§2 the iteration protocol, §3 commands, §4 results, §6 test constraints, §10 and
+— is `guidelines/Build.md` (§2a the iteration protocol, §3 commands, §4a results, §6a–§6h test constraints, §10a–§10j and
 §11 on-device measurement, §12 native build and vcpkg). The skills `build-app`, `run-tests`, `revert-check`
 and `release-build` wrap those calls; `revert-check` is the falsification step a change owes for every new
 invariant (mutate it once, the named case must fail, restore, forced green — `TODO.md` §113). The recipes for

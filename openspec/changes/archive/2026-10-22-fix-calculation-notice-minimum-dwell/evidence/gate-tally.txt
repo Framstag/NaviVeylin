@@ -1,0 +1,10 @@
+# the gate's own line (shell suites):
+LOOP-GATE: tests=481 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/loop-mutations-selftest.sh, tools/issue-tooling-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+
+# the compiled suites' own tallies from the same run (XMLs newer than 13:00, aggregated)
+app/build/test-results/testAutomotiveDebugUnitTest: tests=2101 failures=0 errors=0
+app/build/test-results/testMobileDebugUnitTest: tests=2101 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest: tests=880 failures=0 errors=0
+core/build/test-results/testDebugUnitTest: tests=642 failures=0 errors=0
+osmscout-client-java/build/test-results/test: tests=48 failures=0 errors=0
+TOTAL: tests=5772 failures=0 errors=0 over 5 result directories

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the four cases this change adds or rewrites, against the engine's own
+     `tools/loop/run.sh` at f084f734 (2026-10-23T17:58:26Z, ~40 s wall clock): the case file from this change,
+     `run.sh` untouched at HEAD, in a throwaway worktree (`git worktree add --detach /tmp/red-engine-274 f084f734`),
+     one `bash tools/loop-selftest.sh --case <name>` per case. A single-case run prints no suite summary line, so
+     the tally below is four cases and the four failures; the transcript is evidence/red-HEAD.log. -->
+<testsuite name="loop-selftest --case run#{childWriteOutsideTheWorktreeIsNoted,dirtyBaseRefusesTheMergeAndNamesThePath,strictOutsideWriteBlocksTheItem,strictOutsideWriteDiscardsTheReviewRound}" tests="4" failures="4" errors="0">
+  <testcase name="run#childWriteOutsideTheWorktreeIsNoted">
+    <failure>a difference outside the worktree is recorded, not turned into a verdict about the item: expected 'done', got 'blocked'</failure>
+  </testcase>
+  <testcase name="run#dirtyBaseRefusesTheMergeAndNamesThePath">
+    <failure>the reason is the landing rule, which is the run's own: 'is not clean' not found in: the worker wrote outside the worktree — the project's own tree changed while it ran</failure>
+  </testcase>
+  <testcase name="run#strictOutsideWriteBlocksTheItem">
+    <failure>the run itself failed — `--strict-outside-write` is not a flag the engine at HEAD accepts</failure>
+  </testcase>
+  <testcase name="run#strictOutsideWriteDiscardsTheReviewRound">
+    <failure>the run itself failed — `--strict-outside-write` is not a flag the engine at HEAD accepts</failure>
+  </testcase>
+  <system-out>FAIL run#childWriteOutsideTheWorktreeIsNoted
+FAIL run#dirtyBaseRefusesTheMergeAndNamesThePath
+FAIL run#strictOutsideWriteBlocksTheItem
+FAIL run#strictOutsideWriteDiscardsTheReviewRound</system-out>
+</testsuite>

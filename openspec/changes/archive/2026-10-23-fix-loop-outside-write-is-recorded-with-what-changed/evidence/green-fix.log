@@ -1,0 +1,15 @@
+Taken 2026-10-23T18:15:59Z — the four cases of this change, green, from the change root:
+`bash tools/loop-selftest.sh --case <name>` per case.
+
+=== run#childWriteOutsideTheWorktreeIsNoted
+PASS run#childWriteOutsideTheWorktreeIsNoted
+
+=== run#dirtyBaseRefusesTheMergeAndNamesThePath
+PASS run#dirtyBaseRefusesTheMergeAndNamesThePath
+
+=== run#strictOutsideWriteBlocksTheItem
+PASS run#strictOutsideWriteBlocksTheItem
+
+=== run#strictOutsideWriteDiscardsTheReviewRound
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+

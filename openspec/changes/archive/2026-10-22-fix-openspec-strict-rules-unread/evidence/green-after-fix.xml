@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/probe.sh (both cases, after the AGENTS.md edit; re-run from the archived path)" tests="2" failures="0" errors="0" timestamp="2026-10-22T12:12:40+02:00">
+  <system-out>First run 2026-10-22T11:55:48+02:00 from the open change's path: PASS theEntryDocumentStatesTheValidatorStrictRules; PASS theEntryDocumentNamesTheStrictValidationCommand; probe: 0 of 2 cases failed; EXIT=0. Re-run 2026-10-22T12:12:40+02:00 from openspec/changes/archive/2026-10-22-fix-openspec-strict-rules-unread/evidence after the archive move, with the probe resolving its root upward: both cases PASS, probe: 0 of 2 cases failed, EXIT=0.</system-out>
+</testsuite>

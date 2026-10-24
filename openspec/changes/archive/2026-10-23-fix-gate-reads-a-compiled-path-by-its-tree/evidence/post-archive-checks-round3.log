@@ -1,0 +1,65 @@
+2026-10-23T07:53:17Z
+== post-archive checks, round 3 (issue #273 — the requirement sentence corrected; no code changed)
+
+-- openspec validate agent-issue-loop --strict:
+   Specification 'agent-issue-loop' has issues
+   ⚠ [WARNING] requirements[3]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   ⚠ [WARNING] requirements[6]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   ⚠ [WARNING] requirements[19]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   ⚠ [WARNING] requirements[27]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   ⚠ [WARNING] requirements[28]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   ⚠ [WARNING] requirements[36]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   ⚠ [WARNING] requirements[37]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   ⚠ [WARNING] requirements[38]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+   Next steps:
+     - Ensure spec includes ## Purpose and ## Requirements sections
+     - Each requirement MUST include at least one #### Scenario: block
+     - Re-run with --json to see structured report
+   long-requirement warnings: 8
+   exit=1 (strict turns the 8 pre-existing warnings into a 1; this requirement is not one of them)
+
+-- the requirement's body size (limit 500):
+   ['openspec', 'specs', 'agent-issue-loop', 'spec.md'] lines: 2 chars+newlines: 469 chars-no-newline: 468
+     1 115 The gate SHALL decide that a path is compiled from the tree it sits in — a module's `src/` tree or its `lint.xml` —
+     2 353 or from a name that is the convention for a build input (a `.gradle.kts` or `.gradle` script, a `.toml`, `CMakeLists.txt`), which classify wherever they sit; an extension that names anything else — `*.xml`, `*.kt`, `*.java`, `*.c`, `*.h` — SHALL NOT be enough. Every pattern SHALL be compared as a pattern, not expanded against the directory it runs in.
+   ['2026-10-23-fix-gate-reads-a-compiled-path-by-its-tree', 'specs', 'agent-issue-loop', 'spec.md'] lines: 2 chars+newlines: 469 chars-no-newline: 468
+     1 115 The gate SHALL decide that a path is compiled from the tree it sits in — a module's `src/` tree or its `lint.xml` —
+     2 353 or from a name that is the convention for a build input (a `.gradle.kts` or `.gradle` script, a `.toml`, `CMakeLists.txt`), which classify wherever they sit; an extension that names anything else — `*.xml`, `*.kt`, `*.java`, `*.c`, `*.h` — SHALL NOT be enough. Every pattern SHALL be compared as a pattern, not expanded against the directory it runs in.
+
+-- delta requirement vs the shipped spec (byte-identical after the correction):
+   identical, exit=0
+
+-- bash tools/gen-feature-list.sh --check-classification:
+   gen-feature-list: stale classification entry for a spec that no longer exists:
+     search-name-matching
+     search-result-row-icon
+     start-map-selection
+   specs read: 177
+   classified: 180
+   unclassified: 0
+   delta spec ids: 0
+   stale: 3
+   car-only areas: 1
+   highlights: 19
+   exit=0
+
+-- tools/check-doc-routes.sh:
+   check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+   exit=0
+
+-- bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/archive/2026-10-23-fix-gate-reads-a-compiled-path-by-its-tree --root .:
+   ok   C1 §references: 2 checked, 0 exempted as archived pointers
+   ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+   ok   C3 /tmp pointers: none cited
+   ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+   ok   C5 file:line: 323 resolved and in range, 0 unresolved or ambiguous
+   ----
+   evidence-check: PASS
+   exit=0
+----
+-- ordering, stated rather than left to a reader:
+   the gate (evidence/gate-round3.log, 2026-10-23T07:36:21Z) ran after every code and spec write of this round
+   (tools/loop-mutations.sh, openspec/specs/agent-issue-loop/spec.md, the delta, design.md, tasks.md) and before
+   two prose-only edits to design.md and proposal.md (`openspec/**`, uncompiled — the same checks are owed), so the gated
+   bytes and the tree differ in prose alone. Tallies: app/build/test-results/loop-gate/*.xml, copied whole to
+   evidence/gate-tallies-round3/ (6 files: 176 + 98 + 34 + 0 + 0 + the build's own tests=0 = 308).

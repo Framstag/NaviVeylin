@@ -1,0 +1,51 @@
+2026-10-22T12:24:18+02:00
+== probe (both cases), run from the archived change
+PASS theEntryDocumentStatesTheValidatorStrictRules
+PASS theEntryDocumentNamesTheStrictValidationCommand
+probe: 0 of 2 cases failed
+EXIT=0
+== the deleted clause, both copies
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-10-22-fix-openspec-strict-rules-unread/specs/documentation-ownership/spec.md:0
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/specs/documentation-ownership/spec.md:0
+== requirement body characters
+473
+== delta block vs merged block
+IDENTICAL
+== AGENTS.md added block, lines
+17
+== task markers
+done:  14
+open:  0
+bare:  0
+== stale figures still quoted
+178:  body, 6.3's `Done` line carried `12:18:35` while its artifacts carry `12:20:04`/`12:20:07`, and 2.1/4.2
+179:  quoted "15 insertions" for a block the corrected tree carries as 17 lines. Verify: each figure reproduces on
+==EXIT=0
+== openspec validate fix-openspec-strict-rules-unread --strict (final tree, temporary open copy)
+2026-10-22T12:24:39+02:00
+Change 'fix-openspec-strict-rules-unread' is valid
+EXIT=0
+temp open copy removed: archive
+== archive directory
+openspec/changes/archive/2026-10-22-fix-openspec-strict-rules-unread
+== merged requirement present
+1
+== no probe- copy left
+0
+== final tree, after the section-7 log lines landed
+2026-10-22T12:25:14+02:00
+-- openspec validate --strict (temporary open copy)
+Change 'fix-openspec-strict-rules-unread' is valid
+EXIT=0
+temp open copy removed: archive
+-- task markers
+done:  14
+open:  0
+bare:  0
+-- probe, archived change
+PASS theEntryDocumentStatesTheValidatorStrictRules
+PASS theEntryDocumentNamesTheStrictValidationCommand
+probe: 0 of 2 cases failed
+EXIT=0
+-- requirement body characters
+473

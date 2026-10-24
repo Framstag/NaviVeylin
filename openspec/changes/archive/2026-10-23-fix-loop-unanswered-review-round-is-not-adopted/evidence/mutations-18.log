@@ -1,0 +1,10 @@
+RED    18.1  worktree#refusesABranchWhoseReviewFailed   (adoption deciding on the verdict the reviewer left on the branch)
+restore 18.1 worktree#refusesABranchWhoseReviewFailed green again
+RED    18.2  run#recordsAFailedReviewOnTheBranch   (the run committing the reviewer verdict onto the item branch)
+restore 18.2 run#recordsAFailedReviewOnTheBranch green again
+RED    18.3  worktree#refusesABranchWhoseReviewRoundNeverAnswered   (adoption refusing a round that was announced and never answered)
+restore 18.3 worktree#refusesABranchWhoseReviewRoundNeverAnswered green again
+RED    18.4  run#announcesAndRecordsTheReviewRound   (the run announcing the review round on the item branch before its reviewer starts)
+restore 18.4 run#announcesAndRecordsTheReviewRound green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

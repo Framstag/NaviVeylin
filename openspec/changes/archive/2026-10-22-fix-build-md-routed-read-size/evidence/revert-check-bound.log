@@ -1,0 +1,19 @@
+# revert-check for routed-read#bound — 2026-10-22T17:03:35Z, root /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+
+## routed-read#bound — §10a–§10j demoted to `###` (section 10 whole again)
+[mutated] FAIL routed-read#bound — 1 section(s) of Build.md exceed 12000 bytes: §10=32707
+[mutated] red-probe: 1 of 1 cases failed
+[mutated] EXIT=1
+[restored] PASS routed-read#bound — every section of Build.md is at most 12000 bytes
+[restored] red-probe: 0 of 1 cases failed
+[restored] EXIT=0
+EXIT=0
+
+## all four cases, restored
+[restored-all] PASS routed-read#bound — every section of Build.md is at most 12000 bytes
+[restored-all] PASS routed-read#numbers — §1-§12 are all present and check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+[restored-all] PASS routed-read#route — the routing table names 29 lettered Build.md sub-sections across 3 priced row(s)
+[restored-all] PASS routed-read#verbatim — every offender is split into lettered sub-sections and no sentence is rewritten
+[restored-all] red-probe: 0 of 4 cases failed
+[restored-all] EXIT=0
+EXIT=0

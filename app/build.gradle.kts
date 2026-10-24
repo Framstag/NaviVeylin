@@ -493,6 +493,51 @@ val checkNoWallClockWaits = tasks.register("checkNoWallClockWaits") {
 }
 tasks.named("preBuild") { dependsOn(checkNoWallClockWaits) }
 
+// ── JNI native parity gate ──────────────────────────────────────────────
+// The bridge has two Java sides (spec osmscout-jni — The override mirrors the submodule's natives, except the
+// recorded deviations; guidelines/Design.md §5, "The bridge's two sides"): `:osmscout-client-java` compiles the
+// submodule's Java client sources *except five overridden files*, so a native on one side only is a
+// `NoSuchMethodError` at the first call — no compiler error, no failing test (issue #174, the drift class #119
+// fixed by hand). A blanket "submodule natives ⊆ override natives" check is false, because the override
+// diverges on purpose in both directions; `osmscout-client-java/native-parity.txt` records that difference with
+// a reason per line, and this gate fails on any drift the list does not carry — in either direction, and on a
+// recorded line the trees no longer need. The scanner and its fixtures live in buildSrc
+// (`com.naviveylin.build.jni`).
+val checkNativeParity = tasks.register("checkNativeParity") {
+    val submoduleDir = rootProject.file(
+        "app/src/main/cpp/libosmscout/libosmscout-client-java/java/com/framstag/libosmscout/client"
+    )
+    val overrideDir = rootProject.file("osmscout-client-java/src/main/java/com/framstag/libosmscout/client")
+    val deviationList = rootProject.file("osmscout-client-java/native-parity.txt")
+    // Declared only when present: `inputs.dir`/`inputs.file` on a missing path fails the task's
+    // configuration with "Input file does not exist" before the scanner can print its own remedy, and the task
+    // has no outputs, so it executes whether or not its inputs are tracked. A clone without the submodule then
+    // reaches the scanner's "initialise the submodule" finding instead of a Gradle validation error.
+    if (submoduleDir.isDirectory) inputs.dir(submoduleDir)
+    if (overrideDir.isDirectory) inputs.dir(overrideDir)
+    if (deviationList.isFile) inputs.file(deviationList)
+    doLast {
+        val files = com.naviveylin.build.jni.NativeParityScanner.OVERRIDDEN_FILES
+        fun sources(dir: File): Map<String, String> = files
+            .mapNotNull { name -> File(dir, name).takeIf { it.isFile }?.let { name to it.readText() } }
+            .toMap()
+        val findings = com.naviveylin.build.jni.NativeParityScanner.check(
+            submoduleSources = sources(submoduleDir),
+            overrideSources = sources(overrideDir),
+            deviationList = if (deviationList.isFile) deviationList.readText() else null,
+            submoduleDir = submoduleDir.relativeTo(rootProject.projectDir).path,
+            overrideDir = overrideDir.relativeTo(rootProject.projectDir).path,
+            listPath = deviationList.relativeTo(rootProject.projectDir).path
+        )
+        if (findings.isNotEmpty()) {
+            throw GradleException(
+                com.naviveylin.build.jni.NativeParityScanner.report(findings)
+            )
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkNativeParity) }
+
 // Stylesheets are sourced from the libosmscout submodule at build time. Copy the
 // submodule stylesheet directory into a generated assets root so the APK packages
 // exactly the current submodule state — "stylesheets/..." in the APK, matching the

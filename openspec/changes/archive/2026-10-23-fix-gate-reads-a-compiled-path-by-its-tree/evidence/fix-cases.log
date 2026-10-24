@@ -1,0 +1,14 @@
+2026-10-23T07:00:33Z
+== GREEN after the fix: the same two cases against this tree's engine and profile
+-- gate#anArchivedArtefactOwesNoBuild
+PASS gate#anArchivedArtefactOwesNoBuild
+exit=0
+-- gate#aModuleResourceOwesTheBuild
+PASS gate#aModuleResourceOwesTheBuild
+exit=0
+== this tree s own plan, with this tree s profile
+tools/loop-selftest.sh
+bash tools/loop-mutations.sh --check
+tools/loop-mutations-selftest.sh
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh

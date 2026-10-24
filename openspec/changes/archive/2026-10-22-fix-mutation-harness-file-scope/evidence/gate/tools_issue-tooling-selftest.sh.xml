@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issue-tooling-selftest.sh" tests="117" failures="0" errors="0">
+  <system-out>PASS check#unrankedIsNotAViolation PASS check#selfCheckIsGreen issue-tooling-selftest: all 117 cases passed (JDK 27, offline, no token, HEAD 11123fb, tools ff7f770e00c3, 2026-10-22T07:26:21Z)</system-out>
+</testsuite>

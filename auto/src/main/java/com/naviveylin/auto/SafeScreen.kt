@@ -154,32 +154,6 @@ internal inline fun carSearchTemplate(carContext: CarContext, build: () -> Searc
     carTemplate(carContext, { SafeScreen.errorSearchTemplate(carContext, it) }, build)
 
 /**
- * Lightweight loading template ("Loading map data…").
- *
- * NOT used as a stack root: androidx.car.app [ScreenManager] cannot pop the
- * root screen, so a transient loading root would be re-revealed by every
- * later popToRoot() and wedge the session on it. [NavigationSession] instead
- * serves the real root screen immediately and preloads the native client in
- * the background. This screen remains available for temporary/overlay use.
- */
-class LoadingScreen(carContext: CarContext) : Screen(carContext) {
-
-    override fun onGetTemplate(): PaneTemplate {
-        val pane = Pane.Builder()
-            .addRow(
-                Row.Builder()
-                    .setTitle(carContext.getString(R.string.loading_map_data))
-                    .addText(carContext.getString(R.string.preparing_navigation))
-                    .build()
-            )
-            .build()
-        return PaneTemplate.Builder(pane)
-            .setHeader(Header.Builder().setTitle(carContext.getString(R.string.app_name)).build())
-            .build()
-    }
-}
-
-/**
  * Fallback screen shown when Android Auto session startup fails.
  * Keeps the process alive and offers a Retry action.
  */

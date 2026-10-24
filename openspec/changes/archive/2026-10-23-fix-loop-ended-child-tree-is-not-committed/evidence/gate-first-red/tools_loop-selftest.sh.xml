@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh" tests="98" failures="1" errors="0">
+  <system-out>loop-selftest: 1 of 176 cases failed ended 2203658 — its working directory is inside loop-selftest.Cqrx43 ended 2527967 — its working directory is inside loop-selftest.Cqrx43</system-out>
+</testsuite>

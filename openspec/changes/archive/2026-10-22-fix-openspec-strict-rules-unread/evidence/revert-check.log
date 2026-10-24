@@ -1,0 +1,24 @@
+2026-10-22T12:19:01+02:00
+2026-10-22T12:19:01+02:00
+MUTATION owning removed: Both rules and their rationale are owned by `openspec/specs/documentation-ownership/spec.md`, "The validator's own strict rules are read before the first write"
+FAIL theEntryDocumentStatesTheValidatorStrictRules — the OpenSpec Workflow strict-rules passage does not state: [openspec/specs/documentation-ownership/spec.md] [The validator's own strict rules are read before the first write]
+PASS theEntryDocumentNamesTheStrictValidationCommand
+probe: 1 of 2 cases failed
+EXIT=1
+RESTORED byte-identical (owning)
+2026-10-22T12:19:01+02:00
+MUTATION changes removed: — or `openspec validate --changes --strict` over the open set
+PASS theEntryDocumentStatesTheValidatorStrictRules
+FAIL theEntryDocumentNamesTheStrictValidationCommand — the OpenSpec Workflow strict-rules passage does not state: [openspec validate --changes --strict]
+probe: 1 of 2 cases failed
+EXIT=1
+RESTORED byte-identical (changes)
+2026-10-22T12:19:01+02:00
+MUTATION passage removed: Two more rules are the validator's own, and an author meets them in the round after the artifact is written unless they are read here first: `openspec validate 
+FAIL theEntryDocumentStatesTheValidatorStrictRules — the OpenSpec Workflow strict-rules passage does not state: [openspec/specs/documentation-ownership/spec.md] [The validator's own strict rules are read before the first write] [MODIFIED] [repeated verbatim] [500 characters] [the body, not its scenarios]
+FAIL theEntryDocumentNamesTheStrictValidationCommand — the OpenSpec Workflow strict-rules passage does not state: [openspec validate <change> --strict] [openspec validate --changes --strict]
+probe: 2 of 2 cases failed
+EXIT=1
+RESTORED byte-identical (passage)
+REVERT-CHECK: 3 of 3 mutations failed a case and restored: 0 unexpected
+EXIT=0

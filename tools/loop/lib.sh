@@ -36,6 +36,10 @@ LOOP_ISSUES_DIR="$LOOP_DIR/../issues"
 source "$LOOP_ISSUES_DIR/lib.sh"
 
 LOOP_ROOT=""
+# The configuration file `loop_resolve` actually sourced. It is a global because the file a gate read is the rule
+# its numbers attest, so the process that ran it names it in its own log (issue #277). Empty until `loop_resolve`
+# has run, and every engine script resolves before it reads a key.
+LOOP_CONF_PATH=""
 # `LOOP_STATE_FILE` and `LOOP_WORKTREE` are the self-test's configuration seam (and the only way to run
 # two loops in one tree deliberately). An inherited value is preserved, never cleared: assigning an
 # empty string here would drop the environment's answer.
@@ -115,6 +119,7 @@ loop_resolve() {
   }
   local conf="${LOOP_CONF:-$LOOP_DIR/loop.conf}"
   [ -f "$conf" ] || loop_die "no configuration at $conf — the loop reads its defaults and its project keys from loop.conf"
+  LOOP_CONF_PATH="$conf"
   # shellcheck source=tools/loop/loop.conf
   source "$conf"
   # An inherited run identity is honoured only inside the tree this process resolved; `loop_path_outside_tree`
@@ -151,6 +156,38 @@ loop_tmp_resolve() {
     /*) ;;
     *) LOOP_TMP_DIR="$LOOP_ROOT/$LOOP_TMP_DIR" ;;
   esac
+}
+
+# The scratch root *another tree* resolves, which is not the one this process resolved. A suite creates its trees
+# under the root of the tree it runs in, so a gate that runs `tools/loop-selftest.sh` inside the kept worktree makes
+# them under the worktree's own `.pi/tmp` — the root a report run from the project never looked in while 305 MB of
+# trees and four poll loops accumulated there (measured 2026-10-23, issue #274). The key is read from that tree's
+# configuration, the same file `loop_resolve` sources when it runs there, and it is **read, never sourced**: a
+# report looks at a tree, it does not run that tree's configuration.
+loop_tmp_dir_for() { # <tree> → that tree's scratch root, resolved against that tree
+  local tree="${1:-}" recorded=""
+  if [ -n "$tree" ] && [ -f "$tree/tools/loop/loop.conf" ]; then
+    recorded=$(sed -n 's/^LOOP_TMP_DIR\="\{0,1\}\([^"\]*\)"\{0,1\}[[:space:]]*$/\1/p' \
+      "$tree/tools/loop/loop.conf" | tail -1)
+  fi
+  case "$recorded" in
+    "") printf '%s\n' "$tree/.pi/tmp" ;;
+    /*) printf '%s\n' "$recorded" ;;
+    *) printf '%s\n' "$tree/$recorded" ;;
+  esac
+}
+
+# The same directory however each side is spelled: `--worktree .` (or a relative name this tree resolves to) makes the
+# invocation's scratch root and the kept worktree's one directory written two ways — `$LOOP_ROOT/.pi/tmp` against
+# `$LOOP_ROOT/./.pi/tmp` — and compared as strings they never match, so the same trees would be listed twice and their
+# bytes counted twice while `--apply` removes them once (issue #274, round-1 review). Empty and vanished paths are not
+# the same directory: a root that does not exist has no tree to list under it either.
+loop_same_dir() { # <a> <b> → 0 when both name the same existing directory
+  local a b
+  [ -n "${1:-}" ] && [ -n "${2:-}" ] || return 1
+  a=$(cd "$1" 2>/dev/null && pwd -P) || return 1
+  b=$(cd "$2" 2>/dev/null && pwd -P) || return 1
+  [ "$a" = "$b" ]
 }
 
 loop_conf_value() { # print one configuration key's value by name
@@ -327,6 +364,17 @@ loop_unlanded_commits() { # <repo> <base> <branch>
   return 0
 }
 
+# The branches the loop names: one per item it worked and one per run for its worktree. The same set the
+# report lists, so a reader and the sweep ask about the same branches.
+loop_own_branches() { # <repo> → one branch per line
+  git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
+}
+
+# The branches a worktree holds: git refuses to delete one of them, so every deletion asks this first.
+loop_worktree_branches() { # <repo> → one branch per line
+  git -C "$1" worktree list --porcelain 2>/dev/null | sed -n 's|^branch refs/heads/||p'
+}
+
 # ── the issue tooling, as the loop uses it ───────────────────────────────────────────────────────
 
 loop_profile() {
@@ -374,7 +422,7 @@ loop_required_labels() {
 # spells a vocabulary value (D16); `tools/check-portability.sh` enforces it. The keys are the contract
 # (like the namespace names); a value another project does not need is declared empty, never omitted.
 LOOP_ROLES=""
-LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
+LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories firstCategoryClasses firstCategoryEvery proposeClass refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
 loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
   [ -n "$LOOP_ROLES" ] && return 0
   LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""

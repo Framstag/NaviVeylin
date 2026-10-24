@@ -1,0 +1,17 @@
+Edits that landed after the gate run, all comment-only — no statement, no report format, no exit path:
+
+1. tools/feature-list/gate.awk: a duplicated line was removed from the top-of-file description. The gated tree
+   carried
+
+       #   * every figure the entry states appears in at least one spec the entry cites — a failure;
+       #   * every figure the entry states appears in at least one spec the entry cites — a failure;
+
+   and the committed tree carries it once.
+2. tools/gen-feature-list-selftest.sh: two case comments were reworded so they stay true if the cap changes —
+   "the cap plus three words" instead of "thirteen words", and "the pool's last word" instead of naming `quantum`
+   where the case uses that last word.
+
+Re-verified with the suite the gate runs for both files (the gate itself was not re-run):
+
+gen-feature-list-selftest: 119 passed, 0 failed
+gen-feature-list-selftest: all 119 cases passed

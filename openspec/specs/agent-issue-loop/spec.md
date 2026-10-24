@@ -1,9 +1,10 @@
 # agent-issue-loop Specification
 
 ## Purpose
-A defect-shaped item in the tracker is closed by an unattended, budgeted run: one fresh agent process works
-one item from a prepared package, a separate reviewer checks it, the run's own script owns the budget and
-the version control, and nothing closes until evidence exists.
+A backlog item in the tracker is closed by an unattended, budgeted run: one fresh agent process works one
+item from a prepared package, a separate reviewer checks it, the run's own script owns the budget and the
+version control, and nothing closes until evidence exists. A defect is fixed; a feature is planned
+propose-first and then applied.
 
 ## Requirements
 
@@ -220,20 +221,23 @@ tracker, so the item's state says why it is not worked after the run's own state
 
 ### Requirement: The queue repairs the tooling the run depends on first
 
-The pre-screen SHALL order the queue by category before class: a category the profile names as leading SHALL
-rank ahead of every other category, and only then SHALL the profile's class order and the issue number decide.
-The category order SHALL be a rank and SHALL NOT be a gate — it SHALL NOT change a verdict, a label or a count.
+The pre-screen SHALL rank a defect in a category the profile names as leading ahead of every other item, SHALL
+mix the leading categories' other classes in one after every N other items (N the profile's
+`firstCategoryEvery`), and SHALL let the profile's class order and the issue number decide each stream. The
+category order SHALL be a rank, never a gate: it SHALL NOT change a verdict, a label or a count.
 
 #### Scenario: Harness items lead the queue, bugs before improvements inside a group
 
 A defect in the tooling that runs, measures, gates or reports the loop is paid again by every item after it and
-can make the run's own report false, so it is worked before a defect in the shipping app.
+can make the run's own report false, so it is worked before a defect in the shipping app. A harness improvement
+is not a defect: it is mixed in at the profile's interval rather than leading.
 
 - **WHEN** the pre-screen ranks a backlog whose eligible items are a harness bug, a harness improvement, an app
   bug and an app improvement
-- **THEN** their ranks are, in order: the harness bug, the harness improvement, the app bug and the app
-  improvement, and within one group the older issue leads
-- **Case**: `prescreen#harnessItemsLeadTheQueue`
+- **THEN** the harness bug leads, the harness improvement is mixed in after every `firstCategoryEvery` other
+  item, and the app bug and app improvement follow in the profile's class order — so a leading-category
+  improvement neither leads the queue nor disappears from it
+- **Case**: `prescreen#harnessItemsLeadTheQueue`, `prescreen#oneHarnessImprovementPerFourAppItems`
 
 #### Scenario: The leading categories are the profile's, and an empty list is no priority
 
@@ -241,10 +245,11 @@ can make the run's own report false, so it is worked before a defect in the ship
 - **THEN** the order uses exactly the declared values — a renamed set is ordered on, not merely scanned — and an
   empty list leaves the class order alone, so a project that wants no category priority says so in its profile
   rather than in the engine
-- **AND** a profile that omits the key stops the pre-screen with a reason naming it, as it does for every role
-  the pre-screen reads, so a half-adapted profile cannot rank silently
+- **AND** a profile that omits any role the pre-screen reads, including `firstCategoryClasses` and
+  `firstCategoryEvery`, stops the pre-screen with a reason naming it, so a half-adapted profile cannot rank
+  silently
 - **Case**: `prescreen#aRenamedLeadingCategoryLeads`, `prescreen#priorityCategoriesAreReadFromTheProfile`,
-  `prescreen#anUndeclaredRoleStopsTheScreen`
+  `prescreen#anUndeclaredRoleStopsTheScreen`, `prescreen#anUndeclaredLeadingIntervalStopsTheScreen`
 
 #### Scenario: A priority category is a rank, not a gate
 
@@ -258,7 +263,7 @@ can make the run's own report false, so it is worked before a defect in the ship
 - **WHEN** two candidates share a leading category, or share a category that does not lead
 - **THEN** the profile's class order decides first and the issue number second, so the category key never
   reverses a bug against an improvement of the same group
-- **Case**: `prescreen#harnessItemsLeadTheQueue`, `prescreen#ranksBugsFirstAndDropsFeatures`
+- **Case**: `prescreen#harnessItemsLeadTheQueue`, `prescreen#ranksBugsFirstAndKeepsFeatures`
 
 ### Requirement: Version control belongs to the run's script, not to the agent
 
@@ -391,8 +396,35 @@ change.
 #### Scenario: A process that writes outside its tree is caught
 
 - **WHEN** an agent process changes the project's own tree while an item is in flight
+- **THEN** the run records one line naming what changed — the differing status entries and any process whose
+  working directory is inside the project and outside the worktree — and none of that write is committed into
+  the item's change, because the worktree is the only tree a phase may write
+- **Case**: `run#childWriteOutsideTheWorktreeIsNoted`, `run#dirtyBaseRefusesTheMergeAndNamesThePath`
+
+#### Scenario: A difference the run cannot attribute does not decide the item
+
+- **WHEN** a difference is recorded and the run was not started with `--strict-outside-write yes`
+- **THEN** the item keeps the outcome its own work earned, because the comparison measures a tree the run, a
+  peer session and every landing also write, and two readings of it are not evidence about one child — and a base
+  that is still not clean when the item lands is refused by the landing rule, with the path named; a difference
+  the run *can* place in the child's own tree does decide, and that placement is the attribution this requirement
+  states
+
+#### Scenario: A difference is attributed while the writer is alive
+
+- **WHEN** the project's own tree changes while a child runs
+- **THEN** the run reads the difference from the heartbeat ticking beside that child, names the processes alive
+  at that moment whose working directory is inside the project and outside the worktree, and marks the ones that
+  belong to this child's own process tree — its process group or its descendants — because a writer is gone by the
+  time the child's transcript is written, and a difference nobody can place is not evidence about the child
+- **Case**: `run#aWriterTheRunCanPlaceBlocksTheItem`
+
+#### Scenario: `--strict-outside-write yes` makes the difference decide the item
+
+- **WHEN** a worker's difference is recorded and the run was started with `--strict-outside-write yes`
 - **THEN** the item is recorded as blocked with that reason and none of that write is committed into the
-  item's change, because the worktree is the only tree a phase may write
+  item's change
+- **Case**: `run#strictOutsideWriteBlocksTheItem`
 
 #### Scenario: The reviewer is not the writer
 
@@ -401,9 +433,10 @@ change.
 
 #### Scenario: A reviewer that writes is discarded
 
-- **WHEN** the working tree changed while the reviewer ran
+- **WHEN** the working tree changed while the reviewer ran and the run was started with `--strict-outside-write yes`
 - **THEN** that review round is discarded with a reason, because a reviewer that wrote cannot have been
   the reviewer
+- **Case**: `run#strictOutsideWriteDiscardsTheReviewRound`
 
 #### Scenario: Review rounds are bounded, and a corrective refusal earns one more
 
@@ -798,7 +831,8 @@ answer whose tail was lost outright.
 ### Requirement: A run's state outlives the run that replaces it
 
 The run SHALL keep the state a new run replaces, SHALL be able to report on a kept run afterwards, and SHALL
-name the run its numbers belong to rather than print a budget left computed from another run's clock.
+name the run its numbers belong to rather than print a budget left computed from another run's clock, and
+SHALL tell a run whose process is gone from one that is still going.
 
 #### Scenario: The state a run replaces is kept, named by that run's start
 
@@ -832,6 +866,14 @@ name the run its numbers belong to rather than print a budget left computed from
   recorded no stop` — instead of printing a budget left below zero, and a run that recorded its stop reports its
   own spend to that stop however long ago it ended
 - **Case**: `report#impossibleBudgetNamesAnotherRun`
+
+#### Scenario: A run whose process is gone is not a run that is going
+
+- **WHEN** the state names the process that wrote it, that process is not running, and the run recorded no
+  stop — a run that was killed
+- **THEN** the report prints no budget left for it, and its stop line names the process that is gone instead
+  of saying the run is still going, so a killed run and a running one cannot be read alike
+- **Case**: `report#aKilledRunIsNotALiveRun`
 
 ### Requirement: A kept worktree carries the sources, not the build output
 
@@ -883,9 +925,10 @@ reports.
 
 The tooling SHALL have one entry point that answers what the loop left on disk and how much it is: without
 `--apply` it SHALL name every path it would remove with its size and remove nothing, with `--apply` it SHALL
-remove exactly those paths, and a second run SHALL find nothing. It SHALL remove only the recorded build paths
-of a worktree and only scratch trees old enough that no suite can be writing into them, and it SHALL NOT touch
-a worktree's tracked or untracked source.
+remove exactly those paths, and a second run SHALL find nothing. It SHALL remove the recorded build paths of a
+worktree, the branches whose patches the base already holds, and the scratch trees old enough that no suite can be
+writing into them — in **both** the scratch root the invocation resolves and the one the kept worktree resolves —
+and it SHALL NOT touch a worktree's tracked or untracked source.
 
 #### Scenario: The report removes nothing
 
@@ -905,9 +948,33 @@ a worktree's tracked or untracked source.
 
 #### Scenario: A second run is a no-op
 
-- **WHEN** ` --apply` is run again on a tree and a scratch root it has already cleaned
+- **WHEN** a ` --apply` is run again on a tree and a scratch root it has already cleaned
 - **THEN** it finds no path to remove, says `nothing to remove`, and exits 0
 - **Case**: `clean#reportsWithoutApplyAndRemovesWithIt`
+
+#### Scenario: The branches whose work is in the base are removed with it
+
+- **WHEN** `loop-clean --apply` runs on a repository that holds a branch whose patches the base already has
+- **THEN** that branch is removed, a branch that still carries unlanded work and a branch a worktree holds
+  are kept and named, and a second run finds nothing left to remove
+- **Case**: `clean#sweepsOnlyWhatIsInTheBase`
+
+#### Scenario: The kept worktree's own scratch root is scanned beside the invocation's
+
+- **WHEN** the kept worktree carries a stale `loop-selftest.*` tree under its own `.pi/tmp` — where a gate run
+  inside the worktree creates one — and a process stands inside it, while the invocation's own scratch root is
+  empty
+- **THEN** the report names that root as its own line, names the stale tree and the process, keeps a tree of that
+  root younger than `LOOP_TMP_STALE_MINUTES`, and `--apply` removes the stale tree and ends the process
+- **Case**: `clean#reportsTheWorktreesScratchTreesToo`
+
+#### Scenario: `--worktree .` scans the one root it names once
+
+- **WHEN** `loop-clean --worktree .` is run from the project, so the tree it is pointed at is the one the invocation
+  resolves and the two scratch roots are one directory written two ways
+- **THEN** the report prints one heading for that root, lists each scratch tree once and counts its bytes once — a
+  tree is never listed or counted twice
+- **Case**: `clean#worktreeDotSweepsTheOneRootOnce`
 
 ### Requirement: A suite ended by a signal ends the case it was in, and its processes
 
@@ -1360,26 +1427,525 @@ is read from the transcript, and a measurement already taken is quoted, not re-t
   that the block runs no check, and that a file read once is cited rather than read again
 - **Case**: `prompt#workerIsHandedTheMeasureBlock`
 
+### Requirement: A mutation run is scoped by the files the change touches
+
+The mutation harness SHALL select its records by the file each record mutates as well as by its label: a
+named file set SHALL run exactly the records whose file is one of the named paths, and a base commit SHALL
+name that set by the paths the diff against it touches, together with the working tree. A filtered run SHALL
+state what it selected against the declared set (`selected N of M records`), and a selection that names no
+record SHALL exit 2 without mutating anything. A run that names neither a file nor a label SHALL run the whole
+set, exactly as before.
+
+#### Scenario: A file set lists exactly the records those files own
+
+- **WHEN** the harness lists the selection of a file set whose path one or more records mutate
+- **THEN** it prints those records and no other, and the list is the set the run would execute
+- **Case**: `tools/loop-mutations-selftest.sh` (`a file set lists exactly the records its file owns`)
+
+#### Scenario: A scoped run runs exactly those records and says how much of the set it ran
+
+- **WHEN** the harness runs a file set whose path one or more records mutate, against an engine copy
+- **THEN** exactly those records are mutated and go red, each restore goes green, the harness prints
+  `selected N of M records`, and the copy is byte-identical to the pristine engine afterwards
+- **Case**: `tools/loop-mutations-selftest.sh` (`a file set runs the records its file owns`)
+
+#### Scenario: A selection no record owns is refused
+
+- **WHEN** the named file set contains no file any record mutates
+- **THEN** the harness exits 2, says the selection names no record of the declared set, and runs no record — a
+  green exit for having done nothing is the silent lie the harness exists to prevent
+- **Case**: `tools/loop-mutations-selftest.sh` (`a file set no record owns exits 2`)
+
+#### Scenario: A base commit names the set by the diff it touches
+
+- **WHEN** the harness is given a base commit in a tree where one record's file is changed since that commit
+- **THEN** the selection is that record, derived from the diff and the working tree, and no other
+- **Case**: `tools/loop-mutations-selftest.sh` (`a git diff names the records its file owns`)
+
+### Requirement: The round a corrective refusal buys is handed the corrections
+
+A run SHALL hand the round it grants after a corrective refusal — a report that states every finding is
+subtractive (`LOOP-CORRECTIONS-ONLY: yes`) at the round budget — the correction round alone: the diff between
+the refusing round's own HEAD and the current HEAD, under the same recorded exclusion of generated output every
+other round uses. The same round's prompt SHALL carry the refusing round's report by path and quoted, and
+SHALL state that the diff is that range rather than the change. Every other round SHALL keep reading the
+change from the run's base.
+
+#### Scenario: The extra round reads the corrections, not the change again
+
+- **WHEN** a corrective refusal at the round budget buys one more round and the correction worker commits
+- **THEN** that round's diff is taken from the refusing round's HEAD, so the line the corrections replaced
+  appears in it only as context and not as a change, while the round at the cap carries the change from the
+  run's base
+- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+
+#### Scenario: The refusing findings travel into the extra round
+
+- **WHEN** the run renders the prompt of the round a corrective refusal bought
+- **THEN** the prompt names the refusing round's report, quotes its findings, and states that the diff under
+  review is the correction round alone — and a first round's prompt carries no such section
+- **Case**: `run#aCorrectiveRoundIsHandedTheCorrections`
+
+### Requirement: A feature is planned before it is applied
+
+A `class/feature` item the profile works SHALL be queued like a defect. It SHALL be worked by the
+propose-first path: the worker SHALL write an OpenSpec change named `add-<slug>` whose proposal, capability
+delta, design and tasks exist before production code, and whose acceptance scenario is the red case that fails
+on HEAD because the capability is absent. A feature SHALL NOT be refused merely because it is a feature.
+
+#### Scenario: A feature is queued, not refused
+
+- **WHEN** the profile's `workedClasses` names `feature` and an eligible feature is in the backlog
+- **THEN** the pre-screen gives it an eligible verdict and a rank in the profile's class order, instead of a
+  `class-feature` refusal
+- **Case**: `prescreen#ranksBugsFirstAndKeepsFeatures`
+
+#### Scenario: A feature's plan precedes its apply
+
+- **WHEN** the worker takes a `class/feature` item
+- **THEN** its prompt carries the item's class, names the `add-<slug>` change and the acceptance scenario it
+  owes as the red case, and the proposal, capability delta, design and tasks are written before production code
+- **Case**: `prompt#workerCarriesTheFeaturePath`
+
+#### Scenario: A profile may still refuse features
+
+- **WHEN** the profile's `refusedClasses` names `feature`
+- **THEN** the item is refused with `class-feature` and the profile's refusal label, exactly as before
+- **Case**: `prescreen#aRefusedClassStillStopsTheScreen`
+
+### Requirement: One run at a time holds the repository
+
+One run at a time SHALL hold a repository: the lock that keeps one run per repository SHALL be taken before
+the run writes anything, a run that finds a live lock SHALL be refused without writing state, branch or
+label, and a lock whose owner is no longer running SHALL be taken over and announced.
+
+#### Scenario: A second run is refused before it writes anything
+
+- **WHEN** a run is started while another run holds the lock
+- **THEN** the second run is refused with a message that names the lock and its owner, it writes no state, no
+  branch and no label, and the live run's state is the one left in place — the run that was refused never
+  replaced the record of the run that is working
+- **Case**: `state#aRefusedRunLeavesTheLiveStateAlone`
+
+#### Scenario: A lock left by a run that is gone is taken over
+
+- **WHEN** a run finds a lock whose owner is no longer running
+- **THEN** it takes the lock over, says so in one line naming the process that is gone, and starts — a run
+  that was killed leaves no tombstone that refuses every run after it
+- **Case**: `state#aDeadOwnersLockIsTakenOver`
+
+### Requirement: A branch the loop made is removed when its work is in the base
+
+A branch the run committed for an item and merged SHALL be removed once no worktree holds it, a branch whose
+patches the base already holds SHALL be named as removable, and a branch that still carries unlanded work
+SHALL be left alone and named as work to land.
+
+#### Scenario: A branch the run merged is removed
+
+- **WHEN** the run merges the branch it committed for an item
+- **THEN** the worktree is released from that branch and the branch is removed, so a closed item leaves no
+  branch behind, and the next item still starts its own branch from the base
+- **Case**: `run#aMergedBranchIsRemoved`
+
+#### Scenario: A branch that still carries work is never removed
+
+- **WHEN** the sweep of what the loop left behind meets a branch whose patches the base does not have, or a
+  branch a worktree holds
+- **THEN** that branch is kept and named with the reason it was kept, and only a branch that carries nothing
+  is removed
+- **Case**: `clean#sweepsOnlyWhatIsInTheBase`
+
+#### Scenario: The report names the branches that can be removed
+
+- **WHEN** a run ends and the branches it sees carry no patch the base does not have
+- **THEN** the report names those branches apart from the ones that carry work, so a reader can tell the
+  leftovers from the work without asking git
+- **Case**: `report#landedBranchesAreNamedAsRemovable`
+
+### Requirement: A declared mutation record is checked against the file it names
+
+The mutation harness SHALL offer a check that applies every selected record's expressions to a copy of the file the
+record names, and reports each record where one of them changes nothing — running no case, mutating nothing. It
+SHALL name a stale record by its label and its file, exit 1 when one is stale, and exit 0 only when every selected
+record applies. The project's gate SHALL run it for a delta that touches a path under the engine's directory or the
+set itself.
+
+#### Scenario: A record that names no current line is reported
+
+- **WHEN** one declared record's expressions are pointed at a file in which one of them changes nothing, and the
+  check is run for that record
+- **THEN** it exits 1 and prints `MUTATION-PATTERN-STALE`, the record's label and the file the record names, having
+  run no case
+- **Case**: `mutation#aStaleRecordIsNamed`
+
+#### Scenario: A set in which every record applies passes
+
+- **WHEN** the check is run over the whole declared set against the engine the set is declared in
+- **THEN** it exits 0, prints no `MUTATION-PATTERN-STALE` line, and its summary counts the records the harness
+  declares
+- **Case**: `mutation#everyDeclaredRecordApplies`
+
+#### Scenario: The gate owes the check for an engine path
+
+- **WHEN** a delta touches a path under the engine's directory and the gate is asked what that delta owes without
+  running anything
+- **THEN** the record check is one of the owed checks, named with the command that runs it
+- **Case**: `gate#anEnginePathOwesTheRecordCheck`
+
+### Requirement: A review round is a record on the branch, from its announcement to its answer
+
+A review round SHALL be readable from the item's branch in both directions: the round SHALL be recorded on the
+branch before its reviewer starts, and its answer SHALL be recorded when the answer arrives, so that a round the
+reviewer never answered is a round a later run can see is unanswered rather than one that reads like a pass.
+
+#### Scenario: The round is announced before the reviewer runs, and its answer is recorded when it arrives
+
+- **WHEN** a review round of an archived change ends `PASS`
+- **THEN** the item's branch carries the round's announcement, written as a commit before the reviewer started, and
+  the pass as a second commit written when the answer arrived — both inside the change's own evidence directory —
+  so a stranger to the run reads the round's whole life from the branch and not from a machine-local directory
+- **Case**: `run#announcesAndRecordsTheReviewRound`
+
+#### Scenario: A branch whose last review round never answered is not adopted
+
+- **WHEN** an item's branch carries one archived change of its own with a green verification record, and the
+  highest review round the branch names was announced and holds no answer — neither a pass nor a refusal
+- **THEN** the branch is refused, named and escalated as the owner's decision exactly as a refused review is, and
+  the refusal names the round that stayed silent and the announcement it reads, so a change no reviewer graded is
+  never merged and its item never closed on it
+- **Case**: `worktree#refusesABranchWhoseReviewRoundNeverAnswered`
+
+### Requirement: A process the child's group signal cannot reach is ended by the tree it works in
+
+The child cap SHALL end everything the child left running, not only the members of its process group: a
+descendant that gave itself a session of its own is found by the working directory the kernel reports for it,
+ended with the loop's own signal discipline, and named in the transcript before the item's outcome is written.
+
+#### Scenario: A child the cap ends has left a writer working in the change root
+
+- **WHEN** the wall-clock cap ends a child, and that child has started a process whose working directory lies
+  inside the change root and which is a member of no group the cap signalled
+- **THEN** the run ends that process too, so nothing of the child is still writing the tree when the item's
+  outcome is written, and the transcript names each process it ended
+  (`LOOP-ENDED: ended <pid> — its working directory is inside <tree>`)
+- **Case**: `run#detachedProcessInTheWorktreeIsEndedByTheCap`
+
+### Requirement: The gate streams a suite's output while it runs
+
+A gate SHALL print each suite's output as the suite writes it, and derive the numbers it reports and keeps
+from that same stream, because a captured output is silent for the suite's whole wall clock — up to the
+child's bound — and a red suite's failure text survives only as the tail of a tally. The suite's exit status
+SHALL stay the gate's verdict, never the stream's.
+
+#### Scenario: A suite's output reaches the console before the suite exits
+
+- **WHEN** the gate runs a suite that writes a line at once and keeps working after it
+- **THEN** that line is on the gate's console while the suite is still running, and a line the suite has not
+  written yet is not — so a suite that runs for minutes shows its own progress instead of a two-line log an
+  operator cannot tell from a stopped one
+- **Case**: `gate#theSuitesOutputReachesTheConsoleWhileItRuns`
+
+#### Scenario: The console and the tally are one observation
+
+- **WHEN** a suite fails and writes its failing case and its own summary
+- **THEN** the gate's verdict is that suite's exit status, the summary's numbers are the `tests=`/`failures=` it
+  reports, and the tally under the configured directory carries those numbers together with the failure text —
+  so what an operator saw and what the run's own check reads are the same bytes, not two observations
+- **Case**: `gate#aFailingSuiteIsReadFromTheSameStream`
+
+### Requirement: A suite that reported no summary invents no number
+
+The gate SHALL take a suite's case and failure counts only from that suite's own summary line. A suite that
+fails without reporting one SHALL be recorded as an error instead: its tally carries `tests="0"`,
+`failures="0"` and `errors="1"`, and the gate's own line carries the error count beside its case and failure
+counts. A tally meant to prove what executed SHALL NOT state a case or a failure the suite did not report.
+
+#### Scenario: A suite that failed before it reported anything
+
+- **WHEN** a suite exits non-zero without writing either summary line
+- **THEN** its tally carries zero cases, zero failures and one error, the gate's own line carries the same
+  three facts and still names the suite as failing, and the gate's exit status stays non-zero
+- **Case**: `gate#aFailingSuiteWithNoSummaryInventsNoTest`
+
+#### Scenario: A suite that reported its numbers keeps them
+
+- **WHEN** a suite fails and writes `<name>: M of N cases failed`
+- **THEN** its tally carries N cases and M failures with no error, and the gate's line carries the same numbers,
+  so a reported count is what the run's own check reads
+- **Case**: `gate#aFailingSuiteIsReadFromTheSameStream`
+
+### Requirement: The self-test compiles the Java core when a case asks for it
+
+The loop's self-test SHALL compile the issue tooling's Java core at the first selected case that asks for it, at
+most once per suite, and SHALL NOT compile it before the case list is known: an invocation whose selected cases
+ask for none SHALL pay no compile. A case that asks for the core and cannot have it SHALL fail with exit 1 and the
+line `loop-selftest: the issue tooling's Java core does not compile`, and the run SHALL end with exit 1.
+
+#### Scenario: A selection that asks for no core compiles none
+
+- **WHEN** the driver runs one case that never asks for the core, and `javac` on `PATH` is a probe that records its
+  invocation and fails
+- **THEN** the case runs and passes, and the probe records no invocation
+- **Case**: `driver#aCaseThatAsksForNoCoreCompilesNothing`
+
+#### Scenario: A case that asks for the core is handed it, or the suite refuses
+
+- **WHEN** a selected case asks for the core
+- **THEN** it is handed the class directory the driver compiled for the suite; and when the core cannot compile,
+  the case fails with exit 1 and the line that names the cause, and the run ends with exit 1
+- **Case**: `driver#aCaseThatAsksForTheCoreGetsItOrRefuses`
+
+#### Scenario: A suite whose selection asks twice compiles once
+
+- **WHEN** the driver runs a suite of two cases that both ask for the core, and `javac` on `PATH` is a probe that
+  records each invocation and succeeds
+- **THEN** both cases are handed the compiled class directory and the probe records exactly one invocation
+- **Case**: `driver#theCoreIsCompiledOncePerSuite`
+
+### Requirement: A suite run selects what it was asked for and the gate records what it cost
+
+The loop's self-test SHALL select over its declared cases: `--group <g>` for one group, `--case` for a name or a
+pattern, both at once, and `--list` printing the same selection. A filter that names no declared case SHALL be
+refused with exit 2 before any case runs. The gate SHALL record each suite's wall clock in seconds, on its own
+line, in the `LOOP-GATE:` summary and in the tally.
+
+#### Scenario: A group filter runs that group's cases and no other group's
+
+- **WHEN** the driver is run with `--group <g>` against a declared set of cases in two groups, one of which fails
+  whenever it is executed
+- **THEN** only the group's cases run, the suite exits 0, and the selection is named in the summary line
+- **Case**: `driver#aGroupFilterRunsOnlyItsOwnCases`
+
+#### Scenario: A filter that names no case is refused before a case runs
+
+- **WHEN** `--group <unknown>` or `--case <pattern matching nothing>` is passed
+- **THEN** the driver exits 2 naming the group or the pattern it could not resolve, and no case has been executed
+- **Case**: `driver#aFilterThatNamesNoCaseRefuses`
+
+#### Scenario: The list answers the same question the run does
+
+- **WHEN** `--list` is asked with a filter, and then without one
+- **THEN** it prints exactly that filter's cases, and then the whole declared set, and runs nothing either time
+- **Case**: `driver#theListIsFilteredTheSameWayASuiteRunIs`
+
+#### Scenario: The gate's record names what each suite cost
+
+- **WHEN** the gate runs a suite whose own wall clock is known, and it passes
+- **THEN** the suite's line, the `LOOP-GATE:` summary beside the command and the tally's `time` attribute all carry
+  that number of seconds
+- **Case**: `gate#theSummaryNamesWhatEachSuiteCost`
+
+### Requirement: A path is compiled by the tree it sits in or a build input's convention
+
+The gate SHALL decide that a path is compiled from the tree it sits in — a module's `src/` tree or its `lint.xml` —
+or from a name that is the convention for a build input (a `.gradle.kts` or `.gradle` script, a `.toml`, `CMakeLists.txt`), which classify wherever they sit; an extension that names anything else — `*.xml`, `*.kt`, `*.java`, `*.c`, `*.h` — SHALL NOT be enough. Every pattern SHALL be compared as a pattern, not expanded against the directory it runs in.
+
+#### Scenario: An archived artefact owes no compiled command
+
+- **WHEN** a delta's only paths are an archived change's evidence tally, and then a gate fixture that mimics a test
+  report, and the gate is asked what each delta owes without running anything
+- **THEN** the plan names no compiled command for either, and names the checks each delta does owe — the archived
+  tally's delta owes `check-classification` — so a delta that touches no compiled file is not made to run the build
+- **Case**: `gate#anArchivedArtefactOwesNoBuild`
+
+#### Scenario: A module's source tree and its lint configuration still owe the build
+
+- **WHEN** a delta touches a resource in a module's `src/` tree, and then that module's `lint.xml`, in a tree that
+  holds the directory the pattern names
+- **THEN** the plan names the compiled command for each, because a pattern is matched as a pattern and a module's
+  sources and lint configuration are what the build reads
+- **Case**: `gate#aModuleResourceOwesTheBuild`
+
+### Requirement: A tally's name is a file a reader finds
+
+The gate SHALL name each suite's tally so that no reader misses it: the name SHALL NOT begin with a dot, and the
+`./` of a command run from the project root SHALL be dropped before the name is built. The rest of the name SHALL
+stay the command that wrote it, so a reader can still match a tally to its suite.
+
+#### Scenario: A compiled step's tally is not hidden
+
+- **WHEN** the profile's compiled command is written with the `./` a command run from the project root needs, a
+  compiled path owes that command, and the gate has written its tally
+- **THEN** a plain `ls` of the configured tally directory prints the tally, and a `*.xml` glob over it matches the
+  file named after the command without its `./` prefix
+- **Case**: `gate#aCompiledStepsTallyIsNotHidden`
+
+### Requirement: The gate reads the profile of the tree it measures
+
+The gate SHALL resolve its configuration from the profile beside its own engine — the tree whose paths it measures — unless `LOOP_CONF` pins one, and SHALL name that profile in the log it writes, calling a profile read from outside that tree pinned, beside the one the engine ships. A run SHALL resolve its own configuration and SHALL NOT hand it to a child that works in another tree.
+
+#### Scenario: A gate names the profile it read
+
+- **WHEN** the gate runs, once with the profile beside its own engine and once with a profile pinned from outside it
+- **THEN** the log carries a `LOOP-GATE-PROFILE:` line naming the file each run read, and the pinned one says it is not the profile beside the engine
+- **Case**: `gate#theGateNamesTheProfileItRead`
+
+#### Scenario: A child's gate reads its own tree's profile
+
+- **WHEN** a run starts a worker whose change root is a worktree carrying its own engine, and the worker runs that engine's gate there
+- **THEN** the gate names the profile beside the worktree's engine, and the run's own profile is not in the child's environment
+- **Case**: `gate#theChildReadsTheProfileOfTheTreeItWorksIn`
+
+### Requirement: The publish publishes what still exists
+
+The run's only push SHALL publish what still exists when it runs: a branch the run has already merged and released
+SHALL be a named skip rather than a git error, and a push that fails for another reason SHALL say so on one line.
+
+#### Scenario: A branch the run merged and released is a named skip
+
+- **WHEN** a run is asked to publish and the item's branch has already been merged into the base and removed by the
+  run's own release
+- **THEN** the run prints that there is nothing to publish for that branch and why, and hands git no refspec at all
+  — the closure it belongs to is unaffected, and no `does not match any` reaches the run log
+- **AND** the remote carries no branch of a closed item
+- **Case**: `worktree#pushSkipsABranchItAlreadyMerged`
+
+#### Scenario: A push that fails says what it means
+
+- **WHEN** the branch still exists and the push does not succeed
+- **THEN** the run prints one line naming the branch and where its commits stayed — the run tree, not the remote —
+  so a caller reads a publishing failure as one instead of as git's own error text
+
+### Requirement: A start the worktree refuses mid-run names the item whose work it holds
+
+A start refused because the worktree is not clean SHALL be attributed before the run ends on it: the item the
+worktree's branch marker names SHALL be recorded `blocked` with the leftovers and escalated, the stop reason SHALL
+name that item and the files it found, and the candidate that could not start SHALL NOT be recorded.
+
+#### Scenario: A refused start is attributed to the item whose work the tree holds
+
+- **WHEN** an item's start is refused mid-run because the worktree is not clean
+- **THEN** the item the worktree's branch marker names is recorded blocked with the leftovers it left and escalated,
+  the stop reason names that item and the files — not the refusal's first line — and the item that could not start
+  keeps no record of its own
+- **Case**: `run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds`
+
+### Requirement: A case's files select it, and the gate hands a suite the base it measured
+
+A case SHALL declare the files it can be affected by in the first line of its body (`# files: <token> …`), and
+the self-test SHALL select on that declaration with `--files <path> …` and `--from-git <base>`. A file set that
+names no case SHALL be refused with exit 2 before any case runs, the selection SHALL be stated against the
+declared set, a core file SHALL owe every case, and a profile's `{base}` SHALL be replaced by the base the gate
+resolved.
+
+#### Scenario: A file set runs the cases that declare it and no others
+
+- **WHEN** the driver is run with `--files` naming a script one case declares and a path below the directory
+  another declares, against a declared set of four cases
+- **THEN** exactly those two cases run, the suite's summary counts two, and the selection is stated as two of four
+- **Case**: `driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns`
+
+#### Scenario: A file set that names no case is refused
+
+- **WHEN** `--files` names a path no case declares, and then a path the tree has but no case declares
+- **THEN** the driver exits 2 naming the declared set it could not resolve, and no case has been executed
+- **Case**: `driver#aFileSetThatNamesNoCaseIsRefused`
+
+#### Scenario: A core file owes every case
+
+- **WHEN** `--files` names the library every engine script sources
+- **THEN** every declared case runs, however narrow the cases' own declarations are
+- **Case**: `driver#aCoreFileOwesEveryCase`
+
+#### Scenario: A declaration is checked against the case it describes
+
+- **WHEN** every declared case's body is read against its `# files:` declaration
+- **THEN** each path the body names, and each engine script a helper it calls starts, is covered by the
+  declaration, and every declared token names a path this tree has
+- **Case**: `driver#everyCaseDeclaresTheFilesItCanReach`
+
+#### Scenario: The gate hands a suite the base it measured
+
+- **WHEN** a profile's suite command carries `{base}` and the gate is asked what a delta of an engine path owes
+- **THEN** the plan carries that command with the resolved base substituted, and no `{base}` token reaches a shell
+- **Case**: `gate#theDeltaHandsASuiteTheBaseItMeasured`
+
+### Requirement: The run's state names the item it is working on
+
+The run SHALL record an item in its state when it picks it, before that item's first agent process starts:
+`.current` SHALL carry the item's number, the phase the run last recorded and the change the run asked for, every step
+the run records SHALL be attributed to that item, and the mark SHALL come off when the item ends — so a state
+kept from a killed run names the item that was in flight instead of a phase alone.
+
+#### Scenario: A state read while an item is in flight names that item
+
+- **WHEN** the run has picked an item and its first agent process is still running, so no later state write has
+  happened yet
+- **THEN** the state file carries that item's number and phase in `.current`, the live view the run's header
+  names (`state.sh show`) prints it as its first line, and every step recorded so far is attributed to that
+  item rather than to `0`
+- **AND** once the item ends, `.current` is `null` again and no step the run recorded carries another item's
+  number or `0`
+- **Case**: `run#stateNamesTheItemInProgress`
+
+### Requirement: A label write the tracker refuses is recorded, not swallowed
+
+A label transition the run could not write SHALL be recorded with the item, and the report SHALL name that
+item and the transition, because the item's state on the tracker is then stale in a way a reader of the
+tracker cannot see. The run SHALL NOT record a decision label it did not write.
+
+#### Scenario: An escalation the tracker refused is named
+
+- **WHEN** the run blocks an item and the escalation's label write fails, so neither the decision label nor the
+  hold reaches the tracker
+- **THEN** the item is still recorded blocked with no decision label claimed, the refused transition is
+  recorded with it, and the report's action list names the item and the write a person has to repeat by hand
+- **Case**: `run#aFailedEscalationWriteIsNamed`
+
+#### Scenario: An in-progress mark the tracker refused to clear is named
+
+- **WHEN** the run ends an item and the write that removes the in-progress mark fails
+- **THEN** the escalation that did land stands, the refused transition is recorded with the item, and the
+  report names the mark nobody is holding any more
+- **Case**: `run#aFailedUnpickIsNamed`
+
+### Requirement: A child the run ended itself leaves no commit
+
+The run SHALL commit an item's tree only after the child that produced it has finished by its own exit. A child
+the run ended — the wall-clock cap's status, or the `LOOP-TIMEOUT` line its transcript carries — SHALL leave the
+branch as it stood: the item is recorded blocked with that transcript, and the tree is kept exactly as the child
+left it, because nothing is discarded without `--reset-worktree`. It holds for the rework worker a refusing review
+round starts as well.
+
+#### Scenario: A worker the cap ends leaves the branch at the base
+
+- **WHEN** the wall-clock cap ends an item's worker and that worker has left changes in the change root
+- **THEN** the run commits none of them — the change root's `HEAD` is still the base commit — the item is recorded
+  `blocked` with its `LOOP-TIMEOUT` transcript, the tree still carries what the child left (kept, not discarded),
+  and the run's own line says the commit was skipped
+- **Case**: `run#treeOfAChildTheCapEndedIsNotCommitted`
+
+#### Scenario: The cap ends the rework worker of a refusing review round
+
+- **WHEN** a review round refuses the change and the wall-clock cap ends the rework worker that round starts, after
+  that worker has written into the change root
+- **THEN** the run commits none of it — the branch carries only what the item's own worker had already earned — the
+  item is recorded `blocked` with the round's `LOOP-TIMEOUT` transcript, the tree still carries what that worker
+  left, and the blocked reason names the tree it did not commit
+- **Case**: `run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted`
+
 ### Requirement: The gate's suite map covers every script command the pipeline's check steps run
 
 The profile SHALL name the pipeline its suite map is pinned to, and `LOOP_GATE_SUITES` SHALL carry every
 `bash`/`sh` command that pipeline's `Check …` steps run, so that a landing the pipeline would refuse is
-refused by the run instead of by `main`. A step that runs its check as inline shell, or as a Gradle task, is
-outside the pin — the map carries the commands a `run:` line names, and not a step's inline code — and
-`guidelines/Build.md` §3 names that residual beside the rule.
+refused by the run instead of by `main`. The pin closes the command side only: a path a check reads but the
+map does not name, and a step whose check is inline shell or a Gradle task, are residuals named beside the rule
+in `guidelines/Build.md` §3.
 
 #### Scenario: A pipeline step the map does not carry fails the loop's suite
 
 - **WHEN** the map names none of the `bash`/`sh` commands a `Check …` step of the pipeline runs
 - **THEN** the loop's suite SHALL fail, naming each missing command
-- **AND** a profile that records no pipeline key SHALL fail, because its map is pinned to nothing
+- **AND** a profile that records no pipeline key at all SHALL fail, because its map is pinned to nothing
 - **AND** a profile that records the key empty SHALL pass, having said it has no pipeline
 - **Case**: `gate#theMapCoversEveryPipelineStep`
 
 #### Scenario: A path the pipeline checks owes that step's command set
 
-- **WHEN** a change's delta touches a path inside a pipeline check step's own surface
+- **WHEN** a change's delta touches a path the map names for a pipeline check step
 - **THEN** the gate's plan SHALL name every command the map carries for that step, the check and its
   self-test among them
 - **AND** it SHALL NOT name a command of another step
+- **AND** a path a check reads but the map does not name — `tools/loop/loop.conf`, `tools/tooling.json` and
+  `tools/sensors/sensors.json` under `Check portability` — stays a residual the map cannot close
 - **Case**: `gate#aPipelineCheckIsOwedByItsPaths`

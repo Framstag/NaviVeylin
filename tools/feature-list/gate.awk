@@ -20,13 +20,56 @@
 #   * the entry carries a source marker, and every key in it names a spec that exists and is user-visible;
 #   * every figure the entry states appears in at least one spec the entry cites — a failure;
 #   * every content word that appears in none of those specs — a report, not a failure, because a claim the gate
-#     cannot settle should be visible to a reviewer rather than silently accepted.
+#     cannot settle should be visible to a reviewer rather than silently accepted. The report is bounded, because a
+#     report nobody reads is a check that does not exist (issue #103: 352 lines on the first real generation): per
+#     area it shows at most `maxwords` of the area's candidates, rarest word first — ranked by how many specs of the
+#     project contain it, so a word no spec contains ranks ahead of one a single spec contains — and one line per
+#     area states how many it found, how many it showed and how many it did not show.
 #
 # The marker holds ONE KEY PER LINE, repeated as needed. A comma-separated list would be ambiguous: requirement
 # names in this project contain commas, so a reader could not tell a separator from a name.
 #
 # Exit 0 when no entry fails, 1 when one does. Reported words go to stderr; failures to stdout; the keys that
 # resolved are appended to `keyfile`, which the caller uses for the coverage check.
+
+function rank(w) { return (w in specfreq) ? specfreq[w] : 0 }
+
+# The area a candidate belongs to, as the reader sees it: a `## ` heading of the catalogue, or the single document a
+# release note is (`## ` headings there are versions, not areas, and the note gate is handed one version).
+function area_label() { return (area == "" ? "the document" : "'" area "'") }
+
+# One candidate word per area, with the first entry that used it: the cap counts words, not lines, so a connective
+# repeated in five bullets is one candidate.
+function note_word(w, excerpt) {
+  if (w in word_at) return
+  word_at[w] = excerpt
+  word_list[++word_n] = w
+}
+
+# The area's report, printed at its boundary: rarest first, at most `maxwords`, and a count of what was not shown.
+# The count is printed even when nothing was suppressed, so a reader can tell a short report from a truncated one.
+function flush_words(   i, j, t, shown, w) {
+  if (word_n == 0) return
+  for (i = 2; i <= word_n; i++) {
+    t = word_list[i]
+    for (j = i - 1; j >= 1; j--) {
+      if (rank(word_list[j]) < rank(t)) break
+      if (rank(word_list[j]) == rank(t) && word_list[j] <= t) break
+      word_list[j + 1] = word_list[j]
+    }
+    word_list[j + 1] = t
+  }
+  shown = (word_n < maxwords ? word_n : maxwords)
+  printf "unsourced words in %s: %d found, %d shown (rarest first), %d not shown\n", \
+    area_label(), word_n, shown, word_n - shown > "/dev/stderr"
+  for (i = 1; i <= shown; i++) {
+    w = word_list[i]
+    printf "unsourced word: %s | %s\n", w, word_at[w] > "/dev/stderr"
+  }
+  delete word_at
+  for (i = 1; i <= word_n; i++) delete word_list[i]
+  word_n = 0
+}
 
 function flush_entry(   n, i, k, p, s, rest, m, w, low, kw, kwlen, kww, kwwl, isgone, para, q) {
   if (pending == "") return
@@ -103,7 +146,7 @@ function flush_entry(   n, i, k, p, s, rest, m, w, low, kw, kwlen, kww, kwwl, is
       w = W[i]
       if (length(w) < 4) continue
       if (w in stop) continue
-      if (index(low, w) == 0) printf "unsourced word: %s | %s\n", w, substr(pending, 1, 120) > "/dev/stderr"
+      if (index(low, w) == 0) note_word(w, substr(pending, 1, 120))
     }
   }
   pending = ""; markers_seen = 0; union = ""; seen = "|"; ok = 1
@@ -119,13 +162,33 @@ BEGIN {
   split("the and for with that this from your you are not can will all any does how into its more most only other over same should than then there these they those very what when where which while without would about after again against because been before being below between both but did doing down during each few further has have having here once out own such their them under until was were", S, " ")
   for (i in S) stop[S[i]] = 1
   ok = 1
+  # the word report's cap, per area; the tool passes its own `max_words`, and this default keeps the file runnable
+  # on its own for the reader who reads it with an awk one-liner
+  if (maxwords == "") maxwords = 10
+  area = ""
+  word_n = 0
   if (vanishedfile != "") {
     while ((getline line < vanishedfile) > 0) if (line != "") vanished[line] = 1
     close(vanishedfile)
   }
 }
 
-NR == FNR { spec[$1] = $3; vis[$1] = $2; next }
+NR == FNR {
+  spec[$1] = $3; vis[$1] = $2
+  # How many specs of the project contain each word, counted once per spec: the report's only ranking signal, and
+  # the reason a cap keeps the strongest candidates rather than the ones the gate met first.
+  low = tolower($3)
+  gsub(/[^a-z0-9]+/, " ", low)
+  n = split(low, SPECW, / +/)
+  delete seenspec
+  for (i = 1; i <= n; i++) {
+    if (SPECW[i] == "") continue
+    if (SPECW[i] in seenspec) continue
+    seenspec[SPECW[i]] = 1
+    specfreq[SPECW[i]]++
+  }
+  next
+}
 
 /^- / {
   flush_entry()
@@ -155,7 +218,16 @@ NR == FNR { spec[$1] = $3; vis[$1] = $2; next }
   next
 }
 
-/^#/ { flush_entry(); next }
+/^#/ {
+  flush_entry()
+  # a `## ` heading is an area boundary: the entries above it are complete, so their report is printed here
+  if ($0 ~ /^## /) {
+    flush_words()
+    area = substr($0, 4)
+    gsub(/[[:space:]]+$/, "", area)
+  }
+  next
+}
 
 /^[[:space:]]*$/ { flush_entry(); next }
 
@@ -163,5 +235,6 @@ NR == FNR { spec[$1] = $3; vis[$1] = $2; next }
 
 END {
   flush_entry()
+  flush_words()
   exit FAIL
 }

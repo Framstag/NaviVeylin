@@ -76,6 +76,24 @@ printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · re
 # `budget left -421 min` about a 480-minute run it knew nothing about (issue #207).
 is_num() { case "${1:-}" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 
+# Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
+# two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
+# file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
+# printed while it is still going.
+stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
+
+# A run that wrote this state and is not running any more is not a run that is going: the state names the
+# process that wrote it, and a run that recorded no stop while its process is gone is a run that was killed
+# (measured 2026-10-22: the run killed at 19:19 left a state that read "the run is still going" with 217
+# minutes of budget left). The clock since its start is not its spend any more, so no budget left is printed
+# for it either.
+owner_pid=$(jq -r '.run.ownerPid // 0' "$state_file" 2>/dev/null || printf 0)
+case "$owner_pid" in ''|*[!0-9]*) owner_pid=0 ;; esac
+owner_gone=0
+if [ "$owner_pid" -gt 0 ] && [ -z "$stop_reason" ] && ! kill -0 "$owner_pid" 2>/dev/null; then
+  owner_gone=1
+fi
+
 run_epoch=$(jq -r '.run.startedEpoch // ""' "$state_file")
 deadline_epoch=$(jq -r '.run.deadlineEpoch // ""' "$state_file")
 deadline_at=$(jq -r '.run.deadlineAt // "an unrecorded time"' "$state_file")
@@ -88,7 +106,10 @@ if is_num "$run_epoch" && is_num "$deadline_epoch"; then
     spent_min=$(( ( $(date +%s) - run_epoch ) / 60 ))
   fi
 fi
-if [ -n "$spent_min" ]; then
+if [ "$owner_gone" -eq 1 ]; then
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$owner_pid"
+elif [ -n "$spent_min" ]; then
   printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left %s items / %s min · spent %s min\n\n' \
     "$closed" "$misdiagnosed" "$skipped" "$blocked" \
     "$((items - closed - misdiagnosed - skipped - blocked))" "$((minutes - spent_min))" "$spent_min"
@@ -97,12 +118,8 @@ else
     "$closed" "$misdiagnosed" "$skipped" "$blocked" "$deadline_at"
 fi
 
-# Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
-# two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
-# file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
-# printed while it is still going.
-stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
 printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reason";
+  elif [ "$owner_gone" -eq 1 ]; then printf 'the run that wrote this state is gone — its process (pid %s) is not running and it recorded no reason' "$owner_pid";
   else printf 'not stopped — the run is still going, or it ended without recording a reason'; fi)"
 
 # The run's own table is the same reader as `state.sh report`, pointed at the same file.
@@ -123,9 +140,27 @@ printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAg
   + [.excluded[] | select(.verdict == $d) | "#\(.issue)"]
   | if length == 0 then "none" else join(" · ") end' "$state_file")"
 
-# The branches are read from git, not from a child's report: the run's own script created them.
+# The branches are read from git, not from a child's report: the run's own script created them. What each
+# of them carries is asked once, by patch identity — the loop lands work as `fix: … (#N)`, so a branch whose
+# work is already on the base is not an ancestor of it, and ancestry named leftovers as landings for ever
+# (issue #228). The two answers are different: a branch that carries work is an action the caller owes, a
+# branch that carries nothing is a leftover the caller may remove — and a flat list of names says neither.
+base=$(jq -r '.run.base // ""' "$state_file")
 branches=$(git -C "$LOOP_ROOT" branch --list 'loop-*' 'fix/issue-*' --format='%(refname:short)')
+branch_table=""
+while IFS= read -r branch; do
+  [ -n "$branch" ] || continue
+  if unlanded=$(loop_unlanded_commits "$LOOP_ROOT" "$base" "$branch"); then
+    ahead=$(printf '%s\n' "$unlanded" | grep -c . || true)
+  else
+    ahead=1
+  fi
+  case "$ahead" in ''|*[!0-9]*) ahead=1 ;; esac
+  branch_table="$branch_table$branch"$'\t'"$ahead"$'\n'
+done <<< "$branches"
 printf 'branches: %s\n' "$(if [ -n "$branches" ]; then printf '%s' "$branches" | paste -sd' ' -; else printf 'none'; fi)"
+landed=$(printf '%s' "$branch_table" | awk -F'\t' '$2 == 0 { printf "%s%s", (n++ ? " " : ""), $1 }')
+printf 'landed, removable: %s\n' "$(if [ -n "$landed" ]; then printf '%s' "$landed"; else printf 'none'; fi)"
 if [ -d "$LOOP_WORKTREE" ]; then
   printf 'worktree: %s (kept for the next run)\n' "$LOOP_WORKTREE"
 else
@@ -150,7 +185,6 @@ decisions() {
 }
 
 state_dir=$(dirname "$state_file")
-base=$(jq -r '.run.base // ""' "$state_file")
 actions=()
 
 while IFS=$'\t' read -r kind issue verdict reason extra; do
@@ -173,17 +207,12 @@ while IFS=$'\t' read -r kind issue verdict reason extra; do
 done < <(decisions)
 
 # The branches are read from git, and a branch is an action because of what it *carries*, not because it
-# exists: `none` must never hide commits. What it carries is asked by patch identity — the loop lands work as
-# `fix: … (#N)`, so a branch whose work is already on the base is not an ancestor of it, and ancestry named
-# leftovers as landings for ever (issue #228). A range git cannot answer is named rather than counted as zero.
-while IFS= read -r branch; do
+# exists: `none` must never hide commits. What it carries was asked above, by patch identity — the loop
+# lands work as `fix: … (#N)`, so a branch whose work is already on the base is not an ancestor of it, and
+# ancestry named leftovers as landings for ever (issue #228). A range git cannot answer is named rather than
+# counted as zero.
+while IFS=$'\t' read -r branch ahead; do
   [ -n "$branch" ] || continue
-  if unlanded=$(loop_unlanded_commits "$LOOP_ROOT" "$base" "$branch"); then
-    ahead=$(printf '%s\n' "$unlanded" | grep -c . || true)
-  else
-    ahead=1
-  fi
-  case "$ahead" in ''|*[!0-9]*) ahead=1 ;; esac
   [ "$ahead" -gt 0 ] || continue
   owner=$(printf '%s' "$branch" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1)
   if [ -z "$owner" ]; then
@@ -194,7 +223,17 @@ while IFS= read -r branch; do
   else
     actions[${#actions[@]}]="land $branch — $ahead commit(s) the base does not have — no item of this run owns it"
   fi
-done <<< "$branches"
+done <<< "$branch_table"
+
+# A label write the tracker refused is an obligation no other source can discharge: the run recorded it, and the
+# item's state on the tracker is stale in a way a reader who trusts only the tracker cannot see — an item with no
+# decision at all where the run recorded one, or an in-progress mark on an item nothing is working (issue #279).
+while IFS=$'\t' read -r issue failed; do
+  [ -n "${issue:-}" ] || continue
+  [ -n "${failed:-}" ] || continue
+  actions[${#actions[@]}]="set #$issue's tracker state by hand — the run could not write $failed, so the item's state there is stale — gh issue view $issue"
+done < <(jq -r '.items[] | select(((.labelFailures // []) | length) > 0)
+  | [(.issue | tostring), ((.labelFailures // []) | join(" "))] | @tsv' "$state_file")
 
 # An item that ended without a gate result is the one failure a caller cannot reconstruct from the table:
 # the transcript beside its id says how far the item got.
@@ -219,8 +258,8 @@ fi
 
 printf 'actions the caller owes:\n'
 if [ "${#actions[@]}" -eq 0 ]; then
-  # Empty only when every one of the five sources was read and empty — not because a list was skipped.
-  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no refused citation\n'
+  # Empty only when every one of the six sources was read and empty — not because a list was skipped.
+  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no refused citation, no label write the tracker refused\n'
 else
   n=1
   for action in "${actions[@]}"; do

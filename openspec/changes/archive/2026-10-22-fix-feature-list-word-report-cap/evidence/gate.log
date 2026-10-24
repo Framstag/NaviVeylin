@@ -1,0 +1,11 @@
+gate: ./gradlew test -PforceTests --no-build-cache
+gate: tools/loop-selftest.sh
+gate: tools/loop-mutations-selftest.sh
+gate: tools/issue-tooling-selftest.sh
+gate: tools/sensor-selftest.sh
+gate: tools/check-action-runtimes-selftest.sh
+gate: tools/gen-feature-list-selftest.sh
+gate: bash tools/gen-feature-list.sh --check-classification
+gate: tools/check-doc-routes.sh
+LOOP-GATE: tests=481 failures=0 (./gradlew test -PforceTests --no-build-cache, tools/loop-selftest.sh, tools/loop-mutations-selftest.sh, tools/issue-tooling-selftest.sh, tools/sensor-selftest.sh, tools/check-action-runtimes-selftest.sh, tools/gen-feature-list-selftest.sh, bash tools/gen-feature-list.sh --check-classification, tools/check-doc-routes.sh)
+./tools/loop/gate.sh  346,91s user 210,82s system 59% cpu 15:43,26 total

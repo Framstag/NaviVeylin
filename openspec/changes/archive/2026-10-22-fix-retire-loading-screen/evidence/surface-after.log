@@ -1,0 +1,11 @@
+# surface after the fix — 2026-10-22T10:54:17Z, worktree .pi/worktrees/loop
+$ grep -rn "LoadingScreen\|loading_map_data\|preparing_navigation" auto/src app/src core/src tools/loop/prompts tools/loop/fixtures tools/*-cases.sh guidelines/ openspec/specs/
+auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt:73:    fun retiredLoadingScreenClassIsGone() {
+auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt:74:        val present = runCatching { Class.forName("com.naviveylin.auto.LoadingScreen") }.isSuccess
+auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt:75:        assertFalse("com.naviveylin.auto.LoadingScreen is still on the classpath", present)
+auto/src/test/java/com/naviveylin/auto/GermanTranslationCompletenessTest.kt:47:        val retired = setOf("loading_map_data", "preparing_navigation")
+openspec/specs/route-calculation-feedback/spec.md:151:- **THEN** `com.naviveylin.auto.LoadingScreen` SHALL NOT resolve
+openspec/specs/route-calculation-feedback/spec.md:152:- **Case**: `StartupScreensTest.retiredLoadingScreenClassIsGone`
+openspec/specs/route-calculation-feedback/spec.md:157:- **THEN** the keys `loading_map_data` and `preparing_navigation` SHALL be absent
+
+# 7 matches in 3 files: the two cases this change adds and the requirement it merges into the shipped spec. No shell case, no fixture, no prompt and no guideline line matches.

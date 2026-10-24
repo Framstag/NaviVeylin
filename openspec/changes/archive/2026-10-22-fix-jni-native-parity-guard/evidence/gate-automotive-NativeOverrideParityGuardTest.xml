@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.build.NativeOverrideParityGuardTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-22T11:53:46.364Z" hostname="dingens" time="0.01">
+  <properties/>
+  <testcase name="the build refuses an unrecorded deviation" classname="com.naviveylin.build.NativeOverrideParityGuardTest" time="0.002"/>
+  <testcase name="the recorded deviations are the tree's own" classname="com.naviveylin.build.NativeOverrideParityGuardTest" time="0.008"/>
+  <system-out><![CDATA[buildScript=build.gradle.kts chars=74316
+deviationLines=10
+LINE 21 fields=4 OSMScoutClient.java
+LINE 22 fields=4 OSMScoutClient.java
+LINE 23 fields=4 OSMScoutClient.java
+LINE 24 fields=4 OSMScoutClient.java
+LINE 25 fields=4 OSMScoutClient.java
+LINE 26 fields=4 OSMScoutClient.java
+LINE 27 fields=4 OSMScoutClient.java
+LINE 28 fields=4 OSMScoutClient.java
+LINE 29 fields=4 OSMScoutClient.java
+LINE 30 fields=4 OSMScoutClient.java
+byDirection={submodule-only=5, override-only=5}
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

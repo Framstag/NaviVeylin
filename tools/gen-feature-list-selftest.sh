@@ -478,6 +478,37 @@ gate_run 6-1-1-6 ''
 grep -q 'unsourced word' "$work/g.out" && bad "gates: a fully sourced bullet is not reported" \
   || ok "gates: a fully sourced bullet is not reported"
 
+# The word report is bounded rather than exhaustive: at 352 advisory lines on the first real generation nobody read
+# it (issue #103), which defeats the requirement instead of serving it. Per area the report shows at most the cap
+# the tool declares, rarest word first, and counts what it did not show. The cap is read from the tool's own
+# `max_words`, so the assertion cannot drift from the number the gate uses; on a tree that declares none the case
+# still reports a verdict (the default below) instead of aborting the rest of the suite.
+maxwords=$(sed -n 's/^max_words=\([0-9][0-9]*\).*/\1/p' "$tool")
+[ -n "$maxwords" ] && ok "gates: the word report's cap is declared by the tool" \
+  || bad "gates: the word report's cap is declared by the tool"
+cap=${maxwords:-10}
+# the cap plus three words no fixture spec contains, so every one of them is a candidate the report has to bound
+pool="quantum zephyr quasar wobble gizmo frobnicate sprocket kumquat vortex nebula pulsar tundra marmot"
+candidates=$(printf '%s\n' $pool | head -n "$((cap + 3))")
+many=$(printf '%s\n' $candidates | paste -sd, -)
+gate_run 6-1-1-10 "1s/\$/ $many./"
+is "gates: the word report shows no more than its cap in one area" "$cap" \
+  "$(grep -c 'unsourced word:' "$work/g.out" || true)"
+grep -q "unsourced words in 'Area One': $((cap + 3)) found, $cap shown" "$work/g.out" \
+  && ok "gates: the word report counts the candidates it did not show" \
+  || bad "gates: the word report counts the candidates it did not show"
+
+# ranked by how few specs contain the word: `sole` occurs in the beta spec, the pool's last word in no spec at all,
+# so the word the project never uses is the rarer claim and is named first
+last=$(printf '%s\n' $candidates | tail -1)
+gate_run 6-1-1-11 "1s/\$/ sole $last./"
+first_line=$(grep -n "unsourced word: $last" "$work/g.out" | head -1 | cut -d: -f1)
+sole_line=$(grep -n 'unsourced word: sole' "$work/g.out" | head -1 | cut -d: -f1)
+[ -n "$first_line" ] && [ -n "$sole_line" ] && [ "$first_line" -lt "$sole_line" ] \
+  && ok "gates: the word report names the rarest word first" \
+  || bad "gates: the word report names the rarest word first" \
+       "$last at line ${first_line:-none}, sole at line ${sole_line:-none}"
+
 gate_run 6-1-1-7 's/alpha#Alpha first capability/ghost#Nowhere/'
 is "gates: a key citing a spec that does not exist fails the run" "1" "$last_rc"
 gate_run 6-1-1-8 's/alpha#Alpha first capability/gamma#Gamma internal capability/'

@@ -26,7 +26,7 @@ token, proves exactly that on every push.
 |---|---|---|---|
 | 1 | `github-issue-tooling` | the tracker surface: taxonomy, gate, identity, closure, the project profile | **applied 2026-10-17** — `tools/issues/**`, the project profile `tools/tooling.json`, four skills, an offline self-test and one CI step; the dry run over the prose backlog is recorded under the change's `evidence/`, and the tracker holds the 36 taxonomy labels and no issue |
 | 2 | `migrate-todo-to-github-issues` | the live import, the prose file deleted, every instruction rewired | **applied 2026-10-17** — 137 items imported (open, none authorised) and 21 retired tombstones, `list.sh --id N` resolving a citation, `tools/check-todo-references.sh` and its CI step, every instruction rewired, the prose file deleted; the run's record is `import-evidence.md` |
-| 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | **applied 2026-10-17** — `tools/loop/**` (the entry `run.sh`, the pre-screen, the state and its lock, the worktree and the branches, the label transitions, the report), two prompt skeletons filled from `loop.conf`, a stub `pi` and an offline self-test with one CI step; the two write paths the loop needed landed in the tooling (`update.sh --remove-label`, `close.sh --comment-only`); §7 and §11 of this document and the `fix-loop` skill describe it |
+| 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | **applied 2026-10-17** — `tools/loop/**` (the entry `run.sh`, the pre-screen, the state and its lock, the worktree and the branches, the label transitions, the report), two prompt skeletons filled from `loop.conf`, a stub `pi` and an offline self-test with one CI step; the two write paths the loop needed landed in the tooling (`update.sh --remove-label`, `close.sh --comment-only`); §7 and §11 of this document, the spec `agent-issue-loop` and the `fix-loop` skill describe it |
 | 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | **applied 2026-10-17** — `tools/sensors/**` (the registry `sensors.json`, the runner, the guards, the report, the hotspot measurement, the four metric rows and the two condition sensors), a fixture harness offline against the stub `gh` with one CI step, the three verbs the runner writes through extended (`create.sh --sensor`, `close.sh --sensor`, the new `reopen.sh`), the isolated pipeline `.github/workflows/sensors.yml` with its CODEOWNERS entry, and `labels.sh` learning the registry's labels; the host dry runs, the falsification run and the not-reproducible CI steps are recorded under the change's `report.md` |
 | 5 | `issue-metadata-loop` | persisted priority and classification | **applied 2026-10-17** — `tools/issues/prioritise.sh` (the basis, the partition over every issue, the bounded run, the label+marker writer, the transition comment) and `classify.sh` (the queue of items with no kind), `check-metadata.sh` and its falsification, the `bands` section in `tools/tooling.json`, `list.sh --prio/--unranked`, the `issue-metadata` skill and the `triage-todo` rewrite; the run over the live tracker is recorded under the change's `evidence/` |
 | 6 | `tooling-portability` | the proof that another project can use all of it | **applied 2026-10-18** — `tools/check-portability.sh` (the leak check, its value set read from the profile and the per-tool configs at run time) with `tools/check-portability-selftest.sh` and its 21 cases, `tools/mutate.sh` with the seven revert-checks as a versioned mutation set, the two skills `portability-check` and `mutation-runner`, the synthetic project `tools/fixtures/foreign-project/` on which the whole toolchain runs without an engine edit, `PORTING.md` (the recipe, its commands executed by the self-test), one `Check portability` CI step and the check's own classification line; no engine file was changed — the check is the proof, not a fix |
@@ -257,13 +257,94 @@ outcome from what it reads itself (I10).
 What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
 is the script's (I8); and the tracker credential is not in the agent's environment (§5).
 
+What it does **not** claim: the project's own tree is not the child's, so a difference between the two readings of
+it taken around a child is recorded and not turned into a verdict. The transcript gains one line naming what
+changed — the differing status entries and any process whose working directory is inside the project but outside
+the worktree — the item keeps the outcome its work earned, and a review round that ran during a difference stands.
+Measured 2026-10-23 (#274, #276, #285): 5 of 139 items across four runs were blocked by that comparison, and in
+the three cases of that day the child had written nothing there — every write target in the three transcripts lay
+under `.pi/worktrees/loop/` or the item's evidence directory. The comparison measures a tree the run itself
+rewrites (every landing fast-forwards the base in the project tree) and that a peer session writes too, so two
+readings of it are not evidence about one child. `--strict-outside-write yes`
+(`LOOP_STRICT_OUTSIDE_WRITE_DEFAULT`, default `no`) restores the verdict for a tree that is exclusive: the
+worker's item is blocked, the round-2 worker's item is blocked, and a review round that ran during a difference
+is discarded. A difference the run **can** place decides in both modes: the heartbeat beside every child reads the
+project's tree once per `LOOP_PROGRESS_SECONDS` and, at the first difference, names the processes alive then whose
+working directory is inside the project and outside the worktree, marking the ones in the child's own process tree
+— its process group, or an ancestor chain that reaches it. A writer is gone when the transcript is written, so a
+reading taken afterwards attributes nothing: measured 2026-10-23 while adding it, the exit-time sweep found no
+process for a child's one-shot write and the case built on it failed with `expected 'blocked', got 'done'`.
+What is not relaxed is the landing rule — a base that is still not clean when the item lands
+refuses the merge and records the status line it carries, because that guard is about what may be merged onto,
+not about who wrote it.
+
 What bounds it: the budget is consulted between items, so the run also bounds **one child** by its own
 recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 45 min). A child that outlasts it is ended together with
 everything it started — a gate leaves daemons and test workers behind, and those are the memory the next item
 needs — its transcript gains one machine-readable line (`LOOP-TIMEOUT: the child exceeded <n> s`), and the item
-is recorded `blocked` with that transcript rather than spending the run's clock. Measured 2026-10-19: an item's
+is recorded `blocked` with that transcript rather than spending the run's clock. "Everything it started" is
+more than the child's process group: a descendant that gave itself its own session (`setsid`) is in no group
+the cap signals, so the run also ends every process still working in the change root — the test
+`loop_pids_under` owns — and names each one in the transcript (`LOOP-ENDED: ended <pid> — its working directory
+is inside <tree>`). Measured 2026-10-22: the mutation harness a child had started kept mutating and restoring
+the worktree for seven minutes after the run had recorded the child as ended, and its last restore is what
+left that tree dirty for the next run (#272). What such a child leaves is **not committed**: at the moment the cap
+fires the tree holds whatever the child was doing, so a commit of it asserts work the child never claimed — the
+run reads the child's status before it commits, skips `end-item`, and the branch stays where it stood (at the base,
+when the item's own worker is the one the cap ended), the tree kept exactly as the child left it (nothing is
+discarded without `--reset-worktree`). The rule covers both commits a run makes for an item: the item's worker, and
+the rework worker a refusing review round starts, whose round blocked the item instead of committing what it left
+(the round-1 review of #271 found that second site unguarded, hours after the rule was written as if it were
+universal). Measured 2026-10-22: the worker of
+#262 was ended at 23:48 with mutation 19.2 applied to `tools/loop/run.sh`, the run committed that tree 18 s later,
+and `if false; then` in place of the corrective-round test stayed on `origin/fix/issue-262-…` until a person
+amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
+
+Inside that bound the project's gate is what fills the log, and it streams: each suite's output is `tee`d as the
+suite writes it, and the summary, the tally and the failure text are read from that same file, so a suite that
+runs for a quarter of an hour shows its own lines instead of a two-line log. Measured 2026-10-23: a gate run held
+its log at two lines while `tools/loop-selftest.sh` ran past eleven minutes, and an earlier red — a build that
+died at configuration in 21 s — was found only in the Gradle daemon log, because the gate had kept its output in
+a variable (#269).
+
+A suite's numbers are only ever the suite's own: a suite that fails without writing a summary contributes an
+**error**, never a case. Its tally carries `tests="0"` with `errors="1"`, and the gate's own line carries the
+error count beside the case and failure counts, so a reader can tell "no case ran and it failed" from "one case
+failed". Measured 2026-10-23 (issue #268): a hand-run gate's compiled step died at configuration
+(`Could not create task ':app:mergeNativeSbom'`, `BUILD FAILED in 21s`, no test task reached its action) and its
+tally read `tests="1" failures="1"` — a number the suite never reported, in the record the run's own check
+reads for a green claim.
+
+A tally's name is the command that wrote it, and it is never a dotfile: the profile's compiled command runs as
+`./gradlew`, and the `./` is dropped before the name is built, so `ls` and a `*.xml` glob find the one tally that
+records the build as well as `find` and `grep -r` do. Measured 2026-10-23 (issue #278): the name had kept the
+leading `.`, and the round-3 reviewer of #273 counted five files where the directory held six, refusing a round on
+a tally that was present.
+
+A gate reads the profile beside its own engine — the tree whose paths it measures — and its log says which file that
+was: `LOOP-GATE-PROFILE: <path>` is the first line of a gate that runs something, and a profile read from outside
+that tree is named as pinned beside the one the engine ships. The run resolves its own configuration and keeps it
+to itself, because a child works in the worktree and runs that tree's own engine. Measured 2026-10-23 finishing
+#273 (issue #277): the run exported the profile of the project it was started in, so a change whose delta rewrote
+`LOOP_GATE_COMPILED_PATTERNS` was gated by the rule it was replacing — the log named the compiled command first
+where the tree's own profile owed five shell checks and no build, and it carried no pin at all, so the round-3
+reviewer could only refuse the round and the repair was a hand-pinned re-run.
+
+A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
+the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
+they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a
+directory), `tools/loop-selftest.sh --files <path> …` / `--from-git <base>` selects on that declaration, and a file
+set that names no case is refused with exit 2 rather than read as an empty suite — the rule the mutation harness
+has applied to its own records since #235. A delta to the library, the profile, the case file or the driver itself
+owes the whole set, and so does the archive: a case reaches behaviour through the scripts it starts, and only a
+hand-run of all of them covers that. Measured 2026-10-23 (issue #276): 190 cases and 723 s were owed for every
+`tools/loop/**` gate run, a delta to `tools/loop/worktree.sh` alone is declared by 31 of them, and a delta to
+`tools/loop/run.sh` by 110 — the end-to-end `run#*` cases are the half that cannot narrow. Measured the same day:
+the declaration was generated once from the case bodies and is kept honest by
+`driver#everyCaseDeclaresTheFilesItCanReach`, which reads every body and refuses a declaration narrower than the
+case it describes.
 
 What it does with a child that never started: a status alone cannot tell a child whose argv the environment
 refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
@@ -273,8 +354,28 @@ written, nothing is escalated, the in-progress mark comes off and the item stays
 Measured 2026-10-20: both children of that run died in under 4 s with the same 35-byte complaint, the run
 recorded two items `blocked`, escalated both, and stopped on "two consecutive items ended blocked" 3 minutes
 into an 8 h budget — two questions nobody had asked, and two of its three decision slots (#212). A child the run ended
-itself, and one that left work behind, stay blocked items: the first carries its own transcript line, the
-second its branch, which is what a later pass escalates.
+itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
+commit, the second its branch, which is what a later pass escalates.
+
+What it does with a start the worktree refuses: a tree that is not clean is the *previous* item's unfinished work
+— `start-item` refuses it, because committing over it would attribute two changes to one branch — so the run
+attributes the refusal before it ends on it. The worktree's own branch marker names the item whose branch the tree
+is on, which is the reading the start-time pre-flight already makes, and that item is recorded `blocked` with the
+leftovers and escalated, exactly as that pre-flight records it; the stop reason names the item and the files it
+found, not the refusal's first line. The candidate that could not start is neither recorded nor escalated:
+nothing was done to it, so it stands in the queue as its owner set it. The run then stops, and continuing is not
+an alternative it has — the tree is still dirty and nothing is discarded without `--reset-worktree`, so every
+later candidate would be refused the same way and one cause would leave one blocked item per candidate. While
+this happens one item keeps one record: a second account of an item the run already recorded joins the note that
+record has, because the report's four tallies, its budget-left figure and the "two consecutive items ended
+blocked" stop condition are all derived from the same list of records. What the later account may write is the note
+and the escalation label and nothing else: the first record's `result`, `verdict` and metrics stand
+(`tools/loop/state.sh:443`–`446`), so an item that ended `done` is not turned into a `blocked` one by the leftovers
+found later — the stop reason is what names that item, and the tally that counts it stays the first account's.
+Measured 2026-10-23: the run stopped 166
+minutes into an 8 h budget with `the item could not be started: loop: the worktree is not clean — refusing to
+start #270:`, 7 eligible items unworked, the leftovers attributed to nothing and #270 carrying no state entry at
+all (#284).
 
 The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
 identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never
@@ -289,7 +390,34 @@ item with its branch as the evidence rather than closing it, because `status/fix
 tree" have to be one claim: measured 2026-10-20, a run closed #201 with its two commits still on
 `fix/issue-201-…` and the base at the run's base, and a person fast-forwarded `main` 35 minutes later (#229).
 No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s
-decision, taken on what a stranger to the run can check.
+decision, taken on what a stranger to the run can check. A review round is part of that record, in both
+directions: the run commits the round onto the branch before its reviewer starts and commits the answer when
+it arrives, so a round whose reviewer was killed mid-answer reads as unanswered instead of as a pass. Measured
+2026-10-22: the round-2 reviewer of #249 was killed, its report was 0 bytes, and the run that started 15
+minutes later adopted the branch, merged it into `main` and closed the item — no reviewer had graded the change
+(#262). A branch whose last round answered `PASS` is adoptable; one whose round was announced and never
+answered, and one the reviewer refused, is the owner's, and one that carries no round at all was never asked to
+a review (`--review off`) and stays adoptable.
+
+A branch the run made is a leftover once its work is in the base, and it goes when it goes: the run removes the
+branch it committed for an item and merged, releasing the kept worktree from it first (git refuses to delete a
+branch a worktree holds) and deleting it with git's own safe delete, which refuses a branch whose work is not
+in the base. The one command that answers "what has the loop left behind" (`tools/loop/loop-clean.sh`) removes
+the rest — the branches whose patches the base already holds, asked by **patch identity** (`git cherry`), never
+by ancestry, because the loop lands work as `fix: … (#N)` and a landed branch is not an ancestor of the base.
+A branch that still carries unlanded work is never removed by the tooling: it is named as work to land, and a
+branch a worktree holds is a tree in use. The report names the two kinds apart, so a flat list of branch names
+says which are leftovers. Measured 2026-10-22: 53 local branches, 43 of them already merged into the base and
+none of them removed by anything.
+
+The report reads the scratch root its own invocation resolves **and** the root the kept worktree resolves, because a
+suite creates its trees under the root of the tree it runs in and the gate runs the suite inside the worktree. When
+`--worktree` names this tree the two are one directory spelled two ways, so it is scanned once — compared as written
+they never match, and the report would list each tree twice and count its bytes twice. The same age rule and the same
+process evidence apply to both, so a tree a live suite is writing into stays kept wherever it stands. Measured
+2026-10-23: 305 MB in four `loop-selftest.*` trees and four `run.sh` poll loops under `.pi/worktrees/loop/.pi/tmp`,
+three of the trees past the threshold and three of the runs past their budget, and the report printed its heading with
+no entry at all.
 
 What it does with an answer that arrived cut: the report a review round is decided from is the file the child's
 answer reached, and what reaches that file can be short. On 2026-10-20 an item's round-2 report stopped
@@ -308,10 +436,24 @@ round the run itself ended already says so in its report (`LOOP-TIMEOUT`) and is
 in one round block the item with *the reviewer's report was cut short twice*, and the branch carries no
 review-failure marker, because no reviewer refused that change.
 
+What the round a corrective refusal buys is handed: a refusal whose every finding is subtractive —
+`LOOP-CORRECTIONS-ONLY: yes` — at the round budget buys one more round (#187), and that round exists to decide
+whether those findings were answered, not to grade the change a second time. So it is handed the correction
+round alone, `git diff <the refusing round's HEAD>..HEAD`, with the refusing report quoted in its prompt; a
+finding the tree still carries is a `BLOCKING:` finding there, and a correction whose hunk is missing is an
+unanswered finding rather than an absence to report against the diff. The range is why the round is affordable
+at all: the whole change is the #204 reading surface, measured at 435 KB and 9 935 changed lines (9 364 of them
+generated output) for item #126, and two rounds have already graded it. What the narrowed input does *not*
+remove is the reviewer process: #245's owner kept the round and narrowed what it reads, so the re-reading is
+what this change saves and the 300 to 420 s a round costs still stands.
+
 What it does when it cannot proceed: an item that needs a decision is **escalated** — the work already done
 is named on the item, the item is marked as awaiting a decision, and the run takes the next candidate. The
 work is preserved rather than abandoned (I11), which is the part the prose-era loop got wrong by treating a
-mid-item decision as a failure.
+mid-item decision as a failure. A label write the tracker refuses is a fact of the run, not a swallow: the
+transition that failed is recorded with the item, so the report names an item whose decision was never written
+and an item whose in-progress mark the run could not take off — measured 2026-10-23T11:38Z, a run recorded
+item #260 blocked with no decision label while nothing was ever posted on it (issue #279).
 
 The report a run prints at its end is the run's product, and it answers three questions without the caller
 opening the tracker (#208): **which** items were handled and how each ended — the per-item table, with the
@@ -322,8 +464,9 @@ reported rather than a zero that reads as a measurement (#211) — beside the ru
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the
-item that owns it, the kept worktree, an item whose gate never completed with its transcript, and a citation
-the pre-screen still refuses. A count is not an answer, so `none` is printed only when all five sources were
+item that owns it, the kept worktree, an item whose gate never completed with its transcript, a citation
+the pre-screen still refuses, and a label write the tracker refused with the item it left stale. A count is not
+an answer, so `none` is printed only when all six sources were
 read and empty — it never hides a branch that carries work.
 
 What a branch carries is asked by **patch identity**, never by ancestry — `git cherry`, the same question the
@@ -343,6 +486,19 @@ the resolver writes bodies, so a bare name there is a title for a person to fix.
 the tree holds: a title naming a file whose tracked path the body already carries leaves the item settled and
 unwritten (the state every item repaired from the doubled-directory form ends in), while a title citing a file
 the tree does not hold parks the item, because the citation is stale wherever it stands (#226).
+
+What it does when another run is already working: the lock that keeps one run per repository is taken **before**
+the run writes anything — before the state it would replace, before the pre-screen's queue and before the
+adoption path can merge a branch. A run that finds a live lock is refused and writes nothing, so the live
+run's record, its queue and its branches stay its own; a lock whose owner is not running any more is taken over
+and the takeover is announced, because a run killed with a signal no trap can catch leaves its lock behind, and
+a tombstone would refuse every run after it. The state names the process that wrote it, so the report tells a
+run that was killed from one that is still going instead of printing a budget left for a run that is spending
+nothing, and it names the item it is working on and the phase it last recorded — `.current`, the first line
+`state.sh show` prints — so a state kept from a killed run says which item was in flight instead of a phase
+alone, and every step the run records is attributed to that item rather than to `0` (#263). Measured 2026-10-22: the run that started at 18:46 was killed at 19:19 with its round-2 review
+unanswered, and the run that started at 19:34 replaced its state, merged its unfinished item into `main`, closed
+it and was refused at the lock two minutes into a 240-minute budget.
 
 ## 8. The human lane
 

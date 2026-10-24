@@ -1,0 +1,6 @@
+# 2026-10-22T20:32:57Z
+# the change's own profile: what it owes (the gate's environment inherits LOOP_CONF from the run, which names the project's profile)
+tools/loop-selftest.sh
+bash tools/loop-mutations.sh --check
+tools/loop-mutations-selftest.sh
+tools/check-doc-routes.sh

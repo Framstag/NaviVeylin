@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- the red-on-HEAD run of the three branch-hygiene cases, against the engine at 522d69a (the last commit before the change). -->
+<testsuite name="loop-selftest" tests="3" failures="3" errors="0">
+  <!-- /home/tim/projects/NaviVeylin/openspec/changes/add-loop-branch-hygiene/evidence/red-HEAD.log -->
+</testsuite>

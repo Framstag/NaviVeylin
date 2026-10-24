@@ -320,7 +320,9 @@ ISSUES_QUESTION_JQ='split("\n")
   | (map(select(startswith("**The decision:**"))) | .[0]) // .[0] // ""'
 
 issues_question_of() { # <comment-json> → the question it carries, one line
-  jq -r '.body // "" | '"$ISSUES_QUESTION_JQ" <<< "${1:-{}}"
+  local json="${1:-}"
+  [ -n "$json" ] || json='{}'
+  printf '%s' "$json" | jq -r '.body // "" | '"$ISSUES_QUESTION_JQ"
 }
 
 # issues_status_displaced <issue-json> <target-label> <prefix> → one label per line: every value of the

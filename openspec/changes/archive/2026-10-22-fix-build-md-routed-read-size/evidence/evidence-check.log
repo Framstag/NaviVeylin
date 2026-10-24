@@ -1,0 +1,9 @@
+evidence-check 2026-10-22T17:18:29Z — openspec/changes/archive/2026-10-22-fix-build-md-routed-read-size --root .
+ok   C1 §references: 99 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 13 pairs confirmed, 0 exempted (not retained), 1 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 486 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+EXIT=0

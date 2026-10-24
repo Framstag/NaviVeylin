@@ -20,6 +20,7 @@ import com.naviveylin.core.mapsource.MapSource
 import com.naviveylin.core.mapsource.MapSourceKind
 import com.naviveylin.core.mapsource.MapSourceMarker
 import com.naviveylin.core.mapsource.MapSourceRecord
+import com.naviveylin.core.mapsource.MapTreeDiscovery
 import com.naviveylin.core.mapsource.MapUpdateItem
 import com.naviveylin.core.mapsource.MapUpdateKind
 import com.naviveylin.core.mapsource.RegionIndexResult
@@ -487,7 +488,11 @@ class MapManagerViewModel @Inject constructor(
     fun refreshInstalledMaps() {
         viewModelScope.launch(ioDispatcher) {
             try {
-                val dirs = downloadManager.installedMaps
+                // The native scan reports every directory holding a `types.dat`, and a swap whose cleanup
+                // failed leaves the previous installation in `.<name>.backup` beside its target — staging
+                // data, not a map to list or to offer a delete for (spec `map-updates` — "Data left by an
+                // interrupted update is recognised, not mistaken for a map").
+                val dirs = MapTreeDiscovery.installedOnly(downloadManager.installedMaps)
                 val pathSet = dirs.toSet()
 
                 // Build synthetic entries for installed maps, preferring existing entry names for proper casing

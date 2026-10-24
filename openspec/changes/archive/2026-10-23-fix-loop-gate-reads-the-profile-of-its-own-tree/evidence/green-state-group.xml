@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- the suite that pins a profile for a run on the tree this change leaves, 2026-10-23T14:21:51Z: `bash tools/loop-selftest.sh --group state` —
+     `loop-selftest: all 14 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group state`.
+     The numbers are that summary line's own; the transcript is green-state-group.log. -->
+<testsuite name="loop-selftest --group state" tests="14" failures="0" errors="0">
+  <testcase name="state#initAndShowRoundTrips"/>
+  <testcase name="state#nextHonoursEveryStopCondition"/>
+  <testcase name="state#floorIsDerivedFromTheFinishedItemsWallTimes"/>
+  <testcase name="state#floorWithNoHistoryIsTheConfiguredMinimum"/>
+  <testcase name="state#secondRunRefusesWithExit5"/>
+  <testcase name="state#aRefusedRunLeavesTheLiveStateAlone"/>
+  <testcase name="state#aDeadOwnersLockIsTakenOver"/>
+  <testcase name="state#initKeepsTheStateItReplaces"/>
+  <testcase name="state#initAnnouncesARunWithoutAStop"/>
+  <testcase name="state#defaultsComeFromLoopConf"/>
+  <testcase name="state#projectKeysAreReadFromLoopConf"/>
+  <testcase name="state#agentCommandIsTheOnlyIndirection"/>
+  <testcase name="state#agentCommandRefusesAnEmptyValue"/>
+  <testcase name="state#inheritedStatePathOutsideTheTreeIsIgnored"/>
+  <system-out>loop-selftest: all 14 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group state</system-out>
+</testsuite>

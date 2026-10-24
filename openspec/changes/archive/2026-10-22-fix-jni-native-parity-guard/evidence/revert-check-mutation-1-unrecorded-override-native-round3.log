@@ -1,0 +1,39 @@
+2026-10-22T12:13:06Z
+mutation: declare an unrecorded override native after line 462
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkNativeParity FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:checkNativeParity' (registered in build file 'app/build.gradle.kts').
+> The Android JNI override must mirror the submodule's natives, except the recorded deviations
+  spec: osmscout-jni — "The override mirrors the submodule's natives, except the recorded deviations";
+  change fix-jni-native-parity-guard, guidelines/Design.md §5 ("The bridge's two sides").
+  :osmscout-client-java compiles the submodule's Java client sources except five overridden files,
+  so a native on one side only is a NoSuchMethodError at the first call — no compiler error.
+  If a divergence is intended, record it in osmscout-client-java/native-parity.txt with a reason;
+  if it is not, mirror the native. Both are one line.
+  
+  app/src/main/cpp/libosmscout/libosmscout-client-java/java/com/framstag/libosmscout/client/OSMScoutClient.java: unrecorded native drift: the override declares `mutatedParityProbe(double,double)` and the submodule does not, so the next submodule sync drops it — record the Android addition (add `OSMScoutClient.java | override-only | mutatedParityProbe(double,double) | <reason>` to osmscout-client-java/native-parity.txt if the divergence is intended)
+
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 555ms
+4 actionable tasks: 1 executed, 3 up-to-date

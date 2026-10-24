@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the two cases this change adds, against the engine and the profile as HEAD
+     (b1b8de08c6e1673) has them — `git archive HEAD tools` extracted and LOOP_ENGINE pointed at it, so the
+     worktree's own tree was not touched (2026-10-23T07:00:27Z, transcript red-HEAD.log). One invocation per case,
+     so the tally is two cases and one failure. -->
+<testsuite name="loop-selftest --case" tests="2" failures="1" errors="0">
+  <system-out>FAIL gate#anArchivedArtefactOwesNoBuild: an archived evidence tally owes no compiled command: ./gradlew test -PforceTests --no-build-cache
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh: './gradlew test -PforceTests --no-build-cache' should not appear in: ./gradlew test -PforceTests --no-build-cache
+PASS gate#aModuleResourceOwesTheBuild: a module's resource still owes the build (green on HEAD, which is what makes it the guard against dropping `*.xml`)</system-out>
+</testsuite>

@@ -1,0 +1,5 @@
+PASS state#aRefusedRunLeavesTheLiveStateAlone
+PASS state#aDeadOwnersLockIsTakenOver
+PASS report#aKilledRunIsNotALiveRun
+PASS state#secondRunRefusesWithExit5
+0 of 4 cases failed

@@ -1,0 +1,14 @@
+declared-cases: change 'fix-jni-native-parity-guard'
+  diff      working tree of /home/tim/projects/NaviVeylin/.pi/worktrees/loop — 8 path(s), 0 production file(s), 1 test file(s)
+  rules     declared 2 · touched 1 · mention 0 · union of declared,touched,mention
+
+  # rule     module  last time test class
+──────────────────────────────────────────────────────────────────────────────
+  1 declared app     0.013     com.naviveylin.build.NativeOverrideParityGuardTest
+  2 declared app     0.014     com.naviveylin.build.VersionedGradleJavaHomeTest
+──────────────────────────────────────────────────────────────────────────────
+selected 2 of 435 test classes; measured class time 0.0s
+The suite's wall time is not that sum: it runs at the declared fork count, every invocation pays the
+Robolectric fork bootstrap plus the daemon and (when test sources changed) the test compile, so the
+floor is ~30s, not 10s. And a pre-gate run is NOT gate evidence: run the unfiltered module suite
+before marking the change complete.

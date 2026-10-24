@@ -13,9 +13,12 @@
 #
 # What it never touches: a kept worktree's tracked or untracked *source*. It removes only the project's
 # recorded build paths (`LOOP_WORKTREE_SCRATCH_PATHS`, the same list and the same four refusals the run's own
-# `worktree.sh strip-scratch` uses) and only scratch trees under the loop's temporary root that are older
-# than `LOOP_TMP_STALE_MINUTES` and carry the self-test's own name — a suite writing into its tree right now
-# is younger than that and is left alone.
+# `worktree.sh strip-scratch` uses) and only scratch trees older than `LOOP_TMP_STALE_MINUTES` that carry the
+# self-test's own name — a suite writing into its tree right now is younger than that and is left alone. It scans
+# **two** scratch roots, because a suite creates its trees under the root of the tree it runs in: the root this
+# invocation resolved and the one the kept worktree resolves, where a gate that runs the suite inside the worktree
+# writes them (measured 2026-10-23, issue #274: four trees, 305 MB, and four poll loops under
+# `.pi/worktrees/loop/.pi/tmp`, and this report printed no entry at all).
 #
 # A tree is not all a killed suite leaves: the processes that were working in it keep running, and nothing in
 # the tooling used to notice them (measured 2026-10-20, issue #213 — five `run.sh` processes, 55 to 100 min
@@ -47,7 +50,7 @@ while [ $# -gt 0 ]; do
     --worktree) need_value "$@"; tree_arg="${2:-}"; shift 2 ;;
     --apply) apply=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,38p' "$0"; exit 0 ;;
     *) loop_die "loop-clean: unknown argument $1" ;;
   esac
 done
@@ -65,6 +68,7 @@ paths=0
 bytes=0
 kept=0
 procs=0
+branches=0
 say() { [ "$quiet" -eq 1 ] && return 0; printf '%s\n' "$*"; }
 
 # ── the kept worktree's build output ──────────────────────────────────────────────────────────────
@@ -85,7 +89,19 @@ else
 fi
 
 # ── the scratch trees a killed suite left, and the processes still standing in them ─────────────
+# Two roots, reported as two lines: this process resolved the first, and the kept worktree resolves the second —
+# the trees a gate run inside the worktree leaves are made there, so a report that looked only at its own root
+# answered "nothing to do" while they accumulated (issue #274). `--worktree .` names this tree, and then the two
+# roots are one directory written two ways (`$LOOP_ROOT/.` against `$LOOP_ROOT`): it is scanned once, so a tree is
+# never listed or counted twice — which is a comparison of the directories, not of the strings (round-1 review).
+worktree_tmp=""
+if [ -d "$tree" ]; then
+  worktree_tmp=$(loop_tmp_dir_for "$tree")
+  loop_same_dir "$worktree_tmp" "$LOOP_TMP_DIR" && worktree_tmp=""
+fi
 say "loop-clean: self-test scratch trees under ${LOOP_TMP_DIR#"$LOOP_ROOT"/} older than ${stale_minutes} min"
+[ -z "$worktree_tmp" ] ||
+  say "loop-clean: self-test scratch trees under ${worktree_tmp#"$LOOP_ROOT"/} older than ${stale_minutes} min"
 
 # The processes a killed suite left. A tree is not all of it: a case's `run.sh` and the child it waited for keep
 # polling a tree that no longer exists — measured 2026-10-20 (issue #213), five such processes 55 to 100 min
@@ -111,7 +127,8 @@ leftover_pids() { # <dir> → one pid per line
   done
 }
 
-for dir in "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"*; do
+for dir in "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"* \
+           ${worktree_tmp:+"$worktree_tmp/$LOOP_SELFTEST_PREFIX"*}; do
   { [ -e "$dir" ] || [ -L "$dir" ]; } || continue
   if [ -L "$dir" ] || [ ! -d "$dir" ]; then
     say "  kept ${dir##*/} — a symlink, never followed"
@@ -150,17 +167,67 @@ for dir in "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"*; do
   paths=$((paths + 1)); bytes=$((bytes + size))
 done
 
-if [ "$paths" -eq 0 ] && [ "$procs" -eq 0 ]; then
+# ── the branches the loop made ───────────────────────────────────────────────────────────────────
+# One branch per item the loop worked and one per run for its worktree: they are leftovers too, and
+# nothing removed them — measured 2026-10-22, 43 of the 53 local branches were already merged into the
+# base. A branch is a leftover by what it *carries*: the patches the base does not have, asked by patch
+# identity (`git cherry`), never by ancestry — the loop lands work as `fix: … (#N)`, so a landed branch is
+# not an ancestor of the base and ancestry named a leftover as work for ever (issue #228). A branch a
+# worktree holds is a tree in use: git refuses to delete it, and the loop's own worktree is on one.
+say "loop-clean: branches of the loop whose patches are in the base"
+base_commit=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "${LOOP_BASE_REF:-main}" 2>/dev/null || true)
+if [ -z "$base_commit" ]; then
+  say "  kept every branch — the base ${LOOP_BASE_REF:-main} cannot be read"
+  kept=$((kept + 1))
+else
+  held=$(loop_worktree_branches "$LOOP_ROOT" | tr '\n' ' ')
+  while IFS= read -r branch; do
+    [ -n "$branch" ] || continue
+    case " $held " in
+      *" $branch "*)
+        say "  kept $branch — a worktree holds it"
+        kept=$((kept + 1))
+        continue ;;
+    esac
+    if unlanded=$(loop_unlanded_commits "$LOOP_ROOT" "$base_commit" "$branch"); then
+      ahead=$(printf '%s\n' "$unlanded" | grep -c . || true)
+    else
+      ahead=1
+    fi
+    case "$ahead" in ''|*[!0-9]*) ahead=1 ;; esac
+    if [ "$ahead" -gt 0 ]; then
+      say "  kept $branch — $ahead commit(s) the base does not have"
+      kept=$((kept + 1))
+      continue
+    fi
+    if [ "$apply" -eq 1 ]; then
+      # The force is the price of patch identity: a branch whose work was re-landed as a different commit is
+      # not an ancestor of the base, and git's own guard would refuse a branch that carries nothing.
+      git -C "$LOOP_ROOT" branch -D "$branch" >/dev/null 2>&1 || { say "  could not remove $branch"; continue; }
+      say "  removed $branch (its patches are in the base)"
+    else
+      say "  would remove $branch (its patches are in the base)"
+    fi
+    branches=$((branches + 1))
+  done <<< "$(loop_own_branches "$LOOP_ROOT")"
+fi
+
+if [ "$paths" -eq 0 ] && [ "$procs" -eq 0 ] && [ "$branches" -eq 0 ]; then
   printf 'loop-clean: nothing to remove — %s path(s) kept\n' "$kept"
   exit 0
 fi
 if [ "$apply" -eq 1 ]; then
   proc_note=""
   [ "$procs" -gt 0 ] && proc_note=" and ended $procs process(es)"
-  printf 'loop-clean: removed %s path(s), %s B%s\n' "$paths" "$bytes" "$proc_note"
+  branch_note=""
+  [ "$branches" -gt 0 ] && branch_note=" and removed $branches branch(es)"
+  printf 'loop-clean: removed %s path(s), %s B%s%s\n' "$paths" "$bytes" "$proc_note" "$branch_note"
 else
   proc_note=""
   [ "$procs" -gt 0 ] && proc_note=" and end $procs process(es)"
-  printf 'loop-clean: would remove %s path(s), %s B%s — nothing removed (pass --apply)\n' "$paths" "$bytes" "$proc_note"
+  branch_note=""
+  [ "$branches" -gt 0 ] && branch_note=" and remove $branches branch(es)"
+  printf 'loop-clean: would remove %s path(s), %s B%s%s — nothing removed (pass --apply)\n' \
+    "$paths" "$bytes" "$proc_note" "$branch_note"
 fi
 exit 0

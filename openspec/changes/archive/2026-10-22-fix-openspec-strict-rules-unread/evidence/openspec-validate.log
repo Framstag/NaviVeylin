@@ -1,0 +1,9 @@
+2026-10-22T12:20:07+02:00
+Specification 'documentation-ownership' is valid
+⚠ [WARNING] requirements[11]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[13]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+EXIT=0
+2026-10-22T12:20:07+02:00
+Change 'fix-openspec-strict-rules-unread' is valid
+EXIT=0
+temp open copy removed: archive

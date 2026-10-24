@@ -34,7 +34,7 @@
 #   state.sh done <issue> --result done|skipped|blocked|falsified [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
-#                         [--decision-label LABEL]
+#                         [--decision-label LABEL] [--label-failures <transition>…]
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -148,7 +148,7 @@ keep_replaced_state() {
 
 cmd_init() {
   state_resolve
-  local items="" minutes="" review="" may_close="" max_decisions="" max_review_rounds="" base=""
+  local items="" minutes="" review="" may_close="" max_decisions="" max_review_rounds="" base="" owner_pid=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --items) need_value "$@"; items="${2:-}"; shift 2 ;;
@@ -158,6 +158,7 @@ cmd_init() {
       --max-decisions) need_value "$@"; max_decisions="${2:-}"; shift 2 ;;
       --max-review-rounds) need_value "$@"; max_review_rounds="${2:-}"; shift 2 ;;
       --base) need_value "$@"; base="${2:-}"; shift 2 ;;
+      --owner-pid) need_value "$@"; owner_pid="${2:-}"; shift 2 ;;
       *) loop_die "init: unknown argument $1" ;;
     esac
   done
@@ -177,18 +178,30 @@ cmd_init() {
   case "$may_close" in yes|no) ;; *) loop_die "init: --may-close must be yes or no" ;; esac
   [ -n "$base" ] || base=$(git -C "$LOOP_ROOT" rev-parse HEAD 2>/dev/null) || loop_die "init: cannot read the current commit"
 
+  # The process that writes this state is named in it, so a reader can tell a run that is going from one
+  # that was killed: a run that recorded no stop and whose process is not running any more is the second,
+  # and the report says so instead of calling it a run that is still going (measured 2026-10-22: the run
+  # killed at 19:19 left a state that read "the run is still going" with 217 minutes of budget left). The
+  # run names its own pid; without one, the lock's owner is the run that is writing the state.
+  case "$owner_pid" in ''|*[!0-9]*) owner_pid=0 ;; esac
+  if [ "$owner_pid" -eq 0 ] && [ -r "$LOCK_FILE/owner" ]; then
+    owner_pid=$(tr -cd '0-9' < "$LOCK_FILE/owner" 2>/dev/null)
+    case "$owner_pid" in ''|*[!0-9]*) owner_pid=0 ;; esac
+  fi
+
   keep_replaced_state
   local started deadline
   started=$(now_epoch)
   deadline=$(( started + minutes * 60 ))
   write_state "$(jq -n \
     --argjson items "$items" --argjson minutes "$minutes" --argjson maxDecisions "$max_decisions" \
-    --argjson maxReviewRounds "$max_review_rounds" \
+    --argjson maxReviewRounds "$max_review_rounds" --argjson ownerPid "$owner_pid" \
     --argjson started "$started" --argjson deadline "$deadline" \
     --arg review "$review" --arg mayClose "$may_close" --arg base "$base" \
     --arg startedAt "$(iso_utc "$started")" --arg deadlineAt "$(iso_utc "$deadline")" \
     '{run:{items:$items, minutes:$minutes, review:$review, mayClose:$mayClose,
            maxDecisions:$maxDecisions, maxReviewRounds:$maxReviewRounds, base:$base,
+           ownerPid:$ownerPid,
            startedAt:$startedAt, startedEpoch:$started,
            deadlineAt:$deadlineAt, deadlineEpoch:$deadline},
       queue:[], excluded:[], current:null, items:[], steps:[]}')"
@@ -209,13 +222,22 @@ cmd_get() {
 
 cmd_show() {
   require_state
-  jq -r '
+  # A run that wrote this state and is not running any more is not a run that is going: the state names the
+  # process that wrote it, and the liveness of that process is what tells the two apart.
+  local gone_stop="" owner_pid
+  owner_pid=$(jq -r '.run.ownerPid // 0' "$STATE_FILE" 2>/dev/null || printf 0)
+  case "$owner_pid" in ''|*[!0-9]*) owner_pid=0 ;; esac
+  if [ "$owner_pid" -gt 0 ] && [ -z "$(jq -r '.run.stop.reason // ""' "$STATE_FILE" 2>/dev/null)" ] \
+     && ! kill -0 "$owner_pid" 2>/dev/null; then
+    gone_stop="the run that wrote this state is gone — its process (pid $owner_pid) is not running and it recorded no reason"
+  fi
+  jq -r --arg gone "$gone_stop" '
     (.run) as $r
     | "agent-issue-loop — " + (if .current == null then "no item in progress"
                               else "#\(.current.issue) \(.current.change) · phase \(.current.phase)" end),
       "budget   \($r.items) items / \($r.minutes) min · \($r.items - (.items | length)) left · deadline \($r.deadlineAt) · \((($r.deadlineEpoch - now) / 60 | floor)) min left\(if $r.deadlineEpoch <= now then " · EXPIRED" else "" end)",
       "flags    review \($r.review) · review rounds \($r.maxReviewRounds // "?") · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
-      "stop     \($r.stop.reason // "not stopped — the run is still going, or it ended without recording a reason")",
+      "stop     \($r.stop.reason // (if $gone != "" then $gone else "not stopped — the run is still going, or it ended without recording a reason" end))",
       "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",
       "excluded \(.excluded | length): \([.excluded[] | "#\(.issue) \(.reason)"] | join(" · "))",
@@ -364,7 +386,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" merged_branch="" merged_commits="" merged_evidence="" events=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -380,6 +402,7 @@ cmd_done() {
       --root-cause) need_value "$@"; root_cause="${2:-}"; shift 2 ;;
       --red-test) need_value "$@"; red_test="${2:-}"; shift 2 ;;
       --decision-label) need_value "$@"; decision_label="${2:-}"; shift 2 ;;
+      --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
       --merged-branch) need_value "$@"; merged_branch="${2:-}"; shift 2 ;;
       --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
       --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
@@ -395,6 +418,8 @@ cmd_done() {
   # `--decision-label` is the label the run's escalation *wrote* on the item — not the verdict the worker
   # chose, which is a different fact: a skip verdict of `needs-diagnosis` and a blocked item both end as
   # the decision label. The report names the decisions an item was left with from this field (issue #177).
+  # `--label-failures` is the other half of that fact: the label transitions the tracker refused, so the item is
+  # recorded as one whose state there is stale rather than as one the run escalated (issue #279).
   local class usage
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
   # What the item spent is read from the event stream its children wrote, and recorded beside the wall time so
@@ -402,18 +427,34 @@ cmd_done() {
   # figure nothing reported stays null, which the report prints as `-` (issue #211).
   usage=$(child_usage_json "$events")
   patch_state '
-    .items += [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
-                escalatedLabel:$dl,
-                merged:{branch:$mb, commits:$mc, evidence:$me},
-                metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
-                         closed:$closed, rootCause:$rc, redTest:$rt,
-                         tools:$usage.tools, tokens:$usage.tokens, cost:$usage.cost,
-                         context:$usage.context}}]
+    # One item keeps one record (#284): the run records an item a second time when it finds that item own work
+    # still in the worktree, and a second entry counted one item twice in every figure the report derives from
+    # `.items` — the budget left and the four tallies — and made `next` read one block as two consecutive ones.
+    # A second account therefore joins the record the item already has: its note is added and the escalation
+    # label it earned is written, and nothing the first record established (its result, its metrics, its change)
+    # is replaced by an account that arrived later.
+    .items = (
+      if ([.items[] | select(.issue == $i)] | length) == 0 then
+        .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
+                  escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
+                  merged:{branch:$mb, commits:$mc, evidence:$me},
+                  metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
+                           closed:$closed, rootCause:$rc, redTest:$rt,
+                           tools:$usage.tools, tokens:$usage.tokens, cost:$usage.cost,
+                           context:$usage.context}}]
+      else
+        .items | map(if .issue == $i then
+          .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
+          | .escalatedLabel = (if $dl == "" then .escalatedLabel else $dl end)
+          | .labelFailures = (((.labelFailures // []) + ($lf | split(" ") | map(select(length > 0)))) | unique)
+        else . end)
+      end)
     | .queue = [.queue[] | select(.issue != $i)]
     | (if $mb == "" then . else .excluded = [.excluded[] | select(.issue != $i)] end)
     | (if .current != null and .current.issue == $i then .current = null else . end)
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
+    --arg lf "$label_failures" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
     --argjson usage "$usage" \
@@ -541,10 +582,21 @@ cmd_lock() {
   done
   mkdir -p "$STATE_DIR"
   if ! mkdir "$LOCK_FILE" 2>/dev/null; then
-    local holder
+    # The lock is a lease, not a tombstone. A run that was killed with a signal no trap can catch leaves its
+    # lock behind, and a lock whose owner is not running any more must not refuse every run that follows it:
+    # the run takes it over and says so (measured 2026-10-22: the run killed at 19:19 left the lock, and the
+    # run that started at 19:34 was refused by it two minutes into a 240-minute budget — after having replaced
+    # the live run's state and merged its item). A live owner is the refusal it has always been.
+    local holder holder_pid
     holder=$(cat "$LOCK_FILE/owner" 2>/dev/null || printf 'an unknown process')
-    loop_note "another run holds $LOCK_FILE (owner $holder) — one run per repository"
-    exit "$LOOP_REFUSE"
+    holder_pid=$(printf '%s' "$holder" | tr -cd '0-9')
+    if [ -n "$holder_pid" ] && kill -0 "$holder_pid" 2>/dev/null; then
+      loop_note "another run holds $LOCK_FILE (owner $holder) — one run per repository"
+      exit "$LOOP_REFUSE"
+    fi
+    rm -rf "$LOCK_FILE" 2>/dev/null || true
+    mkdir "$LOCK_FILE" 2>/dev/null || { loop_note "another run holds $LOCK_FILE — one run per repository"; exit "$LOOP_REFUSE"; }
+    printf 'took over the lock %s: its owner %s is not running any more\n' "$LOCK_FILE" "$holder" >&2
   fi
   printf '%s\n' "$owner" > "$LOCK_FILE/owner"
   printf 'lock held: %s (owner %s)\n' "$LOCK_FILE" "$owner"

@@ -1,0 +1,9 @@
+command: bash tools/loop-selftest.sh --case run#aCorrectiveRoundIsHandedTheCorrections
+tree: /tmp/red245 (git archive of the run base, the case file copied from the fix tree)
+engine: c70be3d50e6132964b5d9e58d3c78bbfdbfd4830
+date: 2026-10-22T07:49:59Z
+
+  and not the line the corrections replaced, which the refusing round already graded — as context it may sit beside the hunk, as a change it may not: '+the first pass' should not appear in: diff --git a/demo-fix.txt b/demo-fix.txt
+
+FAIL run#aCorrectiveRoundIsHandedTheCorrections
+EXIT=1

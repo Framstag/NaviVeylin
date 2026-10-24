@@ -157,7 +157,7 @@ run and write nothing. `tools/feature-list/gate.awk` holds them; it can be read 
 | source marker | a bullet carrying no key; a key whose spec does not exist or is not user-visible | — |
 | coverage | a selling point that no entry reaches | — |
 | figures | a bullet stating a figure that appears in none of the specs it cites | — |
-| words | — | every content word of a bullet that appears in none of the specs it cites |
+| words | — | the rarest content words of each area that appear in none of the specs their bullet cites: at most `max_words`, once per word, with the count of those not shown |
 
 A source marker holds **one key per line**, repeated per key:
 
@@ -180,9 +180,24 @@ reviewer reads it; it must not fail a run, because the phrasing of a true statem
 the specs do not use. The figure gate is the opposite: a figure that no cited spec contains is a false claim, and
 a bullet of that kind is a defect, not a judgement call.
 
+Because it is read, the report is **bounded and ranked**, not exhaustive: the per-bullet check is intact, and what
+is bounded is what the report *shows* of it. Per area (each `## ` heading of the catalogue; a release note is one
+document) the gate shows at most `max_words` — declared in `tools/gen-feature-list.sh` beside `maxpara`, 10 today —
+of that area's unverifiable content words, the **rarest first**: a word no spec of the project contains outranks one
+a single spec contains, ties alphabetically. Each word is named once per area with the first bullet that used it,
+and one line per area states how many words it found, how many it showed and how many it did not show.
+
+That shape is the requirement, not a convenience: the first real generation produced **352** `unsourced word:` lines
+for 225 bullets, which buried the very mismatch the report exists to surface (issue #103; it was that report which
+found the British/American vocabulary slip now ruled in `prompts/tone.md`). A report nobody reads is a check that
+does not exist, so the cap keeps the strongest candidates — the words the project never uses — and states the rest
+as a number.
+
 Cases: `gates: the keyless entry is named`, `gates: an invented figure fails the run`, `gates: the unsourced word
 is named`, `gates: the report does not stand in for the figure gate`, `gates: a fully sourced bullet is not
-reported`.
+reported`, `gates: the word report's cap is declared by the tool`, `gates: the word report shows no more than its cap
+in one area`, `gates: the word report counts the candidates it did not show`, `gates: the word report names the
+rarest word first`.
 
 ## 7. Only dirty areas are regenerated, and the prompt is the cache version
 

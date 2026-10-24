@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Derived from evidence/green-correction-archived.log by hand, the way gate.sh derives a suite's tally from
+     its summary line: the same six checks ran after the two corrections landed, all six passed. Taken
+     2026-10-22T07:00:16Z on the corrected tree. -->
+<testsuite name="bash evidence/probe-251-correction.sh" tests="6" failures="0" errors="0">
+  <testcase classname="spec" name="completedClosureIsScopedToUnownedItems"/>
+  <testcase classname="spec" name="sensorPathNamesItsAuthorisation"/>
+  <testcase classname="spec" name="scenarioDropsTheUnassertedWrite"/>
+  <testcase classname="spec" name="deltaMatchesTheMergedRequirement"/>
+  <testcase classname="close" name="notPlannedNeedsNoOptIn"/>
+  <testcase classname="close" name="sensorScopeAllowsItsOwnIssue"/>
+  <system-out>PASS spec#completedClosureIsScopedToUnownedItems PASS spec#sensorPathNamesItsAuthorisation PASS spec#scenarioDropsTheUnassertedWrite PASS spec#deltaMatchesTheMergedRequirement PASS close#notPlannedNeedsNoOptIn PASS close#sensorScopeAllowsItsOwnIssue tests=6 failures=0 EXIT=0 2026-10-22T07:00:16Z</system-out>
+</testsuite>

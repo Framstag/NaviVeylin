@@ -1,0 +1,174 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/tools/loop/loop.conf
+LOOP-MEASURE base=c03e7e0b66022218d797954099f1957aca34cb55 paths=150 insertions=8288 deletions=49
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/data/MapDataRegistrar.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/data/StartMapResolver.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/di/AutoServiceModule.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/mapmanager/MapManagerViewModel.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/mapmanager/MapManagerSourceLabelTest.kt
+LOOP-MEASURE-PATH auto/src/main/java/com/naviveylin/auto/AutoInitialViewport.kt
+LOOP-MEASURE-PATH core/src/main/java/com/naviveylin/core/mapsource/MapTreeDiscovery.kt
+LOOP-MEASURE-PATH core/src/test/java/com/naviveylin/core/mapsource/MapTreeDiscoveryTest.kt
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH guidelines/Design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-calculation-notice-minimum-dwell/evidence/review-failed-round-2.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/app_testAutomotiveDebugUnitTest_TEST-com.naviveylin.data.StartMapResolverTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/app_testAutomotiveDebugUnitTest_TEST-com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/app_testMobileDebugUnitTest_TEST-com.naviveylin.data.StartMapResolverTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/app_testMobileDebugUnitTest_TEST-com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/core_testDebugUnitTest_TEST-com.naviveylin.core.mapsource.MapTreeDiscoveryTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/gate-log-tail.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/tools_check-action-runtimes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/tools_gen-feature-list-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/tools_loop-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/tools_sensor-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/gate/totals.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/green-round2/TEST-com.naviveylin.core.mapsource.MapTreeDiscoveryTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/green/TEST-com.naviveylin.core.mapsource.MapTreeDiscoveryTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/green/TEST-com.naviveylin.data.StartMapResolverTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/green/TEST-com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/red-on-head/TEST-com.naviveylin.data.StartMapResolverTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/red-on-head/TEST-com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/revert-check-round2/TEST-com.naviveylin.core.mapsource.MapTreeDiscoveryTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/revert-check/TEST-com.naviveylin.data.StartMapResolverTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/evidence/revert-check/TEST-com.naviveylin.ui.mapmanager.MapManagerSourceLabelTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/specs/map-updates/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-fix-staging-leftover-discovered-as-map/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/green-focused.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/green-focused.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/green-gate-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/green-gate-group.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/green-measure-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/green-measure-group.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/green-state-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/green-state-group.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/mutation-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/profile-digest.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/revert-check-52.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/revert-check-52.2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/revert-check-52.3.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/structural-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/tools_loop-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/evidence/unpinned-probe.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-reads-the-profile-of-its-own-tree/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/gate-first-red.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/gate-tallies/tools_loop-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/green-gate-group.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/green-gate-group.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/mutation-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/revert-check-51.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/structural-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/evidence/structural-checks-post-archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-gate-tally-is-a-dotfile/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/compile-measurement.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-attribution.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-final-tree.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-first-red/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-first-red/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-first-red/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-first-red/tools_loop-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-round-1/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-round-1/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-round-1/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-round-1/tools_loop-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-round-2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-final/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-final/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-final/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-final/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-final/tools_loop-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-round-2/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-round-2/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-round-2/._gradlew_test_-PforceTests_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-round-2/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-round-2/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/gate-tallies-round-2/tools_loop-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/green-correction.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/green-fix.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/green-fix.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/post-gate-doc-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/red-HEAD-core-request.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/red-HEAD-core-request.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/red-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/red-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/revert-check-48.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/revert-check-48.2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/revert-check-49.1-before-the-merge.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/review-failed-round-2.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/review-passed-round-3.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/review-round-3-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/evidence/verification.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-23-fix-loop-selftest-compiles-the-core-on-request/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/specs/map-updates/spec.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/gate.sh
+LOOP-MEASURE-PATH tools/loop/lib.sh
+LOOP-MEASURE-PATH tools/loop/loop-clean.sh
+LOOP-MEASURE-PATH tools/loop/measure.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop-selftest.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=112 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_--no-build-cache.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh.xml tests=191 failures=0
+LOOP-MEASURE-CHANGE fix-loop-clean-scans-both-scratch-roots scenarios=5 cases=5 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-loop-clean-scans-both-scratch-roots/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-loop-clean-scans-both-scratch-roots/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=112 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-loop-clean-scans-both-scratch-roots/evidence/gate-tallies/gradlew_test_-PforceTests_--no-build-cache.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-loop-clean-scans-both-scratch-roots/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-loop-clean-scans-both-scratch-roots/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml tests=34 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-loop-clean-scans-both-scratch-roots/evidence/gate-tallies/tools_loop-selftest.sh.xml tests=191 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-loop-clean-scans-both-scratch-roots/evidence/red-HEAD.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 4 cases exercise `loop-clean` (9 `run_clean` call sites, all re-run green), 1
+LOOP-MEASURE-END

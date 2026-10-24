@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the case this change adds, against the engine's gate.sh as HEAD 677a7e6f carries it
+     (`git show HEAD:tools/loop/gate.sh` into .pi/tmp/head-engine, the case from this change), 2026-10-23T13:42:30Z:
+     `LOOP_ENGINE=.pi/tmp/head-engine bash tools/loop-selftest.sh --case
+     gate#aCompiledStepsTallyIsNotHidden` — FAIL, exit 1. A single-case run prints no suite summary line, so the
+     tally below is that one case and its one failure; the transcript is red-on-head.log beside this file. The case
+     reads the directory it counted in its own failure message: `._gradlew_test.xml` was there and a plain `ls`
+     printed nothing. -->
+<testsuite name="loop-selftest --case gate#aCompiledStepsTallyIsNotHidden" tests="1" failures="1" errors="0">
+  <testcase name="gate#aCompiledStepsTallyIsNotHidden">
+    <failure>a plain ls prints the compiled step's tally (the directory holds: ._gradlew_test.xml ): expected '1', got '0'
+FAIL gate#aCompiledStepsTallyIsNotHidden
+loop-selftest: 1 of 1 cases failed</failure>
+  <system-out>FAIL gate#aCompiledStepsTallyIsNotHidden</system-out>
+</testsuite>

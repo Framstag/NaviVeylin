@@ -1,0 +1,36 @@
+# red on HEAD 850dea2c at 2026-10-23T14:18:02Z — only tools/loop-cases.sh changed at this point, so the engine
+# (gate.sh, lib.sh, run.sh, measure.sh) is the one HEAD 850dea2cbc64b7c6eba4061aa143bb82b2f43d44 carries
+# bash tools/loop-selftest.sh --case gate#the*Profile*
+  the log names the profile the gate read: LOOP-GATE: nothing owed — no path this profile gates changed since 29d02054018e4ea79e2b0b6f9683caa089657150: 'LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.tjh1VM/case.MWz3V7/pinned.conf' not found in: LOOP-GATE: nothing owed — no path this profile gates changed since 29d02054018e4ea79e2b0b6f9683caa089657150
+FAIL gate#theGateNamesTheProfileItRead
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261023-141803')
+HEAD ist jetzt bei 9f79d29 an engine of its own
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (6d66a29)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f57f616)
+HEAD ist jetzt bei f57f616 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f57f616).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  the gate of the tree the child works in reads the profile beside that tree's engine: handed=/home/tim/projects/NaviVeylin/tools/loop/loop.conf
+gate: bash tools/gen-feature-list.sh --check-classification
+bash: tools/gen-feature-list.sh: Datei oder Verzeichnis nicht gefunden
+gate: bash tools/gen-feature-list.sh --check-classification — 0s
+gate: tools/check-doc-routes.sh
+./tools/loop/gate.sh: Zeile 141: tools/check-doc-routes.sh: Datei oder Verzeichnis nicht gefunden
+gate: tools/check-doc-routes.sh — 0s
+LOOP-GATE: tests=0 failures=0 errors=2 (bash tools/gen-feature-list.sh --check-classification 0s, tools/check-doc-routes.sh 0s) — failing: bash tools/gen-feature-list.sh --check-classification tools/check-doc-routes.sh: 'LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.tjh1VM/case.GgCSMN/repo/.pi/worktrees/loop/tools/loop/loop.conf' not found in: handed=/home/tim/projects/NaviVeylin/tools/loop/loop.conf
+gate: bash tools/gen-feature-list.sh --check-classification
+bash: tools/gen-feature-list.sh: Datei oder Verzeichnis nicht gefunden
+gate: bash tools/gen-feature-list.sh --check-classification — 0s
+gate: tools/check-doc-routes.sh
+./tools/loop/gate.sh: Zeile 141: tools/check-doc-routes.sh: Datei oder Verzeichnis nicht gefunden
+gate: tools/check-doc-routes.sh — 0s
+LOOP-GATE: tests=0 failures=0 errors=2 (bash tools/gen-feature-list.sh --check-classification 0s, tools/check-doc-routes.sh 0s) — failing: bash tools/gen-feature-list.sh --check-classification tools/check-doc-routes.sh
+FAIL gate#theChildReadsTheProfileOfTheTreeItWorksIn
+loop-selftest: 2 of 2 cases failed
+exit=1

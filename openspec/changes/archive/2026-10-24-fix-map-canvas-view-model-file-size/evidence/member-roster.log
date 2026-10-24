@@ -1,0 +1,8 @@
+# member roster — HEAD's class against the files the split produced
+#   members before:   147
+#   extensions after: 147 (excluding the 15 wire* functions the init block became)
+#   $ git show HEAD:app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt | grep -oE '^    ((private|internal|public|override) )*(suspend )?fun [A-Za-z0-9_]+'
+#   $ grep -hoE '^(private |internal |public )?(suspend )?fun MapCanvasViewModel\.[A-Za-z0-9_]+' app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel*.kt
+# diff <before> <after> (empty = every member survived under its own name):
+#   identical — no member added, renamed or dropped
+# taken 2026-10-24T21:45:00Z at c5b58332

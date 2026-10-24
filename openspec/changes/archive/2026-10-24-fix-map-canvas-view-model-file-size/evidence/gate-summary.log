@@ -1,0 +1,19 @@
+# The gate's own record — `./tools/loop/gate.sh`, run once from the change root on 2026-10-24
+# (the run's script owns the wall clock; this file quotes what the gate printed, verbatim).
+
+LOOP-GATE: tests=403 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 245s, tools/loop-selftest.sh --from-git db888dd8b7c509cfba82854a21427ae5c9c8e192 980s, bash tools/loop-mutations.sh --check 1s, tools/loop-mutations-selftest.sh 134s, tools/check-compose-sandbox-rule.sh 1s, tools/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)
+
+# The gate's tallied suites, each copied beside this file as gate-<name>.xml:
+#   tools/loop-selftest.sh --from-git db888dd8…             tests=218 failures=0 errors=0 (980 s)
+#   bash tools/loop-mutations.sh --check                    tests=145 failures=0 errors=0 (1 s)
+#   tools/loop-mutations-selftest.sh                        tests=34  failures=0 errors=0 (134 s)
+#   tools/check-openspec-hygiene-selftest.sh                tests=6   failures=0 errors=0
+#   the remaining nine suites report no case count of their own, all green:
+#     ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache (245 s),
+#     tools/check-compose-sandbox-rule.sh (+ self-test), bash tools/gen-feature-list.sh
+#     --check-classification, tools/check-doc-routes.sh (+ self-test, + mutation list),
+#     tools/check-todo-references.sh, tools/check-openspec-hygiene.sh
+#
+# `gate-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml` carries `tests="0"`: Gradle prints
+# no JUnit summary line for the suite, so the gate records the run and its wall clock, not a count. The
+# count is the run's own result XMLs, tallied below after the gate — the number the gate did not sum.

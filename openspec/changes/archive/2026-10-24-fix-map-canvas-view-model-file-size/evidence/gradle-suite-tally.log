@@ -1,0 +1,7 @@
+# the gate's Gradle suite, from the result XMLs it wrote (2026-10-24T22:09:51Z)
+app/build/test-results/testAutomotiveDebugUnitTest    289 xml   2109 cases    0 failures    0 errors
+app/build/test-results/testMobileDebugUnitTest        289 xml   2109 cases    0 failures    0 errors
+auto/build/test-results/testDebugUnitTest              91 xml    880 cases    0 failures    0 errors
+core/build/test-results/testDebugUnitTest              61 xml    646 cases    0 failures    0 errors
+osmscout-client-java/build/test-results/test            8 xml     48 cases    0 failures    0 errors
+# total: 5792 cases in 738 XMLs, 0 failures, 0 errors

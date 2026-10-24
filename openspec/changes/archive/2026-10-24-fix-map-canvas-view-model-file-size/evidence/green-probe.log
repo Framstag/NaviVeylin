@@ -1,0 +1,5 @@
+# source-size probe — app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
+# bound=1500 comparison=greater-than; the open condition's fingerprint is the entry's own
+$ SENSORS_THRESHOLD=1500 SENSORS_CONDITIONS='[<the entry's condition>]' bash tools/sensors/metrics/source-size.sh
+{"path":"app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt","fingerprint":"44a78d48ed1eb15b6501fe7ffdb328e516e279e52405d64844b16d65d3cb89ac","measurement":"842","verdict":"clear","baseline":"","title":"the source file is inside the size bound","claim":"app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt is 842 lines, inside the row's bound of 1500"}
+# taken 2026-10-24T21:45:00Z at c5b58332, 9 changed path(s) in the tree

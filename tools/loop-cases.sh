@@ -3468,6 +3468,7 @@ case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
 # defect, and the tree the child left is kept rather than discarded (nothing is discarded without
 # `--reset-worktree`, `run.sh`'s own rule for the kept worktree).
 case_run_treeOfAChildTheCapEndedIsNotCommitted() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo pid i status out tree base report files
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -3542,6 +3543,7 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
 # skipped there too, the item is blocked with the round's own transcript, and the tree stays as the child left it.
 # Measured 2026-10-23: the shipped requirement was universal while this call site was left as it stood.
 case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf status out tree report files
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)

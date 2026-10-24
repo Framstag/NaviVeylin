@@ -10,7 +10,8 @@ its own cap.
 The refusal is one blocking finding, and it is the one the rebase created: the two cases this change adds carry no
 `# files:` declaration, which the base's own check `driver#everyCaseDeclaresTheFilesItCanReach`
 (`tools/loop-cases.sh`, merged with #276) refuses, so the rebased tree is not green and the carried
-`LOOP-GATE: tests=339 failures=0` cannot attest it. The rest of the report is notes: pointers the rebase moved, two
+`LOOP-GATE: tests=339 failures=0` (not retained as a tally) cannot attest it. The rest of the report is notes:
+pointers the rebase moved, two
 sentences in the archived task record that no artefact carries, one inexact guideline clause, and one dead variable.
 
 `LOOP-BLOCKING: 1`, `VERDICT: FAIL`, `LOOP-CORRECTIONS-ONLY: yes` — every finding is subtractive or metadata-only,

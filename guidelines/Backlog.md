@@ -294,7 +294,7 @@ run reads the child's status before it commits, skips `end-item`, and the branch
 when the item's own worker is the one the cap ended), the tree kept exactly as the child left it (nothing is
 discarded without `--reset-worktree`). The rule covers both commits a run makes for an item: the item's worker, and
 the rework worker a refusing review round starts, whose round blocked the item instead of committing what it left
-(the round-1 review of #271 found that second site unguarded, one day after the rule was written as if it were
+(the round-1 review of #271 found that second site unguarded, hours after the rule was written as if it were
 universal). Measured 2026-10-22: the worker of
 #262 was ended at 23:48 with mutation 19.2 applied to `tools/loop/run.sh`, the run committed that tree 18 s later,
 and `if false; then` in place of the corrective-round test stayed on `origin/fix/issue-262-…` until a person

@@ -18,7 +18,8 @@
   is `blocked`, and the blocked reason names the tree it did not commit.
   Verify: `PASS` on the tree this change leaves; its red proof is task 3.2 (mutation `45.2` restores the
   unconditional commit and the case goes red), because the pre-change line there is a single call and the mutation
-  restores it byte for byte.
+  restores it byte for byte. Both cases declare what they can be reached by (`# files: …`, the first body line),
+  which `driver#everyCaseDeclaresTheFilesItCanReach` refuses a case without.
 
 ## 2. The fix — one guard per call site
 
@@ -46,9 +47,9 @@
   case. Verify: `bash tools/loop-mutations.sh --only 45.2` — `RED` for
   `run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted`, an exact restore, and the case green again
   (`evidence/revert-check-45.2.log`). Both logs carry the moment they were taken, on this branch, and `selected 1 of
-  113 records` — the set the rebased tree declares.
-- [x] The declared set applies as a whole: `bash tools/loop-mutations.sh --check` → `all 113 cases passed — every
-  selected record applies to the file it names`.
+  113 records` — the set the tree declared when they were taken, before the rebase; the rebased tree declares 125.
+- [x] The declared set applies as a whole: `bash tools/loop-mutations.sh --check` → `all 125 cases passed — every
+  selected record applies to the file it names` (`evidence/gate-rebased.log`).
 
 ## 4. The guideline
 
@@ -76,19 +77,21 @@
   of the change was red on a realignment it owed (record `45.1` was declared outside `MUTATIONS=( … )`, and two
   checks derive the set from that array's text); it is kept as `evidence/gate-first-red.log` and attributed in
   `evidence/gate-attribution.md`.
-  Verify: `evidence/gate.log` and its tallies in `evidence/gate-tallies/` — `tests="192" failures="0"`
-  (`tools/loop-selftest.sh`, `all 192 cases passed`), `tests="113" failures="0"` (`loop-mutations --check`, `all
-  113 cases passed`), `tests="34" failures="0"` (`loop-mutations-selftest`, `all 34 cases passed`), and the two
-  documentation checks tallied `tests="0" failures="0"` with `exit=0`. The gate's own summary line is
-  `LOOP-GATE: tests=339 failures=0 errors=0` — the gate's sum, not retained as a tally because no single XML
-  carries it.
-- [x] Two earlier gate records are superseded rather than deleted. The attempt of 2026-10-23T09 ended at the run's
-  cap while the gate was still running, so the `gate.log` it left held two lines and no verdict — the very defect
-  this change is about, on this change; that file was replaced by the run above. The run made after the rebase and
-  before the archive owed four checks (`tests=337`), because `openspec/changes/*/` is gitignored and the change
-  directory was then untracked — the archived record is a tracked path, and the run above owes the two
-  documentation checks with it. The first-red aggregate `tests=230 failures=6` is not retained as a tally of its
-  own: only the two failing suites' tallies were copied, and they are (`evidence/gate-first-red/`).
+  Verify: `evidence/gate-rebased.log` and its tallies in `evidence/gate-tallies-rebased/` — `tests="204"
+  failures="1"` (`tools/loop-selftest.sh --from-git f2d27735818acd6d05095a9b331f4ee2bae1bb74`, `1 of 204 cases
+  failed`), `tests="125" failures="0"` (`loop-mutations --check`, `all 125 cases passed`), `tests="34"
+  failures="0"` (`loop-mutations-selftest`, `all 34 cases passed`), and the two documentation checks tallied
+  `tests="0" failures="0"` with `exit=0`. The gate's own summary line is `LOOP-GATE: tests=363 failures=1 errors=0`
+  — not retained as a tally, because no single XML carries a gate's sum. The one red is the base's own case, not
+  this change's: `run#aWriterTheRunCanPlaceBlocksTheItem` fails alone in a detached worktree at
+  `f5f2a2a7` and at main's tip `23c9f944` with this change absent (issues #287 and #288 hold it), while this
+  change's own two cases and `driver#everyCaseDeclaresTheFilesItCanReach` pass in the same run — the reading is
+  kept as `evidence/gate-base-red.md`.
+- [x] The gate record of the pre-rebase tree is kept beside the fresh one: `evidence/gate.log` and its tallies in
+  `evidence/gate-tallies/` — `tests=339 failures=0`, not retained as a tally (the gate's sum over the 192 cases and
+  113 records that tree declared).
+  The first-red aggregate `tests=230 failures=6` is not retained as a tally of its own: only the two failing
+  suites' tallies were copied, and they are (`evidence/gate-first-red/`).
 
 ## 7. Evidence and archive
 

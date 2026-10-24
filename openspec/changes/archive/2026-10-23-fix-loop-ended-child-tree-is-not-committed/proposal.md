@@ -2,14 +2,14 @@
 
 ## Why
 
-**Verified in the base tree (commit `6683376e`).** The run commits an item's work before it has read the child's
+**Verified in the base tree (commit `f5f2a2a7`).** The run commits an item's work before it has read the child's
 status: the comment that states the rule ("the run verifies rather than trusts … it commits the child's work
-itself") sits at `tools/loop/run.sh:901`–`902` and is followed by the unconditional
-`bash "$LOOP_DIR/worktree.sh" end-item` at `tools/loop/run.sh:905`, while the status `run_child` returned (`:883`)
-is only consulted at `tools/loop/run.sh:919`. So a child the wall-clock cap ended — `run_child` sets
-`rc="$LOOP_CHILD_TIMEOUT"` at `tools/loop/run.sh:726` and appends `LOOP-TIMEOUT` to the report — is committed at
+itself") sits at `tools/loop/run.sh:1086`–`1087` and is followed by the unconditional
+`bash "$LOOP_DIR/worktree.sh" end-item` at `tools/loop/run.sh:1088`, while the status `run_child` returned (`:1066`)
+is only consulted at `tools/loop/run.sh:1102`. So a child the wall-clock cap ended — `run_child` sets
+`rc="$LOOP_CHILD_TIMEOUT"` at `tools/loop/run.sh:862` and appends `LOOP-TIMEOUT` to the report — is committed at
 the instant the cap fired, together with whatever its half-finished work left in the tree. The same shape sits a
-second time at `tools/loop/run.sh:1108`: the rework worker a refusing review round starts is followed by
+second time at `tools/loop/run.sh:1316`: the rework worker a refusing review round starts is followed by
 `end-item` with its status never read at all.
 
 **Root cause, one sentence.** `end-item` runs before the run reads the child's status, so the tree is committed as
@@ -51,7 +51,7 @@ that transcript". The delta adds the requirement that owns what such a child lea
 about a child that finished, and a child the run ended did not.
 
 **Owning guideline section.** `guidelines/Backlog.md`, section "7. The loop", the paragraph
-`guidelines/Backlog.md:260` ("What bounds it: …"), which states what the cap leaves behind.
+`guidelines/Backlog.md:281` ("What bounds it: …"), which states what the cap leaves behind.
 
 ## What Changes
 
@@ -60,7 +60,7 @@ about a child that finished, and a child the run ended did not.
   called and the branch stays as it stood; when it is the rework worker of a refusing review round, the round's
   `end-item` is skipped the same way and the item is blocked with that round's transcript. The tree is left exactly
   as the child left it — the run's own rule that nothing is discarded without `--reset-worktree`
-  (`tools/loop/run.sh:55`) — and the run prints the line that says so, so the next `start-item` refuses it and names
+  (`tools/loop/run.sh:413`) — and the run prints the line that says so, so the next `start-item` refuses it and names
   it rather than a silent commit carrying it.
 - **`tools/loop-cases.sh`** — two cases: `run#treeOfAChildTheCapEndedIsNotCommitted` (a stub child the cap ends with
   a file in the change root; the branch is still at the base, the tree still carries the file, the item is

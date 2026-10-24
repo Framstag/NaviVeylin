@@ -1105,12 +1105,11 @@ while true; do
   # the run's statement about a child that finished, so a child the run ended gets none: the branch stays at the
   # base, the item is blocked with the transcript, and the tree is kept exactly as the child left it — nothing is
   # discarded without `--reset-worktree` (issue #173), and the next start refuses it and names it.
-  commit_out=""
   head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
   if [ "$worker_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$timeout_claim" ]; then
     progress commit "end-item skipped — the run ended this child, so its tree is not committed; HEAD is ${head_now:0:12} (base ${base:0:12})"
   else
-    commit_out=$(bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" 2>&1)
+    bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
     head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
     progress commit "end-item returned — HEAD ${head_now:0:12} (base ${base:0:12})"
   fi

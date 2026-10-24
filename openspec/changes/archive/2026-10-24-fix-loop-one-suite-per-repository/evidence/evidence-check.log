@@ -1,0 +1,8 @@
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 2 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+DRIFT C3 /tmp path cited: openspec/changes/fix-loop-one-suite-per-repository/proposal.md:52:  the suite this case started never took the lock at …/.pi/tmp/.
+note C3: 1 line(s) cite a /tmp path — re-runnable only until the next run; the number they carry must also be in this artifact or in a retained XML (C2)
+ok   C4 mutations: no REVERT-CHECK MUTATION marker in ./app/src
+ok   C5 file:line: 255 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS

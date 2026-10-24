@@ -241,6 +241,7 @@ LOOP_SHELL_CASES=(
   'driver#aFileSetThatNamesNoCaseIsRefused'
   'driver#aCoreFileOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
+  'driver#aSecondSuiteInOneRepositoryIsRefused'
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
 )
 
@@ -500,6 +501,7 @@ loop_run_shell_case() {
     'driver#aFileSetThatNamesNoCaseIsRefused') fn=case_driver_aFileSetThatNamesNoCaseIsRefused ;;
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
+    'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
@@ -6866,6 +6868,122 @@ case_driver_everyCaseDeclaresTheFilesItCanReach() {
   done <<< "$declared"
 
   [ -z "$missing" ] || fail "a case does not declare what it can be reached by:$missing"
+  return 0
+}
+
+# ------------------------------------------------------- cases: one suite per repository
+
+# Two suites in one repository redden a different set of cases each run — measured 2026-10-24, a run of 210 cases
+# and a control run of the same suite from a pristine base, same host and same day, failed two triples of cases
+# whose intersection was one case, and that one was another item's stable red (issue #295). The victim moves
+# between the runs, so the failing set of a suite depends on the other suite, and a red gate reads as a defect in
+# the change under test. The driver therefore refuses the second suite in one repository and names the lock it found
+# — the interference is never silently attributed to the change — takes a lock over when its owner is gone, and
+# keeps the shape that runs one named case working, which is what the mutation harness and the cases that start a
+# nested suite use.
+case_driver_aSecondSuiteInOneRepositoryIsRefused() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d driver conf own_conf lock hold_log quick_log holder pid_a dead out status i
+  d=$(scratch)
+  # A nested suite over stub cases, run with this repository's *own* scratch root: that root, and the lock beside
+  # it, is what two suites of one repository share and what the second one is refused by.
+  mkdir -p "$d/nested/tools" "$d/tmp"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$d/nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$d/nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$d/nested/tools/issues"
+  hold_log="$d/hold.log"; quick_log="$d/quick.log"
+  cat > "$d/nested/tools/loop-cases.sh" <<CASES
+LOOP_SHELL_CASES=('hold#sleeps' 'quick#a' 'quick#b')
+loop_shell_cases() { printf '%s\n' "\${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  case "\$1" in
+    hold#*) printf '%s\n' "\$1" >> "$hold_log"; sleep 30 ;;
+    *) printf '%s\n' "\$1" >> "$quick_log" ;;
+  esac
+  return 0
+}
+CASES
+  driver="$d/nested/tools/loop-selftest.sh"
+  # This repository's own scratch root, so the nested suite is a suite of *this* repository; and a root of its own
+  # for the lease below, so a locked root is never one another suite is standing in.
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$LOOP_TMP_DIR\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  own_conf="$d/own.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$d/tmp\"|" "$LOOP_CONF" > "$own_conf" || fail "could not write the loop configuration"
+  lock="$LOOP_TMP_DIR/.loop-selftest.lock"
+
+  # A *whole* suite holds this repository's lock, and only a live owner is one: when this invocation is such a
+  # suite that is this suite, and when it runs one named case it holds nothing and starts the suite it needs — a
+  # second suite in this repository, which is the deliberate reproduction the issue asks for.
+  holder=""
+  if [ -f "$lock/owner" ]; then
+    holder=$(cut -d' ' -f1 < "$lock/owner" 2>/dev/null)
+    case "$holder" in ''|*[!0-9]*) holder="" ;; esac
+    [ -z "$holder" ] || kill -0 "$holder" 2>/dev/null || holder=""
+  fi
+  pid_a=""
+  if [ -z "$holder" ]; then
+    LOOP_CONF="$conf" bash "$driver" --group hold >/dev/null 2>&1 &
+    pid_a=$!
+    # The suite's own way out sweeps what stood under *its* scratch root, and this suite is parked in the
+    # repository's root on purpose: a case that fails between here and the lease half below would leave it holding
+    # this repository's lock, so the case ends it on every way out rather than on the one path that reaches the kill.
+    # The pid is written into the trap rather than read from it: the trap runs when the case's subshell exits, which
+    # is after the function that declared it returned, and a `local` read there is unset (the same trap the driver
+    # documents for its own `tmp`).
+    trap "kill -TERM $pid_a 2>/dev/null || true" EXIT
+    # 200 × 0.1 s: about twenty times the start of a nested driver (a java version check and sourcing), measured
+    # 2026-10-24 — the bound a red poll has to be read against.
+    for i in $(seq 1 200); do
+      holder=""
+      [ -f "$lock/owner" ] && holder=$(cut -d' ' -f1 < "$lock/owner")
+      [ "$holder" = "$pid_a" ] && break
+      sleep 0.1
+    done
+    [ -n "$holder" ] || { kill -9 "$pid_a" 2>/dev/null; fail "the suite this case started never took the lock at $lock"; }
+  fi
+
+  # The second suite of this repository refuses before it runs a case, and the refusal names the process that holds
+  # the lock, with the moment it took it.
+  out=$(LOOP_CONF="$conf" bash "$driver" --group quick 2>&1); status=$?
+  assert_eq "2" "$status" "a second suite in this repository refuses instead of running: $out"
+  assert_contains "$out" "one suite per repository" "and the refusal names the rule: $out"
+  # The owner as the lock records it: the refusal repeats the file rather than reformatting it, so this is the same
+  # reading `cut` made above.
+  assert_eq "$holder" "$(printf '%s\n' "$out" | sed -n 's/.*(owner \([0-9][0-9]*\)[ )].*/\1/p' | head -1)" \
+    "and the refusal names the suite that holds $lock: $out"
+  assert_eq "" "$(cat "$quick_log" 2>/dev/null)" "a refused suite ran no case"
+  [ -f "$lock/owner" ] || fail "the refused suite removed the lock it did not take"
+
+  # The selection decides, never a case's cost: one named case is one behaviour and runs while the lock is held,
+  # and a pattern may select more than one, so it is a suite like any other.
+  out=$(LOOP_CONF="$conf" bash "$driver" --case 'quick#a' 2>&1); status=$?
+  assert_eq "0" "$status" "one named case runs while a suite holds this repository: $out"
+  assert_eq "quick#a" "$(cat "$quick_log")" "and it is the case that ran: $(cat "$quick_log")"
+  out=$(LOOP_CONF="$conf" bash "$driver" --case 'quick#*' 2>&1); status=$?
+  assert_eq "2" "$status" "a pattern that may select more than one case is a suite: $out"
+  assert_eq "quick#a" "$(cat "$quick_log")" "and it ran no case either: $(cat "$quick_log")"
+
+  # A suite ended by a signal no trap can catch leaves its lock behind, and a lock whose owner is gone is taken
+  # over and named rather than refusing every suite that follows it — the lease `state#aDeadOwnersLockIsTakenOver`
+  # already asserts of the run's own lock. This half stands in the root the nested suite resolves for itself, and
+  # the suite that held this repository's lock is ended first.
+  if [ -n "$pid_a" ]; then
+    kill -TERM "$pid_a" 2>/dev/null
+    wait "$pid_a" 2>/dev/null
+    trap - EXIT   # the suite above is ended and waited for; a second signal to a reaped pid could be a reused one
+  fi
+  lock="$d/tmp/.loop-selftest.lock"
+  mkdir -p "$lock"
+  dead=999999999   # the ceiling of the pid space: a process that cannot be running
+  printf '%s\n' "$dead" > "$lock/owner"
+  out=$(LOOP_CONF="$own_conf" bash "$driver" --group quick 2>&1); status=$?
+  assert_eq "0" "$status" "a lock whose owner is gone is taken over and the suite runs: $out"
+  assert_contains "$out" "took over the lock" "the takeover is announced: $out"
+  assert_contains "$out" "$dead" "and it names the process that is gone: $out"
+  [ ! -e "$lock" ] || fail "the suite that took the lock over did not release it"
+  assert_eq "quick#a
+quick#b" "$(tail -2 "$quick_log")" "and the suite the lock was released for ran its cases: $(cat "$quick_log")"
   return 0
 }
 

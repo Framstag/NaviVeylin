@@ -415,6 +415,13 @@ MUTATIONS=(
   '53.9@-@../loop-selftest.sh@driver#aCoreFileOwesEveryCase@a core file owing the whole set whatever the cases declare (issue #276)@s|^  core_files=\$(loop_case_core_files)$|  core_files=""|'
   '53.10@-@../loop-cases.sh@driver#everyCaseDeclaresTheFilesItCanReach@a declaration narrower than the case that carries it (issue #276)@s|^  # files: tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json$|  # files: tools/pi-child-events.sh tools/tooling.json|'
   '53.11@-@../loop-selftest.sh@clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft@the sweep of the suite own scratch root on the way out, so a process a case left behind does not outlive it (issue #233)@s|^  loop_end_pids_under "\$tmp"$|  : # the mutation leaves the process behind|'
+  # One suite per repository (issue #295): the lock is taken at all, the pattern that is a suite is told from the one
+  # named case that is not, the lease lets a suite whose owner is gone take it over, and the release leaves the
+  # repository free for the suite after it.
+  '55.1@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the lock that refuses a second suite in one repository (issue #295)@s|^  if ! mkdir "\$lock" 2>/dev/null; then$|  if false; then|'
+  '55.2@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the pattern a suite is, told from the one named case that is not (issue #295)@s|^  \[ -n "\$only_case" \] && ! is_glob "\$only_case" \|\| return 1$|  [ -n "$only_case" ] \|\| return 1|'
+  '55.3@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the release that leaves the repository free for the suite after it (issue #295)@s|^  \[ -z "\$selftest_lock" \] \|\| rm -rf "\$selftest_lock"$|  : # the mutation never releases the lock|'
+  '55.4@-@../loop-selftest.sh@driver#aSecondSuiteInOneRepositoryIsRefused@the lease that lets a suite whose owner is gone take the lock over (issue #295)@s|^    if \[ "\$holder_pid" -gt 0 \] && kill -0 "\$holder_pid" 2>/dev/null; then$|    if true; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

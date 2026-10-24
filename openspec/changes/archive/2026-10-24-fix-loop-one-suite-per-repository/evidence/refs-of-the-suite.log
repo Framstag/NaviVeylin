@@ -1,0 +1,32 @@
+2026-10-24T09:29:45Z
+--- refs of the form loop-<timestamp> in the repository this suite runs in ---
+loop-20261021-170126
+loop-20261023-065451
+loop-20261023-133438
+loop-20261023-134037
+loop-20261023-164632
+loop-20261023-192459
+--- count: 6
+--- throwaway repositories the run made, still standing mid-run ---
+.pi/tmp/loop-selftest.6lXsQ5
+.pi/tmp/loop-selftest.aQRRha
+.pi/tmp/loop-selftest.kslsVm
+.pi/tmp/loop-selftest.tkHxd7
+
+=== after that run, the same measurement:
+2026-10-24T09:52:59Z
+loop-20261021-170126
+loop-20261023-065451
+loop-20261023-133438
+loop-20261023-134037
+loop-20261023-164632
+loop-20261023-192459
+count after: 6
+
+=== note: what this shows
+The six `loop-<timestamp>` refs are the same six before and after a whole 211-case run of this suite in this
+worktree, and all six are dated 2026-10-21 / 2026-10-23 — they are the refs loop *runs* made (`tools/loop/run.sh:499`),
+not the suite: a case builds a throwaway repository of its own (`tools/loop-cases.sh:549`) and the run a case starts
+makes its branch and its worktree inside that one. So the interference the item suspected — two suites sharing the
+ref namespace and git worktree locks of the repository they run in — does not exist in this tree, and a
+per-invocation ref namespace would have changed nothing. Measured 2026-10-24, this worktree, base a0ca0f35.

@@ -364,6 +364,18 @@ the declaration was generated once from the case bodies and is kept honest by
 `driver#everyCaseDeclaresTheFilesItCanReach`, which reads every body and refuses a declaration narrower than the
 case it describes.
 
+One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a
+red gate can belong to the neighbour rather than to the change under test. The driver holds a lease in the root the
+tree resolved — a second invocation that may run more than one case is refused with exit 2, naming the rule, the
+lock's owner and the moment it took it; a lease whose owner is not running any more is taken over and named in one
+line — and an invocation that runs no case (`--list`, `--case-files`) or exactly one named case takes none, which is
+the mutation harness's shape and the shape a case's own nested suite uses; refusing those would make a mutation run
+read a refusal as a mutation it noticed. The lease is re-covered after a `kill -9` that leaves it behind, but a pid
+the kernel has since given to another process refuses that tree until the process exits, and the refusal prints the
+removal. Two worktrees of one repository are one repository and two scratch roots and are not refused, so what two
+suites in different trees cost each other is the host's load — measured 2026-10-24, issue #295, where the pair whose
+failing sets moved was a change worktree and a detached control worktree: the pair this lease does not cover.
+
 What it does with a child that never started: a status alone cannot tell a child whose argv the environment
 refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
 that ended non-zero, wrote no verdict and left the tree at the base commit never read the item. That is the

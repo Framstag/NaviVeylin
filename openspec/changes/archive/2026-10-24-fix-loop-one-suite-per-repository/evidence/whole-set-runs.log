@@ -1,0 +1,35 @@
+=== the whole case set, run three times from this change's own tree (base a0ca0f35), 2026-10-24
+=== what each run failed on, and where each red belongs
+
+run 1  09:27:55Z → 09:50Z, `bash tools/loop-selftest.sh`, 211 cases: 2 red
+       full-suite.log — FAIL run#prescreenAnnouncesItselfBeforeItReturns · FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+run 2  the gate's own suite, 09:51Z → 10:14Z, `tools/loop/gate.sh --base a0ca0f35…`, 211 cases: 5 red
+       whole-set-run-2.log — FAIL run#childOutlastingTheWallClockIsBlocked · FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+       · FAIL run#theBaseAdvancesWithEveryMerge · FAIL run#staleTestResultsAreNotThisChildsGate
+       · FAIL run#doesNotCloseOnAMergeTheBaseCannotTake
+run 3  the gate re-run on the same tree, 10:20Z → 10:38Z: 1 red
+       gate.log — FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+
+=== where each red of the three runs belongs (each re-run isolated on this tree, and on the pristine base)
+
+run#aWriterTheRunCanPlaceBlocksTheItem          FAIL here (isolated-reds.log) and FAIL on the pristine base a0ca0f35
+                                                (baseline-reds.log) — issue #288, whose fix is not in this base. Not this change's.
+run#prescreenAnnouncesItselfBeforeItReturns     FAIL isolated here and FAIL on the pristine base (both files above)
+                                                — issue #287. It passed inside run 3's whole set and failed alone, which is the
+                                                same moving set the item is about. Not this change's.
+run#childOutlastingTheWallClockIsBlocked        PASS isolated here (isolated-reds.log) — a red of run 2 under the load of
+run#theBaseAdvancesWithEveryMerge               three suites and two loop runs (concurrent-harnesses.log, second-suite-refused.log)
+run#staleTestResultsAreNotThisChildsGate        and green alone: the load-dependent red the item describes, not this change's.
+run#doesNotCloseOnAMergeTheBaseCannotTake
+
+=== the other suites the gate owed for this delta (run 3), all green
+tools_loop-mutations-selftest.sh.xml — the harness's own guards, 34 checks
+bash_tools_loop-mutations.sh_--check.xml — every one of the 137 records still applies to the file it names
+tools_check-doc-routes.sh.xml · tools_check-doc-routes-selftest.sh.xml · tools_check-todo-references.sh.xml
+tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+
+=== note on what the three runs show
+The failing set of the *same* suite, on the *same* tree and base, was 2, then 5, then 1 case, and the intersection of
+the three runs is one case — `run#aWriterTheRunCanPlaceBlocksTheItem`, another item's stable red. That is the item's
+own measurement, reproduced from this tree; the lease this change adds is what makes a second suite of *this tree*
+refusable and named, and the three run-2 reds that pass in isolation are what a loaded host still costs a suite.

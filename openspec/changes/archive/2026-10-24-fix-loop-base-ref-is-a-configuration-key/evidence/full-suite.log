@@ -1,0 +1,6 @@
+$ bash tools/loop-selftest.sh --from-git 30c23b52
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+loop-selftest: all 216 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git 30c23b52
+ended 2514720 — its working directory is inside loop-selftest.pijjeZ
+ended 2945115 — its working directory is inside loop-selftest.pijjeZ
+EXIT_CODE=0

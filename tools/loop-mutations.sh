@@ -432,6 +432,12 @@ MUTATIONS=(
   # merges into that tree (issue #301's review). Without the guard the measured state reaches the merge: the item
   # is blocked after its budget, or — on a fast-forwardable checkout — closed with its work never on the base.
   '56.2@-@tools/loop/run.sh@run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen@the refusal of a run whose project tree is not on the base branch@s|^if \[ "\$checkout_ref" != "\$(loop_base_ref)" \]; then$|if false; then|'
+  # 56.3 — the base branch is a key of the project's own configuration, and the environment may override it (issue
+  # #303: the branch was reachable through the environment alone, so a ported project could name it nowhere it
+  # commits). The mutation records the branch with an outright assignment, which the sourced configuration applies
+  # *after* the environment — so the caller's `LOOP_BASE_REF` silently loses and every later reader descends from
+  # the recorded branch instead.
+  '56.3@-@tools/loop/loop.conf@state#baseBranchIsAConfigurationKey@the base branch recorded as a value an inherited environment may override (issue #303)@s|^LOOP_BASE_REF=.*$|LOOP_BASE_REF="main"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

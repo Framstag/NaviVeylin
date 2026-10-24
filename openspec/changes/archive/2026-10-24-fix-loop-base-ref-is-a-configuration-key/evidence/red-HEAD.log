@@ -1,0 +1,6 @@
+tree: the branch tip, tools/loop/loop.conf taken from the base 30c23b52 (no LOOP_BASE_REF key)
+$ bash tools/loop-selftest.sh --case state#baseBranchIsAConfigurationKey
+  loop.conf records no LOOP_BASE_REF — the base branch is then a value of the shared library, and a project whose base branch is named otherwise can change it only through the environment
+FAIL state#baseBranchIsAConfigurationKey
+loop-selftest: 1 of 1 cases failed
+EXIT_CODE=1

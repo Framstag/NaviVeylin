@@ -194,6 +194,13 @@ another shell, nor another forge client.
   runnable configuration and a budget the engine gains fails this case rather than the porting recipe
 - **Case**: `foreign#fixtureDeclaresEveryBudgetDefault`
 
+#### Scenario: The fixture names its own base branch
+
+- **WHEN** the foreign project's own configuration and a run started in its tree are read
+- **THEN** the branch the fixture records is the branch its tree is created on and the commit the run records as
+  the base, and it is not the engine's default
+- **Case**: `foreign#baseBranchIsTheFixturesConfiguration`
+
 #### Scenario: What the fixture does not model is written down
 
 - **WHEN** a reader of the fixture asks whether their project is covered

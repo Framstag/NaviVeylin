@@ -20,8 +20,8 @@ the recipe for keeping it true when an engine or a config changes.
 |---|---|
 | `bash tools/check-portability.sh` | does any engine name a project value? Prints the engine set, the excluded set and the value set it read |
 | `bash tools/check-portability.sh --values` | …and prints every forbidden value with the file it was read from (for debugging a verdict) |
-| `bash tools/check-portability-selftest.sh` | 27 cases: the suite's two preconditions, the value-set cases, the four discovery cases, the foreign project end to end, and the recipe's commands |
-| `bash tools/mutate.sh --mutations tools/portability-mutations.json` | the portability revert-checks as a versioned set (13 records: 5.1–5.7, 5.3 naming two cases, and 6.1–6.5 for the value set, the exception and the suite's preconditions); the recipe is `.pi/skills/mutation-runner` |
+| `bash tools/check-portability-selftest.sh` | 28 cases: the suite's two preconditions, the value-set cases, the four discovery cases, the foreign project end to end, and the recipe's commands |
+| `bash tools/mutate.sh --mutations tools/portability-mutations.json` | the portability revert-checks as a versioned set (15 records: 5.1–5.7, 5.3 naming two cases, 6.1–6.5 for the value set, the exception and the suite's preconditions, 7.1 for the fixture's missing budget default and 7.2 for its own base branch); the recipe is `.pi/skills/mutation-runner` |
 
 `--quiet` gives the verdict without the sets; `--root <dir>` checks another tree (the self-test's
 mechanism); `--case <group#name>` runs one case; `--list` lists the cases (the mutation runner has a `--list`

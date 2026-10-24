@@ -1,0 +1,8 @@
+$ bash tools/loop-mutations.sh --check
+loop-mutations: scratch /tmp/nv303b/.pi/tmp/loop-mutations.CoB3hl
+loop-mutations: all 143 cases passed — every selected record applies to the file it names
+EXIT_CODE=0
+$ bash tools/loop-mutations-selftest.sh
+ok   and the copy is byte-identical to the pristine one again
+loop-mutations-selftest: all 34 cases passed — the harness reports an unapplied mutation, an unnoticed one and a real red, it restores what it touches, it backs up under the project, it refuses a backup that did not land and it bounds a run by the files a change touched
+EXIT_CODE=0

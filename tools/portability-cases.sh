@@ -36,6 +36,7 @@ PORTABILITY_CASES=(
   'foreign#emptyGateCommandStillRunsThePhases'
   'foreign#fixtureIsVersioned'
   'foreign#fixtureDeclaresEveryBudgetDefault'
+  'foreign#baseBranchIsTheFixturesConfiguration'
   'foreign#statesWhatItDoesNotModel'
   'porting#everyCommandInTheRecipeRuns'
   'porting#recipeDoesNotAssumeOurBuild'
@@ -71,6 +72,7 @@ portability_run_case() {
     'foreign#emptyGateCommandStillRunsThePhases') case_foreign_emptyGateCommandStillRunsThePhases ;;
     'foreign#fixtureIsVersioned') case_foreign_fixtureIsVersioned ;;
     'foreign#fixtureDeclaresEveryBudgetDefault') case_foreign_fixtureDeclaresEveryBudgetDefault ;;
+    'foreign#baseBranchIsTheFixturesConfiguration') case_foreign_baseBranchIsTheFixturesConfiguration ;;
     'foreign#statesWhatItDoesNotModel') case_foreign_statesWhatItDoesNotModel ;;
     'porting#everyCommandInTheRecipeRuns') case_porting_everyCommandInTheRecipeRuns ;;
     'porting#recipeDoesNotAssumeOurBuild') case_porting_recipeDoesNotAssumeOurBuild ;;
@@ -115,8 +117,8 @@ scratch() { mktemp -d "$PORTABILITY_TMP/case.XXXXXX"; }
 # cannot be used for the case that proves a tool refuses when there is no project at all.
 scratch_outside() { mktemp -d "${TMPDIR:-/tmp}/portability-selftest.XXXXXX"; }
 
-git_init() { # <dir>
-  git -C "$1" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway repository"
+git_init() { # <dir> [branch] — the branch defaults to this project's, the foreign tree passes its own
+  git -C "$1" init -q -b "${2:-main}" >/dev/null 2>&1 || fail "could not create the throwaway repository"
   git -C "$1" add -A >/dev/null 2>&1 || fail "could not stage the throwaway repository"
   git -C "$1" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm init >/dev/null 2>&1 ||
     fail "could not record the throwaway repository's first state"
@@ -159,8 +161,17 @@ foreign_tree() { # engines + the foreign fixture overlaid — the tree the forei
   copy_engines "$d/project"
   cp -a "$PORTABILITY_FIXTURE/." "$d/project/" || fail "could not overlay the foreign fixture"
   chmod +x "$d/project/tools/sensors/fixtures/foreign-emit.sh" 2>/dev/null || true
-  git_init "$d/project"
+  # The branch the fixture's own configuration names, not this project's: the loop records the base branch's commit
+  # and refuses a checkout off it, so a tree created on `main` would exercise this project's branch name instead of
+  # the foreign one (issue #303).
+  git_init "$d/project" "$(fixture_base_ref)"
   printf '%s\n' "$d/project"
+}
+
+# The base branch the foreign project records, read the way the loop reads it: source the fixture's configuration in
+# a subshell with the environment unset, so the case asserts the key rather than a pattern of how it is written.
+fixture_base_ref() {
+  ( LOOP_BASE_REF=""; . "$PORTABILITY_FIXTURE/tools/loop/loop.conf" >/dev/null 2>&1; printf '%s\n' "$LOOP_BASE_REF" )
 }
 
 run_check() { # <tree> [check args…]
@@ -640,6 +651,26 @@ case_foreign_fixtureDeclaresEveryBudgetDefault() {
   done
   assert_empty "$missing" \
     "every budget default the loop's engine reads is declared by the fixture's loop.conf"
+}
+
+case_foreign_baseBranchIsTheFixturesConfiguration() {
+  local p declared tip base
+  declared=$(fixture_base_ref)
+  [ -n "$declared" ] ||
+    fail "the fixture's loop.conf records no LOOP_BASE_REF — a foreign project whose base branch is not main could change it only through the environment"
+  [ "$declared" != "main" ] ||
+    fail "the fixture's base branch is the engine's default, so a green case would prove nothing about the key"
+
+  p=$(foreign_tree)
+  foreign_env "$p"
+  assert_eq "$declared" "$(git -C "$p" rev-parse --abbrev-ref HEAD)" \
+    "the foreign tree is created on the base branch its own configuration names"
+
+  engine_script "$p" tools/loop/state.sh init --items 1 --minutes 30 >/dev/null ||
+    fail "the foreign project's run could not start"
+  tip=$(git -C "$p" rev-parse "$declared")
+  base=$(engine_script "$p" tools/loop/state.sh get run.base)
+  assert_eq "$tip" "$base" "the base recorded is the branch the fixture's configuration names"
 }
 
 case_foreign_statesWhatItDoesNotModel() {

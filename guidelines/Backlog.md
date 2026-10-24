@@ -646,7 +646,8 @@ engine, copied unchanged            the project, adapted
   the loop's phases and refusals      sensors.json            commands · cadence · bounds · counts
   the metadata pass                   loop.conf               the agent command · the skills the
   the checks' runner and guards         · worker uses · the gate command ·
-                                        · the submodule a worktree checks out
+                                        · the submodule a worktree checks out ·
+                                        · the branch every item descends from
                                       the source adapter      the one-time record format of THIS project
 ```
 

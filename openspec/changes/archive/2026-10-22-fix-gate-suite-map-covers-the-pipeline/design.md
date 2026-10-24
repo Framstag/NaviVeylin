@@ -11,13 +11,13 @@ and exits 0, so a delta whose check the map never reaches is green in the run wh
 Two edits to the profile and one to the suite that reads it:
 
 1. **`LOOP_GATE_SUITES` is completed**, 24 pairs naming 10 commands → 58 pairs naming all 31 (plus the
-   `--check` record pass the map already carried). The unit of a pair is a pipeline *step*, and a pair carries
-   the triple of the tool it belongs to — the check, its self-test and its mutation `--list` — while each other
-   command a step runs is carried by the path of the tool that command belongs to (`tools/issues/*` owes the
-   issue tooling's self-test; the five tracker sets owe their own `tools/mutate.sh … --list`), because the
-   pipeline runs the step as a unit and any of its commands can be the one that reddens. No path is mapped to a
-   step whose tools do not read it — that would be option 2 of the item's recorded decision, which the owner
-   rejected.
+   `--check` record pass the map already carried). The unit of a pair is a pipeline *step*, but a path carries
+   the commands of the tool it names, not necessarily all of the step: a tool's check, its self-test and its
+   mutation `--list` are carried together (`tools/build-inputs*` offers all three), while a step's other commands
+   are carried by the paths of their own tools (`tools/issues/*` owes the issue tooling's self-test; the five
+   tracker sets owe their own `tools/mutate.sh … --list`), because the pipeline runs the step as a unit and any of
+   its commands can be the one that reddens. No path is mapped to a step whose tools do not read it — that would
+   be option 2 of the item's recorded decision, which the owner rejected.
 
    The map keeps the gate's own `--from-git {base}` narrowing on the loop pairs (issue #276), so the pin strips
    that suffix before comparing a map command with the pipeline's — the suffix is the gate's filter, not part

@@ -1,8 +1,8 @@
-== round 4b quick checks, 2026-10-24T07:02:36Z
+== round 4b quick checks, 2026-10-24T07:24:25Z
 loop-cases.sh syntax ok
 loop-mutations.sh syntax ok
 -- loop-mutations --check
-loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/242/.pi/tmp/loop-mutations.PZwhNn
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/242/.pi/tmp/loop-mutations.PkNgdg
 loop-mutations: all 132 cases passed — every selected record applies to the file it names
 exit=0
 -- case gate#theMapCoversEveryPipelineStep
@@ -12,5 +12,5 @@ exit=0
 PASS gate#aPipelineCheckIsOwedByItsPaths
 exit=0
 -- doc routes
-check-doc-routes: all 152 section references resolve, all 4 skill references resolve
+check-doc-routes: all 153 section references resolve, all 4 skill references resolve
 exit=0

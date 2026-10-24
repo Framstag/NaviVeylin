@@ -392,11 +392,12 @@ flavors one expects (§134.65).
 
 The gate above is only as wide as the profile's map: `LOOP_GATE_SUITES` (`tools/loop/loop.conf`) has to reach
 every `bash`/`sh` command a `Check …` step of the pipeline runs, or a landing the pipeline refuses is green in
-the run — which is what reddened `main` on 2026-10-21 (issue #242). The map's unit is a pipeline *step*: a path
-carries the triple of the tool it belongs to — the check, its self-test and its mutation list — and each other
-command a step runs is carried by the path of the tool that command belongs to (`tools/issues/*` owes the issue
-tooling's self-test, the tracker sets owe their own `tools/mutate.sh … --list`), so a step's commands are covered
-even where no single path reaches all of them. `gate#theMapCoversEveryPipelineStep` pins the command side against
+the run — which is what reddened `main` on 2026-10-21 (issue #242). The map's unit is a pipeline *step*, but a
+path carries the commands of the tool it names, not necessarily all of the step: a tool's check, its self-test
+and its mutation list are carried together (`tools/build-inputs*` offers all three), while a step's other
+commands are carried by the paths of their own tools (`tools/issues/*` owes the issue tooling's self-test, the
+tracker sets owe their own `tools/mutate.sh … --list`), so a step's commands are covered even where no single
+path reaches all of them. `gate#theMapCoversEveryPipelineStep` pins the command side against
 the pipeline the profile names in `LOOP_GATE_PIPELINE`, so a step the pipeline gains and the map does not carry
 fails the loop's own suite and names the missing commands. The pin closes the command side only, and two edges
 stay residual. Which *paths* a step reads is named by no workflow — `tools/check-portability.sh` reads

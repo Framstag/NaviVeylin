@@ -123,11 +123,12 @@ and file the gap as its own item.
       `gate-round3.log` **carries no exit marker and none was added** — it carries the `LOOP-GATE: tests=157
       failures=0` summary line, and adding an `exit=` line to a captured log by hand would falsify evidence.
       `invalid-3a-bare-invocation-old-profile.log` stays as the bare invocation's record.
-- [x] The gate, once, on the merged tree: `evidence/gate-round4.log`, eight commands, `--base a06ef5ca`,
-      `LOOP-GATE: tests=375 failures=1`, exit 1 — the single failure `run#aWriterTheRunCanPlaceBlocksTheItem`
-      fails identically on the base (`evidence/round4-baseline-failure.log`, `a06ef5ca` clean) and is filed as
-      #287/#288, so it is attributed to the base and not to this change. The delta's own cases and mutations are
-      green (`evidence/round4-green-cases.log`, `evidence/round4-mutations.log`).
+- [x] The gate, once, on the merged tree and **after** the round-4 text corrections: `evidence/gate-round4.log`,
+      eight commands, `--base e12cf971`, `LOOP-GATE: tests=375 failures=1`, exit 1 — the single failure
+      `run#aWriterTheRunCanPlaceBlocksTheItem` fails identically on the base (`evidence/round4-baseline-failure.log`,
+      `a06ef5ca` clean) and is filed as #287/#288, so it is attributed to the base and not to this change. Both
+      gate-map cases pass inside the gate run, and the delta's own cases and mutations are green
+      (`evidence/round4-green-cases.log`, `evidence/round4-mutations.log`).
 - [x] The portability gate, run by hand because the map does not route `tools/loop/loop.conf` to it (the
       residual #289): `tools/check-portability.sh` green; `tools/check-portability-selftest.sh` 26/27, the one
       failure `foreign#fixtureDeclaresEveryBudgetDefault` red on `main` too (#290), so attributed to the base.
@@ -146,10 +147,10 @@ returned `VERDICT: FAIL` on two text-only findings, both fixed here:
       `design.md`: *"a path maps to every `bash`/`sh` command the step whose tools read it runs"* is false where
       a step's commands do not share one glob — `Check issue tooling` runs 6 commands and `tools/issues/*`
       carries 1, `Check agent issue loop` runs 2 and `tools/loop/*` carries 1, `Check portability` runs 4 and
-      `tools/check-portability*` carries 3. All three sites now say the per-tool form: a pair carries the triple
-      of the tool it belongs to, and each other command a step runs is carried by the path of the tool that
-      command belongs to. The map, the two cases, the mutation set and the spec's SHALL were already correct
-      and are unchanged.
+      `tools/check-portability*` carries 3. All three sites now say the per-tool form: a path carries the
+      commands of the tool it names, not necessarily all of the step — a tool's check, its self-test and its
+      mutation list are carried together, each other command by the path of its own tool. The map, the two
+      cases, the mutation set and the spec's SHALL were already correct and are unchanged.
 - [x] The round-3 "three free corrections" were recorded as applied and were not in the tree: `proposal.md`'s
       surface count is corrected **11 → 12**, task 5's "the seven beside it" **→ "the six beside it"**, and the
       bullet now says `gate-round3.log` carries the summary line and **no** exit marker, with none added (adding

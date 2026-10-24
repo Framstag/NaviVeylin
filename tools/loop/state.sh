@@ -34,7 +34,7 @@
 #   state.sh done <issue> --result done|skipped|blocked|falsified [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
-#                         [--decision-label LABEL]
+#                         [--decision-label LABEL] [--label-failures <transition>…]
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -386,7 +386,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" merged_branch="" merged_commits="" merged_evidence="" events=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -402,6 +402,7 @@ cmd_done() {
       --root-cause) need_value "$@"; root_cause="${2:-}"; shift 2 ;;
       --red-test) need_value "$@"; red_test="${2:-}"; shift 2 ;;
       --decision-label) need_value "$@"; decision_label="${2:-}"; shift 2 ;;
+      --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
       --merged-branch) need_value "$@"; merged_branch="${2:-}"; shift 2 ;;
       --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
       --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
@@ -417,6 +418,8 @@ cmd_done() {
   # `--decision-label` is the label the run's escalation *wrote* on the item — not the verdict the worker
   # chose, which is a different fact: a skip verdict of `needs-diagnosis` and a blocked item both end as
   # the decision label. The report names the decisions an item was left with from this field (issue #177).
+  # `--label-failures` is the other half of that fact: the label transitions the tracker refused, so the item is
+  # recorded as one whose state there is stale rather than as one the run escalated (issue #279).
   local class usage
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
   # What the item spent is read from the event stream its children wrote, and recorded beside the wall time so
@@ -433,7 +436,7 @@ cmd_done() {
     .items = (
       if ([.items[] | select(.issue == $i)] | length) == 0 then
         .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
-                  escalatedLabel:$dl,
+                  escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me},
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
                            closed:$closed, rootCause:$rc, redTest:$rt,
@@ -443,6 +446,7 @@ cmd_done() {
         .items | map(if .issue == $i then
           .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
           | .escalatedLabel = (if $dl == "" then .escalatedLabel else $dl end)
+          | .labelFailures = (((.labelFailures // []) + ($lf | split(" ") | map(select(length > 0)))) | unique)
         else . end)
       end)
     | .queue = [.queue[] | select(.issue != $i)]
@@ -450,6 +454,7 @@ cmd_done() {
     | (if .current != null and .current.issue == $i then .current = null else . end)
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
+    --arg lf "$label_failures" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
     --argjson usage "$usage" \

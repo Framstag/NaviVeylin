@@ -440,7 +440,10 @@ what this change saves and the 300 to 420 s a round costs still stands.
 What it does when it cannot proceed: an item that needs a decision is **escalated** — the work already done
 is named on the item, the item is marked as awaiting a decision, and the run takes the next candidate. The
 work is preserved rather than abandoned (I11), which is the part the prose-era loop got wrong by treating a
-mid-item decision as a failure.
+mid-item decision as a failure. A label write the tracker refuses is a fact of the run, not a swallow: the
+transition that failed is recorded with the item, so the report names an item whose decision was never written
+and an item whose in-progress mark the run could not take off — measured 2026-10-23T11:38Z, a run recorded
+item #260 blocked with no decision label while nothing was ever posted on it (issue #279).
 
 The report a run prints at its end is the run's product, and it answers three questions without the caller
 opening the tracker (#208): **which** items were handled and how each ended — the per-item table, with the
@@ -451,8 +454,9 @@ reported rather than a zero that reads as a measurement (#211) — beside the ru
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the
-item that owns it, the kept worktree, an item whose gate never completed with its transcript, and a citation
-the pre-screen still refuses. A count is not an answer, so `none` is printed only when all five sources were
+item that owns it, the kept worktree, an item whose gate never completed with its transcript, a citation
+the pre-screen still refuses, and a label write the tracker refused with the item it left stale. A count is not
+an answer, so `none` is printed only when all six sources were
 read and empty — it never hides a branch that carries work.
 
 What a branch carries is asked by **patch identity**, never by ancestry — `git cherry`, the same question the

@@ -133,6 +133,8 @@ LOOP_SHELL_CASES=(
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
   'run#blockedItemIsEscalatedWithItsReason'
+  'run#aFailedEscalationWriteIsNamed'
+  'run#aFailedUnpickIsNamed'
   'run#childStartsInTheProjectRoot'
   'run#childReportsWhileItWaits'
   'run#headerNamesTheLiveView'
@@ -384,6 +386,8 @@ loop_run_shell_case() {
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
+    'run#aFailedEscalationWriteIsNamed') fn=case_run_aFailedEscalationWriteIsNamed ;;
+    'run#aFailedUnpickIsNamed') fn=case_run_aFailedUnpickIsNamed ;;
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
     'run#childReportsWhileItWaits') fn=case_run_childReportsWhileItWaits ;;
     'run#headerNamesTheLiveView') fn=case_run_headerNamesTheLiveView ;;
@@ -3115,6 +3119,63 @@ case_run_blockedItemIsEscalatedWithItsReason() {
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
   assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel // ""' "$(state_file "$p")")" \
     "the run records the label its own escalation wrote"
+}
+
+# The block's two tracker writes are the only thing that makes a blocked item found again, and both were
+# swallowed: measured 2026-10-23T11:38Z, item #260 of a real run ended `blocked` with `escalatedLabel: ""` while
+# its six neighbours carried `agent/needs-decision` and no comment at all was posted — the run's own account and
+# the tracker diverged silently, and the decision cap never counted it (issue #279). A write that failed is a fact
+# of the run, so the run records it with the item and its report names the item nobody can find on the tracker.
+case_run_aFailedEscalationWriteIsNamed() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  # The escalation's own label write fails the way a socket does, on every attempt. `pick` adds the in-progress
+  # mark and the unpick removes it, so the decision label is the only write this names — the one the block needs
+  # most, because an item with no decision label is an item no reader of the tracker knows a question about.
+  export GH_STUB_TRANSIENT_FAIL="--add-label agent/needs-decision"
+  export GH_STUB_TRANSIENT_TIMES=99
+  export GH_STUB_TRANSIENT_STATE="$d/transient-count"
+  export ISSUES_GH_RETRY_DELAYS="0 0 0"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  unset GH_STUB_TRANSIENT_FAIL GH_STUB_TRANSIENT_TIMES GH_STUB_TRANSIENT_STATE ISSUES_GH_RETRY_DELAYS
+  state=$(state_file "$p")
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is still recorded blocked"
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" "the run claims no label it did not write"
+  assert_eq "escalate" "$(jq -r '(.items[0].labelFailures // []) | join(" ")' "$state")" \
+    "the write the tracker refused is recorded with the item"
+  assert_contains "$out" "set #21's tracker state by hand" "the report names the item whose escalation was not written"
+  assert_contains "$out" "could not write escalate" "and says which write the tracker refused"
+}
+
+# The other half of the same block: the escalation lands and the in-progress mark cannot be taken off, so the
+# tracker shows an item being worked while nothing holds it. The run clears its own `in_progress` variable on that
+# path, so no later step retries the write — the record is what a person acts on (issue #279).
+case_run_aFailedUnpickIsNamed() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\n: # this child leaves the tree exactly as it found it\n' > "$d/worker-action.sh"
+  # Only the write that takes the mark off fails: `pick` adds the label in another call, so the item is worked
+  # and marked exactly as usual before this write is refused.
+  export GH_STUB_TRANSIENT_FAIL="--remove-label agent/in-progress"
+  export GH_STUB_TRANSIENT_TIMES=99
+  export GH_STUB_TRANSIENT_STATE="$d/transient-count"
+  export ISSUES_GH_RETRY_DELAYS="0 0 0"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  unset GH_STUB_TRANSIENT_FAIL GH_STUB_TRANSIENT_TIMES GH_STUB_TRANSIENT_STATE ISSUES_GH_RETRY_DELAYS
+  state=$(state_file "$p")
+  assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
+    "the escalation itself was written"
+  assert_eq "unpick" "$(jq -r '(.items[0].labelFailures // []) | join(" ")' "$state")" \
+    "the write the tracker refused is recorded with the item"
+  assert_contains "$out" "set #21's tracker state by hand" "the report names the item whose mark was not cleared"
+  assert_contains "$out" "could not write unpick" "and says which write the tracker refused"
 }
 
 case_run_childStartsInTheProjectRoot() {

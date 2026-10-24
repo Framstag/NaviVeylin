@@ -1,0 +1,5 @@
+  the write the tracker refused is recorded with the item: expected 'escalate', got ''
+FAIL run#aFailedEscalationWriteIsNamed
+  the write the tracker refused is recorded with the item: expected 'unpick', got ''
+FAIL run#aFailedUnpickIsNamed
+loop-selftest: 2 of 2 cases failed

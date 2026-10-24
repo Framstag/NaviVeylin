@@ -5,7 +5,7 @@
 ### Requirement: The run's state names the item it is working on
 
 The run SHALL record an item in its state when it picks it, before that item's first agent process starts:
-`.current` SHALL carry the item's number, the phase the run is in and the change the run asked for, every step
+`.current` SHALL carry the item's number, the phase the run last recorded and the change the run asked for, every step
 the run records SHALL be attributed to that item, and the mark SHALL come off when the item ends — so a state
 kept from a killed run names the item that was in flight instead of a phase alone.
 

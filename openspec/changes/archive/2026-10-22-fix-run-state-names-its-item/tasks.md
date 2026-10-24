@@ -9,7 +9,7 @@
 - [x] 2. `tools/loop/run.sh` — record the picked item in the state before its first child, guarded like the
       label write above it. Verified by task 1's case turning green:
       `bash tools/loop-selftest.sh --case 'run#stateNamesTheItemInProgress'` exits `0`
-      (`evidence/focused-cases-green.log`).
+      (`evidence/focused/stateNamesTheItemInProgress-green.log`).
 - [x] 3. `openspec/specs/agent-issue-loop` — the requirement and its one scenario, which names exactly the case
       from task 1. Verified by `openspec validate 2026-10-22-fix-run-state-names-its-item --strict`.
 - [x] 4. `guidelines/Backlog.md`, heading `## 7. The loop` — the sentence about what a state names gains the item. Verified

@@ -4207,6 +4207,7 @@ case_run_aSkipClearsTheInProgressMark() {
 # from the worktree's branch marker, a file the state does not point at (issue #263). The case reads the state
 # *while the child is blocked*, which is the state a killed run leaves behind, and again once the item ended.
 case_run_stateNamesTheItemInProgress() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/state.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p sf fifo pid i
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)

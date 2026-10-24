@@ -1,8 +1,12 @@
+=== HEAD f128f320d59dd1763ebb4354ec1a3274ccd895b4: bash red-probe-head.sh /home/tim/projects/NaviVeylin/.pi/worktrees/loop/openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/lib-head-293.sh  (2026-10-24T22:51:08Z)
 RED  an inline quotation carries no marker: expected [] got [<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->]
 RED  a fenced quotation carries no marker: expected [] got [<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->]
 RED  a real marker beside a quotation is the record: expected [p2] got [p3]
+RED  a prose line that ends at the close carries no marker: expected [] got [<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->]
+RED  a line that starts at the open but does not close carries no marker: expected [] got [<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->]
 RED  the writer keeps the quoted prose: expected [1] got [0]
 ok   and the writer adds exactly one marker line
 RED  the digest keeps the quotation: expected [different] got [same]
 --- the parser's answer for the fenced body: '<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->'
-RED: 5 of 6 checks failed
+RED: 7 of 8 checks failed
+exit=1

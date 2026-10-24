@@ -57,7 +57,18 @@ that proved it (item #292).
 
 Leading indentation is *not* trimmed, because indentation changes the block the line belongs to (four spaces is
 a code block, `> ` is a quotation block). Trailing whitespace *is* trimmed, because it changes no rendering and
-the marker is otherwise identical.
+the marker is otherwise identical — the requirement says so since round 2, because a marker line ending in a
+space is a record here and the requirement's "closing at its end" alone read narrower than the code.
+
+## Each anchor owes a case, not a probe
+
+The shape has three clauses — column 0, the close at the line's end, and the fence — and a bound is held only by
+something the gate runs. Round 1 shipped the first two held by a probe against a copy of `lib.sh` outside the
+tree (`evidence/revert-check-anchor.log`): mutating `index(t, mo) == 1` to `index(t, mo) > 0` left all three
+cases green. A probe is a person's argument; the gate runs cases. So the fixture carries one prose line per
+anchor and the case asserts the reader over them directly, and the write path's own arm (`NR == n`) got its
+stored-marker half, which is the only thing that can fail when the replace arm is broken. Round 2's four
+mutations (`evidence/revert-check-293.sh`) each go noticed by a named case.
 
 ## Alternatives the evidence eliminated
 
@@ -77,8 +88,11 @@ the marker is otherwise identical.
 
 Three helpers and one new predicate in `tools/issues/lib.sh`; two cases in
 `tools/issues/check-metadata-selftest.sh`, one in `tools/issue-tooling-cases.sh`, one fixture, and the five
-roster entries that dispatch the cases. No app source, no Kotlin, no resource, no build logic, no skill text, no
-guideline text.
+roster entries that dispatch the cases. Round 2 extends the same files rather than adding any: the fixture gains
+two prose lines (one per anchor), `check#aQuotationIsNotAMarker` gains the two anchor assertions (and a `missing`
+answer when the predicate is absent), `prioritise#theWriteKeepsAQuotation` gains the replace half, and the
+invariants row in `guidelines/Backlog.md` §4 states where the marker stands. No app source, no Kotlin, no
+resource, no build logic, no skill text.
 
 The shipped marker is unchanged: the pass writes the same line at column 0 through
 `issues_prio_marker_text`, so every body that carries a marker today is read exactly as before and its digest
@@ -97,8 +111,13 @@ failed`.
 
 ## Verification
 
-- the probe before and after (`evidence/red-probe-head.log`, `evidence/green-probe-head.log`);
-- `bash tools/issue-tooling-selftest.sh --case check#aQuotationIsNotAMarker` (and the other two cases);
+- the probe and the three cases, red on the base commit and green on the tree, from one script
+  (`evidence/red-cases-293.sh` → `red-probe-head.log`, `red-cases-head.log`, `green-probe-head.log`,
+  `green-cases.log`);
+- the four clauses of the shape mutated one at a time in the tree, each making a named case fail, the restore
+  compared byte for byte (`evidence/revert-check-293.sh` → `revert-check.log`);
+- `bash tools/issue-tooling-selftest.sh` (121 cases) and `bash tools/issues/check-metadata-selftest.sh`
+  (9 cases), each ending `all N cases passed`;
 - `./tools/loop/gate.sh` once: the profile maps `tools/issues/*` and `tools/issue-tooling-cases.sh` to
   `tools/issue-tooling-selftest.sh`, `tools/issues/check-metadata.sh` and
   `tools/issues/metadata-mutations.sh --list`, and `openspec/*` to the hygiene, doc-route and classification

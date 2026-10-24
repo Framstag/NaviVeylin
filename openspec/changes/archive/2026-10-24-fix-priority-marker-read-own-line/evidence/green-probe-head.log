@@ -1,8 +1,12 @@
+=== fixed tree: bash red-probe-head.sh ./tools/issues/lib.sh  (2026-10-24T22:51:11Z)
 ok   an inline quotation carries no marker
 ok   a fenced quotation carries no marker
 ok   a real marker beside a quotation is the record
+ok   a prose line that ends at the close carries no marker
+ok   a line that starts at the open but does not close carries no marker
 ok   the writer keeps the quoted prose
 ok   and the writer adds exactly one marker line
 ok   the digest keeps the quotation
 --- the parser's answer for the fenced body: ''
-green: all 6 checks passed
+green: all 8 checks passed
+exit=0

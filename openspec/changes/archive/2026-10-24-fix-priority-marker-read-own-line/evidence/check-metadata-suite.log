@@ -28,6 +28,8 @@ PASS check#labelWithoutMarkerFails
   ok   naming the item
   ok   the quotation is not matched against the label
   ok   and the quotation is not read as an incomplete record
+  ok   the prose line that ends at the close is not the record
+  ok   and the line that starts at the open but does not close is not one either
 PASS check#aQuotationIsNotAMarker
   ok   a marker line beside a quotation exits 0
   ok   and nothing is reported

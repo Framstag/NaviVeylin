@@ -28,8 +28,16 @@ check() { # <what> <expected> <got>
 
 check "an inline quotation carries no marker" "" "$(issues_prio_marker "$inline")"
 check "a fenced quotation carries no marker" "" "$(issues_prio_marker "$fenced")"
-check "a real marker beside a quotation is the record" "band=p2" \
+check "a real marker beside a quotation is the record" "p2" \
   "$(issues_prio_field "$(issues_prio_marker "$real")" band)"
+
+# The shape's two anchors, one body line each: a prose line that *ends* at the close is excluded by the column-0
+# clause, and a line that *starts* at the open but continues past the close is excluded by the end anchor. The
+# fenced body above covers neither of them, which is how the first round shipped a clause nothing held (#293).
+endsatclose="the record stands on the body's own last line, the pass writes: $quoted"
+startsonly="$quoted is the grammar the pass writes, quoted here at column 0 and continued after the close."
+check "a prose line that ends at the close carries no marker" "" "$(issues_prio_marker "$endsatclose")"
+check "a line that starts at the open but does not close carries no marker" "" "$(issues_prio_marker "$startsonly")"
 
 composed=$(issues_body_with_marker "$inline" "$newmarker")
 check "the writer keeps the quoted prose" "1" "$(printf '%s\n' "$composed" | grep -cF "\`$quoted\`" || true)"
@@ -43,5 +51,5 @@ check "the digest keeps the quotation" "different" \
   "$( [ "$(issues_body_hash "$inline")" != "$(issues_body_hash "$edited")" ] && echo different || echo same)"
 
 printf '%s\n' "--- the parser's answer for the fenced body: '$(issues_prio_marker "$fenced")'"
-[ "$bad" -eq 0 ] || { printf '%s\n' "RED: $bad of 6 checks failed"; exit 1; }
-printf 'green: all 6 checks passed\n'
+[ "$bad" -eq 0 ] || { printf '%s\n' "RED: $bad of 8 checks failed"; exit 1; }
+printf 'green: all 8 checks passed\n'

@@ -1,17 +1,19 @@
-=== fixed tree: bash tools/issues/check-metadata-selftest.sh --case check#aQuotationIsNotAMarker
+=== fixed tree: bash tools/issues/check-metadata-selftest.sh --case check#aQuotationIsNotAMarker  (2026-10-24T22:51:11Z)
   ok   a body that only quotes the grammar exits non-zero
   ok   and the missing record is what is reported
   ok   naming the item
   ok   the quotation is not matched against the label
   ok   and the quotation is not read as an incomplete record
+  ok   the prose line that ends at the close is not the record
+  ok   and the line that starts at the open but does not close is not one either
 PASS check#aQuotationIsNotAMarker
 exit=0
-=== fixed tree: bash tools/issues/check-metadata-selftest.sh --case check#aMarkerLineBesideAQuotationIsTheRecord
+=== fixed tree: bash tools/issues/check-metadata-selftest.sh --case check#aMarkerLineBesideAQuotationIsTheRecord  (2026-10-24T22:51:11Z)
   ok   a marker line beside a quotation exits 0
   ok   and nothing is reported
   ok   the reader takes the marker's own line
 PASS check#aMarkerLineBesideAQuotationIsTheRecord
 exit=0
-=== fixed tree: bash tools/issue-tooling-selftest.sh --case prioritise#theWriteKeepsAQuotation
+=== fixed tree: bash tools/issue-tooling-selftest.sh --case prioritise#theWriteKeepsAQuotation  (2026-10-24T22:51:12Z)
 PASS prioritise#theWriteKeepsAQuotation
 exit=0

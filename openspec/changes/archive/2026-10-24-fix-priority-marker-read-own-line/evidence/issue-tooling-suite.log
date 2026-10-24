@@ -121,4 +121,4 @@ PASS check#aQuotationIsNotAMarker
 PASS check#aMarkerLineBesideAQuotationIsTheRecord
 PASS check#unrankedIsNotAViolation
 PASS check#selfCheckIsGreen
-issue-tooling-selftest: all 121 cases passed (JDK 27, offline, no token, HEAD f128f320, tools 1e57066399dd, 2026-10-24T22:18:55Z)
+issue-tooling-selftest: all 121 cases passed (JDK 27, offline, no token, HEAD 8d19f7fd, tools 956ae28b1603, 2026-10-24T22:51:00Z)

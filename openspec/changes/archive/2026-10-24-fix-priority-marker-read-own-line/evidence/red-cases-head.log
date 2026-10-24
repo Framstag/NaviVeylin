@@ -1,4 +1,4 @@
-=== HEAD: bash tools/issues/check-metadata-selftest.sh --case check#aQuotationIsNotAMarker
+=== HEAD f128f320d59dd1763ebb4354ec1a3274ccd895b4: bash tools/issues/check-metadata-selftest.sh --case check#aQuotationIsNotAMarker  (2026-10-24T22:51:08Z)
   ok   a body that only quotes the grammar exits non-zero
   FAIL and the missing record is what is reported: [label-without-marker] not found in: #31 band-mismatch: marker=p3 label=prio/p2
 check-metadata: 1 issue(s) checked · 1 violation(s)
@@ -6,14 +6,16 @@ check-metadata: 1 issue(s) checked · 1 violation(s)
   FAIL the quotation is not matched against the label: [band-mismatch] should not appear in: #31 band-mismatch: marker=p3 label=prio/p2
 check-metadata: 1 issue(s) checked · 1 violation(s)
   ok   and the quotation is not read as an incomplete record
+  FAIL the prose line that ends at the close is not the record: expected [] got [missing]
+  FAIL and the line that starts at the open but does not close is not one either: expected [] got [<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=abc at=2026-10-24 -->]
 exit=1
-=== HEAD: bash tools/issues/check-metadata-selftest.sh --case check#aMarkerLineBesideAQuotationIsTheRecord
+=== HEAD f128f320d59dd1763ebb4354ec1a3274ccd895b4: bash tools/issues/check-metadata-selftest.sh --case check#aMarkerLineBesideAQuotationIsTheRecord  (2026-10-24T22:51:08Z)
   FAIL a marker line beside a quotation exits 0: expected [0] got [1]
   FAIL and nothing is reported: [0 violation(s)] not found in: #31 band-mismatch: marker=p3 label=prio/p2
 check-metadata: 1 issue(s) checked · 1 violation(s)
   FAIL the reader takes the marker's own line: expected [p2] got [p3]
 exit=1
-=== HEAD: bash tools/issue-tooling-selftest.sh --case prioritise#theWriteKeepsAQuotation
+=== HEAD f128f320d59dd1763ebb4354ec1a3274ccd895b4: bash tools/issue-tooling-selftest.sh --case prioritise#theWriteKeepsAQuotation  (2026-10-24T22:51:09Z)
   and both quotations survive the write: expected '2', got '1'
 FAIL prioritise#theWriteKeepsAQuotation
 exit=1

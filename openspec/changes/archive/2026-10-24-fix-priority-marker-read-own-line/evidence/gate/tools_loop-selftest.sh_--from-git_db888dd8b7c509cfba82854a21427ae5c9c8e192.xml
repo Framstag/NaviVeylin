@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/loop-selftest.sh --from-git db888dd8b7c509cfba82854a21427ae5c9c8e192" tests="218" failures="0" errors="0" time="976">
-  <system-out>loop-selftest: all 218 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git db888dd8b7c509cfba82854a21427ae5c9c8e192 ended 1872466 — its working directory is inside loop-selftest.BrMnOj ended 2308440 — its working directory is inside loop-selftest.BrMnOj</system-out>
+<testsuite name="tools/loop-selftest.sh --from-git db888dd8b7c509cfba82854a21427ae5c9c8e192" tests="218" failures="0" errors="0" time="974">
+  <system-out>PASS gate#theDeltaHandsASuiteTheBaseItMeasured loop-selftest: all 218 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git db888dd8b7c509cfba82854a21427ae5c9c8e192 ended 2751663 — its working directory is inside loop-selftest.T7hwES</system-out>
 </testsuite>

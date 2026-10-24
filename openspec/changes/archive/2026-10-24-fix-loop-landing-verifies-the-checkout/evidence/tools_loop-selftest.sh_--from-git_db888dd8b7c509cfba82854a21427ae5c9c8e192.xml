@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git db888dd8b7c509cfba82854a21427ae5c9c8e192" tests="218" failures="1" errors="0" time="975">
+  <system-out>PASS gate#theDeltaHandsASuiteTheBaseItMeasured loop-selftest: 1 of 218 cases failed ended 3308264 — its working directory is inside loop-selftest.OZiUrz</system-out>
+</testsuite>

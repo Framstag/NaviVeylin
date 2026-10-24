@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The red-on-HEAD run of the two cases this change adds, against the engine at db888dd8b7c509cfba82854a21427ae5c9c8e192
+     (2026-10-24T20:12Z, ~9 s wall clock for the pair): the case file from this change, `tools/loop/worktree.sh` and
+     `tools/loop/state.sh` untouched at HEAD, then
+
+       bash tools/loop-selftest.sh --case 'worktree#refusesToMergeIntoATreeOffTheBaseBranch'
+       bash tools/loop-selftest.sh --case 'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry'
+
+     — each FAIL, exit 1. A single-case run prints no suite summary line, so the tally below is the two cases and
+     their two failures; the transcripts are evidence/red-on-head.log. Both failures are the same shape: the command
+     answered 0 where the guard owes 5, i.e. the merge was taken into a tree off the base branch and the base record
+     accepted a commit the base branch does not carry. -->
+<testsuite name="loop-selftest --case worktree#refusesToMergeIntoATreeOffTheBaseBranch --case state#setBaseRefusesACommitTheBaseBranchDoesNotCarry" tests="2" failures="2" errors="0">
+  <testcase name="worktree#refusesToMergeIntoATreeOffTheBaseBranch">
+    <failure>a project tree off the base branch refuses the merge: expected '5', got '0' — the merge was absorbed by `a-persons-branch` while `main` stayed where it was</failure>
+  </testcase>
+  <testcase name="state#setBaseRefusesACommitTheBaseBranchDoesNotCarry">
+    <failure>a commit the base branch does not carry is refused: expected '5', got '0' — the recorded base moved to a commit `main` does not have</failure>
+  </testcase>
+  <system-out>FAIL worktree#refusesToMergeIntoATreeOffTheBaseBranch loop-selftest: 1 of 1 cases failed FAIL state#setBaseRefusesACommitTheBaseBranchDoesNotCarry loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

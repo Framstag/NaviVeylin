@@ -1,0 +1,12 @@
+HEAD db888dd8b7c509cfba82854a21427ae5c9c8e192 · 2026-10-24T20:12Z
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+HEAD ist jetzt bei e05b102 init
+Zu neuem Branch 'fix/issue-21-demo' gewechselt
+  a project tree off the base branch refuses the merge: expected '5', got '0'
+FAIL worktree#refusesToMergeIntoATreeOffTheBaseBranch
+loop-selftest: 1 of 1 cases failed
+status=1
+  a commit the base branch does not carry is refused: expected '5', got '0'
+FAIL state#setBaseRefusesACommitTheBaseBranchDoesNotCarry
+loop-selftest: 1 of 1 cases failed
+status=1

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-mutations.sh --check" tests="145" failures="0" errors="0" time="1">
+  <system-out>loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.k1zMhw loop-mutations: all 145 cases passed — every selected record applies to the file it names</system-out>
+</testsuite>

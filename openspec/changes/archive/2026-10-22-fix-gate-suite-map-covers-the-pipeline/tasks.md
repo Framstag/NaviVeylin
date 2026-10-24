@@ -119,3 +119,8 @@ and file the gap as its own item.
 - [x] The three free corrections of round 3's report: `evidence.md`'s surface grep count, task 5's "the seven
       beside it" (six), and `gate-round3.log`'s missing exit marker, each replaced with what the artifact
       records; `invalid-3a-bare-invocation-old-profile.log` stays as the bare invocation's record.
+- [x] The four mutation records are renumbered **54.1–54.4**: 40.1–40.3 are already
+      `run#aCorrectiveRoundIsHandedTheCorrections`, so `--only "40.1 …"` selected seven records rather than
+      four. Re-run and captured as `evidence/round4-mutations.log` (`06:11Z`), both cases as
+      `evidence/round4-green-cases.log` (`06:12:56Z`), the comparison as `evidence/round4-map-vs-pipeline.txt`,
+      and the reviewer's refusal moved to `evidence/review-3-refused.md` so it is not read as a live refusal.

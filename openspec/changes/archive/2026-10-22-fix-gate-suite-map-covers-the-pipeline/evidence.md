@@ -1,7 +1,8 @@
 # Evidence — fix-gate-suite-map-covers-the-pipeline (issue #242)
 
-Base: `ee95d7160cb32c65b56979058338004f29db3edc`. All times UTC, 2026-10-22. Change root:
-`.pi/worktrees/loop`.
+Base: `ee95d7160cb32c65b56979058338004f29db3edc` for rounds 1–3; the round-4 artifacts are taken on the
+merged base `a06ef5ca`. All times UTC. Change root: `.pi/worktrees/loop` for rounds 1–3, `.pi/worktrees/242`
+for round 4.
 
 Three rounds are recorded here: the change as it was archived (round 1, times 04:41–04:54), the corrections
 review round 1 asked for (round 2, from 04:59), and review round 2's two blocking corrections (round 3, from
@@ -158,3 +159,22 @@ shape round 2 used and for the same reason. The trap the paragraph above describ
 round rather than quoted: a bare `./tools/loop/gate.sh` first owed only **four** commands — the run exports
 `LOOP_CONF` from the project tree, whose profile predates this change — so that invocation measured the old
 map and is kept as `evidence/invalid-3a-bare-invocation-old-profile.log`, not as the change's gate.
+
+## Review round 3 refused, and the round-4 corrections
+
+The reviewer's round-3 finding is kept whole as `evidence/review-3-refused.md` (moved off the
+`review-failed-round-3.md` name so a later run's adoption check does not read the change as refused after the
+owner answered the finding). The owner's answer was **option 1**: narrow the *claim* to the command side and
+file the path-side gap as **#289**. The round-4 artifacts, all on the merged base `a06ef5ca`:
+
+- `evidence/round4-green-cases.log` (`06:12:56Z`) — both cases pass, exit 0.
+- `evidence/round4-mutations.log` (`06:11Z`) — the four records renumbered **54.x** (40.x is
+  `run#aCorrectiveRoundIsHandedTheCorrections`) and re-run: all four RED on their named case, each green after
+  its restore, `red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0`, exit 0.
+- `evidence/round4-map-vs-pipeline.txt` — the map against the pipeline on the merged base: the map is 58 pairs,
+  the `comm -13` leaves nothing, and the pin's strip of the gate's own `--from-git {base}` is what makes the
+  loop pairs comparable with the pipeline's commands.
+- `evidence/gate-round4.log` — the gate, once, from the change root, `--base a06ef5ca`.
+
+The rounds-1–3 logs keep their original record ids (40.x); the renumbering to 54.x is what a reader of
+`tools/loop-mutations.sh` sees, and the round-2 logs are history rather than the current set.

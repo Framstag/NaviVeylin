@@ -654,6 +654,16 @@ split.
   build-cache-restored APK in `outputs/apk/` and a stale `build/outputs/sbom/*` both look exactly like a
   product bug. Compare content/mtime against the change, and probe a packaged literal rather than trusting
   the path.
+- **A test that reads a packaged asset reads the unit-test asset APK — mutate the asset's *source*, never a
+  task's output** (issue #45, TODO.md §17). Robolectric reads `app/build/intermediates/apk_for_local_test/
+  <variant>/package<Variant>UnitTestForUnitTest/apk-for-local-test.ap_`, which AGP rebuilds from the
+  variant's merged assets; measured 2026-10-24, moving one icon out of the submodule's raster leaf
+  re-executed `syncSubmoduleIcons` → `mergeMobileDebugAssets` → `packageMobileDebugUnitTestForUnitTest` and
+  the APK stopped carrying it, while an unchanged tree left the task `UP-TO-DATE` (7 s). The opposite note
+  of 2026-09-29 came from deleting a file from a `Sync` task's *output*: the sync restored it before the
+  test ran, so the merged assets never changed and the "stale APK" was the mutation's own artifact — which
+  is why the §10j trap one layer down says the same thing. Both halves are cases
+  (`tools/check-gate-artifacts-selftest.sh`).
 - **One mutation per revert check** (§40.12): a combined mutation masks the other behaviour and the
   assertion becomes vacuously true — mutate one guard, run every case it protects, restore, then force the
   green run.

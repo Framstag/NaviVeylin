@@ -1,0 +1,1 @@
+check-openspec-hygiene-selftest: all 6 cases passed (throwaway OpenSpec trees, no Gradle)

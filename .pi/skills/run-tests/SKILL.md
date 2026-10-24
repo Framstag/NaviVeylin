@@ -94,6 +94,21 @@ command line. > Unknown command-line option '--tests'`, and `:osmscout-client-ja
 form. A single-class run therefore filters on the `…DebugUnitTest` task of its own module, e.g.
 `./gradlew :core:testDebugUnitTest --tests "com.naviveylin.core.LocationGrantTest"`.
 
+## Reading a packaged asset
+
+A case that reads a packaged file through Robolectric reads the **unit-test asset APK**
+(`app/build/intermediates/apk_for_local_test/<variant>/package<Variant>UnitTestForUnitTest/
+apk-for-local-test.ap_`), not the merged-assets tree on disk. It follows the assets —
+
+- **mutate the asset's source**, e.g. move one PNG out of
+  `app/src/main/cpp/libosmscout/libosmscout/data/icons/14x14/standard/`, then restore it. Deleting the file
+  from a `Sync` task's *output* (`app/build/generated/assets/…`) proves nothing: the sync restores it, the
+  merged assets never change, and the APK — with it the test's world — is untouched (issue #45, 2026-09-29);
+- **probe the packaged file itself** when the assertion and the disk disagree: `unzip -l <the .ap_> | grep
+  <the asset path>`. The two cases that pin this behaviour, one per direction, are
+  `bash tools/check-gate-artifacts-selftest.sh` (`gateArtifacts#…`); the rule and the measurement are
+  `guidelines/Build.md` §4f.
+
 ## Reports
 
 - HTML: `app/build/reports/tests/testMobileDebugUnitTest/index.html` (or `testAutomotiveDebugUnitTest`)

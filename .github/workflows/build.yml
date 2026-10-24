@@ -104,36 +104,13 @@ jobs:
       #      The pass is a `find` over openspec/specs/ because 7 capability
       #      specs sit one level deeper (auto/*, share/*) and a flat glob
       #      cannot see them.
+      #      The three classes live in `tools/check-openspec-hygiene.sh` — one home, so this step and the
+      #      self-test that breaks each class in a throwaway tree run the same code (issue #45). A class
+      #      no case has ever violated is not what guards the artifacts.
       - name: Check OpenSpec artifact hygiene
         run: |
-          set -euo pipefail
-          fail=0
-          for f in openspec/changes/*/tasks.md; do
-            [ -e "$f" ] || continue
-            if ! grep -qE '^- \[[ x]\]' "$f"; then
-              echo "::error file=$f::no '- [x]' / '- [ ]' task markers — the parser reports 0 tasks"
-              fail=1
-            fi
-            if grep -qE '^[0-9]+\. \[[ x]\]' "$f"; then
-              echo "::error file=$f::bare numbered task marker — use '- [x] N.M' under a '## N.' heading"
-              fail=1
-            fi
-          done
-          bad=$(awk '/^  (apply|archive):/{inop=1;next} /^  [a-z-]+:/{inop=0} inop && /^      - /{ line=$0; sub(/^      - /,"",line); if (line !~ /^"/ && line ~ /: /) print line }' openspec/config.yaml)
-          if [ -n "$bad" ]; then
-            echo "::error file=openspec/config.yaml::unquoted guidance entry containing ': ' (parses as a mapping; the operation's guidance is dropped)"
-            printf '%s\n' "$bad"
-            fail=1
-          fi
-          spec_bad=$(find openspec/specs -name spec.md -exec awk '/^## Purpose/{inp=1;next} inp&&/^## /{inp=0} inp&&/TBD - created by archiving/{printf "%s:%d\n", FILENAME, FNR}' {} +)
-          if [ -n "$spec_bad" ]; then
-            echo "::error::a capability spec's '## Purpose' is still the archive placeholder — write what the capability is for (a delta's Purpose is read only when the capability is created)"
-            printf '%s\n' "$spec_bad"
-            fail=1
-          fi
-          [ "$fail" -eq 0 ] || exit 1
-          echo "Every capability spec states its Purpose."
-          echo "OpenSpec artifacts are consistent."
+          bash tools/check-openspec-hygiene.sh
+          bash tools/check-openspec-hygiene-selftest.sh
 
       # ── capability classification ──────────────────────────────
       # TODO.md §157 / issue #101: nothing forced a change to classify the capability spec it
@@ -538,6 +515,16 @@ jobs:
             echo -n "$d: "
             awk -F'"' '/testsuite /{t+=$4;f+=$8;e+=$10;c++} END{printf "%d classes, %d tests, %d failures, %d errors\n", c, t, f, e}' "$d"/TEST-*.xml 2>/dev/null || echo "no result XML"
           done
+
+      # ── the gate's artifacts, measured ─────────────────────────
+      # Two shipped requirements of `build-test-gate` that a task list alone cannot settle (issue #45,
+      # TODO.md §17): `-PforceTests` has to make the test tasks execute while leaving the module compile
+      # up to date, and the unit-test asset APK has to follow the merged assets — a Robolectric case that
+      # reads a packaged asset reads that APK, so a stale one makes the case lie. The step moves one icon
+      # out of the submodule's raster leaf, restores it, and needs what the steps above already provided:
+      # the vcpkg tree (the licence inventory is a variant asset source) and the SBOM CLI.
+      - name: Check the gate's artifacts
+        run: bash tools/check-gate-artifacts-selftest.sh
 
       # Code coverage (report-only, no gate): root Kover tasks merge
       # app/auto/core unit-test coverage into one HTML+XML report; the

@@ -1,0 +1,20 @@
+$ git worktree add --detach .pi/worktrees/i288-baseline 9e77cd69cc2a0fc6fa51d68f145c5f22594f558e   # main's tip, clean
+
+$ bash tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+exit=1
+
+$ bash tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+exit=1
+
+$ bash tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+exit=1
+

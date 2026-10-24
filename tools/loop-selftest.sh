@@ -47,7 +47,10 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-for tool in bash jq git java javac; do
+# `pgrep` is required because the attribution asks the kernel for the child's own process tree (run.sh,
+# `loop_tree_pids`): a sweep over every process costs about a second, which is longer than the writer lives
+# (issue #288). A host without procps must refuse the suite here rather than attribute nothing silently.
+for tool in bash jq git java javac pgrep; do
   command -v "$tool" >/dev/null 2>&1 || {
     echo "loop-selftest: $tool is required" >&2
     exit 2

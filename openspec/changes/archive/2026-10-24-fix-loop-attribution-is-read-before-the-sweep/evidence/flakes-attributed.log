@@ -1,0 +1,9 @@
+$ # the two cases the gate's second run saw red, each run alone on the same tree
+
+$ bash tools/loop-selftest.sh --case run#prescreenAnnouncesItselfBeforeItReturns
+  the phase is announced on the console: 'loop: pre-screen' not found in: 
+FAIL run#prescreenAnnouncesItselfBeforeItReturns
+loop-selftest: 1 of 1 cases failed
+
+$ bash tools/loop-selftest.sh --case run#childOutlastingTheWallClockIsBlocked
+PASS run#childOutlastingTheWallClockIsBlocked

@@ -1,0 +1,10 @@
+$ for c in run#childWriteOutsideTheWorktreeIsNoted run#strictOutsideWriteBlocksTheItem run#strictOutsideWriteDiscardsTheReviewRound run#dirtyBaseRefusesTheMergeAndNamesThePath; do bash tools/loop-selftest.sh --case $c; done
+
+PASS run#childWriteOutsideTheWorktreeIsNoted
+exit=0
+PASS run#strictOutsideWriteBlocksTheItem
+exit=0
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+exit=0
+PASS run#dirtyBaseRefusesTheMergeAndNamesThePath
+exit=0

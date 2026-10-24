@@ -354,7 +354,18 @@ jobs:
             echo "::error file=gradle.properties::the versioned property source must carry no org.gradle.java.home — a machine-local absolute path selects no JVM where the criteria apply and is wrong on every other machine; delete the line (guidelines/Build.md §2, issue #91)"
             exit 1
           fi
-          echo "daemon JVM criteria: version 21, no vendor, no package id."
+          # The build logic compiles with the daemon JVM the criteria select, so it must declare no toolchain of
+          # its own: buildSrc has no settings.gradle.kts, the foojay resolver the root settings applies never
+          # reaches its build, and a toolchain it cannot auto-detect fails the configuration of the whole build
+          # before its first task (issue #92). The `sed` strips `//` comments, so the file may explain the rule it
+          # must not violate, and the case `BuildSrcJvmRequirementTest` asserts the same absence on the host.
+          f=buildSrc/build.gradle.kts
+          [ -f "$f" ] || { echo "::error file=$f::missing"; exit 1; }
+          if sed 's|//.*||' "$f" | grep -nE 'toolchain|languageVersion|JavaLanguageVersion'; then
+            echo "::error file=$f::buildSrc must declare no JVM toolchain of its own — a toolchain it cannot provision fails the configuration on a machine without that JDK; it compiles with the daemon JVM the criteria select (guidelines/Build.md §2d, issue #92)"
+            exit 1
+          fi
+          echo "daemon JVM criteria: version 21, no vendor, no package id, no buildSrc toolchain."
 
       # ── Android SDK ──────────────────────────────────────────
       - name: Cache Android SDK

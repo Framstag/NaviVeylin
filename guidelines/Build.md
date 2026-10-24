@@ -327,20 +327,33 @@ grep '^toolchainUrl\.' gradle/gradle-daemon-jvm.properties | while IFS='=' read 
 # auto-detection off, the only way to a daemon JVM is the criteria URL. Expect BUILD SUCCESSFUL and a
 # provisioned JDK under the scratch home (measured 2026-10-06: eclipse_adoptium-21-amd64-linux.2 unpacked
 # from OpenJDK21U-jdk_x64_linux_hotspot_21-any-vendor-21.0.12.1_1.tar.gz, the daemon running on it,
-# BUILD SUCCESSFUL in 1m11s). Do NOT run this in this repository: buildSrc compiles with a Java 17
-# toolchain it can only auto-detect (TODO.md §146), so disabling auto-detection here fails in buildSrc
-# configuration after 700 ms and says nothing about the daemon.
+# BUILD SUCCESSFUL in 1m11s).
 mkdir -p /tmp/djvm-probe/gradle && cp gradle/gradle-daemon-jvm.properties /tmp/djvm-probe/gradle/
 printf 'rootProject.name = "probe"\n' > /tmp/djvm-probe/settings.gradle.kts
 ./gradlew -p /tmp/djvm-probe -g /tmp/djvm-probe-home -Dorg.gradle.java.installations.auto-detect=false help
+
+# the build logic needs no second JVM (issue #92): the same invocation in THIS repository configures, because
+# buildSrc declares no toolchain of its own and compiles with the daemon JVM the criteria select. Expect
+# BUILD SUCCESSFUL. It was `BUILD FAILED in 645ms` — "Cannot find a Java installation … matching:
+# {languageVersion=17 …}. Toolchain download repositories have not been configured." — while buildSrc pinned a
+# Java 17 toolchain that no machine could provision; measured 2026-10-24.
+./gradlew -Dorg.gradle.java.installations.auto-detect=false help
 ```
 
 A green `assembleDebug` proves nothing about this on a workstation that has JBR 21 — the download never
 happens there. The CI run is the only evidence that the runner's installed Temurin 21 is accepted (if a run
 still provisions, the criteria are not the reason the daemon starts, and the fallback is to install the
-same JBR the criteria would name). And the daemon JVM is not the only JVM the build needs: `buildSrc`
-compiles with a Java 17 toolchain that must be detectable locally — a second requirement, tracked as
-`TODO.md` §146.
+same JBR the criteria would name). The daemon JVM is the **only** JVM the build needs, and a check now proves
+it: `buildSrc` compiles its build logic with the daemon JVM the criteria select (21) and declares no toolchain
+of its own, so a machine that satisfies the criteria also configures `buildSrc` without a second installation.
+It declared a Java 17 **toolchain** from 2026-10-06 to 2026-10-24 (issue #92, migrated `TODO.md` §146), which
+nothing could provision — `buildSrc` has no `settings.gradle.kts`, so the foojay resolver above never reaches
+its build, and only auto-detection could satisfy it — so a machine without a JDK 17 failed at configuration
+before its first task, with a message that named neither the file nor the fix. The pin bought nothing either:
+`buildSrc` carries no Java source at all (`:buildSrc:compileJava NO-SOURCE`), so the toolchain only ever set
+Kotlin's `jvmTarget`. Two surfaces hold the absence in place — the `:app` case `BuildSrcJvmRequirementTest`
+("the build script names no JVM of its own") and the buildSrc predicate of the CI step above — and the
+invocation at the end of the checks block is the reproduction: green now, `BUILD FAILED in 645ms` before.
 
 ## 2e. The actions' Node runtime
 

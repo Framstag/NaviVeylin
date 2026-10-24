@@ -2687,7 +2687,7 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
 # says so — a new step escapes until someone adds it, the cost the map's owner accepted over running every step
 # for every item.
 case_gate_theMapCoversEveryPipelineStep() {
-  # files: tools/loop/loop.conf
+  # files: tools/loop/loop.conf .github/workflows/build.yml
   local conf pipeline cmds map missing
   conf="$LOOP_ENGINE/loop.conf"
   # The key is recorded even when it is empty, like `LOOP_GATE_CMD`: a profile that names no pipeline has to say
@@ -2728,7 +2728,7 @@ case_gate_theMapCoversEveryPipelineStep() {
 # that step's commands. Before the map was completed this path owed *nothing* and the gate exited 0 — the shape
 # of the 2026-10-21 landing that reddened `main` (issue #242).
 case_gate_aPipelineCheckIsOwedByItsPaths() {
-  # files: tools/loop/loop.conf
+  # files: tools/loop/loop.conf tools/loop/gate.sh tools/build-inputs.sh tools/build-inputs-selftest.sh tools/build-inputs-mutations.sh tools/check-portability.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf base plan
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"

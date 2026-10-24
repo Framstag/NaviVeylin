@@ -124,6 +124,9 @@ and file the gap as its own item.
       fails identically on the base (`evidence/round4-baseline-failure.log`, `a06ef5ca` clean) and is filed as
       #287/#288, so it is attributed to the base and not to this change. The delta's own cases and mutations are
       green (`evidence/round4-green-cases.log`, `evidence/round4-mutations.log`).
+- [x] The portability gate, run by hand because the map does not route `tools/loop/loop.conf` to it (the
+      residual #289): `tools/check-portability.sh` green; `tools/check-portability-selftest.sh` 26/27, the one
+      failure `foreign#fixtureDeclaresEveryBudgetDefault` red on `main` too (#290), so attributed to the base.
 - [x] The four mutation records are renumbered **54.1–54.4**: 40.1–40.3 are already
       `run#aCorrectiveRoundIsHandedTheCorrections`, so `--only "40.1 …"` selected seven records rather than
       four. Re-run and captured as `evidence/round4-mutations.log` (`06:11Z`), both cases as

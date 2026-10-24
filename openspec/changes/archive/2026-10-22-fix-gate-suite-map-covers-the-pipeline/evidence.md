@@ -183,3 +183,15 @@ file the path-side gap as **#289**. The round-4 artifacts, all on the merged bas
 
 The rounds-1–3 logs keep their original record ids (40.x); the renumbering to 54.x is what a reader of
 `tools/loop-mutations.sh` sees, and the round-2 logs are history rather than the current set.
+
+## The portability gate, run by hand because the map does not route this change's own file to it
+
+This change edits `tools/loop/loop.conf`, which is exactly the path the map does not route to `Check
+portability` (the residual #289 names), so the gate did not run that step and it was run by hand:
+
+- `bash tools/check-portability.sh` — `OK — 47 engines and 2 templates name no project value`, exit 0.
+- `bash tools/check-portability-selftest.sh` — `1 of 27 cases failed`: `foreign#fixtureDeclaresEveryBudgetDefault`
+  (`LOOP_STRICT_OUTSIDE_WRITE_DEFAULT` missing from `tools/fixtures/foreign-project/tools/loop/loop.conf`).
+  That failure is **not this change's**: the same command on a clean checkout of `main` (`9e77cd69`) fails the
+  same case, and it is filed as #290. It is named here because a reader of `main` sees it at `Check portability`
+  and could otherwise take it for this change's.

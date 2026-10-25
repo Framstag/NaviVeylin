@@ -30,7 +30,10 @@ SENSOR_CASES=(
   'run#errorPostsNothingAndFails'
   'run#errorIsNeverTreatedAsClear'
   'run#noBaselineFileWritten'
+  'run#aClearWithNoIssueReachesTheRecord'
+  'lib#theRecordIsNotACondition'
   'report#printsACountingLinePerRow'
+  'report#aGreenRowIsNotNever'
   'update#commentPostsExactlyOnce'
   'update#commentRefusesOnPolicyFailure'
   'close#sensorScopeRefusesAForeignIssue'
@@ -84,7 +87,10 @@ sensor_run_case() {
     'run#errorPostsNothingAndFails') case_run_errorPostsNothingAndFails ;;
     'run#errorIsNeverTreatedAsClear') case_run_errorIsNeverTreatedAsClear ;;
     'run#noBaselineFileWritten') case_run_noBaselineFileWritten ;;
+    'run#aClearWithNoIssueReachesTheRecord') case_run_aClearWithNoIssueReachesTheRecord ;;
+    'lib#theRecordIsNotACondition') case_lib_theRecordIsNotACondition ;;
     'report#printsACountingLinePerRow') case_report_printsACountingLinePerRow ;;
+    'report#aGreenRowIsNotNever') case_report_aGreenRowIsNotNever ;;
     'update#commentPostsExactlyOnce') case_update_commentPostsExactlyOnce ;;
     'update#commentRefusesOnPolicyFailure') case_update_commentRefusesOnPolicyFailure ;;
     'close#sensorScopeRefusesAForeignIssue') case_close_sensorScopeRefusesAForeignIssue ;;
@@ -277,6 +283,20 @@ recorded() { # <log> <pattern>
     return 0
   fi
   count=$(grep -c -- "$2" "$1" 2>/dev/null)
+  printf '%s\n' "${count:-0}"
+}
+
+# The issues a run created that are a row's record rather than a condition: the record's own title says so
+# (issue #257), and a case has to tell the two apart now that a green row's clear files a record.
+record_creates() { # <log>
+  local count
+  count=$(grep -- 'issue create' "$1" 2>/dev/null | tr -d '\\' | grep -c 'sensor record:' 2>/dev/null || true)
+  printf '%s\n' "${count:-0}"
+}
+
+condition_creates() { # <log>
+  local count
+  count=$(grep -- 'issue create' "$1" 2>/dev/null | tr -d '\\' | grep -v 'sensor record:' | grep -c . 2>/dev/null || true)
   printf '%s\n' "${count:-0}"
 }
 
@@ -747,6 +767,65 @@ case_run_noBaselineFileWritten() {
   assert_empty "$hits" "the engine never names a side file"
 }
 
+# The clear that finds no condition issue is the defect issue #257 named: the run wrote nothing, so the
+# report read the row as one that never ran. The verdict now reaches the tracker on the row's record issue.
+case_run_aClearWithNoIssueReachesTheRecord() {
+  local dir findings log out status filed
+  dir=$(throwaway_project)
+  log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 42 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    bash "$SENSORS_ENGINE/run.sh" --only fixture-emit --apply --input "$findings" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the apply run succeeds: $out"
+  assert_contains "$out" "verdict=clear" "the green verdict is reported: $out"
+  assert_eq "1" "$(recorded "$log" 'issue create')" "the clear files the row's record issue"
+  assert_eq "1" "$(recorded "$log" 'issue comment')" "the measurement is recorded on the record"
+  filed=$(grep -- 'issue create' "$log" | tail -1 | tr -d '\\')
+  assert_contains "$filed" "sensor record: fixture-emit" "the record is named as the row's record"
+  assert_contains "$filed" "sensor/fixture-emit" "the record carries the row's own label"
+  assert_contains "$filed" "status/on-hold" "the registry's record state keeps it out of the queue"
+  assert_not_contains "$filed" "agent/eligible" "a record is not authorising"
+
+  # The record is found by its own marker, never by a fingerprint: a later run comments on it rather than
+  # filing a second record.
+  issues_fixture "$dir" "$(jq -nc \
+    --argjson record "$(issue_record 90 OPEN "" fixture-emit \
+      "$(printf 'the row record\n<!-- sensor-record: fixture-emit -->\n<!-- fingerprint: record-fixture-emit -->')" \
+      '[]')" \
+    '[$record]')"
+  : > "$log"
+  findings=$(write_findings "$dir/findings2.jsonl" "$(finding clear 43 case alpha)")
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    bash "$SENSORS_ENGINE/run.sh" --only fixture-emit --apply --input "$findings" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the second apply run succeeds: $out"
+  assert_eq "0" "$(recorded "$log" 'issue create')" "an existing record is not filed a second time"
+  assert_eq "1" "$(recorded "$log" 'issue comment')" "the measurement joins the existing record"
+  assert_contains "$(cat "$log")" "gh issue comment 90" "the measurement is posted on the record issue"
+}
+
+# A record issue is not a condition: its marker is not a fingerprint, so no sensor may read it as a
+# condition to clear (issue #257).
+case_lib_theRecordIsNotACondition() {
+  local out record condition
+  record=$(jq -nc '{number: 9, state: "OPEN", body: "the row record\n<!-- fingerprint: record-fixture-emit -->\n<!-- sensor-record: fixture-emit -->", comments: []}')
+  condition=$(jq -nc '{number: 8, state: "OPEN", body: "a condition\n<!-- condition: {\"path\":\"x\"} -->", comments: []}')
+  out=$(cd "$SENSORS_REPO_ROOT" && SENSORS_COND_INPUT="[$record]" bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve
+    sensors_conditions_json "$SENSORS_COND_INPUT"' 2>&1)
+  assert_eq "[]" "$out" "the row's record is not a condition: $out"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && SENSORS_COND_INPUT="[$condition]" bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve
+    sensors_conditions_json "$SENSORS_COND_INPUT"' 2>&1)
+  assert_contains "$out" '"condition":{"path":"x"}' "a condition issue is still read as one: $out"
+}
+
 case_report_printsACountingLinePerRow() {
   local dir out lines
   dir=$(scratch)
@@ -767,6 +846,27 @@ case_report_printsACountingLinePerRow() {
     "the seven fields, with the trend against the issue's own previous number"
   assert_contains "$out" "row=fixture-error last=never" "a row with no measurement says so"
   assert_contains "$out" "stale row=fixture-error" "a row that has not fired is flagged"
+}
+
+# The report's own distinction (#257): a row whose measurements are on its record issue ran and was green,
+# and must not read as one that never ran.
+case_report_aGreenRowIsNotNever() {
+  local dir out record_body
+  dir=$(scratch)
+  record_body=$(printf 'the row record\n<!-- sensor-record: fixture-emit -->\n<!-- fingerprint: record-fixture-emit -->\n<!-- occurrence: 0 -->')
+  issues_fixture "$dir" "$(jq -nc \
+    --argjson record "$(issue_record 41 OPEN "" fixture-emit "$record_body" \
+      "[$(marker_comment 2026-10-17T03:00:00Z fixture-emit record-fixture-emit clear 128285406)]")" \
+    '[$record]')"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine report.sh --registry "$(fixture registry.json)" --now 2026-10-17T04:00:00Z 2>&1)
+  assert_contains "$out" "row=fixture-emit last=2026-10-17T03:00:00Z verdict=clear measurement=128285406 issue=#41" \
+    "a green row's record is read as a measurement: $out"
+  assert_not_contains "$out" "row=fixture-emit last=never" "a row that ran is not reported as never"
+  assert_not_contains "$out" "stale row=fixture-emit" "a row that ran green is not stale"
+  assert_contains "$out" "row=fixture-error last=never" "a row with no measurement anywhere is still never"
+  assert_contains "$out" "stale row=fixture-error" "and is still flagged: $out"
 }
 
 # ----------------------------------------------------------------------------- 3. the three verbs
@@ -1122,7 +1222,10 @@ case_sensors_buildDurationRow() {
     sensor_engine run.sh --only build-duration --apply --input "$timing" 2>&1)
   status=$?
   assert_eq "0" "$status" "the first run succeeds: $out"
-  assert_eq "0" "$(recorded "$log" 'gh issue')" "no baseline means no issue"
+  # No baseline is a clear, and a clear with no condition issue reaches the tracker on the row's record: it
+  # is not a condition issue, so nothing a person has to read as a defect is filed.
+  assert_eq "0" "$(condition_creates "$log")" "no baseline means no condition issue"
+  assert_eq "1" "$(record_creates "$log")" "the clear is kept on the row's record"
 
   # second run: the issue's own record carries 100000ms, and 542000ms is past 100000 × 1.5
   log="$dir/calls2.log"; : > "$log"
@@ -1277,7 +1380,10 @@ case_sensors_coverageRow() {
     sensor_engine run.sh --only coverage --apply --input "$report" 2>&1)
   status=$?
   assert_eq "0" "$status" "the coverage run succeeds: $out"
-  assert_eq "1" "$(recorded "$log" 'issue create')" "the module under its floor is its own condition"
+  # The module under its floor is a condition issue; the module above it is a clear, which files the row's
+  # record instead.
+  assert_eq "1" "$(condition_creates "$log")" "the module under its floor is its own condition"
+  assert_eq "1" "$(record_creates "$log")" "the module inside its floor reaches the row's record"
   assert_contains "$out" "measurement=61.5" "the violating module's number is the measurement"
 
   # the same number again: the second run annotates the issue it already has
@@ -1288,7 +1394,7 @@ case_sensors_coverageRow() {
     "$(printf 'body\n<!-- fingerprint: %s -->' "$fp")")]"
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
     sensor_engine run.sh --only coverage --apply --input "$report" 2>&1)
-  assert_eq "0" "$(recorded "$log" 'issue create')" "the same module is not filed twice"
+  assert_eq "0" "$(condition_creates "$log")" "the same module is not filed a second condition"
   assert_contains "$(cat "$log")" "issue comment 111" "the measurement is recorded on the existing issue"
 }
 
@@ -1304,7 +1410,8 @@ case_sensors_brokenMainGreenReportsClear() {
     sensor_engine run.sh --only broken-main --apply --input "$artifact" --json 2>&1)
   assert_contains "$out" '"verdict":"clear"' "a green build reports a clear"
   assert_contains "$out" '"row":"broken-main"' "the finding is the row's own"
-  assert_eq "0" "$(recorded "$log" 'issue create')" "a green build files nothing"
+  assert_eq "0" "$(condition_creates "$log")" "a green build files no condition issue"
+  assert_eq "1" "$(record_creates "$log")" "a green build still reaches the tracker, on the row's record"
   assert_eq "0" "$(recorded "$log" 'issue close')" "and closes nothing, because no condition is recorded"
 }
 
@@ -1356,7 +1463,8 @@ case_sensors_prConflictsNothingReportsClear() {
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
     sensor_engine run.sh --only pr-conflicts --apply --json 2>&1)
   assert_contains "$out" '"verdict":"clear"' "no conflicting change reports a clear"
-  assert_eq "0" "$(recorded "$log" 'issue create')" "a project with no conflict files nothing"
+  assert_eq "0" "$(condition_creates "$log")" "a project with no conflict files no condition issue"
+  assert_eq "1" "$(record_creates "$log")" "the clear still reaches the tracker, on the row's record"
 }
 
 case_sensors_brokenMainFingerprintDistinguishesCauses() {

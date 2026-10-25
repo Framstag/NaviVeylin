@@ -89,6 +89,12 @@ SENSORS_FAILED=0
 SENSORS_CURRENT_ID=""
 export SENSORS_DRY_RUN
 
+# The record cache: one number per row whose record issue this run filed, so two clear findings of one row
+# file one record issue and not two (a row can print an orphan clear for more than one identity in one run).
+SENSORS_RECORD_STATE=$(mktemp -d "${TMPDIR:-/tmp}/sensors-record.XXXXXX") ||
+  sensors_die "run: cannot create a scratch directory"
+trap 'rm -rf "$SENSORS_RECORD_STATE"' EXIT
+
 sensors_resolve --profile "$profile_arg" --registry "$registry_arg"
 
 SENSORS_NOW="${now:-${SENSORS_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}}"
@@ -228,13 +234,16 @@ sensors_issue_body() { # <row> <finding> <baseline>
 
 # The labels a filed issue carries: its kind and area from the row, the ownership label from the row's
 # id, and the registry's fixed ones — neither engine names a value.
-sensors_labels_json() { # <row> <id>
-  local row="$1" id="$2" labels="[]" namespace value
+sensors_labels_json() { # <row> <id> [<status>]
+  local row="$1" id="$2" status="${3:-}" labels="[]" namespace value
   labels=$(jq -c --arg l "class${SENSORS_SEPARATOR}$(sensors_row_field "$row" class)" '. + [$l]' <<< "$labels")
   labels=$(jq -c --arg l "category${SENSORS_SEPARATOR}$(sensors_row_field "$row" category)" '. + [$l]' <<< "$labels")
   labels=$(jq -c --arg l "$(sensors_label "$id")" '. + [$l]' <<< "$labels")
   while IFS=$'\t' read -r namespace value; do
     [ -n "$namespace" ] || continue
+    # The record issue's state is the registry's, not the fixed set's: a record is not a work item
+    # (issue #257).
+    if [ -n "$status" ] && [ "$namespace" = "status" ]; then value="$status"; fi
     labels=$(jq -c --arg l "${namespace}${SENSORS_SEPARATOR}${value}" '. + [$l]' <<< "$labels")
   done < <(jq -r '.labels // {} | to_entries[] | [.key, .value] | @tsv' "$SENSORS_REGISTRY")
   printf '%s\n' "$labels"
@@ -257,6 +266,54 @@ sensors_file() { # <row> <id> <finding> <baseline>
   sensors_write "file a new issue for $id (fingerprint $fp, measurement $(jq -r '.measurement' <<< "$finding"))" \
     bash "$SENSORS_ISSUES_DIR/create.sh" --sensor "$id" --finding "$file"
   rm -f "$file"
+}
+
+# The body of a row's record issue: it names the row and carries the record's own marker, so the issue is
+# found again without a fingerprint and no finding a check reports can match it (issue #257).
+sensors_record_body() { # <row-id>
+  printf 'The `%s` check has no condition to carry a measurement, so its measurements are kept here.\n\n' "$1"
+  printf 'This issue is a record, not a condition: the check files it once, and every measurement it takes\n'
+  printf 'while no condition issue exists is posted as a comment below. That is how a check that ran and was\n'
+  printf 'green reaches the tracker as a verdict instead of as silence. No finding a check reports carries this\n'
+  printf "issue's identity, so the lifecycle never reopens or closes it.\n\n"
+  printf '<!-- sensor-record: %s -->\n<!-- occurrence: 0 -->\n' "$1"
+}
+
+# The row's record issue, filed once: the issue a green row's measurements go to, so the report can tell a row
+# that ran and was green from one that never ran (issue #257). It carries the row's label, kind and area like
+# any item, and the registry's own record state (`record.status`) so no run may take it — it is a record, never
+# a work item. The created issue's number comes back from the writer's own output, because the measurement that
+# made it necessary is posted on it in the same run.
+sensors_file_record() { # <row> <id> → the created issue's number, or empty
+  local row="$1" id="$2" status fp title claim body labels file out code number
+  status=$(sensors_registry_value '.record.status')
+  [ -n "$status" ] ||
+    sensors_refuse "$SENSORS_REGISTRY_BAD" "registry-record-status-missing" \
+      "the registry declares no .record.status, so a row's record would carry no state"
+  fp="record-$id"
+  title="sensor record: $id"
+  claim="the $id check's measurement record"
+  body=$(sensors_record_body "$id")
+  labels=$(sensors_labels_json "$row" "$id" "$status")
+  if [ "$SENSORS_DRY_RUN" -eq 1 ]; then
+    printf 'dry-run: would file the record issue for %s (fingerprint %s, status %s)\n' "$id" "$fp" "$status"
+    return 0
+  fi
+  file=$(mktemp) || sensors_die "run: cannot create a temporary file"
+  jq -n --arg title "$title" --arg class "$(sensors_row_field "$row" class)" \
+        --arg category "$(sensors_row_field "$row" category)" \
+        --arg claim "$claim" --arg fingerprint "$fp" --arg body "$body" --argjson labels "$labels" \
+    '{title: $title, class: $class, category: $category, claim: $claim,
+      fingerprint: $fingerprint, labels: $labels, body: $body}' > "$file"
+  out=$(bash "$SENSORS_ISSUES_DIR/create.sh" --sensor "$id" --finding "$file" 2>&1)
+  code=$?
+  rm -f "$file"
+  printf '%s\n' "$out" >&2
+  [ "$code" -eq 0 ] || return 0
+  number=$(printf '%s' "$out" | grep -oE '/issues/[0-9]+' | tail -1 | tr -dc '0-9')
+  [ -n "$number" ] ||
+    sensors_die "run: the record issue for $id was filed but the writer printed no number: $out"
+  printf '%s\n' "$number"
 }
 
 sensors_comment_file() { # <finding> <note> → the path of a temporary comment file
@@ -286,6 +343,44 @@ sensors_record() { # <row> <number> <finding> <body> <note>
   sensors_write "record the measurement on #$number ($(jq -r '.measurement' <<< "$finding"))" \
     bash "$SENSORS_ISSUES_DIR/update.sh" "$number" --body "$bodyfile" --comment-file "$commentfile"
   rm -f "$bodyfile" "$commentfile"
+}
+
+# One measurement posted as a comment, with no body write: a record issue's body carries no condition
+# counters, so there is nothing a run has to move there.
+sensors_comment() { # <number> <finding> <note>
+  local number="$1" finding="$2" note="$3" commentfile
+  commentfile=$(sensors_comment_file "$finding" "$note")
+  sensors_write "record the measurement on #$number ($(jq -r '.measurement' <<< "$finding"))" \
+    bash "$SENSORS_ISSUES_DIR/update.sh" "$number" --comment-file "$commentfile"
+  rm -f "$commentfile"
+}
+
+# The number of the row's record issue, filing it when the row has none: the record cache keeps one filing per
+# row per run, because a row can report more than one clear identity in one run.
+sensors_record_number() { # <row> <id> <issues> → the number, or empty
+  local row="$1" id="$2" issues="$3" issue number
+  if [ -f "$SENSORS_RECORD_STATE/$id" ]; then
+    cat "$SENSORS_RECORD_STATE/$id"
+    return 0
+  fi
+  issue=$(sensors_record_issue "$issues" "$id")
+  number=""
+  [ -n "$issue" ] && number=$(jq -r '.number // empty' <<< "$issue")
+  [ -n "$number" ] || number=$(sensors_file_record "$row" "$id")
+  [ -n "$number" ] || return 0
+  printf '%s\n' "$number" > "$SENSORS_RECORD_STATE/$id" 2>/dev/null || true
+  printf '%s\n' "$number"
+}
+
+# A clear whose condition no open issue carries is still a verdict: it reaches the tracker on the row's own
+# record issue, which the report reads beside the condition issues (issue #257).
+sensors_record_clear() { # <row> <id> <finding> <issues> → the record issue's number, or empty
+  local row="$1" id="$2" finding="$3" issues="$4" number
+  number=$(sensors_record_number "$row" "$id" "$issues")
+  [ -n "$number" ] || return 0
+  sensors_comment "$number" "$finding" \
+    "the check has no open condition; this measurement is kept on the row's record"
+  printf '%s\n' "$number"
 }
 
 sensors_close() { # <row> <number> <finding> <body>
@@ -396,17 +491,24 @@ sensors_outcome_violation() { # <row> <id> <finding> <issues> <baseline>
 
 sensors_outcome_clear() { # <row> <id> <finding> <issues>
   local row="$1" id="$2" finding="$3" issues="$4"
-  local fp issue number state body run n
+  local fp issue number state body run n record
   fp=$(jq -r '.fingerprint' <<< "$finding")
   issue=$(sensors_issue_for_fingerprint "$issues" "$fp")
   if [ -z "$issue" ]; then
-    sensors_report "$id" "$fp" clear "$(jq -r '.measurement' <<< "$finding")" "-" "nothing filed, nothing to clear"
+    # No condition issue carries this identity: the clear still reaches the tracker, on the row's record
+    # issue, so a row that ran and was green is not read as one that never ran (issue #257).
+    record=$(sensors_record_clear "$row" "$id" "$finding" "$issues")
+    sensors_report "$id" "$fp" clear "$(jq -r '.measurement' <<< "$finding")" "${record:--}" \
+      "recorded on the row's record"
     return 0
   fi
   number=$(jq -r '.number' <<< "$issue")
   state=$(jq -r '.state // "OPEN"' <<< "$issue")
   if [ "$state" != "OPEN" ]; then
-    sensors_report "$id" "$fp" clear "$(jq -r '.measurement' <<< "$finding")" "$number" "already closed"
+    # Nothing is left to close, but the run is still a measurement: it joins the row's own history.
+    record=$(sensors_record_clear "$row" "$id" "$finding" "$issues")
+    sensors_report "$id" "$fp" clear "$(jq -r '.measurement' <<< "$finding")" "${record:-$number}" \
+      "recorded on the row's record (the condition issue is already closed)"
     return 0
   fi
   body=$(jq -r '.body // ""' <<< "$issue")

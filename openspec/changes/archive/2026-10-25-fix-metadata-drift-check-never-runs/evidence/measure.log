@@ -1,0 +1,37 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=0f3426564b22faf1c2b8cf022050fef498470323 paths=7 insertions=168 deletions=5
+LOOP-MEASURE-PATH .github/workflows/sensors.yml
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH tools/issues/check-metadata.sh
+LOOP-MEASURE-PATH tools/sensor-cases.sh
+LOOP-MEASURE-PATH tools/sensor-mutations.sh
+LOOP-MEASURE-PATH tools/sensors/metrics/metadata-invariant.sh
+LOOP-MEASURE-PATH tools/sensors/sensors.json
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
+LOOP-MEASURE-CHECK tools/issues/metadata-mutations.sh --list
+LOOP-MEASURE-CHECK tools/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-mutations.sh --list
+LOOP-MEASURE-CHECK tools/check-action-runtimes.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/build-inputs-selftest.sh
+LOOP-MEASURE-CHECK tools/build-inputs.sh --check
+LOOP-MEASURE-CHECK tools/build-inputs-mutations.sh --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=231 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-metadata-drift-check-never-runs scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END

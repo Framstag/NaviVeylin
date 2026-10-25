@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/build-inputs.sh --check" tests="0" failures="0" errors="1" time="0">
+  <system-out>./tools/loop/gate.sh: Zeile 166: tools/build-inputs.sh: Keine Berechtigung</system-out>
+</testsuite>

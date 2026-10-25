@@ -1,0 +1,6 @@
+# tools/issues/check-metadata.sh --live — taken 2026-10-25T19:22:52Z on base 0f342656
+$ bash tools/issues/check-metadata.sh --live; echo "exit=$?"
+#305 label-without-marker: prio/p3
+#304 label-without-marker: prio/p3
+check-metadata: 306 issue(s) checked · 2 violation(s)
+exit=1

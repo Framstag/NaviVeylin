@@ -1,0 +1,45 @@
+# surface probe, 2026-10-25T19:23:27Z
+
+## callers of check-metadata.sh (tracker-reading caller in caps)
+tools/loop-cases.sh:2983:  # files: tools/loop/ tools/loop/loop.conf tools/loop/gate.sh tools/loop/worktree.sh tools/loop-selftest.sh tools/issues/ tools/issues/create.sh tools/issues/check-metadata.sh tools/check-portability.sh tools/check-portability-selftest.sh tools/mutate-selftest.sh tools/mutate.sh tools/portability-mutations.json tools/issue-tooling-selftest.sh tools/status-mutations.json tools/sensors/ tools/sensors/sensors.json tools/build-inputs.sh tools/build-inputs-selftest.sh tools/build-inputs-mutations.sh tools/tooling.json tools/pi-child-events.sh
+tools/loop-cases.sh:3011:  assert_contains "$plan" "tools/issues/check-metadata.sh" "and the issue-metadata step that reads it too: $plan"
+tools/loop-cases.sh:3023:  assert_contains "$plan" "tools/issues/check-metadata.sh" "and the issue-metadata step that reads it: $plan"
+tools/portability-cases.sh:367:           tools/issues/check-metadata.sh tools/issues/core/Profile.java tools/sensors/run.sh \
+tools/issues/lib.sh:340:# The marker is written by `prioritise.sh`, read by `check-metadata.sh` and by `list.sh`/`triage-todo`, and
+tools/issues/lib.sh:672:# `check-metadata.sh --write-log` can assert what the pass wrote instead of trusting it (D7). A write that
+tools/issues/check-metadata.sh:2:# check-metadata.sh — the priority invariant, as a command.
+tools/issues/check-metadata.sh:22:# Usage: check-metadata.sh [--live | --issues <file>] [--write-log <file>] [--json] [--profile <path>]
+tools/issues/check-metadata.sh:42:    *) issues_die "check-metadata: unknown argument $1" ;;
+tools/issues/check-metadata.sh:69:    printf 'check-metadata: %s issue(s) checked · %s violation(s)\n' "$checked" "$found"
+tools/issues/check-metadata.sh:77:band_edges=$(issues_core Bands edges --profile "$profile") || issues_die "check-metadata: the profile's bands do not parse"
+tools/issues/check-metadata.sh:78:band_range=$(issues_core Bands range --profile "$profile") || issues_die "check-metadata: the profile's scoring table does not parse"
+tools/issues/check-metadata.sh:110:  [ -f "$write_log" ] || issues_die "check-metadata: no such write log: $write_log"
+tools/issues/check-metadata.sh:126:    issues_die "check-metadata: gh could not read the tracker (--live needs a token)"
+tools/issues/check-metadata.sh:128:  [ -f "$issues_file" ] || issues_die "check-metadata: no such issue file: $issues_file"
+tools/issues/check-metadata.sh:131:    issues_die "check-metadata: $issues_file is not valid JSON"
+.github/workflows/build.yml:195:          bash tools/issues/check-metadata.sh
+guidelines/Backlog.md:31:| 5 | `issue-metadata-loop` | persisted priority and classification | **applied 2026-10-17** — `tools/issues/prioritise.sh` (the basis, the partition over every issue, the bounded run, the label+marker writer, the transition comment) and `classify.sh` (the queue of items with no kind), `check-metadata.sh` and its falsification, the `bands` section in `tools/tooling.json`, `list.sh --prio/--unranked`, the `issue-metadata` skill and the `triage-todo` rewrite; the run over the live tracker is recorded under the change's `evidence/` |
+helper/backlog-pass.sh:144:bash tools/issues/check-metadata.sh --live 2>&1 | tail -2
+.pi/skills/issue-metadata/SKILL.md:173:run, `tools/issues/check-metadata.sh --live` must be green, and `tools/issues/list.sh --prio p0 --json` must
+
+## files naming the registry row ids (stale-citations as the model)
+tools/resolve-stale-cases.sh
+tools/sensors/sensors.json
+tools/sensors/metrics/stale-citations.sh
+.github/workflows/sensors.yml
+guidelines/Backlog.md
+.pi/skills/cleanup-todo/SKILL.md
+
+## registry row count
+8
+
+## case files that mention the sensor registry
+tools/build-inputs-cases.sh
+tools/build-inputs.sh
+tools/check-portability.sh
+tools/issue-tooling-cases.sh
+tools/loop-cases.sh
+tools/loop-mutations.sh
+tools/portability-cases.sh
+tools/resolve-stale-cases.sh
+tools/sensor-cases.sh

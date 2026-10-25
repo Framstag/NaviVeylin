@@ -1182,11 +1182,25 @@ case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
     "and a base that refused the merge as the other"
   assert_eq "" "$(jq -r '.items[] | select(.issue == 23) | .stopReason // ""' "$f")" \
     "a block neither mechanism caused carries none"
+  # Both usage errors are refused *before* the record is written, so the state is the byte-identical file it was:
+  # asserting only the exit status would leave a writer that validates after `patch_state` unnoticed (issue #280,
+  # review round 1 — the clause was in the spec and no case read the state).
+  local before
+  before=$(cat "$f")
   out=$(run_state "$p" done 23 --result blocked --verdict blocked --stop-reason abandoned 2>&1); status=$?
   assert_eq "2" "$status" "a mechanism outside the vocabulary is a usage error"
   assert_contains "$out" "refused or unmergeable" "and the refusal names the two the record accepts"
+  assert_eq "$before" "$(cat "$f")" "and the state is not written, so the field cannot become prose"
   out=$(run_state "$p" done 23 --result done --verdict closed --stop-reason refused 2>&1); status=$?
   assert_eq "2" "$status" "a stop reason belongs to a block, not to a closure"
+  assert_eq "$before" "$(cat "$f")" "and that one writes nothing either"
+  # A second account of an item joins the note it already has and fills no mechanism the first record left empty:
+  # the field is the blocked attempt's own fact, not something a later account may add (issue #284's rule).
+  run_state "$p" done 23 --result blocked --verdict blocked --stop-reason refused \
+    --note "a second account of the same item" >/dev/null || fail "a second account of item 23 was refused"
+  assert_eq "" "$(jq -r '.items[] | select(.issue == 23) | .stopReason // ""' "$f")" \
+    "a mechanism that arrives with the second account does not fill the first record's"
+  assert_eq "3" "$(jq -r '.items | length' "$f")" "and the item keeps one record"
 }
 
 # A child is started with the run's identity in its environment (`run_child` exports `LOOP_STATE_FILE` and
@@ -6009,6 +6023,12 @@ case_report_aKilledRunIsNotALiveRun() {
 # acts on, so a case about the tail has to look at the tail and not at a line that happens to echo it.
 actions_block() { printf '%s\n' "$1" | sed -n '/^actions the caller owes:/,$p'; }
 
+# One cell of a table row, by the column's 1-based index in the row's own cells. A row starts and ends with `|`,
+# so `awk -F'|'`'s field `n+1` is cell `n`. A case that asserts "the mechanism column" has to read that column:
+# a substring taken from the whole row also matches a neighbour that happens to print the same word, which is how
+# the round-1 assertion for `-` matched the reason column instead of the stop column (issue #280, review round 1).
+table_cell() { printf '%s' "$1" | awk -F'|' -v n="$2" '{c=$(n+1); gsub(/^[ ]+|[ ]+$/,"",c); print c}'; }
+
 # The table has to answer the run's own questions on its own (#208): how did each item end — the verdict and,
 # when the result is not a closure, the item's own recorded reason — and what did it cost, read from the wall
 # time `done --wall` already recorded. Both facts were in the state and printed nowhere. The spend columns
@@ -6016,15 +6036,17 @@ actions_block() { printf '%s\n' "$1" | sed -n '/^actions the caller owes:/,$p'; 
 # row honest: the earlier columns stay where they were.
 case_report_wallTimeAndReasonInTheTable() {
   # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
-  local p out header row_done row_blocked
+  local p out header row_done row_blocked row_muted
   p=$(new_project)
-  init_state "$p" 2 90
-  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+  init_state "$p" 3 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' |
     run_state "$p" queue >/dev/null
   run_state "$p" done 21 --result done --verdict closed --wall 754 \
     --gate "tests=1 failures=0" --root-cause "the fixture has exactly one cause" >/dev/null
   run_state "$p" done 22 --result blocked --verdict blocked --stop-reason refused \
     --note "two mechanisms explain the symptom" --decision-label agent/needs-decision >/dev/null
+  run_state "$p" done 23 --result blocked --verdict blocked \
+    --note "no mechanism caused this one" >/dev/null
   out=$(run_report "$p") || fail "the report failed"
   header=$(printf '%s\n' "$out" | grep '^| issue |' || true)
   assert_contains "$header" "| wall |" "the table has a column for the item's wall time"
@@ -6032,21 +6054,35 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_contains "$header" "| stop |" "and one for the mechanism a block stopped on (issue #280)"
   row_done=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
   row_blocked=$(printf '%s\n' "$out" | grep '^| #22 |' || true)
+  row_muted=$(printf '%s\n' "$out" | grep '^| #23 |' || true)
   [ -n "$row_done" ] || fail "no table row for #21"
   assert_contains "$row_done" "12m34s" "754 s is printed as the item's wall time"
   assert_contains "$row_done" "| done |" "and the row still says how the item ended"
   assert_contains "$row_blocked" "two mechanisms explain the symptom" "the blocked item's own reason is printed"
   assert_contains "$row_blocked" "| blocked |" "beside its outcome"
   # The mechanism is a column of its own, so the spend beside it is totalled by mechanism without reading the
-  # note: a closure has none, a block names the one that stopped it.
-  assert_contains "$row_blocked" "| refused |" "and the mechanism that stopped it, in a column of its own"
-  assert_contains "$row_done" "| done | - |" "while a closure carries no mechanism"
+  # note: a closure has none, a block names the one that stopped it, and a block neither mechanism caused has
+  # none. Each of the three is read from column 15 itself — the round-1 assertion for the closure's `-` matched
+  # the *reason* column, which prints `-` for every closure, so the stop column was never read (issue #280,
+  # review round 1).
+  assert_eq "refused" "$(table_cell "$row_blocked" 15)" \
+    "the mechanism that stopped the block is in a column of its own"
+  assert_eq "-" "$(table_cell "$row_done" 15)" "while a closure's stop column prints -"
+  assert_eq "-" "$(table_cell "$row_muted" 15)" \
+    "and a block no mechanism caused prints - there too"
+  assert_eq "blocked" "$(table_cell "$row_muted" 13)" "that row is still a block"
+  assert_eq "no mechanism caused this one" "$(table_cell "$row_muted" 14)" \
+    "whose reason is its own note, so - in the stop column is not a row without a reason"
   # Fifteen columns, so sixteen separators: the wall, the reason and the three spend columns were added, then
   # the block's mechanism, and nothing was dropped.
+  # The row keeps its shape with the new column, and the block neither mechanism caused has the same shape as the
+  # others.
   assert_eq "16" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
     "the row keeps its fifteen columns"
   assert_eq "16" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
+  assert_eq "16" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
+    "and so does a block no mechanism caused"
 }
 
 # A provider that does not report usage leaves zeros in the stream, and a zero printed as a figure reads as a

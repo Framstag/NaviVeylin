@@ -473,7 +473,7 @@ cmd_done() {
     .items = (
       if ([.items[] | select(.issue == $i)] | length) == 0 then
         .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
-                  stopReason:$sr,
+                  stopReason:(if $sr == "" then null else $sr end),
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me},
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
@@ -596,7 +596,11 @@ cmd_report() {
                     | if $c == null then "" else " cost=$\(($c * 10000 | round) / 10000)" end)
             end) as $tokencol
        | ((.metrics.context // null) as $n | if $n == null then "-" else "\($n)" end) as $contextcol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \(.stopReason // "-") |") end),
+       # A record written before the field existed has no `stopReason`, one written since carries `null` when no
+       # mechanism is given, and only a mechanism block carries a word: all three print `-`, and `//` alone does
+       # not, because it yields the empty string for an empty one (#280, review round 1).
+       | ((.stopReason // "") | if . == "" then "-" else . end) as $stopcol
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

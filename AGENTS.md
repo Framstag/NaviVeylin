@@ -176,7 +176,6 @@ the tracker:
 | `triage-todo` | read-only — rank what is open from the persisted band and name the next change |
 | `cleanup-todo` | tracker hygiene: label/status repair, duplicates by fingerprint, `nvid` collisions, evidence before a closure |
 | `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
-| `fix-loop` | reference for the budgeted loop: where its contract (the spec `agent-issue-loop`), the worker's contract and the eligibility gate live, and the script that checks a change's evidence pointers; the entry is `tools/loop/run.sh --items N --minutes M` |
 
 ## Agent iteration loop (measure first)
 

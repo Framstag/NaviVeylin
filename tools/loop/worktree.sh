@@ -93,7 +93,9 @@ $dirty"
   done
   mkdir -p "$worktree/.pi/skills"
   cp -a "$LOOP_ROOT"/.pi/skills/openspec-* "$worktree/.pi/skills/" 2>/dev/null || true
-  cp -a "$LOOP_ROOT/.pi/skills/fix-loop" "$worktree/.pi/skills/" 2>/dev/null || true
+  # Only the *generated* skills are seeded: `.pi/skills/openspec-*` is gitignored, so a fresh worktree does not
+  # carry it, while the hand-written skills are versioned and arrive with the checkout. A copied one that is
+  # versioned was a second copy of the tree's own file and nothing read it (issue #255).
 
   # `VCPKG_ROOT` is exported for the children from a file inside the worktree, not as a symlink: a
   # symlink named `vcpkg` is untracked and pollutes `git status`, which the run reads for evidence.

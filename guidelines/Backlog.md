@@ -26,7 +26,7 @@ token, proves exactly that on every push.
 |---|---|---|---|
 | 1 | `github-issue-tooling` | the tracker surface: taxonomy, gate, identity, closure, the project profile | **applied 2026-10-17** — `tools/issues/**`, the project profile `tools/tooling.json`, four skills, an offline self-test and one CI step; the dry run over the prose backlog is recorded under the change's `evidence/`, and the tracker holds the 36 taxonomy labels and no issue |
 | 2 | `migrate-todo-to-github-issues` | the live import, the prose file deleted, every instruction rewired | **applied 2026-10-17** — 137 items imported (open, none authorised) and 21 retired tombstones, `list.sh --id N` resolving a citation, `tools/check-todo-references.sh` and its CI step, every instruction rewired, the prose file deleted; the run's record is `import-evidence.md` |
-| 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | **applied 2026-10-17** — `tools/loop/**` (the entry `run.sh`, the pre-screen, the state and its lock, the worktree and the branches, the label transitions, the report), two prompt skeletons filled from `loop.conf`, a stub `pi` and an offline self-test with one CI step; the two write paths the loop needed landed in the tooling (`update.sh --remove-label`, `close.sh --comment-only`); §7 and §11 of this document, the spec `agent-issue-loop` and the `fix-loop` skill describe it |
+| 3 | `agent-issue-loop` | the budgeted loop, its isolation, its refusals | **applied 2026-10-17** — `tools/loop/**` (the entry `run.sh`, the pre-screen, the state and its lock, the worktree and the branches, the label transitions, the report), two prompt skeletons filled from `loop.conf`, a stub `pi` and an offline self-test with one CI step; the two write paths the loop needed landed in the tooling (`update.sh --remove-label`, `close.sh --comment-only`); §7 and §11 of this document and the spec `agent-issue-loop` describe it |
 | 4 | `sensor-registry-and-metric-issues` | declared checks that keep the tracker honest | **applied 2026-10-17** — `tools/sensors/**` (the registry `sensors.json`, the runner, the guards, the report, the hotspot measurement, the four metric rows and the two condition sensors), a fixture harness offline against the stub `gh` with one CI step, the three verbs the runner writes through extended (`create.sh --sensor`, `close.sh --sensor`, the new `reopen.sh`), the isolated pipeline `.github/workflows/sensors.yml` with its CODEOWNERS entry, and `labels.sh` learning the registry's labels; the host dry runs, the falsification run and the not-reproducible CI steps are recorded under the change's `report.md` |
 | 5 | `issue-metadata-loop` | persisted priority and classification | **applied 2026-10-17** — `tools/issues/prioritise.sh` (the basis, the partition over every issue, the bounded run, the label+marker writer, the transition comment) and `classify.sh` (the queue of items with no kind), `check-metadata.sh` and its falsification, the `bands` section in `tools/tooling.json`, `list.sh --prio/--unranked`, the `issue-metadata` skill and the `triage-todo` rewrite; the run over the live tracker is recorded under the change's `evidence/` |
 | 6 | `tooling-portability` | the proof that another project can use all of it | **applied 2026-10-18** — `tools/check-portability.sh` (the leak check, its value set read from the profile and the per-tool configs at run time) with `tools/check-portability-selftest.sh` and its 21 cases, `tools/mutate.sh` with the seven revert-checks as a versioned mutation set, the two skills `portability-check` and `mutation-runner`, the synthetic project `tools/fixtures/foreign-project/` on which the whole toolchain runs without an engine edit, `PORTING.md` (the recipe, its commands executed by the self-test), one `Check portability` CI step and the check's own classification line; no engine file was changed — the check is the proof, not a fix |
@@ -287,6 +287,57 @@ it failed with `expected 'blocked', got 'done'`.
 What is not relaxed is the landing rule — a base that is still not clean when the item lands
 refuses the merge and records the status line it carries, because that guard is about what may be merged onto,
 not about who wrote it.
+
+What an item costs, and the floor it is refused by. Measured over the loop's runs: an archived change 40–65 min
+(gate 5–7 min, review 5–10, archive 5, and #138 took 65 because it needed a second review round), a gated-out skip
+10–15 min **with** the cheap-first rule and 20–25 without, a cold loop worktree's first build 11 min (a single test
+class is 1–3 min after that), a forced both-flavor gate 4m42s–6m41s — and that run overwrites the previous run's
+XML evidence, which is why a cited XML is copied into the change's `evidence/` — and one item 100 min
+(2026-10-19, #126: a worker phase of 83 min plus three review rounds, the item the constant floor could not pay
+for). The floor `state.sh next` refuses by is therefore not a constant: the median of the run's own finished wall
+times × 1.5, rounded up, with `LOOP_ITEM_FLOOR_MINUTES` as its lower bound — 1.5 being the spread the numbers
+above already show (65/45 inside the change range, 100/65 for the #126 item), so a run of typical items gets a
+floor just above them, a run of skips keeps the configured minimum, and one expensive item among cheap ones does
+not move the median at all.
+
+The clock is not the only budget an item spends. Measured 2026-10-19 (issue #209) on one host: #126's gate found
+194 MB free RAM and 18 GB of swap and spent 30 min inside `:app:kspMobileDebugUnitTestKotlin`, the same 5 680
+tests took 3m47s on the same tree when the machine was quiet, and a `free` taken during another run read 467 MB
+free / 2 499 MB available with 13 915 MB of 37 887 MB swap used — Firefox 7 600 MB, three VS Code language-server
+JVMs 2 282 MB, Gradle/Kotlin daemons 1 625 MB, `cpptools` 407 MB, the loop's own children 649 MB. The loop was the
+smallest consumer and the one that failed, and its `wallSeconds` measured the desktop session. The run therefore
+reads `MemAvailable` (the file `LOOP_MEMINFO_PATH` names, `/proc/meminfo` here) before an item's first child and
+compares it with `LOOP_MIN_FREE_MIB` (1024 MiB): below the floor the item is recorded `blocked` with the
+measurement and the run stops, because a shorter `wallSeconds` on a starved host is not a cheaper item.
+`MemAvailable`, not `MemFree`, is the number: on the host this was measured, `free` read 8 383 MiB free against
+11 505 MiB available at the same moment, so `MemFree` would refuse a host that can pay.
+
+What the gate and the pre-screen are worth, measured on the first run (2026-10-09): 12 candidates, 3 archived, 9
+gated out; a second pass over all 31 `class: bug` entries → `eligible: none`; a later run 0 closed, 32 skipped. All
+3 archived changes had a red-on-HEAD case (e.g. `42.67 dp < 48 dp`); review took 4 rounds and both FAILs were
+about claims and pointers, never the fix; condition 3 rejected 5 of the 9 gated candidates (an owner decision,
+unspecified semantics, competing fixes); each of the 3 archived changes touched **one** production file; the gate
+read `mobile 1752/0 · automotive 1752/0 · 20 executed · FROM-CACHE 0`. Without the pre-screen 5 of 8 candidates
+were ineligible, each rejection taking ~10 min with a citation against a ~40 min analysis. The skip verdicts of
+that second pass were `needs-device 8 · needs-decision 7 · in-flight 7 · refuted 4 · too-wide 2 · stale 2 ·
+unspecifiable 1 · needs-diagnosis 1` — **not one** died on the item's class, which is why the class is a ranking
+input and not a gate, and the category beside it is ranked the same way: the profile's `firstCategories` lead the
+queue in the classes `firstCategoryClasses` names (harness bugs), and their other classes are mixed in one after
+every `firstCategoryEvery` item.
+
+The state a run replaces, and what a kept tree keeps. `.pi/issue-loop/run.json` is the run's only record, and
+`state.sh init` writes over it — so it copies the file it replaces to `runs/<run.startedAt>.json` beside it
+(`LOOP_RUNS_DIR` moves that directory) and announces on stderr, without refusing, when the state it replaces never
+recorded a stop reason. Measured 2026-10-20: a later 30-minute run re-initialised the file, and the 100-item /
+480-minute run under review had to be reconstructed from the console transcript and `.pi/issue-loop/items/*`. Such
+a run is reported with `tools/loop/report.sh --state .pi/issue-loop/runs/<startedAt>.json`, and a state whose
+window closed without a stop reads `budget left unknown: these numbers belong to another run …` rather than a
+negative budget (issue #207). Keeping the worktree is a decision about the *checkout* — the next run inherits the
+repository, the submodule and the git state and skips the measured 11-minute cold build — and not about the build
+output: no item reads it, every build regenerates it, and it is the largest thing on the developer host's disk.
+Measured 2026-10-20 (issue #210), on a root filesystem at 88 % (391 GB of 471 GB): the kept loop worktree 3.2 GB,
+of which one module's build output 1.9 GB, and `loop-selftest.*` scratch trees of killed suites 90 MB across four
+trees. `tools/loop/loop-clean.sh` reports what is left, `--apply` removes it, and the command is safe to repeat.
 
 What bounds it: the budget is consulted between items, so the run also bounds **one child** by its own
 recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 45 min). A child that outlasts it is ended together with

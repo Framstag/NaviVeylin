@@ -732,8 +732,9 @@ case_foreign_emptyGateCommandStillRunsThePhases() {
   p=$(foreign_tree)
   foreign_env "$p"
 
-  # the scaffolding a run needs in any project: a worktree source, an archive, the skills the loop copies
-  mkdir -p "$p/.pi/skills/fix-loop" "$p/.pi/skills/openspec-apply-change" \
+  # the scaffolding a run needs in any project: a worktree source, an archive, and the generated skill the loop
+  # seeds — only `openspec-*` is copied into a worktree, a versioned skill arrives with the checkout (issue #255)
+  mkdir -p "$p/.pi/skills/openspec-apply-change" \
            "$p/app/src/main/cpp/libosmscout" "$p/openspec/changes/archive"
   # The stub `gh` and the stub `pi` keep their record inside the fixture — `gh/issues.json` it rewrites,
   # `gh.log` and `pi.log` they append to, and the worker's two files the case writes. Those are the suite's
@@ -742,7 +743,6 @@ case_foreign_emptyGateCommandStillRunsThePhases() {
   # not clean" while the engine was right (measured 2026-10-21, the CI failure of this case).
   printf '.pi/\napp/build/\ngh/\ngh.log\npi.log\nworker-action.sh\nworker-report.txt\n' > "$p/.gitignore"
   printf 'cmake_minimum_required(VERSION 3.22)\n' > "$p/app/src/main/cpp/libosmscout/CMakeLists.txt"
-  printf -- '---\nname: fix-loop\n---\nfixture skill\n' > "$p/.pi/skills/fix-loop/SKILL.md"
   printf 'fixture skill\n' > "$p/.pi/skills/openspec-apply-change/SKILL.md"
   git_commit "$p" "the loop's scaffolding"
 

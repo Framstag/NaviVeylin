@@ -167,7 +167,7 @@ failure is open. Tests red after three focused attempts is `blocked`, not "adjus
    the versioned half, and the run refuses an item whose change cites a test result but carries none — and
    keep a copy in `{{EVIDENCE_DIR}}` as well, which is where the run reads the reports and the diff.
    Then check the pointers mechanically, from the change root:
-   `bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/<change-name> --root .` — it resolves
+   `bash tools/loop/evidence-check.sh openspec/changes/<change-name> --root .` — it resolves
    every `file:line`, every quoted `tests=`/`failures=`, every `/tmp` pointer and every `§N`, and reports a
    dangling one. Fix what it reports before you archive.
 3. Archive the change. Confirm the directory exists under the archive and that the delta merged into the

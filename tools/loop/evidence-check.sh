@@ -4,22 +4,29 @@
 # A bug-fix change's own review failed twice in the loop's first run on claims that no artifact carried: a test
 # tally attributed to a /tmp log, and a file:line whose premise had moved. Both are greppable, so they are checked
 # mechanically here instead of by a reviewer's patience. Run it in phase C/D before the gate and again before
-# archive (`.pi/skills/fix-loop/SKILL.md`, "Evidence pointers").
+# archive (`tools/loop/prompts/worker.md`, phase F).
+#
+# It is the loop's tool, not a skill's: it lives in the tree the run clones, so a worker reaches it from the
+# worktree without a seed step, and the paths it reads in *this* project are configuration, never literals here
+# (`tools/loop/loop.conf` — the rule is `tools/check-portability.sh`'s, issue #255).
 #
 # Checks (FAIL => exit 1, WARN => exit 0 with a note):
 #   C1 §references   every `§N` in the change's markdown resolves against the recorded `§ → issue` table
 #                    (the migration's `import-evidence.md`), unless the same line names an archived change
 #                    ("archived")
 #   C2 test tallies  every `tests="A" … failures="B"` pair quoted in the markdown is carried by a JUnit XML
-#                    under <root>/app/build/test-results (a line saying "not retained" is exempt, by policy)
+#                    under <root>/<LOOP_EVIDENCE_XML_DIR> or under <change>/evidence (a line saying "not
+#                    retained" is exempt, by policy)
 #   C3 /tmp pointers a cited `/tmp/...` path without "not retained" on its line is a dangling pointer
-#   C4 mutations     `REVERT-CHECK MUTATION` must not survive anywhere under <root>/app/src
+#   C4 mutations     `REVERT-CHECK MUTATION` must not survive anywhere under <root>/<LOOP_EVIDENCE_SCAN_PATHS>
 #   C5 file:line     every cited `path:NN` resolves (by path or by basename) and NN <= the file's line count
 #
-# Usage: evidence-check.sh <change-dir> [--table <file>] [--root .] [--selftest]
+# Usage: evidence-check.sh <change-dir> [--table <file>] [--root .] [--conf <file>] [--scan <paths>]
+#                           [--xml-dir <path>] [--selftest]
+#   --scan / --xml-dir override the two values the project's configuration names, for a tree that is not this one.
 set -euo pipefail
 
-usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # The recorded `§ → issue` table: the migration wrote it into its change directory, and archiving moved that
 # directory under `openspec/changes/archive/`. Either location is the same record.
@@ -31,11 +38,17 @@ find_table() {
   return 1
 }
 
+# One key's value from a project configuration, read and never sourced — the same rule `loop_tmp_dir_for` follows
+# (`tools/loop/lib.sh`): a check looks at a tree, it does not run that tree's configuration.
+conf_value() { # <conf> <KEY>
+  sed -n "s/^${2}=\"\\([^\"]*\\)\"[[:space:]]*$/\\1/p" "$1" | tail -1
+}
+
 SELFTEST_TMP=""
 trap 'if [ -n "$SELFTEST_TMP" ]; then rm -rf "$SELFTEST_TMP"; fi' EXIT
 
-run_checks() {
-  local change="$1" root="$2" table="$3"
+run_checks() { # <change> <root> <table> <scan-paths> <xml-dir>
+  local change="$1" root="$2" table="$3" scan_paths="$4" xml_dir="$5"
   local fails=0 warns=0
   [ -d "$change" ] || { echo "FAIL change dir not found: $change"; return 1; }
   [ -f "$table" ] || { echo "FAIL reference table not found: $table"; return 1; }
@@ -71,8 +84,8 @@ run_checks() {
 
   # ---- C2: test tallies -----------------------------------------------------------------
   # Two legitimate carriers: the build dir (live run) and the change's own evidence/ copy
-  # (the form that travels into the archive).
-  local xmlroot="$root/app/build/test-results"
+  # (the form that travels into the archive). Both are named by the project's configuration, not here.
+  local xmlroot="$root/$xml_dir"
   local evidence="$change/evidence"
   local checked=0 unparsed=0 exempt2=0 drift=0
   while IFS= read -r line; do
@@ -112,12 +125,26 @@ run_checks() {
   if [ "$tmpfails" -eq 0 ]; then echo "ok   C3 /tmp pointers: none cited"; else echo "note C3: $tmpfails line(s) cite a /tmp path — re-runnable only until the next run; the number they carry must also be in this artifact or in a retained XML (C2)"; fi
 
   # ---- C4: leftover mutations -----------------------------------------------------------
-  local markers
-  markers=$(grep -rn 'REVERT-CHECK MUTATION' "$root/app/src" 2>/dev/null | head -5 || true)
-  if [ -n "$markers" ]; then
-    echo "FAIL C4 left-over REVERT-CHECK MUTATION:"; echo "$markers" | sed 's/^/     /'; fails=$((fails+1))
+  # The roots are the project's, read from its configuration: a marker is only ever planted in a source file the
+  # falsification edited, and a path written here would be a project value in an engine (issue #255).
+  local markers="" seen=0 rel hits
+  for rel in $scan_paths; do
+    [ -n "$rel" ] || continue
+    if [ ! -d "$root/$rel" ]; then
+      echo "note C4 scan path $rel does not exist under $root"
+      continue
+    fi
+    seen=$((seen+1))
+    hits=$(grep -rn 'REVERT-CHECK MUTATION' "$root/$rel" 2>/dev/null | head -5 || true)
+    [ -n "$hits" ] && markers="$markers$hits"$'\n'
+  done
+  if [ "$seen" -eq 0 ]; then
+    echo "FAIL C4 no scan path that exists — the mutation check scanned nothing"
+    fails=$((fails+1))
+  elif [ -n "$markers" ]; then
+    echo "FAIL C4 left-over REVERT-CHECK MUTATION:"; printf '%s' "$markers" | sed '/^$/d; s/^/     /'; fails=$((fails+1))
   else
-    echo "ok   C4 mutations: no REVERT-CHECK MUTATION marker in $root/app/src"
+    echo "ok   C4 mutations: no REVERT-CHECK MUTATION marker under $seen configured path(s): $scan_paths"
   fi
 
   # ---- C5: file:line --------------------------------------------------------------------
@@ -159,65 +186,74 @@ selftest() {
   local fail=0
   ok() { if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3: expected [$1] got [$2]"; fail=1; fi; }
 
-  mkdir -p "$tmp/root/app/src/main/kotlin" "$tmp/root/app/build/test-results" "$tmp/change"
-  printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/app/src/main/kotlin/Foo.kt"
+  # The tree a check reads is the fixture's, and its two paths are this self-test's arguments — which is what a
+  # project's configuration does in the real tree (`--scan`, `--xml-dir`), so no project value is written here.
+  local scan="src" xmldir="build/test-results"
+  mkdir -p "$tmp/root/src/main/kotlin" "$tmp/root/$xmldir" "$tmp/change"
+  printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/src/main/kotlin/Foo.kt"
   printf '<?xml version="1.0"?>\n<testsuite name="x" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-01-01T00:00:00Z"></testsuite>\n' \
-    > "$tmp/root/app/build/test-results/TEST-x.xml"
+    > "$tmp/root/$xmldir/TEST-x.xml"
   # the recorded table the migration wrote: §12 resolves, §999 does not
   printf '| § | issue |\n|---|---|\n| 12 | #7 |\n' > "$tmp/table.md"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 # Why
 - Evidence: `TEST-x.xml` XML tests="7" failures="0" ts=2026-01-01T00:00:00Z
-- Files: `app/src/main/kotlin/Foo.kt:9`
+- Files: `src/main/kotlin/Foo.kt:9`
 - Related: §12 was refuted by measurement
 MD
 
   local out
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); local code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); local code=$?; set -e
   ok 0 "$code" "green fixture passes"
   case "$out" in *"evidence-check: PASS"*) echo "ok   green fixture verdict";; *) echo "FAIL green verdict: $out"; fail=1;; esac
   case "$out" in *"C2 test tallies: 1 pairs confirmed"*) echo "ok   tally confirmed against the XML";; *) echo "FAIL tally count: $out"; fail=1;; esac
 
   # C3 is report-only by design, so the strict half of this pair is C2: a number with no artifact fails there
   printf -- '- old evidence lived in /tmp/loop-1.log\n- Evidence: XML tests="999" failures="0"\n' > "$tmp/change/proposal.md"
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
   ok 1 "$code" "C2 red on an unbacked tally"
   case "$out" in *"DRIFT C3 /tmp path cited"*) echo "ok   C3 reports the /tmp pointer without failing";; *) echo "FAIL C3 drift line missing"; fail=1;; esac
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Related: §999 does not exist
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
   ok 1 "$code" "C1 red on a dangling §"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Related: §999 but the change is archived as fix-thing
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
   ok 0 "$code" "C1 exempts an archived pointer"
 
   cat > "$tmp/change/proposal.md" <<'MD'
-- Files: `app/src/main/kotlin/Foo.kt:99`
+- Files: `src/main/kotlin/Foo.kt:99`
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
   ok 1 "$code" "C5 red on a line past EOF"
 
   cat > "$tmp/change/proposal.md" <<'MD'
 - Files: `Foo.kt:9`
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
   ok 0 "$code" "C5 resolves a basename-only citation"
+  # the green half of C4's pair, before a marker is planted: it names the configured path it scanned
+  case "$out" in *"no REVERT-CHECK MUTATION marker under 1 configured path(s): src"*) echo "ok   C4 names the configured path it scanned";; *) echo "FAIL C4 path line: $out"; fail=1;; esac
 
-  printf '// REVERT-CHECK MUTATION (task 1)\n' >> "$tmp/root/app/src/main/kotlin/Foo.kt"
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
+  printf '// REVERT-CHECK MUTATION (task 1)\n' >> "$tmp/root/src/main/kotlin/Foo.kt"
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
   ok 1 "$code" "C4 red on a leftover mutation"
 
-  printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/app/src/main/kotlin/Foo.kt"
+  # a scan path that does not exist is a check that inspected nothing, and says so instead of passing
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "no-such-dir" "$xmldir"); code=$?; set -e
+  ok 1 "$code" "C4 red when no configured scan path exists"
+
+  printf 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n' > "$tmp/root/src/main/kotlin/Foo.kt"
   cat > "$tmp/change/proposal.md" <<'MD'
 - Evidence: XML tests="7" failures="0" — the red copy is not retained (overwritten by the gate run)
 MD
-  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md"); code=$?; set -e
+  set +e; out=$(run_checks "$tmp/change" "$tmp/root" "$tmp/table.md" "$scan" "$xmldir"); code=$?; set -e
   ok 0 "$code" "a row labelled not retained is exempt by policy"
 
   [ "$fail" = 0 ] && echo "evidence-selftest: PASS" || { echo "evidence-selftest: FAIL"; return 1; }
@@ -225,11 +261,14 @@ MD
 
 main() {
   if [ "${1:-}" = "--selftest" ]; then selftest; return; fi
-  local change="" root="." table=""
+  local change="" root="." table="" conf="" scan="" xml_dir=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --root) root="${2:?}"; shift 2;;
       --table) table="${2:?}"; shift 2;;
+      --conf) conf="${2:?}"; shift 2;;
+      --scan) scan="${2:?}"; shift 2;;
+      --xml-dir) xml_dir="${2:?}"; shift 2;;
       -h|--help) usage; return 0;;
       --*) echo "evidence-check: unknown flag $1" >&2; exit 2;;
       *) change="$1"; shift;;
@@ -237,7 +276,19 @@ main() {
   done
   [ -n "$change" ] || { usage; exit 2; }
   [ -n "$table" ] || table=$(find_table "$root") || table="$root/openspec/changes/import-evidence.md"
-  run_checks "$change" "$root" "$table"
+
+  # The two paths this check reads in the project are the project's configuration's, never this file's: a flag
+  # overrides them for a tree that is not the one this tool ships in.
+  local conf_file="${conf:-$root/tools/loop/loop.conf}"
+  if [ -z "$scan" ] || [ -z "$xml_dir" ]; then
+    [ -f "$conf_file" ] || { echo "evidence-check: no configuration at $conf_file — pass --conf, or --scan and --xml-dir" >&2; exit 2; }
+    [ -n "$scan" ] || scan=$(conf_value "$conf_file" LOOP_EVIDENCE_SCAN_PATHS)
+    [ -n "$xml_dir" ] || xml_dir=$(conf_value "$conf_file" LOOP_EVIDENCE_XML_DIR)
+  fi
+  [ -n "$scan" ] || { echo "evidence-check: $conf_file names no LOOP_EVIDENCE_SCAN_PATHS — the mutation scan would inspect nothing" >&2; exit 2; }
+  [ -n "$xml_dir" ] || { echo "evidence-check: $conf_file names no LOOP_EVIDENCE_XML_DIR — the tally check would find no XML" >&2; exit 2; }
+
+  run_checks "$change" "$root" "$table" "$scan" "$xml_dir"
 }
 
 main "$@"

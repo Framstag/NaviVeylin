@@ -193,6 +193,12 @@ add "$(conf_value LOOP_SUBMODULE_PATH)" "tools/loop/loop.conf LOOP_SUBMODULE_PAT
 while IFS= read -r value; do
   add "$value" "tools/loop/loop.conf LOOP_WORKTREE_SCRATCH_PATHS"
 done < <(printf '%s' "$(conf_value LOOP_WORKTREE_SCRATCH_PATHS)" | tr ' ' '\n' | grep -v '^$')
+# The paths the evidence check reads are the project's as well (issue #255): the check is an engine, so its scan
+# roots and its tally directory are configuration, and an engine that writes one of them is a leak like any other.
+while IFS= read -r value; do
+  add "$value" "tools/loop/loop.conf LOOP_EVIDENCE_SCAN_PATHS"
+done < <(printf '%s' "$(conf_value LOOP_EVIDENCE_SCAN_PATHS)" | tr ' ' '\n' | grep -v '^$')
+add "$(conf_value LOOP_EVIDENCE_XML_DIR)" "tools/loop/loop.conf LOOP_EVIDENCE_XML_DIR"
 while IFS= read -r skill; do add "$skill" "tools/loop/loop.conf LOOP_WORKER_SKILLS" word; done \
   < <(printf '%s' "$(conf_value LOOP_WORKER_SKILLS)" | tr ' ' '\n')
 

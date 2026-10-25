@@ -100,7 +100,7 @@ operations:
       - When a finding needs the owner's observation, ask 2-4 independent questions in ONE ask_user call (where/when/whether), not one question per round.
       - "When a fix cannot be verified by measurement (e.g. a stationary emulator cannot produce follow drift), say so explicitly in the task and the report instead of implying device proof."
       - Generate test coverage report and make sure that essential business logic and strategical gluing and integration code has a high test coverage
-      - "In the fix-loop (`.pi/skills/fix-loop`), reproduce the defect — or, for a defect-shaped improvement, the missing bound — with a test that fails on HEAD before changing production code, and have a fresh read-only child confirm each spec scenario against the diff and the gate XMLs before archiving — the writer may not be the reviewer."
+      - "In the loop's worker (`tools/loop/prompts/worker.md`, phase A), reproduce the defect — or, for a defect-shaped improvement, the missing bound — with a test that fails on HEAD before changing production code, and have a fresh read-only child confirm each spec scenario against the diff and the gate XMLs before archiving — the writer may not be the reviewer."
 
 
   # Verify gates (validation + review): openspec 1.10.0 loads guidance only

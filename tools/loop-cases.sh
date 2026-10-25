@@ -72,6 +72,7 @@ LOOP_SHELL_CASES=(
   'prescreen#refusalLeavesATraceInTheTracker'
   'prescreen#aFixInTheSubmoduleIsAPersonsPatch'
   'worktree#seedsAllFourInputs'
+  'evidence#scansWhatTheProfileNames'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
   'worktree#oneBranchPerItemOffTheBase'
   'worktree#refusesWhenMainAdvanced'
@@ -351,6 +352,7 @@ loop_run_shell_case() {
     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
     'prescreen#aFixInTheSubmoduleIsAPersonsPatch') fn=case_prescreen_aFixInTheSubmoduleIsAPersonsPatch ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
+    'evidence#scansWhatTheProfileNames') fn=case_evidence_scansWhatTheProfileNames ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
     'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
     'worktree#refusesWhenMainAdvanced') fn=case_worktree_refusesWhenMainAdvanced ;;
@@ -622,6 +624,9 @@ new_project() {
   printf 'cmake_minimum_required(VERSION 3.22)\n' > "$repo/app/src/main/cpp/libosmscout/CMakeLists.txt"
   printf '# machine-local SDK/NDK/Java paths\n' > "$repo/local.properties"
   printf -- '---\nname: fix-loop\n---\nfixture skill\n' > "$repo/.pi/skills/fix-loop/SKILL.md"
+  # The fixture keeps a second gitignored skill directory beside the generated one so the seeding case can assert
+  # what the engine does *not* copy: only `openspec-*` is seeded, and a versioned skill arrives with the checkout
+  # (issue #255 — the retired `fix-loop` skill was the one that was copied and nothing read it).
   printf 'fixture skill\n' > "$repo/.pi/skills/openspec-apply-change/SKILL.md"
   git -C "$repo" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway repository"
   git -C "$repo" config user.email selftest@example.invalid
@@ -1865,8 +1870,35 @@ case_worktree_seedsAllFourInputs() {
   [ -d "$w" ] || fail "the worktree does not exist"
   [ -s "$w/app/src/main/cpp/libosmscout/CMakeLists.txt" ] || fail "the submodule directory is not populated in the worktree"
   [ -f "$w/local.properties" ] || fail "local.prop* was not copied into the worktree"
-  [ -f "$w/.pi/skills/fix-loop/SKILL.md" ] || fail "the gitignored loop skill was not copied into the worktree"
+  [ -f "$w/.pi/skills/openspec-apply-change/SKILL.md" ] || fail "the gitignored skill the child is given was not copied into the worktree"
+  [ -e "$w/.pi/skills/fix-loop" ] && fail "the engine still seeds a retired, versioned skill into the worktree"
   assert_contains "$(cat "$w/.pi/loop-env.sh")" "VCPKG_ROOT" "the dependency root is exported from a file, not a symlink"
+}
+
+# The evidence check is the loop's tool, and the two paths it reads in a project are that project's configuration
+# (issue #255): the engine names no project root of its own, so the same tool runs unchanged in another tree and
+# reports a marker planted under whatever path the configuration names — and refuses to pass when it names none.
+case_evidence_scansWhatTheProfileNames() {
+  # files: tools/loop/ tools/loop/evidence-check.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local p out code
+  p=$(new_project)
+  mkdir -p "$p/src/module" "$p/build/test-results" "$p/openspec/changes/demo" "$p/tools/loop"
+  printf '| § | issue |\n|---|---|\n| 12 | #7 |\n' > "$p/table.md"
+  printf -- '- Related: §12 is settled\n' > "$p/openspec/changes/demo/proposal.md"
+  printf 'fun main() = Unit\n' > "$p/src/module/Foo.kt"
+  printf 'LOOP_EVIDENCE_SCAN_PATHS="src/module"\nLOOP_EVIDENCE_XML_DIR="build/test-results"\n' > "$p/tools/loop/loop.conf"
+
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 0 "$code" "a clean tree whose configuration names its own scan root passes: $out"
+
+  printf '// REVERT-CHECK MUTATION (task 1)\n' >> "$p/src/module/Foo.kt"
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 1 "$code" "a marker under the configured path is reported: $out"
+  assert_contains "$out" "src/module/Foo.kt" "the report names the file the marker sits in"
+
+  printf 'LOOP_EVIDENCE_SCAN_PATHS=""\nLOOP_EVIDENCE_XML_DIR="build/test-results"\n' > "$p/tools/loop/loop.conf"
+  out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
+  assert_eq 2 "$code" "a configuration that names no scan root is refused instead of scanning nothing: $out"
 }
 
 case_worktree_checksOutTheSubmoduleTheLoopConfigNames() {

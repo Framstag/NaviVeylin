@@ -12,7 +12,7 @@
 # Claiming the whole gate as deterministic would be false, and a script that pretended otherwise would
 # turn "this needs a decision" into "silently skipped" — the failure the run's report exists to prevent.
 # The pre-screen is measured at 10-15 min per rejection saved: without it, 5 of 8 candidates were
-# ineligible (`.pi/skills/fix-loop/REFERENCE.md`).
+# ineligible (`guidelines/Backlog.md` §7, "What an item costs").
 #
 # The candidate's text is read here (it is data, and the sensor reads it as data): the queue, the
 # exclusions and the reported citations are the run's own output, so a rejected candidate is reported with

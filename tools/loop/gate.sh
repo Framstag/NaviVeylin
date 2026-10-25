@@ -90,7 +90,7 @@ paths=$( { git diff --name-only "$base" 2>/dev/null; git status --porcelain 2>/d
 # A pattern is data, and only the second argument is a path: unquoted, `for glob in $1` lets the shell expand the
 # profile's *pattern list* against the directory the gate happens to run in, so a pattern that names a tree is
 # replaced by the names it matched and then compared literally. Measured 2026-10-23 (issue #273): with the profile's
-# own `app/src/main/res/*` and a new file under that directory, the plan owed nothing, and with `set -f` here it
+# own resource-tree pattern and a new file under that directory, the plan owed nothing, and with `set -f` here it
 # owed the build — which is why two anchored patterns the profile already declared were dead weight.
 matches() { # <space-separated globs> <path>
   local glob was_f=0

@@ -38,8 +38,12 @@
 - [x] Three assertions that compared the order cases ran in now compare the set: `aFileFilter…` (`sort`),
       `aGroupFilter…` (`sort`, twice), `aSecondSuite…` (`sort` of the last two lines)
       — verified: `bash tools/loop-selftest.sh --case 'driver#aGroupFilterRunsOnlyItsOwnCases'` → `PASS`
-- [x] Whole suite, pooled: `221 cases`, `4:24,11`, `439 % CPU` (`evidence/full-suite-pooled.log`)
-- [x] One group both ways, for the size of the win: `state` 1:00,12 → 20,86 s, `worktree` 1:07,79 → 20,06 s
+- [x] Whole suite, pooled: `evidence/full-suite-pooled.log` holds 220 `PASS` lines, the one `FAIL` this change's own
+      realigned assertion, and `loop-selftest: 1 of 221 cases failed`; the cost `4:24,11` for 221 cases at `439 % CPU`
+      is the `time` wrapper's output, transcribed in `proposal.md`'s `$ time bash tools/loop-selftest.sh` line — no
+      artifact stores the wrapper's output, so it is cited to that transcript and not to the log
+- [x] One group both ways, for the size of the win: `state` 1:00,12 → 20,86 s, `worktree` 1:07,79 → 20,06 s —
+      `time` wrapper output again, from the same `$ time …` block of `proposal.md`
 
 ## 4. The mutation set
 
@@ -70,5 +74,5 @@
       `tools/check-todo-references.sh` (63 resolve), `tools/gen-feature-list.sh --check-classification` (stale 3)
 - [x] every cited XML and log copied into `evidence/`, and the pointers checked mechanically:
       `bash .pi/skills/fix-loop/scripts/evidence-check.sh openspec/changes/fix-loop-selftest-case-pool --root .` →
-      `evidence-check: PASS` (C1-C5 ok)
+      `evidence-check: PASS` (C1-C5 ok), its output kept as `evidence/evidence-check.log`
 - [x] the change archived, the delta merged into `openspec/specs/agent-issue-loop/spec.md`

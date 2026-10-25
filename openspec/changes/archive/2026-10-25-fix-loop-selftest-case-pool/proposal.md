@@ -70,7 +70,7 @@ Surface, counted before the plan was fixed (`grep -l`/`grep -n` over the cases, 
 count, not the first file, is what the estimate is set against):
 
 ```
-$ grep -c '^case_' tools/loop-cases.sh                                   → 223 declared cases (221 selected)
+$ grep -c '^case_' tools/loop-cases.sh                                   → 223 declared cases before this change, 225 after (221 selected)
 $ grep -n 'run_case\|case_pgid\|on_exit\|core_ensure' tools/loop-mutations.sh
    → 3 records quote the driver's compile and its traps (48.1, 48.2, 53.11)
 $ grep -rn '723\|one after another' tools/loop* tools/loop/ guidelines/*.md openspec/specs/
@@ -132,6 +132,8 @@ Verification (each task's own step, `tasks.md`)
   (`evidence/green-cases.log`)
 - the two new mutation records and the repaired one, each RED under its mutation and green after the restore
   (`evidence/mutation-run-new-records.log`)
-- the whole suite, pooled: `evidence/full-suite-pooled.log`, 221 cases, 4 min 24 s
+- the whole suite, pooled: `evidence/full-suite-pooled.log` (220 `PASS`, plus this change's own realigned assertion as
+  its one `FAIL`, re-run green on its own); the wrapper's cost for that run — `4 min 24 s` — is in the `$ time`
+  transcript above and in no artifact
 - the gate, once: `evidence/gate.log`, its tallies in `evidence/gate/` (`tools_loop-selftest.sh_--from-git_….xml`
   records `tests="221"`), `tests=534 failures=0 errors=0`

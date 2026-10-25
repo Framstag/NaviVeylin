@@ -1,0 +1,46 @@
+Test project /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/build
+    Start 151: TextMetricsCairoTest
+1/1 Test #151: TextMetricsCairoTest .............***Failed    0.03 sec
+Randomness seeded to: 3075274314
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TextMetricsCairoTest is a Catch2 v3.16.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+Cairo measures a configured font file as the face of that file
+-------------------------------------------------------------------------------
+/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/Tests/src/TextMetricsCairoTest.cpp:201
+...............................................................................
+
+/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/Tests/src/TextMetricsCairoTest.cpp:272: FAILED:
+  REQUIRE( differs )
+with expansion:
+  false
+with message:
+  label width for the configured file: 218.154, for the substituted family:
+  218.154
+
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+The configured font file '/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map-opengl/data/fonts/LiberationSans-Regular.ttf' is used as configured, this build cannot read the family it holds
+===============================================================================
+test cases:   7 |   6 passed | 1 failed
+assertions: 167 | 166 passed | 1 failed
+
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   0.03 sec
+
+The following tests FAILED:
+	151 - TextMetricsCairoTest (Failed)
+Errors while running CTest

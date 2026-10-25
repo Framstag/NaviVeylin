@@ -1,0 +1,8 @@
+=== ~/Android/Sdk/cmake/3.22.1 (the version the Android Gradle plugin uses)
+rel=c/MapFeatures.h.cmake
+inplace_parent=c/MapFeatures.h.cmake
+outofplace_parent=c/MapFeatures.h.cmake
+=== system cmake 4.4.4
+rel=c/MapFeatures.h.cmake
+inplace_parent=c
+outofplace_parent=

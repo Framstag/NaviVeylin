@@ -1,0 +1,11 @@
+$ grep -rl 'MapCanvasScreen' app/src auto/src core/src | wc -l
+28
+$ grep -rl 'MapCanvasScreen.kt' app/src/test core/src/test
+app/src/test/java/com/naviveylin/ui/map/FollowBlitCallSiteTest.kt
+app/src/test/java/com/naviveylin/ui/map/MapMenuBackOrderComposeTest.kt
+$ grep -rn 'MapCanvasScreen.kt' openspec/specs guidelines tools | wc -l
+1
+$ grep -rn 'MapCanvasScreen.kt' openspec/specs guidelines tools
+guidelines/UI.md:1297:composed in is the only thing that decides the stacking (`MapLayer` in `MapCanvasScreen.kt`, spec
+$ grep -c 'zIndex(MapLayer' app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt
+5

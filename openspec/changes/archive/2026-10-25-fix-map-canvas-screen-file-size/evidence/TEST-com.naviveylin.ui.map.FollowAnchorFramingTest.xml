@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.FollowAnchorFramingTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-25T19:10:09.383Z" hostname="dingens" time="0.014">
+  <properties/>
+  <testcase name="marker stays on the content while the frame lags the prediction" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.008"/>
+  <testcase name="a frame from the previous orientation reports clamped so the screen requests a render" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.0"/>
+  <testcase name="vehicle projects to the active anchor for every preset and rotation" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.002"/>
+  <testcase name="every preset keeps the drawn frame inside the overrun margin" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.002"/>
+  <testcase name="marker lands on the map content of the displayed position" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.001"/>
+  <testcase name="blit against the raw preset while frame and marker use the resolved anchor leaves the marker off the content" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.0"/>
+  <testcase name="projecting the marker against the frame center would leave the content" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.0"/>
+  <testcase name="aligned frame has zero draw offset for every preset" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.0"/>
+  <testcase name="resolved anchor keeps the marker on the content with overlays" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.0"/>
+  <testcase name="center anchor reproduces the pre-anchor framing" classname="com.naviveylin.ui.map.FollowAnchorFramingTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

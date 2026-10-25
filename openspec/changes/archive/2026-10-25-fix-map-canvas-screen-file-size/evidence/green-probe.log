@@ -1,0 +1,11 @@
+$ SENSORS_THRESHOLD=1500 SENSORS_CONDITIONS='[{"state":"OPEN","condition":{"path":"app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt"}}]' bash tools/sensors/metrics/source-size.sh
+{"path":"app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt","fingerprint":"ac5ac11409706f8e0b727ebeabd3edf841a68ec48f6294830690cb242f09f3ac","measurement":"1109","verdict":"clear","baseline":"","title":"the source file is inside the size bound","claim":"app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt is 1109 lines, inside the row's bound of 1500"}
+$ wc -l the six files
+  1109 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreen.kt
+   412 app/src/main/java/com/naviveylin/ui/map/MapCanvasFollowDisplay.kt
+   668 app/src/main/java/com/naviveylin/ui/map/MapCanvasMapBand.kt
+   620 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenChromeBand.kt
+   399 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenModalBands.kt
+   751 app/src/main/java/com/naviveylin/ui/map/MapCanvasScreenParts.kt
+  3959 insgesamt
+2026-10-25T19:07:13Z

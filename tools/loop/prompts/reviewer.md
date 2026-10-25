@@ -46,8 +46,11 @@ first in practice.
 5. **Revert-check** — does the mutation target the production invariant, fail for the RIGHT reason
    (quote the message and its timestamp), and restore clean (no mutation marker, `git diff` of the
    production file empty)?
-6. **Evidence pointers** — every quoted number carried by the artifact it names, and carried by the
-   archived text too. A copy that exists only in a build directory is fragile, so say so.
+6. **Evidence pointers** — every quoted number is the output of a command the change's record carries, and
+   carried by the archived text too. A number no command in the record produced is not a claim: say so, and
+   grade it `NOTE:` — deleting or correcting it needs no new claim, case or assertion. It is `BLOCKING:` only
+   when the change's own contract, case or assertion depends on the number — a wrong value then contradicts the
+   diff; quote the line that depends on it. A copy that exists only in a build directory is fragile, so say so.
 7. **Spec and guideline honesty** — is the delta the right kind (ADDED vs MODIFIED), does it state a
    contract rather than an implementation, and did the guideline get a rule rather than a restatement?
 8. **New overreach** — every claim no evidence supports, verbatim as `UNPROVEN: …`.
@@ -64,7 +67,8 @@ NOTE: <the finding>
 **`BLOCKING:`** — the change cannot be merged as it stands: the contract is contradicted, a scenario is not
 exercised by the case that names it, or the gate or the red-case evidence is missing or false.
 **`NOTE:`** — everything the change does not depend on: wording, a pointer, a naming, an ordering, a
-restatement, a nicer way to say the same thing. A note is recorded on the item and costs the change no round.
+restatement, a nicer way to say the same thing, and a quoted number whose command is not in the record.
+A note is recorded on the item and costs the change no round.
 
 A finding you cannot grade is **blocking**: an ungraded refusal is read as a refusal.
 

@@ -476,17 +476,30 @@ MUTATIONS=(
   # meaning seconds.
   '60.1@-@tools/loop/run.sh@run#theWaitEndsWhenTheChildDoes@the wait looking for the completion record below a whole second (issue #259)@s|^    sleep "\$poll"$|    sleep 1|'
   '60.2@-@tools/loop/run.sh@run#theProgressLineKeepsItsInterval@the heartbeat'"'"'s test on elapsed seconds rather than on the look it was woken by (issue #259)@s|^      \[ "\$elapsed" -ge "\$next" \] \|\| continue$|      : # the mutation reports on every look|'
-  # 61.x — the loop's own bounds and its record of what a stopped run found (issue #308). Six invariants, six
+  # 61.x — the measuring block carries the suite's declared case count and the gate's own timing, and both tasks
+  # state the rule a quoted number follows (issue #244). Measured 2026-10-21 over `.pi/issue-loop/items/*/
+  # reviewer-report-1.md`: 11 PASS against 29 FAIL, 147 `UNPROVEN` claims in the round-1 reports, most of them
+  # numbers the change asserted and nobody measured. One record per invariant: 61.1 drops the declared count, 61.2
+  # drops the gate's timing, and 61.3/61.4 remove the rule each task states — the worker's that a number is a
+  # command's output, the reviewer's that a number with no such command is a correction rather than a refusal.
+  '61.1@-@tools/loop/measure.sh@measure#printsTheSuiteCountAndTheGateTiming@the declared case count the block carries, so a suite count is a command rather than a tally by hand (issue #244)@s|^if \[ -n "\$suite_cmd" \]; then$|if false; then|'
+  '61.2@-@tools/loop/measure.sh@measure#printsTheSuiteCountAndTheGateTiming@the gate timing summed from the tallies it wrote (issue #244)@s|^if \[ "\$gate_suites" -gt 0 \]; then$|if false; then|'
+  '61.3@-@tools/loop/prompts/worker.md@prompt#workerIsHandedTheMeasureBlock@the worker told that a quoted number is a command'"'"'s output in its record (issue #244)@s|^\*\*A number the change quotes is the output of a command in its record\.\*\*|A number is a guess.|'
+  '61.4@-@tools/loop/prompts/reviewer.md@prompt#reviewerIsBoundedToReading@the reviewer told that a number no command produced is a correction, not a refusal (issue #244)@s|A number no command in the record produced is not a claim|A number may be taken on trust|'
+
+  # 62.x — the loop's own bounds and its record of what a stopped run found (issue #308). Six invariants, six
   # records: the case bound itself, the guard that a bound answers only a case that outran it, the relay that carries
   # a running case's line into the suite's log, the call that ends the heartbeat with a signalled run, and the two
   # dirty-tree paths that keep the work they found. Measured before the change: 56 minutes of a 480-minute budget on
-  # one case that nothing could end, and a killed worker's work reconstructed by hand.
-  '61.1@-@../loop-selftest.sh@driver#aCaseThatBlocksIsEndedByItsOwnBound@the case bound the suite ends a case with (issue #308)@s|^  ( sleep "\$case_max"$|  ( sleep 99999|'
-  '61.2@-@../loop-selftest.sh@driver#aCaseInsideItsBoundKeepsItsOwnVerdict@the pool reading a case'"'"'s own verdict instead of answering every case with the bound (issue #308)@s|^    if finish_case "\$slot"; then$|    if false; then|'
-  '61.3@-@../loop-selftest.sh@driver#aRunningCasePrintsItsOwnLines@the relay that carries a running case'"'"'s own line to the suite (issue #308)@s#^    ( while IFS= read -r line; do$#    ( while false; do#'
-  '61.4@-@tools/loop/run.sh@run#noProcessOfASignalledRunOutlivesIt@the call that ends the heartbeat with a signalled run (issue #308)@s|^  loop_end_pid "\$active_hb"$|  : # the mutation leaves the heartbeat|'
-  '61.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue" "\$item_dir"$|    : # the mutation keeps no patch|'
-  '61.6@-@tools/loop/run.sh@run#aRefusedStartKeepsTheLeftoversItFound@the patch a refused start keeps (issue #308)@s|^        keep_leftovers "\$owner_item" "\$stage_dir/items/\$owner_item"$|        : # the mutation keeps no patch|'
+  # one case that nothing could end, and a killed worker's work reconstructed by hand. The ids were `61.1`–`61.6`
+  # until this change met the branch where 61.x already belonged to another change (#244): a record's id is not
+  # owned, so the second one to land takes the next free block.
+  '62.1@-@../loop-selftest.sh@driver#aCaseThatBlocksIsEndedByItsOwnBound@the case bound the suite ends a case with (issue #308)@s|^  ( sleep "\$case_max"$|  ( sleep 99999|'
+  '62.2@-@../loop-selftest.sh@driver#aCaseInsideItsBoundKeepsItsOwnVerdict@the pool reading a case'"'"'s own verdict instead of answering every case with the bound (issue #308)@s|^    if finish_case "\$slot"; then$|    if false; then|'
+  '62.3@-@../loop-selftest.sh@driver#aRunningCasePrintsItsOwnLines@the relay that carries a running case'"'"'s own line to the suite (issue #308)@s#^    ( while IFS= read -r line; do$#    ( while false; do#'
+  '62.4@-@tools/loop/run.sh@run#noProcessOfASignalledRunOutlivesIt@the call that ends the heartbeat with a signalled run (issue #308)@s|^  loop_end_pid "\$active_hb"$|  : # the mutation leaves the heartbeat|'
+  '62.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue" "\$item_dir"$|    : # the mutation keeps no patch|'
+  '62.6@-@tools/loop/run.sh@run#aRefusedStartKeepsTheLeftoversItFound@the patch a refused start keeps (issue #308)@s|^        keep_leftovers "\$owner_item" "\$stage_dir/items/\$owner_item"$|        : # the mutation keeps no patch|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

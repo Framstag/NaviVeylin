@@ -242,24 +242,14 @@ while IFS=$'\t' read -r issue; do
   actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"
 done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
 
-# A citation the pre-screen still refuses is work a person can do and the run cannot: the repair path is
-# the tooling's own, and it is named with the item.
-stale_role=$(loop_role excludedStaleAgent)
-if [ -n "$stale_role" ]; then
-  while IFS=$'\t' read -r issue reason; do
-    [ -n "${issue:-}" ] || continue
-    actions[${#actions[@]}]="repair the citation in #$issue — the pre-screen refused it as $stale_role: $reason — tools/issues/resolve-stale.sh --id $issue"
-  done < <(jq -r --arg s "$stale_role" '.excluded[] | select(.verdict == $s) | [(.issue | tostring), (.reason // "a citation no record accounts for")] | @tsv' "$state_file")
-fi
-
 if [ -d "$LOOP_WORKTREE" ]; then
   actions[${#actions[@]}]="keep or remove the worktree $LOOP_WORKTREE — the next run reuses its warm build; --clean-worktree removes it at the end of a run"
 fi
 
 printf 'actions the caller owes:\n'
 if [ "${#actions[@]}" -eq 0 ]; then
-  # Empty only when every one of the six sources was read and empty — not because a list was skipped.
-  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no refused citation, no label write the tracker refused\n'
+  # Empty only when every one of the five sources was read and empty — not because a list was skipped.
+  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no label write the tracker refused\n'
 else
   n=1
   for action in "${actions[@]}"; do

@@ -1,0 +1,10 @@
+RED    61.1  measure#printsTheSuiteCountAndTheGateTiming   (the declared case count the block carries, so a suite count is a command rather than a tally by hand (issue #244))
+restore 61.1 measure#printsTheSuiteCountAndTheGateTiming green again
+RED    61.2  measure#printsTheSuiteCountAndTheGateTiming   (the gate timing summed from the tallies it wrote (issue #244))
+restore 61.2 measure#printsTheSuiteCountAndTheGateTiming green again
+RED    61.3  prompt#workerIsHandedTheMeasureBlock   (the worker told that a quoted number is a command's output in its record (issue #244))
+restore 61.3 prompt#workerIsHandedTheMeasureBlock green again
+RED    61.4  prompt#reviewerIsBoundedToReading   (the reviewer told that a number no command produced is a correction, not a refusal (issue #244))
+restore 61.4 prompt#reviewerIsBoundedToReading green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

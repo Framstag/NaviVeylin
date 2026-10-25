@@ -1,0 +1,38 @@
+RED    9.11  state#projectKeysAreReadFromLoopConf   (the project facts living in loop.conf)
+restore 9.11 state#projectKeysAreReadFromLoopConf green again
+RED    37.1  prompt#reviewerIsBoundedToReading   (the gate named in the read-only list the reviewer is given (issue #236))
+restore 37.1 prompt#reviewerIsBoundedToReading green again
+RED    37.2  prompt#reviewerIsBoundedToReading   (item 3 asking for the tally the evidence carries instead of a second execution (issue #236))
+restore 37.2 prompt#reviewerIsBoundedToReading green again
+RED    38.1  prompt#workerNamesTheChangeSurfaceBeforeThePlan   (the surface pass that sets the plan estimate (issue #238))
+restore 38.1 prompt#workerNamesTheChangeSurfaceBeforeThePlan green again
+RED    39.1  measure#namesTheOwedChecksInOneBlock   (the owed checks the block names (issue #246))
+restore 39.1 measure#namesTheOwedChecksInOneBlock green again
+RED    39.2  measure#refusesToGuessWhichChangeItMeasures   (the count that makes two open changes ambiguous (issue #246))
+restore 39.2 measure#refusesToGuessWhichChangeItMeasures green again
+RED    39.3  measure#saysHowManyTalliesItWithheld   (the line that says how many tallies the cap withheld (issue #246))
+restore 39.3 measure#saysHowManyTalliesItWithheld green again
+RED    54.1  gate#theMapCoversEveryPipelineStep   (the pair that carries the build-inputs step in the map (issue #242))
+restore 54.1 gate#theMapCoversEveryPipelineStep green again
+RED    54.2  gate#aPipelineCheckIsOwedByItsPaths   (the pair that owes the check over a path the step reads (issue #242))
+restore 54.2 gate#aPipelineCheckIsOwedByItsPaths green again
+RED    54.3  gate#aPipelineCheckIsOwedByItsPaths   (the pair that owes the build-inputs mutation list (issue #242))
+restore 54.3 gate#aPipelineCheckIsOwedByItsPaths green again
+RED    54.4  gate#aPipelineCheckIsOwedByItsPaths   (a pair that reaches another step through a coarse glob (issue #242))
+restore 54.4 gate#aPipelineCheckIsOwedByItsPaths green again
+RED    43.2  gate#anEnginePathOwesTheRecordCheck   (the profile pair that owes the record check for a path under the engine (issue #264))
+restore 43.2 gate#anEnginePathOwesTheRecordCheck green again
+RED    50.1  gate#anArchivedArtefactOwesNoBuild   (the profile reading a compiled path by its tree rather than by its name)
+restore 50.1 gate#anArchivedArtefactOwesNoBuild green again
+RED    56.3  state#baseBranchIsAConfigurationKey   (the base branch recorded as a value an inherited environment may override (issue #303))
+restore 56.3 state#baseBranchIsAConfigurationKey green again
+RED    61.1  measure#printsTheSuiteCountAndTheGateTiming   (the declared case count the block carries, so a suite count is a command rather than a tally by hand (issue #244))
+restore 61.1 measure#printsTheSuiteCountAndTheGateTiming green again
+RED    61.2  measure#printsTheSuiteCountAndTheGateTiming   (the gate timing summed from the tallies it wrote (issue #244))
+restore 61.2 measure#printsTheSuiteCountAndTheGateTiming green again
+RED    61.3  prompt#workerIsHandedTheMeasureBlock   (the worker told that a quoted number is a command's output in its record (issue #244))
+restore 61.3 prompt#workerIsHandedTheMeasureBlock green again
+RED    61.4  prompt#reviewerIsBoundedToReading   (the reviewer told that a number no command produced is a correction, not a refusal (issue #244))
+restore 61.4 prompt#reviewerIsBoundedToReading green again
+
+red-when-mutated: 18 · not-noticed: 0 · restore-failures: 0

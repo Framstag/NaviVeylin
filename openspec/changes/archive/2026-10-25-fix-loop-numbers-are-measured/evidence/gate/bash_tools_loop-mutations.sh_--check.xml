@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-mutations.sh --check" tests="158" failures="0" errors="0" time="1">
+  <system-out>loop-mutations: scratch /tmp/nv244/.pi/tmp/loop-mutations.nnbLr0 loop-mutations: all 158 cases passed — every selected record applies to the file it names</system-out>
+</testsuite>

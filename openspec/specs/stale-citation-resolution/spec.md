@@ -18,6 +18,8 @@ Each citation SHALL resolve to exactly one class: `exact` (the path resolves fro
 `suffix` (exactly one tracked file path ends with it), `submodule` (it resolves inside a submodule),
 `generated` (it names an artefact the project produces rather than tracks), `not-a-path` (a token that is not a
 citation at all), or `absent` (no file of that name exists anywhere in the repository or its submodules).
+A consumer SHALL treat `absent` as a **report**, not a verdict: it SHALL name the token and SHALL NOT refuse
+the item and SHALL NOT park it, because a path that is absent may be one the change itself creates.
 
 #### Scenario: A fragment is not a citation
 
@@ -52,21 +54,11 @@ citation at all), or `absent` (no file of that name exists anywhere in the repos
 - **WHEN** no file of that name exists in the repository or in any submodule, and it is not generated
 - **THEN** the citation classifies as `absent`, and only then is the item's staleness verdict true
 
-### Requirement: The staleness verdict is visible in the tracker
+#### Scenario: An absent citation is reported, not refused
 
-An item the pre-screen refuses for a citation SHALL carry that state where a person can read it, and not only
-in the run's machine-local state.
-
-#### Scenario: A refused item is marked
-
-- **WHEN** the pre-screen refuses an item because a citation is absent
-- **THEN** the item leaves the eligible queue through a label a person can query, and a comment names the
-  citation it is refused for
-
-#### Scenario: A repair does not need a second decision
-
-- **WHEN** the resolver has repaired an item's citation
-- **THEN** the item is eligible again without a person editing its body, and the next pre-screen queues it
+- **WHEN** an item cites a path the repository does not hold
+- **THEN** the token is named in the item's record and the item stays eligible, and no refusal label is written
+- **Case**: `prescreen#missingPathIsReportedNotRefused`
 
 ### Requirement: A citation is repaired when the repair is mechanical
 
@@ -76,7 +68,8 @@ surviving file that declares the cited symbol. A repair SHALL rewrite the citati
 SHALL preserve every body marker verbatim. A basename repair SHALL NOT rewrite an occurrence that stands inside a
 longer path. A repair is a change to the record: the item SHALL count as repaired, and a comment SHALL claim a
 repair, only when the produced body differs from the input **and** every rewritten citation re-classifies as no
-longer `absent`; a rewrite that fails either test SHALL be reported as unresolved and the item parked instead.
+longer `absent`; a rewrite that fails either test SHALL be reported as unresolved and the item SHALL be left
+untouched.
 
 #### Scenario: A suffixed path is canonicalised
 
@@ -120,27 +113,35 @@ longer `absent`; a rewrite that fails either test SHALL be reported as unresolve
 #### Scenario: A rewrite that changes nothing is not a repair
 
 - **WHEN** the repair ladder attempts a rewrite whose result is the input again
-- **THEN** nothing is counted as repaired, no comment claims a repair, and the item is parked with the reason
+- **THEN** nothing is counted as repaired, no comment claims a repair, and the citation is reported unresolved
+  with the reason
 - **Case**: `resolver#repairWithoutAChangeIsNotReported`
 
 #### Scenario: A repair is verified by re-classification
 
 - **WHEN** a rewrite replaces the cited token with a target the repository does not hold
-- **THEN** the citation is not counted as repaired and the item is parked with the reason, so the record is not
-  claimed to be repaired again
+- **THEN** the citation is not counted as repaired and it is reported unresolved with the reason, so the record
+  is not claimed to be repaired again
 - **Case**: `resolver#repairIsVerifiedByReclassification`
 
-### Requirement: What cannot be repaired is parked, never guessed
+#### Scenario: A repair needs no second decision
 
-When a citation is `absent` and no mechanical successor exists, the resolver SHALL park the item and record what
-it tried; it SHALL never invent a target, never close an item, never write the authorisation label, and never
-change an item's kind, area or priority.
+- **WHEN** the resolver has repaired an item's citation
+- **THEN** the item is eligible again without a person editing its body, and the next pre-screen queues it
+- **Case**: `pipeline#scheduledRunRepairs`
 
-#### Scenario: An unrepairable citation parks the item
+### Requirement: What cannot be repaired is reported, never guessed
+
+When a citation is `absent` and no mechanical successor exists, the resolver SHALL report it and write nothing
+for the item — no status, no comment; it SHALL never invent a target, never close an item, never write the
+authorisation label, and never change an item's kind, area or priority.
+
+#### Scenario: An unrepairable citation is reported, not written
 
 - **WHEN** the ladder finds no successor for an absent citation
-- **THEN** the item carries a parked state and a comment listing the attempts, so one person's decision can
-  cover it without reading every item
+- **THEN** the citation is named in the run's report and the item's state, labels and body are untouched, so the
+  next run reaches it for the same citation as soon as the record states a successor
+- **Case**: `resolver#unrepairableCitationIsReportedNotWritten`
 
 #### Scenario: An ambiguous match is reported, not repaired
 
@@ -156,17 +157,17 @@ change an item's kind, area or priority.
 
 The resolver SHALL run without a person, in the checks' own pipeline under that pipeline's least privilege,
 SHALL be bounded per run, SHALL default to a dry run, and SHALL be idempotent. The bound SHALL be spent only
-on the items the run acts on — a repair or a park, and in a dry run the items it would act on — so an item
-the ladder can only report cannot consume the run's budget, and SHALL never hide the items it did not reach:
-the run SHALL report how many wait. The count of unresolved citations SHALL be a declared check row, so a
-growing residue is a measurement.
+on the items the run acts on — a repair, and in a dry run the items it would act on — so an item the ladder can
+only report cannot consume the run's budget, and SHALL never hide the items it did not reach: the run SHALL
+report how many wait. The count of unresolved citations SHALL be a declared check row, so a growing residue is a
+measurement.
 
 The citations SHALL be classified from the item's title and body together — the pair the pre-screen asks — while
 only the body can be written. A token the body does not carry SHALL therefore never be rewritten, and the two
 outcomes are the bound's own terms: a token that resolves SHALL leave the item settled and unwritten, costing no
-slot, and a token the tree does not hold SHALL be parked with the reason recording that the citation stands in
-the title — a park, so it costs the slot a park costs — and SHALL never be reported as a rewrite that changed
-nothing, so a stale title is a state a person can query.
+slot, and a token the tree does not hold SHALL be reported with the reason recording that the citation stands in
+the title — a report, so it costs no slot — and SHALL never be reported as a rewrite that changed nothing, so a
+stale title is a state a person can query.
 
 #### Scenario: A scheduled run repairs without a person
 
@@ -204,9 +205,9 @@ nothing, so a stale title is a state a person can query.
 #### Scenario: A stale citation in the title is parked where it stands
 
 - **WHEN** the title cites a file the repository does not hold and the body's own citations do not need it
-- **THEN** the item is parked with a reason naming the title as the citation's place, because the resolver
-  writes bodies and cannot rewrite a title, and no rewrite that was never attempted is reported
-- **Case**: `resolver#titleAbsentCitationIsParkedWhereItStands`
+- **THEN** it is reported with a reason naming the title as the citation's place, because the resolver writes
+  bodies and cannot rewrite a title, and no rewrite that was never attempted is reported
+- **Case**: `resolver#titleAbsentCitationIsReportedWhereItStands`
 
 #### Scenario: The residue is a declared check
 

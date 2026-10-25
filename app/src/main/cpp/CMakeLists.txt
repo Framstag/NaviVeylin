@@ -34,7 +34,19 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/CMakeLists.txt")
     message(STATUS "Building libosmscout from submodule")
 
-    # Pre-generate configured headers
+    # ── Configured feature headers ──────────────────────────────
+    # libosmscout renders four `*Features.h` from the tracked `.cmake` templates
+    # beside them, and each module's target lists its own source tree *before*
+    # its binary include directory — so a generated header left in the submodule
+    # source tree shadows the one that build generates, in *every* build of this
+    # working tree. A host build then compiles libosmscout-map* against this
+    # configuration's feature macros and reports false failures and false passes
+    # for every test keyed on them (§202). The headers are therefore
+    # generated into this build tree and prepended to the include path, and a
+    # stale copy in the submodule source tree — what a configuration before this
+    # rule left there — is removed by `:app:checkSubmoduleFeatureHeaders`, which
+    # fails the build once and names what it removed.
+    set(OSMSCOUT_FEATURES_DIR "${CMAKE_CURRENT_BINARY_DIR}/osmscout-features")
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
     # Pre-set so the configure_file loop below emits the define into the
@@ -68,17 +80,23 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/CMakeLists.txt")
         message(WARNING "jni.h not found under NDK root")
     endif()
 
+    # Paths are relative to the submodule root (the core library's own directory
+    # is also named `libosmscout`), and `_out` is the generated copy the include
+    # path picks up. Nothing is written under the submodule.
     foreach(_rel
-        "libosmscout/libosmscout/include/osmscout/lib/CoreFeatures.h"
-        "libosmscout/libosmscout-map/include/osmscoutmap/MapFeatures.h"
-        "libosmscout/libosmscout-map-cairo/include/osmscoutmapcairo/MapCairoFeatures.h"
-        "libosmscout/libosmscout-client/include/osmscoutclient/ClientFeatures.h"
+        "libosmscout/include/osmscout/lib/CoreFeatures.h"
+        "libosmscout-map/include/osmscoutmap/MapFeatures.h"
+        "libosmscout-map-cairo/include/osmscoutmapcairo/MapCairoFeatures.h"
+        "libosmscout-client/include/osmscoutclient/ClientFeatures.h"
     )
-        set(_out "${CMAKE_CURRENT_SOURCE_DIR}/${_rel}")
-        set(_tpl "${_out}.cmake")
+        set(_tpl "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/${_rel}.cmake")
+        set(_out "${OSMSCOUT_FEATURES_DIR}/${_rel}")
         if(EXISTS "${_tpl}")
-            file(REMOVE "${_out}")
             configure_file("${_tpl}" "${_out}")
+            # The module's include root, the directory that carries `include`:
+            # `libosmscout-map/include` for `libosmscout-map/include/osmscoutmap/MapFeatures.h`.
+            string(REGEX REPLACE "/include/.*$" "/include" _inc "${_rel}")
+            include_directories(BEFORE "${OSMSCOUT_FEATURES_DIR}/${_inc}")
         endif()
     endforeach()
 

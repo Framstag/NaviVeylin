@@ -1874,6 +1874,35 @@ the licence inventory).
 - vcpkg overlay triplet at `vcpkg-overlays/triplets/arm64-android.cmake` uses API 26
 - iconv stub for Android API < 28
 
+### Configured feature headers
+
+libosmscout renders four feature headers — `CoreFeatures.h`, `MapFeatures.h`, `MapCairoFeatures.h`,
+`ClientFeatures.h` — from the tracked `*.cmake` templates beside them. Their values are the build
+configuration's feature set, so they belong to a build tree and never to the submodule's source tree:
+
+- `app/src/main/cpp/CMakeLists.txt` renders them into `OSMSCOUT_FEATURES_DIR`
+  (`<app>/.cxx/<buildType>/<hash>/<abi>/osmscout-features/`) and prepends each module's `include` root to the
+  include path, so the app's values win for every translation unit of those libraries.
+- A copy in the submodule source tree wins over the header a build generates — every module's target lists its
+  own source tree **before** its binary include directory (`cmake/ProjectConfig.cmake`) — in *every* build of
+  that working tree, a host build included. That host build then compiles `libosmscout-map*` against the
+  Android configuration's macros: with Pango disabled, the Cairo text case measured the substituted family as
+  the configured font file and failed `REQUIRE(differs)` (§202, issue #136).
+- `:app:checkSubmoduleFeatureHeaders` (buildSrc `com.naviveylin.build.native`, in `preBuild`) **removes** such a
+  copy and fails once, naming it: the gate runs before the native configure, so one that only refused would
+  block the very build that writes the build-tree headers. Its scan reads the modules' `include` roots only;
+  the submodule's own `Android/OsmScoutLib/jni/include/config/` copies sit beside no template and are not
+  generated.
+- Two submodule fixes are what make a source-tree copy unnecessary (a pristine checkout configures again). The
+  CMake 3.22 that the Android Gradle plugin ships makes `cmake_path(GET … PARENT_PATH …)` a no-op, which wrote
+  a module's header into `<Name>Features.h.cmake/<Name>Features.h`; `cmake/ProjectConfig.cmake` uses
+  `get_filename_component(… DIRECTORY)` instead. And the core library lists its feature header in the build
+  tree (`libosmscout/CMakeLists.txt`) instead of in the source tree it used to need.
+- The four carry the *app's* Android feature set, not `features.cmake`'s: marisa on, FreeType, Fontconfig,
+  cairo-ft and Pango off — although the Android vcpkg triplets install all of them. Issue #305 holds that
+  mismatch, the instability of a value read out of the CMake cache, and `guidelines/MapRendering.md` §20's
+  reason for the Pango-less wrapping; do not read §20's triplet claim as a fact about this dependency list.
+
 ### vcpkg Dependencies
 - Cairo, pixman, fontconfig, freetype, libpng, expat, brotli, bzip2
 - Pango, harfbuzz, fribidi, glib, libffi, pcre2, gettext, libiconv, libuuid, pthreads

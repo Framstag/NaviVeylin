@@ -1,0 +1,16 @@
+# The whole sensor suite after the fix
+$ bash tools/sensor-selftest.sh
+sensor-selftest: all 49 cases passed (JDK 27, offline, no token)
+
+# The change-time falsification of the record path (revert-check)
+$ bash tools/sensor-mutations.sh --only 8.18
+MUTATION 8.18: run#aClearWithNoIssueReachesTheRecord red under the mutation, green after the restore — a clear with no condition issue reaches the tracker on the row's record (issue #257)
+sensor-mutations: 1 behaved, 0 did not
+
+# The engine still names no project value
+$ bash tools/check-portability.sh
+check-portability: OK — 47 engines and 2 templates name no project value (105 value(s) read from the project)
+
+# The foreign project still runs with its own registry
+$ bash tools/portability-cases.sh
+exit=0

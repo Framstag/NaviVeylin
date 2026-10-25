@@ -1,5 +1,5 @@
 {
-  "comment": "The nine revert-checks of `stale-citation-resolution` (tasks 5.1–5.9) as a runnable set: one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. Every search is a single line, because the runner's replacement is literal and line-based. The transcript is this change's `evidence/revert-checks.md`.",
+  "comment": "The revert-checks of `stale-citation-resolution` as a runnable set: one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. Every search is a single line, because the runner's replacement is literal and line-based. The transcript is the archived change's `evidence/revert-checks.md`.",
   "case-cmd": "bash tools/resolve-stale-selftest.sh --case {case}",
   "mutations": [
     {
@@ -120,7 +120,7 @@
       "file": "tools/issues/resolve-stale.sh",
       "search": "  printf '%s\\n' \"$body_matrix\" | awk -F'\\t' -v t=\"$1\" '$2 == t { found = 1 } END { exit !found }'",
       "replace": "  return 0",
-      "why": "a token the body does not carry being settled instead of rewritten into a no-op that parks the item (#226)"
+      "why": "a token the body does not carry being settled instead of rewritten into a no-op the item keeps being reported for (#226)"
     }
   ]
 }

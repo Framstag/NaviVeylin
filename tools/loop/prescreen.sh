@@ -310,8 +310,9 @@ while [ "$i" -lt "$count" ]; do
   # change itself creates, a deleted path the body says was deleted, a run's own artefact — so the refusal that
   # read every one of them as a lost citation cost 35 items their place in the queue, 18 of them for a citation
   # that was no longer stale at all. The absent token is named in the item's record for a reader, and the item
-  # stays eligible. The symbol sensor below still refuses: a cited `File.kt:Symbol` that names no declaration in
-  # that file is a fact about the item's premise, not a path that may be about to exist.
+  # stays eligible.
+  # The symbol sensor below is evidence, not a verdict: it sets the record's `evidence` to whether a cited
+  # `File.kt:Symbol` names a declaration in that file, and it assigns no verdict — it never refused an item.
   absent_citation=""
   if [ "$sensor" -eq 1 ]; then
     absent_citation=$(stale_citations_of "$title" "$body" | head -1)

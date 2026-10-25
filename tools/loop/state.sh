@@ -323,9 +323,9 @@ cmd_queue() {
   # them is the run's own output, and an exclusion reported only to a console would be lost (D6).
   local queue excluded
   queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates}]')
-  # The exclusion carries the one clause of evidence that produced it (`stale`'s path, or the branch a
-  # previous attempt left behind): the run escalates the decisions among the exclusions, and it cannot cite
-  # evidence it threw away here.
+  # The exclusion carries the one clause of evidence that produced it (the branch a previous attempt left
+  # behind, or the label that states why): the run escalates the decisions among the exclusions, and it cannot
+  # cite evidence it threw away here.
   excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) != $queued) | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false)}]')
   # An item this run has already recorded is never queued again: the pre-screen reads the tracker, and a
   # second pass over the same tracker would hand back the item the run has just finished with.

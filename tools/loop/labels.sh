@@ -15,8 +15,9 @@
 #     · not-spec-shaped · needs-target           and a comment that names the verdict and its one clause
 #                                                of evidence — a state change nobody can read is the
 #                                                defect #192, so the reason travels with the hold)
-#   (a citation the tree does not hold is no longer a verdict: prescreen.sh reports it and refuses nothing,
-#    #281 — so there is no `stale` row here and no `exclude-stale`)
+#   (the pre-screen no longer has `exclude-stale`: a citation the tree does not hold is reported and refuses
+#    nothing, #281. The `stale` row below is a different thing — the worker's own sub-verdict, which still
+#    parks the item it is passed for)
 #   … and the improvement verdicts
 #   needs-device                            + agent/needs-device + status/on-hold
 #   needs-decision · needs-diagnosis        + agent/needs-decision + status/on-hold

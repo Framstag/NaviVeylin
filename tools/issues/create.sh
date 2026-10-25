@@ -82,11 +82,12 @@ source_id=$(jq -r '.sourceId // ""' <<< "$finding")
 [ -n "$category" ] || issues_die "create: the finding has no category"
 
 # A body the tooling accepts must cite something that resolves. A finding is written once and read many times,
-# and a citation the pre-screen cannot resolve costs the item every run — it is excluded as `stale` before
-# anyone reads it, which is what happened to #181, #182, #184 and #185 (#189). Only the shape the author can
-# repair mechanically is refused here: a token that names its own directory twice, whose collapsed form is a
-# tracked path. Everything else stays the repair path's business (`tools/issues/resolve-stale.sh`), because a
-# body may legitimately cite something the change itself creates.
+# and an unresolvable citation costs the item a reader before anyone decides whether it is work — which is what
+# happened to #181, #182, #184 and #185 (#189). Since #281 the pre-screen no longer excludes an item for a
+# citation: it reports the token in the record and queues the item, so this is the check's *only* remaining
+# citation refusal. Only the shape the author can repair mechanically is refused here: a token that names its
+# own directory twice, whose collapsed form is a tracked path. Everything else stays the repair path's business
+# (`tools/issues/resolve-stale.sh`), because a body may legitimately cite something the change itself creates.
 ISSUES_CITATION_ROOT="${ISSUES_CITATION_ROOT:-$ISSUES_ROOT}"
 export ISSUES_CITATION_ROOT
 if [ -z "${ISSUES_CITATION_INDEX:-}" ]; then

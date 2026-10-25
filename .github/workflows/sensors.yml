@@ -115,10 +115,12 @@ jobs:
         run: bash tools/issues/labels.sh --apply
 
       # The repair, before the rows: it makes an authorised item workable again by writing the full tracked
-      # path of a citation whose target the tree does hold, and parking what nothing accounts for — with the
-      # attempts recorded, so the item leaves the eligible queue visibly instead of being re-excluded every run
-      # (`stale-citation-resolution` D4/D5/D6). Bounded, and idempotent: a canonical citation is `exact`, a
-      # parked item is skipped, so a second run posts nothing.
+      # path of a citation whose target the tree does hold, and reporting what nothing accounts for — the token
+      # in the run's own output, the item's state and labels untouched, because a path the tree does not hold
+      # may be one the change itself creates (#281, `stale-citation-resolution` D4/D5/D6). Bounded, and
+      # idempotent: a canonical citation is `exact`, an unresolved one is written for nowhere, so a second run
+      # posts nothing. It does not pass `--revisit-parked`, so a park written before #281 is left for a person
+      # to reverse.
       - name: Repair the stale citations
         if: steps.record.outputs.ready == 'true'
         env:

@@ -311,7 +311,7 @@ case_resolver_titleSuffixBesideItsCanonicalPathIsSettled() {
   d=$(tracker "$tree/fixture-gh" 7 'the writer is `alpha.sh`' 'the writer is `tools/alpha/alpha.sh`')
   out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
     fail "the resolver failed: $out"
-  assert_eq "0" "$(jq -r '.unresolved' <<< "$out")" "an item whose body already holds the canonical path is reported unresolved for nothing"
+  assert_eq "0" "$(jq -r '.unresolved' <<< "$out")" "an item whose body already holds the canonical path is not reported unresolved"
   assert_eq "0" "$(jq -r '.due' <<< "$out")" "and its title's bare token does not make it due"
   assert_eq "0" "$(jq -r '.writes' <<< "$out")" "nothing is written for it"
   assert_eq "0" "$(recorded_count "$d/writes.log" 'status/on-hold')" "the item keeps the state it had"

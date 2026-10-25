@@ -154,6 +154,8 @@ LOOP_SHELL_CASES=(
   'run#childIsEndedAtTheRunsDeadline'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
+  'run#treeOfACapEndedChildIsKeptAsAPatch'
+  'run#noProcessOfASignalledRunOutlivesIt'
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
@@ -179,6 +181,7 @@ LOOP_SHELL_CASES=(
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds'
+  'run#aRefusedStartKeepsTheLeftoversItFound'
   'run#aSkipClearsTheInProgressMark'
   'run#stateNamesTheItemInProgress'
   'run#skipEscalationCarriesTheDecision'
@@ -250,6 +253,9 @@ LOOP_SHELL_CASES=(
   'driver#aCoreFileOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
   'driver#theSuiteRunsItsCasesInAPool'
+  'driver#aCaseThatBlocksIsEndedByItsOwnBound'
+  'driver#aCaseInsideItsBoundKeepsItsOwnVerdict'
+  'driver#aRunningCasePrintsItsOwnLines'
   'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt'
   'driver#aSecondSuiteInOneRepositoryIsRefused'
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
@@ -425,6 +431,8 @@ loop_run_shell_case() {
     'run#childIsEndedAtTheRunsDeadline') fn=case_run_childIsEndedAtTheRunsDeadline ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
+    'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
+    'run#noProcessOfASignalledRunOutlivesIt') fn=case_run_noProcessOfASignalledRunOutlivesIt ;;
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
@@ -450,6 +458,7 @@ loop_run_shell_case() {
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds') fn=case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds ;;
+    'run#aRefusedStartKeepsTheLeftoversItFound') fn=case_run_aRefusedStartKeepsTheLeftoversItFound ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
     'run#stateNamesTheItemInProgress') fn=case_run_stateNamesTheItemInProgress ;;
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
@@ -520,6 +529,9 @@ loop_run_shell_case() {
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
     'driver#theSuiteRunsItsCasesInAPool') fn=case_driver_theSuiteRunsItsCasesInAPool ;;
+    'driver#aCaseThatBlocksIsEndedByItsOwnBound') fn=case_driver_aCaseThatBlocksIsEndedByItsOwnBound ;;
+    'driver#aCaseInsideItsBoundKeepsItsOwnVerdict') fn=case_driver_aCaseInsideItsBoundKeepsItsOwnVerdict ;;
+    'driver#aRunningCasePrintsItsOwnLines') fn=case_driver_aRunningCasePrintsItsOwnLines ;;
     'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt') fn=case_driver_aCaseThatLeavesAProcessBehindIsSweptWithIt ;;
     'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
@@ -574,6 +586,21 @@ scratch() { mktemp -d "${LOOP_CASE_TMP:-$LOOP_TMP}/case.XXXXXX"; }
 # worktree does not inherit, and the gitignored skills it does not inherit either. `core/build` is ignored by
 # its whole path and not by `build/`, so a *symlink* at that recorded scratch path is untracked and the
 # removal has to refuse it on its own account (`worktree#keepsSourcesNotBuildOutput`).
+# How long a case waits for a stub child to appear (issue #308): a host fact with a wide margin, not a property of
+# the loop. Measured 2026-10-25, two Gradle compiles of a second session on the same host pushed an engine's first
+# child past the 20 s that four of these waits allowed, and `run#childOutlastingTheWallClockIsBlocked` then read it as
+# "the stub child never started" — a host's slowness reported as a defect in the engine. 60 s is three times the
+# worst reading and still ends a case that is genuinely stuck.
+STUB_READY_TICKS=600   # 60 s at 0.1 s per tick
+wait_for_stub_child() { # wait_for_stub_child <ready file> → 0 when it appeared
+  local i
+  for i in $(seq 1 "$STUB_READY_TICKS"); do
+    [ -e "$1" ] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
 new_project() {
   local dir repo
   dir=$(scratch); repo="$dir/repo"
@@ -900,7 +927,7 @@ case_state_secondRunRefusesWithExit5() {
   ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/first.log" 2>&1 &
   first=$!
   local waited=0
-  while [ ! -f "$block.ready" ] && [ "$waited" -lt 300 ]; do sleep 0.1; waited=$((waited + 1)); done
+  wait_for_stub_child "$block.ready" || true
   [ -f "$block.ready" ] || { printf '\n' > "$block"; wait "$first"; fail "the first run never reached its child"; }
 
   gh_log_content=$(cat "$GH_STUB_RECORD")
@@ -937,7 +964,7 @@ case_state_aRefusedRunLeavesTheLiveStateAlone() {
   ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/first.log" 2>&1 &
   first=$!
   local waited=0
-  while [ ! -f "$block.ready" ] && [ "$waited" -lt 300 ]; do sleep 0.1; waited=$((waited + 1)); done
+  wait_for_stub_child "$block.ready" || true
   [ -f "$block.ready" ] || { printf '\n' > "$block"; wait "$first"; fail "the first run never reached its child"; }
 
   sf=$(state_file "$p")
@@ -2288,7 +2315,7 @@ case_labels_trapRemovesInProgressOnSignal() {
   # without a partner and never blocks, and the one line written through it is what a child still waiting reads.
   exec 8<> "$block"
   waited=0
-  while [ ! -f "$block.ready" ] && [ "$waited" -lt 300 ]; do sleep 0.1; waited=$((waited + 1)); done
+  wait_for_stub_child "$block.ready" || true
   [ -f "$block.ready" ] || { printf '\n' >&8; wait "$first"; fail "the run never reached its child"; }
 
   kill -TERM "$first"
@@ -3675,13 +3702,15 @@ case_run_childOutlastingTheWallClockIsBlocked() {
     run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
   pid=$!
   set +m
-  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  wait_for_stub_child "$fifo.ready" || true
   [ -e "$fifo.ready" ] || fail "the stub child never started"
   # The case holds the fifo's writer side for its whole life (`exec 8>`), so releasing a child never blocks and
   # never leaves a writer behind: the stub opens the fifo for reading, this descriptor opens against it.
   exec 8> "$fifo"
-  # Ten seconds is a bound on this case, not on the run: the run is supposed to end itself well inside it.
-  for i in $(seq 1 100); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  # The bound on this case, not on the run (issue #308): the run is supposed to end itself inside a second or two,
+  # but the host need not be free — 60 s is a wide margin, and the failing reading is a host's slowness reported as
+  # a defect in the engine.
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
   if kill -0 "$pid" 2>/dev/null; then
     # The tree before the fix only reaches this line, and the diagnosis has to clean up after itself: the run's
     # own group dies here, and the line the fifo never got is written so a child still waiting on it leaves too.
@@ -3689,7 +3718,7 @@ case_run_childOutlastingTheWallClockIsBlocked() {
     printf 'go\n' >&8 2>/dev/null || true
     wait "$pid" 2>/dev/null
     exec 8>&-
-    fail "the run was still waiting after 10 s on a child that outlasted its 2 s cap"
+    fail "the run was still waiting after 60 s on a child that outlasted its 2 s cap"
   fi
   wait "$pid"; status=$?
   exec 8>&-
@@ -3732,7 +3761,7 @@ case_run_childIsEndedAtTheRunsDeadline() {
     run_loop "$p" --items 3 --minutes 90 --review off > "$d/out" 2>&1 ) &
   pid=$!
   set +m
-  for i in $(seq 1 300); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  wait_for_stub_child "$fifo.ready" || true
   [ -e "$fifo.ready" ] || fail "the stub child never started; the run said: $(cat "$d/out")"
   exec 8> "$fifo"
   # The run's deadline arrives now. The clock the poll must read is the run's own recorded one — the state file
@@ -3806,7 +3835,7 @@ case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
     run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
   pid=$!
   set +m
-  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  wait_for_stub_child "$fifo.ready" || true
   if [ ! -e "$fifo.ready" ]; then
     kill -9 "$pid" 2>/dev/null
     fail "the stub child never started"
@@ -3883,7 +3912,7 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
     run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
   pid=$!
   set +m
-  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  wait_for_stub_child "$fifo.ready" || true
   if [ ! -e "$fifo.ready" ]; then
     kill -9 "$pid" 2>/dev/null
     fail "the stub child never started"
@@ -3923,6 +3952,107 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
   assert_contains "$files" "half-applied.txt" \
     "and the tree the ended child left is kept as it left it, named for the person who repairs it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+}
+
+# A run ended by a signal ended its child but not the heartbeat subshell beside it (`on_exit` knew `active_child`
+# and nothing else, and the `$stop` file the heartbeat loops on is only created after the wait loop returns), so a
+# process of a run that was gone kept reading its tree — measured 2026-10-25, an orphan still printing
+# `running 56m00s` long after its run had exited, and another, from a self-test of the day before, still alive the
+# next afternoon. What the case asserts is the run's own promise: after the signal, nothing that names the case's
+# tree as its working directory is left.
+case_run_noProcessOfASignalledRunOutlivesIt() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  local d p block first waited left i
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  block="$d/fifo"; mkfifo "$block"; export PI_STUB_WAIT="$block"
+  core_ensure
+  ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/run.log" 2>&1 &
+  first=$!
+  # The fifo is held read-write: the run's trap may end the child before this case releases it, and an open that
+  # waited for a reader would hang the case instead of testing it (issue #259's own lesson).
+  exec 8<> "$block"
+  waited=0
+  wait_for_stub_child "$block.ready" || true
+  [ -f "$block.ready" ] || { printf '\n' >&8; wait "$first"; fail "the run never reached its child"; }
+
+  kill -TERM "$first"
+  printf '\n' >&8
+  wait "$first" 2>/dev/null
+  exec 8>&-
+  unset PI_STUB_WAIT
+  # What is left is read the way `loop-clean.sh` reads it: a process that still names this case's tree as its
+  # working directory is a process of this run, whatever its argv says. The root is the case's own
+  # (`LOOP_CASE_TMP`), not the first scratch directory: `new_project` takes one of its own beside it, and the
+  # run's processes name *that* one.
+  left=""
+  for i in $(seq 1 50); do left=$(loop_pids_under "$LOOP_CASE_TMP"); [ -z "$left" ] && break; sleep 0.1; done
+  [ -z "$left" ] || fail "a process of the signalled run outlived it: $(printf '%s' "$left" | tr '\n' ' ') (run said: $(tail -2 "$d/run.log" | tr '\n' ' '))"
+  return 0
+}
+
+# The tree a child the run ended left is kept — but it was only kept *in the tree*: 2026-10-25 the item whose gate
+# hung was repaired by hand from `git status` and a diff, because the run recorded that the tree was dirty and
+# wrote the diff nowhere, and the only repair it named was `--reset-worktree`. The patch is the record: the tracked
+# change the child left and the untracked files beside it, written into the item's own evidence directory before the
+# run moves on, and named in the transcript a reader of the blocked item is handed.
+case_run_treeOfACapEndedChildIsKeptAsAPatch() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo pid i status out tree report patch
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The child's own work, half applied: an untracked file it never finished and an edit to a tracked one, written
+  # before it blocks on the fifo. The repo the case runs in is a throwaway, so appending to a tracked file costs
+  # nothing and is what makes the patch's tracked half observable.
+  {
+    printf 'case "$1" in\n'
+    printf '  worker*)\n'
+    printf '    printf "half-applied\\n" > half-applied.txt\n'
+    printf '    printf "unfinished edit\\n" >> tools/tooling.json\n'
+    printf '    ;;\n'
+    printf 'esac\n'
+  } > "$d/worker-action.sh"
+  export PI_STUB_ACTION="$d/worker-action.sh"
+  tree="$p/.pi/worktrees/loop"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  if [ ! -e "$fifo.ready" ]; then
+    kill -9 "$pid" 2>/dev/null
+    fail "the stub child never started"
+  fi
+  exec 8<> "$fifo"
+  for i in $(seq 1 200); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 20 s on a child that outlasted its 2 s cap"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run: $out"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
+  [ -f "$patch" ] || fail "the work a child the cap ended left was not kept as a patch (transcript: $(cat "$report" 2>/dev/null))"
+  assert_contains "$(cat "$patch")" "half-applied.txt" "the patch carries the untracked file the child left"
+  assert_contains "$(cat "$patch")" "unfinished edit" "and the tracked change it left"
+  assert_contains "$(cat "$report")" "LOOP-LEFTOVERS: " "the transcript names the record a reader of the blocked item is handed"
+  assert_contains "$(cat "$report")" "leftover-from-killed-run.patch" "with the file itself"
+  assert_eq "$(git -C "$tree" status --porcelain | grep -c 'half-applied.txt' || true)" "1" \
+    "and the tree still carries what the child left, so the patch is a record beside it and not a replacement"
+  return 0
 }
 
 # The same rule at the second commit site (issue #271, found by that change's round-1 review): a reviewer's refusal
@@ -4514,7 +4644,7 @@ case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom() {
 # either gets a failed fast-forward at the merge (an item's whole budget spent for a refusal a guard could have
 # taken first) or, when the checkout merely fast-forwards to the item's branch, has the merge absorbed by that
 # branch while the base stays where it was — the run then re-reads the unchanged base, records it, and closes the
-# item with its fix on neither (issue #302, from the read-only review of #301, 2026-10-24). The merge verifies the
+# item with its fix on neither (issue #308, from the read-only review of #301, 2026-10-24). The merge verifies the
 # precondition it depends on and names both branches it found; the pre-screen's adoption merges into the same
 # tree, so its refusal is this one and is taken before the evidence it would check the branch for. A detached HEAD
 # is the same refusal with no branch to name: the guard reads the checkout, so the state is named instead.
@@ -4578,7 +4708,7 @@ case_worktree_refusesToMergeIntoATreeOffTheBaseBranch() {
 # The base a run records is the commit every later item descends from, and the closure that follows a merge is
 # recorded against it — so a commit the base branch does not carry is a closure against a tree that never had the
 # fix. `set-base` accepted any commit the run computed (`tools/loop/state.sh`), the ancestry of the base branch
-# being nobody's question, which is what let the absorbed merge of issue #302 be recorded as an advance: the run
+# being nobody's question, which is what let the absorbed merge of issue #308 be recorded as an advance: the run
 # re-read the unchanged base, `set-base` took it, and the item closed with `status/fixed-by` on a fix the base never
 # had. The command refuses such a commit, naming the branch it asked, and the base it recorded stays where it was.
 case_state_setBaseRefusesACommitTheBaseBranchDoesNotCarry() {
@@ -4900,6 +5030,31 @@ case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds() {
     "and nothing was committed onto the branch"
 }
 
+# The other half of the same record: a start refused because the tree is not clean ends the run, and the leftovers
+# it found — the untracked file a refused `end-item` left, in this case — were named in the stop reason and written
+# nowhere (issue #308). They are written into the evidence directory of the item whose branch marker names them,
+# before the run ends, so `--reset-worktree` is no longer the only repair a person has.
+case_run_aRefusedStartKeepsTheLeftoversItFound() {
+  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/fixtures/scenarios/ tools/tooling.json
+  local d p out reason f patch
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  # The same shape as `run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds`: the stub installs a `pre-commit` hook that
+  # refuses both of `end-item`'s commits, so #21 ends with its work still in the tree.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    'h=$(git rev-parse --git-path hooks); mkdir -p "$h"; printf "#!/bin/sh\nexit 1\n" > "$h/pre-commit"; chmod +x "$h/pre-commit"'
+  out=$(run_loop "$p" --items 2 --minutes 90 2>&1)
+  f=$(state_file "$p")
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  assert_contains "$reason" "the worktree is not clean" "the stop reason says what the refusal was: $out"
+  patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
+  [ -f "$patch" ] || fail "the leftovers of a refused start were not kept as a patch (reason: $reason)"
+  assert_contains "$(cat "$patch")" "demo-fix.txt" "the patch carries the untracked file the tree held"
+  assert_contains "$reason" "leftover-from-killed-run.patch" "and the stop reason names the patch it wrote"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "leftovers" "the item whose work it is still carries its own account"
+  return 0
+}
+
 case_run_aSkipClearsTheInProgressMark() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p skip_report
@@ -4939,7 +5094,7 @@ case_run_stateNamesTheItemInProgress() {
     run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
   pid=$!
   set +m
-  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  wait_for_stub_child "$fifo.ready" || true
   if [ ! -e "$fifo.ready" ]; then
     kill -9 "$pid" 2>/dev/null
     fail "the stub child never started, so there is no item in flight to read the state about"
@@ -6527,7 +6682,7 @@ case_run_interruptedRunEndsTheChildItStarted() {
     run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
   pid=$!
   set +m
-  for i in $(seq 1 200); do [ -e "$fifo.ready" ] && break; sleep 0.1; done
+  wait_for_stub_child "$fifo.ready" || true
   if [ ! -e "$fifo.ready" ]; then
     kill -9 "$pid" 2>/dev/null
     fail "the stub child never started, so there is no child to end"
@@ -7447,6 +7602,102 @@ CASES
   assert_eq "0" "$status" "a suite bounded to one worker passes: $out"
   assert_eq "1" "$(overlap_width "$POOL_LOG")" "one worker runs one case at a time: $(cat "$POOL_LOG")"
   assert_contains "$out" "loop-selftest: all 4 cases passed" "and reports the same summary: $out"
+  return 0
+}
+
+# A case that never returns held a whole suite — and the gate behind it — for **56 minutes** on 2026-10-25, and the
+# work of the item whose gate it was had to be repaired by hand afterwards. The pool started the case and then
+# waited for it with no clock of its own (`grep -n 'timeout ' tools/loop-selftest.sh` → no hit), so nothing could
+# end it. The bound belongs to the pool and not to the case: this case drives the pool with a stub case that blocks
+# far past `LOOP_CASE_MAX_SECONDS` and asserts that the suite answers it, keeps counting and runs the case queued
+# behind it — and the `timeout` around the nested suite is the case's own guard, because a case that hangs the
+# suite it is testing would repeat the defect it exists to catch.
+case_driver_aCaseThatBlocksIsEndedByItsOwnBound() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d out driver conf status
+  d=$(scratch)
+  # The nested suite is the library's own (`nested_suite`, the shape the filter cases use): it takes the stub case
+  # library on stdin and answers the driver and the configuration it wrote. The bound is appended to that
+  # configuration, which the driver sources after the project's, so the last assignment wins.
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#blocks' 'stub#after')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  case "$1" in
+    stub#blocks) sleep 600 ;;
+    stub#after) printf 'the case queued behind the bound ran\n' ;;
+  esac
+}
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  printf 'LOOP_CASE_MAX_SECONDS=2\n' >> "$conf"
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" 2>&1); status=$?
+  [ "$status" -ne 124 ] || fail "the suite was still inside a case that never returned after 60 s: $out"
+  assert_eq "1" "$status" "the suite fails on the case its own bound ended: $out"
+  assert_contains "$out" "FAIL stub#blocks (exceeded 2 s)" "and the line names the case with the bound that ended it"
+  assert_contains "$out" "PASS stub#after" "the case queued behind the bounded one ran"
+  assert_contains "$out" "1 of 2 cases failed" "the summary counts the bounded case as a failure"
+  return 0
+}
+
+# The bound must answer only a case that outran it: a case that finishes inside its clock keeps its own verdict —
+# including a failure of its own — and no line of the bound's appears. This case is green against the unfixed driver
+# by construction: it is the guard that a bound cannot be turned into "everything failed", and mutation `61.2` is
+# what makes it red (`tools/loop-mutations.sh`).
+case_driver_aCaseInsideItsBoundKeepsItsOwnVerdict() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d out driver conf status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#quick' 'stub#fails')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  case "$1" in
+    stub#quick) sleep 1 ;;
+    stub#fails) return 3 ;;
+  esac
+}
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  printf 'LOOP_CASE_MAX_SECONDS=5\n' >> "$conf"
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" 2>&1); status=$?
+  assert_eq "1" "$status" "the suite fails on the case that failed by itself: $out"
+  assert_contains "$out" "PASS stub#quick" "a case inside its bound keeps its own pass"
+  assert_contains "$out" "FAIL stub#fails" "and a case that failed inside its bound keeps its own failure"
+  assert_eq "0" "$(printf '%s\n' "$out" | grep -c 'exceeded' || true)" "the bound answers neither of them"
+  return 0
+}
+
+# A case's output was held in a file until the case ended (`loop-selftest.sh`'s `finish_case` cat-ed it), so the log of
+# the hung gate was 222 `PASS` lines and then fifty minutes of nothing, and the case that hung was named nowhere —
+# reconstructing which case it was took a session (issue #308). The line must reach the suite's own output as it
+# arrives, prefixed with the case's name, while the case is still running, and the case's own file must still carry
+# it unaltered for its failure text.
+case_driver_aRunningCasePrintsItsOwnLines() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d out driver conf status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#slow')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  printf 'a line from a case that has not ended\n'
+  sleep 600
+}
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  printf 'LOOP_CASE_MAX_SECONDS=3\n' >> "$conf"
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" 2>&1); status=$?
+  [ "$status" -ne 124 ] || fail "the suite was still inside the printing case after 60 s: $out"
+  assert_contains "$out" "stub#slow| a line from a case that has not ended" \
+    "the running case's own line reaches the suite's output, prefixed with the case"
+  assert_contains "$out" "FAIL stub#slow (exceeded 3 s)" "and the case's bound still answers it"
   return 0
 }
 

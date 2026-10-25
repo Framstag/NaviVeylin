@@ -129,6 +129,13 @@ selftest_workers() { # <value or nothing> → a positive worker count
   printf '%s' "$n"
 }
 workers=$(selftest_workers "${only_jobs:-${LOOP_SELFTEST_JOBS:-}}")
+# How long one case may run before the suite ends it (issue #308). Whole seconds, validated like the profile's other
+# bounds: empty, non-numeric or `0` is the default rather than a refused suite. Measured 2026-10-25: a case that
+# never returned held a suite — and the gate behind it — for 56 minutes, and the item whose gate it was had to be
+# repaired by hand afterwards. The suite's slowest case is 9–15 s and all 223 cases took 273 s the same day, so the
+# default is 60× the slowest case; a case that needs more raises the key.
+case_max="${LOOP_CASE_MAX_SECONDS:-900}"
+case "$case_max" in ''|*[!0-9]*|0) case_max=900 ;; esac
 loop_tmp_resolve
 mkdir -p "$LOOP_TMP_DIR" 2>/dev/null || true
 tmp=$(mktemp -d "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"XXXXXX) || {
@@ -151,6 +158,9 @@ case_slot_pid=()
 case_slot_pgid=()
 case_slot_name=()
 case_slot_dir=()
+# …and the case's bound: when it started, and the watcher job that enforces it (issue #308).
+case_slot_started=()
+case_slot_watch=()
 # The repository's lock, set only on the way through `selftest_lock_take` that took it (issue #295). Empty
 # until then, and named here rather than beside the function because `on_exit` may run before that line.
 selftest_lock=""
@@ -164,6 +174,14 @@ on_exit() {
     for slot in "${!case_slot_pid[@]}"; do
       [ -n "${case_slot_pid[$slot]:-}" ] || continue
       loop_end_group "${case_slot_pgid[$slot]:-}"
+    done
+  fi
+  # …and the bound watcher each case started, which is a job of *this* shell and not a member of the case's group
+  # (issue #308): a suite that takes a signal must not leave a `sleep` behind that would later end a group it no
+  # longer owns.
+  if [ "${#case_slot_watch[@]}" -gt 0 ]; then
+    for slot in "${!case_slot_watch[@]}"; do
+      loop_end_pid "${case_slot_watch[$slot]:-}"
     done
   fi
   # …and then anything else that is still standing in the suite's own scratch root. A case that ends *normally*
@@ -399,7 +417,8 @@ fi
 # What a case keeps unchanged: the `PASS`/`FAIL` line, the counts, the summary line and the exit status, and a
 # `--case` run of one case is still one case. What it gains: a scratch root of its own (`LOOP_CASE_TMP`, which
 # `scratch()` creates the case's trees under), an output of its own — so two cases' lines never interleave, and a
-# case's lines arrive together when it finishes — and a claim on the one compile (`core_ensure` above).
+# case's lines arrive prefixed with its own name as they are written (issue #308: a case that hung used to be named
+# nowhere while it hung) — and a claim on the one compile (`core_ensure` above).
 selftest_case_root="$tmp/cases"
 mkdir -p "$selftest_case_root" || {
   echo "loop-selftest: cannot create $selftest_case_root" >&2
@@ -420,12 +439,65 @@ start_case() { # <slot> <case name> → the case is running in that slot
   # started (issue #213). The inner subshell is what keeps a case's own `exit` — which is how `fail` fails a case —
   # from taking the record of how it ended with it. The stdin is closed for the same reason `run_child` closes its
   # child's: a member of a background group that reads a terminal is stopped, not run.
+  #
+  # A case's output is relayed **while it runs** (issue #308): each line reaches the suite's own output as it
+  # arrives, prefixed with the case's name, and is appended to `$dir/out` byte for byte for the case's failure text.
+  # Measured 2026-10-25, a hung case's gate held 222 `PASS` lines and then fifty minutes of nothing, because a case's
+  # output was held in that file until the case ended. fd 3 is the suite's own stdout, taken before it is replaced
+  # by the relay's sink.
+  #
+  # The case is run **in the foreground of its subshell** and the status is written straight after it returns — a
+  # pipeline (`( case ) | relay`) would make the subshell wait for the relay to reach EOF, and a case's own
+  # descendants inherit that pipe and can hold it open, which is the hang this relay must not reintroduce (measured
+  # on the first shape of this change: the whole `driver#*` group stood at its 900 s bound). The relay reads a fifo
+  # of its own instead: it is a child of the case's subshell and therefore a member of its process group, so
+  # `finish_case` ends it with the group, and the case's status never waits for it.
+  case_slot_started[slot]=$(date +%s)
   set -m
   ( LOOP_CASE_TMP="$dir/tree"; export LOOP_CASE_TMP
-    ( loop_run_shell_case "$name" ); printf '%s\n' "$?" > "$dir/status" ) < /dev/null > "$dir/out" 2>&1 &
+    mkfifo "$dir/stream" 2>/dev/null || exit 1
+    ( while IFS= read -r line; do
+        printf '%s| %s\n' "$name" "$line" >&3
+        printf '%s\n' "$line" >> "$dir/out"
+      done < "$dir/stream" ) &
+    relay=$!
+    ( loop_run_shell_case "$name" ) > "$dir/stream" 2>&1
+    rc=$?
+    # The relay is given a short, bounded grace **before the status is written**, so what the case printed is read
+    # before the pool can end the group: a case whose descendants hold the fifo open (the sweep case leaves exactly
+    # one) never gives the relay EOF, and a grace in `finish_case` instead would sit between a case's end and the
+    # sweep that ends what it left — measured, that made `driver#aCaseThatLeavesAProcessBehindIsSweptWithIt` see
+    # the leaked process still running. The pool's own order is untouched.
+    for ((g = 0; g < 20; g++)); do
+      kill -0 "$relay" 2>/dev/null || break
+      sleep 0.05
+    done
+    printf '%s\n' "$rc" > "$dir/status" ) 3>&1 >/dev/null 2>&1 < /dev/null &
   case_slot_pid[slot]=$!
   set +m
   case_slot_pgid[slot]=$!
+  # The case's bound is a watcher, and it is a job of *this* shell rather than a member of the case's group (issue
+  # #308): it writes the case's `status` and `bound` **before** it ends the group, so a case that recorded nothing
+  # is a failure answered by its bound — and the group it signals does not contain the writer. `$token` keeps a
+  # watcher that fires late out of a slot the pool has since handed on: the slot directory is recreated per case,
+  # and a token that no longer matches stops the watcher without writing. The check that no status exists narrows
+  # the one race left — a case that finishes in the same instant its bound fires — to a case that was at its bound
+  # anyway.
+  token="${case_slot_pid[$slot]}-${case_slot_started[$slot]}"
+  printf '%s\n' "$token" > "$dir/token" 2>/dev/null || true
+  # …and its own stdin, stdout and stderr are `/dev/null`, not the suite's: the watcher outlives every case until
+  # it fires or is ended, so a suite whose output is captured in a command substitution (`$( … )`, which three of
+  # the driver's own cases do) would never see EOF while a watcher held the write end of that pipe — the whole
+  # nested-suite group of cases hung on exactly that. Its writes are files it names, and its one signal is a pid.
+  set -m
+  ( sleep "$case_max"
+    [ "$(cat "$dir/token" 2>/dev/null)" = "$token" ] || exit 0
+    [ -s "$dir/status" ] && exit 0
+    printf '%s\n' "$LOOP_CHILD_TIMEOUT" > "$dir/status"
+    printf '%s\n' "$case_max" > "$dir/bound"
+    kill -TERM -- -"${case_slot_pgid[$slot]}" 2>/dev/null || true ) < /dev/null > /dev/null 2>&1 &
+  case_slot_watch[slot]=$!
+  set +m
 }
 
 # Reap the case, end what it left, print what it printed and answer its own status. The record of how it ended is
@@ -434,8 +506,13 @@ start_case() { # <slot> <case name> → the case is running in that slot
 finish_case() { # <slot> → the case's own status
   local slot="$1" dir status
   dir="${case_slot_dir[$slot]}"
+  # The bound's watcher first, while the slot directory is still the one it was started for (issue #308): a watcher
+  # that outlived its case would otherwise fire into the slot the pool hands to the next one.
+  loop_end_pid "${case_slot_watch[$slot]:-}"
+  case_slot_watch[slot]=""
   wait "${case_slot_pid[$slot]}" 2>/dev/null
   case_slot_pid[slot]=""
+  case_slot_started[slot]=""
   status=$(cat "$dir/status" 2>/dev/null)
   case "$status" in
     ''|*[!0-9]*) status=1 ;;
@@ -446,7 +523,13 @@ finish_case() { # <slot> → the case's own status
   loop_end_group "${case_slot_pgid[$slot]:-}"
   case_slot_pgid[slot]=""
   loop_end_pids_under "$dir/tree" --quiet
-  [ ! -s "$dir/out" ] || cat "$dir/out"
+  # What the case printed is its failure text (issue #308): the relay has already sent every line to the suite's own
+  # output as it arrived, so the file is repeated here only for a case that failed — a reader of the transcript finds
+  # a failed case's text together and in order, and a passing case is not printed twice.
+  if [ "$status" -ne 0 ] && [ -s "$dir/out" ]; then
+    printf '%s\n' "--- $case_slot_name[$slot] (exit $status)"
+    cat "$dir/out"
+  fi
   rm -rf "$dir"
   case_slot_name[slot]=""
   case_slot_dir[slot]=""
@@ -575,11 +658,18 @@ while [ "$started" -lt "$queued" ] || [ "$running" -gt 0 ]; do
     [ -n "${case_slot_pid[$slot]:-}" ] || continue
     [ -f "${case_slot_dir[$slot]}/status" ] || continue
     case_name="${case_slot_name[$slot]}"
+    # The bound's answer is read before the slot is emptied (issue #308): a case that recorded nothing because its
+    # watcher ended it is a failure, and the line says which clock answered it.
+    bound=$(cat "${case_slot_dir[$slot]}/bound" 2>/dev/null)
     if finish_case "$slot"; then
       printf 'PASS %s\n' "$case_name"
     else
       failed=$((failed + 1))
-      printf 'FAIL %s\n' "$case_name"
+      if [ -n "$bound" ]; then
+        printf 'FAIL %s (exceeded %s s)\n' "$case_name" "$bound"
+      else
+        printf 'FAIL %s\n' "$case_name"
+      fi
     fi
     running=$((running - 1))
     finished=$((finished + 1))

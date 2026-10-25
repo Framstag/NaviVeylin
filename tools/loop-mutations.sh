@@ -439,13 +439,13 @@ MUTATIONS=(
   # the recorded branch instead.
   '56.3@-@tools/loop/loop.conf@state#baseBranchIsAConfigurationKey@the base branch recorded as a value an inherited environment may override (issue #303)@s|^LOOP_BASE_REF=.*$|LOOP_BASE_REF="main"|'
   # 57.1 — the landing step verifies that the project's own tree has the base branch checked out before it merges
-  # into it (issue #302). Without the guard the merge acts on whatever branch that tree holds: a checkout that
+  # into it (issue #308). Without the guard the merge acts on whatever branch that tree holds: a checkout that
   # merely fast-forwards absorbs the item's commits, the base stays where it was, and the item closes with its fix
   # on neither — the mechanism measured 2026-10-24 in `worktree#refusesToMergeIntoATreeOffTheBaseBranch`, where
   # HEAD answered 0 where 5 is owed.
   '57.1@-@tools/loop/worktree.sh@worktree#refusesToMergeIntoATreeOffTheBaseBranch@the checkout the landing step merges into being the base branch@s|^  if \[ "\$branch" != "\$(base_ref)" \]; then$|  if false; then|'
   # 57.2 — the base a run records is a commit the base *branch* carries, never just a commit `rev-parse` resolves
-  # (issue #302). Without the ancestry test the record takes whatever the run computed, which is how an absorbed
+  # (issue #308). Without the ancestry test the record takes whatever the run computed, which is how an absorbed
   # merge read as an advance and the closure named a base that never carried the fix.
   '57.2@-@tools/loop/state.sh@state#setBaseRefusesACommitTheBaseBranchDoesNotCarry@the ancestry of a recorded base against the base branch@s|^  git -C "\$LOOP_ROOT" merge-base --is-ancestor "\$sha" "\$branch" 2>/dev/null \|\|$|  true \|\||'
   # 58.1–58.5 — an item blocked by a mechanism records which one stopped it (issue #280, the decision recorded on
@@ -476,6 +476,17 @@ MUTATIONS=(
   # meaning seconds.
   '60.1@-@tools/loop/run.sh@run#theWaitEndsWhenTheChildDoes@the wait looking for the completion record below a whole second (issue #259)@s|^    sleep "\$poll"$|    sleep 1|'
   '60.2@-@tools/loop/run.sh@run#theProgressLineKeepsItsInterval@the heartbeat'"'"'s test on elapsed seconds rather than on the look it was woken by (issue #259)@s|^      \[ "\$elapsed" -ge "\$next" \] \|\| continue$|      : # the mutation reports on every look|'
+  # 61.x — the loop's own bounds and its record of what a stopped run found (issue #308). Six invariants, six
+  # records: the case bound itself, the guard that a bound answers only a case that outran it, the relay that carries
+  # a running case's line into the suite's log, the call that ends the heartbeat with a signalled run, and the two
+  # dirty-tree paths that keep the work they found. Measured before the change: 56 minutes of a 480-minute budget on
+  # one case that nothing could end, and a killed worker's work reconstructed by hand.
+  '61.1@-@../loop-selftest.sh@driver#aCaseThatBlocksIsEndedByItsOwnBound@the case bound the suite ends a case with (issue #308)@s|^  ( sleep "\$case_max"$|  ( sleep 99999|'
+  '61.2@-@../loop-selftest.sh@driver#aCaseInsideItsBoundKeepsItsOwnVerdict@the pool reading a case'"'"'s own verdict instead of answering every case with the bound (issue #308)@s|^    if finish_case "\$slot"; then$|    if false; then|'
+  '61.3@-@../loop-selftest.sh@driver#aRunningCasePrintsItsOwnLines@the relay that carries a running case'"'"'s own line to the suite (issue #308)@s#^    ( while IFS= read -r line; do$#    ( while false; do#'
+  '61.4@-@tools/loop/run.sh@run#noProcessOfASignalledRunOutlivesIt@the call that ends the heartbeat with a signalled run (issue #308)@s|^  loop_end_pid "\$active_hb"$|  : # the mutation leaves the heartbeat|'
+  '61.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue" "\$item_dir"$|    : # the mutation keeps no patch|'
+  '61.6@-@tools/loop/run.sh@run#aRefusedStartKeepsTheLeftoversItFound@the patch a refused start keeps (issue #308)@s|^        keep_leftovers "\$owner_item" "\$stage_dir/items/\$owner_item"$|        : # the mutation keeps no patch|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

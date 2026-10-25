@@ -1,0 +1,55 @@
+the cases the delta reaches, 2026-10-25T14:01Z — one suite run per case
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+status=0  wall=7s  driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+status=0  wall=5s  driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#aRunningCasePrintsItsOwnLines
+status=0  wall=8s  driver#aRunningCasePrintsItsOwnLines
+PASS driver#theSuiteRunsItsCasesInAPool
+status=0  wall=19s  driver#theSuiteRunsItsCasesInAPool
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+status=0  wall=7s  driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+status=0  wall=11s  driver#aSecondSuiteInOneRepositoryIsRefused
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+status=0  wall=10s  driver#everyCaseDeclaresTheFilesItCanReach
+PASS run#childReportsWhileItWaits
+status=0  wall=11s  run#childReportsWhileItWaits
+PASS run#childOutlastingTheWallClockIsBlocked
+status=0  wall=12s  run#childOutlastingTheWallClockIsBlocked
+PASS run#childIsEndedAtTheRunsDeadline
+status=0  wall=13s  run#childIsEndedAtTheRunsDeadline
+PASS run#detachedProcessInTheWorktreeIsEndedByTheCap
+status=0  wall=13s  run#detachedProcessInTheWorktreeIsEndedByTheCap
+PASS run#interruptedRunEndsTheChildItStarted
+status=0  wall=6s  run#interruptedRunEndsTheChildItStarted
+PASS run#treeOfAChildTheCapEndedIsNotCommitted
+status=0  wall=11s  run#treeOfAChildTheCapEndedIsNotCommitted
+PASS run#treeOfACapEndedChildIsKeptAsAPatch
+status=0  wall=13s  run#treeOfACapEndedChildIsKeptAsAPatch
+PASS run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+status=0  wall=12s  run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted
+PASS run#noProcessOfASignalledRunOutlivesIt
+status=0  wall=8s  run#noProcessOfASignalledRunOutlivesIt
+PASS run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+status=0  wall=9s  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+PASS run#aRefusedStartKeepsTheLeftoversItFound
+status=0  wall=8s  run#aRefusedStartKeepsTheLeftoversItFound
+PASS labels#trapRemovesInProgressOnSignal
+status=0  wall=7s  labels#trapRemovesInProgressOnSignal
+labels#writesOnlyBetweenChildren| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261025-140414')
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei 5ff6336 init
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (91adbf3)
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (41fb945)
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei 41fb945 review: 2026-01-01-fix-demo round 1 passed (#21)
+labels#writesOnlyBetweenChildren| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 41fb945).
+labels#writesOnlyBetweenChildren| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren| closed #21 (completed)
+labels#writesOnlyBetweenChildren| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+labels#writesOnlyBetweenChildren|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS labels#writesOnlyBetweenChildren
+status=0  wall=9s  labels#writesOnlyBetweenChildren
+failed=0 of 20

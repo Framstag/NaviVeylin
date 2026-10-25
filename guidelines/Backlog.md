@@ -331,6 +331,26 @@ children, and a copy of the engine whose `sleep 1` became `sleep 0.05` ran `run#
 this was fixed from: 2 008 ms to notice a worker that answered in 150 ms, and 261 ms after. The cap and the deadline
 are unchanged whole-second clocks, and the `TERM`→`KILL` grace after either fires is still one second.
 
+**A case is held to a bound, and a stopped run keeps what it found.** The self-test bounds every case it starts with
+`LOOP_CASE_MAX_SECONDS` (default 900) and answers one that outran it with `FAIL <case> (exceeded <n> s)` after ending
+its process group, and a case's lines reach the suite's own log — prefixed with the case's name — **while it runs**, so
+a case that has not ended still names itself. Measured 2026-10-25 (issue #308): a case that never returned held the
+suite, and the gate behind it, for **56 minutes**; the gate's log showed 222 `PASS` lines and then fifty minutes of
+nothing; the worker that ran that gate was ended by its own `LOOP_CHILD_MAX_SECONDS` with the item's work
+uncommitted; and the next item's start was refused for the dirty tree, whose only named repair was
+`--reset-worktree` — the work of that item had to be reconstructed by hand from `git status` and a diff (a previous
+session had done the same by hand for #260). A run ended by a signal now ends the heartbeat it started: the heartbeat
+beside a child is a job of the run's own shell and not a member of the child's group, and the `$stop` file it loops on
+is only created where the wait returns — an orphan was still printing `running 56m00s` after its run had exited, and
+another, from a self-test of the day before, stood until the next afternoon. Both paths that stop on a dirty tree — the
+child the cap or the deadline ended, and the start the worktree refused — write the work they found to
+`<item dir>/leftover-from-killed-run.patch` before the run moves on: the tracked diff against `HEAD` (staged and
+unstaged, because a refused `end-item` leaves its work staged), each untracked file, and the ignored files under
+`LOOP_UNTRACKED_RECORD_DIR` — every other ignored path is named in the patch's header instead of copied, and so is any
+file above the size bound. The tree is still kept exactly as the child left it: the patch is a record **beside** it,
+never a replacement, and nothing is committed. The suite's slowest case is 9–15 s, and all 223 cases took 273 s on the
+same day.
+
 Inside that bound the project's gate is what fills the log, and it streams: each suite's output is `tee`d as the
 suite writes it, and the summary, the tally and the failure text are read from that same file, so a suite that
 runs for a quarter of an hour shows its own lines instead of a two-line log. Measured 2026-10-23: a gate run held
@@ -450,7 +470,7 @@ the landing step reads the checkout instead of assuming it, and refuses a tree s
 while the run is open, naming both branches (the start's own guard covers only the tree a run is *opened* on,
 #301). Without it a checkout that merely fast-forwards absorbs the merge: the item's commits land on a third
 branch, `main` does not move, the run re-reads the unchanged base and closes the item with `status/fixed-by` on
-a fix the base never had (issue #302, from #301's review, 2026-10-24). For the same reason the base the run
+a fix the base never had (issue #308, from #301's review, 2026-10-24). For the same reason the base the run
 records is only ever a commit the base *branch* carries: `set-base` asks the branch and refuses anything else,
 so a closure cannot be recorded against a tree the base does not have.
 No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s

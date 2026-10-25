@@ -56,7 +56,10 @@ deliberately not a submodule, a package or a published binary (see *What an upda
    run** (`LOOP_GATE_CMD`), the submodule a fresh worktree has to check out (`LOOP_SUBMODULE_PATH`,
    empty for a project without one) and **the branch every item descends from** (`LOOP_BASE_REF`,
    written `LOOP_BASE_REF="${LOOP_BASE_REF:-main}"` because the file is sourced *after* the environment:
-   the expansion is what lets an inherited value win, and a plain assignment would ignore it). The gate
+   the expansion is what lets an inherited value win, and a plain assignment would ignore it), the one gitignored
+   directory a stopped run copies into its leftovers patch (`LOOP_UNTRACKED_RECORD_DIR` — the project's own
+   unarchived changes live in one, and a patch of the tracked diff alone would lose them), and how long one
+   self-test case may run (`LOOP_CASE_MAX_SECONDS`). The gate
    command is the project's: leave it empty for a project with no build, and the phases still run while
    the report says the gate was skipped. The base branch is the project's too — a project on `trunk` or
    `develop` records it here, so nothing about the branch lives in the engine.

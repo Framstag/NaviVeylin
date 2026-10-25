@@ -1,0 +1,6 @@
+red on HEAD 2026-10-25T07:01Z — bash tools/loop-selftest.sh --case 'driver#aCaseThatBlocksIsEndedByItsOwnBound'
+  the suite was still inside a case that never returned after 60 s: the case queued behind the bound ran
+PASS stub#after
+FAIL driver#aCaseThatBlocksIsEndedByItsOwnBound
+loop-selftest: 1 of 1 cases failed
+status=1

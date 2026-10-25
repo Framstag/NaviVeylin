@@ -340,6 +340,76 @@ interrupted=0
 # the run takes a signal — the path a person's `kill`, or an operator's Ctrl-C, takes — while it is waiting for
 # that child (issue #213).
 active_child=""
+# The heartbeat subshell the running `run_child` started, and the one it must end when the run takes a signal
+# (issue #308): the `$stop` file the heartbeat loops on is only created on the path where the wait returns, so a
+# signalled run used to leave it polling its tree for ever — measured 2026-10-25, an orphan still printing
+# `running 56m00s` long after its run had exited.
+active_hb=""
+# The patch the leftovers of an ended child were written to, set by `keep_leftovers` and named in the transcript a
+# reader of the blocked item is handed.
+leftover_patch=""
+# The one ignored directory `keep_leftovers` copies into that patch instead of only naming it (issue #308). Empty
+# means no ignored path is copied; the profile's key is the project fact, the engine keeps none of its own.
+record_dir="${LOOP_UNTRACKED_RECORD_DIR:-}"
+record_dir="${record_dir%/}"
+
+# The work a child the run ended left is written down before the run moves on or stops (issue #308): the tracked
+# diff, each untracked file, and the ignored files under the profile's record directory — this project's unarchived
+# changes live under `openspec/changes/`, which is gitignored, and an unarchived change is exactly what a killed
+# worker leaves behind. Every other ignored path is *named* in the header rather than copied, so no build directory
+# lands in the patch, and so is any file above the size bound. Measured 2026-10-25: the item whose gate hung was
+# repaired by hand from `git status` and a diff, because the run recorded that the tree was dirty and wrote the diff
+# nowhere, and the only repair it named was `--reset-worktree`.
+keep_leftovers() { # keep_leftovers <item> <evidence dir> → sets $leftover_patch (+ the file it wrote)
+  local item="$1" dir="$2" patch path size named
+  leftover_patch=""
+  case "$item" in ''|*[!0-9]*) return 0 ;; esac
+  [ -d "$LOOP_WORKTREE" ] || return 0
+  mkdir -p "$dir" 2>/dev/null || return 0
+  patch="$dir/leftover-from-killed-run.patch"
+  {
+    printf '# the work #%s left in %s\n' "$item" "$LOOP_WORKTREE"
+    # `diff HEAD` and not `diff`: a refused `end-item` leaves the work **staged** — the commit is what failed — and
+    # `git diff` shows neither a staged addition nor a staged deletion, so the tracked half of the record would lose
+    # exactly the work the loop's own commit path had staged (issue #308, measured on
+    # `run#aRefusedStartKeepsTheLeftoversItFound`: `demo-fix.txt` was staged and absent from the patch).
+    printf '# tracked changes (staged and unstaged, against HEAD):\n'
+    git -C "$LOOP_WORKTREE" diff HEAD --no-color 2>/dev/null || true
+    while IFS= read -r path; do
+      [ -n "$path" ] || continue
+      size=$(wc -c < "$LOOP_WORKTREE/$path" 2>/dev/null || printf 0)
+      if [ "$size" -gt 262144 ]; then
+        printf '# %s: %s bytes, not copied\n' "$path" "$size"
+      else
+        diff -u --label "/dev/null" --label "b/$path" /dev/null "$LOOP_WORKTREE/$path" 2>/dev/null || true
+      fi
+    done < <(git -C "$LOOP_WORKTREE" ls-files --others --exclude-standard 2>/dev/null)
+    if [ -n "$record_dir" ]; then
+      printf "# ignored files under %s (the unarchived changes of this project):\n" "$record_dir"
+      while IFS= read -r path; do
+        [ -n "$path" ] || continue
+        size=$(wc -c < "$LOOP_WORKTREE/$path" 2>/dev/null || printf 0)
+        if [ "$size" -gt 262144 ]; then
+          printf '# %s: %s bytes, not copied\n' "$path" "$size"
+        else
+          diff -u --label "/dev/null" --label "b/$path" /dev/null "$LOOP_WORKTREE/$path" 2>/dev/null || true
+        fi
+      done < <(git -C "$LOOP_WORKTREE" ls-files --others --ignored --exclude-standard -- "$record_dir" 2>/dev/null)
+    fi
+    named=0
+    printf '# ignored paths not carried above (their contents are not in this patch):\n'
+    while IFS= read -r path; do
+      [ -n "$path" ] || continue
+      if [ -n "$record_dir" ]; then case "$path" in "$record_dir"/*) continue ;; esac; fi
+      if [ "$named" -lt 40 ]; then printf '# %s\n' "$path"; fi
+      named=$((named + 1))
+    done < <(git -C "$LOOP_WORKTREE" ls-files --others --ignored --exclude-standard 2>/dev/null)
+    if [ "$named" -gt 40 ]; then printf '# … and %s more ignored path(s), not listed\n' "$((named - 40))"; fi
+  } > "$patch" 2>/dev/null || { rm -f "$patch"; return 0; }
+  [ -s "$patch" ] || { rm -f "$patch"; return 0; }
+  leftover_patch="$patch"
+}
+
 on_exit() {
   local rc=$?
   trap - EXIT
@@ -347,6 +417,11 @@ on_exit() {
   # writes the item's outcome. `loop_end_group` sends `TERM`, so the child's own cleanup runs, and waits for it.
   loop_end_group "$active_child"
   active_child=""
+  # …and the heartbeat beside it (issue #308). It is a job of this shell and not a member of the child's group, so
+  # the group signal above never reached it, and the `$stop` file it loops on is only created on the path where the
+  # wait returns — which a signal never takes.
+  loop_end_pid "$active_hb"
+  active_hb=""
   if [ "$interrupted" -eq 1 ] && [ -n "$in_progress" ]; then
     # A killed run must leave no item looking in progress: the label comes off and the item is recorded
     # blocked, so the next run's pre-screen can take it up again (D7).
@@ -915,6 +990,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
     done ) >&2 &
   hb=$!
+  active_hb=$hb
   # The wait ends on the **child's own completion record**, not on `kill -0` of its pid and not on `wait`: a child
   # that the shell has already reaped answers nothing, and a `wait` on a pid bash no longer tracks returns no
   # status, so a poll that believes the child is gone can leave the run blocked behind a `wait` for ever. Measured
@@ -987,10 +1063,18 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     if [ -n "$sweep" ]; then
       printf '%s\n' "$sweep" | sed 's/^/LOOP-ENDED: /' >> "$2"
     fi
+    # …and the work it left is written down before the run moves on (issue #308): the item's own worker and the
+    # rework worker of a refusing round both end here, both name the item the tree belongs to, and the tree itself is
+    # still kept exactly as the child left it — the patch is a record *beside* it, never a replacement.
+    keep_leftovers "$issue" "$item_dir"
+    if [ -n "$leftover_patch" ]; then
+      printf 'LOOP-LEFTOVERS: %s — the work this run ended is kept there\n' "$leftover_patch" >> "$2"
+    fi
     rc="$LOOP_CHILD_TIMEOUT"
   fi
   : > "$stop"
   wait "$hb" 2>/dev/null
+  active_hb=""
   rm -f "$stop"
   printf 'loop: %s finished in %s (exit %s, log %s B)\n' "$phase" \
     "$(fmt_elapsed $(( $(date +%s) - started )))" "$rc" "$(wc -c < "$2" 2>/dev/null || printf 0)"
@@ -1129,6 +1213,10 @@ while true; do
         else
           leftover_owner="the worktree is on ${marker:-an unknown branch}, which names no item"
         fi
+        # …and the leftovers it found are written down before the run ends (issue #308): they are this item's, the
+        # item is named by the branch marker, and the stop reason below names the file — so `--reset-worktree` is no
+        # longer the only repair a person has, and the work is readable after it.
+        keep_leftovers "$owner_item" "$stage_dir/items/$owner_item"
         if [ "$dry_run" -eq 0 ] && [ -n "$owner_item" ]; then
           escalated_label=""
           if loop_labels escalate "$owner_item" \
@@ -1140,7 +1228,7 @@ while true; do
             --note "the worktree was not clean when #$issue was started: the leftovers are #$owner_item's, and no item can start until they are dealt with — $leftover_files" \
             --decision-label "$escalated_label" >/dev/null
         fi
-        stop_run "the item could not be started: the worktree is not clean — $leftover_owner, so #$issue and no item after it can start until they are dealt with: $leftover_files (repair: --reset-worktree discards them, and names them before it does)"
+        stop_run "the item could not be started: the worktree is not clean — $leftover_owner, so #$issue and no item after it can start until they are dealt with: $leftover_files${leftover_patch:+ (the work is kept in $leftover_patch)} (repair: --reset-worktree discards them, and names them before it does)"
         break
         ;;
       *) stop_run "the item could not be started: $(printf '%s' "$start_out" | head -1)"; break ;;

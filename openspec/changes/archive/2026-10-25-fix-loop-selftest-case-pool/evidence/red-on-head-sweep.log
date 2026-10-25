@@ -1,0 +1,10 @@
+# tools/loop-selftest.sh at HEAD (a2489ca7) — the driver before the pool
+# date: 2026-10-25T00:58:10Z
+  a suite whose case leaves a process behind still passes: the driver hands the case no scratch root of its own
+FAIL stub#leavesOne
+the driver hands the case no scratch root of its own
+FAIL stub#watchesForIt
+loop-selftest: 2 of 2 cases failed: expected '0', got '1'
+FAIL driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+loop-selftest: 1 of 1 cases failed
+status=1

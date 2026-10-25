@@ -1,5 +1,5 @@
 {
-  "comment": "The revert-checks of `tooling-portability` (labels 5.1–5.7) and of `fix-portability-value-set-and-preconditions` (labels 6.1–6.5), plus the fixture's missing budget default (7.1) and its own base branch (7.2), as a runnable set: one mutation each, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/portability-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. The evidence recorded in the changes' `evidence/` came from exactly these mutations.",
+  "comment": "The revert-checks of `tooling-portability` (labels 5.1–5.7) and of `fix-portability-value-set-and-preconditions` (labels 6.1–6.7), plus the fixture's missing budget default (7.1) and its own base branch (7.2), as a runnable set: one mutation each, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/portability-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule. The evidence recorded in the changes' `evidence/` came from exactly these mutations.",
   "case-cmd": "bash tools/check-portability-selftest.sh --case {case}",
   "mutations": [
     {
@@ -105,6 +105,22 @@
       "search": "  *\"/.pi/\"*)",
       "replace": "  *\"/.pi-x/\"*)",
       "why": "the suite refuses when its root is machine-local state"
+    },
+    {
+      "label": "6.6",
+      "case": "preconditions#runsInALinkedWorkingTree",
+      "file": "tools/check-portability-selftest.sh",
+      "search": "if [ -n \"$(git -C \"$root\" rev-parse --show-prefix 2>/dev/null)\" ] || [ ! -d \"$root/tools/fixtures/foreign-project\" ]; then",
+      "replace": "if true; then",
+      "why": "a linked working tree under `.pi/` is a checkout and runs the suite, so the loop's gate may run it in the change root (issue #289)"
+    },
+    {
+      "label": "6.7",
+      "case": "preconditions#refusesUnderMachineLocalState",
+      "file": "tools/check-portability-selftest.sh",
+      "search": "|| [ ! -d \"$root/tools/fixtures/foreign-project\" ]; then",
+      "replace": "; then",
+      "why": "a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289)"
     },
     {
       "label": "7.1",

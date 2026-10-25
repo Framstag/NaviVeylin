@@ -80,7 +80,7 @@ print it, and SHALL report any other occurrence as a leak.
 
 The tools SHALL determine the project from their working tree in every situation a project actually occurs
 in, and the situations that break a naive resolution SHALL be covered by the check's own cases. The check's
-suite SHALL state the two preconditions its own root must meet, and SHALL refuse with a named reason and the
+suite SHALL state the preconditions its own root must meet, and SHALL refuse with a named reason and the
 environment's exit code when they are not met, rather than reporting a case as failed.
 
 #### Scenario: Invoked from a nested directory
@@ -111,8 +111,16 @@ environment's exit code when they are not met, rather than reporting a case as f
 
 #### Scenario: preconditions#refusesUnderMachineLocalState
 
-- **WHEN** the check's suite is run from a copy whose root path is machine-local state (under `.pi/`)
-- **THEN** it names that reason, exits with the environment's code, and reports no case as failed
+- **WHEN** the check's suite is run from a copy whose root is a `.pi/` path that is not the top of a git
+  working tree — machine-local state, not a checkout
+- **THEN** it names that reason, exits with the environment's code, and reports no case as failed — and a
+  linked working tree under `.pi/`, which *is* a checkout, runs the suite and lists its cases
+
+#### Scenario: preconditions#runsInALinkedWorkingTree
+
+- **WHEN** the check's suite is run from a linked working tree under `.pi/`, the tree the loop's gate runs in
+- **THEN** it accepts the root as a checkout and lists its cases rather than refusing it
+- **Case**: `preconditions#runsInALinkedWorkingTree`
 
 ### Requirement: A project with a different vocabulary runs the toolchain
 

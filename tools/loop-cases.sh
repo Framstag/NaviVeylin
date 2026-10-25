@@ -118,6 +118,7 @@ LOOP_SHELL_CASES=(
   'gate#theDeltaSelectsTheSuitesItTouches'
   'gate#theMapCoversEveryPipelineStep'
   'gate#aPipelineCheckIsOwedByItsPaths'
+  'gate#aPathACheckReadsOwesThatStepsCommandSet'
   'gate#anEnginePathOwesTheRecordCheck'
   'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
   'gate#aFailingSuiteIsReadFromTheSameStream'
@@ -396,6 +397,7 @@ loop_run_shell_case() {
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
     'gate#theMapCoversEveryPipelineStep') fn=case_gate_theMapCoversEveryPipelineStep ;;
     'gate#aPipelineCheckIsOwedByItsPaths') fn=case_gate_aPipelineCheckIsOwedByItsPaths ;;
+    'gate#aPathACheckReadsOwesThatStepsCommandSet') fn=case_gate_aPathACheckReadsOwesThatStepsCommandSet ;;
     'gate#anEnginePathOwesTheRecordCheck') fn=case_gate_anEnginePathOwesTheRecordCheck ;;
     'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
@@ -2901,11 +2903,12 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
 # pipeline ran thirty-one such commands and the map reached ten of them, so a landing the pipeline refused went
 # green in the run — a merge passed the build's gate and broke `tools/check-portability-selftest.sh`, and the
 # pipeline found the red `main` instead. The profile names the pipeline it is pinned to, and every `bash`/`sh`
-# command under a `Check …` step has to be a value of the map. The pin closes the *command* side only: which
-# *paths* a step reads is derivable from no workflow, so a path a check reads but names is a residual the map
-# cannot close, and the comment in `loop.conf` states it. A profile that names no pipeline cannot be pinned and
-# says so — a new step escapes until someone adds it, the cost the map's owner accepted over running every step
-# for every item.
+# command under a `Check …` step has to be a value of the map. The pin closes the *command* side; the map's
+# *path* side — which paths a step's tools read — is a measured, hand-kept edge set, pinned by
+# `gate#aPathACheckReadsOwesThatStepsCommandSet`, and the residual both pins cannot see is a step added later
+# (with the reader edges it brings); the comments in `loop.conf` and `guidelines/Build.md` §3 state it. A profile
+# that names no pipeline cannot be pinned and says so — a new step escapes until someone adds it, the cost the
+# map's owner accepted over running every step for every item.
 case_gate_theMapCoversEveryPipelineStep() {
   # files: tools/loop/loop.conf .github/workflows/build.yml
   local conf pipeline cmds map missing
@@ -2967,6 +2970,81 @@ case_gate_aPipelineCheckIsOwedByItsPaths() {
   # …and nothing from another step: a glob as coarse as `tools/*` would satisfy the three assertions above while
   # making the map claim every step for every path, which is the decision's rejected option 2.
   assert_not_contains "$plan" "tools/check-portability.sh" "and names no command of another step: $plan"
+  return 0
+}
+
+# The map's path side is a hand-kept copy of which files each step's tools open (issue #289). A path a check
+# *reads* — its configuration, or one of the engines it scans — has to owe the whole step that reads it, not only
+# the tool whose glob names it: otherwise a delta that puts a project value into `tools/loop/loop.conf` is green
+# in the run while `Check portability` reddens, which is the shape that reddened `main` on 2026-10-21. Measured
+# on #289: of the reader edges measured for `Check portability` and `Check issue tooling`, none was owed by a
+# command of the reading step.
+case_gate_aPathACheckReadsOwesThatStepsCommandSet() {
+  # files: tools/loop/ tools/loop/loop.conf tools/loop/gate.sh tools/loop/worktree.sh tools/loop-selftest.sh tools/issues/ tools/issues/create.sh tools/issues/check-metadata.sh tools/check-portability.sh tools/check-portability-selftest.sh tools/mutate-selftest.sh tools/mutate.sh tools/portability-mutations.json tools/issue-tooling-selftest.sh tools/status-mutations.json tools/sensors/ tools/sensors/sensors.json tools/build-inputs.sh tools/build-inputs-selftest.sh tools/build-inputs-mutations.sh tools/tooling.json tools/pi-child-events.sh
+  local d p conf base plan
+  d=$(scratch); p=$(new_project)
+  conf="$LOOP_ENGINE/loop.conf"
+
+  # 1. The loop's configuration, which `Check portability` opens: the whole portability step is owed.
+  mkdir -p "$p/tools/loop"
+  printf 'LOOP_GATE_CMD="tools/nope.sh"\n' > "$p/tools/loop/loop.conf"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the loop configuration' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/check-portability.sh" "the check that reads the loop configuration is owed: $plan"
+  assert_contains "$plan" "tools/check-portability-selftest.sh" "and the suite that proves it: $plan"
+  assert_contains "$plan" "tools/mutate-selftest.sh" "and the runner's own guards: $plan"
+  assert_contains "$plan" "tools/mutate.sh --mutations tools/portability-mutations.json --list" \
+    "and the mutation set the same step runs: $plan"
+  # …and the path still carries the commands of the tool it names.
+  assert_contains "$plan" "tools/loop-selftest.sh" "the loop's own suite is still owed: $plan"
+
+  # 2. `tools/tooling.json`, read by `Check portability` and by `Check issue metadata`: both steps are owed.
+  printf '{"repo": "a/b"}\n' > "$p/tools/tooling.json"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the profile' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/check-portability.sh" "the portability check a config owes: $plan"
+  assert_contains "$plan" "tools/check-portability-selftest.sh" "and its suite: $plan"
+  assert_contains "$plan" "tools/issues/check-metadata.sh" "and the issue-metadata step that reads it too: $plan"
+
+  # 3. `tools/sensors/sensors.json`, read by all three of `Check portability`, `Check the build inputs` and
+  #    `Check issue metadata`.
+  mkdir -p "$p/tools/sensors"
+  printf '{}\n' > "$p/tools/sensors/sensors.json"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the registry' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/check-portability.sh" "the portability check the registry owes: $plan"
+  assert_contains "$plan" "tools/build-inputs.sh --check" "and the build-inputs step that reads it: $plan"
+  assert_contains "$plan" "tools/issues/check-metadata.sh" "and the issue-metadata step that reads it: $plan"
+
+  # 4. An engine another step's case scans is a reader edge too: `lib#onlyTheSeamCallsTheRealCli` greps
+  #    `tools/loop/*.sh` and `tools/sensors/*.sh`, so a delta touching one owes every command of
+  #    `Check issue tooling` — and `tools/loop/worktree.sh` is an engine `Check portability` scans as well.
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$p/tools/loop/worktree.sh"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'an engine both checks scan' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/check-portability.sh" "an engine the portability check scans owes that check: $plan"
+  assert_contains "$plan" "tools/issue-tooling-selftest.sh" "and the issue-tooling step whose case greps it: $plan"
+  assert_contains "$plan" "tools/mutate.sh --mutations tools/status-mutations.json --list" \
+    "and every command of that step, its mutation sets included: $plan"
+
+  # 5. `tools/issues/*.sh` is in `Check portability`'s engine set as well — the file the pipeline's own
+  #    `portability#plantedSubmodulePathFails` case plants a leak into — so an engine there owes that check.
+  mkdir -p "$p/tools/issues"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$p/tools/issues/create.sh"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'an engine the portability check scans' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/check-portability.sh" "an engine in the portability check's set owes it: $plan"
+  assert_contains "$plan" "tools/check-portability-selftest.sh" "and its suite: $plan"
   return 0
 }
 

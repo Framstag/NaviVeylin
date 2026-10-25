@@ -28,6 +28,7 @@ PORTABILITY_CASES=(
   'discovery#outsideAGitTree'
   'preconditions#refusesOutsideAGitTree'
   'preconditions#refusesUnderMachineLocalState'
+  'preconditions#runsInALinkedWorkingTree'
   'foreign#profileDiffersFromOurs'
   'foreign#noProjectNameInTheStub'
   'foreign#toolchainRunsEndToEnd'
@@ -64,6 +65,7 @@ portability_run_case() {
     'discovery#outsideAGitTree') case_discovery_outsideAGitTree ;;
     'preconditions#refusesOutsideAGitTree') case_preconditions_refusesOutsideAGitTree ;;
     'preconditions#refusesUnderMachineLocalState') case_preconditions_refusesUnderMachineLocalState ;;
+    'preconditions#runsInALinkedWorkingTree') case_preconditions_runsInALinkedWorkingTree ;;
     'foreign#profileDiffersFromOurs') case_foreign_profileDiffersFromOurs ;;
     'foreign#noProjectNameInTheStub') case_foreign_noProjectNameInTheStub ;;
     'foreign#toolchainRunsEndToEnd') case_foreign_toolchainRunsEndToEnd ;;
@@ -437,9 +439,11 @@ case_discovery_outsideAGitTree() {
 
 # The suite reads two things a copy cannot provide: the real tree's check (its case `passesOnTheRealTree`
 # drives it) and the fixture's versioned path (its case `fixtureIsVersioned` asserts it). Run it from a copy
-# outside a git working tree, or from a path under `.pi/`, and it refuses with a named reason instead of
-# reporting a case as failed — two sessions read that red as a regression of the code under test (issue
-# #172). The header states both preconditions, so a reader knows before running it.
+# outside a git working tree, or from a copy under `.pi/` that is not a checkout of its own, and it refuses
+# with a named reason instead of reporting a case as failed — two sessions read that red as a regression of
+# the code under test (issue #172). A linked working tree under `.pi/` *is* a checkout and runs the suite,
+# because the loop's gate runs in one (issue #289). The header states the preconditions, so a reader knows
+# before running it.
 case_preconditions_refusesOutsideAGitTree() {
   local d out status
   d=$(scratch_outside)
@@ -457,7 +461,7 @@ case_preconditions_refusesOutsideAGitTree() {
 }
 
 case_preconditions_refusesUnderMachineLocalState() {
-  local d out status
+  local d p out status
   d=$(scratch_outside)
   # a checkout whose machine-local state holds a copy of the suite: the root IS inside a git working tree,
   # so only the `.pi/` precondition can refuse — which is the second reading the issue measured
@@ -469,6 +473,39 @@ case_preconditions_refusesUnderMachineLocalState() {
   assert_eq "2" "$status" "the suite refuses from a copy under a machine-local path: $out"
   assert_contains "$out" "/.pi/" "the refusal names the machine-local path"
   assert_not_contains "$out" "FAIL " "no case is reported failed by where the suite was run"
+
+  # …and the top of another repository under `.pi/` is refused too: it is a checkout, but not this project's.
+  # The suite reads this project's fixture and its real tree's check, which a copy of the engines and cases does
+  # not carry, so accepting the root would report their absence as a red case (issue #289).
+  p="$d/.pi/top"
+  mkdir -p "$p"
+  copy_suite "$p"
+  git -C "$p" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway repository under .pi/"
+  out=$(cd "$p" && bash tools/check-portability-selftest.sh --list 2>&1); status=$?
+  assert_eq "2" "$status" "a .pi/ checkout that is not this project's is refused: $out"
+  assert_contains "$out" "/.pi/" "and the refusal names the machine-local path"
+}
+
+# …but a *checkout* under `.pi/` is not machine-local state: the loop's gate runs in a linked working tree
+# under `.pi/worktrees/`, and the suite it owes for a delta there may not refuse the change root (issue
+# #289 — the reader edges `Check portability` reads are mapped to that step, so the gate runs this suite in
+# the change root, and exit 2 there reads as a red gate). The precondition asks git, not the path.
+case_preconditions_runsInALinkedWorkingTree() {
+  local d p wt out status
+  d=$(scratch); p="$d/project"; mkdir -p "$p"
+  copy_suite "$p"
+  # this project's checkout carries the fixture, which is what tells it from the top of another repository
+  # under `.pi/` (the refusal case above)
+  mkdir -p "$p/tools/fixtures"
+  cp -a "$PORTABILITY_FIXTURE" "$p/tools/fixtures/foreign-project" || fail "could not copy the fixture"
+  git_init "$p"
+  wt="$p/.pi/linked"
+  git -C "$p" worktree add -q "$wt" -b linked >/dev/null 2>&1 || fail "could not create a linked working tree"
+
+  out=$(cd "$wt" && bash tools/check-portability-selftest.sh --list 2>&1); status=$?
+  assert_eq "0" "$status" "the suite runs from a linked working tree under .pi/: $out"
+  assert_contains "$out" "preconditions#refusesUnderMachineLocalState" \
+    "and lists its cases rather than refusing the root"
 }
 
 # --------------------------------------------------------------------------- the foreign project (D2)
@@ -618,12 +655,17 @@ case_foreign_identityIsRefusedToo() {
 }
 
 case_foreign_fixtureIsVersioned() {
-  local f engines
+  local f engines rel
   f="$PORTABILITY_FIXTURE"
   [ -d "$f" ] || fail "the fixture directory does not exist"
-  # part of the repository's tracked content — not a path outside it, and not machine-local state
+  # part of the repository's tracked content — not a path outside it, and not machine-local state. The
+  # tracked half is asked of git rather than of the path, so it holds in the main checkout and in a linked
+  # working tree alike: the loop's change root is the latter and its fixture is tracked exactly as this one's
+  # is (issue #289), while a copy that carries no checkout of its own is still refused.
   case "$f" in "$PORTABILITY_ROOT"/*) ;; *) fail "the fixture lives outside the repository" ;; esac
-  case "$f" in */.pi/*) fail "the fixture lives in the machine-local state" ;; esac
+  rel=${f#"$PORTABILITY_ROOT"/}
+  git -C "$PORTABILITY_ROOT" ls-files --error-unmatch "$rel/README.md" >/dev/null 2>&1 ||
+    fail "the fixture is not tracked content of $PORTABILITY_ROOT — machine-local state or a path outside the tree"
   git -C "$PORTABILITY_ROOT" check-ignore -q "tools/fixtures/foreign-project/README.md" &&
     fail "the fixture is gitignored — a fresh clone would not carry it"
 

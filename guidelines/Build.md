@@ -405,19 +405,30 @@ flavors one expects (§134.65).
 
 The gate above is only as wide as the profile's map: `LOOP_GATE_SUITES` (`tools/loop/loop.conf`) has to reach
 every `bash`/`sh` command a `Check …` step of the pipeline runs, or a landing the pipeline refuses is green in
-the run — which is what reddened `main` on 2026-10-21 (issue #242). The map's unit is a pipeline *step*, but a
-path carries the commands of the tool it names, not necessarily all of the step: a tool's check, its self-test
-and its mutation list are carried together (`tools/build-inputs*` offers all three), while a step's other
-commands are carried by the paths of their own tools (`tools/issues/*` owes the issue tooling's self-test, the
-tracker sets owe their own `tools/mutate.sh … --list`), so a step's commands are covered even where no single
-path reaches all of them. `gate#theMapCoversEveryPipelineStep` pins the command side against
-the pipeline the profile names in `LOOP_GATE_PIPELINE`, so a step the pipeline gains and the map does not carry
-fails the loop's own suite and names the missing commands. The pin closes the command side only, and two edges
-stay residual. Which *paths* a step reads is named by no workflow — `tools/check-portability.sh` reads
-`tools/loop/loop.conf`, `tools/tooling.json` and `tools/sensors/sensors.json`, none of which is mapped to a
-command of `Check portability` — so a delta touching one of them is not gated by that step. And a step whose
-check is inline shell or a Gradle task is outside the pin altogether: `Check daemon JVM criteria` (over
-`gradle/gradle-daemon-jvm.properties`, which no compiled pattern matches either) is green in the run today.
+the run — which is what reddened `main` on 2026-10-21 (issue #242). The map has two sides, and both are pinned.
+The *command* side: the map's unit is a pipeline *step*, but a path carries the commands of the tool it names,
+not necessarily all of the step — a tool's check, its self-test and its mutation list are carried together
+(`tools/build-inputs*` offers all three), while a step's other commands are carried by the paths of their own
+tools (`tools/issues/*` owes the issue tooling's self-test, the tracker sets owe their own `tools/mutate.sh …
+--list`), so a step's commands are covered even where no single path reaches all of them;
+`gate#theMapCoversEveryPipelineStep` pins that side against the pipeline the profile names in
+`LOOP_GATE_PIPELINE`, so a step the pipeline gains and the map does not carry fails the loop's own suite and
+names the missing commands. The *path* side: which paths a step's tools read is named by no workflow, so the
+reader edges were measured once and are hand-kept, and every measured edge owes the *whole* step whose tool
+reads the path — the pipeline runs the step as a unit and any of its commands can be the one that reddens.
+Measured 2026-10-25 (issue #289), for `Check portability`: `tools/check-portability.sh` opens
+`tools/loop/loop.conf`, `tools/tooling.json` and `tools/sensors/sensors.json`, and scans `tools/issues/*.sh`,
+`tools/sensors/*.sh` and `tools/loop/*.sh` as its engine set; for `Check issue tooling`: its case
+`lib#onlyTheSeamCallsTheRealCli` greps `tools/loop/*.sh` and `tools/sensors/*.sh`, and its taxonomy case reads
+`tools/sensors/sensors.json`. None of those edges was owed by a command of the reading step, and
+`tools/sensors/sensors.json` is read by three steps — `Check portability`, `Check the build inputs` and
+`Check issue metadata` — which each owe their own commands for it.
+`gate#aPathACheckReadsOwesThatStepsCommandSet` pins the side now, so a project value planted in one of the paths
+is a red loop suite rather than a green run. Two edges stay residual, both hand-kept. A step whose check is
+inline shell or a Gradle task is outside the pin altogether: `Check daemon JVM criteria` (over
+`gradle/gradle-daemon-jvm.properties`, which no compiled pattern matches either) is green in the run today. And a
+step added to the pipeline later carries its own paths and reader edges until someone adds them — the pin turns
+that escape into a red loop suite for the command side, not for the path side.
 
 ## 4. Result evaluation
 

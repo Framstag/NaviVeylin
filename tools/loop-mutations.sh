@@ -283,6 +283,18 @@ MUTATIONS=(
   # portability check through the same glob makes the map claim the rejected option 2 while every positive
   # assertion still passes.
   '54.4@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@a pair that reaches another step through a coarse glob (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;#tools/build-inputs*|tools/build-inputs.sh --check;tools/build-inputs*|tools/check-portability.sh;#'
+  # 54.5/54.6 — the map's path side is a hand-kept reader copy (issue #289): a path a check reads but that no
+  # glob of that step names owes none of its commands, so a project value planted in the loop's configuration —
+  # or in an engine `Check portability` scans — is green in the run while the step reddens.
+  '54.5@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes the portability check for a path it reads, the loop configuration (issue #289)@s#tools/loop/\*|tools/check-portability.sh;##'
+  '54.6@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes the portability check for an engine it scans (issue #289)@s#tools/issues/\*|tools/check-portability.sh;##'
+  # 54.7-54.10 — the reader edges measured for the second step (issue #289's review, P1): `Check issue tooling`
+  # greps `tools/loop/*.sh` and `tools/sensors/*.sh` and reads `tools/sensors/sensors.json`, and the configs
+  # `tools/tooling.json` and `tools/sensors/sensors.json` are read by the steps above as well.
+  '54.7@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes the issue tooling step for an engine its case greps (issue #289)@s#tools/loop/\*|tools/issue-tooling-selftest.sh;##'
+  '54.8@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes one command of that step besides its self-test (issue #289)@s#tools/loop/\*|tools/mutate.sh --mutations tools/status-mutations.json --list;##'
+  '54.9@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes the portability check for the profile it reads (issue #289)@s#tools/tooling.json|tools/check-portability.sh;##'
+  '54.10@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes the build-inputs step for the registry it reads (issue #289)@s#tools/sensors/sensors.json|tools/build-inputs.sh --check;##'
   # 41.x — the lock that keeps one run per repository, taken before the run writes anything (measured
   # 2026-10-22: the run that started at 19:34 replaced the state of the run that started at 18:46, merged
   # that run's unfinished item into main and closed it, and was refused at the lock two minutes into a

@@ -2019,11 +2019,11 @@ its next item, the changes it left — the tracked diff and each untracked file 
 
 ### Requirement: The gate's suite map covers every script command the pipeline's check steps run
 
-The profile SHALL name the pipeline its suite map is pinned to, and `LOOP_GATE_SUITES` SHALL carry every
-`bash`/`sh` command that pipeline's `Check …` steps run, so that a landing the pipeline would refuse is
-refused by the run instead of by `main`. The pin closes the command side only: a path a check reads but the
-map does not name, and a step whose check is inline shell or a Gradle task, are residuals named beside the rule
-in `guidelines/Build.md` §3.
+The profile SHALL name the pipeline its suite map is pinned to. `LOOP_GATE_SUITES` SHALL carry every
+`bash`/`sh` command that pipeline's `Check …` steps run, and every path those steps' tools read, so that a
+landing the pipeline would refuse is refused by the run instead of by `main`. A step whose check is inline
+shell or a Gradle task, and a reader edge a later step adds, are residuals named beside the rule in
+`guidelines/Build.md` §3.
 
 #### Scenario: A pipeline step the map does not carry fails the loop's suite
 
@@ -2039,9 +2039,21 @@ in `guidelines/Build.md` §3.
 - **THEN** the gate's plan SHALL name every command the map carries for that step, the check and its
   self-test among them
 - **AND** it SHALL NOT name a command of another step
-- **AND** a path a check reads but the map does not name — `tools/loop/loop.conf`, `tools/tooling.json` and
-  `tools/sensors/sensors.json` under `Check portability` — stays a residual the map cannot close
 - **Case**: `gate#aPipelineCheckIsOwedByItsPaths`
+
+#### Scenario: A path a check reads owes that step's commands
+
+- **WHEN** a change's delta touches a path one of the pipeline's `Check …` steps reads — a tool's configuration
+  or an engine that step scans
+- **THEN** the gate's plan SHALL name every command of the step that reads it, so the run refuses what the
+  step would refuse
+- **AND** touching `tools/loop/loop.conf` SHALL owe `Check portability`'s check, its self-test and its mutation
+  list among them, and touching `tools/issues/create.sh` SHALL owe the same step's check
+- **AND** the three configurations `tools/check-portability.sh` opens and the three engine globs it scans
+  SHALL each owe that step's commands, not only a tool's own glob
+- **AND** an engine another step's case greps SHALL owe that step as well — a delta touching
+  `tools/loop/worktree.sh` owes `Check issue tooling`'s self-test and its mutation sets
+- **Case**: `gate#aPathACheckReadsOwesThatStepsCommandSet`
 
 ### Requirement: A child never outlives the run's deadline
 

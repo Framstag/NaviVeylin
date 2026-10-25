@@ -1,0 +1,13 @@
+# red on HEAD — the new case against the map before the reader pairs (issue #289)
+2026-10-25T17:34:15Z
+
+gate#aPathACheckReadsOwesThatStepsCommandSet|   the check that reads the loop configuration is owed: tools/loop-selftest.sh --from-git 16fc191fb030aa39f2d0b3d67ad67a5f765135a3
+gate#aPathACheckReadsOwesThatStepsCommandSet| bash tools/loop-mutations.sh --check: 'tools/check-portability.sh' not found in: tools/loop-selftest.sh --from-git 16fc191fb030aa39f2d0b3d67ad67a5f765135a3
+gate#aPathACheckReadsOwesThatStepsCommandSet| bash tools/loop-mutations.sh --check
+--- gate#aPathACheckReadsOwesThatStepsCommandSet[0] (exit 1)
+  the check that reads the loop configuration is owed: tools/loop-selftest.sh --from-git 16fc191fb030aa39f2d0b3d67ad67a5f765135a3
+bash tools/loop-mutations.sh --check: 'tools/check-portability.sh' not found in: tools/loop-selftest.sh --from-git 16fc191fb030aa39f2d0b3d67ad67a5f765135a3
+bash tools/loop-mutations.sh --check
+FAIL gate#aPathACheckReadsOwesThatStepsCommandSet
+loop-selftest: 1 of 1 cases failed
+rc=1

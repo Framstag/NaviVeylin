@@ -115,6 +115,18 @@
       "category": "specs-and-process",
       "lifecycle": "file+close",
       "fingerprint": { "fields": ["kind"] }
+    },
+    {
+      "id": "metadata-invariant",
+      "cmd": "tools/sensors/metrics/metadata-invariant.sh",
+      "cron": "0 9 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "bug",
+      "category": "specs-and-process",
+      "lifecycle": "file+close",
+      "fingerprint": { "fields": ["issue", "code"] }
     }
   ]
 }

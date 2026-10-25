@@ -45,6 +45,7 @@ MUTATIONS=(
   '8.16@tools/sensors/guard.sh@s|\[ "$status" -eq "$SENSORS_UNREACHABLE" \]|[ "$status" -eq 0 ]|@guard#eachCheckHasItsOwnReason@the identity guard reports an unread tracker instead of turning it into a verdict (issue #231)'
   '8.17@tools/sensors/metrics/source-size.sh@s/sensors_compare "$lines" "$threshold" greater-than/sensors_compare "$lines" "$threshold" below-floor/@sensors#sourceSizeRow@a file past the row bound is a violation'
   '8.18@tools/sensors/run.sh@s/record=$(sensors_record_clear "$row" "$id" "$finding" "$issues")/record=""/@run#aClearWithNoIssueReachesTheRecord@a clear with no condition issue reaches the tracker on the row'"'"'s record (issue #257)'
+  '8.19@tools/sensors/metrics/metadata-invariant.sh@s/"$fingerprint" "drifted" violation/"$fingerprint" "drifted" clear/@sensors#metadataDriftRow@a drifted priority pair is a condition, not a clear (issue #292)'
 )
 
 if [ "$mode" = "list" ]; then

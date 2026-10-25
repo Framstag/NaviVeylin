@@ -52,6 +52,8 @@ SENSOR_CASES=(
   'sensors#packageSizeConsumesAnArtifact'
   'sensors#coverageRow'
   'sensors#sourceSizeRow'
+  'sensors#metadataDriftRow'
+  'sensors#metadataDriftClearsUnderItsOwnIdentity'
   'sensors#brokenMainFingerprintDistinguishesCauses'
   'sensors#prConflictsOnlyOwnPRs'
   'sensors#brokenMainGreenReportsClear'
@@ -109,6 +111,8 @@ sensor_run_case() {
     'sensors#packageSizeConsumesAnArtifact') case_sensors_packageSizeConsumesAnArtifact ;;
     'sensors#coverageRow') case_sensors_coverageRow ;;
     'sensors#sourceSizeRow') case_sensors_sourceSizeRow ;;
+    'sensors#metadataDriftRow') case_sensors_metadataDriftRow ;;
+    'sensors#metadataDriftClearsUnderItsOwnIdentity') case_sensors_metadataDriftClearsUnderItsOwnIdentity ;;
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
     'sensors#prConflictsOnlyOwnPRs') case_sensors_prConflictsOnlyOwnPRs ;;
     'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
@@ -1385,6 +1389,138 @@ case_sensors_sourceSizeRow() {
     SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
     bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
   assert_contains "$out" '"verdict":"error"' "a tree git cannot list is a failed check, not a clear: $out"
+}
+
+# The priority invariant as a scheduled check (issue #292): an item whose band label and the marker the pass
+# wrote disagree was reported only when a person ran `check-metadata.sh --live` by hand, so drift from any
+# writer — a hand edit on the tracker included — stayed invisible and every check stayed green. The row
+# measures through that same command rather than through a second copy of the rule, and files one condition per
+# item and disagreement, so an item closes when that pair agrees again.
+case_sensors_metadataDriftRow() {
+  local row dir out findings status hits settled
+  row=$(jq -c '.rows[] | select(.id == "metadata-invariant")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no metadata-invariant row"
+  assert_eq '["issue","code"]' "$(jq -c '.fingerprint.fields' <<< "$row")" \
+    "a drift's identity is the item and the disagreement it carries"
+  assert_eq "bug" "$(jq -r '.class' <<< "$row")" "a drifted pair is filed as a bug"
+  assert_eq "file+close" "$(jq -r '.lifecycle' <<< "$row")" "the row owns its conditions' closure"
+  # A row the pipeline does not select never runs, whatever the registry says: the two `--rows` lists in the
+  # pipeline are the registry's whole execution plan (`workflow#aRedRecordRunsNoRecordRow`). This row reads the
+  # tracker and not the build, so it belongs to the step that runs for a red record too.
+  hits=$(awk '/^ +if: / { gate = $0 }
+             /run: bash tools\/sensors\/run\.sh --due .*--rows / { printf "%s\t%s\n", gate, $0 }' \
+    "$SENSORS_REPO_ROOT/.github/workflows/sensors.yml" | grep -- 'metadata-invariant' || true)
+  assert_eq "1" "$(printf '%s\n' "$hits" | grep -c .)" "one row step selects the check"
+  assert_not_contains "$hits" "conclusion == 'success'" \
+    "the row runs for a red record too, because it reads the tracker rather than the build"
+
+  # The measurement is the command that owns the invariant, not a second copy of it: the row and a person's
+  # hand run cannot disagree about what a drift is.
+  assert_contains "$(cat "$SENSORS_ENGINE/metrics/metadata-invariant.sh")" 'check-metadata.sh' \
+    "the measurement runs the command that owns the rule"
+  hits=$(grep -n 'band=\|score=\|prio:' "$SENSORS_ENGINE/metrics/metadata-invariant.sh" || true)
+  assert_empty "$hits" "the measurement restates no part of the marker grammar"
+
+  # A tracker whose two halves agree on one item and disagree on two: a band label with no marker line, and a
+  # marker line with no band label — the two shapes a hand edit on the web UI produces.
+  settled='<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=deadbeef at=2026-10-24 -->'
+  dir=$(scratch)
+  issues_fixture "$dir" "$(jq -nc --arg settled "$settled" '[
+    {number: 278, title: "a band label and no marker", state: "OPEN", stateReason: "",
+     body: "an item the pass wrote, then a hand edit removed the marker line",
+     labels: [{name: "class/bug"}, {name: "prio/p3"}]},
+    {number: 279, title: "a marker and no band label", state: "OPEN", stateReason: "",
+     body: ("an item the pass wrote, then a hand edit removed the band label\n\n" + $settled),
+     labels: [{name: "class/bug"}]},
+    {number: 280, title: "a pair that agrees", state: "OPEN", stateReason: "",
+     body: ("the pass wrote both halves\n\n" + $settled),
+     labels: [{name: "class/bug"}, {name: "prio/p3"}]}
+  ]')"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" SENSORS_ID=metadata-invariant \
+    SENSORS_ROOT="$SENSORS_REPO_ROOT" SENSORS_THRESHOLD=1 SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/metadata-invariant.sh" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the measurement runs: $out"
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"issue":"278"' "the item whose marker a hand edit removed is a condition: $out"
+  assert_contains "$findings" '"code":"label-without-marker"' "the condition names the invariant broken: $out"
+  assert_contains "$findings" '"issue":"279"' "the item whose label a hand edit removed is a condition: $out"
+  assert_contains "$findings" '"code":"marker-without-label"' "the second shape is its own condition: $out"
+  assert_not_contains "$findings" '"issue":"280"' "an item whose two halves agree is no condition"
+  assert_eq "2" "$(printf '%s\n' "$findings" | grep -c '"verdict":"violation"')" \
+    "one condition per drifted item, and none for the agreeing one: $out"
+
+  # A tracker with nothing drifting still reaches a verdict: the runner reads a row that printed no finding as
+  # a failed check, so the clear has to be printed (`backlog-sensors`, three outcomes).
+  dir=$(scratch)
+  issues_fixture "$dir" "$(jq -nc --arg settled "$settled" '[
+    {number: 280, title: "a pair that agrees", state: "OPEN", stateReason: "",
+     body: ("the pass wrote both halves\n\n" + $settled),
+     labels: [{name: "class/bug"}, {name: "prio/p3"}]}
+  ]')"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" SENSORS_ID=metadata-invariant \
+    SENSORS_ROOT="$SENSORS_REPO_ROOT" SENSORS_THRESHOLD=1 SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/metadata-invariant.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"verdict":"clear"' "a tracker with no drift reports a clear: $out"
+  assert_contains "$findings" '"issue":"none"' "the row-level clear carries the row's own identity: $out"
+  assert_not_contains "$findings" '"verdict":"violation"' "nothing is drifting"
+
+  # A tracker read that answers nothing is the third outcome, never a clean tracker: an unreadable answer would
+  # otherwise reach the tracker as "no item drifts" (`backlog-sensors`, the check itself failed).
+  dir=$(scratch)
+  printf 'not the tracker\n' > "$dir/issues.json"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" SENSORS_ID=metadata-invariant \
+    SENSORS_ROOT="$SENSORS_REPO_ROOT" SENSORS_THRESHOLD=1 SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/metadata-invariant.sh" 2>&1)
+  assert_contains "$out" '"verdict":"error"' "an unreadable tracker read is a failed check, not a clear: $out"
+}
+
+# A drift that is repaired clears under the identity the issue holds, so the issue closes on its own record and
+# a still-drifted pair is never reported as cleared (design D4; `backlog-sensors`, "The condition has cleared").
+case_sensors_metadataDriftClearsUnderItsOwnIdentity() {
+  local dir out findings fp settled
+  settled='<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=deadbeef at=2026-10-24 -->'
+  fp=$(fingerprint_of issue 278 code label-without-marker)
+  local conditions
+  conditions=$(jq -nc '{state: "OPEN", condition: {issue: "278", code: "label-without-marker"}}')
+
+  # Still drifting: the recorded condition stays a violation under its own fingerprint and prints no clear.
+  dir=$(scratch)
+  issues_fixture "$dir" "$(jq -nc '[
+    {number: 278, title: "a band label and no marker", state: "OPEN", stateReason: "",
+     body: "an item the pass wrote, then a hand edit removed the marker line",
+     labels: [{name: "class/bug"}, {name: "prio/p3"}]}
+  ]')"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" SENSORS_ID=metadata-invariant \
+    SENSORS_ROOT="$SENSORS_REPO_ROOT" SENSORS_THRESHOLD=1 SENSORS_CONDITIONS="[$conditions]" \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/metadata-invariant.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" "\"fingerprint\":\"$fp\"" "the drift keeps the identity the issue holds: $out"
+  assert_contains "$findings" '"verdict":"violation"' "a still-drifted pair is no clear: $out"
+  assert_not_contains "$findings" '"verdict":"clear"' "nothing cleared while the pair still disagrees: $out"
+
+  # Repaired: the same recorded condition clears under that identity, naming the item and the invariant.
+  dir=$(scratch)
+  issues_fixture "$dir" "$(jq -nc --arg settled "$settled" '[
+    {number: 278, title: "a pair that agrees", state: "OPEN", stateReason: "",
+     body: ("the pass wrote both halves\n\n" + $settled),
+     labels: [{name: "class/bug"}, {name: "prio/p3"}]}
+  ]')"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" SENSORS_ID=metadata-invariant \
+    SENSORS_ROOT="$SENSORS_REPO_ROOT" SENSORS_THRESHOLD=1 SENSORS_CONDITIONS="[$conditions]" \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/metadata-invariant.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" "\"fingerprint\":\"$fp\"" "the clear names the identity the issue carries: $out"
+  assert_contains "$findings" '"verdict":"clear"' "a repaired pair is a clear: $out"
+  assert_contains "$findings" '"issue":"278"' "the clear names the item that was repaired: $out"
+  assert_not_contains "$findings" '"issue":"none"' "a cleared condition is not the row-level clear: $out"
 }
 
 case_sensors_packageSizeConsumesAnArtifact() {

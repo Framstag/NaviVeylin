@@ -13,7 +13,9 @@
 #                        well formed, the marker grammar has one home, and neither write path can name or
 #                        pass a reserved label. No network, no token, no tracker.
 #   --live               read the tracker through `gh issue list --state all` (needs a token) and check the
-#                        per-issue invariants on every issue.
+#                        per-issue invariants on every issue. Its unattended caller is the sensors pipeline's
+#                        `metadata-invariant` row (`guidelines/Backlog.md` §9, issue #292); run by hand it is
+#                        `helper/backlog-pass.sh`.
 #   --issues <file>      the same per-issue checks over a JSON array — what the offline cases and this
 #                        script's own selftest drive.
 #
@@ -38,7 +40,7 @@ while [ $# -gt 0 ]; do
     --write-log) need_value "$@"; write_log="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) issues_die "check-metadata: unknown argument $1" ;;
   esac
 done

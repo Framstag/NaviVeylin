@@ -704,6 +704,17 @@ something, a scheduled run that stopped happening — becomes a check's verdict 
 (`stale-citation-resolution`, D6). The repair itself is a pipeline step, not a row: a row files,
 comments on or closes *the issue it owns*, and a citation repair edits other items.
 
+One row re-reads the tracker's own **priority invariant**, because nothing scheduled did: `metadata-invariant`
+runs `tools/issues/check-metadata.sh --live --json` — the command that owns the per-item half, so the row and a
+person's hand run cannot disagree about what a drift is — and files one item per drifted item and per
+disagreement, under that item's number and the rule it breaks. An item whose band label and stored marker
+drifted apart therefore reaches the tracker as a verdict within a day, whoever wrote the edit (the pass,
+a skill, a hand edit on the web UI), instead of waiting for somebody to remember the live mode. It reports and
+repairs nothing: which half of a drifted pair is the wrong one is a judgement, so dropping a stale label or
+rewriting both halves together stays a person's edit. The row is the answer the owner recorded on #292
+(2026-10-25, option 1 of three); the refusal of a band label in `update.sh` it was weighed against is a later
+item, because prevention and detection answer different halves of the same root cause.
+
 One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so
 a file nobody touches scores nothing however large it is. `source-size` measures **lines per tracked file**
 over `*.kt` and `*.java`, tests included and the native sources out, and files one item per path over the

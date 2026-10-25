@@ -1338,7 +1338,10 @@ invocation packages or checks the policy (`assemble*`, `bundle*`, `release`, `bu
 that way would ship without its `licenses/` assets, which is the guarantee this section states. The
 strict path is the CI steps that assemble the APK, generate the SBOM and run the policy gate with the
 vcpkg tree present; the assertion is the shell suite `tools/check-jvm-test-graph-selftest.sh`, three
-`--dry-run` configurations.
+`--dry-run` configurations. That suite needs the Android SDK installed and licensed — every case configures
+`:app` — so its CI step sits below `Install Android SDK` and above `Clone vcpkg`, the last point at which the
+tree holds no vcpkg checkout; placed above the SDK step it failed five runs with
+`LicenceNotAcceptedException` (issue #198).
 
 **buildSrc.** `./gradlew -p buildSrc test` runs the license suite (52 tests); the
 `build` task Gradle runs on every invocation includes them, and unchanged inputs

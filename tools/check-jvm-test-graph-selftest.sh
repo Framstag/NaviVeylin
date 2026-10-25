@@ -17,6 +17,10 @@
 #   buildGraph#aMissingNativeTreeFailsItsOwnTask  without the property, a missing tree fails `mergeNativeSbom`
 #                                                 itself — not the configuration of the graph around it
 #
+# Prerequisite: the Android SDK, installed and licensed. Every case configures `:app`, whose configuration
+# fails without one (`LicenceNotAcceptedException`) before the tree under test matters — so the CI step runs
+# after 'Install Android SDK' and before 'Clone vcpkg' (issue #198: five red runs above that step).
+#
 # Usage: check-jvm-test-graph-selftest.sh [--root <dir>] [--case <name>]
 #        --case <name>  run one case by its id (`buildGraph#…`, or the bare suffix) — what a revert-check
 #                       names, so one mutation costs one Gradle invocation instead of three
@@ -29,7 +33,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
     --case) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_case="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,26p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,27p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "check-jvm-test-graph-selftest: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -66,12 +70,24 @@ gradle_case() {
 }
 
 # fail <name> <reason> — prints the case's reason and the tail of its Gradle output, and counts it failed.
+# The case id carries the `buildGraph#` prefix the file name does not, so the tail is read from the case's
+# own file: reading `$tmp/$name.out` printed an empty tail for every failure (a missing file, silenced by
+# `2>/dev/null`), which is what made the five red runs of issue #198 report a bare exit code and no reason.
 fail() {
   local name="$1" reason="$2"
   echo "FAIL $name: $reason"
-  printf '%s\n' "$(cat "$tmp/$name.out" 2>/dev/null | tail -15)" | sed 's/^/       /'
+  printf '%s\n' "$(cat "$tmp/${name#buildGraph#}.out" 2>/dev/null | tail -15)" | sed 's/^/       /'
   failed=$((failed + 1))
   FAILED_CASES="$FAILED_CASES $name"
+}
+
+# sdk_hint <gradle output file> — "" or a suffix naming the Android SDK. A probe configures `:app`, so a
+# machine without an installed, licensed SDK fails the configuration for a reason that has nothing to do with
+# the tree under test; the reason says so instead of leaving a reader with an exit status (issue #198).
+sdk_hint() {
+  grep -qE 'LicenceNotAcceptedException|Failed to install the following Android SDK packages|SDK location not found' "$1" 2>/dev/null &&
+    printf '%s' ' — the Android SDK is missing or unlicensed here, which fails the configuration of :app before the tree under test matters; this check belongs after "Install Android SDK"'
+  return 0
 }
 
 # ── case 1 ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -82,7 +98,7 @@ if selected "buildGraph#$case_a"; then
 total=$((total + 1))
 gradle_case "$case_a" "$absent_tree" :app:testMobileDebugUnitTest -PjvmTestsOnly --dry-run
 if [ "$GRADLE_RC" != 0 ]; then
-  fail "buildGraph#$case_a" "a test invocation without a vcpkg tree must configure (exit 0, got $GRADLE_RC)"
+  fail "buildGraph#$case_a" "a test invocation without a vcpkg tree must configure (exit 0, got $GRADLE_RC)$(sdk_hint "$tmp/$case_a.out")"
 else
   chain=$(grep -oE ':app:(generateLicenseAssets|generateSbom|mergeNativeSbom)[A-Za-z]*' "$tmp/$case_a.out" | sort -u | tr '\n' ' ')
   if [ -n "$chain" ]; then
@@ -122,7 +138,7 @@ if [ "$GRADLE_RC" = 0 ]; then
 elif grep -q 'Could not create task' "$tmp/$case_c.out"; then
   fail "buildGraph#$case_c" "the missing tree failed the task's creation (configuration), not its own action"
 elif ! grep -q 'installed-status file not found' "$tmp/$case_c.out"; then
-  fail "buildGraph#$case_c" "the failure does not name the missing installed-status file"
+  fail "buildGraph#$case_c" "the failure does not name the missing installed-status file$(sdk_hint "$tmp/$case_c.out")"
 fi
 fi
 

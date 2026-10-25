@@ -7,10 +7,10 @@
 # the residue is (`stale-citation-resolution` D6) — the same reason the pre-screen and the resolver share one
 # classifier.
 #
-# The count is the *whole* residue, not only what a run would park now: `--revisit-parked` makes the resolver
-# visit the items it parked itself, so `parked` (new this run) and `stillParked` (held with a citation nothing
-# accounts for) together are every item the mechanism cannot settle. Without the flag a parked item is skipped
-# and the row reported 0 while items sat unresolvable (#281).
+# The count is the *whole* residue, both halves the resolver reports: `unresolved` (an item with a citation
+# nothing accounts for, reported and never written for, #281) and `stillParked` (an item a run before #281 parked
+# and left holding the same citation) together are every item the mechanism cannot settle. Without
+# `--revisit-parked` a parked item is skipped and that half went unreported while items sat unresolvable.
 #
 # A growing count is the alarm for the whole mechanism: it means either that the ladder stopped reaching
 # something it used to repair, or that the scheduled repair is not running.
@@ -29,7 +29,7 @@ if [ -z "$report" ] || ! jq -e . >/dev/null 2>&1 <<< "$report"; then
   exit 0
 fi
 
-count=$(jq -r '((.parked // 0) + (.stillParked // 0)) | tostring' <<< "$report")
+count=$(jq -r '((.unresolved // 0) + (.stillParked // 0)) | tostring' <<< "$report")
 fields='{"kind":"unresolved-citations"}'
 fingerprint=$(sensors_fingerprint "$fields" "kind")
 printf 'unresolved citations: %s (bound %s)\n' "$count" "$bound" >&2

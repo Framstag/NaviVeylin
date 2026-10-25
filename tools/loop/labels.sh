@@ -11,15 +11,16 @@
 #
 #   pick                                    + agent/in-progress
 #   unpick                                  − agent/in-progress          (every exit path, incl. a signal)
-#   stale · unspecifiable · too-wide         + status/on-hold            (on the same issue; no new issue,
+#   unspecifiable · too-wide                 + status/on-hold            (on the same issue; no new issue,
 #     · not-spec-shaped · needs-target           and a comment that names the verdict and its one clause
 #                                                of evidence — a state change nobody can read is the
 #                                                defect #192, so the reason travels with the hold)
+#   (a citation the tree does not hold is no longer a verdict: prescreen.sh reports it and refuses nothing,
+#    #281 — so there is no `stale` row here and no `exclude-stale`)
 #   … and the improvement verdicts
 #   needs-device                            + agent/needs-device + status/on-hold
 #   needs-decision · needs-diagnosis        + agent/needs-decision + status/on-hold
-#   exclude-stale · exclude-feature ·
-#   exclude-settled                         + agent/<verdict>, status and the opt-in untouched — the
+#   exclude-feature · exclude-settled       + agent/<verdict>, status and the opt-in untouched — the
 #                                           pre-screen's own refusal, which a person clears
 #   close                                   − agent/in-progress, + status/fixed-by, then the closure
 #   escalate                                + agent/needs-decision + status/on-hold, and a comment that
@@ -89,7 +90,6 @@ case "$verdict" in
     status_value="$hold_status"
     comment_only=1
     ;;
-  exclude-stale) add_labels=("agent${separator}$(loop_role excludedStaleAgent)") ;;
   exclude-feature) add_labels=("agent${separator}$(loop_role excludedFeatureAgent)") ;;
   exclude-settled) add_labels=("agent${separator}$(loop_role excludedSettledAgent)") ;;
   # The pre-screen's refusals the item cannot escape by itself (#163): the label is a refusal, so the
@@ -124,7 +124,7 @@ case "$verdict" in
     close_issue=1
     ;;
   *)
-    loop_die "labels: unknown verdict '$verdict' — pick, unpick, escalate, close, stale, unspecifiable, too-wide, not-spec-shaped, needs-target, exclude-stale, exclude-feature, exclude-settled, clear-stale, clear-feature, clear-settled, needs-device, needs-decision, needs-diagnosis"
+    loop_die "labels: unknown verdict '$verdict' — pick, unpick, escalate, close, stale, unspecifiable, too-wide, not-spec-shaped, needs-target, exclude-feature, exclude-settled, clear-stale, clear-feature, clear-settled, needs-device, needs-decision, needs-diagnosis"
     ;;
 esac
 

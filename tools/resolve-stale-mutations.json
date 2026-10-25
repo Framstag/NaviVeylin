@@ -52,27 +52,27 @@
     },
     {
       "label": "5.7",
-      "case": "resolver#unrepairableCitationIsParked",
+      "case": "resolver#unrepairableCitationIsReportedNotWritten",
       "file": "tools/issues/resolve-stale.sh",
-      "search": "      bash \"$here/update.sh\" \"$number\" --status on-hold \\",
-      "replace": "      bash \"$here/update.sh\" \"$number\" \\",
-      "why": "an unresolvable citation parking the item, so it leaves the eligible queue visibly"
+      "search": "      unresolved_items=$((unresolved_items + 1))",
+      "replace": "      bash \"$here/update.sh\" \"$number\" --status on-hold --comment \"unresolved citation \u2014 $park_marker\" >/dev/null || issues_die \"resolve-stale: could not park #$number\"; writes=$((writes + 2)); unresolved_items=$((unresolved_items + 1))", 
+      "why": "an unresolvable citation being reported and written for nowhere — a comment for it would put the verdict back on the item (#281)"
     },
     {
       "label": "5.8",
-      "case": "resolver#secondRunChangesNothing",
+      "case": "resolver#personsHoldIsNotReopened",
       "file": "tools/issues/resolve-stale.sh",
-      "search": "  if is_parked \"$labels\"; then",
-      "replace": "  if false; then",
-      "why": "the idempotence guard — a parked item is not re-decided, so a second run posts nothing"
+      "search": "  printf '%s' \"$1\" | jq -e --arg l \"$excluded_stale_label\" 'any(.[]; .name == $l)' >/dev/null 2>&1 && return 0",
+      "replace": "  return 0",
+      "why": "only a park this tool wrote is reversed — a mutation that claims every hold makes a person's own hold reopenable (#281, --revisit-parked)"
     },
     {
       "label": "5.9",
-      "case": "prescreen#refusalIsVisibleInTheTracker",
+      "case": "prescreen#missingCitationIsReportedNotRefused",
       "file": "tools/loop/prescreen.sh",
-      "search": "    stale_path=$(stale_citations_of \"$title\" \"$body\" | head -1)",
-      "replace": "    stale_path=$(printf '%s\\n%s\\n' \"$title\" \"$body\" | grep -oE '[A-Za-z0-9_][A-Za-z0-9_./-]*\\.(kt|md|sh)' | sort -u | while IFS= read -r p; do [ -e \"$LOOP_ROOT/$p\" ] || { printf '%s\\n' \"$p\"; break; }; done)",
-      "why": "the pre-screen asking the shared classifier instead of extracting tokens for itself"
+      "search": "    absent_citation=$(stale_citations_of \"$title\" \"$body\" | head -1)",
+      "replace": "    absent_citation=\"\"",
+      "why": "the pre-screen naming the absent token it reports, through the shared classifier rather than a rule of its own"
     },
     {
       "label": "5.10",
@@ -86,8 +86,8 @@
       "label": "5.11",
       "case": "resolver#ambiguityDoesNotConsumeTheBound",
       "file": "tools/issues/resolve-stale.sh",
-      "search": "  if [ -n \"$repairs\" ] || [ -n \"$unresolved\" ]; then due=$((due + 1)); else skipped=$((skipped + 1)); fi",
-      "replace": "  due=$((due + 1))",
+      "search": "  if [ -n \"$repairs\" ]; then",
+      "replace": "  if true; then",
       "why": "the bound being spent only where a write follows — an item the ladder can only report costs no slot (#199)"
     },
     {

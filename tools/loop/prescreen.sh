@@ -2,19 +2,21 @@
 # prescreen.sh — the cheap, mechanical half of the eligibility gate, run before any agent process.
 #
 # The loop's gate has two halves and the split is the point (design D6): what a script can decide
-# cheaply — the item still cites something that exists, its class is one this loop works, its status is
-# not already in flight, its evidence needs a device rather than a judgement — is decided here, with no
+# cheaply — its class is one this loop works, its status is not already in flight, its evidence needs a
+# device rather than a judgement, a cited `File.kt:Symbol` names a declaration — is decided here, with no
 # agent process; what only judgement can decide (one root cause, exactly one fix, a falsifiable
 # WHEN/THEN, one capability) is carried into the queue as `pending` and decided by the worker in Phase B.
+# A citation the tree does not hold is **reported** and refuses nothing (#281): the token is named in the
+# item's record, and the item is queued.
 #
 # Claiming the whole gate as deterministic would be false, and a script that pretended otherwise would
 # turn "this needs a decision" into "silently skipped" — the failure the run's report exists to prevent.
 # The pre-screen is measured at 10-15 min per rejection saved: without it, 5 of 8 candidates were
 # ineligible (`.pi/skills/fix-loop/REFERENCE.md`).
 #
-# The candidate's text is read here (it is data, and the sensor reads it as data): the queue and the
-# exclusions are the run's own output, so a rejected candidate is reported with the clause that
-# rejected it rather than dropped silently.
+# The candidate's text is read here (it is data, and the sensor reads it as data): the queue, the
+# exclusions and the reported citations are the run's own output, so a rejected candidate is reported with
+# the clause that rejected it rather than dropped silently.
 #
 # The refusals an item cannot escape by itself leave a trace in the tracker, not only in this run's
 # state: the state is machine-local and the next `init` replaces it wholesale, so an authorised item the
@@ -95,6 +97,8 @@ is_settled_status() { [ -n "$settled_statuses" ] && printf '%s\n' "$settled_stat
 allowed_authors=$(vocabulary allowedAuthors)
 # The refusal labels: the verdicts an item cannot escape by itself, and therefore the ones that must be
 # readable from the tracker rather than from the run. A project renames them here, not in this script (D16).
+# `excludedStaleAgent` is read although this script no longer writes it: an item still carrying
+# `agent/excluded-stale` from a run before #281 sheds it on the first run whose verdict is not a refusal.
 refusal_stale=$(loop_role excludedStaleAgent)
 refusal_feature=$(loop_role excludedFeatureAgent)
 refusal_settled=$(loop_role excludedSettledAgent)
@@ -108,14 +112,12 @@ label_value() { # label_value <labels-json> <namespace> -> the value, or empty
     '[.[] | select(.name | startswith($n + $s)) | (.name | ltrimstr($n + $s))] | .[0] // ""'
 }
 
-# The filesystem sensor: does the item still cite something that exists? A memory is not a fact, and a
-# path that no longer resolves is the one thing a script can refute without reading the code (Phase A
-# step 1 / Phase B condition 1, decided cheaply here — design D6).
-# The citation rule is `tools/issues/lib.sh`'s (`stale-citation-resolution` D1): **one** definition of what a
-# citation is — asked here and by `tools/issues/resolve-stale.sh`, so the two cannot disagree about a body —
-# and `stale` means the classifier's verdict (a citation no file, no submodule and no generated artefact
-# accounts for) rather than "this token is not at the repository root". That crude extraction was wrong about
-# 48 of 49 verdicts on 2026-10-18 (#164).
+# The citation sensor: which citation does the item carry that the tree does not hold? It **reports** — the
+# verdict it used to produce is gone (#281) — and the token is what the record names for a reader.
+# The rule is `tools/issues/lib.sh`'s (`stale-citation-resolution` D1): **one** definition of what a citation is
+# — asked here and by `tools/issues/resolve-stale.sh`, so the two cannot disagree about a body — rather than
+# "this token is not at the repository root". That crude extraction was wrong about 48 of 49 verdicts on
+# 2026-10-18 (#164).
 stale_citations_of() {
   issues_stale_citations_of "$1
 $2"
@@ -303,37 +305,37 @@ while [ "$i" -lt "$count" ]; do
     fi
   fi
 
-  # The sensor runs on every candidate, before any judgement: it is the cheap refutation, and `stale` is the
-  # classifier's verdict — a citation no file, no submodule and no generated artefact accounts for.
+  # The citation sensor reports; it no longer refuses (#281). A token no file, no submodule and no generated
+  # artefact accounts for has several legitimate causes the class vocabulary cannot tell apart — a path the
+  # change itself creates, a deleted path the body says was deleted, a run's own artefact — so the refusal that
+  # read every one of them as a lost citation cost 35 items their place in the queue, 18 of them for a citation
+  # that was no longer stale at all. The absent token is named in the item's record for a reader, and the item
+  # stays eligible. The symbol sensor below still refuses: a cited `File.kt:Symbol` that names no declaration in
+  # that file is a fact about the item's premise, not a path that may be about to exist.
+  absent_citation=""
+  if [ "$sensor" -eq 1 ]; then
+    absent_citation=$(stale_citations_of "$title" "$body" | head -1)
+  fi
   if [ "$verdict" = "$queued_verdict" ] && [ "$sensor" -eq 1 ]; then
-    stale_path=$(stale_citations_of "$title" "$body" | head -1)
-    if [ -n "$stale_path" ]; then
-      verdict="stale"
-      reason="cited path '$stale_path' resolves to no file in the repository or its submodules"
-      evidence="$stale_path"
-    fi
-    if [ "$verdict" = "$queued_verdict" ]; then
-      for symbol in $(cited_symbols_of "$title" "$body"); do
-        p="${symbol%%:*}"
-        s="${symbol#*:}"
-        if ! git -C "$LOOP_ROOT" grep -qn -- "$s" -- "$p" 2>/dev/null; then
-          evidence="'$symbol' names no declaration in $p"
-          break
-        fi
-        evidence="$symbol resolves"
-      done
-    fi
+    for symbol in $(cited_symbols_of "$title" "$body"); do
+      p="${symbol%%:*}"
+      s="${symbol#*:}"
+      if ! git -C "$LOOP_ROOT" grep -qn -- "$s" -- "$p" 2>/dev/null; then
+        evidence="'$symbol' names no declaration in $p"
+        break
+      fi
+      evidence="$symbol resolves"
+    done
   fi
 
   # An item that already awaits a decision is its owner's until a person answers it: re-deriving the same
   # conclusion spends the very budget the decision cap protects, and #110 was escalated three times with one
-  # conclusion (#183). The sensor and the branch rule above speak first, and that ordering is the point — a
-  # stale citation is a repair and a branch carrying a finished attempt is an adoption, both cheaper than a
-  # decision, and the spec's refusal label for `stale` must still be written on a held item.
+  # conclusion (#183). The branch rule above speaks first, and that ordering is the point — a branch carrying a
+  # finished attempt is an adoption, cheaper than a decision.
   #
   # A hold is **not** a decision (#193): the state is written by the worker's skip verdict, by the device
-  # verdict, by the stale-citation repair parking an item and by a person by hand, and three of those four
-  # state no question at all. Only the decision label — the one an escalation writes — makes an item a
+  # verdict and by a person by hand, and each of those states no question at all. Only the decision label — the
+  # one an escalation writes — makes an item a
   # decision; a hold without it is reported as what it is, so it is visible on the tracker and stops consuming
   # the decision cap, which counts the items a person can actually answer.
   #
@@ -371,7 +373,6 @@ while [ "$i" -lt "$count" ]; do
   if [ "$write" -eq 1 ] && [ -n "$refusal_labels" ]; then
     refusal_label=""
     case "$verdict" in
-      stale) refusal_label="agent${separator}${refusal_stale}" ;;
       class-feature) refusal_label="agent${separator}${refusal_feature}" ;;
       settled) refusal_label="agent${separator}${refusal_settled}" ;;
     esac
@@ -392,9 +393,10 @@ while [ "$i" -lt "$count" ]; do
   record=$(jq -n --argjson issue "$number" --arg title "$title" --arg class "$class" \
     --arg category "$category" --arg status "$status" --arg author "$author" \
     --arg verdict "$verdict" --arg reason "$reason" --arg evidence "$evidence" \
+    --arg absent "$absent_citation" \
     --argjson escalated "$([ "$already_escalated" -eq 1 ] && printf true || printf false)" '
     {issue:$issue, title:$title, class:$class, category:$category, status:$status, author:$author,
-     verdict:$verdict, reason:$reason, evidence:$evidence, rank:null, alreadyEscalated:$escalated,
+     verdict:$verdict, reason:$reason, evidence:$evidence, absentCitation:$absent, rank:null, alreadyEscalated:$escalated,
      gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
   records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
 done
@@ -452,7 +454,7 @@ else
   printf 'pre-screen: %s eligible, %s excluded — gates 2-5 stay the worker'"'"'s (design D6)\n' "$eligible_count" "$excluded_count"
   printf '%s' "$records" | jq -r --arg queued "$queued_verdict" '.[] |
     if .verdict == $queued
-    then "  #\(.issue) [\(.class)/\(.category)] rank \(.rank) — \(.title | .[0:80])"
+    then "  #\(.issue) [\(.class)/\(.category)] rank \(.rank) — \(.title | .[0:80])\(if (.absentCitation // "") != "" then " (cites absent `\(.absentCitation)`)" else "" end)"
     else "  excluded #\(.issue) \(.verdict): \(.reason)" end'
 fi
 [ "$eligible_count" -gt 0 ] || exit "$LOOP_STOP"

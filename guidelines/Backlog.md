@@ -146,7 +146,7 @@ in a row does not write that thing.**
 | classify (kind, area) | yes | its row declares them | yes | no | no | proposes only |
 | set priority | yes | no | yes | no | no | proposes only |
 | authorise automated work | **yes, and only here** | **no** | **no** | **no** | **no** | **no** |
-| repair a citation in an item's body | yes | no | no | no | **yes** — the citation token only, and `status/on-hold` to park an item nothing accounts for | no |
+| repair a citation in an item's body | yes | no | no | no | **yes** — the citation token only; an item nothing accounts for is reported, never parked (#281) | no |
 | comment a measurement | yes | yes | yes | yes | yes (one per item per run) | no |
 | close | yes | only its own items, only when cleared | no | after a passing review, with evidence | **no** | no |
 | reopen | yes | only its own items | no | no | no | no |
@@ -220,8 +220,10 @@ The last of those cheap decisions has a home of its own: **what counts as a cita
 `tools/issues/lib.sh` (`stale-citation-resolution`), and asked by the loop's pre-screen and by
 `tools/issues/resolve-stale.sh` — so detection and repair cannot disagree about a body. A citation that
 resolves by a suffix of a tracked path, inside a submodule, or as an artefact the project generates is not
-staleness; only a name nothing accounts for is. Measured 2026-10-18: the extraction before that shared rule
-was wrong about 48 of 49 verdicts, and two thirds of an authorised set was excluded over prose.
+staleness; only a name nothing accounts for is, and that one is now **reported**, not refused or parked — a
+path the tree does not hold may be one the change itself creates (#281). Measured 2026-10-18: the extraction
+before that shared rule was wrong about 48 of 49 verdicts, and two thirds of an authorised set was excluded
+over prose.
 
 Three consequences the design takes as decisions, not accidents:
 
@@ -451,9 +453,9 @@ reported rather than a zero that reads as a measurement (#211) — beside the ru
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the
-item that owns it, the kept worktree, an item whose gate never completed with its transcript, and a citation
-the pre-screen still refuses. A count is not an answer, so `none` is printed only when all five sources were
-read and empty — it never hides a branch that carries work.
+item that owns it, the kept worktree, and an item whose gate never completed with its transcript. A count is
+not an answer, so `none` is printed only when all four sources were read and empty — it never hides a branch
+that carries work.
 
 What a branch carries is asked by **patch identity**, never by ancestry — `git cherry`, the same question the
 item's start and the pre-screen ask. The run lands an item's work as a commit of its own (`fix: … (#N)`), so a
@@ -463,18 +465,19 @@ such a branch as unlanded work, refused its item for ever and spent a decision s
 carries a patch the base does not have, and a landed one is reused by the next start rather than named as work
 to land.
 
-An item whose citation nothing accounts for is *not* worked, and it must not be re-decided in silence either:
-`tools/issues/resolve-stale.sh` repairs what the repository's own records state (the full tracked path, a
-rename, a single surviving declaration, an archived change's new directory) and parks the rest with the
-attempts recorded — so the refusal is a state a person can query instead of a line in a machine-local file
-(`stale-citation-resolution`, D4/D5). Because a parked item is skipped by the next run, the park is reversible
-on request: `--revisit-parked` reopens an item this tool parked once nothing it cites is absent any more — a
-body repaired by hand, a file the tree gained, or a rule that stopped calling a word a citation — and leaves a
-person's own hold alone (#281). A citation that stands only in an item's **title** is never rewritten —
-the resolver writes bodies, so a bare name there is a title for a person to fix. Two outcomes follow from what
-the tree holds: a title naming a file whose tracked path the body already carries leaves the item settled and
-unwritten (the state every item repaired from the doubled-directory form ends in), while a title citing a file
-the tree does not hold parks the item, because the citation is stale wherever it stands (#226).
+An item whose citation nothing accounts for is **reported, not refused** (#281): `tools/issues/resolve-stale.sh`
+repairs what the repository's own records state (the full tracked path, a rename, a single surviving
+declaration, an archived change's new directory) and reports the rest — the token is named in the run's own
+report and the item's state, labels and body are untouched, because a path the tree does not hold may be one
+the change itself creates. The pre-screen names the same token in the item's record (`absentCitation`) and
+queues the item. Because a park written before #281 is skipped by the next run, it is reversible on request:
+`--revisit-parked` reopens an item this tool parked once nothing it cites is absent any more — a body repaired
+by hand, a file the tree gained, or a rule that stopped calling a word a citation — and leaves a person's own
+hold alone. A citation that stands only in an item's **title** is never rewritten — the resolver writes bodies,
+so a bare name there is reported for a person to fix. Two outcomes follow from what the tree holds: a title
+naming a file whose tracked path the body already carries leaves the item settled and unwritten (the state every
+item repaired from the doubled-directory form ends in), while a title citing a file the tree does not hold is
+reported, because the citation is unaccounted for wherever it stands (#226).
 
 What it does when another run is already working: the lock that keeps one run per repository is taken **before**
 the run writes anything — before the state it would replace, before the pre-screen's queue and before the
@@ -579,9 +582,10 @@ concluded `success`; the rest run for any record, so **"the build is red" is exa
 person would have to read as "the build was red, the check was fine".
 
 One row exists to watch the mechanism rather than the project: `stale-citations` reports the **count of
-citations nothing accounts for**, measured by the resolver's own dry run, so a residue that grows — a repair
-that stopped reaching something, a scheduled run that stopped happening — becomes a check's verdict instead
-of a surprise (`stale-citation-resolution`, D6). The repair itself is a pipeline step, not a row: a row files,
+citations nothing accounts for**, measured by the resolver's own dry run — the items it reports unresolved plus
+the ones a park before #281 left holding one — so a residue that grows — a repair that stopped reaching
+something, a scheduled run that stopped happening — becomes a check's verdict instead of a surprise
+(`stale-citation-resolution`, D6). The repair itself is a pipeline step, not a row: a row files,
 comments on or closes *the issue it owns*, and a citation repair edits other items.
 
 One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so

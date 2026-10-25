@@ -600,10 +600,27 @@ tasks.register("checkSubmoduleIcons") {
     }
 }
 
+// libosmscout renders four `*Features.h` from the tracked `.cmake` templates beside them, and every module's
+// target lists its own source tree *before* its binary include directory (`cmake/ProjectConfig.cmake`). A
+// generated header left in the submodule source tree therefore wins over the one a build generates, in *every*
+// build of this working tree — a host build included, which then compiles libosmscout-map* against the Android
+// configuration's feature macros and reports false failures and false passes for every test keyed on them
+// (§202, issue #136: with Pango disabled, the Cairo text test measured the substituted family as the configured
+// font file and failed `REQUIRE(differs)`). The native build renders them into the app's CMake build tree and
+// removes a stale copy on configure (`app/src/main/cpp/CMakeLists.txt`); the gate over the source tree removes
+// what it finds and fails once naming it, so a working tree configured before the rule repairs itself instead of
+// blocking the configure that writes the build-tree headers. The scanner and its fixtures live in buildSrc
+// (`com.naviveylin.build.native`), and the task is a typed one, so it adds none of the configuration-cache
+// problems guidelines/Build.md §7 records for the script-level gates.
+tasks.register<com.naviveylin.build.native.CheckSubmoduleFeatureHeaders>("checkSubmoduleFeatureHeaders") {
+    submoduleDir.set(rootProject.layout.projectDirectory.dir("app/src/main/cpp/libosmscout"))
+}
+
 tasks.named("preBuild") {
     dependsOn(
         "checkSubmoduleStylesheets", "syncSubmoduleStylesheets",
-        "checkSubmoduleIcons", "syncSubmoduleIcons"
+        "checkSubmoduleIcons", "syncSubmoduleIcons",
+        "checkSubmoduleFeatureHeaders"
     )
 }
 

@@ -620,7 +620,10 @@ item's closure. Adding a check is a row.
 
 ```
 outcome        present  -> file, or reopen the item this condition already has, or annotate it
-               cleared  -> comment the measurement, close once the consecutive count is met
+               cleared  -> comment the measurement, close once the consecutive count is met;
+                           with no open item carrying the identity, record it on the row's own
+                           record issue, so a green check reaches the tracker instead of reading
+                           as one that never ran (issue #257)
                failed   -> write NOTHING, fail the run loudly            (I6)
 ```
 

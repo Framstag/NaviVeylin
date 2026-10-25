@@ -287,16 +287,27 @@ sensors_record_body() { # <row-id>
 sensors_file_record() { # <row> <id> → the created issue's number, or empty
   local row="$1" id="$2" status fp title claim body labels file out code number
   status=$(sensors_registry_value '.record.status')
-  [ -n "$status" ] ||
+  # The vocabulary, not only the emptiness: a state outside it would make `create.sh` refuse the filing, and
+  # the run would go on reporting a measurement it never wrote — the silence-read-as-a-verdict class this
+  # fix exists to close (issue #257). The guard refuses such a registry first; this is the direct-run half.
+  if [ -z "$status" ]; then
     sensors_refuse "$SENSORS_REGISTRY_BAD" "registry-record-status-missing" \
       "the registry declares no .record.status, so a row's record would carry no state"
+  fi
+  if ! issues_core Policy labels --profile "$SENSORS_PROFILE" \
+       "status${SENSORS_SEPARATOR}${status}" >/dev/null 2>&1; then
+    sensors_refuse "$SENSORS_REGISTRY_BAD" "registry-record-status-outside-the-vocabulary" \
+      "the registry's .record.status '$status' is not a declared status value, so a record would not be excluded from every work selector"
+  fi
   fp="record-$id"
   title="sensor record: $id"
   claim="the $id check's measurement record"
   body=$(sensors_record_body "$id")
   labels=$(sensors_labels_json "$row" "$id" "$status")
   if [ "$SENSORS_DRY_RUN" -eq 1 ]; then
-    printf 'dry-run: would file the record issue for %s (fingerprint %s, status %s)\n' "$id" "$fp" "$status"
+    # stderr, never stdout: the caller captures this function's stdout as the created issue's number
+    # (`sensors_record_number`), and a dry run's message would become the number it reports.
+    printf 'dry-run: would file the record issue for %s (fingerprint %s, status %s)\n' "$id" "$fp" "$status" >&2
     return 0
   fi
   file=$(mktemp) || sensors_die "run: cannot create a temporary file"

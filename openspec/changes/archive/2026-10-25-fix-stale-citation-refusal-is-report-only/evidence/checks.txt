@@ -1,0 +1,359 @@
+$ bash tools/issue-tooling-selftest.sh
+PASS Profile#everySectionIsPresent
+PASS Taxonomy#vocabulariesAreClosed
+PASS Taxonomy#mapsEveryFixtureEntry
+PASS Taxonomy#renamesTheTwoProjectCategories
+PASS Taxonomy#unknownValueRefuses
+PASS Policy#allowlistIsNotEmptyAndNamesTheAuthenticatedUser
+PASS Policy#gateMatrix
+PASS WorkPackage#bodyCannotBreakOutOfTheDataBlock
+PASS WorkPackage#oversizedBodyRefuses
+PASS WorkPackage#recordedDecisionIsCarried
+PASS WorkPackage#noDecisionIsRecorded
+PASS WorkPackage#questionIsNotTheVerdictWord
+PASS Fingerprint#stableAcrossWhitespaceAndLineNumbers
+PASS Fingerprint#separatesDistinctEntries
+PASS Bands#coversTheWholeRange
+PASS Bands#labelSpellingComesFromTheProfile
+PASS Bands#refusesAScoreOutsideEveryBand
+PASS TodoSections#parsesEveryStatusShape
+PASS labels#dryRunListsTaxonomy
+PASS lib#discoversTheCurrentProject
+PASS lib#refusesOutsideAGitTree
+PASS lib#noProjectValueInTheEngine
+PASS lib#exitCodeConstants
+PASS lib#statusPrefixNeedsTheProfile
+PASS lib#questionIsReadFromANonEmptyComment
+PASS lib#coreIsCompiledNotLaunched
+PASS lib#retriesATransientFailure
+PASS lib#reportsAnUnreachableTrackerAfterTheLastRetry
+PASS lib#doesNotRetryAnAuthoritativeFailure
+PASS lib#doesNotRetryAnAppend
+PASS lib#onlyTheSeamCallsTheRealCli
+PASS policy#preflightRefusesUnknownLogin
+PASS policy#preflightReportsAnUnreachableTracker
+PASS policy#checkAnswersWithoutAnIdentityRead
+PASS create#duplicateRefusesAndNamesTheIssue
+PASS create#writesMarkerAndLabels
+PASS create#refusesTwoValuesOfOneNamespace
+PASS create#carriesTheFindingsClassAndCategory
+PASS create#refusesAClassItsLabelsContradict
+PASS create#refusesADoubledCitation
+PASS create#bareValueFlagNeedsAValue
+PASS update#refusesUnknownLabel
+PASS update#reportsAnUnreachableTrackerInsteadOfARefusal
+PASS close#requiresReasonAndEvidence
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+PASS close#recordsStateReason
+PASS close#refusesOnPolicyFailure
+PASS close#notPlannedNeedsNoOptIn
+PASS list#filtersByEachCriterion
+PASS list#idResolvesTheMarker
+PASS list#idDoesNotMatchASubstring
+PASS surface#noDeletePath
+PASS surface#reservedLabelRefusesInEveryWritePath
+PASS surface#reservationIsNotBypassedByTheOtherLabelFlags
+PASS import#dryRunEmitsOnePreviewPerFinding
+PASS import#secondRunIsANoOp
+PASS adapter#emitsOneFindingPerFixtureSection
+PASS update#removeLabelRunsThroughTheSameGate
+PASS update#statusReplacesTheOldStatus
+PASS update#statusReplacementIsIdempotent
+PASS update#statusRejectsTwoStatesInOneCall
+PASS update#statusReportNamesImpliedRemoval
+PASS update#statusWriteReportsAnEmptyTransition
+PASS update#commentOnlyReportsNoStatusWrite
+PASS update#stateNamedAsALabelReplacesTheOldState
+PASS close#commentOnlyLeavesTheIssueOpen
+PASS close#writesTheSettledStatus
+PASS close#keepsTheItemOpenWhenTheStateCannotBeWritten
+PASS close#writesNothingWhenTheItemAlreadyCarriesTheState
+PASS close#refusesAProfileThatNamesNoSettledState
+PASS decisions#listsTheQueueAndItsQuestions
+PASS decisions#theQuestionIsNotTheVerdictWord
+PASS decisions#emptyQueueIsNotAnError
+PASS duplicates#dryRunWritesNothing
+PASS duplicates#youngerDuplicateIsClosedWithAPointer
+PASS duplicates#olderItemSurvives
+PASS duplicates#unauthorisedDuplicateIsCommentedNotClosed
+PASS duplicates#aMarkedDuplicateIsNotCommentedTwice
+PASS duplicates#collisionIsReportedAndNothingIsWritten
+PASS duplicates#landedCandidateIsPrintedNotClosed
+PASS duplicates#cleanTrackerExitsZeroWithoutAWrite
+PASS duplicates#differentFingerprintsAreNotMerged
+PASS answer#requiresTheDecisionText
+PASS answer#refusesWhatIsNotADecision
+PASS answer#continueReturnsTheItemToTheQueue
+PASS answer#theAnswerNamesTheQuestion
+PASS answer#theAnswerQuotesTheQuestionNotTheVerdictWord
+PASS answer#deviceMovesToTheDeviceLane
+PASS answer#retireClosesAsRetired
+PASS basis#stableAcrossWhitespaceOnlyBodyEdit
+PASS basis#changesWhenAClassLabelChanges
+PASS basis#changesWhenTheCitedCodeGoesAway
+PASS basis#anAgedScoreIsRevisited
+PASS prioritise#readsEveryIssueAndSkipsByBasis
+PASS prioritise#capsTheDueSet
+PASS prioritise#secondRunScoresNothing
+PASS prioritise#writesLabelAndMarkerTogether
+PASS prioritise#theWriteKeepsAQuotation
+PASS prioritise#refusesATaxonomyOutsideValue
+PASS prioritise#commentsOnlyOnABandTransition
+PASS prioritise#occurrenceAbsenceIsOne
+PASS prioritise#occurrenceChangeInvalidatesTheBasis
+PASS prioritise#writesNoGateLabel
+PASS prioritise#reportsEveryCounter
+PASS prioritise#bodiesAreDelimitedData
+PASS prioritise#refusesABodyThatClosesTheFence
+PASS classify#selectsOnlyUnclassified
+PASS classify#refusesAnOutOfVocabularyProposal
+PASS classify#reportsAnOutOfVocabularyCategoryWithoutWriting
+PASS classify#writesOnlyClassAndCategory
+PASS list#prioSelector
+PASS list#unrankedSelector
+PASS list#eligibleOnlyIgnoresTheBand
+PASS check#markerLabelMismatchFails
+PASS check#outOfRangeBandFails
+PASS check#neverWritesEligibility
+PASS check#incompleteMarkerFails
+PASS check#labelWithoutMarkerFails
+PASS check#aQuotationIsNotAMarker
+PASS check#aMarkerLineBesideAQuotationIsTheRecord
+PASS check#unrankedIsNotAViolation
+PASS check#selfCheckIsGreen
+issue-tooling-selftest: all 121 cases passed (JDK 27, offline, no token, HEAD 081e9d14, tools e3b0c44298fc, 2026-10-25T16:29:59Z)
+exit=0
+
+$ bash tools/loop-selftest.sh --files "tools/loop/prescreen.sh tools/loop/labels.sh tools/loop/state.sh"
+loop-selftest: selected 101 of 230 cases (files: tools/loop/prescreen.sh tools/loop/labels.sh tools/loop/state.sh)
+state#recordsTheBaseBranchNotTheCheckout| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+state#recordsTheBaseBranchNotTheCheckout| HEAD ist jetzt bei 9743a81 a change landed on main
+prescreen#aRefusedClassStillStopsTheScreen| stub gh: recorded `gh issue edit`
+prescreen#aRefusedClassStillStopsTheScreen| exclude-feature #25
+PASS state#aDeadOwnersLockIsTakenOver
+PASS state#initKeepsTheStateItReplaces
+PASS state#initAnnouncesARunWithoutAStop
+PASS state#recordsTheBaseBranchNotTheCheckout
+PASS state#baseBranchIsAConfigurationKey
+PASS state#setBaseRefusesACommitTheBaseBranchDoesNotCarry
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+PASS state#defaultsComeFromLoopConf
+PASS prescreen#ranksBugsFirstAndKeepsFeatures
+PASS prescreen#oneHarnessImprovementPerFourAppItems
+PASS prescreen#aRefusedClassStillStopsTheScreen
+PASS prescreen#missingPathIsReportedNotRefused
+prescreen#landedBranchIsNotADecision| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/finish281/.pi/tmp/loop-selftest.i31uuz/cases/12/tree/case.Ti6W1j/repo/.pi/issue-loop/runs/2026-10-25T16:30:18Z.json
+PASS state#initAndShowRoundTrips
+PASS state#nextHonoursEveryStopCondition
+PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+PASS prescreen#doesNotClaimJudgementGates
+PASS prescreen#refusesReservedLabelInSelection
+PASS prescreen#withoutTheOptInIsNeverQueued
+PASS prescreen#settledItemIsDropped
+PASS prescreen#deviceItemIsAVerdictNotWork
+PASS prescreen#readsTheVerdictsFromTheProfile
+PASS prescreen#aFinishedAttemptBranchIsADecision
+PASS prescreen#aBlockedAttemptBranchIsWork
+PASS prescreen#landedBranchIsNotADecision
+PASS prescreen#itemAwaitingADecisionIsNotQueued
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS prescreen#harnessItemsLeadTheQueue
+worktree#seedsAllFourInputs| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#seedsAllFourInputs| HEAD ist jetzt bei e8e12fa init
+worktree#oneBranchPerItemOffTheBase| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#oneBranchPerItemOffTheBase| HEAD ist jetzt bei e8e12fa init
+worktree#reusesABranchWhoseWorkAlreadyLanded| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#reusesABranchWhoseWorkAlreadyLanded| HEAD ist jetzt bei e8e12fa init
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| HEAD ist jetzt bei e8e12fa init
+worktree#refusesABranchCarryingAPreviousAttempt| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesABranchCarryingAPreviousAttempt| HEAD ist jetzt bei e8e12fa init
+worktree#refusesWhenMainAdvanced| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesWhenMainAdvanced| HEAD ist jetzt bei e8e12fa init
+worktree#reusesABranchWhoseWorkAlreadyLanded| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/finish281/.pi/tmp/loop-selftest.i31uuz/cases/14/tree/case.PBGNJf/repo/.pi/issue-loop/runs/2026-10-25T16:30:43Z.json
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesABranchCarryingAPreviousAttempt| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesWhenMainAdvanced| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#reusesABranchThatCarriesNoWorkOfItsOwn| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/finish281/.pi/tmp/loop-selftest.i31uuz/cases/13/tree/case.UX7w3o/repo/.pi/issue-loop/runs/2026-10-25T16:30:43Z.json
+worktree#oneBranchPerItemOffTheBase| Zu neuem Branch 'fix/issue-22-other' gewechselt
+worktree#noPushWithoutTheFlag| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261025-163045')
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei e8e12fa init
+PASS prescreen#anUndeclaredRoleStopsTheScreen
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (b405fe9)
+worktree#noPushWithoutTheFlag| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (157c419)
+PASS prescreen#anUndeclaredLeadingIntervalStopsTheScreen
+worktree#noPushWithoutTheFlag| HEAD ist jetzt bei 157c419 review: 2026-01-01-fix-demo round 1 passed (#21)
+worktree#noPushWithoutTheFlag| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 157c419).
+worktree#noPushWithoutTheFlag| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| stub gh: recorded `gh issue edit`
+worktree#noPushWithoutTheFlag| closed #21 (completed)
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+worktree#noPushWithoutTheFlag| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#noPushWithoutTheFlag|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS prescreen#refusalLeavesATraceInTheTracker
+PASS prescreen#aFixInTheSubmoduleIsAPersonsPatch
+PASS worktree#seedsAllFourInputs
+PASS worktree#checksOutTheSubmoduleTheLoopConfigNames
+PASS worktree#oneBranchPerItemOffTheBase
+PASS worktree#refusesWhenMainAdvanced
+PASS worktree#noPushWithoutTheFlag
+PASS worktree#reusesABranchThatCarriesNoWorkOfItsOwn
+PASS worktree#reusesABranchWhoseWorkAlreadyLanded
+PASS worktree#refusesABranchCarryingAPreviousAttempt
+worktree#setsAsideABlockedAttemptAndStartsFresh| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#setsAsideABlockedAttemptAndStartsFresh| HEAD ist jetzt bei 4028014 init
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| HEAD ist jetzt bei 4028014 init
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToMergeOverADirtyProjectTree| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| HEAD ist jetzt bei 4028014 init
+worktree#refusesToMergeOverADirtyProjectTree| HEAD ist jetzt bei 4028014 init
+worktree#setsAsideABlockedAttemptAndStartsFresh| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesToMergeOverADirtyProjectTree| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+worktree#refusesToMergeIntoATreeOffTheBaseBranch| Zu neuem Branch 'fix/issue-21-demo' gewechselt
+PASS prescreen#aRenamedLeadingCategoryLeads
+PASS prescreen#priorityCategoriesAreReadFromTheProfile
+PASS prescreen#priorityDoesNotBypassTheGate
+PASS worktree#setsAsideABlockedAttemptAndStartsFresh
+PASS worktree#doesNotAdoptAChangeCreditedToAnotherIssue
+PASS worktree#refusesABranchWhoseReviewFailed
+PASS worktree#refusesABranchWhoseReviewRoundNeverAnswered
+PASS worktree#refusesToMergeOverADirtyProjectTree
+PASS worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom
+PASS worktree#refusesToMergeIntoATreeOffTheBaseBranch
+PASS labels#verdictToLabelMatrix
+PASS labels#holdCarriesItsReason
+PASS labels#neverWritesReservedLabel
+PASS labels#closeRemovesTheDecisionLabel
+PASS run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen
+PASS gate#anEnginePathOwesTheRecordCheck
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261025-163130')
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 6fbf1b6 an engine of its own
+PASS measure#namesTheOwedChecksInOneBlock
+run#dryRunTouchesNothing| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/finish281/.pi/tmp/loop-selftest.i31uuz/cases/13/tree/case.POFxj8/repo/.pi/issue-loop/runs/2026-10-25T16:31:28Z.json
+run#dryRunTouchesNothing| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+run#dryRunTouchesNothing| HEAD ist jetzt bei 2831da8 init
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (1576d6d)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (2851f86)
+PASS state#inheritedStatePathOutsideTheTreeIsIgnored
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 2851f86 review: 2026-01-01-fix-demo round 1 passed (#21)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 2851f86).
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
+PASS report#yieldIsCountedFromState
+PASS run#aFailedEscalationWriteIsNamed
+PASS run#aFailedUnpickIsNamed
+PASS run#prescreenAnnouncesItselfBeforeItReturns
+PASS run#mergesItsCommittedBranchBeforeClosing
+PASS run#theBaseAdvancesWithEveryMerge
+PASS run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds
+PASS run#aRefusedStartKeepsTheLeftoversItFound
+PASS run#stateNamesTheItemInProgress
+PASS run#dryRunTouchesNothing
+PASS run#staleBaseStopsTheRunWithItsReason
+PASS report#aVerdictAloneIsNoEscalation
+report#landedBranchIsNoAction| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/finish281/.pi/tmp/loop-selftest.i31uuz/cases/8/tree/case.RQ628f/repo/.pi/issue-loop/runs/2026-10-25T16:31:58Z.json
+report#aKilledRunIsNotALiveRun| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/finish281/.pi/tmp/loop-selftest.i31uuz/cases/4/tree/case.61cwKN/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (49a473026f354388 → e85cafc99a65d5fd); a field was edited outside this script
+report#zeroUsagePrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/finish281/.pi/tmp/loop-selftest.i31uuz/cases/6/tree/case.DT3KOF/repo/.pi/issue-loop/runs/2026-10-25T16:31:58Z.json
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS report#misdiagnosedIsCountedApart
+PASS report#archivedStateIsReported
+PASS report#impossibleBudgetNamesAnotherRun
+PASS report#aKilledRunIsNotALiveRun
+PASS report#wallTimeAndReasonInTheTable
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#actionsNameDecisionAndBranch
+PASS report#landedBranchIsNoAction
+PASS report#landedBranchesAreNamedAsRemovable
+PASS report#emptyRunSaysNone
+PASS clean#interruptedSuiteRemovesItsScratchTree
+PASS clean#interruptedSuiteEndsItsProcessGroup
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+PASS usage#bareValueFlagAtTheEndOfArgvIsAUsageError
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS gate#theDeltaHandsASuiteTheBaseItMeasured
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS driver#theSuiteRunsItsCasesInAPool
+loop-selftest: all 101 cases passed (JDK 27, offline, no token, no sandbox) — selection: --files tools/loop/prescreen.sh tools/loop/labels.sh tools/loop/state.sh 
+exit=0
+
+--- CI: Check OpenSpec artifact hygiene ---
+$ tasks.md markers
+ok — every tasks.md uses - [x] / - [ ] markers
+
+$ unquoted guidance entries containing ": "
+81:      - Use the build-app, run-tests, and release-build skills (see guidelines/Build.md) for all build/test/release verification — they wrap the Gradle calls, stream output to the console, and evaluate return codes and build output
+82:      - Before marking implementation complete, run the build and verify it compiles without errors — unless the change touches no compiled file, in which case the structural check of the file it edits stands in
+83:      - Before marking implementation complete, verify tests exist for all new/modified code and they pass — the tests the change can affect; name any exclusion
+84:      - If build or tests fail, do NOT mark tasks complete — report failures and fix them first
+85:      - Make sure that tests cover all relevant data combinations and process variants and thus cover the complete code under tests in all its variants
+86:      - Make sure that the build has no warnings
+87:      - Build only the targets needed for testing to minimize resource usage and compilation time
+88:      - Verify all new/modified code against the guideline sections that own the conventions the change touches (`AGENTS.md` "Documentation Map" routes a kind of change to them, and `grep -n '^## ' guidelines/<file>.md` lists one file's sections) — a whole-document read is not required
+89:      - Update README.md and AGENTS.md and other documentation if information stored there changed
+90:      - Verify no regressions in unrelated areas
+91:      - For native C++ changes, verify all target ABIs compile
+92:      - Any problems you detect during implementation that are not initiated by this change have to be filed as an issue in the tracker — `.pi/skills/create-issue`, or `tools/issues/create.sh` directly — for later processing in other changes.
+93:      - Suggest at the end of the development implementation of skills for repetitive work you have done
+94:      - Log all solutions approaches that failed with a short log and problem description together with a time stamp in a "ki_processing_failures.log"
+95:      - When starting feature development, check "ki_processing_failures.log" to avoid doing the same error twice.
+96:      - For Android Auto changes, verify on emulator/head unit (surface lifecycle, host template constraints)
+97:      - If user points to bugs in your code always question yourself, why did I not find it myself, which test was missing and add thee tests.
+99:      - Iterate with focused test suites (`--tests "com.naviveylin.ui.<area>.*"`); run the full both-flavor gate once, before marking the change complete. Use the device-check skill for device runs instead of writing a new ad-hoc script per finding.
+100:      - When a finding needs the owner's observation, ask 2-4 independent questions in ONE ask_user call (where/when/whether), not one question per round.
+102:      - Generate test coverage report and make sure that essential business logic and strategical gluing and integration code has a high test coverage
+112:      - Make sure that all spec scenarios are traceable to a task
+113:      - Make sure that all tasks are traceable to a spec requirement
+114:      - Make sure that no task references a deleted or renamed spec
+115:      - Make sure that for every feature there are enough tests — especially unit tests
+116:      - Make sure that style guides of the Android platform and Material Design 3 are followed
+117:      - Verify design decisions follow the guideline sections that own them (`AGENTS.md` "Documentation Map" routes by kind of change); if a change supersedes a principle, update the affected section in the same change
+118:      - Make sure no dead code remains and specs match the implemented behavior
+119:      - For features in both variants, verify label/hierarchy parity (guidelines/UI.md)
+120:      - Make sure that build and tests are green
+121:      - Build compiles without errors for all target ABIs
+122:      - All existing tests still pass
+123:      - New unit tests exist for all new or modified code (unless testing is not feasible)
+124:      - Every new public API has documentation (Kotlin docs or KDoc)
+125:      - No hardcoded paths, API keys, or magic numbers
+126:      - Error messages are user-actionable
+127:      - Native/JNI code follows Android NDK conventions (no leaks, proper JNI exception handling)
+128:      - Compose previews exist for new UI components
+
+$ capability specs whose Purpose is the archive placeholder
+openspec/specs/documentation-ownership/spec.md
+
+$ gen-feature-list --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 177
+classified: 180
+unclassified: 0
+delta spec ids: 0
+stale: 3
+car-only areas: 1
+highlights: 19
+exit=0

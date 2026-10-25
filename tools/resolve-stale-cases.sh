@@ -17,25 +17,31 @@ RESOLVE_CASES=(
   'classifier#bareSourceNameResolvesBySuffix'
   'classifier#submodulePathResolves'
   'classifier#generatedArtefactIsNotMissing'
+  'classifier#runArtefactGlobIsNotMissing'
+  'classifier#bracketedGrepIdiomIsNotACitation'
   'classifier#absentIsTheOnlyStale'
-  'prescreen#refusalIsVisibleInTheTracker'
+  'prescreen#missingCitationIsReportedNotRefused'
   'resolver#suffixedCitationIsCanonicalised'
   'resolver#doubledPrefixIsCollapsed'
   'resolver#basenameRepairLeavesALongerPathAlone'
   'resolver#repairWithoutAChangeIsNotReported'
   'resolver#titleSuffixBesideItsCanonicalPathIsSettled'
-  'resolver#titleAbsentCitationIsParkedWhereItStands'
+  'resolver#titleAbsentCitationIsReportedWhereItStands'
   'resolver#repairIsVerifiedByReclassification'
   'resolver#renamedFileIsFollowed'
   'resolver#removedSymbolIsReAnchored'
   'resolver#markersSurviveTheRepair'
   'resolver#repairPostsOneComment'
-  'resolver#unrepairableCitationIsParked'
+  'resolver#unrepairableCitationIsReportedNotWritten'
   'resolver#ambiguityIsReportedNotRepaired'
   'resolver#neverWritesTheAuthorisation'
   'resolver#boundHoldsAndReportsTheRest'
   'resolver#ambiguityDoesNotConsumeTheBound'
   'resolver#secondRunChangesNothing'
+  'resolver#parkedItemWithoutTheFlagIsUntouched'
+  'resolver#cleanParkedItemIsReopened'
+  'resolver#personsHoldIsNotReopened'
+  'resolver#parkedItemStaysWhenACitationIsStillAbsent'
   'pipeline#scheduledRunRepairs'
   'pipeline#residueIsADeclaredRow'
 )
@@ -50,25 +56,31 @@ resolve_run_case() {
     'classifier#bareSourceNameResolvesBySuffix') case_classifier_bareSourceNameResolvesBySuffix ;;
     'classifier#submodulePathResolves') case_classifier_submodulePathResolves ;;
     'classifier#generatedArtefactIsNotMissing') case_classifier_generatedArtefactIsNotMissing ;;
+    'classifier#runArtefactGlobIsNotMissing') case_classifier_runArtefactGlobIsNotMissing ;;
+    'classifier#bracketedGrepIdiomIsNotACitation') case_classifier_bracketedGrepIdiomIsNotACitation ;;
     'classifier#absentIsTheOnlyStale') case_classifier_absentIsTheOnlyStale ;;
-    'prescreen#refusalIsVisibleInTheTracker') case_prescreen_refusalIsVisibleInTheTracker ;;
+    'prescreen#missingCitationIsReportedNotRefused') case_prescreen_missingCitationIsReportedNotRefused ;;
     'resolver#suffixedCitationIsCanonicalised') case_resolver_suffixedCitationIsCanonicalised ;;
     'resolver#doubledPrefixIsCollapsed') case_resolver_doubledPrefixIsCollapsed ;;
     'resolver#basenameRepairLeavesALongerPathAlone') case_resolver_basenameRepairLeavesALongerPathAlone ;;
     'resolver#repairWithoutAChangeIsNotReported') case_resolver_repairWithoutAChangeIsNotReported ;;
     'resolver#titleSuffixBesideItsCanonicalPathIsSettled') case_resolver_titleSuffixBesideItsCanonicalPathIsSettled ;;
-    'resolver#titleAbsentCitationIsParkedWhereItStands') case_resolver_titleAbsentCitationIsParkedWhereItStands ;;
+    'resolver#titleAbsentCitationIsReportedWhereItStands') case_resolver_titleAbsentCitationIsReportedWhereItStands ;;
     'resolver#repairIsVerifiedByReclassification') case_resolver_repairIsVerifiedByReclassification ;;
     'resolver#renamedFileIsFollowed') case_resolver_renamedFileIsFollowed ;;
     'resolver#removedSymbolIsReAnchored') case_resolver_removedSymbolIsReAnchored ;;
     'resolver#markersSurviveTheRepair') case_resolver_markersSurviveTheRepair ;;
     'resolver#repairPostsOneComment') case_resolver_repairPostsOneComment ;;
-    'resolver#unrepairableCitationIsParked') case_resolver_unrepairableCitationIsParked ;;
+    'resolver#unrepairableCitationIsReportedNotWritten') case_resolver_unrepairableCitationIsReportedNotWritten ;;
     'resolver#ambiguityIsReportedNotRepaired') case_resolver_ambiguityIsReportedNotRepaired ;;
     'resolver#neverWritesTheAuthorisation') case_resolver_neverWritesTheAuthorisation ;;
     'resolver#boundHoldsAndReportsTheRest') case_resolver_boundHoldsAndReportsTheRest ;;
     'resolver#ambiguityDoesNotConsumeTheBound') case_resolver_ambiguityDoesNotConsumeTheBound ;;
     'resolver#secondRunChangesNothing') case_resolver_secondRunChangesNothing ;;
+    'resolver#parkedItemWithoutTheFlagIsUntouched') case_resolver_parkedItemWithoutTheFlagIsUntouched ;;
+    'resolver#cleanParkedItemIsReopened') case_resolver_cleanParkedItemIsReopened ;;
+    'resolver#personsHoldIsNotReopened') case_resolver_personsHoldIsNotReopened ;;
+    'resolver#parkedItemStaysWhenACitationIsStillAbsent') case_resolver_parkedItemStaysWhenACitationIsStillAbsent ;;
     'pipeline#scheduledRunRepairs') case_pipeline_scheduledRunRepairs ;;
     'pipeline#residueIsADeclaredRow') case_pipeline_residueIsADeclaredRow ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
@@ -189,6 +201,18 @@ tracker() { # <dir> <number> <title> <body> [extra-labels-json] [state]
   printf '%s\n' "$d"
 }
 
+# A tracker whose one item is parked the way this tool parks one: on-hold, the loop's stale refusal beside it,
+# *no* `status/open` — two states on one item is the contradiction `update.sh` refuses to resolve — and the
+# parking comment this tool posts, which is what says the park is its own rather than a person's hold.
+parked_tracker() { # <dir> <number> <title> <body>
+  local d
+  d=$(tracker "$1" "$2" "$3" "$4" '[{"name":"status/on-hold"},{"name":"agent/excluded-stale"}]')
+  jq '.[0].labels |= map(select(.name != "status/open"))
+      | .[0].comments = [{body: "unresolved citation — parked so the pre-screen stops re-deciding this item:\n\n- `Ghost.kt` — no tracked file"}]' \
+    "$d/issues.json" > "$d/issues.tmp" && mv "$d/issues.tmp" "$d/issues.json"
+  printf '%s\n' "$d"
+}
+
 resolver() { # <tree> [args…] — the real resolver, in the tree
   local tree="$1"; shift
   ( cd "$tree" && bash "$RESOLVE_ROOT/tools/issues/resolve-stale.sh" "$@" )
@@ -267,18 +291,18 @@ case_resolver_repairWithoutAChangeIsNotReported() {
   out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
     fail "the resolver failed: $out"
   assert_eq "0" "$(jq -r '.repaired' <<< "$out")" "no repair is counted when the body did not change"
-  assert_eq "0" "$(recorded_count "$d/writes.log" 'citation repaired')" "and no comment claims one"
-  assert_contains "$(recorded_text "$d/writes.log")" "unresolved citation" \
-    "the item is parked with its reason instead of reported repaired"
-  assert_contains "$(recorded_text "$d/writes.log")" "the rewrite changed nothing" "and the reason names the no-op"
+  assert_eq "1" "$(jq -r '.unresolved' <<< "$out")" "the citation is reported unresolved"
+  assert_contains "$(jq -r '[.items[] | select(.issue == 7) | .reasons] | join("\n")' <<< "$out")" \
+    "the rewrite changed nothing" "and the reason names the no-op"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'issue edit')" "nothing is written for it (#281)"
 }
 
 # The matrix is asked of the title *and* the body — the pair the pre-screen asks — but the resolver writes the
 # body only, so a token that stands in the title alone is not repairable by it. #201, #182 and #181 are exactly
 # that shape: a title naming `create.sh`, `update.sh`, `close.sh` beside the body's full `tools/issues/<name>.sh`.
 # The suffix loop rewrote the body for the title's token, changed nothing, and the no-op landed in the same
-# accumulator a genuine failure feeds — so a body that had *just been repaired* was parked on the next run, and
-# the header's idempotence claim was false (#226).
+# accumulator a genuine failure feeds — so a body that had *just been repaired* was reported unresolved on the
+# next run, and the header's idempotence claim was false (#226).
 case_resolver_titleSuffixBesideItsCanonicalPathIsSettled() {
   local tree d out
   tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/tools/alpha"
@@ -287,27 +311,27 @@ case_resolver_titleSuffixBesideItsCanonicalPathIsSettled() {
   d=$(tracker "$tree/fixture-gh" 7 'the writer is `alpha.sh`' 'the writer is `tools/alpha/alpha.sh`')
   out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
     fail "the resolver failed: $out"
-  assert_eq "0" "$(jq -r '.parked' <<< "$out")" "an item whose body already holds the canonical path is not parked"
+  assert_eq "0" "$(jq -r '.unresolved' <<< "$out")" "an item whose body already holds the canonical path is reported unresolved for nothing"
   assert_eq "0" "$(jq -r '.due' <<< "$out")" "and its title's bare token does not make it due"
   assert_eq "0" "$(jq -r '.writes' <<< "$out")" "nothing is written for it"
   assert_eq "0" "$(recorded_count "$d/writes.log" 'status/on-hold')" "the item keeps the state it had"
   assert_eq "0" "$(recorded_count "$d/writes.log" 'issue comment')" "and no comment claims anything about it"
 }
 
-# The other half of the same rule, and the reason the skip may not be generalised to `absent`: a citation the
-# tree does not hold is stale wherever it stands — the pre-screen asks the title too — and this tool cannot
-# rewrite a title, so the item is still parked, with a reason that names where the citation is. Skipping it as
-# "nothing to do" would leave an item every later run refuses with nothing on the tracker saying why (#163).
-case_resolver_titleAbsentCitationIsParkedWhereItStands() {
-  local tree d out text
+# The other half of the same rule: a citation the tree does not hold is reported wherever it stands, and this
+# tool cannot rewrite a title, so it is reported with a reason that names where the citation is. Skipping it as
+# "nothing to do" would leave an item nothing accounts for with nothing saying why (#163).
+case_resolver_titleAbsentCitationIsReportedWhereItStands() {
+  local tree d out reasons
   tree=$(tree_with_file)
   d=$(tracker "$tree/fixture-gh" 7 'the writer is `Ghost.kt:3`' 'the case lives in `Foo.kt:12`')
   out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
     fail "the resolver failed: $out"
-  assert_eq "1" "$(jq -r '.parked' <<< "$out")" "a stale citation in the title still parks the item"
-  text=$(recorded_text "$d/writes.log")
-  assert_contains "$text" "the citation is in the title" "and the reason names where it is"
-  assert_not_contains "$text" "the rewrite changed nothing" "not a no-op that was never attempted"
+  assert_eq "1" "$(jq -r '.unresolved' <<< "$out")" "a citation the tree does not hold is reported"
+  reasons=$(jq -r '[.items[] | select(.issue == 7) | .reasons] | join("\n")' <<< "$out")
+  assert_contains "$reasons" "the citation is in the title" "and the reason names where it is"
+  assert_not_contains "$reasons" "the rewrite changed nothing" "not a no-op that was never attempted"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'issue edit')" "and nothing is written for it (#281)"
 }
 
 # The other half of the same verification: a repair counts only when its target re-classifies as a citation the
@@ -328,8 +352,10 @@ case_resolver_repairIsVerifiedByReclassification() {
   assert_eq "0" "$(jq -r '.repaired' <<< "$out")" \
     "a target the history names but the tree does not hold is not a repair"
   assert_eq "0" "$(recorded_count "$d/writes.log" 'citation repaired')" "and no comment claims one"
-  assert_contains "$(recorded_text "$d/writes.log")" "unresolved citation" "the item is parked with its reason"
-  assert_contains "$(recorded_text "$d/writes.log")" "the target is not a tracked path" "and the reason names it"
+  assert_eq "1" "$(jq -r '.unresolved' <<< "$out")" "the citation is reported unresolved"
+  assert_contains "$(jq -r '[.items[] | select(.issue == 7) | .reasons] | join("\n")' <<< "$out")" \
+    "the target is not a tracked path" "and the reason names it"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'issue edit')" "nothing is written for it (#281)"
 }
 
 case_classifier_fragmentIsNotACitation() {
@@ -402,9 +428,42 @@ case_classifier_absentIsTheOnlyStale() {
   assert_eq "Ghost.kt" "$(printf '%s\n' "$out" | tail -1)" "only the absent citation is stale"
 }
 
+# A run's own record is regenerated by the next run, so its absence from the tree is not staleness — and the
+# entries are globs, because the loop writes one report and one prompt per item per round (#227, #244, #247).
+case_classifier_runArtefactGlobIsNotMissing() {
+  local tree
+  tree=$(tree_with_file)
+  assert_eq "generated" "$(classify "$tree" "reviewer-report-1.md")" "a review round's report is not a missing file"
+  assert_eq "generated" "$(classify "$tree" "items/88/reviewer-prompt-2.md")" "nor the prompt it was written from"
+  assert_eq "generated" "$(classify "$tree" "worker-prompt.md")" "nor a worker's prompt"
+  assert_eq "absent" "$(classify "$tree" "worker-prompt.kt")" "the glob does not swallow a source file"
+}
+
+# The bracketed-grep idiom elides a path's first character so the command's own text does not match itself:
+# `ps … | grep '[t]ools/loop/run.sh'`. The extractor took the tail after the bracket as a citation, so a body that
+# cites its own measurement command looked stale and was parked (#233). A glob and a scoped package name are the
+# same shape — the token starts inside a word that is not a path (#155, #94).
+case_classifier_bracketedGrepIdiomIsNotACitation() {
+  local tree text
+  tree=$(tree_with_file)
+  text="measured with \`ps -eo args | grep '[t]ools/loop/run.sh'\`"
+  assert_empty "$(candidates_of "$tree" "$text")" "the bracketed form yields no candidate at all"
+  assert_empty "$(citations_of "$tree" "$text")" "so nothing is reported as a stale citation"
+  assert_empty "$(citations_of "$tree" 'enumerate all `*Test.kt` under app/src/test/java')" \
+    "nor does a glob's tail become a citation"
+  assert_empty "$(citations_of "$tree" 'the manifest of `@luan.sh/pi-view-image`')" \
+    "nor a scoped package's tail"
+  # …and a path written straight after a closing bracket is still a citation
+  assert_eq "exact" "$(classify "$tree" "app/src/main/java/com/example/Foo.kt")" \
+    "the rule is the character before the token, not the neighbour"
+}
+
 # --------------------------------------------------------------------------- the pre-screen (D1, requirement 2)
 
-case_prescreen_refusalIsVisibleInTheTracker() {
+# The requirement this case was written for — a citation refusal visible in the tracker — is gone (#281): a
+# citation the tree does not hold no longer refuses an item, so there is nothing to carry on the tracker. What
+# remains is the report: the pre-screen still resolves the citation it can, and names the one it cannot.
+case_prescreen_missingCitationIsReportedNotRefused() {
   local tree d out status
   tree=$(scratch); mkdir -p "$tree/tools" "$tree/app"
   cp -a "$RESOLVE_ROOT/tools/issues" "$tree/tools/" || fail "could not copy the issue tooling"
@@ -422,16 +481,11 @@ case_prescreen_refusalIsVisibleInTheTracker() {
          cd "$tree" && GH_STUB_DIR="$d" bash tools/loop/prescreen.sh --json 2>"$tree/prescreen.err" ); status=$?
   assert_eq "0" "$status" "the pre-screen ran: $out / $(cat "$tree/prescreen.err" 2>/dev/null)"
   assert_eq "eligible" "$(jq -r '.[] | select(.issue == 7) | .verdict' <<< "$out")" \
-    "a citation that resolves by suffix is not stale"
-  assert_eq "stale" "$(jq -r '.[] | select(.issue == 8) | .verdict' <<< "$out")" \
-    "a citation nothing accounts for is"
-  assert_contains "$(jq -r '.[] | select(.issue == 8) | .reason' <<< "$out")" "Ghost.kt" \
-    "and the refusal names the citation"
-
-  # The refusal is visible where a person can read it: the resolver parks the item (requirement 2).
-  d2=$(tracker "$tree/fixture-gh2" 8 "the unresolvable item" 'cites `Ghost.kt:3`')
-  GH_STUB_DIR="$d2" GH_STUB_RECORD="$d2/writes.log" resolver "$tree" --apply >/dev/null || fail "the resolver failed"
-  assert_contains "$(recorded_text "$d2/writes.log")" "status/on-hold" "the item is parked in the tracker"
+    "a citation that resolves by suffix is not refused"
+  assert_eq "eligible" "$(jq -r '.[] | select(.issue == 8) | .verdict' <<< "$out")" \
+    "nor is a citation nothing accounts for (#281)"
+  assert_eq "Ghost.kt" "$(jq -r '.[] | select(.issue == 8) | .absentCitation' <<< "$out")" \
+    "and the record names the citation"
 }
 
 # --------------------------------------------------------------------------- the ladder (D4)
@@ -494,13 +548,16 @@ case_resolver_repairPostsOneComment() {
   assert_contains "$(recorded_text "$d/writes.log")" "citation repaired" "and it says what it did"
 }
 
-case_resolver_unrepairableCitationIsParked() {
+# Report-only (#281): an unrepairable citation is named in the run's own report and the item's body, labels
+# and status are untouched, so the item is reachable for a repair the moment the record states a successor.
+case_resolver_unrepairableCitationIsReportedNotWritten() {
   local tree d out
   tree=$(tree_with_file)
   d=$(tracker "$tree/fixture-gh" 7 "an item" 'cites `Ghost.kt:3`')
-  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply 2>&1) || fail "the resolver failed: $out"
-  assert_contains "$(recorded_text "$d/writes.log")" "status/on-hold" "the item is parked"
-  assert_contains "$(recorded_text "$d/writes.log")" "unresolved citation" "and the comment says why"
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) || fail "the resolver failed: $out"
+  assert_eq "1" "$(jq -r '.unresolved' <<< "$out")" "the citation is reported unresolved"
+  assert_eq "0" "$(jq -r '.writes' <<< "$out")" "and nothing is written for it"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'issue edit')" "no state and no body"
   assert_eq "0" "$(recorded_count "$d/writes.log" 'issue close')" "nothing is closed"
 }
 
@@ -577,8 +634,9 @@ case_resolver_secondRunChangesNothing() {
   GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply >/dev/null || fail "the first run failed"
   before=$(recorded_count "$d/writes.log" 'issue comment')
   # The second state is what the tracker would look like after that run: the item carries the parked label and
-  # its citation is still the one nothing accounts for. The *guard* is what must stop the second run from
-  # deciding it again — the citation alone cannot, so this case is sensitive to the guard and nothing else.
+  # its citation is still the one nothing accounts for. The *guard* is what keeps the second run off a park a
+  # previous run of this tool wrote — the citation alone cannot, so this case is sensitive to the guard and
+  # nothing else.
   jq '.[0].labels += [{"name":"status/on-hold"}]' \
     "$d/issues.json" > "$d/issues.tmp" && mv "$d/issues.tmp" "$d/issues.json"
   second=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json) ||
@@ -586,6 +644,78 @@ case_resolver_secondRunChangesNothing() {
   assert_eq "0" "$(jq -r '.due' <<< "$second")" "a parked item is not due again"
   assert_eq "0" "$(jq -r '.writes' <<< "$second")" "and nothing is written"
   assert_eq "$before" "$(recorded_count "$d/writes.log" 'issue comment')" "no comment is posted by the second run"
+}
+
+# The park was permanent, and that is what #281 measured: nothing re-reads a parked item, so a body repaired by
+# hand, a file the tree gained or a rule that stopped calling a word a citation left the item unavailable to the
+# loop with nothing on the tracker to say why. Without the flag the guard is unchanged — the residue is not
+# re-decided by a run that did not ask for it.
+case_resolver_parkedItemWithoutTheFlagIsUntouched() {
+  local tree d out
+  tree=$(tree_with_file)
+  d=$(parked_tracker "$tree/fixture-gh" 7 "an item" 'cites `Foo.kt:12`')
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply --json 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "0" "$(jq -r '.reopened' <<< "$out")" "a parked item is not reopened unless the run asks"
+  assert_eq "0" "$(jq -r '.writes' <<< "$out")" "and nothing is written for it"
+  assert_eq "0" "$(recorded_count "$d/writes.log" 'status/open')" "its state is unchanged"
+}
+
+# The guard the first draft of this mode lacked, and the reason it is a case: `status/on-hold` is the loop's
+# general "not workable" state — most of the tracker's held items are held for a person's decision, a device or a
+# missing design — so a reversal that keyed on the state alone would re-queue all of them. Only the record that
+# says this tool parked the item is reversed.
+case_resolver_personsHoldIsNotReopened() {
+  local tree d out log
+  tree=$(tree_with_file)
+  d=$(tracker "$tree/fixture-gh" 7 "an item" 'cites `app/src/main/java/com/example/Foo.kt:12`' \
+    '[{"name":"status/on-hold"},{"name":"agent/needs-decision"}]')
+  jq '.[0].labels |= map(select(.name != "status/open"))
+      | .[0].comments = [{body: "held: the owner decides whether this is worth the round"}]' \
+    "$d/issues.json" > "$d/issues.tmp" && mv "$d/issues.tmp" "$d/issues.json"
+  log="$d/writes.log"
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$log" resolver "$tree" --apply --json --revisit-parked 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "0" "$(jq -r '.reopened' <<< "$out")" "a person's hold is not this tool's to reverse"
+  assert_eq "0" "$(jq -r '.writes' <<< "$out")" "and nothing is written for it"
+}
+
+# `--revisit-parked`: an item this script parked, whose citations all resolve again, returns to the profile's
+# open state and loses the loop's stale refusal in the same write. It never gains `agent/eligible` — the
+# authorisation is a person's, and a reopened item is a candidate for the next pre-screen, not a queued one.
+case_resolver_cleanParkedItemIsReopened() {
+  local tree d out log
+  tree=$(tree_with_file)
+  d=$(parked_tracker "$tree/fixture-gh" 7 "an item" 'cites `app/src/main/java/com/example/Foo.kt:12`')
+  log="$d/writes.log"
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$log" resolver "$tree" --apply --json --revisit-parked 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "1" "$(jq -r '.reopened' <<< "$out")" "the clean parked item is reopened"
+  assert_eq "1" "$(jq -r '.due' <<< "$out")" "and the reopen spends the run's bound, because it is a write"
+  assert_eq "1" "$(recorded_count "$log" 'issue edit')" "one edit carries the state and the refusal label"
+  assert_contains "$(recorded_text "$log")" "--add-label status/open" "the item returns to the open state"
+  assert_contains "$(recorded_text "$log")" "--remove-label status/on-hold" "and leaves the parked one"
+  assert_contains "$(recorded_text "$log")" "--remove-label agent/excluded-stale" "the stale refusal is cleared"
+  assert_eq "0" "$(recorded_count "$log" 'agent/eligible')" "the authorisation is never written"
+  assert_eq "1" "$(recorded_count "$log" 'issue comment')" "one comment says why"
+  assert_contains "$(recorded_text "$log")" "citations resolve again" "and names the reversal"
+  assert_eq "0" "$(recorded_count "$log" '--body-file')" "a body with nothing to repair is not rewritten"
+}
+
+# The other half: a parked item that still cites something absent keeps its park, and is not parked a second
+# time for the same verdict — the comment explaining it is already on the item.
+case_resolver_parkedItemStaysWhenACitationIsStillAbsent() {
+  local tree d out log before
+  tree=$(tree_with_file)
+  d=$(parked_tracker "$tree/fixture-gh" 7 "an item" 'cites `Foo.kt:12` and `Ghost.kt:3`')
+  log="$d/writes.log"
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$log" resolver "$tree" --apply --json --revisit-parked 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "0" "$(jq -r '.reopened' <<< "$out")" "an item with an absent citation is not reopened"
+  assert_eq "1" "$(jq -r '.stillParked' <<< "$out")" "it is reported as still held"
+  assert_eq "0" "$(jq -r '.unresolved' <<< "$out")" "and its citation is not counted as a fresh report"
+  assert_eq "0" "$(recorded_count "$log" '--status on-hold')" "no second park is written"
+  assert_eq "0" "$(recorded_count "$log" 'status/open')" "and its state is untouched"
 }
 
 # --------------------------------------------------------------------------- the pipeline (D6)

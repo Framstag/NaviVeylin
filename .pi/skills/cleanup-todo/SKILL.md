@@ -227,22 +227,31 @@ view, name the query rather than building a list.
 10. **Do not "clean" by closing the items whose owner is unknown.** An unverifiable item is the most
     valuable thing in the backlog.
 
-## A stale citation in an item's body
+## A citation in an item's body that no longer resolves
 
-An item whose prose cites a path that no longer resolves is refused by the loop's pre-screen (`stale`) and
-never worked. Two commands own that:
+A path the tree does not hold is **reported, not refused** (#281): the pre-screen names the token in the item's
+record and still queues the item, so a citation that is a path the change itself creates costs nothing. Two
+commands own the repair and the residue:
 
 ```bash
-tools/issues/resolve-stale.sh                 # dry run: what it would repair or park, and why not
+tools/issues/resolve-stale.sh                 # dry run: what it would repair or report, and why not
 tools/issues/resolve-stale.sh --apply --max-items 25
+tools/issues/resolve-stale.sh --revisit-parked --apply --max-items 40   # …and reopen what no longer applies
 ```
 
 What it may and may not do (`stale-citation-resolution`, `Backlog.md` §5): it rewrites **the citation token**
 to the full tracked path when the repository states it (a suffix of a tracked path, a rename in the history, a
-single surviving declaration, or the new directory of an archived change), it parks an item nothing accounts
-for (`status/on-hold`, with the attempts in one comment), and it posts at most one comment per item per run.
-It never writes `agent/*`, never classifies, never closes and never files.
+single surviving declaration, or the new directory of an archived change), it reports an item nothing accounts
+for (the token in the run's own report, the item's state, labels and body untouched), and it posts at most one
+comment per item per run — and only for a repair.
 
-Read a quarantine as a queue item for a person, not a defect: `status/on-hold` plus the comment says what was
-tried. The residue is also a declared check (`stale-citations`) — the pipeline reports the count, so a pile
-that grows is the alarm that the repair stopped reaching something, and the row's issue is where that shows up.
+A park written **before #281** is skipped by a plain run — the state is the marker a second run reads — which is
+why `--revisit-parked` exists: it visits the items **this tool parked** (the parking comment, or the loop's
+`agent/excluded-stale` when a pre-screen run has since written one) and reopens the ones whose citations all
+resolve again, into `status/open` and without the refusal label. That is the only `agent/*` write it makes, it
+never writes `agent/eligible`, and a person's own hold is never reversed. It never classifies, never closes and
+never files.
+
+The residue is a declared check (`stale-citations`) — the pipeline reports the count of citations nothing
+accounts for (the resolver's unresolved items plus the parks before #281), so a pile that grows is the alarm
+that the repair stopped reaching something, and the row's issue is where that shows up.

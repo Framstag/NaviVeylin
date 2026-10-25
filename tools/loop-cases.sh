@@ -50,7 +50,7 @@ LOOP_SHELL_CASES=(
   'prescreen#ranksBugsFirstAndKeepsFeatures'
   'prescreen#oneHarnessImprovementPerFourAppItems'
   'prescreen#aRefusedClassStillStopsTheScreen'
-  'prescreen#missingPathYieldsStale'
+  'prescreen#missingPathIsReportedNotRefused'
   'prescreen#doesNotClaimJudgementGates'
   'prescreen#refusesReservedLabelInSelection'
   'prescreen#withoutTheOptInIsNeverQueued'
@@ -321,7 +321,7 @@ loop_run_shell_case() {
     'prescreen#ranksBugsFirstAndKeepsFeatures') fn=case_prescreen_ranksBugsFirstAndKeepsFeatures ;;
     'prescreen#oneHarnessImprovementPerFourAppItems') fn=case_prescreen_oneHarnessImprovementPerFourAppItems ;;
     'prescreen#aRefusedClassStillStopsTheScreen') fn=case_prescreen_aRefusedClassStillStopsTheScreen ;;
-    'prescreen#missingPathYieldsStale') fn=case_prescreen_missingPathYieldsStale ;;
+    'prescreen#missingPathIsReportedNotRefused') fn=case_prescreen_missingPathIsReportedNotRefused ;;
     'prescreen#doesNotClaimJudgementGates') fn=case_prescreen_doesNotClaimJudgementGates ;;
     'prescreen#refusesReservedLabelInSelection') fn=case_prescreen_refusesReservedLabelInSelection ;;
     'prescreen#withoutTheOptInIsNeverQueued') fn=case_prescreen_withoutTheOptInIsNeverQueued ;;
@@ -1286,35 +1286,49 @@ case_prescreen_aRefusedClassStillStopsTheScreen() {
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .reason')" "class/feature" "the refusal names the class"
 }
 
-case_prescreen_missingPathYieldsStale() {
+# A missing citation is reported, not refused (#281): a path the tree does not hold has several legitimate
+# causes — a path the change itself creates, a deleted path the body says was deleted, a run's own artefact —
+# and the refusal that read every one of them as a lost citation cost 35 items their place in the queue, 18 of
+# them for a citation that was no longer stale at all. The token is named in the item's record and the item is
+# work.
+case_prescreen_missingPathIsReportedNotRefused() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status
   p=$(new_project)
   init_state "$p" 3 90
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario stale)
+  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
   out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
-  assert_eq "3" "$status" "nothing eligible is a stop, not a failure"
-  assert_eq "stale" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .verdict')" "a missing cited path yields stale"
-  assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .reason')" \
-    "app/src/main/kotlin/DoesNotExist.kt" "the verdict quotes the path that no longer exists"
+  assert_eq "0" "$status" "the item is work, not a stop"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .verdict')" \
+    "a missing citation no longer refuses the item"
+  assert_eq "app/src/main/kotlin/DoesNotExist.kt" \
+    "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .absentCitation')" \
+    "the record names the token the tree does not hold"
+  assert_eq "0" "$(grep -c 'excluded-stale' "$GH_STUB_RECORD" || true)" \
+    "no stale refusal is written to the tracker (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
+  assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$p")")" "the item reaches the queue"
 }
 
 # The refusal is not a line in a machine-local file (issue #163): the verdict an item cannot escape by
 # itself is written to the tracker by the run's own script, the authorisation label is left as the owner
-# put it, and a dry run writes nothing.
+# put it, and a dry run writes nothing. A citation is no longer one of those verdicts (#281), so the case
+# rides the refused class, which is.
 case_prescreen_refusalLeavesATraceInTheTracker() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out log
   p=$(new_project)
   init_state "$p" 3 90
-  export GH_STUB_DIR; GH_STUB_DIR=$(scenario stale)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario six)
+  jq '.roles.refusedClasses = ["feature"]' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not refuse the feature class"
   export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
   out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || true
-  assert_eq "stale" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 31) | .verdict')" \
-    "the fixture is still the stale one (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
+  assert_eq "class-feature" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 25) | .verdict')" \
+    "the fixture is still the refused one (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
   log=$(cat "$GH_STUB_RECORD")
-  assert_contains "$log" "agent/excluded-stale" "the refusal is written to the tracker (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
-  assert_contains "$log" "issue edit 31" "the write names the item the verdict rejected"
+  assert_contains "$log" "agent/excluded-feature" "the refusal is written to the tracker (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
+  assert_contains "$log" "issue edit 25" "the write names the item the verdict rejected"
   assert_eq "0" "$(printf '%s' "$log" | grep -c 'agent/eligible' || true)" \
     "the authorisation label is neither written nor withdrawn"
   assert_eq "0" "$(printf '%s' "$log" | grep -c 'status/' || true)" \

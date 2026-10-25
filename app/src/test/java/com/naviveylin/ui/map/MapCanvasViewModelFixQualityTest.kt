@@ -263,9 +263,10 @@ class MapCanvasViewModelFixQualityTest {
     /**
      * Every fix-quality consumer resolves the same value (spec: `gps-fix-quality` — One definition for
      * every fix-quality consumer). The inventory (grep of `gpsFixQuality`) is: compass fill
-     * (`CompassButton.compassFillColor`), the re-center gates (`MapCanvasScreen.kt:1686`, `:1823`,
-     * `:2318`, each `shouldShowReCenterButton(...) && quality != NONE`), the speed widget's
-     * `gpsAvailable` (`:1891`), and the browse re-center derivation inside the ViewModel (`:3095`).
+     * (`CompassButton.compassFillColor`), the re-center gates (`MapCanvasScreenChromeBand.kt:224`,
+     * `:380`, `:583`, each `shouldShowReCenterButton(...) && quality != NONE`), the speed widget's
+     * `gpsAvailable` (`MapCanvasScreenModalBands.kt:114`), and the browse re-center derivation inside
+     * the ViewModel (`MapCanvasViewModel.kt`).
      */
     @Test
     fun everyConsumerReadsTheSharedQuality() = fixQualityTest {

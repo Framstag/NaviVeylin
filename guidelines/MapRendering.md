@@ -108,7 +108,8 @@ travel while the map itself rotates at its own pace.
   rejected: it moves the default preset to 0.7 and changes the specified default framing.
 - **Every chrome branch that composes a control measures it, and the probe spans the whole band.** The
   right-side widget column publishes its width through `LocalOverlayWidthProbe`, which the chrome band
-  provides **once around its content** (`MapCanvasScreen.kt`, the `MapLayer.CHROME` box) — the band
+  provides **once around its content** (`MapCanvasScreenChromeBand.kt`, the content of the `MapLayer.CHROME`
+  box) — the band
   composes one column from its browse branches and from its navigation branch, only one at a time, and
   the two do not measure the same width: the navigation column reserves the speed-limit slot and
   measured 64 px against the browsing column's 56 px in the 411 px window (2026-10-09). A provider

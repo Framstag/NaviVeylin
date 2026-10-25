@@ -327,7 +327,7 @@ class FollowAnchorFramingTest {
         // dimensions at once while the displayed frame still carries the old
         // orientation until the committed render lands. The phone follow loop
         // requests a re-render exactly when the offset reports `clamped`
-        // (MapCanvasScreen.kt:740-745 "request a render when clamped"), so this
+        // (MapCanvasFollowDisplay.kt:313-322 "request a render when clamped"), so this
         // flag is the render-request signal — and computing it must not throw
         // (spec: smooth-follow — A frame from the previous orientation yields a
         // zero offset instead of an error).

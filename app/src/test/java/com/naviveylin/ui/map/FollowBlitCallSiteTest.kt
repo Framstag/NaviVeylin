@@ -20,7 +20,9 @@ import java.io.File
  *
  * The seam is the fix: `FollowBlitRules.offsetFor` takes the whole `MapCanvasUiState` and reads
  * `resolvedAnchor` itself, so the anchor is not a parameter a caller can choose, and the screen can no
- * longer name the raw preset on this path. This case reads the two files, the way
+ * longer name the raw preset on this path. The call site is in the follow display loop, which
+ * `2026-10-25-fix-map-canvas-screen-file-size` moved out of `MapCanvasScreen.kt` into
+ * `MapCanvasFollowDisplay.kt` word for word; the case reads that file, the way
  * `QualifierUseSiteTargetTest` reads the module's sources (a unit test cannot compile the module it runs in,
  * and the offset is a local of a `withFrameNanos` loop in a composable — no published state to assert), and
  * the seam's own geometry is driven by
@@ -38,7 +40,7 @@ class FollowBlitCallSiteTest {
 
     private val repoRoot = File("..").canonicalFile
     private val mapPackage = "app/src/main/java/com/naviveylin/ui/map"
-    private val screenFile = File(repoRoot, "$mapPackage/MapCanvasScreen.kt")
+    private val screenFile = File(repoRoot, "$mapPackage/MapCanvasFollowDisplay.kt")
     private val seamFile = File(repoRoot, "$mapPackage/FollowBlitRules.kt")
 
     private val seamCall = "FollowBlitRules" + ".offsetFor("
@@ -72,7 +74,7 @@ class FollowBlitCallSiteTest {
 
     @Test
     fun `the follow blit offset is computed by the seam and not inline in the frame loop`() {
-        assertTrue("the map screen must exist at ${screenFile.absolutePath}", screenFile.isFile)
+        assertTrue("the follow display block must exist at ${screenFile.absolutePath}", screenFile.isFile)
         assertTrue(
             "the follow blit seam must exist at ${seamFile.absolutePath}",
             seamFile.isFile

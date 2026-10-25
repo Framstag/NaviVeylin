@@ -51,7 +51,7 @@ import org.robolectric.Shadows.shadowOf
  * browse branch *and* in its navigation branch, and only one of them is composed at a time.
  *
  * **Why the case drives the Compose clock by hand.** `MapCanvasScreen` runs a `while (isActive)`
- * `withFrameNanos` loop (`MapCanvasScreen.kt:578`) feeding the follow display, so the composition
+ * `withFrameNanos` loop (`MapCanvasFollowDisplay.kt:100`) feeding the follow display, so the composition
  * never becomes idle and `createComposeRule().waitForIdle()` cannot be used; the screen is therefore not
  * hostable the way the band harnesses are. With
  * `mainClock.autoAdvance = false` and explicit `advanceTimeByFrame()` calls the composition, its

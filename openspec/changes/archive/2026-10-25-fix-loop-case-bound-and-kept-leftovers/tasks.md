@@ -14,35 +14,35 @@ worktree refuses mid-run names the item whose work it holds".
       Parent: "A self-test case is held to a bound of its own".
       **Verify**: on HEAD `timeout 60 bash tools/loop-selftest.sh --case
       'driver#aCaseThatBlocksIsEndedByItsOwnBound'` → exit 124, no `FAIL` line, the nested suite still running
-      (`evidence/red-on-head-61.1.log`); after 2.1 the same command → the `FAIL` line, exit 0.
+      (`evidence/red-on-head-62.1.log`); after 2.1 the same command → the `FAIL` line, exit 0.
 - [x] 1.2 The bound's guard, same nested suite with a stub case that exits 0 after 1 s under the same
       `LOOP_CASE_MAX_SECONDS=2`: asserts the case's own verdict is reported and the bound's line is not.
       Parent: "A self-test case is held to a bound of its own".
-      **Verify**: green on HEAD by construction (this case exists to go red under mutation `61.2`), recorded in
-      `evidence/green-61.2-guard.log`.
+      **Verify**: green on HEAD by construction (this case exists to go red under mutation `62.2`), recorded in
+      `evidence/green-guard-62.2.log`.
 - [x] 1.3 The streamed case line: the same nested suite with a stub case that prints one line and then blocks.
       Asserts that line appears on the *suite's own output*, prefixed with the case's name, before the case ends.
       Parent: "A case's own output reaches the suite's log while it runs".
-      **Verify**: on HEAD the prefix is absent from the suite's output (`evidence/red-on-head-61.3.log`); after
-      2.2 it is there (`evidence/green-61.3.log`).
+      **Verify**: on HEAD the prefix is absent from the suite's output (`evidence/red-on-head-62.3.log`); after
+      2.2 it is there (`evidence/green-62.3.log`).
 - [x] 1.4 The signal's orphan: a fixture run with a blocked child (`PI_STUB_WAIT`, as
       `labels#trapRemovesInProgressOnSignal` builds it), `SIGTERM` to the run, then `loop_pids_under` the case's
       tree must be empty. Do **not** release the child through the fifo — the point is the run's own processes.
       Parent: "A run that takes a signal takes its heartbeat with it".
       **Verify**: on HEAD a process remains (the heartbeat subshell, its `cmd` still `run.sh --items 1 …`) —
-      `evidence/red-on-head-61.4.log`; after 2.3 none (`evidence/green-61.4.log`).
+      `evidence/red-on-head-62.4.log`; after 2.3 none (`evidence/green-62.4.log`).
 - [x] 1.5 The cap-ended patch: a fixture with a small `LOOP_CHILD_MAX_SECONDS` whose stub worker writes a
       tracked edit and an untracked file into the change root. Asserts
       `<item dir>/leftover-from-killed-run.patch` exists, carries both, and that the item's `note` names it.
       Parent: "A child the run ended itself leaves no commit".
-      **Verify**: on HEAD no patch exists (`evidence/red-on-head-61.5.log`); after 2.4 both hunks are in it
-      (`evidence/green-61.5.log`).
+      **Verify**: on HEAD no patch exists (`evidence/red-on-head-62.5.log`); after 2.4 both hunks are in it
+      (`evidence/green-62.5.log`).
 - [x] 1.6 The refused start's patch: a worktree left dirty by an item whose branch marker names it, then a run
       that tries to start another item. Asserts the patch is written into *that* item's directory and the stop
       reason names the path.
       Parent: "A start the worktree refuses mid-run names the item whose work it holds".
-      **Verify**: on HEAD the stop reason names `--reset-worktree` and no patch (`evidence/red-on-head-61.6.log`);
-      after 2.4 the patch exists and the reason names it (`evidence/green-61.6.log`).
+      **Verify**: on HEAD the stop reason names `--reset-worktree` and no patch (`evidence/red-on-head-62.6.log`);
+      after 2.4 the patch exists and the reason names it (`evidence/green-62.6.log`).
 
 ## 2. The fixes
 
@@ -98,13 +98,15 @@ worktree refuses mid-run names the item whose work it holds".
 
 ## 3. The falsification
 
-- [x] 3.1 `tools/loop-mutations.sh` — records `61.1`–`61.6`, one per invariant: the bound's check, the verdict of
+- [x] 3.1 `tools/loop-mutations.sh` — records `62.1`–`62.6`, one per invariant: the bound's check, the verdict of
       a case inside its bound, the relay's prefix, `on_exit`'s call that ends the heartbeat, the cap path's patch
       call, the refused-start path's patch call. Each names the case it must turn red.
       Parent: all five requirements.
-      **Verify**: `bash tools/loop-mutations.sh --only '61.1 61.2 61.3 61.4 61.5 61.6'` → each `RED` naming its
+      **Verify**: `bash tools/loop-mutations.sh --only '62.1 62.2 62.3 62.4 62.5 62.6'` → each `RED` naming its
       case, each restored green, `red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0`, exit 0
-      (`evidence/mutations-61.log`); `bash tools/loop-mutations.sh --check` → every record applies.
+      (`evidence/mutations-62.log`); `bash tools/loop-mutations.sh --check` → every record applies. The ids were
+      `61.1`–`61.6` until this change met the branch where `61.x` already belonged to another change (#244): the
+      block was renumbered `62.1`–`62.6` at the merge, and the transcripts were re-run under the new ids.
 
 ## 4. The profile and its portability
 

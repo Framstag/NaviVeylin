@@ -152,7 +152,7 @@ process the loop cannot reach is not introduced.
   `driver#aCaseInsideItsBoundKeepsItsOwnVerdict`, `driver#aRunningCasePrintsItsOwnLines`,
   `run#noProcessOfASignalledRunOutlivesIt`, `run#treeOfACapEndedChildIsKeptAsAPatch`,
   `run#aRefusedStartKeepsTheLeftoversItFound`.
-- Six mutation records `61.1`–`61.6` in `tools/loop-mutations.sh`: one per invariant (the bound, the verdict of a
+- Six mutation records `62.1`–`62.6` in `tools/loop-mutations.sh`: one per invariant (the bound, the verdict of a
   case inside its bound, the streamed line, the heartbeat's end, the cap-ended patch, the refused-start patch),
   each red under mutation and green after restore.
 - The stub-readiness wait of the cases that block a stub child is a **host** fact with a wide margin

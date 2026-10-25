@@ -1,0 +1,18 @@
+the six records of issue #308, re-run under the merged tree and the renumbered ids 2026-10-25T14:14Z
+loop-mutations: selected 6 of 164 records (labels: 62.1 62.2 62.3 62.4 62.5 62.6)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.2VVXlo
+RED    62.1  driver#aCaseThatBlocksIsEndedByItsOwnBound   (the case bound the suite ends a case with (issue #308))
+restore 62.1 driver#aCaseThatBlocksIsEndedByItsOwnBound green again
+RED    62.2  driver#aCaseInsideItsBoundKeepsItsOwnVerdict   (the pool reading a case's own verdict instead of answering every case with the bound (issue #308))
+restore 62.2 driver#aCaseInsideItsBoundKeepsItsOwnVerdict green again
+RED    62.3  driver#aRunningCasePrintsItsOwnLines   (the relay that carries a running case's own line to the suite (issue #308))
+restore 62.3 driver#aRunningCasePrintsItsOwnLines green again
+RED    62.4  run#noProcessOfASignalledRunOutlivesIt   (the call that ends the heartbeat with a signalled run (issue #308))
+restore 62.4 run#noProcessOfASignalledRunOutlivesIt green again
+RED    62.5  run#treeOfACapEndedChildIsKeptAsAPatch   (the patch a cap-ended child's tree is kept in (issue #308))
+restore 62.5 run#treeOfACapEndedChildIsKeptAsAPatch green again
+RED    62.6  run#aRefusedStartKeepsTheLeftoversItFound   (the patch a refused start keeps (issue #308))
+restore 62.6 run#aRefusedStartKeepsTheLeftoversItFound green again
+
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0
+status=0

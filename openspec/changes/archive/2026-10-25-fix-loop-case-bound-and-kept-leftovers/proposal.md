@@ -112,7 +112,7 @@ rewritten by nothing: the three cases that watch the pool (`driver#theSuiteRunsI
 assertions, and the eleven readiness waits keep their assertions and lose only their host-tight bound.
 
 surface: 0 cases rewritten, 6 cases added, 1 case helper added, 11 host-tight waits widened, 6 mutation records
-added (`61.1`–`61.6`), 1 guideline section updated, 1 profile key added.
+added (`62.1`–`62.6`), 1 guideline section updated, 1 profile key added.
 
 ## Capabilities
 
@@ -138,7 +138,7 @@ None.
   `driver#aCaseThatBlocksIsEndedByItsOwnBound`, `driver#aCaseInsideItsBoundKeepsItsOwnVerdict`,
   `driver#aRunningCasePrintsItsOwnLines`, `run#noProcessOfASignalledRunOutlivesIt`,
   `run#treeOfACapEndedChildIsKeptAsAPatch`, `run#aRefusedStartKeepsTheLeftoversItFound`.
-- `tools/loop-mutations.sh` — records `61.1`–`61.6`, one per new invariant (the bound, the verdict inside the
+- `tools/loop-mutations.sh` — records `62.1`–`62.6`, one per new invariant (the bound, the verdict inside the
   bound, the streamed line, the heartbeat's end, the cap-ended patch, the refused-start patch).
 - `PORTING.md` — the two new profile keys named in the list of files a foreign project edits.
 - `guidelines/Backlog.md` — section "7. The loop".

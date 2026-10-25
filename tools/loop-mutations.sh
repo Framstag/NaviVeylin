@@ -351,7 +351,7 @@ MUTATIONS=(
   # asking case. Without it a suite of two asking cases is still green — each case compiles again and is handed a
   # class path — so the invariant is invisible to an assertion and only a count catches it: the case installs a
   # `javac` that records every invocation, and the mutation makes it record two.
-  '48.2@-@../loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^  if \[ ! -f "$selftest_core_marker" \]; then$|  if true; then|'
+  '48.2@-@../loop-selftest.sh@driver#theCoreIsCompiledOncePerSuite@the marker that keeps the compile to one per suite, not one per asking case (issue #261)@s|^    if \[ ! -f "$selftest_core_marker" \]; then$|    if true; then|'
   # 49.x — the suite's own selection and its record of what it cost. Measured 2026-10-23: one case under
   # `tools/loop/**` owes the whole self-test (723 s for 163 cases, serial) and the gate said nothing about it, so an
   # item that touched two files paid 723 s on every iteration (#261 paid eight) and the twelve minutes could only
@@ -461,6 +461,13 @@ MUTATIONS=(
   '58.3@-@tools/loop/state.sh@state#aBlockedItemNamesTheMechanismThatStoppedIt@the mechanism written into the item record (issue #280)@s|^                  stopReason:(if \$sr == "" then null else \$sr end),$|                  stopReason:null,|'
   '58.4@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@the mechanism printed in a column of its own, beside the spend (issue #280)@s|if \. == "" then "-" else \. end|if true then "-" else . end|'
   '58.5@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@`-` in the stop column of a row no mechanism stopped (issue #280)@s|if \. == "" then "-" else \. end|if false then "-" else . end|'
+  # 59.x — the self-test's cases run in a bounded pool, and what a case leaves behind ends with it (issue #260).
+  # Measured 2026-10-22: 163 cases strictly one after another, 723 s, though every case already owned a throwaway
+  # repository, a scratch tree and a process group of its own. One record per invariant: 59.1 bounds the pool to one
+  # case at a time — the shape the suite had before the pool, with every case still green — and 59.2 leaves the sweep
+  # over a case's own scratch root out, so what the case left behind is still standing when its slot is handed on.
+  '59.1@-@../loop-selftest.sh@driver#theSuiteRunsItsCasesInAPool@the pool that starts the next case as one finishes, rather than one case at a time (issue #260)@s|^  while \[ "$running" -lt "$workers" \] && \[ "$started" -lt "$queued" \]; do$|  while [ "$running" -lt 1 ] \&\& [ "$started" -lt "$queued" ]; do|'
+  '59.2@-@../loop-selftest.sh@driver#aCaseThatLeavesAProcessBehindIsSweptWithIt@the sweep of a case own scratch root before its slot is handed on (issue #260)@s|^  loop_end_pids_under "$dir/tree" --quiet$|  : # the mutation leaves the process behind|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

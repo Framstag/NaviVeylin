@@ -247,6 +247,8 @@ LOOP_SHELL_CASES=(
   'driver#aFileSetThatNamesNoCaseIsRefused'
   'driver#aCoreFileOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
+  'driver#theSuiteRunsItsCasesInAPool'
+  'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt'
   'driver#aSecondSuiteInOneRepositoryIsRefused'
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
 )
@@ -513,6 +515,8 @@ loop_run_shell_case() {
     'driver#aFileSetThatNamesNoCaseIsRefused') fn=case_driver_aFileSetThatNamesNoCaseIsRefused ;;
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
+    'driver#theSuiteRunsItsCasesInAPool') fn=case_driver_theSuiteRunsItsCasesInAPool ;;
+    'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt') fn=case_driver_aCaseThatLeavesAProcessBehindIsSweptWithIt ;;
     'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
@@ -555,7 +559,11 @@ assert_line_count() { # assert_line_count <text> <ere> <expected> <message> — 
   assert_eq "$3" "$n" "$4"
 }
 
-scratch() { mktemp -d "$LOOP_TMP/case.XXXXXX"; }
+# The scratch tree of the one case being run: the driver gives every case a root of its own (`LOOP_CASE_TMP`, a
+# directory below the suite's `LOOP_TMP`), so a tree a case leaves behind is inside the root that case's own sweep
+# reads — and a tree that outlives the case is never another case's to trip over (issue #260). When the variable is
+# not set the suite's root is used, which is the shape a hand-run of one case function keeps.
+scratch() { mktemp -d "${LOOP_CASE_TMP:-$LOOP_TMP}/case.XXXXXX"; }
 
 # A throwaway project: enough of this repository's shape that the loop's own scripts run unchanged — the
 # profile the issue tooling discovers, a directory standing in for the submodule, a `local.prop*` the
@@ -6803,12 +6811,14 @@ case_driver_aGroupFilterRunsOnlyItsOwnCases() {
   assert_eq "0" "$rc" "the group's two cases pass: $out"
   assert_contains "$out" "— selection: --group alpha" \
     "and the summary names the selection it ran, so a green filtered run never reads like the whole suite: $out"
-  assert_eq "$(printf 'alpha#one\nalpha#two')" "$(cat "$d/ran" 2>/dev/null)" \
+  # The pool runs the group's cases at once, so the order they recorded themselves in is the order they finished in:
+  # what the filter owes is the set (issue #260).
+  assert_eq "alpha#one alpha#two " "$(sort "$d/ran" 2>/dev/null | tr '\n' ' ')" \
     "exactly the group's cases ran, and no case of the other group: $(cat "$d/ran" 2>/dev/null)"
   : > "$d/ran"
   out=$(bash "$nested/tools/loop-selftest.sh" --case 'alpha#*' 2>&1); rc=$?
   assert_eq "0" "$rc" "the same selection by pattern passes: $out"
-  assert_eq "$(printf 'alpha#one\nalpha#two')" "$(cat "$d/ran" 2>/dev/null)" \
+  assert_eq "alpha#one alpha#two " "$(sort "$d/ran" 2>/dev/null | tr '\n' ' ')" \
     "the pattern selected the same two cases: $(cat "$d/ran" 2>/dev/null)"
   # Both filters at once are an intersection, not a union: a caller narrowing a group with a pattern gets the
   # cases that pass both, which is what makes `--group run --case 'run#*Cap*'` mean what it reads as.
@@ -7050,9 +7060,11 @@ case_driver_aFileFilterRunsOnlyTheCasesTheDeltaOwns() {
   # Two paths a delta could carry: the script one case declares, and a file below the directory another declares.
   out=$(LOOP_CONF="$conf" bash "$driver" --files 'tools/loop/gate.sh tools/loop/fixtures/scenarios/one' 2>&1); status=$?
   assert_eq "0" "$status" "a file set that names cases runs them: $out"
-  ran=$(cat "$STUB_RUN_LOG")
-  assert_eq "stub#ownsGate
-stub#ownsFixtureDir" "$ran" "only the cases the delta's files declare ran"
+  # The pool runs the selected cases at once, so the log's order is the order they finished in and not the order they
+  # were selected in: what the selection owes is the set it ran (issue #260).
+  ran=$(sort "$STUB_RUN_LOG")
+  assert_eq "stub#ownsFixtureDir
+stub#ownsGate" "$ran" "only the cases the delta's files declare ran"
   assert_contains "$out" "selected 2 of 4 cases" "and the selection is stated against the declared set: $out"
   assert_contains "$out" "all 2 cases passed" "with the count the run actually made: $out"
 
@@ -7284,7 +7296,7 @@ CASES
   assert_contains "$out" "$dead" "and it names the process that is gone: $out"
   [ ! -e "$lock" ] || fail "the suite that took the lock over did not release it"
   assert_eq "quick#a
-quick#b" "$(tail -2 "$quick_log")" "and the suite the lock was released for ran its cases: $(cat "$quick_log")"
+quick#b" "$(tail -2 "$quick_log" | sort)" "and the suite the lock was released for ran its cases: $(cat "$quick_log")"
   return 0
 }
 
@@ -7312,5 +7324,128 @@ case_gate_theDeltaHandsASuiteTheBaseItMeasured() {
     "the suite is handed the base the gate resolved: $plan"
   assert_not_contains "$plan" "{base}" "and no token reaches a shell: $plan"
   assert_not_contains "$plan" "notes-check" "a suite the delta does not owe is not handed it: $plan"
+  return 0
+}
+
+# ------------------------------------------------------- cases: the pool of cases (issue #260)
+
+# The suite ran one case after another (issue #260). Measured 2026-10-22: 163 cases, 723 s, and the serialization was
+# the whole of that cost — every case already owned a throwaway repository, a scratch tree under `.pi/tmp/` and a
+# process group of its own, and they share nothing but the read-only engine. The probe is four stub cases that each
+# record `start` and `stop` around a one-second sleep: the log arrives in real order, so the largest running count
+# over it is how wide the pool ran, and no timestamp is read. With the suite's own worker count at least two cases
+# run at once; `--jobs 1` bounds the same selection to one case at a time, and both runs print one `PASS` line per
+# case, the same summary and the same exit status.
+case_driver_theSuiteRunsItsCasesInAPool() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d nested tmp conf out status overlap_width
+  d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
+  mkdir -p "$nested/tools" "$tmp"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  cat > "$nested/tools/loop-cases.sh" <<'CASES'
+LOOP_SHELL_CASES=('stub#one' 'stub#two' 'stub#three' 'stub#four')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  printf 'start %s\n' "$1" >> "$POOL_LOG"
+  sleep 1
+  printf 'stop %s\n' "$1" >> "$POOL_LOG"
+}
+CASES
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export POOL_LOG="$d/pool.log"
+
+  # How wide the pool ran, read from the log's order: one `start` adds a running case, its `stop` takes it away, and
+  # the largest count is the number that were running at the same moment.
+  overlap_width() {
+    awk '$1 == "start" { n++; if (n > max) max = n } $1 == "stop" { n-- } END { printf "%d", max }' "$1"
+  }
+
+  : > "$POOL_LOG"
+  out=$(LOOP_CONF="$conf" bash "$nested/tools/loop-selftest.sh" 2>&1); status=$?
+  assert_eq "0" "$status" "a suite of four stub cases passes: $out"
+  assert_eq "4" "$(printf '%s\n' "$out" | grep -c '^PASS stub#')" "one PASS line per case: $out"
+  assert_contains "$out" "loop-selftest: all 4 cases passed" "and the summary counts the whole selection: $out"
+  assert_eq "4" "$(grep -c '^start ' "$POOL_LOG" || true)" "every case started: $(cat "$POOL_LOG")"
+  total_ran=$(overlap_width "$POOL_LOG")
+  [ "$total_ran" -ge 2 ] ||
+    fail "the suite ran its cases one after another (at most $total_ran was running at any moment): $(cat "$POOL_LOG")"
+
+  # …and the bound is real rather than "everything at once": one worker is one case at a time.
+  : > "$POOL_LOG"
+  out=$(LOOP_CONF="$conf" bash "$nested/tools/loop-selftest.sh" --jobs 1 2>&1); status=$?
+  assert_eq "0" "$status" "a suite bounded to one worker passes: $out"
+  assert_eq "1" "$(overlap_width "$POOL_LOG")" "one worker runs one case at a time: $(cat "$POOL_LOG")"
+  assert_contains "$out" "loop-selftest: all 4 cases passed" "and reports the same summary: $out"
+  return 0
+}
+
+# The exit trap's `/proc` sweep was per suite, and a suite that runs its cases at once cannot keep it there: a process
+# a case left behind would stand beside every case after it, at a scratch root its suite had already given away
+# (issue #213 left 44 of them, 2 to 4.6 hours old, at trees that no longer existed). The probe leaves one behind on
+# purpose — a `sleep` in a process group of its own (`set -m`, the shape `run_child` uses) at the case's own scratch
+# root — and the second stub case waits for the first to end, then polls for that process. What the driver owes is
+# that the answer arrives when the case ends, not when the suite does.
+case_driver_aCaseThatLeavesAProcessBehindIsSweptWithIt() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d nested tmp conf out status pid alive i
+  d=$(scratch); nested="$d/nested"; tmp="$d/tmp"
+  mkdir -p "$nested/tools" "$tmp"
+  cp "$LOOP_PROJECT_ROOT/tools/loop-selftest.sh" "$nested/tools/loop-selftest.sh" || fail "could not copy the driver"
+  ln -s "$LOOP_ENGINE" "$nested/tools/loop"
+  ln -s "$LOOP_PROJECT_ROOT/tools/issues" "$nested/tools/issues"
+  cat > "$nested/tools/loop-cases.sh" <<'CASES'
+LOOP_SHELL_CASES=('stub#leavesOne' 'stub#watchesForIt')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  local i pid alive
+  # The root the driver gives this case, which is what the case's own trees are created under (`scratch()`), and
+  # what the case's sweep reads: a driver that runs its cases at once must hand each of them one of its own.
+  [ -n "${LOOP_CASE_TMP:-}" ] || { printf 'the driver hands the case no scratch root of its own\n'; return 1; }
+  case "$1" in
+    stub#leavesOne)
+      # The two things the suite's sweep reads and a group signal cannot reach: a process in a group of its own, at a
+      # working directory inside this case's own scratch root.
+      set -m
+      ( cd "$LOOP_CASE_TMP" && exec sleep 300 ) &
+      printf '%s' "$!" > "$SWEEP_PID"
+      : > "$SWEEP_DONE"
+      ;;
+    stub#watchesForIt)
+      for i in $(seq 1 400); do [ -f "$SWEEP_DONE" ] && break; sleep 0.05; done
+      [ -f "$SWEEP_PID" ] || { printf 'the first case never recorded the process it left behind\n'; return 1; }
+      pid=$(cat "$SWEEP_PID")
+      alive=1
+      for i in $(seq 1 200); do
+        kill -0 "$pid" 2>/dev/null || { alive=0; break; }
+        sleep 0.05
+      done
+      [ "$alive" -eq 0 ] || {
+        printf 'the process a case left at its own scratch root was still running when the next case ran (pid %s)\n' "$pid"
+        return 1
+      }
+      ;;
+  esac
+  return 0
+}
+CASES
+  conf="$d/loop.conf"
+  sed "s|^LOOP_TMP_DIR=.*|LOOP_TMP_DIR=\"$tmp\"|" "$LOOP_CONF" > "$conf" || fail "could not write the loop configuration"
+  export SWEEP_PID="$d/sweep-pid" SWEEP_DONE="$d/sweep-done"
+
+  out=$(LOOP_CONF="$conf" bash "$nested/tools/loop-selftest.sh" 2>&1); status=$?
+  assert_eq "0" "$status" "a suite whose case leaves a process behind still passes: $out"
+  assert_contains "$out" "PASS stub#watchesForIt" "and the case that watched for it passed: $out"
+  [ -f "$SWEEP_PID" ] || fail "the first stub case never recorded the process it left behind: $out"
+  pid=$(cat "$SWEEP_PID")
+  case "$pid" in ''|*[!0-9]*) fail "the first stub case recorded no pid: $(cat "$SWEEP_PID")" ;; esac
+  alive=1
+  for i in $(seq 1 50); do
+    kill -0 "$pid" 2>/dev/null || { alive=0; break; }
+    sleep 0.1
+  done
+  [ "$alive" -eq 0 ] || { kill -9 "$pid" 2>/dev/null; fail "the process the case left behind outlived the suite (pid $pid)"; }
   return 0
 }

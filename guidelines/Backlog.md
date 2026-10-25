@@ -366,14 +366,16 @@ case it describes.
 
 The suite runs its cases in a bounded pool rather than one after another (issue #260). A case owns a throwaway
 repository, a scratch tree under the suite's root and a process group of its own, and shares nothing but the
-read-only engine, so the serialization bought nothing and cost the sum of every case. Measured 2026-10-25 on 221
-cases: 4 min 24 s at 439 % CPU for the whole suite, against 1 min 0 s for `state`'s 18 cases run one at a time and
-21 s for the same 18 pooled, and 1 min 8 s against 20 s for `worktree`'s 18. A case is handed a scratch root of its
-own (`LOOP_CASE_TMP`, the directory `scratch()` creates the case's trees under) and ends with it: its process group
-is signalled, and the processes standing in its own root are swept, before its slot is handed to the next case —
-which is why the exit trap's `/proc` sweep, one pass over every process and 0,83 s on a host of 664, is made per case
-and not per suite. The worker count is `--jobs` on the invocation, else `LOOP_SELFTEST_JOBS` in the profile, else the
-host's CPU count; the `PASS`/`FAIL` line per case, the counts, the summary and the exit status are unchanged.
+read-only engine, so the serialization bought nothing and cost the sum of every case. Measured 2026-10-25 with
+`time bash tools/loop-selftest.sh` (the groups with `--group <name> --jobs 1` against `--group <name>`; the wrapper's
+output is transcribed in `openspec/changes/archive/2026-10-25-fix-loop-selftest-case-pool/proposal.md`, and no log
+holds it) on 221 cases: 4 min 24 s at 439 % CPU for the whole suite, against 1 min 0 s for `state`'s 18 cases run
+one at a time and 21 s for the same 18 pooled, and 1 min 8 s against 20 s for `worktree`'s 18. A case is handed a
+scratch root of its own (`LOOP_CASE_TMP`, the directory `scratch()` creates the case's trees under) and ends with it:
+its process group is signalled, and the processes standing in its own root are swept, before its slot is handed to the
+next case — which is why the exit trap's `/proc` sweep, one pass over every process and 0,83 s on a host of 664, is
+made per case and not per suite. The worker count is `--jobs` on the invocation, else `LOOP_SELFTEST_JOBS` in the
+profile, else the host's CPU count; the `PASS`/`FAIL` line per case, the counts, the summary and the exit status are unchanged.
 
 One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a
 red gate can belong to the neighbour rather than to the change under test. The driver holds a lease in the root the

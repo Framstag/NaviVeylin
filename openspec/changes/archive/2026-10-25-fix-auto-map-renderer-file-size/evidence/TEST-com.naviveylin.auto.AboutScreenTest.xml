@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AboutScreenTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:05.140Z" hostname="dingens" time="6.868">
+  <properties/>
+  <testcase name="aboutScreenShowsVersion" classname="com.naviveylin.auto.AboutScreenTest" time="6.74"/>
+  <testcase name="aboutScreenHasCopyrightLinkAction" classname="com.naviveylin.auto.AboutScreenTest" time="0.068"/>
+  <testcase name="aboutScreenShowsOsmLicenceStatement" classname="com.naviveylin.auto.AboutScreenTest" time="0.059"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

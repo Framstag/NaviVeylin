@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SearchScreenTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:30.585Z" hostname="dingens" time="0.375">
+  <properties/>
+  <testcase name="contactsRowHiddenWithoutPermission" classname="com.naviveylin.auto.SearchScreenTest" time="0.028"/>
+  <testcase name="historyTapPushesScreenWithQuery" classname="com.naviveylin.auto.SearchScreenTest" time="0.034"/>
+  <testcase name="oneCharacterQueryRunsNothingOnTheCar" classname="com.naviveylin.auto.SearchScreenTest" time="0.023"/>
+  <testcase name="leavingTheSearchScreenAbandonsItsSearch" classname="com.naviveylin.auto.SearchScreenTest" time="0.02"/>
+  <testcase name="favoriteHitListedAboveNativeResults" classname="com.naviveylin.auto.SearchScreenTest" time="0.019"/>
+  <testcase name="emptyQueryShowsModeRowsAndHistory" classname="com.naviveylin.auto.SearchScreenTest" time="0.019"/>
+  <testcase name="theMapScreensOwnCenterWinsOverThePublishedOne" classname="com.naviveylin.auto.SearchScreenTest" time="0.019"/>
+  <testcase name="contactsRowShownWithPermission" classname="com.naviveylin.auto.SearchScreenTest" time="0.018"/>
+  <testcase name="poiModeRowPushesPoiSearchScreen" classname="com.naviveylin.auto.SearchScreenTest" time="0.02"/>
+  <testcase name="typingReplacesSuggestionsWithResults" classname="com.naviveylin.auto.SearchScreenTest" time="0.02"/>
+  <testcase name="contactsModeRowPushesAddressBookScreen" classname="com.naviveylin.auto.SearchScreenTest" time="0.02"/>
+  <testcase name="noResultsShowsNoResultsRowThenModeRows" classname="com.naviveylin.auto.SearchScreenTest" time="0.019"/>
+  <testcase name="typedSearchPassesTheGpsFixAsTheDistanceReference" classname="com.naviveylin.auto.SearchScreenTest" time="0.018"/>
+  <testcase name="withoutAFixTheCarViewportCenterIsTheReference" classname="com.naviveylin.auto.SearchScreenTest" time="0.016"/>
+  <testcase name="aSearchWithoutAMapUsesTheLastDrawnCarViewportCenter" classname="com.naviveylin.auto.SearchScreenTest" time="0.021"/>
+  <testcase name="noFixAndNoDrawnCarMapMeansNoDistance" classname="com.naviveylin.auto.SearchScreenTest" time="0.02"/>
+  <testcase name="aResultOfAStoppedScreenMakesNoHostCall" classname="com.naviveylin.auto.SearchScreenTest" time="0.019"/>
+  <testcase name="clearingRestoresSuggestions" classname="com.naviveylin.auto.SearchScreenTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

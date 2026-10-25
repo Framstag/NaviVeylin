@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AddressBookScreenTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:12.052Z" hostname="dingens" time="1.687">
+  <properties/>
+  <testcase name="thePageRowCarriesTheSearchTextToTheNextPage" classname="com.naviveylin.auto.AddressBookScreenTest" time="1.6"/>
+  <testcase name="theAddressBookListFitsTheHostsCapacity" classname="com.naviveylin.auto.AddressBookScreenTest" time="0.087"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

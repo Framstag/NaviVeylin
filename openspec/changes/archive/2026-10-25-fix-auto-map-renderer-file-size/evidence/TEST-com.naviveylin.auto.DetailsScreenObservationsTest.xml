@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DetailsScreenObservationsTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:21.190Z" hostname="dingens" time="0.164">
+  <properties/>
+  <testcase name="aNullFixIsNotApplied" classname="com.naviveylin.auto.DetailsScreenObservationsTest" time="0.028"/>
+  <testcase name="tenStartStopCyclesLeaveOneInstancePerSource" classname="com.naviveylin.auto.DetailsScreenObservationsTest" time="0.022"/>
+  <testcase name="everyObservedSourceReachesItsEffect" classname="com.naviveylin.auto.DetailsScreenObservationsTest" time="0.016"/>
+  <testcase name="theInitialBasemapRevisionIsNotApplied" classname="com.naviveylin.auto.DetailsScreenObservationsTest" time="0.016"/>
+  <testcase name="theFavoritesProviderResolvesOffTheHostThread" classname="com.naviveylin.auto.DetailsScreenObservationsTest" time="0.025"/>
+  <testcase name="aStoppedScreenObservesNothing" classname="com.naviveylin.auto.DetailsScreenObservationsTest" time="0.018"/>
+  <testcase name="aChangeWhileStoppedIsAppliedOnceOnStart" classname="com.naviveylin.auto.DetailsScreenObservationsTest" time="0.018"/>
+  <testcase name="aThrowingEffectIsConfinedAndSiblingsKeepRunning" classname="com.naviveylin.auto.DetailsScreenObservationsTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

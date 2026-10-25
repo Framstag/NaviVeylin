@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.PoiResultsScreenSearchLifecycleTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:28.844Z" hostname="dingens" time="0.07">
+  <properties/>
+  <testcase name="theCarPoiSearchRunsInItsOwnSlot" classname="com.naviveylin.auto.PoiResultsScreenSearchLifecycleTest" time="0.035"/>
+  <testcase name="leavingTheScreenEndsItsWork" classname="com.naviveylin.auto.PoiResultsScreenSearchLifecycleTest" time="0.018"/>
+  <testcase name="withoutAFixTheScreenExplainsInsteadOfSearching" classname="com.naviveylin.auto.PoiResultsScreenSearchLifecycleTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

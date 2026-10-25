@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SearchHistoryScreenTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:30.162Z" hostname="dingens" time="0.051">
+  <properties/>
+  <testcase name="theSearchHistoryListFitsTheHostsCapacity" classname="com.naviveylin.auto.SearchHistoryScreenTest" time="0.032"/>
+  <testcase name="thePageRowOpensTheNextSliceOfTheHistory" classname="com.naviveylin.auto.SearchHistoryScreenTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

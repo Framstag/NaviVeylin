@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.SessionCarSurfaceHostTest" tests="27" skipped="0" failures="0" errors="0" timestamp="2026-10-25T18:45:30.974Z" hostname="dingens" time="1.024">
+  <properties/>
+  <testcase name="startSessionRegistersExactlyOnce" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.016"/>
+  <testcase name="eventsWithoutOwnerAreDropped" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.1"/>
+  <testcase name="endSessionReleasesAHeldSurface" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.016"/>
+  <testcase name="endSessionClearsRegistrationAndIsIdempotent" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.012"/>
+  <testcase name="reDeliveredSurfaceInstanceIsAdoptedAndReleasedAgain" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.014"/>
+  <testcase name="sessionStartsAfterADroppedConnection" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.014"/>
+  <testcase name="replacedSurfaceReleasesThePreviousOneOnce" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.013"/>
+  <testcase name="repeatedDestroyOfASupersededSurfaceReleasesItOnce" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.015"/>
+  <testcase name="stoppedScreenDoesNotReleaseTheSurface" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.022"/>
+  <testcase name="aThrowingScreenFaultIsConfinedToItsCallback" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.034"/>
+  <testcase name="endSessionWithoutSurfaceReleasesNothing" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.017"/>
+  <testcase name="sessionRestartRegistersAgain" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.013"/>
+  <testcase name="liveSurfaceSurvivesASupersededDestroyAndIsStillUsable" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.021"/>
+  <testcase name="hostDestroyReleasesOnceAndTellsTheOwnerToStopDrawing" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.016"/>
+  <testcase name="registrationIsNotDuplicatedWithinOneSession" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.02"/>
+  <testcase name="surfaceDeliveredWhileNoScreenOwnsItIsAdoptedByTheNextOwner" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.015"/>
+  <testcase name="destroyOfANeverAdoptedSurfaceKeepsTheLiveSurface" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.022"/>
+  <testcase name="reAttachingTheSameOwnerDoesNotRevokeIt" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.015"/>
+  <testcase name="backgroundRoundTripKeepsTheSameSurfaceUsable" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.019"/>
+  <testcase name="reDeliveryIsRecordedForDiagnosis" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.266"/>
+  <testcase name="detachOfASupersededOwnerDoesNotClearTheNewOwner" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.014"/>
+  <testcase name="sessionEndClearsTheRegistrationForTheNextSession" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.012"/>
+  <testcase name="incomingScreenStartsBeforeTheOutgoingOneStops" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.013"/>
+  <testcase name="eventsGoToTheCurrentOwner" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.012"/>
+  <testcase name="surfaceLifetimeIsRecordedForDiagnosis" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.265"/>
+  <testcase name="destroyOfAnUnadoptedSurfaceStillReleasesIt" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.013"/>
+  <testcase name="destroyOfASupersededSurfaceKeepsTheLiveSurface" classname="com.naviveylin.auto.SessionCarSurfaceHostTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

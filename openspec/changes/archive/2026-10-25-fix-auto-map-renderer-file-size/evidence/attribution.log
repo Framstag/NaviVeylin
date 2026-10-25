@@ -1,0 +1,26 @@
+# attribution of the gate failures — 2026-10-25T18:55:50Z
+
+## 1. the gate run (evidence/gate.log): one run, quoted, not retried
+NavigationEngineRerouteTest > aConfirmedRerouteWritesTheLatencyDiagnosticLine FAILED
+BasemapSectionComposeTest > installedShowsDeleteButton FAILED
+2109 tests completed, 2 failed
+LOOP-GATE: tests=0 failures=0 errors=1 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 378s) — failing: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+
+## 2. the two classes alone
+$ ./gradlew :app:testMobileDebugUnitTest -PjvmTestsOnly -PforceTests --tests com.naviveylin.navigation.NavigationEngineRerouteTest --tests com.naviveylin.ui.mapmanager.BasemapSectionComposeTest
+BUILD SUCCESSFUL in 34s — both classes green
+
+## 3. the whole :app mobile suite standalone — the same cases the gate ran
+$ ./gradlew :app:testMobileDebugUnitTest -PjvmTestsOnly -PforceTests
+tests=2109 skipped=0 failures=0 errors=0 over 289 XMLs
+BUILD SUCCESSFUL — the same suite, the same cases, green
+
+## 4. the gate shape, and what the change touches
+# The gate runs all four modules in one invocation, where the forks and the daemon contend
+# (guidelines/Build.md §2c), and §6d records NavigationEngineRerouteTest failing at 4 forks and
+# green at 1 and 2 forks in the same session. This change touches :auto and one comment in :core;
+# in the gate run these test tasks completed, and only :app mobile went red:
+123:> Task :osmscout-client-java:test
+176:> Task :core:test
+200:> Task :auto:test
+224:> Task :app:testAutomotiveDebugUnitTest

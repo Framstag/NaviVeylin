@@ -62,6 +62,10 @@ of the newest-first issue list.
 - **A record is filed by a run, so a dry-run dispatch still writes nothing** and its report still cannot show a
   measurement. The tracked history is the applied run's, which is the observed case (a scheduled tick runs with
   `--apply`).
+- **The record accumulates one comment per clear**, and a row whose cadence is short (`broken-main` runs every
+  two hours) therefore grows its record by ~12 comments a day. The condition issues already receive a comment
+  per violating run, so the shape is not new, but the volume on a long-green row is a tracker cost a follow-up
+  may bound (by interval or by a change test) without losing the freshness the report depends on.
 
 ## Verification
 

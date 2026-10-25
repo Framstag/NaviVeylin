@@ -482,6 +482,13 @@ case_registry_everyRowIsComplete() {
     sensors_resolve
     sensors_registry_problems' 2>&1)
   assert_contains "$out" "threshold" "an incomplete row is reported by name"
+
+  # The state a row's record carries is the registry's, and a registry without it is refused by name.
+  out=$(cd "$(throwaway_project "$(fixture registry-no-record.json)")" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve
+    sensors_registry_problems' 2>&1)
+  assert_contains "$out" "registry-record-status-missing" "a registry with no record state is reported by name"
 }
 
 case_lib_rejectsAMalformedFinding() {
@@ -776,6 +783,16 @@ case_run_aClearWithNoIssueReachesTheRecord() {
   issues_fixture "$dir" '[]'
   findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 42 case alpha)")
 
+  # A dry run decides and writes nothing: the record message goes to the log, never into the reported issue
+  # number (the machine form's `issue` is a number or null).
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    bash "$SENSORS_ENGINE/run.sh" --only fixture-emit --input "$findings" --json 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the dry run succeeds: $out"
+  assert_contains "$out" '"issue":null' "a dry run reports no issue number: $out"
+  assert_not_contains "$out" '"issue":"dry-run' "the dry-run message is not the reported issue"
+  assert_eq "0" "$(recorded "$log" 'gh issue')" "the dry run writes nothing"
+
   out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
     bash "$SENSORS_ENGINE/run.sh" --only fixture-emit --apply --input "$findings" 2>&1)
   status=$?
@@ -805,6 +822,24 @@ case_run_aClearWithNoIssueReachesTheRecord() {
   assert_eq "0" "$(recorded "$log" 'issue create')" "an existing record is not filed a second time"
   assert_eq "1" "$(recorded "$log" 'issue comment')" "the measurement joins the existing record"
   assert_contains "$(cat "$log")" "gh issue comment 90" "the measurement is posted on the record issue"
+
+  # A clear whose condition issue is already closed is still a measurement: it joins the row's record, so a
+  # row whose only issue is a long-closed condition does not go stale.
+  local closed_fp
+  closed_fp=$(fingerprint_of case beta)
+  issues_fixture "$dir" "$(jq -nc \
+    --argjson closed "$(issue_record 92 CLOSED COMPLETED fixture-emit \
+      "$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 1 -->' "$closed_fp")" '[]')" \
+    '[$closed]')"
+  : > "$log"
+  findings=$(write_findings "$dir/findings3.jsonl" "$(finding clear 44 case beta)")
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    bash "$SENSORS_ENGINE/run.sh" --only fixture-emit --apply --input "$findings" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the already-closed run succeeds: $out"
+  assert_eq "0" "$(condition_creates "$log")" "an already-closed condition files no new condition"
+  assert_eq "1" "$(record_creates "$log")" "the measurement reaches the row's record"
+  assert_contains "$out" "already closed" "the run says the condition issue is closed"
 }
 
 # A record issue is not a condition: its marker is not a fingerprint, so no sensor may read it as a

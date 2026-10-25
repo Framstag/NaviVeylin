@@ -503,7 +503,7 @@ sensors_conditions_json() { # <issues-json> → a JSON array
   # the object between the braces, never everything up to the next `>`: the marker the engine writes carries a
   # ` -->` tail, so a tail-tolerant pattern yields `{"job":"build","case":"apk"} --` and every condition
   # parses to `{}` — which turns a green build's clear into a finding that owns no issue (#230).
-  jq -c '[.[]? | select(((.body // "") | contains("sensor-record:")) | not) | . as $issue | {
+  jq -c '[.[]? | select(((.body // "") | contains("<!-- sensor-record:")) | not) | . as $issue | {
       number: $issue.number,
       state: ($issue.state // "OPEN"),
       fingerprint: (((($issue.body // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; "")),

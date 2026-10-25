@@ -58,3 +58,24 @@ The delta touches no compiled file, so the build task is replaced by the structu
 - [x] 4.4 Copy the red-on-HEAD run, the green suite, the mutation and the structural checks into
   `evidence/` and verify the pointers. Verification: `evidence/red-on-head.log`,
   `evidence/structural-checks.log`.
+
+## 5. Correction round — the independent review's findings
+
+- [x] 5.1 Finding 1 (P1): the dry-run record message went to stdout and was captured as the created issue's
+  number, so the JSON's `issue` field carried the message. It goes to stderr now, and
+  `run#aClearWithNoIssueReachesTheRecord`'s dry-run half asserts `"issue":null` and no `"issue":"dry-run`.
+  Verification: `bash tools/sensor-selftest.sh --case 'run#aClearWithNoIssueReachesTheRecord'`.
+- [x] 5.2 Finding 2: a registry whose `record.status` is outside the vocabulary is now refused by
+  `sensors_file_record` as well as by the guard, because `create.sh` refuses such a label and the run would
+  otherwise report a measurement it never wrote. Finding 4: the condition-exclusion matches the anchored
+  `<!-- sensor-record:`, so a condition body that merely mentions the phrase is not dropped. Verification:
+  `bash tools/sensor-selftest.sh --case 'lib#theRecordIsNotACondition'` and the whole suite.
+- [x] 5.3 Finding 3: the already-closed clear branch is asserted in
+  `run#aClearWithNoIssueReachesTheRecord` (a `CLOSED`/`COMPLETED` condition issue), and
+  `Registry#everyRowIsComplete` asserts `registry-record-status-missing` against
+  `tools/sensors/fixtures/registry-no-record.json`. The review also confirmed mutation `8.18` neuters both
+  `sensors_record_clear` call sites. Verification: `bash tools/sensor-selftest.sh` — all 49 cases passed.
+- [x] 5.4 Finding 5 (forward risk) recorded in `design.md`'s Risks; Finding 6's guideline drift repaired in
+  `guidelines/Backlog.md` §9's outcome block. Verification: `grep -n 'record issue' guidelines/Backlog.md`.
+- [x] 5.5 The independent review is kept at `evidence/independent-review.md` with its verdict and the fixed
+  finding.

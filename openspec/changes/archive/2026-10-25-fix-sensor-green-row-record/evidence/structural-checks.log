@@ -1,4 +1,4 @@
-# The whole sensor suite after the fix
+# The whole sensor suite after the fix and the review's correction round
 $ bash tools/sensor-selftest.sh
 sensor-selftest: all 49 cases passed (JDK 27, offline, no token)
 

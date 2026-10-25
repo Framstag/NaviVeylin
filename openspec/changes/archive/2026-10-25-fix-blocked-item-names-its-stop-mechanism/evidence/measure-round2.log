@@ -1,0 +1,248 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=db888dd8b7c509cfba82854a21427ae5c9c8e192 paths=211 insertions=16620 deletions=6178
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasUiState.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelCamera.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelFollow.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelMapInit.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelRoute.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelSearch.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelSettings.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/di/CrossSurfaceSearchOrderTest.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/framstag/libosmscout/client/FakeAutoRenderClient.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererBlitTest.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererFollowAnchorTest.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererLifecycleTest.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererLoopConfinementTest.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererTest.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererTestSupport.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererZoomWalkTest.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/RendererTestRuleTest.kt
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/detached-arm.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/gate-failure-recheck.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/gate-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/revert-check-57.1-57.2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/revert-check-57.1-57.2-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/tools_loop-selftest.sh_--from-git_db888dd8b7c509cfba82854a21427ae5c9c8e192.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-loop-landing-verifies-the-checkout/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-tally.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-tally.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-TEST-com.naviveylin.di.CrossSurfaceSearchOrderTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-TEST-com.naviveylin.ui.map.MapCanvasViewModelCarSessionTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-TEST-com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-TEST-com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-TEST-com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-TEST-com.naviveylin.ui.map.MapCanvasViewModelFreeTextSearchTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-TEST-com.naviveylin.ui.map.MapCanvasViewModelInitThreadingTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/focused-TEST-com.naviveylin.ui.map.MapCanvasViewModelRouteFitTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-automotive-TEST-MapCanvasViewModelFollowModeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-mobile-TEST-MapCanvasViewModelFollowModeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-mobile-TEST-MapCanvasViewModelRouteFitTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-summary.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_loop-selftest.sh_--from-git_db888dd8b7c509cfba82854a21427ae5c9c8e192.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gate-tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gradle-suite-tally.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/gradle-suite-tally.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/green-probe.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/line-accounting.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/line-accounting.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/member-roster.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/member-roster.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/red-probe-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/evidence/source-size-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-canvas-view-model-file-size/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/case-roster.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/case-roster.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-run.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererBlitTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererFollowAnchorTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererLifecycleTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererLoopConfinementTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererPooledTargetTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererRenderCadenceTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererSurfaceOwnershipTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/focused-TEST-com.naviveylin.auto.AutoMapRendererZoomWalkTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-TEST-com.naviveylin.auto.AutoMapRendererBlitTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-TEST-com.naviveylin.auto.AutoMapRendererFollowAnchorTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-TEST-com.naviveylin.auto.AutoMapRendererLifecycleTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-TEST-com.naviveylin.auto.AutoMapRendererTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-TEST-com.naviveylin.auto.AutoMapRendererZoomWalkTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-tools_loop-selftest.sh_--from-git_db888dd8b7c509cfba82854a21427ae5c9c8e192.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/gate-tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/green-probe.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/probe-source-size.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/red-probe-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-map-renderer-test-file-size/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/check-metadata-suite.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_issues_check-metadata.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_issues_metadata-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_loop-selftest.sh_--from-git_db888dd8b7c509cfba82854a21427ae5c9c8e192.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/green-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/green-probe-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/issue-tooling-suite.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/lib-fixed-293.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/lib-head-293.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/loop-measure.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/red-cases-293.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/red-cases-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/red-probe-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/red-probe-head.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/revert-check-293.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/revert-check-anchor.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/review-round-3-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/evidence/review-round-3-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/specs/issue-priority/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-24-fix-priority-marker-read-own-line/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_issues_check-metadata.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_issues_metadata-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_loop-selftest.sh_--from-git_db888dd8b7c509cfba82854a21427ae5c9c8e192.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/green-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/red-cases-280.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/red-cases-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/specs/issue-priority/spec.md
+LOOP-MEASURE-PATH tools/issues/check-metadata-selftest.sh
+LOOP-MEASURE-PATH tools/issues/fixtures/metadata/quoted-grammar.json
+LOOP-MEASURE-PATH tools/issues/lib.sh
+LOOP-MEASURE-PATH tools/issue-tooling-cases.sh
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-PATH tools/loop/worktree.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git db888dd8b7c509cfba82854a21427ae5c9c8e192
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
+LOOP-MEASURE-CHECK tools/issues/metadata-mutations.sh --list
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHANGE 2026-10-25-fix-blocked-item-names-its-stop-mechanism scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/bash_tools_loop-mutations.sh_--check.xml tests=149 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-doc-routes.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_check-todo-references.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_issues_check-metadata.sh.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_issue-tooling-selftest.sh.xml tests=121 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_loop-selftest.sh_--from-git_db888dd8b7c509cfba82854a21427ae5c9c8e192.xml tests=219 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-25-fix-blocked-item-names-its-stop-mechanism/evidence/gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0
+LOOP-MEASURE-SURFACE surface: 1 case added, 3 cases extended, 1 state field + 1 flag + 2 engine call sites, 1 report column,
+LOOP-MEASURE-END

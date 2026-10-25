@@ -1,0 +1,16 @@
+== 2026-10-25T00:07:46Z — revert-check round 2
+loop-mutations: selected 5 of 150 records (labels: 58.1 58.2 58.3 58.4 58.5)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.PBl64d
+RED    58.1  run#reviewRoundsCapAtTwo   (the refusing last round named as the mechanism that stopped the item (issue #280))
+restore 58.1 run#reviewRoundsCapAtTwo green again
+RED    58.2  run#doesNotCloseOnAMergeTheBaseCannotTake   (a base that would not take the branch named as the other mechanism (issue #280))
+restore 58.2 run#doesNotCloseOnAMergeTheBaseCannotTake green again
+RED    58.3  state#aBlockedItemNamesTheMechanismThatStoppedIt   (the mechanism written into the item record (issue #280))
+restore 58.3 state#aBlockedItemNamesTheMechanismThatStoppedIt green again
+RED    58.4  report#wallTimeAndReasonInTheTable   (the mechanism printed in a column of its own, beside the spend (issue #280))
+restore 58.4 report#wallTimeAndReasonInTheTable green again
+RED    58.5  report#wallTimeAndReasonInTheTable   (`-` in the stop column of a row no mechanism stopped (issue #280))
+restore 58.5 report#wallTimeAndReasonInTheTable green again
+
+red-when-mutated: 5 · not-noticed: 0 · restore-failures: 0
+== 2026-10-25T00:08:46Z — exit=0

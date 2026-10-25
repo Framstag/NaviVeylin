@@ -13,13 +13,17 @@ by substring (`probe-tokens.py`) to split 198.8 M from 22.9 M.
 
 One field, one vocabulary, one column:
 
-- `.items[].stopReason` — `refused` | `unmergeable` | absent, written only by `state.sh done --stop-reason`,
-  refused outside that vocabulary and on any `--result` other than `blocked`.
+- `.items[].stopReason` — `refused` | `unmergeable` | `null`, written only by `state.sh done --stop-reason`,
+  refused outside that vocabulary and on any `--result` other than `blocked`. A block neither mechanism caused
+  records `null`, not `""`: `jq`'s `//` yields the empty string for what is already empty, so an empty-string
+  record would print an empty cell where the scenario promises `-`.
 - `run.sh` names the mechanism at the two sites that already produce a mechanism block and passes it to the
   blocked `done` call; every other block passes nothing.
 - `state.sh report` appends one column, `stop`, after `reason` — appended, never interleaved, so a reader that
-  quoted the fourteen earlier columns keeps them at their index. `report.sh` and `report.sh --json` are unchanged
-  and carry the field through `.items`.
+  quoted the fourteen earlier columns keeps them at their index. A record that carries no mechanism prints `-`
+  there, and the check is on the empty string rather than on `//`, because `//` substitutes only for `null` and
+  yields `""` for an empty one. `report.sh` and `report.sh --json` are unchanged and carry the field through
+  `.items`.
 
 The engine's own rule that a second account of one item adds its note and replaces nothing
 (`tools/loop/state.sh:452-473`, issue #284) is kept as it stands: the mechanism belongs to the attempt whose
@@ -57,6 +61,27 @@ Revert this change's commit: `--stop-reason` disappears from `done`, the `stop` 
 - **Leave the record alone and keep reading the note's prose** (the state today) — eliminated because it is what
   the item reports: the attribution exists only while someone maintains two string constants and a probe
   outside the tree.
+
+## Correction round 1 (2026-10-25)
+
+The review of round 1 refused the change on two defects, both of them the item's own subject — a scenario whose
+THEN was not asserted:
+
+1. **The stop column printed an empty cell, not `-`.** `cmd_done` wrote `stopReason:$sr` with `""` as the default,
+   so a closure and a mechanism-less block stored `""`; the row interpolated `(.stopReason // "-")`, and `jq`'s
+   `//` returns the empty string for an empty one. The case passed because its assertion, `| done | - |`, matched
+   the *reason* column, which prints `-` for every closure (`state.sh:588`). Fixed by recording `null` (the
+   round-1 report of a state written since) and rendering `-` for both `null` and `""`; asserted by reading
+   column 15 of the row itself — on the closure, on a block with a mechanism, and on a block without one.
+2. **`the state is not written` was asserted nowhere.** `state#aBlockedItemNamesTheMechanismThatStoppedIt` read
+   the exit status of both usage errors and never the state. Fixed by comparing the state file byte for byte
+   before and after each refusal, and by recording a second account of an item to show it fills no mechanism the
+   first record left empty (the rule `state.sh`'s second-account arm states and no case covered).
+
+The mutation records moved with the code: `58.3` now nulls the record's mechanism, `58.4` makes the column always
+print `-`, and `58.5` makes it print an empty cell — the round-1 `58.4` mutated the whole interpolation and
+produced an invalid jq escape (`\-`), so the report died and the case failed for a reason its own name did not
+say. Every record's failing assertion is quoted in `evidence/revert-check-round2-messages.log`.
 
 ## Where the rule is stated
 

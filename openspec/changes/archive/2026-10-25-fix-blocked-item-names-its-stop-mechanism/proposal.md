@@ -58,6 +58,22 @@ unmergeable block, a block with neither, a token outside the vocabulary, a stop 
 `run#` cases are the two mechanisms end to end through the engine; the fourth is the report's table, whose header
 has no column for the mechanism.
 
+**Red case of correction round 1 — taken on the pre-correction tree, 2026-10-25T00:06:09Z**
+(`evidence/red-cases-head-round2.log`, re-runnable as `bash evidence/red-cases-280-round2.sh <change-root>`,
+which restores the round-1 write and column, runs the two corrected cases and puts the tree back). One case is
+red, and it is the defect the review found rather than a new one:
+
+```
+=== report#wallTimeAndReasonInTheTable
+  while a closure's stop column prints -: expected '-', got ''
+FAIL report#wallTimeAndReasonInTheTable
+loop-selftest: 1 of 1 cases failed
+```
+
+`state#aBlockedItemNamesTheMechanismThatStoppedIt` passes on the pre-correction tree as well, because its clause
+(`the state is not written`) was already true and only unasserted; what proves the new assertions load-bearing is
+record `58.3` and the byte comparison they make, quoted in `evidence/revert-check-round2-messages.log`.
+
 **The owning requirement.** `openspec/specs/agent-issue-loop/spec.md` gains one requirement — *A block records the
 mechanism that stopped it* — beside *A block asks its own question* (the same subject: what a block leaves
 behind for a later reader). The guideline section is `guidelines/Backlog.md` §7 "The loop", whose paragraph on
@@ -71,10 +87,15 @@ holds no such text yet):
 
 ```
 surface: 1 case added, 3 cases extended, 1 state field + 1 flag + 2 engine call sites, 1 report column,
-3 mutation records, 1 guideline paragraph — 5 files hold the shape (tools/loop/{state.sh,run.sh,loop-cases.sh,
-loop-mutations.sh}, guidelines/Backlog.md); command: grep -rln 'stop-reason|stopReason|failed its last review
-round|could not be merged onto the base' tools .pi/skills openspec/specs guidelines
+5 mutation records, 1 guideline paragraph — 6 files hold the shape (tools/loop/{state.sh,run.sh,loop-cases.sh,
+loop-mutations.sh}, guidelines/Backlog.md, openspec/specs/agent-issue-loop/spec.md); command: grep -rln
+'stop-reason|stopReason|failed its last review round|could not be merged onto the base' tools .pi/skills
+openspec/specs guidelines
 ```
+
+The count moved in correction round 1 (review of 2026-10-25): the column's `-` for a row no mechanism stopped is a
+clause of its own, so it carries its own record, and the merged spec is the sixth file — the round-1 text said
+"3 mutation records" and "5 files" while the evidence already said four records over six files.
 
 No fixture moves (the field is written, not read, by the fixtures) and no prompt under `tools/loop/prompts/` names
 the mechanism.
@@ -82,8 +103,10 @@ the mechanism.
 ## What Changes
 
 - **`tools/loop/state.sh`** — `done` accepts `--stop-reason refused|unmergeable` (a closed vocabulary, refused
-  outside it and on a result that is not a block) and records it as `.items[].stopReason`; the item table gains
-  the mechanism as a column of its own, appended after `reason` so no earlier column moves.
+  outside it and on a result that is not a block) and records it as `.items[].stopReason`, `null` when the block
+  has no mechanism; the item table gains the mechanism as a column of its own, appended after `reason` so no
+  earlier column moves, and prints `-` for a record that carries none — whether the field is absent (a state
+  written before this change), `null` (written since) or an empty string (a state the round-1 code wrote).
 - **`tools/loop/run.sh`** — the two sites that block on a mechanism name it: `refused` where the last review
   round refused the change, `unmergeable` where the base would not take the branch, and the blocked `done` call
   hands the value through. Every other block passes nothing and records nothing.
@@ -91,8 +114,9 @@ the mechanism.
   extended to the mechanism their own block stopped on (`run#reviewRoundsCapAtTwo`,
   `run#doesNotCloseOnAMergeTheBaseCannotTake`, `report#wallTimeAndReasonInTheTable`, whose column count moves
   14 → 15).
-- **`tools/loop-mutations.sh`** — three records (58.1–58.3), one per new invariant: the refusal site, the merge
-  site and the state write.
+- **`tools/loop-mutations.sh`** — five records (58.1–58.5), one per new invariant: the refusal site, the merge
+  site, the state write, the mechanism printed in the report's own column, and the `-` that column prints for a
+  row no mechanism stopped (the last two were rewritten in correction round 1).
 - **`guidelines/Backlog.md`** §7 — the report paragraph says the table names the mechanism a block stopped on,
   beside the spend that mechanism cost.
 
@@ -125,12 +149,13 @@ Production sources (tooling)
 
 Test sources (tooling)
 - `tools/loop-cases.sh` — one case (list, dispatch, body), three cases extended
-- `tools/loop-mutations.sh` — three records
+- `tools/loop-mutations.sh` — five records
 
 Docs / specs
 - `openspec/specs/agent-issue-loop/spec.md` (delta), `guidelines/Backlog.md` §7 (one clause)
 
 Verification (each task's own step, `tasks.md`)
 - the four red cases on HEAD and green on the tree (`evidence/red-cases-head.log`, `evidence/green-cases.log`)
-- the three mutation records noticed by their named cases, restore verified (`evidence/revert-check.log`)
+- the five mutation records noticed by their named cases, restore verified (`evidence/revert-check.log`, and the
+  assertion each one breaks quoted in `evidence/revert-check-round2-messages.log`)
 - `./tools/loop/gate.sh` once, its tallies copied into `evidence/gate/`

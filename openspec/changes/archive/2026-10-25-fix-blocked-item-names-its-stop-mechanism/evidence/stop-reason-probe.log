@@ -1,0 +1,10 @@
+== 2026-10-25T00:35:22Z — probe: what a block with no mechanism records, and what the report prints for it
+-- a record this change writes, as stored:
+{"result":"blocked","stopReason":null}
+-- its row (column 15 is the stop column):
+| #21 |  | closed |  |  |  |  | - | - | - | - | - | done | - | - |
+| #22 |  | blocked |  |  |  |  | - | - | - | - | - | blocked | a block with no mechanism | - |
+-- the same row when the record carries the round-1 shape:
+| #21 |  | closed |  |  |  |  | - | - | - | - | - | done | - | - |
+| #22 |  | blocked |  |  |  |  | - | - | - | - | - | blocked | a block with no mechanism | - |
+== 2026-10-25T00:35:22Z — done

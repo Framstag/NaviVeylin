@@ -145,6 +145,8 @@ LOOP_SHELL_CASES=(
   'run#aFailedUnpickIsNamed'
   'run#childStartsInTheProjectRoot'
   'run#childReportsWhileItWaits'
+  'run#theWaitEndsWhenTheChildDoes'
+  'run#theProgressLineKeepsItsInterval'
   'run#headerNamesTheLiveView'
   'run#prescreenAnnouncesItselfBeforeItReturns'
   'run#everyPhaseBoundaryIsPrinted'
@@ -414,6 +416,8 @@ loop_run_shell_case() {
     'run#aFailedUnpickIsNamed') fn=case_run_aFailedUnpickIsNamed ;;
     'run#childStartsInTheProjectRoot') fn=case_run_childStartsInTheProjectRoot ;;
     'run#childReportsWhileItWaits') fn=case_run_childReportsWhileItWaits ;;
+    'run#theWaitEndsWhenTheChildDoes') fn=case_run_theWaitEndsWhenTheChildDoes ;;
+    'run#theProgressLineKeepsItsInterval') fn=case_run_theProgressLineKeepsItsInterval ;;
     'run#headerNamesTheLiveView') fn=case_run_headerNamesTheLiveView ;;
     'run#prescreenAnnouncesItselfBeforeItReturns') fn=case_run_prescreenAnnouncesItselfBeforeItReturns ;;
     'run#everyPhaseBoundaryIsPrinted') fn=case_run_everyPhaseBoundaryIsPrinted ;;
@@ -2276,15 +2280,23 @@ case_labels_trapRemovesInProgressOnSignal() {
   core_ensure
   ( cd "$p" && exec bash "$LOOP_ENGINE/run.sh" --items 1 --minutes 90 --review off ) > "$d/run.log" 2>&1 &
   first=$!
+  # The fifo is held **read-write** before anything can end the child (issue #259). The stub opens it for reading
+  # only after it has written `$block.ready`, and the run's own trap ends the child within a twentieth of a second
+  # of the signal — the poll that waits for the child is a fraction of a second now, so the child is gone long
+  # before this case's own `sleep 0.2`. A release that opened the fifo for writing afterwards waited for a reader
+  # that no longer existed, and the case hung the suite, and the gate behind it, for ever. `<>` opens a fifo
+  # without a partner and never blocks, and the one line written through it is what a child still waiting reads.
+  exec 8<> "$block"
   waited=0
   while [ ! -f "$block.ready" ] && [ "$waited" -lt 300 ]; do sleep 0.1; waited=$((waited + 1)); done
-  [ -f "$block.ready" ] || { printf '\n' > "$block"; wait "$first"; fail "the run never reached its child"; }
+  [ -f "$block.ready" ] || { printf '\n' >&8; wait "$first"; fail "the run never reached its child"; }
 
   kill -TERM "$first"
   sleep 0.2
-  printf '\n' > "$block"
+  printf '\n' >&8
   wait "$first"
   unset PI_STUB_WAIT
+  exec 8>&-
 
   assert_eq "1" "$(grep -c 'remove-label agent/in-progress' "$GH_STUB_RECORD" || true)" \
     "the interrupted item's in-progress label is removed exactly once"
@@ -3462,6 +3474,62 @@ case_run_childReportsWhileItWaits() {
   assert_contains "$out" "changed file(s)" "what it reports is read from the worktree"
   assert_contains "$out" "loop: worker-prompt finished in" "and the end is reported"
   assert_contains "$out" "exit 0" "with the child's own exit status"
+}
+
+# The wait's granularity, not the child's speed (issue #259): the poll that watches for the child's completion record
+# slept a whole second, and the heartbeat subshell the wait is joined through slept one as well, so a child that
+# answered at once still cost the run 1–2 s of pure sleep — and one run case drives up to three children. Measured
+# 2026-10-22 on the item: a copy of the engine whose `sleep 1` became `sleep 0.05` ran
+# `run#recordsAFailedReviewOnTheBranch` in 9 s instead of 15 s, i.e. 40 % of that case was the sleep.
+case_run_theWaitEndsWhenTheChildDoes() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p stamp t0 t1 ms exit_line
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The worker answers at once, and the 0.15 s floor is what makes the reading about the wait: without it a stub that
+  # lost the race against the parent's first `[ -e ]` would let a one-second poll pass.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' 'case "$1" in worker*) sleep 0.15 ;; esac'
+  # Every console line is stamped as it arrives: the transcript carries no clock, and timing the whole item would mix
+  # the wait's sleep with the engine's own work — the item's bound is the sleep, not the work.
+  stamp="$d/stamped.log"
+  {
+    while IFS= read -r line; do
+      printf '%s\t%s\n' "$(date +%s%N)" "$line"
+    done < <( run_loop "$p" --items 1 --minutes 90 --review off 2>&1; printf 'RUN-EXIT %s\n' "$?" )
+  } > "$stamp"
+  exit_line=$(sed -n 's/^[0-9]*\tRUN-EXIT \(.*\)$/\1/p' "$stamp")
+  assert_eq "0" "$exit_line" "the run itself finished cleanly (its console is in $stamp)"
+  read -r t0 t1 < <(awk -F'\t' '
+    /loop: worker-prompt started/ { if (s == "") s = $1 }
+    /loop: worker-prompt finished in/ { e = $1 }
+    END { print s + 0, e + 0 }' "$stamp")
+  [ "$t0" -gt 0 ] && [ "$t1" -gt "$t0" ] ||
+    fail "the wait's start and its end were not both announced (console in $stamp)"
+  ms=$(( (t1 - t0) / 1000000 ))
+  # 900 ms is the bound the wait must stay inside and not the child's own 150 ms: the second the wait may not spend
+  # is what this case is about, and the margin on either side is the difference between a fraction of a second and a
+  # whole one.
+  [ "$ms" -lt 900 ] || fail "the run took ${ms} ms to notice a worker that answered in 150 ms: the wait's granularity is not below a second (issue #259; console in $stamp)"
+  printf 'the wait for a 150 ms child cost %s ms\n' "$ms"
+}
+
+# The heartbeat counts elapsed seconds, not wake-ups (issue #259): lowering the poll's granularity without this would
+# have made `LOOP_PROGRESS_SECONDS` mean "this many looks" — a line every 1.5 s for a configured 30 once the poll was
+# 0.05 s — so the interval is read as seconds lived and the case pins that it still prints one line per interval.
+case_run_theProgressLineKeepsItsInterval() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out n
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' 'case "$1" in worker*) sleep 4 ;; esac'
+  out=$(LOOP_PROGRESS_SECONDS=2 run_loop "$p" --items 1 --minutes 90 --review off 2>&1) \
+    || fail "the run itself failed"
+  n=$(printf '%s\n' "$out" | grep -c '^loop: worker-prompt running' || true)
+  # A band and not a number: where in the second the child starts decides whether the line at its own last interval
+  # is still printed, and the heartbeat's wake can land either side of it. One line per look would be dozens.
+  [ "$n" -ge 1 ] && [ "$n" -le 3 ] ||
+    fail "the progress line does not keep the configured 2 s interval: ${n} running line(s) for a 4 s child — $out"
+  printf '%s running line(s) for a 4 s child at a 2 s interval\n' "$n"
 }
 
 # The console named neither the pre-screen nor any view into the run: measured 2026-10-20, the pre-screen of the

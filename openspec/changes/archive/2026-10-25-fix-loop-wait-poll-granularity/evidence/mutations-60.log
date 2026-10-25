@@ -1,0 +1,6 @@
+RED    60.1  run#theWaitEndsWhenTheChildDoes   (the wait looking for the completion record below a whole second (issue #259))
+restore 60.1 run#theWaitEndsWhenTheChildDoes green again
+RED    60.2  run#theProgressLineKeepsItsInterval   (the heartbeat's test on elapsed seconds rather than on the look it was woken by (issue #259))
+restore 60.2 run#theProgressLineKeepsItsInterval green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

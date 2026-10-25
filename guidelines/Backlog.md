@@ -310,8 +310,9 @@ amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
-The run's own deadline bounds that child as well: the wait reads `run.deadlineEpoch` from the run's state on
-every tick, and a child still running when the deadline passes is ended exactly as the cap ends one — its
+The run's own deadline bounds that child as well: the wait reads `run.deadlineEpoch` from the run's state once a
+second — the deadline is a whole-second clock, and reading it on every look would spend the finer granularity's
+saving on two forks — and a child still running when the deadline passes is ended exactly as the cap ends one — its
 transcript carries `LOOP-DEADLINE: the run's deadline passed at <deadlineAt> …` beside the `LOOP-TIMEOUT` line,
 and the run records the deadline as its stop, so a run that ends there is not replaced as one that "never
 recorded a stop reason". Measured 2026-10-20: eleven of fifteen stuck runs were past their own `--minutes 90`,
@@ -319,6 +320,16 @@ the longest heartbeat read `291m30s`, and not one carried a `LOOP-TIMEOUT` line 
 (#227). The completion record the wait ends on is cleared **before** the child is started, not after it: cleared
 after, a child that finished inside the window between the fork and the clear had its own record deleted, and
 the run waited the cap's length for a child that had already exited — the same symptom, one fork wide.
+
+**The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
+watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it
+reports on elapsed **seconds** (`SECONDS` against its own base), not on the number of looks it took, so
+`LOOP_PROGRESS_SECONDS` still means seconds of wall clock. Measured 2026-10-22 (issue #259): with a whole second in
+both places a child that answered at once still cost the run 1–2 s of pure sleep, one run case drives up to three
+children, and a copy of the engine whose `sleep 1` became `sleep 0.05` ran `run#recordsAFailedReviewOnTheBranch` in
+9 s instead of 15 s — 40 % of that case was the sleep. Re-measured with the case that now guards it, on the base
+this was fixed from: 2 008 ms to notice a worker that answered in 150 ms, and 261 ms after. The cap and the deadline
+are unchanged whole-second clocks, and the `TERM`→`KILL` grace after either fires is still one second.
 
 Inside that bound the project's gate is what fills the log, and it streams: each suite's output is `tee`d as the
 suite writes it, and the summary, the tally and the failure text are read from that same file, so a suite that

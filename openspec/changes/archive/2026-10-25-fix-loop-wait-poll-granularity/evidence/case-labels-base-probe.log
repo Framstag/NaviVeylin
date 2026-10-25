@@ -1,0 +1,4 @@
+stashed: 
+base case exit=0 after 7s
+restored:  M guidelines/Backlog.md  M tools/loop-cases.sh  M tools/loop-mutations.sh  M tools/loop/run.sh 
+PASS labels#trapRemovesInProgressOnSignal

@@ -849,7 +849,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase stop hb started interval cap child timed_out=0 sweep status_file ended_by deadline_epoch now
+  local before after rc phase stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed
   before=$(project_state)
   phase=$(basename "$1" .md)
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
@@ -857,6 +857,13 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   case "$phase" in worker*) clear_stale_test_results ;; esac
   interval="${LOOP_PROGRESS_SECONDS:-30}"
   case "$interval" in ''|*[!0-9]*|0) interval=30 ;; esac
+  # How often the wait *looks*, which is not how often it reports (issue #259): a whole second of granularity charged
+  # every child 1–2 s of sleep — the poll, and the join of the heartbeat beside it — and one run case drives up to
+  # three children. Validated like the two bounds: a value that is no positive number falls back to the default rather
+  # than stopping the wait, and a bare `0` is not a busy loop.
+  poll="${LOOP_POLL_SECONDS:-0.05}"
+  case "$poll" in ''|.|*.|*[!0-9.]*|*.*.*) poll=0.05 ;; esac
+  case "$poll" in *[1-9]*) ;; *) poll=0.05 ;; esac
   cap="${LOOP_CHILD_MAX_SECONDS:-2700}"
   case "$cap" in ''|*[!0-9]*|0) cap=2700 ;; esac
   stop="$2.progress-stop"
@@ -880,13 +887,18 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   child=$!
   active_child="$child"
   set +m
-  ( ticks=0
-    hb_pid=$BASHPID
+  ( hb_pid=$BASHPID
+    hb_base=$SECONDS
+    next=$interval
     while [ ! -e "$stop" ]; do
-      sleep 1
+      sleep "$poll"
       [ -e "$stop" ] && break
-      ticks=$((ticks + 1))
-      [ $((ticks % interval)) -eq 0 ] || continue
+      # The heartbeat reports elapsed **seconds**, never the number of looks (issue #259): the wait looks twenty times
+      # a second, so a count of iterations would shrink the interval along with the granularity and a configured 30
+      # would have become 1.5 s of wall clock.
+      elapsed=$(( SECONDS - hb_base ))
+      [ "$elapsed" -ge "$next" ] || continue
+      next=$(( elapsed + interval ))
       # The difference is read *while the child runs*, because a writer is gone by the time the transcript is
       # written: only here can the run say which processes were alive at the moment the tree changed, and which of
       # them belong to this child's own tree. One reading per child — the first difference is the one a reader of
@@ -898,7 +910,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         fi
       fi
       printf 'loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n' \
-        "$phase" "$(fmt_elapsed "$ticks")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
+        "$phase" "$(fmt_elapsed "$elapsed")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
         "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \
         "$(git -C "$LOOP_WORKTREE" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || printf 0)"
     done ) >&2 &
@@ -909,7 +921,14 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # 2026-10-20/21 (issue #227): fourteen runs sat inside this poll with only a `sleep` child, printing a heartbeat
   # every 30 s for up to 4 h 52 min — 606 lines, `log 0 B`, and not one `LOOP-TIMEOUT` line, although the cap was
   # 2700 s. The subshell writes its own status when it returns, which is the one event the run can wait for.
+  last_second=""
   while [ ! -e "$status_file" ]; do
+    # Both clocks this wait enforces — the cap and the run's deadline — are whole seconds, so they are read once per
+    # second and not once per look (issue #259): a `date` and a `jq` per wake-up would spend on forks what the finer
+    # granularity buys back. The guard is one line on purpose — the two checks below keep the indentation they had, so
+    # the records that name them (`23.1`, `23.2`) still quote them (issue #264).
+    if [ "$SECONDS" = "$last_second" ]; then sleep "$poll"; continue; fi
+    last_second=$SECONDS
     now=$(date +%s)
     # The run's own deadline bounds this wait too (issue #227). The deadline was consulted between items, so a
     # child was the one clock the run could not enforce: measured 2026-10-20, eleven of fifteen stuck runs were
@@ -934,7 +953,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       kill -KILL -"$child" 2>/dev/null || true
       break
     fi
-    sleep 1
+    sleep "$poll"
   done
   rc=0
   [ -e "$status_file" ] && rc=$(cat "$status_file" 2>/dev/null || printf 0)

@@ -468,6 +468,14 @@ MUTATIONS=(
   # over a case's own scratch root out, so what the case left behind is still standing when its slot is handed on.
   '59.1@-@../loop-selftest.sh@driver#theSuiteRunsItsCasesInAPool@the pool that starts the next case as one finishes, rather than one case at a time (issue #260)@s|^  while \[ "$running" -lt "$workers" \] && \[ "$started" -lt "$queued" \]; do$|  while [ "$running" -lt 1 ] \&\& [ "$started" -lt "$queued" ]; do|'
   '59.2@-@../loop-selftest.sh@driver#aCaseThatLeavesAProcessBehindIsSweptWithIt@the sweep of a case own scratch root before its slot is handed on (issue #260)@s|^  loop_end_pids_under "$dir/tree" --quiet$|  : # the mutation leaves the process behind|'
+  # 60.x — the wait for a child looks at a fraction of a second, and the heartbeat reports elapsed seconds (issue
+  # #259). Measured 2026-10-22: the poll and the join of the heartbeat beside it charged a child that answered at
+  # once 1–2 s of pure sleep, and 40 % of `run#recordsAFailedReviewOnTheBranch` was sleep. One record per invariant:
+  # 60.1 puts the whole second back in the poll — the run's wait outlasts a child that has already answered — and
+  # 60.2 drops the elapsed-second test, so the heartbeat reports on every look and the configured interval stops
+  # meaning seconds.
+  '60.1@-@tools/loop/run.sh@run#theWaitEndsWhenTheChildDoes@the wait looking for the completion record below a whole second (issue #259)@s|^    sleep "\$poll"$|    sleep 1|'
+  '60.2@-@tools/loop/run.sh@run#theProgressLineKeepsItsInterval@the heartbeat'"'"'s test on elapsed seconds rather than on the look it was woken by (issue #259)@s|^      \[ "\$elapsed" -ge "\$next" \] \|\| continue$|      : # the mutation reports on every look|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

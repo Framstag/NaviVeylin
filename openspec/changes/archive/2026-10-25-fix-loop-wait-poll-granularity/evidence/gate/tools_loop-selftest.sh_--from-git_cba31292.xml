@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git cba31292" tests="223" failures="0" errors="0" time="273">
+  <system-out>PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses PASS driver#theSuiteRunsItsCasesInAPool loop-selftest: all 223 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git cba31292</system-out>
+</testsuite>

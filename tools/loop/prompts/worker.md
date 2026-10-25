@@ -25,9 +25,16 @@ you get: everything else you need is in the tree.
 
 Run `{{MEASURE_CMD}}` once, from the change root, before you plan. It prints the change's own numbers as one
 block — the paths it touches, the checks that pathspec owes (with the command that runs each), the tallies the
-tree already carries, and the change's spec scenarios counted against the cases that name them. **It runs none
-of them**: the gate is run once, by `{{GATE_CMD}}`, and a number the block lacks is a defect in the block
-rather than a reason to walk the tree by hand.
+tree already carries, the project's declared case count with the command that printed it, the gate's own
+measured timing, and the change's spec scenarios counted against the cases that name them. **It runs none of
+them**: the gate is run once, by `{{GATE_CMD}}`, and a number the block lacks is a defect in the block rather
+than a reason to walk the tree by hand.
+
+**A number the change quotes is the output of a command in its record.** The block's lines are that command's
+output for the facts it carries, so quote them. A number the block does not carry is one you took yourself, and
+then the command that took it belongs in the change's evidence beside the number.
+A number with neither is not a claim: leave it out of the change — a reviewer cannot tell a measurement from a
+guess, and a wrong number it cannot check turns into a refusal and a whole second round (issue #244).
 
 Two answers the block cannot give by guessing, and asks for instead:
 
@@ -39,7 +46,8 @@ Two answers the block cannot give by guessing, and asks for instead:
   `LOOP-MEASURE-TALLY` line at all, which is not the same as a green number: cite the copy in `evidence/`.
 
 Every line of the block carries the prefix `LOOP-MEASURE`. Quote those lines into your report and into the
-change's evidence instead of re-deriving them.
+change's evidence instead of re-deriving them. The declared case count is `LOOP-MEASURE-SUITE cases=`; the
+gate's own timing is `LOOP-MEASURE-GATE seconds=`. Neither is counted again by hand.
 
 **A file you have read once is cited, not read again.** When a later step needs a fact from a file already in
 your transcript, read the line you have; a second read of the same path is a second model turn and buys

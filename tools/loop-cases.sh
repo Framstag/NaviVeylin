@@ -137,6 +137,7 @@ LOOP_SHELL_CASES=(
   'measure#printsTheNumbersTheReviewerAsksFor'
   'measure#refusesToGuessWhichChangeItMeasures'
   'measure#saysHowManyTalliesItWithheld'
+  'measure#printsTheSuiteCountAndTheGateTiming'
   'prompt#workerIsHandedTheMeasureBlock'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
@@ -408,6 +409,7 @@ loop_run_shell_case() {
     'measure#printsTheNumbersTheReviewerAsksFor') fn=case_measure_printsTheNumbersTheReviewerAsksFor ;;
     'measure#refusesToGuessWhichChangeItMeasures') fn=case_measure_refusesToGuessWhichChangeItMeasures ;;
     'measure#saysHowManyTalliesItWithheld') fn=case_measure_saysHowManyTalliesItWithheld ;;
+    'measure#printsTheSuiteCountAndTheGateTiming') fn=case_measure_printsTheSuiteCountAndTheGateTiming ;;
     'prompt#workerIsHandedTheMeasureBlock') fn=case_prompt_workerIsHandedTheMeasureBlock ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
@@ -2491,6 +2493,13 @@ case_prompt_reviewerIsBoundedToReading() {
   # carries, not for a second execution of it.
   assert_contains "$text" "never reproduce it by running the gate" "item 3 asks for the tally in the evidence, not a re-run"
   assert_contains "$text" "reading task" "a diff review is stated to be a reading task"
+  # The number rule (issue #244): a quoted number whose command is not in the record is a correction, not a
+  # refusal — the round report says which findings are `NOTE:` for that reason, so a wrong count does not buy a
+  # second round. This is the same split #205 made for wording, applied to numbers.
+  assert_contains "$text" 'no command in the record produced is not a claim' \
+    "the reviewer is told a number with no command is not a claim"
+  assert_contains "$text" 'depends on the number' \
+    "and that only a number the change depends on is blocking"
   # the bound is the number the run itself enforces, so the two cannot drift
   cap=8100
   assert_contains "$text" "$cap" "the wall-clock bound named in the task is the run's own ($cap s)"
@@ -3310,6 +3319,52 @@ case_measure_saysHowManyTalliesItWithheld() {
   return 0
 }
 
+# The two facts a change used to take by hand and a reviewer could not check: the suite's declared case count and
+# the gate's own timing (issue #244). The count is a command's output — the profile's case-listing command, named
+# beside the number so it can be reproduced — and the timing is summed from the `time` the gate's own tallies
+# carry, so a change quoting "the gate took 12 s" quotes a measurement and not a stopwatch nobody kept. A profile
+# that names no case-listing command says so rather than leaving the line out, because a missing line reads as a
+# count of zero.
+case_measure_printsTheSuiteCountAndTheGateTiming() {
+  # files: tools/loop/loop.conf tools/loop/measure.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf conf2 base out
+  d=$(scratch); p=$(new_project)
+  printf 'state#one\nstate#two\nstate#three\n' > "$d/cases.sh"
+  conf="$d/measure.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_SUITES="notes/*|notes-check"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    # The profile's case-listing command: the count is this command's output, and the block names the command
+    # beside it so the number is reproducible rather than a count taken by hand.
+    printf 'LOOP_SUITE_CASES_CMD="cat %s/cases.sh"\n' "$d"
+  } >> "$conf"
+  mkdir -p "$d/tally"
+  printf '<?xml version="1.0"?>\n<testsuite name="s1" tests="4" failures="0" errors="0" time="7"></testsuite>\n' > "$d/tally/s1.xml"
+  printf '<?xml version="1.0"?>\n<testsuite name="s2" tests="3" failures="0" errors="0" time="5"></testsuite>\n' > "$d/tally/s2.xml"
+  base=$(git -C "$p" rev-parse HEAD)
+
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/measure.sh" --base "$base" 2>&1 )
+  assert_eq "0" "$?" "the measuring command succeeded: $out"
+  assert_contains "$out" "LOOP-MEASURE-SUITE cases=3" "the declared case count is carried: $out"
+  assert_contains "$out" "cmd=cat $d/cases.sh" "with the command that printed it, so the number is reproducible"
+  assert_contains "$out" "LOOP-MEASURE-GATE seconds=12 suites=2" \
+    "and the gate's own timing is summed from the tallies it wrote: $out"
+  assert_contains "$out" "time=7s" "a tally line carries its own measured wall clock: $out"
+
+  # A profile that names no case-listing command: the block says so instead of omitting the line, which a reader
+  # would take for a count of zero.
+  conf2="$d/none.conf"
+  sed '/^LOOP_SUITE_CASES_CMD=/d' "$LOOP_ENGINE/loop.conf" > "$conf2"
+  grep -q '^LOOP_SUITE_CASES_CMD=' "$conf2" && fail "this case could not strip the case-listing command from the profile"
+  printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d" >> "$conf2"
+  out=$( cd "$p" && LOOP_CONF="$conf2" bash "$LOOP_ENGINE/measure.sh" --base "$base" 2>&1 )
+  assert_eq "0" "$?" "the measuring command succeeded without the key: $out"
+  assert_contains "$out" "LOOP-MEASURE-SUITE cases=-" "a profile with no case-listing command is named, not silent: $out"
+  assert_contains "$out" "no case-listing command" "and the absence is spelled out: $out"
+  return 0
+}
+
 case_prompt_workerIsHandedTheMeasureBlock() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p prompt text measure conf
@@ -3327,6 +3382,15 @@ case_prompt_workerIsHandedTheMeasureBlock() {
   assert_contains "$text" 'LOOP-MEASURE' "and the prefix the block's lines carry"
   assert_contains "$text" 'It runs none' "and that the block runs no check — the gate runs once"
   assert_contains "$text" 'cited, not read again' "a file read once is cited, never read a second time"
+  # The number rule (issue #244): the worker is told that a quoted number is a command's output, and that a
+  # number with neither the block nor a command behind it is not a claim — so it is the worker's job to leave it
+  # out, not the reviewer's to catch a guess and buy a second round.
+  assert_contains "$text" 'A number the change quotes is the output of a command in its record' \
+    "the worker is told what makes a number a claim"
+  assert_contains "$text" 'is not a claim' "and that a number with no command behind it is not one"
+  assert_contains "$text" 'command in its record' "the rule names where a number's proof lives"
+  assert_contains "$text" 'LOOP-MEASURE-SUITE cases=' "the declared case count is named as a block line"
+  assert_contains "$text" 'LOOP-MEASURE-GATE seconds=' "and so is the gate's own measured timing"
   return 0
 }
 

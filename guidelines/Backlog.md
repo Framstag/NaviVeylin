@@ -465,6 +465,17 @@ minutes later adopted the branch, merged it into `main` and closed the item — 
 answered, and one the reviewer refused, is the owner's, and one that carries no round at all was never asked to
 a review (`--review off`) and stays adoptable.
 
+A number a change carries is the output of a command in its record, or it is not a claim. The worker's package
+hands it the block that reads the change's own numbers — the paths, the checks the pathspec owes, the tallies the
+tree carries, the suite's declared case count with the command that printed it, the gate's own timing, and the
+delta's scenarios against the cases that name them (`tools/loop/measure.sh`, named by `LOOP_MEASURE_CMD`) — and a
+number it takes outside that block travels with the command that took it. Both task texts say so: the worker's
+that a number with neither is left out, the reviewer's that a number no command produced is a `NOTE:` (a
+correction — deleting or fixing it needs no new claim, case or assertion) and only a number the change's own
+contract depends on is `BLOCKING:`. Measured 2026-10-21 (issue #244): 11 `VERDICT: PASS` against 29 `FAIL` in the
+round-1 reports, with 147 `UNPROVEN` claims, most of them a count or a timing nobody measured — and a second round
+is another whole agent pass, 90 to 99 % of an item's wall clock being model latency.
+
 A branch the run made is a leftover once its work is in the base, and it goes when it goes: the run removes the
 branch it committed for an item and merged, releasing the kept worktree from it first (git refuses to delete a
 branch a worktree holds) and deleting it with git's own safe delete, which refuses a branch whose work is not

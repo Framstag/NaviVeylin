@@ -1,0 +1,19 @@
+### surface on HEAD (d6deb7e4) — every file naming the skill or its path
+HEAD:.pi/skills/fix-loop/REFERENCE.md
+HEAD:.pi/skills/fix-loop/SKILL.md
+HEAD:.pi/skills/fix-loop/scripts/evidence-check.sh
+HEAD:AGENTS.md
+HEAD:guidelines/Backlog.md
+HEAD:openspec/config.yaml
+HEAD:tools/loop-cases.sh
+HEAD:tools/loop/loop.conf
+HEAD:tools/loop/prescreen.sh
+HEAD:tools/loop/prompts/worker.md
+HEAD:tools/loop/worktree.sh
+HEAD:tools/portability-cases.sh
+--- count (excluding the archived changes, which are history):
+12
+--- .pi/skills/fix-loop on HEAD:
+.pi/skills/fix-loop/REFERENCE.md
+.pi/skills/fix-loop/SKILL.md
+.pi/skills/fix-loop/scripts/evidence-check.sh

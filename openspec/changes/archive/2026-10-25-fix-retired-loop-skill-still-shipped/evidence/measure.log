@@ -1,0 +1,84 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=d6deb7e4372c44d127b5d177d58ff22c7cc33531 paths=17 insertions=117 deletions=415
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-loop-harness-bugs-and-features/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-22-loop-harness-bugs-and-features/tasks.md
+LOOP-MEASURE-PATH openspec/config.yaml
+LOOP-MEASURE-PATH .pi/skills/fix-loop/REFERENCE.md
+LOOP-MEASURE-PATH .pi/skills/fix-loop/scripts/evidence-check.sh
+LOOP-MEASURE-PATH .pi/skills/fix-loop/SKILL.md
+LOOP-MEASURE-PATH tools/check-portability.sh
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/evidence-check.sh
+LOOP-MEASURE-PATH tools/loop/gate.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop/prescreen.sh
+LOOP-MEASURE-PATH tools/loop/prompts/worker.md
+LOOP-MEASURE-PATH tools/loop/worktree.sh
+LOOP-MEASURE-PATH tools/portability-cases.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git d6deb7e4372c44d127b5d177d58ff22c7cc33531
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-CHECK bash tools/loop/evidence-check.sh --selftest
+LOOP-MEASURE-SUITE cases=232 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop_evidence-check.sh_--selftest.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=170 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=21s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=121 failures=0 time=54s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_d6deb7e4372c44d127b5d177d58ff22c7cc33531.xml tests=232 failures=0 time=1390s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=1474 suites=20
+LOOP-MEASURE-CHANGE 2026-10-25-fix-retired-loop-skill-still-shipped scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/bash_tools_loop_evidence-check.sh_--selftest.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/bash_tools_loop-mutations.sh_--check.xml tests=170 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=21s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_issue-tooling-selftest.sh.xml tests=121 failures=0 time=54s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_loop-selftest.sh_--from-git_d6deb7e4372c44d127b5d177d58ff22c7cc33531.xml tests=232 failures=0 time=1390s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-25-fix-retired-loop-skill-still-shipped/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-SURFACE surface: 12 files name the skill on HEAD — 3 of them the skill itself, 9 outside it, plus 2 consequence sites
+LOOP-MEASURE-END

@@ -1,0 +1,11 @@
+### HEAD probe 1: worktree.sh as committed at d6deb7e4, evidence-check.sh absent
+  the engine still seeds a retired, versioned skill into the worktree
+FAIL worktree#seedsAllFourInputs
+loop-selftest: 1 of 1 cases failed
+exit=1
+evidence#scansWhatTheProfileNames|   a clean tree whose configuration names its own scan root passes: bash: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/evidence-check.sh: Datei oder Verzeichnis nicht gefunden: expected '0', got '127'
+--- evidence#scansWhatTheProfileNames[0] (exit 1)
+  a clean tree whose configuration names its own scan root passes: bash: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/evidence-check.sh: Datei oder Verzeichnis nicht gefunden: expected '0', got '127'
+FAIL evidence#scansWhatTheProfileNames
+loop-selftest: 1 of 1 cases failed
+exit=1

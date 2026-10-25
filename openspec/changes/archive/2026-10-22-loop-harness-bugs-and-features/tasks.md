@@ -17,8 +17,9 @@
       `prompt#workerNamesEveryPhaseAndSkill`.
 - [x] 1.6 The new eligibility and ranking rules are stated once: the shipped spec delta carries the contract
       and its cases, and the worker's copy of the eligibility table is `tools/loop/prompts/worker.md`.
-      `.pi/skills/fix-loop` is reduced to a pointer table plus `scripts/evidence-check.sh` — it no longer
-      restates the rules.
+      `.pi/skills/fix-loop` was reduced to a pointer table plus `scripts/evidence-check.sh`, and it no longer
+      restates the rules — the skill has since been removed entirely (issue #255): the contract stays in the
+      spec and in `tools/loop/prompts/worker.md`, the evidence script is `tools/loop/evidence-check.sh`.
 - [x] 1.7 Run the gate for the touched paths: `bash tools/loop-selftest.sh` (the `tools/loop/*` gate),
       `bash tools/issue-tooling-selftest.sh` (`tools/tooling.json`), `bash tools/check-doc-routes.sh` (`*.md`)
       and `openspec validate loop-harness-bugs-and-features --strict`. Record the tallies in `evidence/`.

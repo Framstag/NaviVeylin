@@ -1,0 +1,65 @@
+### every measurement the skill carried at d6deb7e4, checked for presence in guidelines/Backlog.md
+# source: git show d6deb7e4:.pi/skills/fix-loop/REFERENCE.md — 44 numbers
+present  40–65 min
+present  10–15 min
+MISSING  20–25 min
+present  11 min
+present  1–3 min
+present  4m42s–6m41s
+present  100 min
+present  83 min
+present  1.5
+present  194 MB
+present  18 GB
+present  30 min
+present  5 680
+present  3m47s
+present  467 MB
+present  2 499 MB
+present  13 915 MB
+present  37 887 MB
+present  7 600 MB
+present  2 282 MB
+present  1 625 MB
+present  407 MB
+present  649 MB
+present  1024 MiB
+present  8 383 MiB
+present  11 505 MiB
+present  12 candidates
+present  3 archived
+present  gated out
+present  31 `class: bug`
+present  eligible: none
+present  32 skipped
+present  42.67 dp < 48 dp
+present  4 rounds
+present  5 of the 9 gated candidates
+MISSING  one production file
+present  1752/0
+present  20 executed
+present  FROM-CACHE 0
+present  5 of 8 candidates
+present  ~10 min
+present  ~40 min
+present  needs-device 8
+present  needs-decision 7
+present  in-flight 7
+present  refuted 4
+present  too-wide 2
+present  stale 2
+present  unspecifiable 1
+present  needs-diagnosis 1
+present  3.2 GB
+present  1.9 GB
+present  90 MB across four
+present  88 %
+present  391 GB of 471 GB
+present  30-minute run
+MISSING  100-item / 480-minute
+present  11-minute cold build
+--- 55 of 58 tokens present, 3 missing
+# re-check of the three tokens the first pass reported as missing: each spans a line break or carries markdown emphasis in guidelines/Backlog.md, not the skill's plain spelling
+293:10–15 min **with** the cheap-first rule and 20–25 without, a cold loop worktree's first build 11 min (a single test
+319:unspecified semantics, competing fixes); each of the 3 archived changes touched **one** production file; the gate
+331:recorded a stop reason. Measured 2026-10-20: a later 30-minute run re-initialised the file, and the 100-item /

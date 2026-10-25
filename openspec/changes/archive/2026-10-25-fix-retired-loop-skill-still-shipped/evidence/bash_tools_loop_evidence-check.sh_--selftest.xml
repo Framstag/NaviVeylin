@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop/evidence-check.sh --selftest" tests="0" failures="0" errors="0" time="0">
+  <system-out>ok   C4 red when no configured scan path exists ok   a row labelled not retained is exempt by policy evidence-selftest: PASS</system-out>
+</testsuite>

@@ -456,7 +456,7 @@ else
   printf 'resolve-stale: read=%s due=%s repaired=%s unresolved=%s stillParked=%s reopened=%s ambiguous=%s skipped=%s waiting=%s writes=%s dry_run=%s wall_ms=%s\n' \
     "$read_count" "$due" "$repaired" "$unresolved_items" "$still_parked" "$reopened" "$ambiguous" "$skipped" "$waiting" "$writes" \
     "$([ "$apply" -eq 1 ] && printf no || printf yes)" "$wall_ms"
-  jq -r 'select(.repaired or .unresolved or .reopened or .stillParked or (.ambiguous > 0)) | "  #\(.issue) \(if .reopened then "REOPENED" elif .stillParked then "STILL-PARKED" elif .unresolved then "UNRESOLVED" else "repaired" end) suffix=\(.suffix) absent=\(.absent) ambiguous=\(.ambiguous) \((.repairs // "") | gsub("\n"; " · ") | gsub("- "; ""))\(if (.reasons // "") != "" then " · UNRESOLVED: \((.reasons // "") | gsub("\n"; " · ") | gsub("- "; ""))" else "" end)"' "$report" 2>/dev/null | head -40
+  jq -r 'select(.repaired or .unresolved or .reopened or .stillParked or (.ambiguous > 0)) | "  #\(.issue) \(if .reopened then "REOPENED" elif .stillParked then "STILL-PARKED" elif .unresolved then "UNRESOLVED" elif .repaired then "repaired" elif (.ambiguous > 0) then "AMBIGUOUS" else "skipped" end) suffix=\(.suffix) absent=\(.absent) ambiguous=\(.ambiguous) \((.repairs // "") | gsub("\n"; " · ") | gsub("- "; ""))\(if (.reasons // "") != "" then " · UNRESOLVED: \((.reasons // "") | gsub("\n"; " · ") | gsub("- "; ""))" else "" end)"' "$report" 2>/dev/null | head -40
   [ "$apply" -eq 1 ] || printf 'resolve-stale: a dry run touched nothing — pass --apply to write\n'
 fi
 exit "$ISSUES_EXIT_OK"

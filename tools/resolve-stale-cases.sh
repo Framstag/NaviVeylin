@@ -34,6 +34,7 @@ RESOLVE_CASES=(
   'resolver#repairPostsOneComment'
   'resolver#unrepairableCitationIsReportedNotWritten'
   'resolver#ambiguityIsReportedNotRepaired'
+  'resolver#ambiguityLineNamesTheAmbiguity'
   'resolver#neverWritesTheAuthorisation'
   'resolver#boundHoldsAndReportsTheRest'
   'resolver#ambiguityDoesNotConsumeTheBound'
@@ -73,6 +74,7 @@ resolve_run_case() {
     'resolver#repairPostsOneComment') case_resolver_repairPostsOneComment ;;
     'resolver#unrepairableCitationIsReportedNotWritten') case_resolver_unrepairableCitationIsReportedNotWritten ;;
     'resolver#ambiguityIsReportedNotRepaired') case_resolver_ambiguityIsReportedNotRepaired ;;
+    'resolver#ambiguityLineNamesTheAmbiguity') case_resolver_ambiguityLineNamesTheAmbiguity ;;
     'resolver#neverWritesTheAuthorisation') case_resolver_neverWritesTheAuthorisation ;;
     'resolver#boundHoldsAndReportsTheRest') case_resolver_boundHoldsAndReportsTheRest ;;
     'resolver#ambiguityDoesNotConsumeTheBound') case_resolver_ambiguityDoesNotConsumeTheBound ;;
@@ -572,6 +574,23 @@ case_resolver_ambiguityIsReportedNotRepaired() {
   assert_eq "0" "$(jq -r '.repaired' <<< "$out")" "nothing is repaired"
   assert_eq "0" "$(recorded_count "$d/writes.log" 'issue edit')" "and no body is written"
   assert_eq "1" "$(jq -r '[.items[] | select(.ambiguous > 0)] | length' <<< "$out")" "the item reports it"
+}
+
+# The per-item line is what a reader of the scheduled run sees, and a line that names a write may not
+# contradict the summary that counts the writes (#258). An item the ladder only found *ambiguous* is visited
+# and written for nowhere, so its line says so — before this it fell through the label chain to `repaired`,
+# which is what the Sensors run of 2026-10-22 printed for five items beside `repaired=0`.
+case_resolver_ambiguityLineNamesTheAmbiguity() {
+  local tree d out
+  tree=$(scratch); plant_profile "$tree"; mkdir -p "$tree/a" "$tree/b"
+  printf 'class Dup\n' > "$tree/a/Dup.kt"; printf 'class Dup\n' > "$tree/b/Dup.kt"
+  git_init "$tree"
+  d=$(tracker "$tree/fixture-gh" 7 "an item" 'cites `Dup.kt:1`')
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --apply 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_contains "$out" "#7 AMBIGUOUS" "the item line names the ambiguity"
+  assert_not_contains "$out" "#7 repaired" "and not a write that never happened"
+  assert_contains "$out" "repaired=0" "beside a summary that counts no write"
 }
 
 case_resolver_neverWritesTheAuthorisation() {

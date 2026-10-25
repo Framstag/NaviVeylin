@@ -121,6 +121,14 @@
       "search": "  printf '%s\\n' \"$body_matrix\" | awk -F'\\t' -v t=\"$1\" '$2 == t { found = 1 } END { exit !found }'",
       "replace": "  return 0",
       "why": "a token the body does not carry being settled instead of rewritten into a no-op the item keeps being reported for (#226)"
+    },
+    {
+      "label": "5.16",
+      "case": "resolver#ambiguityLineNamesTheAmbiguity",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "elif (.ambiguous > 0) then \"AMBIGUOUS\"",
+      "replace": "elif (.ambiguous > 0) then \"repaired\"",
+      "why": "an item the ladder only found ambiguous being named as one it repaired, contradicting the summary that counts no write (#258)"
     }
   ]
 }

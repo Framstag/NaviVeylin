@@ -1,0 +1,26 @@
+UpdateCTestConfiguration  from :/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/build/DartConfiguration.tcl
+Test project /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/build
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 151
+    Start 151: TextMetricsCairoTest
+
+151: Test command: /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/build/Tests/TextMetricsCairoTest
+151: Working Directory: /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/Tests
+151: Test timeout computed to be: 10000000
+151: Randomness seeded to: 3843240929
+151: ===============================================================================
+151: All tests passed (167 assertions in 7 test cases)
+151: 
+1/1 Test #151: TextMetricsCairoTest .............   Passed    0.05 sec
+
+The following tests passed:
+	TextMetricsCairoTest
+
+100% tests passed out of 1
+
+Total Test time (real) =   0.05 sec

@@ -1,0 +1,37 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:compileKotlin
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+
+> Task :buildSrc:jar
+:jar: No valid plugin descriptors were found in META-INF/gradle-plugins
+
+> Task :app:checkSubmoduleFeatureHeaders FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:checkSubmoduleFeatureHeaders' (registered in build file 'app/build.gradle.kts').
+> Generated libosmscout feature headers were present in the submodule source tree and have been
+  removed:
+    /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map/include/osmscoutmap/MapFeatures.h
+  
+  A generated header here wins over the one this build renders into the app's CMake build tree
+  (app/src/main/cpp/CMakeLists.txt, OSMSCOUT_FEATURES_DIR) — every module's target lists its source
+  tree before its binary include directory — in every build of this working tree. A host build then
+  compiles libosmscout against the Android configuration's feature macros and reports false failures
+  and false passes for every test keyed on them (§202). Re-run the build: the next one finds none
+  here.
+
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 11s
+4 actionable tasks: 3 executed, 1 up-to-date

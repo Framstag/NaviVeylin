@@ -1,0 +1,51 @@
+Calculating task graph as no cached configuration is available for tasks: :app:preBuild
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+> Task :app:checkCleartextTransportPolicy
+> Task :app:checkHardcodedStrings
+> Task :app:checkNativeParity
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+
+[Incubating] Problems report is available at: file:///home/tim/projects/NaviVeylin/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Configuration cache problems found in this build.
+
+5 problems were found storing the configuration cache.
+- Task `:app:checkCleartextTransportPolicy` of type `org.gradle.api.DefaultTask`: cannot serialize Gradle script object references as these are not supported with the configuration cache.
+  See https://docs.gradle.org/9.6.1/userguide/configuration_cache_requirements.html#config_cache:requirements:disallowed_types
+- Task `:app:checkHardcodedStrings` of type `org.gradle.api.DefaultTask`: cannot serialize Gradle script object references as these are not supported with the configuration cache.
+  See https://docs.gradle.org/9.6.1/userguide/configuration_cache_requirements.html#config_cache:requirements:disallowed_types
+- Task `:app:checkNativeParity` of type `org.gradle.api.DefaultTask`: cannot serialize Gradle script object references as these are not supported with the configuration cache.
+  See https://docs.gradle.org/9.6.1/userguide/configuration_cache_requirements.html#config_cache:requirements:disallowed_types
+- Task `:app:checkNoCoordinatesInLogs` of type `org.gradle.api.DefaultTask`: cannot serialize Gradle script object references as these are not supported with the configuration cache.
+  See https://docs.gradle.org/9.6.1/userguide/configuration_cache_requirements.html#config_cache:requirements:disallowed_types
+- Task `:app:checkNoWallClockWaits` of type `org.gradle.api.DefaultTask`: cannot serialize Gradle script object references as these are not supported with the configuration cache.
+  See https://docs.gradle.org/9.6.1/userguide/configuration_cache_requirements.html#config_cache:requirements:disallowed_types
+
+See the complete report at file:///home/tim/projects/NaviVeylin/build/reports/configuration-cache/8vzox318kui0dbi3f9jkn7c6e/7daqjn4qq7pbbgzo4ndj4fi2m/configuration-cache-report.html
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4s
+13 actionable tasks: 8 executed, 5 up-to-date
+Configuration cache entry discarded with 5 problems.

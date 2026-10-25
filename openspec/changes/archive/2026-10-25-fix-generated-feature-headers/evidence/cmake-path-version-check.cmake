@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.22)
+cmake_path(SET p "/a/b/c/MapFeatures.h.cmake")
+cmake_path(RELATIVE_PATH p BASE_DIRECTORY "/a/b/" OUTPUT_VARIABLE d)
+message("rel=" ${d})
+cmake_path(GET d PARENT_PATH d)
+message("inplace_parent=" ${d})
+cmake_path(GET d PARENT_PATH e)
+message("outofplace_parent=" ${e})

@@ -1,0 +1,89 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+> Task :app:checkCleartextTransportPolicy
+> Task :app:checkHardcodedStrings
+> Task :app:checkNativeParity
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preAutomotiveDebugBuild
+
+> Task :app:configureCMakeDebug[arm64-v8a]
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:156 (find_package):
+C/C++:   By not providing "FindCatch2.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "Catch2", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "Catch2" (requested
+C/C++:   version 3) with any of the following names:
+C/C++:     Catch2Config.cmake
+C/C++:     catch2-config.cmake
+C/C++:   Add the installation prefix of "Catch2" to CMAKE_PREFIX_PATH or set
+C/C++:   "Catch2_DIR" to a directory containing one of the above files.  If "Catch2"
+C/C++:   provides a separate development package or SDK, be sure it has been
+C/C++:   installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at /home/tim/Android/Sdk/cmake/3.22.1/share/cmake-3.22/Modules/FindProtobuf.cmake:524 (message):
+C/C++:   Protobuf compiler version 36.1 doesn't match library version 6.33.4
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/cmake/features.cmake:181 (find_package)
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:274 (find_package):
+C/C++:   By not providing "Findharfbuzz.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "harfbuzz",
+C/C++:   but CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "harfbuzz" with any
+C/C++:   of the following names:
+C/C++:     harfbuzzConfig.cmake
+C/C++:     harfbuzz-config.cmake
+C/C++:   Add the installation prefix of "harfbuzz" to CMAKE_PREFIX_PATH or set
+C/C++:   "harfbuzz_DIR" to a directory containing one of the above files.  If
+C/C++:   "harfbuzz" provides a separate development package or SDK, be sure it has
+C/C++:   been installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:283 (find_package):
+C/C++:   By not providing "Findglm.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "glm", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "glm" with any of
+C/C++:   the following names:
+C/C++:     glmConfig.cmake
+C/C++:     glm-config.cmake
+C/C++:   Add the installation prefix of "glm" to CMAKE_PREFIX_PATH or set "glm_DIR"
+C/C++:   to a directory containing one of the above files.  If "glm" provides a
+C/C++:   separate development package or SDK, be sure it has been installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:302 (find_package):
+C/C++:   By not providing "Findglfw3.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "glfw3", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "glfw3" with any of
+C/C++:   the following names:
+C/C++:     glfw3Config.cmake
+C/C++:     glfw3-config.cmake
+C/C++:   Add the installation prefix of "glfw3" to CMAKE_PREFIX_PATH or set
+C/C++:   "glfw3_DIR" to a directory containing one of the above files.  If "glfw3"
+C/C++:   provides a separate development package or SDK, be sure it has been
+C/C++:   installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: Template dir: osmscoutmapcairo
+
+> Task :app:configureCMakeDebug
+
+BUILD SUCCESSFUL in 4s
+14 actionable tasks: 9 executed, 5 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

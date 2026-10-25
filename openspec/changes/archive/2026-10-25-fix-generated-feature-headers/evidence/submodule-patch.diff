@@ -1,0 +1,38 @@
+diff --git a/cmake/ProjectConfig.cmake b/cmake/ProjectConfig.cmake
+index a71ac164e..2b69a58ff 100644
+--- a/cmake/ProjectConfig.cmake
++++ b/cmake/ProjectConfig.cmake
+@@ -88,7 +88,11 @@ macro(osmscout_library_project)
+ 		if(NOT _feature)
+ 			get_filename_component(_template_name ${_template} NAME_WE)
+ 			cmake_path(RELATIVE_PATH _template BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ OUTPUT_VARIABLE _template_dir)
+-			cmake_path(GET _template_dir PARENT_PATH _template_dir)
++			# `cmake_path(GET <var> PARENT_PATH <var>)` is a no-op on the CMake 3.22 that the Android Gradle plugin
++			# ships: the file name stayed in the directory and the feature header was written to
++			# `…/<Name>Features.h.cmake/<Name>Features.h`, where no include and no install ever looks for it.
++			# `get_filename_component` drops it on every CMake version.
++			get_filename_component(_template_dir "${_template_dir}" DIRECTORY)
+ 			message("Template dir: " ${_template_dir})
+ 			set(_feature ${CMAKE_CURRENT_BINARY_DIR}/include/${_template_dir}/${_template_name}.h)
+ 		endif()
+diff --git a/libosmscout/CMakeLists.txt b/libosmscout/CMakeLists.txt
+index fb59fcd95..12cce4c6b 100644
+--- a/libosmscout/CMakeLists.txt
++++ b/libosmscout/CMakeLists.txt
+@@ -22,7 +22,7 @@ set(HEADER_FILES_ROOT
+         include/osmscout/Way.h)
+ 
+ set(HEADER_FILES_LIB
+-        include/osmscout/lib/CoreFeatures.h
++        ${CMAKE_CURRENT_BINARY_DIR}/include/osmscout/lib/CoreFeatures.h
+         include/osmscout/lib/CoreImportExport.h)
+ 
+ set(HEADER_FILES_LOG
+@@ -413,6 +413,7 @@ osmscout_library_project(
+     SOURCE ${SOURCE_FILES}
+     HEADER ${HEADER_FILES}
+     TEMPLATE  ${CMAKE_CURRENT_SOURCE_DIR}/include/osmscout/lib/CoreFeatures.h.cmake
++    FEATURE ${CMAKE_CURRENT_BINARY_DIR}/include/osmscout/lib/CoreFeatures.h
+     EXCLUDE ${EXCLUDE_HEADER}
+ )
+ 

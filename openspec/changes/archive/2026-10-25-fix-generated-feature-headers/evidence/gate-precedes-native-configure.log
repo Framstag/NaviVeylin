@@ -1,0 +1,40 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+> Task :app:checkCleartextTransportPolicy
+> Task :app:checkHardcodedStrings
+> Task :app:checkNativeParity
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:checkSubmoduleFeatureHeaders' (registered in build file 'app/build.gradle.kts').
+> Generated libosmscout feature headers are present in the submodule source tree:
+    /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map/include/osmscoutmap/MapFeatures.h
+  
+  The native build renders them into the app's CMake build tree (app/src/main/cpp/CMakeLists.txt,
+  OSMSCOUT_FEATURES_DIR), and every module's target lists its source tree before its binary
+  include directory — so a copy here wins over the header this build generates, in every build
+  of this working tree. A host build then compiles libosmscout against the Android
+  configuration's feature macros and reports false failures and false passes for every test
+  keyed on them (§202). Delete the file(s) above: they are generated, untracked, and are
+  rewritten by the next configure:
+    rm /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/libosmscout-map/include/osmscoutmap/MapFeatures.h
+
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4s
+9 actionable tasks: 6 executed, 3 up-to-date

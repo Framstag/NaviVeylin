@@ -11,6 +11,7 @@
     "maxRecurrences": 2,
     "labels": ["agent/needs-decision", "status/on-hold"]
   },
+  "record": { "status": "on-hold" },
   "rows": [
     {
       "id": "foreign-row",

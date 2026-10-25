@@ -13,6 +13,7 @@
       "status/on-hold"
     ]
   },
+  "record": { "status": "on-hold" },
   "rows": [
     {
       "id": "fixture-emit",

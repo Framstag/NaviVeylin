@@ -203,9 +203,18 @@ sensors_row_problems() { # <row-json> → one reason per line, empty when the ro
 # The registry as a whole: every row complete, every id distinct, and the label each row owns inside the
 # taxonomy the profile declares (design D9, task 1.1).
 sensors_registry_problems() {
-  local row id seen="" problems=""
+  local row id seen="" problems="" record_status
   if ! issues_profile_value namespaces | grep -qx -- "$SENSORS_NAMESPACE"; then
     printf 'namespace-not-declared:%s\n' "$SENSORS_NAMESPACE"
+  fi
+  # The state a row's record issue carries is the registry's, and it is validated with the profile's own
+  # reader: a record with no state, or one outside the vocabulary, is one no selector could exclude
+  # (issue #257).
+  record_status=$(sensors_registry_value '.record.status')
+  if [ -z "$record_status" ]; then
+    printf 'registry-record-status-missing\n'
+  elif ! issues_core Policy labels --profile "$SENSORS_PROFILE" "status${SENSORS_SEPARATOR}${record_status}" >/dev/null 2>&1; then
+    printf 'registry-record-status-outside-the-vocabulary:%s\n' "$record_status"
   fi
   while IFS= read -r row; do
     id=$(sensors_row_field "$row" id)
@@ -462,9 +471,22 @@ sensors_body_set() { # <body> <key> <value> → the body with that record entry 
   issues_body_set "$1" "$2" "$3"
 }
 
-# The newest measurement marker of one row, across its issues — what the report prints as "last run".
+# The row's record issue: the one issue per row that carries the measurements taken while the row has no
+# condition to carry them, so a healthy check reaches the tracker as a verdict rather than as silence
+# (issue #257). It is identified by its own marker, never by a fingerprint: no finding a check reports
+# matches it, so the lifecycle never reopens or closes it.
+sensors_record_issue() { # <issues-json> <row-id> → the issue, or empty
+  jq -c --arg marker "<!-- sensor-record: $2 -->" \
+    '[.[]? | select((.body // "") | contains($marker))] | if length > 0 then .[0] else empty end' <<< "$1"
+}
+
+# The newest measurement marker of one row, across its issues — what the report prints as "last run" and what
+# a baseline-multiple row compares against. Sorted by the marker's own instant: the issues arrive
+# newest-first, and a row carries a record issue beside its condition issues, so the last of the unsorted list
+# is the newest marker of the oldest issue rather than the newest marker of the row.
 sensors_last_marker() { # <issues-json>
-  jq -r '[(.[]? | (.comments // [])[] | .body // "") | select(contains("verdict="))] | last // ""' <<< "$1"
+  jq -r '[(.[]? | (.comments // [])[] | {createdAt: (.createdAt // ""), body: (.body // "")})
+         | select(.body | contains("verdict="))] | sort_by(.createdAt) | last | .body // ""' <<< "$1"
 }
 
 sensors_marker_field() { # <marker> <name>
@@ -481,7 +503,7 @@ sensors_conditions_json() { # <issues-json> → a JSON array
   # the object between the braces, never everything up to the next `>`: the marker the engine writes carries a
   # ` -->` tail, so a tail-tolerant pattern yields `{"job":"build","case":"apk"} --` and every condition
   # parses to `{}` — which turns a green build's clear into a finding that owns no issue (#230).
-  jq -c '[.[]? | . as $issue | {
+  jq -c '[.[]? | select(((.body // "") | contains("sensor-record:")) | not) | . as $issue | {
       number: $issue.number,
       state: ($issue.state // "OPEN"),
       fingerprint: (((($issue.body // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; "")),

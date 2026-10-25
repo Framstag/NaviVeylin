@@ -49,7 +49,8 @@ deliberately not a submodule, a package or a published binary (see *What an upda
    the input bounds. This is the only file that names the project's repository and vocabulary.
 2. **`tools/sensors/sensors.json`** — the declared checks: one row per check, each with its command,
    cadence, bound, consecutive count, the kind and area it files, and the fields its fingerprint is
-   derived from.
+   derived from; plus `record.status` (one of the profile's own status values), the state the record issue a
+   green row's measurements land on carries, so no work selector takes it (`backlog-sensors`, issue #257).
 3. **`tools/loop/loop.conf`** — how a child agent is started (`LOOP_AGENT_CMD`), which of the
    project's skills the worker is told to use (`LOOP_WORKER_SKILLS`), **how the project's gate is
    run** (`LOOP_GATE_CMD`), the submodule a fresh worktree has to check out (`LOOP_SUBMODULE_PATH`,

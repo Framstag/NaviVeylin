@@ -11,6 +11,10 @@
     "maxRecurrences": 3,
     "labels": ["agent/needs-decision", "status/on-hold"]
   },
+  "record": {
+    "comment": "A row that ran and was green has no condition issue to carry its verdict, so its measurements go to one record issue per row: filed on the first such clear, never closed, and carrying this `status` so no work selector may take it (issue #257).",
+    "status": "on-hold"
+  },
   "rows": [
     {
       "id": "build-duration",

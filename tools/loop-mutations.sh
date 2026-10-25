@@ -448,6 +448,15 @@ MUTATIONS=(
   # (issue #302). Without the ancestry test the record takes whatever the run computed, which is how an absorbed
   # merge read as an advance and the closure named a base that never carried the fix.
   '57.2@-@tools/loop/state.sh@state#setBaseRefusesACommitTheBaseBranchDoesNotCarry@the ancestry of a recorded base against the base branch@s|^  git -C "\$LOOP_ROOT" merge-base --is-ancestor "\$sha" "\$branch" 2>/dev/null \|\|$|  true \|\||'
+  # 58.1–58.4 — an item blocked by a mechanism records which one stopped it (issue #280, the decision recorded on
+  # it: keep both stop rules and make their spend attributable). Measured 2026-10-23 over the archive: 10 refusing
+  # rounds cost 198.8 M tokens and 1 unmergeable attempt 22.9 M, both recorded as the one word `blocked`, so the
+  # two could be told apart only by reading the note's prose. The four clauses are the two engine sites, the state
+  # write and the report column, and each is noticed by the case that names its mechanism.
+  '58.1@-@tools/loop/run.sh@run#reviewRoundsCapAtTwo@the refusing last round named as the mechanism that stopped the item (issue #280)@s|^      stop_reason="refused"$|      stop_reason=""|'
+  '58.2@-@tools/loop/run.sh@run#doesNotCloseOnAMergeTheBaseCannotTake@a base that would not take the branch named as the other mechanism (issue #280)@s|^      stop_reason="unmergeable"$|      stop_reason=""|'
+  '58.3@-@tools/loop/state.sh@state#aBlockedItemNamesTheMechanismThatStoppedIt@the mechanism written into the item record (issue #280)@s|^                  stopReason:\$sr,$|                  stopReason:"",|'
+  '58.4@-@tools/loop/state.sh@report#wallTimeAndReasonInTheTable@the mechanism printed in a column of its own, beside the spend (issue #280)@s|\(\.stopReason // "-"\)|-|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

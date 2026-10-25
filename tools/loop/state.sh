@@ -37,6 +37,7 @@
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL] [--label-failures <transition>…]
+#                         [--stop-reason refused|unmergeable]
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -408,7 +409,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events="" stop_reason=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -425,6 +426,7 @@ cmd_done() {
       --red-test) need_value "$@"; red_test="${2:-}"; shift 2 ;;
       --decision-label) need_value "$@"; decision_label="${2:-}"; shift 2 ;;
       --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
+      --stop-reason) need_value "$@"; stop_reason="${2:-}"; shift 2 ;;
       --merged-branch) need_value "$@"; merged_branch="${2:-}"; shift 2 ;;
       --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
       --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
@@ -434,6 +436,16 @@ cmd_done() {
   done
   case "$issue" in ''|*[!0-9]*) loop_die "done: usage: state.sh done <issue> --result done|skipped|blocked|falsified" ;; esac
   case "$result" in done|skipped|blocked|falsified) ;; *) loop_die "done: --result must be done|skipped|blocked|falsified" ;; esac
+  # The mechanism a block stopped on is a closed vocabulary, not a second place to write prose (issue #280: a
+  # refusing review round and a base that would not take the branch both reached the record as the one word
+  # `blocked`, so 198.8 M of refusing rounds could only be told from one 22.9 M merge refusal by reading the note).
+  # A mechanism on anything but a block would double-count the item as two kinds of stop, so it is refused too.
+  case "$stop_reason" in
+    ""|refused|unmergeable) ;;
+    *) loop_die "done: --stop-reason must be refused or unmergeable" ;;
+  esac
+  [ -z "$stop_reason" ] || [ "$result" = blocked ] ||
+    loop_die "done: --stop-reason belongs to a blocked item, and this one is recorded $result"
   [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading
   # the tracker; an item with no queue entry (a resumed run) falls back to the empty string.
@@ -442,6 +454,9 @@ cmd_done() {
   # the decision label. The report names the decisions an item was left with from this field (issue #177).
   # `--label-failures` is the other half of that fact: the label transitions the tracker refused, so the item is
   # recorded as one whose state there is stale rather than as one the run escalated (issue #279).
+  # `--stop-reason` is the mechanism a block stopped on, recorded so a mechanism's spend is totalled from the
+  # state instead of from the note's prose; it is the blocked attempt's own fact, so a second account of the same
+  # item joins only its note and never rewrites it.
   local class usage
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
   # What the item spent is read from the event stream its children wrote, and recorded beside the wall time so
@@ -458,6 +473,7 @@ cmd_done() {
     .items = (
       if ([.items[] | select(.issue == $i)] | length) == 0 then
         .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
+                  stopReason:$sr,
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me},
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
@@ -476,7 +492,7 @@ cmd_done() {
     | (if .current != null and .current.issue == $i then .current = null else . end)
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
-    --arg lf "$label_failures" \
+    --arg lf "$label_failures" --arg sr "$stop_reason" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
     --argjson usage "$usage" \
@@ -551,15 +567,17 @@ child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,con
 # earlier shape keeps its columns in order.
 #
 # A figure nothing reported prints `-`, never `0`: a provider that streams no usage leaves zeros behind, and a
-# zero in a column of numbers reads as a measurement that was made.
+# zero in a column of numbers reads as a measurement that was made. The block's mechanism is the last column,
+# because a column that arrives is appended: the spend beside it is totalled by mechanism from the table itself,
+# `-` where no block stopped on one (issue #280).
 cmd_report() {
   require_state
   jq -r '
     "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason |",
-    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — |"
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -578,7 +596,7 @@ cmd_report() {
                     | if $c == null then "" else " cost=$\(($c * 10000 | round) / 10000)" end)
             end) as $tokencol
        | ((.metrics.context // null) as $n | if $n == null then "-" else "\($n)" end) as $contextcol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) |") end),
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \(.stopReason // "-") |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

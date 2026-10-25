@@ -495,7 +495,11 @@ item #260 blocked with no decision label while nothing was ever posted on it (is
 
 The report a run prints at its end is the run's product, and it answers three questions without the caller
 opening the tracker (#208): **which** items were handled and how each ended — the per-item table, with the
-item's own recorded reason when the result is not a closure; **what each one cost** — the wall time
+item's own recorded reason when the result is not a closure, and, when a block stopped on one of the loop's two
+known mechanisms, which one (`refused`: the last review round refused the change; `unmergeable`: the base would
+not take the branch), so the spend beside it is totalled by mechanism from the table instead of from the note's
+prose (issue #280 — 198.8 M of refusing rounds against 22.9 M of merge refusals over the archive, both recorded
+as `blocked`); **what each one cost** — the wall time
 `done --wall` records, and beside it the spend read from the child's own event stream: the tools it called with
 their count, the tokens it used and what they cost, the largest context it reached, with `-` where nothing was
 reported rather than a zero that reads as a measurement (#211) — beside the run-level `spent`; and **what the

@@ -1272,6 +1272,11 @@ while true; do
   fi
   outcome="closed"
   blocked_reason=""
+  # Which of the two mechanisms stopped the item, when one did: `refused` for the last review round, `unmergeable`
+  # for a base that would not take the branch. Both reach the record as `blocked`, and the record has no other
+  # place to keep them apart (issue #280; measured 2026-10-23: 198.8 M of refusing rounds against 22.9 M of merge
+  # refusals over the archive, distinguishable then only by reading the note). Every other block leaves it empty.
+  stop_reason=""
   if [ "$worker_exit" -ne 0 ]; then
     outcome="blocked"; blocked_reason="the worker process exited $worker_exit"
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
@@ -1464,6 +1469,7 @@ while true; do
     done
     if [ "$review_verdict" = "FAIL" ]; then
       outcome="blocked"
+      stop_reason="refused"
       blocked_reason="the change failed its last review round ($review_rounds of $round_cap) — a decision is needed, not another attempt"
       # The verdict has to outlive this run and travel with the change: the branch is what a later run adopts
       # from, and its archived change plus green XML say nothing about a reviewer that refused it (#185). A
@@ -1497,6 +1503,7 @@ while true; do
   if [ "$outcome" = "closed" ]; then
     merge_committed_branch "$issue" "fix/issue-$issue-$slug" || {
       outcome="blocked"
+      stop_reason="unmergeable"
       blocked_reason="the branch fix/issue-$issue-$slug could not be merged onto the base, so the item is not closed on a fix the tree does not have — $merge_refusal"
     }
     # The branch the run committed for this item is done with once the run merged it: the work is in the
@@ -1647,7 +1654,7 @@ question the item asked; a retry costs another attempt, and an abandonment remov
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
         --events "$events_file" --decision-label "$escalated_label" \
-        --label-failures "$label_failures" >/dev/null
+        --label-failures "$label_failures" --stop-reason "$stop_reason" >/dev/null
       ;;
   esac
   detail="${change:-$blocked_reason}"

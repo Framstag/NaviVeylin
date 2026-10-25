@@ -42,6 +42,7 @@ LOOP_SHELL_CASES=(
   'state#recordsTheBaseBranchNotTheCheckout'
   'state#baseBranchIsAConfigurationKey'
   'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry'
+  'state#aBlockedItemNamesTheMechanismThatStoppedIt'
   'state#defaultsComeFromLoopConf'
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
@@ -307,6 +308,7 @@ loop_run_shell_case() {
     'state#recordsTheBaseBranchNotTheCheckout') fn=case_state_recordsTheBaseBranchNotTheCheckout ;;
     'state#baseBranchIsAConfigurationKey') fn=case_state_baseBranchIsAConfigurationKey ;;
     'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry') fn=case_state_setBaseRefusesACommitTheBaseBranchDoesNotCarry ;;
+    'state#aBlockedItemNamesTheMechanismThatStoppedIt') fn=case_state_aBlockedItemNamesTheMechanismThatStoppedIt ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
@@ -1154,6 +1156,37 @@ case_state_agentCommandRefusesAnEmptyValue() {
   assert_eq "2" "$status" "an empty agent command is a usage error"
   assert_contains "$out" "LOOP_AGENT_CMD is empty" "the refusal names the configuration key"
   [ ! -f "$PI_STUB_LOG" ] || [ ! -s "$PI_STUB_LOG" ] || fail "an agent process was started anyway"
+}
+
+# An item that ends `blocked` records **which mechanism** stopped it — a review round that refused the change,
+# or a base the branch could not be merged onto — instead of the single word `blocked` that stood for both
+# (issue #280, the decision recorded on it: keep both stop rules, make their spend attributable). Measured over the
+# archive on 2026-10-23: the 10 refusing rounds and the 1 unmergeable attempt cost 221.7 M tokens, 19 % of every
+# archived run, and the note's prose was the only thing that said which mechanism each one was, so neither a
+# report nor a person could total one mechanism's spend without parsing that prose.
+case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p f out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  run_state "$p" done 21 --result blocked --verdict blocked --stop-reason refused >/dev/null ||
+    fail "a blocked item recording a refusing round was refused"
+  run_state "$p" done 22 --result blocked --verdict blocked --stop-reason unmergeable >/dev/null ||
+    fail "a blocked item recording an unmergeable base was refused"
+  run_state "$p" done 23 --result blocked --verdict blocked >/dev/null ||
+    fail "a block neither mechanism caused is still a block"
+  f=$(state_file "$p")
+  assert_eq "refused" "$(jq -r '.items[] | select(.issue == 21) | .stopReason' "$f")" \
+    "the refusing round is recorded as its own mechanism"
+  assert_eq "unmergeable" "$(jq -r '.items[] | select(.issue == 22) | .stopReason' "$f")" \
+    "and a base that refused the merge as the other"
+  assert_eq "" "$(jq -r '.items[] | select(.issue == 23) | .stopReason // ""' "$f")" \
+    "a block neither mechanism caused carries none"
+  out=$(run_state "$p" done 23 --result blocked --verdict blocked --stop-reason abandoned 2>&1); status=$?
+  assert_eq "2" "$status" "a mechanism outside the vocabulary is a usage error"
+  assert_contains "$out" "refused or unmergeable" "and the refusal names the two the record accepts"
+  out=$(run_state "$p" done 23 --result done --verdict closed --stop-reason refused 2>&1); status=$?
+  assert_eq "2" "$status" "a stop reason belongs to a block, not to a closure"
 }
 
 # A child is started with the run's identity in its environment (`run_child` exports `LOOP_STATE_FILE` and
@@ -4615,6 +4648,8 @@ case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
   run_one_item "$p" "$d" --review on >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
     "a closure whose merge the base cannot take is blocked, not settled"
+  assert_eq "unmergeable" "$(jq -r '.items[0].stopReason' "$(state_file "$p")")" \
+    "and the record names the base's refusal as the mechanism that stopped it (issue #280)"
   branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
   [ -n "$branch" ] || fail "the run left no item branch"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not clean" \
@@ -4945,6 +4980,8 @@ case_run_reviewRoundsCapAtTwo() {
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: FAIL'
   run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "two failed rounds block the item"
+  assert_eq "refused" "$(jq -r '.items[0].stopReason' "$(state_file "$p")")" \
+    "and the record names the refusing round as the mechanism that stopped it (issue #280)"
   assert_eq "2" "$(jq -r '.items[0].metrics.reviewRounds' "$(state_file "$p")")" "the rounds are counted"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "last review round" "the reason names the round"
   assert_eq "4" "$(grep -c '^invocation' "$PI_STUB_LOG")" "two workers and two reviewers"
@@ -5986,12 +6023,13 @@ case_report_wallTimeAndReasonInTheTable() {
     run_state "$p" queue >/dev/null
   run_state "$p" done 21 --result done --verdict closed --wall 754 \
     --gate "tests=1 failures=0" --root-cause "the fixture has exactly one cause" >/dev/null
-  run_state "$p" done 22 --result blocked --verdict blocked \
+  run_state "$p" done 22 --result blocked --verdict blocked --stop-reason refused \
     --note "two mechanisms explain the symptom" --decision-label agent/needs-decision >/dev/null
   out=$(run_report "$p") || fail "the report failed"
   header=$(printf '%s\n' "$out" | grep '^| issue |' || true)
   assert_contains "$header" "| wall |" "the table has a column for the item's wall time"
   assert_contains "$header" "| reason |" "and one for the reason a non-done result carries"
+  assert_contains "$header" "| stop |" "and one for the mechanism a block stopped on (issue #280)"
   row_done=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
   row_blocked=$(printf '%s\n' "$out" | grep '^| #22 |' || true)
   [ -n "$row_done" ] || fail "no table row for #21"
@@ -5999,11 +6037,15 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_contains "$row_done" "| done |" "and the row still says how the item ended"
   assert_contains "$row_blocked" "two mechanisms explain the symptom" "the blocked item's own reason is printed"
   assert_contains "$row_blocked" "| blocked |" "beside its outcome"
-  # Fourteen columns, so fifteen separators: the wall, the reason and the three spend columns were added,
-  # nothing was dropped.
-  assert_eq "15" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
-    "the row keeps its fourteen columns"
-  assert_eq "15" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+  # The mechanism is a column of its own, so the spend beside it is totalled by mechanism without reading the
+  # note: a closure has none, a block names the one that stopped it.
+  assert_contains "$row_blocked" "| refused |" "and the mechanism that stopped it, in a column of its own"
+  assert_contains "$row_done" "| done | - |" "while a closure carries no mechanism"
+  # Fifteen columns, so sixteen separators: the wall, the reason and the three spend columns were added, then
+  # the block's mechanism, and nothing was dropped.
+  assert_eq "16" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its fifteen columns"
+  assert_eq "16" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
 }
 

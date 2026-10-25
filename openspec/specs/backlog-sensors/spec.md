@@ -54,7 +54,27 @@ SHALL name the check's own identity only when no item records a condition.
 - **WHEN** a row's command finds no condition to report — the build is green, no change of the owner's is in
   conflict
 - **THEN** it reports a clear naming its own identity, so "the condition is absent" reaches the tracker's
-  history as a verdict rather than as the row's silence
+  history as a verdict rather than as the row's silence: a clear whose identity no open condition issue
+  carries is recorded on the row's own record issue, under the row's label and the state the registry declares
+  for records, and never closed by the lifecycle — so the report reads the row as one that ran and was green
+  rather than as one that never ran
+- **Case**: `run#aClearWithNoIssueReachesTheRecord`
+
+#### Scenario: The report tells a green row from one that never ran
+
+- **WHEN** the rows are reported and one row's measurements are on its record issue while another row has no
+  measurement anywhere
+- **THEN** the first prints its newest measurement with its verdict and is not flagged as stale, and the
+  second is the one reported as never measured, so the two are distinguishable
+- **Case**: `report#aGreenRowIsNotNever`
+
+#### Scenario: A row's record is not a condition
+
+- **WHEN** a check reads the conditions its issues record, so that it can report a cleared condition under the
+  identity that issue holds
+- **THEN** the row's own record issue is not among them, because its marker is not a condition's fingerprint
+  and the lifecycle never reopens or closes it
+- **Case**: `lib#theRecordIsNotACondition`
 
 #### Scenario: The check itself failed
 

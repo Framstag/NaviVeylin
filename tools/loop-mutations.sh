@@ -512,6 +512,16 @@ MUTATIONS=(
   '62.4@-@tools/loop/run.sh@run#noProcessOfASignalledRunOutlivesIt@the call that ends the heartbeat with a signalled run (issue #308)@s|^  loop_end_pid "\$active_hb"$|  : # the mutation leaves the heartbeat|'
   '62.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue" "\$item_dir"$|    : # the mutation keeps no patch|'
   '62.6@-@tools/loop/run.sh@run#aRefusedStartKeepsTheLeftoversItFound@the patch a refused start keeps (issue #308)@s|^        keep_leftovers "\$owner_item" "\$stage_dir/items/\$owner_item"$|        : # the mutation keeps no patch|'
+
+  # 255.x — the evidence check reads the roots it scans from the project's configuration, and an engine may hold no
+  # project path (issue #255). The check came out of the `fix-loop` skill, whose C4 looked for a leftover
+  # `REVERT-CHECK MUTATION` marker under the literal `app/src` and so reported on this project's source from any
+  # tree; it now reads `LOOP_EVIDENCE_SCAN_PATHS`/`LOOP_EVIDENCE_XML_DIR` from `tools/loop/loop.conf`. One record,
+  # and the case it must be noticed by is `evidence#scansWhatTheProfileNames`: the mutation puts the retired
+  # literal back where the configuration was read, so the marker the case plants under the root its own
+  # configuration names is not reported — and a configuration that names no scan root is answered with a clean
+  # report instead of the refusal the same case asserts.
+  '255.1@-@tools/loop/evidence-check.sh@evidence#scansWhatTheProfileNames@the scan root read from the project configuration — the engine looks at a literal of its own instead (issue #255)@s#^    \[ -n "\$scan" \] || scan=\$(conf_value "\$conf_file" LOOP_EVIDENCE_SCAN_PATHS)$#    [ -n "$scan" ] || scan="app/src"#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -18,7 +18,7 @@ context: |
   Native purity: libosmscout stays Android-free outside its frozen Android/ dir (CI-gated)
   Google Play Services: optional, used when available (Fused location, car MapController); no hard dependency — replaceable by design (e.g., LocationManager fallback)
   Tooling: do NOT use python3 for openspec interaction or CLI output processing — use plain shell, jq, or openspec's own --json output instead
-  Defect-shaped items: `.pi/skills/fix-loop` owns the budgeted loop that closes bugs and defect-shaped improvements (triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → the issue's `status/fixed-by` label and its closure). An item may only enter that loop when exactly one fix follows from a proven root cause; otherwise it is skipped, not guessed at.
+  Defect-shaped items: `tools/loop/run.sh` is the entry to the budgeted loop that closes bugs and defect-shaped improvements (triage → root cause proven by a test that is red on HEAD → `fix-*` change → apply → independent review → archive → the issue's `status/fixed-by` label and its closure); its contract is the spec `agent-issue-loop`. An item may only enter that loop when exactly one fix follows from a proven root cause; otherwise it is skipped, not guessed at.
 
 rules:
   proposal:

@@ -16,6 +16,14 @@
       `gate#theSuitesOutputReachesTheConsoleWhileItRuns`. Verify: `bash tools/loop-mutations.sh --check` (172 records
       apply) and `bash tools/loop-mutations.sh --only '46.1 63.1'` → `red-when-mutated: 2 · not-noticed: 0 ·
       restore-failures: 0` (`evidence/loop-mutations-315.log`).
+      Round 1's record carried the replacement's three `&` unescaped, and `sed` expands an unescaped `&` to the whole
+      match, so it corrupted the step line instead of restoring the pipeline (its round-1 review, blocking). Round 2
+      escapes them (`2>\&1`, `\|`, `\&`) and quotes the failure the mutation now produces — `bash
+      tools/loop-mutations.sh --check` → all 172 records apply, `bash tools/loop-mutations.sh --only '63.1'` →
+      `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0` (`evidence/loop-mutations-63-1-round2.log`,
+      `evidence/loop-mutations-check-round2.log`), the case's own line being `the step ran on after its command
+      exited: still inside the gate 8s into a 20s writer that command left behind`
+      (`evidence/red-mutated-63-1-round2.log`).
 - [x] 2.1 The spec delta `specs/agent-issue-loop/spec.md`: *The gate streams a suite's output while it runs* carries
       both shipped scenarios verbatim plus *A step ends with the command it ran*. Verify:
       `openspec validate 2026-10-26-fix-gate-step-ends-with-its-command --strict` and the body's length (412

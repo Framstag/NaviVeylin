@@ -107,6 +107,53 @@ attempt.
 What the numbers say about the item: the selftest step's own line is `— 374s` and the suite's summary is in the same
 step's stream, where the item measured `— 1237s` against a verdict at 565 s. The step's clock is now the suite's.
 
+## Round 2 — the mutation record's escaping (its round-1 review)
+
+The round-1 review refused the change on one blocking finding: `63.1`'s replacement carried three **unescaped** `&`
+(`2>&1` twice, the trailing `&`), and the harness applies a record with `sed -i "$expr"` — where an unescaped `&`
+in the replacement expands to *the whole match*. The record therefore rewrote `gate.sh`'s step line into a corrupted
+one instead of restoring `$cmd 2>&1 | tee "$stream" &`, so the observed `RED 63.1` (`loop-mutations-315.log`) was a
+failure for another reason, and that log quotes no failure text at all.
+
+The correction is the record's replacement alone (`tools/loop-mutations.sh:536`), its three ampersands escaped the
+way every record that needs a literal one writes them (`9.3`, `9.9`, `12.2`, `34.4`, `43.3`), plus a sentence in the
+record's comment saying why. No case, assertion, scenario or engine line moved.
+
+What the corrected record does to the step line, applied to a throwaway copy of `gate.sh` with the record's own
+expression (`evidence/loop-mutations-check-round2.log` is the whole set's check; the diff is one line):
+
+```
+191c191
+<   $cmd >"$stream" 2>&1 &
+---
+>   $cmd 2>&1 | tee "$stream" &
+```
+
+Verification, both from the change root:
+
+- `bash tools/loop-mutations.sh --check` → `loop-mutations: all 172 cases passed — every selected record applies to
+the file it names` (`evidence/loop-mutations-check-round2.log`).
+- `bash tools/loop-mutations.sh --only '63.1'` → `RED 63.1 gate#aStepEndsWithItsCommandNotWithItsWatchers`, `restore
+  63.1 … green again`, `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0`
+  (`evidence/loop-mutations-63-1-round2.log`); the tree's step line is back to `  $cmd >"$stream" 2>&1 &`.
+
+The harness captures the case's output to `/dev/null`, so the reason of that `RED` is taken separately, from the same
+mutation applied to a private throwaway copy of the engine (`tools/loop` copied with `tools/issues` beside it, the
+copy removed after the run) and the case run against it through `LOOP_ENGINE`:
+
+```
+$ LOOP_ENGINE=<engine copy with 63.1 applied> bash tools/loop-selftest.sh --case gate#aStepEndsWithItsCommandNotWithItsWatchers
+  the step ran on after its command exited: still inside the gate 8s into a 20s writer that command left behind
+FAIL gate#aStepEndsWithItsCommandNotWithItsWatchers
+loop-selftest: 1 of 1 cases failed
+```
+
+(`evidence/red-mutated-63-1-round2.log`.) That is the invariant's own red — the pipe holding the step open on a writer
+that outlived the command — and it is the line the round-1 record could not produce.
+
+No gate was re-run for this round: the delta touches no compiled file, and the two commands above are the record
+check's own step.
+
 ## Phase F — pointers, archive
 
 - `bash tools/loop/evidence-check.sh openspec/changes/2026-10-26-fix-gate-step-ends-with-its-command --root .` —

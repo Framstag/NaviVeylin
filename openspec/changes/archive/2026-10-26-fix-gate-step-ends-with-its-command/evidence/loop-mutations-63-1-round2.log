@@ -1,0 +1,6 @@
+loop-mutations: selected 1 of 172 records (labels: 63.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.eSV5XA
+RED    63.1  gate#aStepEndsWithItsCommandNotWithItsWatchers   (the step ending with the command it started, not with the pipe that command wrote into (issue #315))
+restore 63.1 gate#aStepEndsWithItsCommandNotWithItsWatchers green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

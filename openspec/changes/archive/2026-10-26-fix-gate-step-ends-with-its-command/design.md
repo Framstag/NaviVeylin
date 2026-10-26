@@ -54,7 +54,12 @@ The chosen fix needs none of that: it removes the pipe, so there is nothing for 
   observable (`gate#theSuitesOutputReachesTheConsoleWhileItRuns`, `gate#aFailingSuiteIsReadFromTheSameStream`,
   `gate#theSummaryNamesWhatEachSuiteCost`). `--quiet` keeps its meaning: the file is written, the console is not.
 - `tools/loop-mutations.sh` — `46.1` quoted the pipe and would have gone stale (`MUTATION-DID-NOT-APPLY`); it quotes
-  the follower now. `63.1` is new and is the record of the new invariant.
+  the follower now. `63.1` is new and is the record of the new invariant. Its replacement spells the restored
+  pipeline's three ampersands escaped (`2>\&1`, `\|`, `\&`), because the harness applies a record with `sed -i
+  "$expr"` and an unescaped `&` there expands to the whole match: round 1's record therefore rewrote the step line
+  into a corrupted one rather than restoring `$cmd 2>&1 | tee "$stream" &`, and the `RED` it produced was not the
+  invariant's (its round-1 review). Every record that needs a literal ampersand in its replacement writes it `\&`
+  (`9.3`, `9.9`, `12.2`, `34.4`, `43.3`); `63.1` follows them now.
 - The loop's gate on a machine without `wc`/`tail` — both are POSIX and already required elsewhere in the tooling
   (`tools/gen-feature-list.sh` uses `tail -n +2`); no new prerequisite is added.
 

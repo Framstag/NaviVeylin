@@ -1,0 +1,5 @@
+gate#aStepEndsWithItsCommandNotWithItsWatchers|   the step ran on after its command exited: still inside the gate 8s into a 20s writer that command left behind
+--- gate#aStepEndsWithItsCommandNotWithItsWatchers[0] (exit 1)
+  the step ran on after its command exited: still inside the gate 8s into a 20s writer that command left behind
+FAIL gate#aStepEndsWithItsCommandNotWithItsWatchers
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,15 @@
+states: run.json
+items with a recorded spend: 164
+median   8656911 (8.66 M)
+p75      16858818 (16.86 M)
+p90      22958848 (22.96 M)
+max      44163688 (44.16 M)
+above 16858818: 40 items (24%)
+above 22958848: 16 items (10%)
+LOOP-BAND-ITEMS n=164
+LOOP-BAND-MEDIAN tokens=8656911 ratio_p75_to_median=1.95
+LOOP-BAND-P75 tokens=16858818
+LOOP-BAND-P90 tokens=22958848
+LOOP-BAND-MAX tokens=44163688
+context (the largest window a child held) over 164 items: median 115923, p90 173371, max 244764
+LOOP-BAND-CONTEXT n=164 p90=173371 max=244764

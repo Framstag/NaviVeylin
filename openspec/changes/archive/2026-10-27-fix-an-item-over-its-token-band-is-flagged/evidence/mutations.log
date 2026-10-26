@@ -1,0 +1,8 @@
+loop-mutations: selected 2 of 180 records (labels: 65.1 65.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.GLvTVF
+RED    65.1  report#anItemOverTheTokenBoundIsFlagged   (the run-level line that names the items above the recorded band (issue #662))
+restore 65.1 report#anItemOverTheTokenBoundIsFlagged green again
+RED    65.2  report#anItemOverTheTokenBoundIsFlagged   (the table column that says how far above the band an item is (issue #662))
+restore 65.2 report#anItemOverTheTokenBoundIsFlagged green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

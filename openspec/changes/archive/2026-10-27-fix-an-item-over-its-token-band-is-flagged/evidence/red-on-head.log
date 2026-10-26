@@ -1,0 +1,57 @@
+report#anItemOverTheTokenBoundIsFlagged|   the run names the item above the bound and how far above it is: 'over the item token bound (1000000 tokens): #21 2.5x' not found in: **agent-issue-loop — 2026-10-26T23:02:15Z** (budget 2 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base 09eb1421d34d)
+report#anItemOverTheTokenBoundIsFlagged| 
+report#anItemOverTheTokenBoundIsFlagged| closed 2 · mis-diagnosed 0 · skipped 0 · blocked 0 · budget left 0 items / 90 min · spent 0 min
+report#anItemOverTheTokenBoundIsFlagged| 
+report#anItemOverTheTokenBoundIsFlagged| stop: not stopped — the run is still going, or it ended without recording a reason
+report#anItemOverTheTokenBoundIsFlagged| 
+report#anItemOverTheTokenBoundIsFlagged| closed 2 · mis-diagnosed 0 · skipped 0 · blocked 0 of 2 items · budget 90 min
+report#anItemOverTheTokenBoundIsFlagged| 
+report#anItemOverTheTokenBoundIsFlagged| | issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop |
+report#anItemOverTheTokenBoundIsFlagged| |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+report#anItemOverTheTokenBoundIsFlagged| | #21 | bug | closed |  |  |  |  | - | 42s | - | in=100000 out=200000 cache=2200000 | 2300000 | done | - | - |
+report#anItemOverTheTokenBoundIsFlagged| | #22 | bug | closed |  |  |  |  | - | 42s | - | in=10000 out=20000 cache=200000 | 210000 | done | - | - |
+report#anItemOverTheTokenBoundIsFlagged| 
+report#anItemOverTheTokenBoundIsFlagged| merged finished attempts: none
+report#anItemOverTheTokenBoundIsFlagged| no exclusions
+report#anItemOverTheTokenBoundIsFlagged| 
+report#anItemOverTheTokenBoundIsFlagged| skipped: none
+report#anItemOverTheTokenBoundIsFlagged| mis-diagnosed: none
+report#anItemOverTheTokenBoundIsFlagged| excluded before any work: none
+report#anItemOverTheTokenBoundIsFlagged| decisions the owner owes: none
+report#anItemOverTheTokenBoundIsFlagged| branches: none
+report#anItemOverTheTokenBoundIsFlagged| landed, removable: none
+report#anItemOverTheTokenBoundIsFlagged| worktree: not present at run end (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.s90DlJ/cases/0/tree/case.y7MouU/repo/.pi/worktrees/loop)
+report#anItemOverTheTokenBoundIsFlagged| state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.s90DlJ/cases/0/tree/case.y7MouU/repo/.pi/issue-loop/run.json
+report#anItemOverTheTokenBoundIsFlagged| 
+report#anItemOverTheTokenBoundIsFlagged| actions the caller owes:
+report#anItemOverTheTokenBoundIsFlagged|   none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no label write the tracker refused
+--- report#anItemOverTheTokenBoundIsFlagged[0] (exit 1)
+  the run names the item above the bound and how far above it is: 'over the item token bound (1000000 tokens): #21 2.5x' not found in: **agent-issue-loop — 2026-10-26T23:02:15Z** (budget 2 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base 09eb1421d34d)
+
+closed 2 · mis-diagnosed 0 · skipped 0 · blocked 0 · budget left 0 items / 90 min · spent 0 min
+
+stop: not stopped — the run is still going, or it ended without recording a reason
+
+closed 2 · mis-diagnosed 0 · skipped 0 · blocked 0 of 2 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #21 | bug | closed |  |  |  |  | - | 42s | - | in=100000 out=200000 cache=2200000 | 2300000 | done | - | - |
+| #22 | bug | closed |  |  |  |  | - | 42s | - | in=10000 out=20000 cache=200000 | 210000 | done | - | - |
+
+merged finished attempts: none
+no exclusions
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: none
+decisions the owner owes: none
+branches: none
+landed, removable: none
+worktree: not present at run end (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.s90DlJ/cases/0/tree/case.y7MouU/repo/.pi/worktrees/loop)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.s90DlJ/cases/0/tree/case.y7MouU/repo/.pi/issue-loop/run.json
+
+actions the caller owes:
+  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no label write the tracker refused
+FAIL report#anItemOverTheTokenBoundIsFlagged
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,68 @@
+loop-mutations: selected 32 of 180 records (files: .pi/skills/loop-spend/SKILL.md PORTING.md guidelines/Backlog.md tools/loop-cases.sh tools/loop-mutations.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.2qAEWZ
+RED    9.1  state#secondRunRefusesWithExit5   (the lock that keeps one run per repository)
+restore 9.1 state#secondRunRefusesWithExit5 green again
+RED    13.6  state#secondRunRefusesWithExit5   (the refusal of a live owner's lock)
+restore 13.6 state#secondRunRefusesWithExit5 green again
+RED    14.1  report#escalatedSkipNamesTheLabelWritten   (the decision list read from the label the escalation recorded, not the verdict)
+restore 14.1 report#escalatedSkipNamesTheLabelWritten green again
+RED    14.4  report#aVerdictAloneIsNoEscalation   (the list naming only the items this run escalated)
+restore 14.4 report#aVerdictAloneIsNoEscalation green again
+RED    14.8  run#aFailedEscalationWriteIsNamed   (the report naming the item whose label write the tracker refused)
+restore 14.8 run#aFailedEscalationWriteIsNamed green again
+RED    16.3  run#stopReasonIsPrintedAndReported   (the report repeating the recorded stop reason)
+restore 16.3 run#stopReasonIsPrintedAndReported green again
+RED    35.3  report#landedBranchIsNoAction   (the report counting what a branch carries by patch)
+restore 35.3 report#landedBranchIsNoAction green again
+GREEN  54.1  gate#theMapCoversEveryPipelineStep   <-- the case did not notice the mutation
+restore 54.1 gate#theMapCoversEveryPipelineStep green again
+RED    54.2  gate#aPipelineCheckIsOwedByItsPaths   (the pair that owes the check over a path the step reads (issue #242))
+restore 54.2 gate#aPipelineCheckIsOwedByItsPaths green again
+RED    54.3  gate#aPipelineCheckIsOwedByItsPaths   (the pair that owes the build-inputs mutation list (issue #242))
+restore 54.3 gate#aPipelineCheckIsOwedByItsPaths green again
+RED    54.4  gate#aPipelineCheckIsOwedByItsPaths   (a pair that reaches another step through a coarse glob (issue #242))
+restore 54.4 gate#aPipelineCheckIsOwedByItsPaths green again
+RED    54.5  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the portability check for a path it reads, the loop configuration (issue #289))
+restore 54.5 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+RED    54.6  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the portability check for an engine it scans (issue #289))
+restore 54.6 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+RED    54.7  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the issue tooling step for an engine its case greps (issue #289))
+restore 54.7 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+RED    54.8  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes one command of that step besides its self-test (issue #289))
+restore 54.8 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+RED    54.9  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the portability check for the profile it reads (issue #289))
+restore 54.9 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+RED    54.10  gate#aPathACheckReadsOwesThatStepsCommandSet   (the pair that owes the build-inputs step for the registry it reads (issue #289))
+restore 54.10 gate#aPathACheckReadsOwesThatStepsCommandSet green again
+RED    41.2  state#aDeadOwnersLockIsTakenOver   (the liveness of the lock's owner)
+restore 41.2 state#aDeadOwnersLockIsTakenOver green again
+RED    41.3  report#aKilledRunIsNotALiveRun   (the report telling a run whose process is gone from one that is going)
+restore 41.3 report#aKilledRunIsNotALiveRun green again
+RED    42.4  report#landedBranchesAreNamedAsRemovable   (the report naming the branches that can be removed)
+restore 42.4 report#landedBranchesAreNamedAsRemovable green again
+RED    43.2  gate#anEnginePathOwesTheRecordCheck   (the profile pair that owes the record check for a path under the engine (issue #264))
+restore 43.2 gate#anEnginePathOwesTheRecordCheck green again
+RED    50.1  gate#anArchivedArtefactOwesNoBuild   (the profile reading a compiled path by its tree rather than by its name)
+restore 50.1 gate#anArchivedArtefactOwesNoBuild green again
+RED    53.2  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (one record per item, a second account joining the note the item already has (issue #284))
+restore 53.2 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+RED    56.1  state#recordsTheBaseBranchNotTheCheckout   (the base recorded from the base branch instead of the commit the checkout has)
+restore 56.1 state#recordsTheBaseBranchNotTheCheckout green again
+RED    56.3  state#baseBranchIsAConfigurationKey   (the base branch recorded as a value an inherited environment may override (issue #303))
+restore 56.3 state#baseBranchIsAConfigurationKey green again
+RED    57.2  state#setBaseRefusesACommitTheBaseBranchDoesNotCarry   (the ancestry of a recorded base against the base branch)
+restore 57.2 state#setBaseRefusesACommitTheBaseBranchDoesNotCarry green again
+RED    58.3  state#aBlockedItemNamesTheMechanismThatStoppedIt   (the mechanism written into the item record (issue #280))
+restore 58.3 state#aBlockedItemNamesTheMechanismThatStoppedIt green again
+RED    58.4  report#wallTimeAndReasonInTheTable   (the mechanism printed in a column of its own, beside the spend (issue #280))
+restore 58.4 report#wallTimeAndReasonInTheTable green again
+RED    58.5  report#wallTimeAndReasonInTheTable   (`-` in the stop column of a row no mechanism stopped (issue #280))
+restore 58.5 report#wallTimeAndReasonInTheTable green again
+RED    64.2  state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes   (the item floor never recorded below what one item's gate owes (issue #663))
+restore 64.2 state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes green again
+RED    65.1  report#anItemOverTheTokenBoundIsFlagged   (the run-level line that names the items above the recorded band (issue #662))
+restore 65.1 report#anItemOverTheTokenBoundIsFlagged green again
+RED    65.2  report#anItemOverTheTokenBoundIsFlagged   (the table column that says how far above the band an item is (issue #662))
+restore 65.2 report#anItemOverTheTokenBoundIsFlagged green again
+
+red-when-mutated: 31 · not-noticed: 1 · restore-failures: 0

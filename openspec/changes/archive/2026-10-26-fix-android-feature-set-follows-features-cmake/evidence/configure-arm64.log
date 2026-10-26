@@ -1,0 +1,211 @@
+-- Using vcpkg deps at /home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android (triplet: arm64-android, ABI: arm64-v8a)
+-- Building libosmscout from submodule
+-- JNI pre-set: headers at /home/tim/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include
+CMake Warning at libosmscout/cmake/features.cmake:156 (find_package):
+  By not providing "FindCatch2.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "Catch2", but
+  CMake did not find one.
+
+  Could not find a package configuration file provided by "Catch2" (requested
+  version 3) with any of the following names:
+
+    Catch2Config.cmake
+    catch2-config.cmake
+
+  Add the installation prefix of "Catch2" to CMAKE_PREFIX_PATH or set
+  "Catch2_DIR" to a directory containing one of the above files.  If "Catch2"
+  provides a separate development package or SDK, be sure it has been
+  installed.
+Call Stack (most recent call first):
+  libosmscout/CMakeLists.txt:72 (include)
+
+
+CMake Warning at /home/tim/Android/Sdk/cmake/3.22.1/share/cmake-3.22/Modules/FindProtobuf.cmake:524 (message):
+  Protobuf compiler version 36.1 doesn't match library version 6.33.4
+Call Stack (most recent call first):
+  libosmscout/cmake/features.cmake:181 (find_package)
+  libosmscout/CMakeLists.txt:72 (include)
+
+
+-- Could NOT find LibLZMA (missing: LIBLZMA_LIBRARY LIBLZMA_INCLUDE_DIR LIBLZMA_HAS_AUTO_DECODER LIBLZMA_HAS_EASY_ENCODER LIBLZMA_HAS_LZMA_PRESET) 
+-- Could NOT find LibAgg (missing: LIBAGG_INCLUDE_DIRS LIBAGG_LIBRARIES) 
+-- Performing Test OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT
+-- Performing Test OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT - Success
+-- Could NOT find Pango (missing: PANGO_INCLUDE_DIRS PANGO_LIBRARIES) 
+CMake Warning at libosmscout/cmake/features.cmake:274 (find_package):
+  By not providing "Findharfbuzz.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "harfbuzz",
+  but CMake did not find one.
+
+  Could not find a package configuration file provided by "harfbuzz" with any
+  of the following names:
+
+    harfbuzzConfig.cmake
+    harfbuzz-config.cmake
+
+  Add the installation prefix of "harfbuzz" to CMAKE_PREFIX_PATH or set
+  "harfbuzz_DIR" to a directory containing one of the above files.  If
+  "harfbuzz" provides a separate development package or SDK, be sure it has
+  been installed.
+Call Stack (most recent call first):
+  libosmscout/CMakeLists.txt:72 (include)
+
+
+-- Could NOT find OpenGL (missing: OPENGL_opengl_LIBRARY OPENGL_glx_LIBRARY OPENGL_INCLUDE_DIR) 
+-- Could NOT find GLEW (missing: GLEW_INCLUDE_DIRS GLEW_LIBRARIES) 
+CMake Warning at libosmscout/cmake/features.cmake:283 (find_package):
+  By not providing "Findglm.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "glm", but
+  CMake did not find one.
+
+  Could not find a package configuration file provided by "glm" with any of
+  the following names:
+
+    glmConfig.cmake
+    glm-config.cmake
+
+  Add the installation prefix of "glm" to CMAKE_PREFIX_PATH or set "glm_DIR"
+  to a directory containing one of the above files.  If "glm" provides a
+  separate development package or SDK, be sure it has been installed.
+Call Stack (most recent call first):
+  libosmscout/CMakeLists.txt:72 (include)
+
+
+-- glm NOT found
+CMake Warning at libosmscout/cmake/features.cmake:302 (find_package):
+  By not providing "Findglfw3.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "glfw3", but
+  CMake did not find one.
+
+  Could not find a package configuration file provided by "glfw3" with any of
+  the following names:
+
+    glfw3Config.cmake
+    glfw3-config.cmake
+
+  Add the installation prefix of "glfw3" to CMAKE_PREFIX_PATH or set
+  "glfw3_DIR" to a directory containing one of the above files.  If "glfw3"
+  provides a separate development package or SDK, be sure it has been
+  installed.
+Call Stack (most recent call first):
+  libosmscout/CMakeLists.txt:72 (include)
+
+
+-- Checking Qt6 availability (implicitly preferred version)...
+-- Qt6 NOT found
+-- Checking Qt5 availability (implicitly preferred version)...
+-- Qt5 NOT found
+-- Direct2D_INCLUDE_DIRS: Direct2D_INCLUDE_DIRS-NOTFOUND
+-- Direct2D_D2D1_LIBRARY: Direct2D_D2D1_LIBRARY-NOTFOUND
+-- Direct2D_DWRITE_LIBRARY: Direct2D_DWRITE_LIBRARY-NOTFOUND
+-- Could NOT find Direct2D (missing: Direct2D_LIBRARIES Direct2D_INCLUDE_DIRS) 
+-- Checking for module 'skia'
+--   Package 'skia' not found
+-- Preconditions for building libosmscout-map-agg MISSING
+-- Preconditions for building libosmscout-map-cairo OK
+-- Checking preconditions for libosmscout-map-cairo...
+-- Checking preconditions for libosmscout-map-cairo...OK
+Template dir: osmscoutmapcairo
+-- Preconditions for building libosmscout-map-qt MISSING
+-- Preconditions for building libosmscout-map-skia MISSING
+-- 
+-- libosmscout 1.1.1 build configuration:
+-- Shared libraries:                ON
+-- 
+-- Dependencies:
+-- - Freetype::Freetype             TRUE
+-- - glm::glm                       FALSE
+-- - glfw                           FALSE
+-- - harfbuzz::harfbuzz             FALSE
+-- - LibLZMA::LibLZMA               FALSE
+-- - LibXml2::LibXml2               TRUE
+-- - PNG::PNG                       TRUE
+-- - protobuf::libprotobuf          TRUE
+-- - protobuf:                      TRUE
+-- - ZLIB::ZLIB                     TRUE
+-- - nlohmann_json::nlohmann_json   FALSE
+-- - httplib:                       FALSE
+-- - piper:                         FALSE
+-- 
+-- Qt5 libraries ():
+-- - Core                           FALSE
+-- - Svg                            FALSE
+-- - Gui                            FALSE
+-- - Widgets                        FALSE
+-- - Qml                            FALSE
+-- - Quick                          FALSE
+-- - Network                        FALSE
+-- - Location                       FALSE
+-- - Multimedia                     FALSE
+-- - Positioning                    FALSE
+-- - LinguistTools                  FALSE
+-- 
+-- Qt6 libraries ():
+-- - Core                           FALSE
+-- - Core5Compat                    FALSE
+-- - Svg                            FALSE
+-- - Gui                            FALSE
+-- - Widgets                        FALSE
+-- - Qml                            FALSE
+-- - Quick                          FALSE
+-- - Network                        FALSE
+-- - Multimedia                     FALSE
+-- - Positioning                    FALSE
+-- - LinguistTools                  FALSE
+-- 
+-- Using Qt in version:             
+-- Qt map dependencies found:       
+-- Qt client dependencies found:    
+-- 
+-- Tests:                           OFF
+-- - Catch2::Catch2                FALSE
+-- - Catch2::Catch2WithMain        FALSE
+-- 
+-- core library:                    ON
+--  - marisa support:              TRUE
+-- 
+-- import library:                  OFF
+-- 
+-- gpx library:                     OFF
+-- 
+-- map drawing interface:           ON
+--  - Agg map drawing backend:      OFF
+--  - Cairo map drawing backend:    ON
+--  - OpenGL map drawing backend:   OFF
+--  - DirectX map drawing backend:  OFF
+--  - Qt map drawing backend:       OFF
+--  - SVG map drawing backend:      OFF
+--  - Skia map drawing backend:     OFF
+--  - OS X/iOS map drawing backend: OFF
+--  - GDI+ map drawing backend:     OFF
+-- 
+-- client libraries:
+--  - Qt client library:            OFF
+--  - Java client library:          ON
+-- 
+-- tools:
+--  - Import/Import:                OFF
+--  - Import/BasemapImport:         OFF
+--  - DumpData:                     OFF
+--  - MCPServer:                    OFF
+--  - OSMScout2:                    OFF
+--  - OSMScoutOpenGL:               OFF
+--  - StyleEditor:                  OFF
+--  - JavaScout:                    ON
+-- 
+-- demos:                           OFF
+--  - heap profiler (Gperftools)    OFF
+-- 
+-- bindings:
+--  - Java binding:                 
+--  - C# binding:                   
+-- 
+-- external interfaces:
+--  - MATLAB mex function:          OFF
+-- 
+-- doxygen:                         YES
+-- documentation:                   ON
+-- webpage:                         OFF
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/tim/projects/NaviVeylin/app/.cxx/Debug/4z1b2r3y/arm64-v8a

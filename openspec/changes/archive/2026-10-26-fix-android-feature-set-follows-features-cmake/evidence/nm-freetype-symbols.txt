@@ -1,0 +1,9 @@
+# nm -C --defined-only app/build/intermediates/cxx/Debug/4z1b2r3y/obj/arm64-v8a/libosmscout_mapd.so | grep ' FT_'
+0000000000434078 T FT_Activate_Size
+000000000043cad8 T FT_Add_Default_Modules
+000000000043460c T FT_Add_Module
+000000000043a36c T FT_Angle_Diff
+0000000000439b3c T FT_Atan2
+00000000004317fc T FT_Attach_File
+0000000000431910 T FT_Attach_Stream
+00000000004781c0 T FT_Bitmap_Blend

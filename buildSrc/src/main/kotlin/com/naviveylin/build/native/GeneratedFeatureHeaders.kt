@@ -20,10 +20,14 @@ import java.io.File
  * passes for every test keyed on them (§202, issue #136: with Pango disabled, the Cairo text test measured the
  * substituted family as the configured font file and failed `REQUIRE(differs)`).
  *
- * The native build renders the headers into the app's CMake build tree instead (`app/src/main/cpp/CMakeLists.txt`,
- * `OSMSCOUT_FEATURES_DIR`); [`CheckSubmoduleFeatureHeaders`] is the gate over the source tree, and it removes what
- * it finds, because a copy here is what the very build it gates would otherwise have to repair — an existing
- * working tree keeps its headers until the app build removes them (§202).
+ * The native build lets libosmscout render them into the modules' own CMake build trees
+ * (`cmake/ProjectConfig.cmake`, out of `cmake/features.cmake`'s values). The app used to render the same four
+ * itself into `<app>/.cxx/…/osmscout-features/` and prepend that directory, from cache values that predated
+ * `add_subdirectory(libosmscout)` — so the Android build compiled against that block rather than the library's
+ * values (§305); it renders nothing since 2026-10-26. [`CheckSubmoduleFeatureHeaders`] is the gate over the
+ * source tree, and it removes what it finds, because a copy here is what the very build it gates would
+ * otherwise have to repair — an existing working tree keeps its headers until the app build removes them
+ * (§202).
  */
 object GeneratedFeatureHeaders {
 
@@ -82,12 +86,11 @@ object GeneratedFeatureHeaders {
         appendLine("removed:")
         paths.forEach { appendLine("  $submoduleDir/$it") }
         appendLine()
-        appendLine("A generated header here wins over the one this build renders into the app's CMake build tree")
-        appendLine("(app/src/main/cpp/CMakeLists.txt, OSMSCOUT_FEATURES_DIR) — every module's target lists its source")
-        appendLine("tree before its binary include directory — in every build of this working tree. A host build then")
-        appendLine("compiles libosmscout against the Android configuration's feature macros and reports false failures")
-        appendLine("and false passes for every test keyed on them (§202). Re-run the build: the next one finds none")
-        appendLine("here.")
+        appendLine("A generated header here wins over the one this build generates into the module's CMake build")
+        appendLine("tree — every module's target lists its source tree before its binary include directory — in")
+        appendLine("every build of this working tree. A host build then compiles libosmscout against the Android")
+        appendLine("configuration's feature macros and reports false failures and false passes for every test keyed")
+        appendLine("on them (§202). Re-run the build: the next one finds none here.")
     }
 }
 

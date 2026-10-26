@@ -95,7 +95,7 @@ class GeneratedFeatureHeadersTest {
 
         assertTrue(report, report.contains("app/src/main/cpp/libosmscout/libosmscout-map/include/osmscoutmap/MapFeatures.h"))
         assertTrue(report, report.contains("have been"))
-        assertTrue(report, report.contains("OSMSCOUT_FEATURES_DIR"))
+        assertTrue(report, report.contains("CMake build"))
         assertTrue(report, report.contains("§202"))
         assertTrue(report, report.contains("Re-run the build"))
     }

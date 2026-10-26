@@ -34,25 +34,40 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/CMakeLists.txt")
     message(STATUS "Building libosmscout from submodule")
 
-    # ── Configured feature headers ──────────────────────────────
-    # libosmscout renders four `*Features.h` from the tracked `.cmake` templates
-    # beside them, and each module's target lists its own source tree *before*
-    # its binary include directory — so a generated header left in the submodule
-    # source tree shadows the one that build generates, in *every* build of this
-    # working tree. A host build then compiles libosmscout-map* against this
-    # configuration's feature macros and reports false failures and false passes
-    # for every test keyed on them (§202). The headers are therefore
-    # generated into this build tree and prepended to the include path, and a
-    # stale copy in the submodule source tree — what a configuration before this
-    # rule left there — is removed by `:app:checkSubmoduleFeatureHeaders`, which
-    # fails the build once and names what it removed.
-    set(OSMSCOUT_FEATURES_DIR "${CMAKE_CURRENT_BINARY_DIR}/osmscout-features")
-    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+    # ── Feature headers: features.cmake decides ─────────────────
+    # libosmscout renders its four `*Features.h` — CoreFeatures, MapFeatures,
+    # MapCairoFeatures, ClientFeatures — from the tracked `*.cmake` templates
+    # beside them, out of what `cmake/features.cmake` detected for *this*
+    # configuration, and `cmake/ProjectConfig.cmake` writes each one into this
+    # build tree and puts its module's build-tree `include` on the module's
+    # include path.
+    #
+    # This file used to render the same four headers itself, from the cache
+    # values that stood before `add_subdirectory(libosmscout)` — marisa on and
+    # every other feature off — and to prepend that directory to the include
+    # path, so the effective Android feature set was that block rather than what
+    # the library computed: FreeType, cairo-ft and Fontconfig stayed off although
+    # the Android vcpkg triplets install them (§305; the include-order mechanism
+    # that made the app's directory win is §202, issue #136). It renders nothing
+    # now: the library's computed values are the build's values.
+    #
+    # A generated header that sits in the submodule *source* tree would still
+    # shadow the one this build generates — every module's target lists its own
+    # source tree before its binary include directory — in *every* build of this
+    # working tree, so `:app:checkSubmoduleFeatureHeaders` removes such a copy and
+    # fails once, naming what it removed.
+    #
+    # `OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT` is a `check_cxx_source_compiles`
+    # result and CMake caches those, so a build directory that configured while a
+    # shadowing header said the define would keep the probe's old answer instead
+    # of probing this configuration; `OSMSCOUT_HAVE_LIB_MARISA` is what this file
+    # used to pin in the cache. Clearing both makes the feature set a function of
+    # the configuration rather than of the cache's history.
+    unset(OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT CACHE)
+    unset(OSMSCOUT_HAVE_LIB_MARISA CACHE)
 
-    # Pre-set so the configure_file loop below emits the define into the
-    # pre-generated CoreFeatures.h (features.cmake sets it only later, inside
-    # add_subdirectory). Kept before the loop on purpose.
-    set(OSMSCOUT_HAVE_LIB_MARISA 1 CACHE BOOL "" FORCE)
+    # Our FindJNI for the NDK (the built-in one searches a JVM that Android has not)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
     # Java/JNI for libosmscout-client-java
     if(DEFINED ENV{JAVA_HOME})
@@ -79,26 +94,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/CMakeLists.txt")
     else()
         message(WARNING "jni.h not found under NDK root")
     endif()
-
-    # Paths are relative to the submodule root (the core library's own directory
-    # is also named `libosmscout`), and `_out` is the generated copy the include
-    # path picks up. Nothing is written under the submodule.
-    foreach(_rel
-        "libosmscout/include/osmscout/lib/CoreFeatures.h"
-        "libosmscout-map/include/osmscoutmap/MapFeatures.h"
-        "libosmscout-map-cairo/include/osmscoutmapcairo/MapCairoFeatures.h"
-        "libosmscout-client/include/osmscoutclient/ClientFeatures.h"
-    )
-        set(_tpl "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/${_rel}.cmake")
-        set(_out "${OSMSCOUT_FEATURES_DIR}/${_rel}")
-        if(EXISTS "${_tpl}")
-            configure_file("${_tpl}" "${_out}")
-            # The module's include root, the directory that carries `include`:
-            # `libosmscout-map/include` for `libosmscout-map/include/osmscoutmap/MapFeatures.h`.
-            string(REGEX REPLACE "/include/.*$" "/include" _inc "${_rel}")
-            include_directories(BEFORE "${OSMSCOUT_FEATURES_DIR}/${_inc}")
-        endif()
-    endforeach()
 
     # Configure for Android
     set(OSMSCOUT_BUILD_CLIENT_JAVA ON CACHE BOOL "" FORCE)
@@ -163,6 +158,31 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libosmscout/CMakeLists.txt")
     endif()
 
     add_subdirectory(libosmscout)
+
+    # ── The FreeType closure of the static freetype port ─────────
+    # libosmscout-map links Freetype::Freetype as soon as the library found it
+    # (`libosmscout-map/CMakeLists.txt`), and `features.cmake` finds it here —
+    # FreeType is one of the features §305 stopped forcing off, so the map
+    # library now calls into it (`FontNameResolution`, for a family read out of a
+    # configured font file). This vcpkg freetype is a static archive whose PNG,
+    # zlib, bzip2 and brotli decoders are not inside it, and a static archive does
+    # not carry its dependencies: they follow it on the link line, in the same
+    # order and with the same entries `CAIRO_LIBRARIES` above lists for the cairo
+    # backend. The link is unconditional because `Freetype::Freetype` is created
+    # by `find_package` inside `add_subdirectory(libosmscout)` and an imported
+    # target is directory-scoped, so this directory cannot ask whether it exists.
+    if(VCPKG)
+        foreach(_target OSMScoutMap OSMScoutMapCairo)
+            if(TARGET ${_target})
+                target_link_libraries(${_target}
+                    "${VCPKG}/lib/libpng16.a"
+                    "${VCPKG}/lib/libz.a"
+                    "${VCPKG}/lib/libbz2.a"
+                    "${VCPKG}/lib/libbrotlidec.a"
+                    "${VCPKG}/lib/libbrotlicommon.a")
+            endif()
+        endforeach()
+    endif()
 
     # iconv stub for Android (API < 28 lacks iconv in libc)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/iconv_stub.c")

@@ -1130,13 +1130,22 @@ router's figure, the legs sum and the drawn polyline per candidate route.
   word on a line of its own). `Escaldes-Engordany` therefore stays one line while `Andorra la Vella` wraps.
   The AGG backend never wraps — it takes the object width and the wrapping flag as unused parameters — so
   none of this reaches it.
-- **The Android build has no Pango** (`MapCairoFeatures.h` leaves `OSMSCOUT_MAP_CAIRO_HAVE_LIB_PANGO`
-  undefined and no Android vcpkg triplet installs pango), so `MapPainterCairo::Layout` is the
-  FreeType/cairo variant. That variant wraps the text itself and reads the same bounds through
+- **The Android build has no Pango**: `features.cmake`'s `find_package(Pango)` does not resolve under the NDK,
+  so `MapCairoFeatures.h` carries `/* #undef OSMSCOUT_MAP_CAIRO_HAVE_LIB_PANGO */` and
+  `MapPainterCairo::Layout` is the FreeType/cairo variant. Absence of the dependency is not the reason — the
+  three Android vcpkg triplets install pango, harfbuzz and fribidi, and `pkg-config --modversion pangocairo`
+  answers `1.58.0` when pointed at one of them (measured 2026-10-26); the module's own detection is what does
+  not reach them. The variant wraps the text itself and reads the same bounds through
   `GetProposedLabelWidth`. The Pango variant wraps at the width of the *object* it is handed
   (`PANGO_WRAP_WORD`) and ignores the label-line parameters, so it does not wrap a point label, whose
   object width is 0; Android does not build it. The Qt and Skia backends compute their width from
   `GetProposedLabelWidth` too.
+- **What the Android configure does define** is `OSMSCOUT_MAP_CAIRO_HAVE_LIB_FREETYPE` and
+  `OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT` (same build tree, same date), so the backend also compiles
+  `OSMSCOUT_MAP_CAIRO_LOAD_FONT_FILE`: a configured **font file** is loaded with FreeType and drawn through
+  the FreeType font backend of cairo, and `FontNameResolution::CanReadFamilyFromFile()` answers for it. No
+  packaged stylesheet configures a font file — the styles name font families — so this changes no label the
+  app draws today; it is the path that would be taken the moment a style named a file.
 - A wrapped label reports the ink width of its widest line and the lines' block height, so the label
   layouter places, culls and breaks overlaps with the size the label is drawn at.
 

@@ -1,0 +1,3 @@
+# Same forced-empty cache entry, the guard restored -> the probe answers for this configuration:
+#ifndef OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT
+#define OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT

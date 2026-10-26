@@ -1,0 +1,5 @@
+# The cache entry forced empty AND the unset removed -> the cached answer survives:
+# app/.cxx/Debug/4z1b2r3y/arm64-v8a/CMakeCache.txt: OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT:INTERNAL=
+# app/src/main/cpp/CMakeLists.txt: '    unset(OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT CACHE)' commented out
+#ifndef OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT
+/* #undef OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT */

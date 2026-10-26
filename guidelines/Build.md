@@ -1894,9 +1894,25 @@ libosmscout renders four feature headers — `CoreFeatures.h`, `MapFeatures.h`, 
 `ClientFeatures.h` — from the tracked `*.cmake` templates beside them. Their values are the build
 configuration's feature set, so they belong to a build tree and never to the submodule's source tree:
 
-- `app/src/main/cpp/CMakeLists.txt` renders them into `OSMSCOUT_FEATURES_DIR`
-  (`<app>/.cxx/<buildType>/<hash>/<abi>/osmscout-features/`) and prepends each module's `include` root to the
-  include path, so the app's values win for every translation unit of those libraries.
+- `cmake/features.cmake` computes the values, `cmake/ProjectConfig.cmake` writes each header into the
+  module's own CMake build tree (`<build>/libosmscout-*/include/<package>/<Name>Features.h`) and puts that
+  directory on the module's include path. `app/src/main/cpp/CMakeLists.txt` renders nothing: it *used* to render
+  the same four from the cache values that stood before `add_subdirectory(libosmscout)` (marisa on, every other
+  feature off) and prepend that directory, so the Android build compiled against that block rather than against
+  what the library computed (§305; the include-order mechanism that let it win is §202, issue #136). Removed
+  2026-10-26.
+- The Android configure's values are therefore `features.cmake`'s, measured on the arm64 build tree 2026-10-26:
+  `OSMSCOUT_HAVE_LIB_MARISA`, `OSMSCOUT_MAP_HAVE_LIB_FREETYPE`, `OSMSCOUT_MAP_CAIRO_HAVE_LIB_FREETYPE` and
+  `OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT` defined; `OSMSCOUT_MAP_CAIRO_HAVE_LIB_PANGO` and
+  `OSMSCOUT_MAP_CAIRO_HAVE_LIB_FONTCONFIG` not — their detection does not resolve under the NDK although the
+  three Android vcpkg triplets install pango, harfbuzz, fribidi and fontconfig.
+- Two cache entries are cleared before `add_subdirectory(libosmscout)`, because they would otherwise outlive the
+  configuration that wrote them: `OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT`, a `check_cxx_source_compiles` result
+  CMake caches for the whole build directory, and `OSMSCOUT_HAVE_LIB_MARISA`, what the removed block pinned.
+- `libosmscout-map` links `Freetype::Freetype` as soon as the library found FreeType, and the app adds the
+  static port's closure behind it on the link line (libpng, zlib, bzip2, brotli) — a static archive does not
+  carry its dependencies. `libosmscout_map_cairo` gets the same entries; its `CAIRO_LIBRARIES` override already
+  lists them in that order.
 - A copy in the submodule source tree wins over the header a build generates — every module's target lists its
   own source tree **before** its binary include directory (`cmake/ProjectConfig.cmake`) — in *every* build of
   that working tree, a host build included. That host build then compiles `libosmscout-map*` against the
@@ -1912,10 +1928,6 @@ configuration's feature set, so they belong to a build tree and never to the sub
   a module's header into `<Name>Features.h.cmake/<Name>Features.h`; `cmake/ProjectConfig.cmake` uses
   `get_filename_component(… DIRECTORY)` instead. And the core library lists its feature header in the build
   tree (`libosmscout/CMakeLists.txt`) instead of in the source tree it used to need.
-- The four carry the *app's* Android feature set, not `features.cmake`'s: marisa on, FreeType, Fontconfig,
-  cairo-ft and Pango off — although the Android vcpkg triplets install all of them. Issue #305 holds that
-  mismatch, the instability of a value read out of the CMake cache, and `guidelines/MapRendering.md` §20's
-  reason for the Pango-less wrapping; do not read §20's triplet claim as a fact about this dependency list.
 
 ### vcpkg Dependencies
 - Cairo, pixman, fontconfig, freetype, libpng, expat, brotli, bzip2

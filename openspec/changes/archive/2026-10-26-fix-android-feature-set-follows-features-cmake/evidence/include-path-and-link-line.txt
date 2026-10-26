@@ -1,0 +1,12 @@
+# grep -c osmscout-features app/.cxx/Debug/4z1b2r3y/arm64-v8a/build.ninja   (0 = no app-rendered header directory on any include path)
+0
+
+# the map library's link line now carries the static freetype closure behind libfreetype.a:
+LINK_LIBRARIES
+/home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libfreetype.a
+/home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libpng16.a
+/home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libz.a
+/home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libbz2.a
+/home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libbrotlidec.a
+/home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libbrotlicommon.a
+/home/tim/projects/NaviVeylin/vcpkg/installed/arm64-android/lib/libmarisa.a

@@ -271,7 +271,11 @@ readings of it are not evidence about one child. `--strict-outside-write yes`
 (`LOOP_STRICT_OUTSIDE_WRITE_DEFAULT`, default `no`) restores the verdict for a tree that is exclusive: the
 worker's item is blocked, the round-2 worker's item is blocked, and a review round that ran during a difference
 is discarded. A difference the run **can** place decides in both modes, and placing one means this: the heartbeat
-beside every child reads the project's tree once per `LOOP_PROGRESS_SECONDS` and, at the first difference, marks the
+beside every child reads the project's tree **once per whole second of that child's life**, on a cadence of its own
+and not on the reporting one — `LOOP_PROGRESS_SECONDS` says how often a person is told, and an interval configured
+for reading progress is not a resolution for evidence (issue #673: the reading is the only one that can place a
+transient write, the case that pins it had to lower the reporting interval to 1 s to be answered, and a reading one
+second late then recorded the item `done` in 1 run of 3) — and, at the first difference, marks the
 processes of the child's own process tree — its process group, or anything descended from it, however it left that
 group — that **left the worktree**: a process whose working directory is inside the project and outside the worktree
 while the tree it came from works in the worktree. The child itself and the shells the run starts it through are

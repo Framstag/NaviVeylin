@@ -895,8 +895,8 @@ outside_write_seen() { # <before> <now> <child> <own pid> → two `LOOP-OUTSIDE-
     attributed="${attributed:+$attributed,}$pid"
   done
   alive=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" | cut -c1-120 | outside_write_clause 5 )
-  printf 'LOOP-OUTSIDE-WRITE-FIRST: the project tree changed at %s — %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    "$(outside_write_clause_of "$before" "$now")"
+  printf 'LOOP-OUTSIDE-WRITE-FIRST: the project tree changed while this process ran: %s — read while the child was alive at %s\n' \
+    "$(outside_write_clause_of "$before" "$now")" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf 'LOOP-OUTSIDE-WRITE-ALIVE: %s · attributed=%s\n' "${alive:-(none)}" "${attributed:-none}"
 }
 
@@ -1028,26 +1028,35 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   set +m
   ( hb_pid=$BASHPID
     hb_base=$SECONDS
+    # The reading's own cadence, in whole seconds of this shell's clock (issue #673): the first reading is taken at the
+    # next whole second of the child's life, and the block below advances this to the second after each reading.
+    read_next=$SECONDS
     next=$interval
     while [ ! -e "$stop" ]; do
       sleep "$poll"
       [ -e "$stop" ] && break
+      # The difference is read *while the child runs*, because a writer is gone by the time the transcript is
+      # written: only here can the run say which processes were alive at the moment the tree changed, and which of
+      # them belong to this child's own tree. It is read **once per whole second of the child's life**, and not on the
+      # reporting cadence (issue #673): an interval a person configures to read progress is not a resolution for
+      # evidence, and a reading that arrives after a transient writer has gone places nothing — the case that pins a
+      # placed write had to lower `LOOP_PROGRESS_SECONDS` to 1 s to be answered at all, which left it 1 s of phase
+      # margin against the writer's own life and made it flaky. One reading per child once a difference is found — the
+      # first difference is the one a reader of the item needs, and a tree another process keeps rewriting would
+      # otherwise fill the item's directory.
+      if [ ! -e "$2.outside-write" ] && [ "$SECONDS" -ge "$read_next" ]; then
+        read_next=$(( SECONDS + 1 ))
+        now=$(project_state)
+        if [ "$now" != "$before" ]; then
+          outside_write_seen "$before" "$now" "$child" "$hb_pid" > "$2.outside-write" 2>/dev/null || true
+        fi
+      fi
       # The heartbeat reports elapsed **seconds**, never the number of looks (issue #259): the wait looks twenty times
       # a second, so a count of iterations would shrink the interval along with the granularity and a configured 30
       # would have become 1.5 s of wall clock.
       elapsed=$(( SECONDS - hb_base ))
       [ "$elapsed" -ge "$next" ] || continue
       next=$(( elapsed + interval ))
-      # The difference is read *while the child runs*, because a writer is gone by the time the transcript is
-      # written: only here can the run say which processes were alive at the moment the tree changed, and which of
-      # them belong to this child's own tree. One reading per child — the first difference is the one a reader of
-      # the item needs, and a tree another process keeps rewriting would otherwise fill the item's directory.
-      if [ ! -e "$2.outside-write" ]; then
-        now=$(project_state)
-        if [ "$now" != "$before" ]; then
-          outside_write_seen "$before" "$now" "$child" "$hb_pid" > "$2.outside-write" 2>/dev/null || true
-        fi
-      fi
       printf 'loop: %s running %s — log %s B, worktree %s changed file(s), %s commit(s) since the base\n' \
         "$phase" "$(fmt_elapsed "$elapsed")" "$(wc -c < "$2" 2>/dev/null || printf 0)" \
         "$(git -C "$LOOP_WORKTREE" status --porcelain 2>/dev/null | wc -l | tr -d ' ')" \

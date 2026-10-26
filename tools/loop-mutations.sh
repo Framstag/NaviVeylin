@@ -117,12 +117,16 @@ MUTATIONS=(
   '12.4@-@tools/loop/run.sh@run#strictOutsideWriteDiscardsTheReviewRound@the round discarded on a difference the run can place or was told to judge@s|^      if outside_write_decides; then$|      if false; then|'
   '12.9@-@tools/loop/run.sh@run#strictOutsideWriteBlocksTheItem@the strict run turning the difference into a verdict about the item@s|^  elif outside_write_decides; then$|  elif false; then|'
   '12.10@-@tools/loop/run.sh@run#aWriterTheRunCanPlaceBlocksTheItem@the reading taken while the child runs, which is what ties a write to it@s|^          outside_write_seen "$before" "$now" "$child" "$hb_pid" > "$2.outside-write" 2>/dev/null \|\| true$|          : # the mutation takes no reading while the child runs|'
-  # 12.11 and 12.12 are issue #288's pair: without the first, the run's own child chain — started in the project
-  # by `run_child`, so it stands there for the whole item — marks every difference in that tree, and a peer's write
-  # decides an item whose work was never touched; without the second, the candidates come from the host-wide sweep
-  # again, whose result has moved on by the time the attribution reads it, and no write is ever placed.
+  # 12.11 is issue #288's second half: without it, the run's own child chain — started in the project by
+  # `run_child`, so it stands there for the whole item — marks every difference in that tree, and a peer's write
+  # decides an item whose work was never touched. Its pair 12.12 (`for pid in $(loop_tree_pids …)` replaced by the
+  # host-wide sweep) was **removed** by issue #673: `run#aWriterTheRunCanPlaceBlocksTheItem` is the only case that
+  # could notice it, it can only do so through timing — the sweep finds a writer that is still standing, so the case
+  # notices the mutation only when its writer dies inside the sweep's own second — and that is the same phase
+  # dependence the case was repaired for. Measured 2026-10-26 on the repaired tree: `GREEN 12.12 … the case did not
+  # notice the mutation`. The ordering stays in `run.sh` and its reason stays in `guidelines/Backlog.md` §7; what it
+  # lost is a case, not the behaviour.
   '12.11@-@tools/loop/run.sh@run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem@the child chain the run itself started in the project not being a writer@s|^    pid_left_the_worktree "$pid" "$LOOP_WORKTREE" \|\| continue$|    : # the mutation marks every process of the tree that stands in the project|'
-  '12.12@-@tools/loop/run.sh@run#aWriterTheRunCanPlaceBlocksTheItem@the candidates read from the child tree instead of from the sweep that has moved on@s|^  for pid in $(loop_tree_pids "$child"); do$|  for pid in $( cd / \&\& outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" "$own" ); do|'
   '12.5@-@tools/loop/worktree.sh@worktree#reusesABranchThatCarriesNoWorkOfItsOwn@the reuse of a branch that carries nothing of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if false; then|'
   '12.6@-@tools/loop/worktree.sh@worktree#refusesABranchCarryingAPreviousAttempt@the refusal of a branch that carries an archived change of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if true; then|'
   '12.7@-@tools/loop/worktree.sh@worktree#setsAsideABlockedAttemptAndStartsFresh@the blocked attempt branch renamed aside so the item is worked@s|^    elif \[ "\$state" = "unfinished" \]; then$|    elif false; then|'

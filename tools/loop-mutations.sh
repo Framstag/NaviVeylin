@@ -346,7 +346,7 @@ MUTATIONS=(
   # mutation ends the follower before it starts, so nothing is streamed and the console is silent until the step
   # ends — which is what the case that names it asserts. Since issue #315 the stream is a file the step's command
   # writes and the console follows; the follower is the whole of the streaming.
-  '46.1@-@tools/loop/gate.sh@gate#theSuitesOutputReachesTheConsoleWhileItRuns@the stream that carries a suite output to the console while the suite runs (issue #269)@s|^  follow_stream "\$stream" "\$follow_stop" &$|  : # the mutation replays the output only when the step ends|'
+  '46.1@-@tools/loop/gate.sh@gate#theSuitesOutputReachesTheConsoleWhileItRuns@the stream that carries a suite output to the console while the suite runs (issue #269)@s|^    follow_stream "\$stream" "\$follow_stop" &$|    : # the mutation replays the output only when the step ends|'
   # 47.1 is the two fallbacks that turned a failed suite with no summary into one failing case (issue #268).
   # Measured 2026-10-23: a compiled step that died at configuration (`BUILD FAILED in 21s`, no test task reached its
   # action) was tallied `tests="1" failures="1"`, and the tally the run's own check reads said a test exists where
@@ -533,7 +533,18 @@ MUTATIONS=(
   # Its three ampersands are escaped (`2>\&1`, the trailing `\&`): `sed`'s replacement expands an unescaped `&` to the
   # whole match, so the round-1 record rewrote the line into a corrupted one instead of restoring the pipeline, and
   # the case it reddened did so for a reason that was not the invariant's (issue #315, its round-1 review).
-  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  \$cmd >"\$stream" 2>&1 &$|  $cmd 2>\&1 \| tee "$stream" \&|'
+  # The pattern reads the step's two halves as `.*` (issue #311): the launch line now writes the step's completion
+  # record beside the stream (`( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 &`), and a record that
+  # quoted the `printf` would have to carry a `\n` through `sed`'s own escaping. What the mutation restores is the
+  # shape, not the line.
+  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  ( \$cmd;.*>"\$stream" 2>&1 &$|  \$cmd 2>\&1 \| tee "\$stream" \&|'
+
+  # 63.2 — the step's own bound (issue #311). The gate bounded a child through the run's `LOOP_CHILD_MAX_SECONDS` and
+  # a case through the suite's `LOOP_CASE_MAX_SECONDS`, and a step through nothing: measured 2026-10-25, one
+  # `tools/loop-selftest.sh` step consumed a worker's whole wall-clock and the run ended that child with its gate
+  # already green and its work uncommitted. The mutation makes the guard never fire, so the case that names the
+  # bound reads a gate that is still inside a suite which never returns — the state the item was filed about.
+  '63.2@-@tools/loop/gate.sh@gate#aStepIsBoundedAndTheOverrunNamesIt@the bound that answers a gate step which has not returned (issue #311)@s|^    if \[ .* -ge "\$step_max" \]; then$|    if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

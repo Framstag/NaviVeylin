@@ -123,6 +123,7 @@ LOOP_SHELL_CASES=(
   'gate#anEnginePathOwesTheRecordCheck'
   'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
   'gate#aStepEndsWithItsCommandNotWithItsWatchers'
+  'gate#aStepIsBoundedAndTheOverrunNamesIt'
   'gate#aFailingSuiteIsReadFromTheSameStream'
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
   'gate#aCompiledStepsTallyIsNotHidden'
@@ -404,6 +405,7 @@ loop_run_shell_case() {
     'gate#anEnginePathOwesTheRecordCheck') fn=case_gate_anEnginePathOwesTheRecordCheck ;;
     'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
     'gate#aStepEndsWithItsCommandNotWithItsWatchers') fn=case_gate_aStepEndsWithItsCommandNotWithItsWatchers ;;
+    'gate#aStepIsBoundedAndTheOverrunNamesIt') fn=case_gate_aStepIsBoundedAndTheOverrunNamesIt ;;
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
     'gate#aCompiledStepsTallyIsNotHidden') fn=case_gate_aCompiledStepsTallyIsNotHidden ;;
@@ -3190,6 +3192,72 @@ SUITE
     "and the verdict is still read from the stream the step wrote: $out"
   assert_contains "$out" "notes: all 1 cases passed" \
     "and the console carries the suite's own line, so the step loses nothing to the writer it left behind: $out"
+  return 0
+}
+
+# A gate step is bounded (issue #311). The gate was the one clock inside a child that no recorded value answered: the
+# run bounds a child with `LOOP_CHILD_MAX_SECONDS`, the suite bounds one case with `LOOP_CASE_MAX_SECONDS`, and a step
+# of the gate had no bound at all — measured 2026-10-25, one `tools/loop-selftest.sh` step held a worker for its whole
+# wall-clock, and the run ended that worker while its gate log already read `LOOP-GATE: tests=558 failures=0 errors=0`
+# and its evidence check already read PASS. The case below is that shape and nothing about the loop's own suites: a
+# suite that never returns, a profile whose step bound is two seconds, and a console and a tally that must name the
+# step the bound answered.
+case_gate_aStepIsBoundedAndTheOverrunNamesIt() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base log out rc pid start took i
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=2\n'
+  } >> "$conf"
+  # A suite that prints, then waits for a writer of its own and never returns: its own line is what proves the gate
+  # still read the stream it wrote, and the writer is what the bound has to end together with the step.
+  cat > "$d/suite.sh" <<'SUITE'
+printf 'notes: a case that never returns\n'
+( sleep 30 ) &
+wait
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  log="$d/gate.log"
+  start=$SECONDS
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1 &
+  pid=$!
+  # Bounded, not `wait`: on HEAD no clock answers this step, so a case that waited for the gate would report the
+  # defect as its own wall clock and the suite's bound would end the case rather than read the gate. Twenty seconds is
+  # ten times the bound the profile names here.
+  for ((i = 0; i < 200; i++)); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  took=$((SECONDS - start))
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM "$pid" 2>/dev/null
+    wait "$pid" 2>/dev/null
+    fail "the step ran past its bound: still inside the gate ${took}s into a suite that never returns, with the bound set to 2s"
+  fi
+  wait "$pid"; rc=$?
+  out=$(cat "$log")
+  assert_eq "1" "$rc" "a step the bound ended fails the gate instead of reporting it green: $out"
+  assert_contains "$out" "the step overran its bound of 2s and was ended" \
+    "the console names the step that overran and the bound that answered it: $out"
+  assert_contains "$out" "notes: a case that never returns" \
+    "and the suite's own line still reached the console, so the bound costs no output: $out"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" "LOOP-GATE-STEP: bash $d/suite.sh exceeded 2 s" \
+    "the tally names the step the bound ended, so a reader of the evidence sees which suite overran: $(cat "$d"/tally/*.xml 2>/dev/null)"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'errors="1"' \
+    "and an ended step is an error of that step, not a suite that passed"
+  assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="0"' \
+    "with no case invented for the step that did not report one"
+  assert_contains "$out" "LOOP-GATE: tests=" "the gate still prints its one verdict line: $out"
   return 0
 }
 

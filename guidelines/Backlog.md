@@ -404,12 +404,32 @@ file above the size bound. The tree is still kept exactly as the child left it: 
 never a replacement, and nothing is committed. The suite's slowest case is 9–15 s, and all 223 cases took 273 s on the
 same day.
 
-Inside that bound the project's gate is what fills the log, and it streams: each suite's output is `tee`d as the
-suite writes it, and the summary, the tally and the failure text are read from that same file, so a suite that
-runs for a quarter of an hour shows its own lines instead of a two-line log. Measured 2026-10-23: a gate run held
+Inside that bound the project's gate is what fills the log, and it streams: each suite's output is read from the
+file the suite writes as the suite writes it, and the summary, the tally and the failure text are read from that
+same file, so a suite that runs for a quarter of an hour shows its own lines instead of a two-line log. Measured
+2026-10-23: a gate run held
 its log at two lines while `tools/loop-selftest.sh` ran past eleven minutes, and an earlier red — a build that
 died at configuration in 21 s — was found only in the Gradle daemon log, because the gate had kept its output in
 a variable (#269).
+
+**A gate step is held to a bound of its own.** The run bounds the child and the self-test bounds a case, and a
+*step* of the gate had no clock at all: measured 2026-10-25 (issue #311), one `tools/loop-selftest.sh` step held a
+worker for its whole `LOOP_CHILD_MAX_SECONDS` — the item's gate log already read `LOOP-GATE: tests=558 failures=0
+errors=0` and its evidence check already read `PASS` — the run ended that child, and the item was recorded `blocked`
+with its work uncommitted. `gate.sh` now bounds every step with `LOOP_GATE_STEP_MAX_SECONDS` (default 1 800 s), read
+from the profile like the other two clocks, and a step that reaches it is ended together with the processes it
+started (`set -m`, then `loop_end_group`), named on the console (`— the step overran its bound of <n>s and was
+ended`) and in a `LOOP-GATE-STEP:` line of its own tally, and counted as an **error** of that step — so the gate
+exits non-zero and says which suite overran instead of silently spending the child's budget. The default is ~5× the
+slowest step this host measured: 345 s for the whole build-and-test gate (`guidelines/Build.md` §2c, 2026-10-21,
+16-core host), against 273 s for all 223 cases of the self-test the same week, and it leaves 900 s of a 2 700 s child
+for the phases the gate is not.
+
+A *measured baseline* cannot stand in for that bound: the same gate measured 8m25s, 9m46s and 5m45s on three
+occasions, and the same 5 680 tests took 3m47s on a quiet host and spent 30 min at 194 MB free RAM (the measurement
+behind `LOOP_MIN_FREE_MIB` in the profile) — a budget raised from the last run's number is a guess about the next
+one, and a hung step has no baseline at all. The bound answers the step that never returns, which is the state the
+item was filed about.
 
 A suite's numbers are only ever the suite's own: a suite that fails without writing a summary contributes an
 **error**, never a case. Its tally carries `tests="0"` with `errors="1"`, and the gate's own line carries the

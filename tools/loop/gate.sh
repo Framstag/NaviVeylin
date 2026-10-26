@@ -51,6 +51,15 @@ compiled_patterns=$(loop_conf_value LOOP_GATE_COMPILED_PATTERNS)
 suites=$(loop_conf_value LOOP_GATE_SUITES)
 tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
 
+# A step is bounded, and the profile owns the bound (issue #311): the run bounds a child with
+# `LOOP_CHILD_MAX_SECONDS` and the suite bounds one case with `LOOP_CASE_MAX_SECONDS`, but inside the gate nothing
+# answered a step, so one suite that never returned held a worker for its whole wall-clock — measured 2026-10-25, the
+# run ended that child while its gate log already read `LOOP-GATE: tests=558 failures=0 errors=0` and its evidence
+# check already read PASS, and the item was recorded `blocked` with its work uncommitted. The bound is a recorded
+# value like the other two, it is read here, and `run_step` enforces it.
+step_max=$(loop_conf_value LOOP_GATE_STEP_MAX_SECONDS)
+case "$step_max" in ''|*[!0-9]*|0) step_max=1800 ;; esac
+
 say() { [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
 
 # A step's output is followed in its file, not carried on a pipe (issue #315). `$cmd 2>&1 | tee "$stream"` reads to EOF,
@@ -97,6 +106,9 @@ if [ "$plan" -eq 0 ]; then
   else
     say "LOOP-GATE-PROFILE: $LOOP_CONF_PATH — pinned; not the profile beside this engine ($here/loop.conf)"
   fi
+  # The clock a step is held to is on the console before the first step starts, so a log that ends without a verdict
+  # still says which bound was in force (issue #311).
+  say "LOOP-GATE-STEP-BOUND: ${step_max}s per step — a step that reaches it is ended, named and counted as an error"
 fi
 
 # The paths the change touches: what it committed since the base, plus whatever is still uncommitted — a gate
@@ -177,25 +189,56 @@ stream=$(mktemp "${TMPDIR:-/tmp}/loop-gate-output.XXXXXX") \
 # The stop is a second file beside the stream: written once a step's command has ended, it is what tells the follower
 # that the file will gain no more bytes.
 follow_stop="$stream.stop"
-trap 'rm -f "$stream" "$follow_stop"' EXIT
-# One step: the command's output into the file, the console reading that file as it grows, and the command's own
-# status. The step ends with the command it started — a writer that outlives it holds the file open, which holds
-# nothing else (issue #315).
-run_step() { # <command> → the command's status
-  local cmd=$1 step follow rc
-  # `--quiet` keeps the console for the verdict, but the file is written either way: the tally is read from it.
-  if [ "$quiet" -eq 1 ]; then
-    $cmd >"$stream" 2>&1
-    return $?
-  fi
-  $cmd >"$stream" 2>&1 &
+# …and a step's own completion record (issue #311): the status is written by the step itself, because a `wait` on a pid
+# the shell has already reaped answers nothing — the lesson the run's own child wait records (issue #227) — and the
+# bound below needs the same event.
+status_file="$stream.status"
+trap 'rm -f "$stream" "$follow_stop" "$status_file"' EXIT
+# One step: the command's output into the file, the console reading that file as it grows, the command's own status,
+# and its own bound. The step ends with the command it started — a writer that outlives it holds the file open, which
+# holds nothing else (issue #315) — and with the bound, which ends the step's process group when the command has not
+# returned in `LOOP_GATE_STEP_MAX_SECONDS` (issue #311). `step_overran` is the one fact the caller needs beside the
+# status, and it is set here because the status alone cannot say it: a command the bound ended never wrote one.
+step_overran=0
+run_step() { # <command> → the command's own status; 124 when the bound ended the step
+  local cmd=$1 step follow rc started
+  step_overran=0
+  rm -f "$status_file"
+  started=$SECONDS
+  # `set -m` on the one command that starts the step, immediately undone: a background job of a shell with job
+  # control is its own process group, which is what gives the bound a handle on everything the step started — a suite
+  # leaves its own watchers and workers behind, and those are the processes that held the gate open.
+  set -m
+  ( $cmd; printf '%s\n' "$?" > "$status_file" ) >"$stream" 2>&1 &
   step=$!
-  follow_stream "$stream" "$follow_stop" &
-  follow=$!
-  wait "$step"
-  rc=$?
+  set +m
+  follow=""
+  # `--quiet` keeps the console for the verdict, but the file is written either way: the tally is read from it.
+  if [ "$quiet" -eq 0 ]; then
+    follow_stream "$stream" "$follow_stop" &
+    follow=$!
+  fi
+  # The bound is a whole-second clock like the run's own two, read once per look against `SECONDS`, the shell's own
+  # integer counter: a `date` per 0.1 s look would spend on forks what the granularity buys back (issue #259).
+  while [ ! -e "$status_file" ]; do
+    if [ $((SECONDS - started)) -ge "$step_max" ]; then
+      step_overran=1
+      loop_end_group "$step"
+      break
+    fi
+    sleep 0.1
+  done
+  if [ "$step_overran" -eq 1 ]; then
+    rc=124
+  else
+    rc=$(cat "$status_file" 2>/dev/null || printf '1')
+    case "$rc" in ''|*[!0-9]*) rc=1 ;; esac
+  fi
+  # Nothing is left to a bare `wait`, the same rule the run's own cap follows: a step still standing after its own
+  # record, or after the bound ended its group, is ended by pid.
+  if kill -0 "$step" 2>/dev/null; then loop_end_pid "$step"; fi
   : > "$follow_stop"
-  wait "$follow" 2>/dev/null
+  [ -z "$follow" ] || wait "$follow" 2>/dev/null
   rm -f "$follow_stop"
   return "$rc"
 }
@@ -211,9 +254,18 @@ while IFS= read -r cmd; do
   # answered that for the last command of a pipeline, and this reads it directly (issue #315).
   run_step "$cmd"
   rc=$?
+  # A step the bound answered names itself, in the stream the tally and the console are both read from (issue #311):
+  # "the gate never returned" cannot say which suite overran, and the tally's last lines are where a reader looks.
+  if [ "$step_overran" -eq 1 ]; then
+    printf 'LOOP-GATE-STEP: %s exceeded %s s — the gate ended it and everything it started\n' "$cmd" "$step_max" >> "$stream"
+  fi
   out=$(cat "$stream")
   took=$((SECONDS - t0))
-  say "gate: $cmd — ${took}s"
+  if [ "$step_overran" -eq 1 ]; then
+    say "gate: $cmd — ${took}s — the step overran its bound of ${step_max}s and was ended"
+  else
+    say "gate: $cmd — ${took}s"
+  fi
   ran_entries="${ran_entries}${ran_entries:+, }$cmd ${took}s"
   [ "$rc" -eq 0 ] || failed_suites="$failed_suites $cmd"
   # The suite's own summary line: `<name>: all N cases passed` or `<name>: M of N cases failed`.

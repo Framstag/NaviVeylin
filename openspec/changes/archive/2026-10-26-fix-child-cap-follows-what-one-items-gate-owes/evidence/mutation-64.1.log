@@ -1,0 +1,4 @@
+RED    64.1  run#theChildCapIsNeverBelowWhatOneItemsGateOwes   (the bound that follows what one item's gate owes (issue #663))
+restore 64.1 run#theChildCapIsNeverBelowWhatOneItemsGateOwes green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

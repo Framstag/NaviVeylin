@@ -156,6 +156,7 @@ LOOP_SHELL_CASES=(
   'run#prescreenAnnouncesItselfBeforeItReturns'
   'run#everyPhaseBoundaryIsPrinted'
   'run#childOutlastingTheWallClockIsBlocked'
+  'run#theChildCapIsNeverBelowWhatOneItemsGateOwes'
   'run#childIsEndedAtTheRunsDeadline'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
@@ -442,6 +443,7 @@ loop_run_shell_case() {
     'run#prescreenAnnouncesItselfBeforeItReturns') fn=case_run_prescreenAnnouncesItselfBeforeItReturns ;;
     'run#everyPhaseBoundaryIsPrinted') fn=case_run_everyPhaseBoundaryIsPrinted ;;
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
+    'run#theChildCapIsNeverBelowWhatOneItemsGateOwes') fn=case_run_theChildCapIsNeverBelowWhatOneItemsGateOwes ;;
     'run#childIsEndedAtTheRunsDeadline') fn=case_run_childIsEndedAtTheRunsDeadline ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
@@ -662,6 +664,15 @@ run_report() { local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/report.sh" "
 # A case that starts the engine asks for the core first: the engine writes through `tools/issues/*.sh`, whose Java
 # core the driver compiles on request rather than before the case list is known (issue #261).
 run_loop() { core_ensure; local p="$1"; shift; ( cd "$p" && bash "$LOOP_ENGINE/run.sh" "$@" ); }
+
+# A profile whose child may run `<seconds>` and no longer (issue #663). The bound the run gives a child is the
+# larger of the floor and what one item's gate owes, so a case that shortens the floor alone would still be given
+# the gate's seconds: this writes both — the floor as asked, and the gate's number blank, which is what a project
+# with no build system records. The case keeps its own `grep -qx` on the floor it asked for.
+conf_with_child_cap() { # <seconds> <out file>
+  sed -e "s/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=$1/" \
+      -e 's/^LOOP_ITEM_GATE_SECONDS=.*/LOOP_ITEM_GATE_SECONDS=/' "$LOOP_CONF" > "$2"
+}
 
 scenario() { printf '%s\n' "$LOOP_FIXTURES/scenarios/$1"; }
 
@@ -4005,6 +4016,55 @@ case_run_everyPhaseBoundaryIsPrinted() {
 
 # A child that never returns used to be waited for with no bound at all: the run's deadline is consulted
 # between items, so a hung gate could spend the whole budget inside one `wait` (measured 2026-10-19: item
+# #126's worker phase ran 83 min that way, issue #203). The bound the run gives it is not one constant for every
+# item (issue #663): an item owes a red gate round and a green one, and one gate round of a `tools/loop/**` item
+# measured 971 s over 23 suites on 2026-10-26 — 957 s + 233 s + 972 s of gate and 542 s of phases, i.e. 2 704 s
+# against the 2 700 s constant, so the child was ended 8 s after its green `gate-summary.xml` was written. #664
+# and #666 ended the same way. The case holds both halves: what the profile records is not below that
+# measurement, and the run gives the child what the gate owes rather than the floor — three dry runs, because the
+# bound is printed in the header before anything is started.
+case_run_theChildCapIsNeverBelowWhatOneItemsGateOwes() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out cap owes
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  owes=$(sed -n 's/^LOOP_ITEM_GATE_SECONDS=//p' "$LOOP_CONF")
+  [ -n "$owes" ] ||
+    fail "the profile records no LOOP_ITEM_GATE_SECONDS: what one item's gate owes is not a recorded number, so the child's bound cannot follow it"
+  case "$owes" in ''|*[!0-9]*) fail "LOOP_ITEM_GATE_SECONDS is not a number: $owes" ;; esac
+  # The measurement the number is derived from, as one floor: two gate rounds (957 s red + 972 s green), one
+  # focused falsification suite (233 s) and the phases beside them (542 s).
+  [ "$owes" -ge 2704 ] ||
+    fail "LOOP_ITEM_GATE_SECONDS=$owes is below the 2704 s one item measured on 2026-10-26: the profile would record a bound its own item outlives"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off --dry-run 2>&1) || fail "the run itself failed"
+  cap=$(printf '%s\n' "$out" | sed -n 's/.*child-max-seconds=\([0-9][0-9]*\).*/\1/p' | head -1)
+  [ -n "$cap" ] || fail "the run's header names no child-max-seconds: $out"
+  [ "$cap" -ge "$owes" ] ||
+    fail "the child's bound ($cap s) is below what one item's gate owes ($owes s): a child ended inside its own item's cost is a green change the run pays for and discards"
+  # …and the bound follows the gate rather than the floor, which is the half a single constant cannot answer: a
+  # one-minute floor under an hour of gate gives the child the hour.
+  conf="$d/follows.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=60/' \
+      -e 's/^LOOP_ITEM_GATE_SECONDS=.*/LOOP_ITEM_GATE_SECONDS=3600/' "$LOOP_CONF" > "$conf"
+  p=$(new_project)
+  out=$( export LOOP_CONF="$conf"; run_loop "$p" --items 1 --minutes 90 --review off --dry-run 2>&1 ) ||
+    fail "the run itself failed"
+  cap=$(printf '%s\n' "$out" | sed -n 's/.*child-max-seconds=\([0-9][0-9]*\).*/\1/p' | head -1)
+  assert_eq "3600" "$cap" "the child is given what the gate owes, not the floor under it"
+  # …and a project that records no gate cost keeps its floor, so the derivation invents no bound for a tree whose
+  # gate costs nothing.
+  conf="$d/floor.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=1200/' \
+      -e 's/^LOOP_ITEM_GATE_SECONDS=.*/LOOP_ITEM_GATE_SECONDS=/' "$LOOP_CONF" > "$conf"
+  p=$(new_project)
+  out=$( export LOOP_CONF="$conf"; run_loop "$p" --items 1 --minutes 90 --review off --dry-run 2>&1 ) ||
+    fail "the run itself failed"
+  cap=$(printf '%s\n' "$out" | sed -n 's/.*child-max-seconds=\([0-9][0-9]*\).*/\1/p' | head -1)
+  assert_eq "1200" "$cap" "a profile with no gate cost keeps the floor a child may run"
+}
+
+# A child that never returns used to be waited for with no bound at all: the run's deadline is consulted
+# between items, so a hung gate could spend the whole budget inside one `wait` (measured 2026-10-19: item
 # #126's worker phase ran 83 min that way, and its retry died inside the same module that had taken 30 min).
 # The cap is a recorded value; the run ends the child and everything the child started, the transcript carries
 # the one line that says so, and the item is recorded `blocked` with that transcript instead of spending the
@@ -4017,7 +4077,7 @@ case_run_childOutlastingTheWallClockIsBlocked() {
   # The recorded default is 45 min, which no case can wait for: the same seam the other cases use for the
   # configuration (`LOOP_CONF`) carries a two-second cap here.
   conf="$d/loop.conf"
-  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  conf_with_child_cap 2 "$conf"
   grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   fifo="$d/wait.fifo"; mkfifo "$fifo"
@@ -4076,7 +4136,7 @@ case_run_childIsEndedAtTheRunsDeadline() {
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # The child cap is an hour, so only the deadline can end this child.
   conf="$d/loop.conf"
-  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' "$LOOP_CONF" > "$conf"
+  conf_with_child_cap 3600 "$conf"
   grep -qx 'LOOP_CHILD_MAX_SECONDS=3600' "$conf" || fail "this case could not lengthen the child cap in loop.conf"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   fifo="$d/wait.fifo"; mkfifo "$fifo"
@@ -4141,7 +4201,7 @@ case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
-  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  conf_with_child_cap 2 "$conf"
   grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
   tree="$p/.pi/worktrees/loop"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
@@ -4217,7 +4277,7 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
-  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  conf_with_child_cap 2 "$conf"
   grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   # The child's own work, half applied: a file in the worktree it never finished, written before it blocks on the
@@ -4329,7 +4389,7 @@ case_run_treeOfACapEndedChildIsKeptAsAPatch() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
-  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  conf_with_child_cap 2 "$conf"
   grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   # The child's own work, half applied: an untracked file it never finished and an edit to a tracked one, written
@@ -4393,7 +4453,7 @@ case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
-  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  conf_with_child_cap 2 "$conf"
   grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
   # Round 1's reviewer refuses the change, so the run starts the rework worker; that worker writes its
   # half-applied file and then outlasts the 2 s cap, which is the tree the run must not commit.
@@ -5480,7 +5540,7 @@ case_run_theStartAfterTheRunsOwnEndedChildIsNotRefused() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
   conf="$d/loop.conf"
-  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  conf_with_child_cap 2 "$conf"
   grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
   # The first item's child writes, then outlasts the 2 s cap, so the run ends it and its work is what the tree
   # carries when the second item's start is refused. The second item's child works and ends by itself, which is
@@ -5520,7 +5580,7 @@ case_run_aRetriedStartStopsWithItsOwnReason() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
   conf="$d/loop.conf"
-  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  conf_with_child_cap 2 "$conf"
   grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
   # The first child writes dirt, then a finished-looking attempt of the *second* item on that item's own branch, and
   # then outlasts the cap. The second item's first start is refused for the dirt; the discard clears it; the retry is

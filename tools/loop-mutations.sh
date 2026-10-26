@@ -555,6 +555,13 @@ MUTATIONS=(
   # already green and its work uncommitted. The mutation makes the guard never fire, so the case that names the
   # bound reads a gate that is still inside a suite which never returns — the state the item was filed about.
   '63.2@-@tools/loop/gate.sh@gate#aStepIsBoundedAndTheOverrunNamesIt@the bound that answers a gate step which has not returned (issue #311)@s|^    if \[ .* -ge "\$step_max" \]; then$|    if false; then|'
+
+  # 64.1 — the child's bound following what one item's gate owes (issue #663). Measured 2026-10-26 on #310, a
+  # `tools/loop/**` item: 957 s of red gate round, 233 s of one focused falsification suite, 972 s of green gate
+  # round and 542 s of phases = 2 704 s against the 2 700 s constant, and the child was ended 8 s after its green
+  # `gate-summary.xml` was written; #664 and #666 ended the same way. The mutation keeps the floor and drops the
+  # derivation, so the case reads a child given less than its own item's gate costs.
+  '64.1@-@tools/loop/run.sh@run#theChildCapIsNeverBelowWhatOneItemsGateOwes@the bound that follows what one item'"'"'s gate owes (issue #663)@s|^  if \[ "\$owes" -gt "\$floor" \]; then .*$|  : # the mutation keeps the floor|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -52,10 +52,13 @@ first with 45 minutes left and refused 28 minutes of cheap work after it (issue 
 
 The budget is consulted between items, so a child process is the one place a spent budget could not be
 noticed: the run waited for it with no limit, and a gate that never returns could spend the whole run inside
-one wait.
+one wait. The bound is not one constant for every item: what a child is given follows what its own
+item's gate costs, which a profile records as a number, and an item was ended 8 s after its green
+gate had been written for want of that number (issue #663).
 
-- **WHEN** an agent process runs longer than the configured child wall-clock
-  (`LOOP_CHILD_MAX_SECONDS`, default 2700 s = 45 min)
+- **WHEN** an agent process runs longer than the child wall-clock the run gives it — the larger of the recorded
+  floor (`LOOP_CHILD_MAX_SECONDS`, default 2700 s = 45 min) and what one item's gate owes
+  (`LOOP_ITEM_GATE_SECONDS`, which a project without a gate leaves out)
 - **THEN** the run ends that process and every process it started, appends one machine-readable line to the
   report it was writing (`LOOP-TIMEOUT: the child exceeded <n> s …`), and returns a status that is not the
   child's own, so the item is recorded `blocked` with that transcript and the run goes on to its next stop
@@ -174,6 +177,19 @@ host that keeps the number somewhere else.
 - **THEN** the check passes, the item's child is started as it always was, and the header says the reading is
   unavailable instead of inventing a number
 - **Case**: `run#hostWithoutTheReadingPasses`
+
+#### Scenario: The bound a child is given is what one item's own gate costs
+
+Measured 2026-10-26 (issue #663) on a `tools/loop/**` item: gate round 1 (red) 957 s, one focused falsification
+suite 233 s, gate round 2 (green) 972 s and 542 s of reading, edit, evidence, archive and report — 2 704 s
+against the 2 700 s the constant allowed, so the run ended the child 8 s after its green `gate-summary.xml` was
+written; two more items ended the same way the same day with their work on disk.
+
+- **WHEN** a child is started and the profile records what one item's gate owes (`LOOP_ITEM_GATE_SECONDS`)
+- **THEN** the run gives the child the larger of that number and `LOOP_CHILD_MAX_SECONDS`, the header names the
+  bound it gave, and a `LOOP-TIMEOUT` line names the same number — and a profile that records no gate cost keeps
+  the floor
+- **Case**: `run#theChildCapIsNeverBelowWhatOneItemsGateOwes`
 
 ### Requirement: The run acts only on authorised, eligible items
 

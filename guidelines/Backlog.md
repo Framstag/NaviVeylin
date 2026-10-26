@@ -340,7 +340,13 @@ of which one module's build output 1.9 GB, and `loop-selftest.*` scratch trees o
 trees. `tools/loop/loop-clean.sh` reports what is left, `--apply` removes it, and the command is safe to repeat.
 
 What bounds it: the budget is consulted between items, so the run also bounds **one child** by its own
-recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 45 min). A child that outlasts it is ended together with
+recorded wall-clock — the larger of a floor (`LOOP_CHILD_MAX_SECONDS`, default 45 min) and what one item's gate
+owes (`LOOP_ITEM_GATE_SECONDS`, 65 min here, and left out by a project with no gate). The bound follows the gate
+because one constant for every item is smaller than an item that owes two gate rounds: measured 2026-10-26, a
+`tools/loop/**` item spent 957 s on a red round, 233 s on one focused falsification suite, 972 s on a green round
+and 542 s on reading, edit, evidence, archive and report — 2 704 s against the 2 700 s the constant allowed — and
+its child was ended 8 s after the green `gate-summary.xml` was written; #664 and #666 ended the same way (issue
+#663). A child that outlasts it is ended together with
 everything it started — a gate leaves daemons and test workers behind, and those are the memory the next item
 needs — its transcript gains one machine-readable line (`LOOP-TIMEOUT: the child exceeded <n> s`), and the item
 is recorded `blocked` with that transcript rather than spending the run's clock. "Everything it started" is
@@ -855,7 +861,9 @@ configuration**, not a rewrite:
 ```
 LOOP_AGENT_CMD   how a child is started          on the host  |  inside an isolated environment
 LOOP_GATE_CMD    how this project's gate runs    empty for a project with no build
-LOOP_CHILD_MAX_SECONDS   how long one child may run   2700 s (45 min); a longer child is ended and blocked
+LOOP_CHILD_MAX_SECONDS   the floor under one child's run   2700 s (45 min); a longer child is ended and blocked
+LOOP_ITEM_GATE_SECONDS   what one item's gate owes    3900 s (65 min): two gate rounds and the phases beside them
+                                                       (issue #663); a child is given the larger of the two
 LOOP_WORKER_SKILLS   which of this project's skills the worker is told to use
 ```
 

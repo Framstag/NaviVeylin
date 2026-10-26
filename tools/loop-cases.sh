@@ -122,6 +122,7 @@ LOOP_SHELL_CASES=(
   'gate#aPathACheckReadsOwesThatStepsCommandSet'
   'gate#anEnginePathOwesTheRecordCheck'
   'gate#theSuitesOutputReachesTheConsoleWhileItRuns'
+  'gate#aStepEndsWithItsCommandNotWithItsWatchers'
   'gate#aFailingSuiteIsReadFromTheSameStream'
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
   'gate#aCompiledStepsTallyIsNotHidden'
@@ -402,6 +403,7 @@ loop_run_shell_case() {
     'gate#aPathACheckReadsOwesThatStepsCommandSet') fn=case_gate_aPathACheckReadsOwesThatStepsCommandSet ;;
     'gate#anEnginePathOwesTheRecordCheck') fn=case_gate_anEnginePathOwesTheRecordCheck ;;
     'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
+    'gate#aStepEndsWithItsCommandNotWithItsWatchers') fn=case_gate_aStepEndsWithItsCommandNotWithItsWatchers ;;
     'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
     'gate#aCompiledStepsTallyIsNotHidden') fn=case_gate_aCompiledStepsTallyIsNotHidden ;;
@@ -3128,6 +3130,66 @@ SUITE
   assert_contains "$out" "LOOP-GATE: tests=1 failures=0" "and the gate's tally is read from the same run"
   assert_contains "$(cat "$d"/tally/*.xml 2>/dev/null)" 'tests="1" failures="0"' \
     "the tally the run's own check reads carries that suite's numbers"
+  return 0
+}
+
+# A step ends when the command it started has ended, not when everything that inherited the step's output has let go
+# of it (issue #315). The step was `$cmd 2>&1 | tee "$stream"`, so the pipeline — and the step's own wall clock,
+# which is taken after it — stayed open while any writer that outlived the command still held the write end: measured
+# 2026-10-26, a `tools/loop-selftest.sh` step printed its verdict 565 s in and its own line read `— 1237s`, ~670 s of
+# gate after the verdict, with the case bound's watchers the observed concurrent population. The case below is that
+# shape and nothing about the loop's own suites: a step whose command printed its verdict, left one writer behind,
+# and exited.
+case_gate_aStepEndsWithItsCommandNotWithItsWatchers() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base log out pid took start i line_seconds
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # The verdict, then a writer that outlives the suite and its own parent — the shape the case bound's watcher had.
+  # 20 s is long enough that a step waiting for it is unmistakable and short enough that a red run is not a wait of
+  # its own.
+  cat > "$d/suite.sh" <<'SUITE'
+( sleep 20 ) &
+printf 'notes: all 1 cases passed\n'
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  log="$d/gate.log"
+  start=$SECONDS
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1 &
+  pid=$!
+  # Bounded, not `wait`: on HEAD the gate does not end while the writer lives, and a case that waited for it would
+  # report the defect as its own wall clock. Eight seconds is four times what the step costs with no writer at all.
+  for ((i = 0; i < 80; i++)); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  took=$((SECONDS - start))
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM "$pid" 2>/dev/null
+    wait "$pid" 2>/dev/null
+    fail "the step ran on after its command exited: still inside the gate ${took}s into a 20s writer that command left behind"
+  fi
+  wait "$pid" || fail "the gate failed: $(cat "$log")"
+  out=$(cat "$log")
+  line_seconds=$(printf '%s\n' "$out" | sed -n "s|^gate: bash $d/suite\\.sh — \([0-9][0-9]*\)s\$|\\1|p" | tail -1)
+  [ -n "$line_seconds" ] || fail "the step's own line carries no duration: $out"
+  [ "$line_seconds" -lt 8 ] \
+    || fail "the step's wall clock (${line_seconds}s) covers the writer it left behind instead of its own command"
+  assert_contains "$out" "LOOP-GATE: tests=1 failures=0" \
+    "and the verdict is still read from the stream the step wrote: $out"
+  assert_contains "$out" "notes: all 1 cases passed" \
+    "and the console carries the suite's own line, so the step loses nothing to the writer it left behind: $out"
   return 0
 }
 

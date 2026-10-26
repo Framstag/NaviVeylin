@@ -343,9 +343,10 @@ MUTATIONS=(
   # 46.1 is the stream that carries a suite output to the console while the suite runs. Measured 2026-10-23
   # (issue #269): the gate held a suite's whole output in a variable, so a gate that ran for eleven minutes
   # carried two lines and neither an operator nor a worker could tell a long suite from a stopped one. The
-  # mutation restores the command substitution and leaves the tally reading the same bytes — only the console
-  # goes silent, which is what the case that names it asserts.
-  '46.1@-@tools/loop/gate.sh@gate#theSuitesOutputReachesTheConsoleWhileItRuns@the stream that carries a suite output to the console while the suite runs (issue #269)@s|^    \$cmd 2>&1 \| tee "\$stream"$|    out=$($cmd 2>&1); printf %s "$out" > "$stream"|'
+  # mutation ends the follower before it starts, so nothing is streamed and the console is silent until the step
+  # ends — which is what the case that names it asserts. Since issue #315 the stream is a file the step's command
+  # writes and the console follows; the follower is the whole of the streaming.
+  '46.1@-@tools/loop/gate.sh@gate#theSuitesOutputReachesTheConsoleWhileItRuns@the stream that carries a suite output to the console while the suite runs (issue #269)@s|^  follow_stream "\$stream" "\$follow_stop" &$|  : # the mutation replays the output only when the step ends|'
   # 47.1 is the two fallbacks that turned a failed suite with no summary into one failing case (issue #268).
   # Measured 2026-10-23: a compiled step that died at configuration (`BUILD FAILED in 21s`, no test task reached its
   # action) was tallied `tests="1" failures="1"`, and the tally the run's own check reads said a test exists where
@@ -522,6 +523,14 @@ MUTATIONS=(
   # configuration names is not reported — and a configuration that names no scan root is answered with a clean
   # report instead of the refusal the same case asserts.
   '255.1@-@tools/loop/evidence-check.sh@evidence#scansWhatTheProfileNames@the scan root read from the project configuration — the engine looks at a literal of its own instead (issue #255)@s#^    \[ -n "\$scan" \] || scan=\$(conf_value "\$conf_file" LOOP_EVIDENCE_SCAN_PATHS)$#    [ -n "$scan" ] || scan="app/src"#'
+
+  # 63.1 — the step ends with the command it started, not with the pipe that command's output went into (issue
+  # #315). Measured 2026-10-26: a `tools/loop-selftest.sh` step printed its verdict 565 s in and its own line read
+  # `— 1237s`, because the pipeline stayed open while a writer the suite left behind held the write end — ~670 s of
+  # gate after the verdict, on every run whose suite ended before its watchers expired. The mutation puts `tee` on
+  # a pipe back in the command's place, so the step waits for the pipe's EOF again and the case that names it reads
+  # a step that is still inside the gate long after its command exited.
+  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  \$cmd >"\$stream" 2>&1 &$|  $cmd 2>&1 \| tee "$stream" &|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

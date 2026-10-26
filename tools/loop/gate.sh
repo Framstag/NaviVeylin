@@ -53,6 +53,33 @@ tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
 
 say() { [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
 
+# A step's output is followed in its file, not carried on a pipe (issue #315). `$cmd 2>&1 | tee "$stream"` reads to EOF,
+# and EOF arrives only when *every* writer that inherited the write end has let go of it — so a suite that leaves a
+# watcher behind (the per-case bound at `tools/loop-selftest.sh` did) spent the step's wall clock on that watcher's
+# life: measured 2026-10-26, a `loop-selftest.sh` step printed its verdict 565 s in and its own line read `— 1237s`,
+# ~670 s of gate after the verdict, ending a supervised gate that had capped the call at 900 s. The follower below
+# reads what the file has gained since its last pass — byte for byte, `tail -c +N` — so a partially written line is
+# printed as it is written and the console sees the suite's output while the suite runs (`issue #269`, the behaviour
+# this keeps). It ends once `<stop>` exists *and* the file has been drained, so the last line of a suite's output is
+# on the console before the gate moves on.
+follow_stream() { # <file> <stop file> → the file's new bytes, as they arrive, until the stop is written
+  local file=$1 stop=$2 have=0 size final=0
+  while :; do
+    size=$(wc -c < "$file" 2>/dev/null || printf '0')
+    size=${size//[!0-9]/}
+    if [ "${size:-0}" -gt "$have" ]; then
+      tail -c +"$((have + 1))" "$file"
+      have=$size
+      # One more pass before believing the file is drained: the stop is written when the command has ended, and a
+      # pass that started before the last write would otherwise end the follower on the bytes it had already read.
+      continue
+    fi
+    [ "$final" -eq 1 ] && break
+    if [ -e "$stop" ]; then final=1; continue; fi
+    sleep 0.1
+  done
+}
+
 # The profile this gate read is the rule its numbers attest, so the log names it (issue #277): the gate of a change
 # whose delta edits `loop.conf` must read the profile of the tree it is measuring, and a profile read from outside
 # that tree is named as pinned, beside the one this engine ships, instead of leaving a reader to recognise it by its
@@ -140,14 +167,38 @@ failures=0
 errors=0
 failed_suites=""
 ran_entries=""
-# A suite's output is streamed, not replayed: `tee` writes it to the console as the suite writes it, and the
-# file it tees into is what the summary is parsed from — one observation feeds the log and the tally. Measured
-# 2026-10-23 (issue #269): `out=$($cmd 2>&1)` held the whole output until the command exited, so a gate that ran
-# a suite for eleven minutes carried two lines, and neither an operator nor a worker could tell a long suite
-# from a stopped one, nor see which case a failure was in.
+# A suite's output is streamed, not replayed: the console reads the file the suite writes as the suite writes it, and
+# that one file is what the summary is parsed from — one observation feeds the log and the tally. Measured 2026-10-23
+# (issue #269): `out=$($cmd 2>&1)` held the whole output until the command exited, so a gate that ran a suite for
+# eleven minutes carried two lines, and neither an operator nor a worker could tell a long suite from a stopped one,
+# nor see which case a failure was in.
 stream=$(mktemp "${TMPDIR:-/tmp}/loop-gate-output.XXXXXX") \
   || loop_die "gate: cannot create the file that carries a suite's output"
-trap 'rm -f "$stream"' EXIT
+# The stop is a second file beside the stream: written once a step's command has ended, it is what tells the follower
+# that the file will gain no more bytes.
+follow_stop="$stream.stop"
+trap 'rm -f "$stream" "$follow_stop"' EXIT
+# One step: the command's output into the file, the console reading that file as it grows, and the command's own
+# status. The step ends with the command it started — a writer that outlives it holds the file open, which holds
+# nothing else (issue #315).
+run_step() { # <command> → the command's status
+  local cmd=$1 step follow rc
+  # `--quiet` keeps the console for the verdict, but the file is written either way: the tally is read from it.
+  if [ "$quiet" -eq 1 ]; then
+    $cmd >"$stream" 2>&1
+    return $?
+  fi
+  $cmd >"$stream" 2>&1 &
+  step=$!
+  follow_stream "$stream" "$follow_stop" &
+  follow=$!
+  wait "$step"
+  rc=$?
+  : > "$follow_stop"
+  wait "$follow" 2>/dev/null
+  rm -f "$follow_stop"
+  return "$rc"
+}
 while IFS= read -r cmd; do
   [ -n "$cmd" ] || continue
   say "gate: $cmd"
@@ -156,16 +207,10 @@ while IFS= read -r cmd; do
   # cheaper cannot say which suite it is paying for. `SECONDS` is the shell's own counter, integer and monotonic
   # enough for a wall clock of this size.
   t0=$SECONDS
-  # `--quiet` keeps the console for the verdict, but the file is written either way: the tally is read from it.
-  # The status is the suite's own, never the stream's (`pipefail` would answer that too, but only for the last
-  # command of the pipeline, and this one names the answer explicitly).
-  if [ "$quiet" -eq 1 ]; then
-    $cmd >"$stream" 2>&1
-    rc=$?
-  else
-    $cmd 2>&1 | tee "$stream"
-    rc=${PIPESTATUS[0]}
-  fi
+  # The status is the suite's own, read from the process the step started rather than from a pipeline: `pipefail`
+  # answered that for the last command of a pipeline, and this reads it directly (issue #315).
+  run_step "$cmd"
+  rc=$?
   out=$(cat "$stream")
   took=$((SECONDS - t0))
   say "gate: $cmd — ${took}s"

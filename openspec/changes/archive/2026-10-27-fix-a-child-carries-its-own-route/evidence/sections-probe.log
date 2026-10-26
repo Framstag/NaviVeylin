@@ -1,0 +1,11 @@
+sections-probe: streams=136 root=/home/tim/projects/NaviVeylin
+sections-probe: stream=/home/tim/projects/NaviVeylin/.pi/issue-loop/items/661/events.jsonl bytes=4893209
+sections-probe: section preamble            169 chars
+sections-probe: section tools              3120 chars
+sections-probe: section rules              1741 chars
+sections-probe: section docs               1277 chars
+sections-probe: section project_context   25624 chars
+sections-probe: section cwd                  42 chars
+sections-probe: section caveman             951 chars
+sections-probe: total system prompt 32924 chars
+sections-probe: project_context share 25624 chars = 77.8 % of the system prompt, 9151.4 tokens at 2.8 chars/token

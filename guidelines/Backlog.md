@@ -271,18 +271,18 @@ readings of it are not evidence about one child. `--strict-outside-write yes`
 (`LOOP_STRICT_OUTSIDE_WRITE_DEFAULT`, default `no`) restores the verdict for a tree that is exclusive: the
 worker's item is blocked, the round-2 worker's item is blocked, and a review round that ran during a difference
 is discarded. A difference the run **can** place decides in both modes, and placing one means this: the heartbeat
-beside every child reads the project's tree **once per whole second of that child's life**, on a cadence of its own
-and not on the reporting one — `LOOP_PROGRESS_SECONDS` says how often a person is told, and an interval configured
-for reading progress is not a resolution for evidence (issue #673: the reading is the only one that can place a
-transient write, the case that pins it had to lower the reporting interval to 1 s to be answered, and under that
-interval a reading delayed past the writer's 2 s life records the item `done` — the flake the issue reports as 1 run
-in 3) — and, at the first difference, marks the
-processes of the child's own process tree — its process group, or anything descended from it, however it left that
-group — that **left the worktree**: a process whose working directory is inside the project and outside the worktree
-while the tree it came from works in the worktree. The child itself and the shells the run starts it through are
-excluded, because `run_child` starts them in the project and they stand there for the whole item: measured
-2026-10-24 (issue #288), marking that chain turned a peer's write into `blocked` for an item whose work was never
-touched. The child's own tree is read **before** the list of everyone else standing in the project, because that
+beside every child reads the project's tree **once per whole second of that child's life until the first difference
+is recorded**, on a cadence of its own and not on the reporting one — `LOOP_PROGRESS_SECONDS` says how often a person
+is told, and an interval configured for reading progress is not a resolution for evidence (issue #673: the reading
+is the only one that can place a transient write, the case that pins it had to lower the reporting interval to 1 s to
+be answered, and under that interval a reading delayed past the writer's 2 s life records the item `done` — the flake
+the issue reports as 1 run in 3) — and, at that first difference, marks the processes of the child's own process
+tree — its process group, or anything descended from it, however it left that group — that **left the worktree**: a
+process whose working directory is inside the project and outside the worktree while the tree it came from works in
+the worktree. The child itself and the shells the run starts it through are excluded, because
+`run_child` starts them in the project and they stand there for the whole item: measured 2026-10-24 (issue #288),
+marking that chain turned a peer's write into `blocked` for an item whose work was never touched.
+The child's own tree is read **before** the list of everyone else standing in the project, because that
 list is a `readlink` for every process on the host — 1.0 s for 731 of them when #288 measured it — and the writer
 the mark is about is gone by the time such a reading ends. Two sweeps were what the placement was built on, and
 the second one listed none of the nine pids the first had listed 1.1 s earlier, so nothing was ever placed. A

@@ -421,7 +421,9 @@ sensors_finding_problems() { # <row-json> <finding-json>
 sensors_issues_of_row() { # <row-id> → a JSON array
   local label
   label=$(sensors_label "$1")
-  gh issue list --state all --limit 400 --json number,title,body,labels,state,stateReason,author,comments 2>/dev/null |
+  # `createdAt` is the instant a filing's own marker carries, so it is requested with the rest: one write
+  # produces the issue and the marker, so the issue's creation time is the marker's (issue #668).
+  gh issue list --state all --limit 400 --json number,title,body,labels,state,stateReason,author,comments,createdAt 2>/dev/null |
     jq -c --arg label "$label" '[.[]? | select([(.labels // [])[]?.name] | index($label) != null)]'
 }
 
@@ -484,9 +486,32 @@ sensors_record_issue() { # <issues-json> <row-id> → the issue, or empty
 # a baseline-multiple row compares against. Sorted by the marker's own instant: the issues arrive
 # newest-first, and a row carries a record issue beside its condition issues, so the last of the unsorted list
 # is the newest marker of the oldest issue rather than the newest marker of the row.
+#
+# A run has two places to write a marker and only one of them is a comment: a run that *files* embeds the same
+# marker in the new issue's body (`sensors_issue_body`). Both are read here, because a row whose newest event is
+# a filing carries no comment at all — and reading comments only made such a row report that it never ran, and
+# handed the next comparison an empty baseline, three minutes after it filed (issue #668). A filing's marker has
+# no instant of its own (the issue and the marker are one write), so the issue's `createdAt` is its instant.
+#
+# The marker's fingerprint is read from the marker, never from the issue: it is a condition's identity, and one
+# issue can carry markers of several conditions (a record issue carries one clear per condition). `previous`
+# selects by that field, so a per-issue fingerprint would compare one condition against another's measurement.
+sensors_markers_json() { # <issues-json> → every marker the row's issues carry, oldest first
+  jq -c '
+    [ .[]? | . as $issue
+      | ( [ (.comments // [])[] | select((.body // "") | contains("verdict="))
+            | {createdAt: (.createdAt // ""), marker: (.body // "")} ]
+          + [ ($issue.body // "") | [scan("<!--[^>]*verdict=[^>]*-->")] | .[0] // empty
+              | {createdAt: ($issue.createdAt // ""), marker: .} ] )
+      | .[]
+      | . + {number: ($issue.number // 0), body: ($issue.body // ""), state: ($issue.state // "OPEN"),
+             fingerprint: ((((.marker // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; ""))}
+    ]
+    | sort_by(.createdAt)' <<< "$1"
+}
+
 sensors_last_marker() { # <issues-json>
-  jq -r '[(.[]? | (.comments // [])[] | {createdAt: (.createdAt // ""), body: (.body // "")})
-         | select(.body | contains("verdict="))] | sort_by(.createdAt) | last | .body // ""' <<< "$1"
+  sensors_markers_json "$1" | jq -r 'last | .marker // ""'
 }
 
 sensors_marker_field() { # <marker> <name>

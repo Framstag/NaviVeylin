@@ -1,0 +1,3 @@
+MUTATION 8.22: report#aTrendIsBetweenOneCondition red under the mutation, green after the restore — the marker carries its condition fingerprint, not the one the issue body would give it (issue #668)
+
+sensor-mutations: 1 behaved, 0 did not

@@ -1,0 +1,3 @@
+MUTATION 8.20: report#aFiledRowIsReported red under the mutation, green after the restore — the filing marker in the issue body is part of the row history (issue #668)
+
+sensor-mutations: 1 behaved, 0 did not

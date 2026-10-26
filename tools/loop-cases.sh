@@ -4652,21 +4652,17 @@ case_run_aWriterTheRunCanPlaceBlocksTheItem() {
   # back before the child ends, so the reading at its exit sees nothing. Only the reading taken *while* it ran can
   # tie the write to the child — that is the evidence this change adds, and it decides the item (#286).
   #
-  # The write waits for the process standing beside it, and both wait for the run's **recorded** reading
-  # (`worker-report.md.outside-write`) before they are taken back (issue #673). Two phases were the case's own race:
-  # the process that places a write has to *stand* in the project before the write appears — a subshell that has
-  # been forked but has not run its `cd` yet stands in the worktree, and the run then places nothing — and a write
-  # that lives for a fixed few seconds leaves the reading a margin of one second against a busy host. Measured
-  # 2026-10-26 on HEAD, with the write and the standing process held this way, the case is red on every run (the
-  # run reads the project's tree only on its reporting cadence, so nothing is placed and the item is recorded
-  # `done`); with both waiting for the record it is a pin rather than a race, exactly as the peer case below does it.
+  # On the engine this case was repaired against (HEAD before the reading got a cadence of its own), the run read
+  # the project's tree only on its reporting cadence — `LOOP_PROGRESS_SECONDS`, which this case does not lower — so
+  # a reading could land outside the writer's life, nothing was placed, and the item was recorded `done`.
+  #
   # The write outlives the run's reading by a wide margin, and the process standing beside it outlives the write
   # (issue #673): the reading is taken once per whole second of the child's life, and the difference has to be there
   # when it is taken. Measured on HEAD 2026-10-26, the reading that saw the difference landed 0.45–0.76 s after the
   # write; the writer below stands for 10 s and the file for 8 s, so the margin is ~7 s against a 1 s cadence instead
-  # of the ~1 s that a 2 s writer left — the width is what a busy host, which is where 1 run in 3 recorded the item as
-  # `done`, cannot eat. The process is ended with the child's group by the run's own cap, and the case's group is ended
-  # by the driver, so nothing is left standing either way.
+  # of the ~1 s that a 2 s writer left — the width is what a busy host cannot eat, and the tracker entry's own
+  # rate for this case is 1 run in 3 recorded `done` (issue #673). The process is ended with the child's group by
+  # the run's own cap, and the case's group is ended by the driver, so nothing is left standing either way.
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in worker*) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt"
        ( cd "$LOOP_CHILD_ROOT" && exec sleep 10 ) &

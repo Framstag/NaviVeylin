@@ -1028,8 +1028,8 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   set +m
   ( hb_pid=$BASHPID
     hb_base=$SECONDS
-    # The reading's own cadence, in whole seconds of this shell's clock (issue #673): the first reading is taken at the
-    # next whole second of the child's life, and the block below advances this to the second after each reading.
+    # The reading's own cadence, in whole seconds of this shell's clock (issue #673): the first reading is taken on
+    # the first look, and the block below advances the next one to a whole second after each reading.
     read_next=$SECONDS
     next=$interval
     while [ ! -e "$stop" ]; do

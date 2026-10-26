@@ -121,11 +121,12 @@ MUTATIONS=(
   # `run_child`, so it stands there for the whole item — marks every difference in that tree, and a peer's write
   # decides an item whose work was never touched. Its pair 12.12 (`for pid in $(loop_tree_pids …)` replaced by the
   # host-wide sweep) was **removed** by issue #673: `run#aWriterTheRunCanPlaceBlocksTheItem` is the only case that
-  # could notice it, it can only do so through timing — the sweep finds a writer that is still standing, so the case
-  # notices the mutation only when its writer dies inside the sweep's own second — and that is the same phase
-  # dependence the case was repaired for. Measured 2026-10-26 on the repaired tree: `GREEN 12.12 … the case did not
-  # notice the mutation`. The ordering stays in `run.sh` and its reason stays in `guidelines/Backlog.md` §7; what it
-  # lost is a case, not the behaviour.
+  # could notice it, and it no longer can — that sweep is a `readlink` for every process on the host (~1 s where #288
+  # measured it) and the case's writer stands 10 s beside an 8 s write, so the sweep finds the same writer the child's
+  # own tree does. Measured 2026-10-26 on the repaired tree, with the record restored verbatim for the one run:
+  # `GREEN 12.12 … the case did not notice the mutation` (`evidence/mutation-12.12.log` of the archived change). A
+  # record a case cannot notice is not evidence (the rule this file's `13.x` records follow). The ordering stays in
+  # `run.sh` and its reason stays in `guidelines/Backlog.md` §7; what it lost is a case, not the behaviour.
   '12.11@-@tools/loop/run.sh@run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem@the child chain the run itself started in the project not being a writer@s|^    pid_left_the_worktree "$pid" "$LOOP_WORKTREE" \|\| continue$|    : # the mutation marks every process of the tree that stands in the project|'
   '12.5@-@tools/loop/worktree.sh@worktree#reusesABranchThatCarriesNoWorkOfItsOwn@the reuse of a branch that carries nothing of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if false; then|'
   '12.6@-@tools/loop/worktree.sh@worktree#refusesABranchCarryingAPreviousAttempt@the refusal of a branch that carries an archived change of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if true; then|'

@@ -431,10 +431,8 @@ change.
 - **WHEN** the project's own tree changes while a child runs
 - **THEN** the run reads the difference from the heartbeat ticking beside that child and places it — it marks the
   processes of this child's own process tree, its process group or its descendants, whose working directory is
-  inside the project and outside the worktree *and* which came out of the worktree — and it reads that tree before it
-  lists the other processes standing in the project, because that listing walks every process on the host while a
-  writer is already gone: a writer is gone by the time the child's transcript is written, and a difference nobody
-  can place is not evidence about the child
+  inside the project and outside the worktree *and* which came out of the worktree — because a writer is gone by the
+  time the child's transcript is written, and a difference nobody can place is not evidence about the child
 - **Case**: `run#aWriterTheRunCanPlaceBlocksTheItem`
 
 #### Scenario: The run's own child chain is not a writer

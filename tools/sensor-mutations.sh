@@ -49,6 +49,11 @@ MUTATIONS=(
   '8.20@tools/sensors/lib.sh@s#+ \[ (\$issue.body // "") |#+ [ ("") |#@report#aFiledRowIsReported@the filing marker in the issue body is part of the row history (issue #668)'
   '8.21@tools/sensors/run.sh@s|baseline=$(sensors_last_marker "$issues")|baseline=""|@run#aFilingSetsTheBaseline@the baseline is the newest marker the row carries, a filing included (issue #668)'
   '8.22@tools/sensors/lib.sh@s#fingerprint: ((((.marker // "")#fingerprint: (((($issue.body // "")#@report#aTrendIsBetweenOneCondition@the marker carries its condition fingerprint, not the one the issue body would give it (issue #668)'
+  '8.23@tools/sensors/run.sh@s/if \[ "$SENSORS_FILED" -ge "$SENSORS_MAX_FILINGS" \]; then/if false; then/@run#aRowPastItsBoundFilesItsBoundAndOneSummary@a run files at most the bound its row declares (issue #666)'
+  '8.24@tools/sensors/run.sh@s/if \[ "$count" -eq 0 \]; then/if false; then/@run#aRowUnderItsBoundFilesNoSummary@a summary is filed only when the bound left a condition over (issue #666)'
+  '8.25@tools/sensors/run.sh@s/if \[ "$reason" != "completed" \]; then/if false; then/@run#aSummaryClosedByAPersonIsNotReopened@a summary a person closed is annotated, never reopened (issue #666)'
+  '8.26@tools/sensors/run.sh@s/\[ "$SENSORS_FAILED" -eq "$failed_before" \] || return 0/:/@run#aFailedCheckDoesNotClearTheSummary@a run in which a finding failed clears no summary (issue #666)'
+  '8.27@tools/sensors/run.sh@s/  sensors_unfiled_lines "$3"/  : /@run#aSecondOverBoundRunListsWhatItDidNotFile@each over-bound run names the conditions it did not file (issue #666)'
 )
 
 if [ "$mode" = "list" ]; then

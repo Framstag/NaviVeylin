@@ -1,0 +1,2 @@
+MUTATION 8.25: run#aSummaryClosedByAPersonIsNotReopened red under the mutation, green after the restore — a summary a person closed is annotated, never reopened (issue #666)
+sensor-mutations: 27 behaved, 0 did not

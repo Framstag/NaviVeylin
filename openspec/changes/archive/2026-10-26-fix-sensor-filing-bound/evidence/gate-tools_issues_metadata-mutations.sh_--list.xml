@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issues/metadata-mutations.sh --list" tests="0" failures="0" errors="0" time="3">
+  <system-out>band-edge-leaves-a-hole          every score the model can produce falls in exactly one band (task 8.5, D2) classify-writes-the-opt-in       the pass cannot write the automation opt-in (task 8.6, D7) the-writer-skips-the-marker      the band label and the body marker cannot drift apart (task 8.7, D1)</system-out>
+</testsuite>

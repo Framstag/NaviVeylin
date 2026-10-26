@@ -13,6 +13,7 @@
       "status/on-hold"
     ]
   },
+  "maxFilings": 10,
   "rows": [
     {
       "id": "fixture-emit",

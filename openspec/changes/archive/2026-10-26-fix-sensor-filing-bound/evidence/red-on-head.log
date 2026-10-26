@@ -1,0 +1,26 @@
+===== bash tools/sensor-selftest.sh --case run#aRowPastItsBoundFilesItsBoundAndOneSummary  (2026-10-26T18:13:26Z)
+  the bound's worth of conditions is filed: expected '2', got '4'
+FAIL run#aRowPastItsBoundFilesItsBoundAndOneSummary
+exit=1
+===== bash tools/sensor-selftest.sh --case run#aRowUnderItsBoundFilesNoSummary  (2026-10-26T18:13:33Z)
+PASS run#aRowUnderItsBoundFilesNoSummary
+exit=0
+===== bash tools/sensor-selftest.sh --case run#aRowDeclaresItsOwnBound  (2026-10-26T18:13:39Z)
+  the row's own bound is what bounds it: expected '3', got '5'
+FAIL run#aRowDeclaresItsOwnBound
+exit=1
+===== bash tools/sensor-selftest.sh --case run#theSummaryClearsWhenTheRowIsBackUnderItsBound  (2026-10-26T18:13:49Z)
+  the open summary closes: expected '1', got '0'
+FAIL run#theSummaryClearsWhenTheRowIsBackUnderItsBound
+exit=1
+===== bash tools/sensor-selftest.sh --case run#aSummaryClosedByAPersonIsNotReopened  (2026-10-26T18:13:54Z)
+  the bound's worth of conditions is still filed: expected '2', got '3'
+FAIL run#aSummaryClosedByAPersonIsNotReopened
+exit=1
+===== bash tools/sensor-selftest.sh --case run#aSecondOverBoundRunListsWhatItDidNotFile  (2026-10-26T18:13:59Z)
+  the bound's worth of conditions is filed: expected '2', got '3'
+FAIL run#aSecondOverBoundRunListsWhatItDidNotFile
+exit=1
+===== bash tools/sensor-selftest.sh --case run#aFailedCheckDoesNotClearTheSummary  (2026-10-26T18:14:02Z)
+PASS run#aFailedCheckDoesNotClearTheSummary
+exit=0

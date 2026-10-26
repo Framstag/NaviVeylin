@@ -5,6 +5,7 @@
   "labels": { "status": "open", "source": "ci" },
   "escalation": { "maxRecurrences": 3, "labels": ["agent/needs-decision", "status/on-hold"] },
   "record": { "status": "on-hold" },
+  "maxFilings": 10,
   "rows": [
     {
       "id": "fixture-emit",

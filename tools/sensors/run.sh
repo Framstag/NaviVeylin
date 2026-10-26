@@ -249,12 +249,15 @@ sensors_labels_json() { # <row> <id> [<status>]
   printf '%s\n' "$labels"
 }
 
-sensors_file() { # <row> <id> <finding> <baseline>
-  local row="$1" id="$2" finding="$3" baseline="${4:-}" fp title file body labels
+sensors_file() { # <row> <id> <finding> <baseline> [<body>]
+  local row="$1" id="$2" finding="$3" baseline="${4:-}" fp title file body labels code
   fp=$(jq -r '.fingerprint' <<< "$finding")
   title=$(jq -r '.title // empty' <<< "$finding")
   [ -n "$title" ] || title="${id}: $(jq -r '.measurement' <<< "$finding")"
-  body=$(sensors_issue_body "$row" "$finding" "$baseline")
+  # The body is the caller's when it built one: a filing summary carries the list of what the run did not file, which
+  # the generic finding shape has no room for (issue #666).
+  body="${5:-}"
+  [ -n "$body" ] || body=$(sensors_issue_body "$row" "$finding" "$baseline")
   labels=$(sensors_labels_json "$row" "$id")
   file=$(mktemp) || sensors_die "run: cannot create a temporary file"
   jq -n --arg title "$title" --arg class "$(sensors_row_field "$row" class)" \
@@ -265,7 +268,9 @@ sensors_file() { # <row> <id> <finding> <baseline>
       fingerprint: $fingerprint, labels: $labels, body: $body}' > "$file"
   sensors_write "file a new issue for $id (fingerprint $fp, measurement $(jq -r '.measurement' <<< "$finding"))" \
     bash "$SENSORS_ISSUES_DIR/create.sh" --sensor "$id" --finding "$file"
+  code=$?
   rm -f "$file"
+  return "$code"
 }
 
 # The body of a row's record issue: it names the row and carries the record's own marker, so the issue is
@@ -453,6 +458,15 @@ sensors_outcome_violation() { # <row> <id> <finding> <issues> <baseline>
   fp=$(jq -r '.fingerprint' <<< "$finding")
   issue=$(sensors_issue_for_fingerprint "$issues" "$fp")
   if [ -z "$issue" ]; then
+    # What one run of this row may file is bounded (issue #666): an annotation, a reopen or a comment spends nothing,
+    # because none of them makes the tracker grow — only the new item this branch would write does.
+    if [ "$SENSORS_FILED" -ge "$SENSORS_MAX_FILINGS" ]; then
+      SENSORS_UNFILED=$(jq -c --argjson f "$finding" '. + [$f]' <<< "$SENSORS_UNFILED")
+      sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "-" \
+        "not filed (past the row's bound of $SENSORS_MAX_FILINGS new items in one run)"
+      return 0
+    fi
+    SENSORS_FILED=$((SENSORS_FILED + 1))
     sensors_file "$row" "$id" "$finding" "$baseline"
     sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "-" "filed"
     return 0
@@ -547,13 +561,218 @@ sensors_outcome() { # <row> <id> <finding> <issues> <baseline>
   esac
 }
 
+# --------------------------------------------------------------------------- the bound on one run's filings
+
+# How many of the conditions a run did not file one item still lists: the count is the measurement the item carries,
+# so the list may be bounded without the item lying — GitHub refuses a body past 65 536 characters and a run can hold
+# any number of conditions (issue #666).
+SENSORS_SUMMARY_LIST_MAX=20
+
+# The identity of a row's filing summary: the engine's own, derived from the row alone, so one row owns at most one
+# summary item however many conditions a run leaves unfiled — and no finding a check reports can carry it, because a
+# finding's identity is the digest of the fields the row declares (issue #666).
+sensors_summary_fingerprint() { # <row-id>
+  sensors_fingerprint "$(jq -nc --arg s "$1" '{sensor: $s, kind: "filing-summary"}')" "kind sensor"
+}
+
+# The row's summary issue, by its own marker: it is found the way the row's record issue is, never by a fingerprint
+# that a condition's could collide with.
+sensors_summary_issue() { # <issues-json> <row-id> → the issue, or empty
+  jq -c --arg marker "<!-- filing-summary: $2 -->" \
+    '[.[]? | select((.body // "") | contains($marker))] | if length > 0 then .[0] else empty end' <<< "$1"
+}
+
+# The summary as the run's own finding: the count of what it did not file is its measurement, and its identity is
+# the row's — so a second run of the same over-full row annotates one summary instead of filing another (#666).
+sensors_summary_finding() { # <row-id> <unfiled-array>
+  local id="$1" unfiled="$2" count noun fingerprint title claim
+  count=$(jq 'length' <<< "$unfiled")
+  noun="conditions"; [ "$count" -eq 1 ] && noun="condition"
+  fingerprint=$(sensors_summary_fingerprint "$id")
+  title="$id: $count $noun not filed (the row files at most $SENSORS_MAX_FILINGS condition items per run)"
+  claim="$count of the conditions the check reported were not filed: one run of this check files at most $SENSORS_MAX_FILINGS condition items, and every condition it did not file is named here with what it measured"
+  jq -nc --arg fingerprint "$fingerprint" --arg title "$title" --arg claim "$claim" \
+        --argjson unfiled "$unfiled" --argjson count "$count" --arg bound "$SENSORS_MAX_FILINGS" \
+    '{fingerprint: $fingerprint, verdict: "violation", measurement: ($count | tostring),
+      title: $title, claim: $claim, bound: $bound, unfiled: $unfiled}'
+}
+
+# What the summary says: the bound, the count, and every condition the run did not file — in the order the check
+# reported them, which is that check's own rank — each with the identity it is known by. The marker stands first, so
+# the item's own record is read from it rather than from a listed condition's text.
+sensors_summary_body() { # <row> <finding>
+  local row="$1" finding="$2" count bound fields
+  count=$(jq -r '.measurement' <<< "$finding")
+  bound=$(jq -r '.bound' <<< "$finding")
+  fields=$(sensors_finding_fields "$row")
+  printf 'One run of this check files at most %s condition items, and this run found more: %s were not filed.\n\n' \
+    "$bound" "$count"
+  printf 'They are named below in the order the check reported them — its own rank — each with the identity it is\n'
+  printf 'known by. Nothing is lost: widening this row'"'"'s `maxFilings` files them as their own items on the next\n'
+  printf 'run.\n\n'
+  printf '<!-- condition: {"sensor": "%s", "kind": "filing-summary"} -->\n\n' "$(sensors_row_field "$row" id)"
+  printf '<!-- filing-summary: %s -->\n' "$(sensors_row_field "$row" id)"
+  jq -r --argjson max "$SENSORS_SUMMARY_LIST_MAX" --arg fields "$fields" '
+    .unfiled[:$max][] | . as $f
+    | ($fields | split(" ") | map(select(length > 0)) | map("\(.)=\($f[.] // "")") | join(" ")) as $identity
+    | "- \($identity) measured \($f.measurement), identity \($f.fingerprint)"' <<< "$finding"
+  sensors_unfiled_rest "$count"
+}
+
+# The conditions a run did not file, as an annotation on a summary that already exists names them: the identity each
+# will be filed under and the number it measured, in the order the check reported them. The list stops where the
+# item's body does (issue #666).
+sensors_unfiled_lines() { # <finding>
+  jq -r --argjson max "$SENSORS_SUMMARY_LIST_MAX" \
+    '.unfiled[:$max][] | "- identity \(.fingerprint) measured \(.measurement)"' <<< "$1"
+  sensors_unfiled_rest "$(jq '.unfiled | length' <<< "$1")"
+}
+
+# The tail of a list too long for one item: the count is the measurement, the list is bounded like the filings are.
+sensors_unfiled_rest() { # <count>
+  local over=$(( ${1:-0} - SENSORS_SUMMARY_LIST_MAX ))
+  [ "$over" -le 0 ] || printf -- '- … and %s more\n' "$over"
+}
+
+# The summary a run leaves behind, and the clearing of one: filed once per row when the bound left conditions over,
+# annotated while it still does, reopened when a closure already exists, and closed by the first run that leaves
+# nothing over — the count is the run's own integer, so there is nothing a consecutive count would protect here.
+# A run that reported an error clears nothing: a check that determined nothing has no measurement about its own
+# overflow either (`run#errorIsNeverTreatedAsClear`, issue #666).
+sensors_summary_outcome() { # <row> <id> <issues> <failed-before>
+  local row="$1" id="$2" issues="$3" failed_before="$4" count fp issue number finding body reason
+  [ "$SENSORS_FAILED" -eq "$failed_before" ] || return 0
+  count=$(jq 'length' <<< "$SENSORS_UNFILED")
+  issue=$(sensors_summary_issue "$issues" "$id")
+  number=""
+  [ -n "$issue" ] && number=$(jq -r '.number // empty' <<< "$issue")
+  if [ "$count" -eq 0 ]; then
+    [ -n "$number" ] || return 0
+    [ "$(jq -r '.state // "OPEN"' <<< "$issue")" = "OPEN" ] || return 0
+    if ! sensors_close_summary "$row" "$number"; then
+      sensors_fail_row "$id" "the tracker refused the summary's closure"
+      return 0
+    fi
+    sensors_report "$id" "$(sensors_summary_fingerprint "$id")" clear 0 "$number" \
+      "closed (this run left no condition unfiled)"
+    return 0
+  fi
+  finding=$(sensors_summary_finding "$id" "$SENSORS_UNFILED")
+  fp=$(sensors_summary_fingerprint "$id")
+  if [ -z "$number" ]; then
+    body=$(sensors_summary_body "$row" "$finding")
+    if ! sensors_file "$row" "$id" "$finding" "" "$body"; then
+      sensors_fail_row "$id" "the tracker refused the summary's filing"
+      return 0
+    fi
+    sensors_report "$id" "$fp" violation "$count" "-" \
+      "filed one summary for the $count condition(s) it did not file"
+    return 0
+  fi
+  if [ "$(jq -r '.state // "OPEN"' <<< "$issue")" = "OPEN" ]; then
+    # The identities are this run's, not the ones the filing named: a row that stays over its bound has new
+    # conditions each time, and the comment is the only place they reach the tracker.
+    if ! sensors_note_summary "$number" "$(sensors_unfiled_comment "$count" "" "$finding")"; then
+      sensors_fail_row "$id" "the tracker refused the summary's annotation"
+      return 0
+    fi
+    sensors_report "$id" "$fp" violation "$count" "$number" "annotated (still past the bound)"
+    return 0
+  fi
+  # A person's closure is not a completed fix, so a returning overflow is annotated and the closure left
+  # alone — the same rule the condition path follows (design D6), applied to the item this bound files. A
+  # reopen here would be refused by `reopen.sh` while the report claimed one had happened.
+  reason=$(jq -r '(.stateReason // "") | ascii_downcase' <<< "$issue")
+  if [ "$reason" != "completed" ]; then
+    if ! sensors_note_summary "$number" \
+      "$(sensors_unfiled_comment "$count" "the issue was closed as '${reason:-unknown}', not as a completed fix, so it is not reopened" "$finding")"; then
+      sensors_fail_row "$id" "the tracker refused the summary's annotation"
+      return 0
+    fi
+    sensors_report "$id" "$fp" violation "$count" "$number" "commented (closure is a person's decision)"
+    return 0
+  fi
+  if ! sensors_reopen_summary "$row" "$number" "$finding"; then
+    sensors_fail_row "$id" "the tracker refused the summary's reopen"
+    return 0
+  fi
+  sensors_report "$id" "$fp" violation "$count" "$number" "reopened (the row is past its bound again)"
+}
+
+# The comment a summary carries while the row stays over its bound, or after a closure the run will not reverse: the
+# count this run did not file, why the closure is left alone, and the identities the run measured. Plain text, never
+# a measurement marker: a marker on one of the row's items becomes that row's last measurement in the report, and for
+# a `baseline-multiple` row the baseline the next bound is computed from — a count of unfiled conditions is no
+# measurement of the row.
+sensors_unfiled_comment() { # <count> <why-not-reopened> <finding>
+  printf 'still past the bound of %s condition items per run: this run filed its bound and did not file %s condition(s).\n' \
+    "$SENSORS_MAX_FILINGS" "$1"
+  [ -z "$2" ] || printf '%s\n' "$2"
+  printf '\n'
+  sensors_unfiled_lines "$3"
+}
+
+# The one comment a summary gets: its body is the filing's, so a later run's report of what it did not file — and the
+# reason a closure is left alone — reach the tracker here and nowhere else.
+sensors_note_summary() { # <number> <text>
+  local file code
+  file=$(mktemp) || sensors_die "run: cannot create a temporary file"
+  printf '%s\n' "$2" > "$file"
+  sensors_write "comment on #$1 ($2)" \
+    bash "$SENSORS_ISSUES_DIR/update.sh" "$1" --comment-file "$file"
+  code=$?
+  rm -f "$file"
+  return "$code"
+}
+
+# A summary is closed by the run that leaves nothing over, naming what it filed against the bound.
+sensors_close_summary() { # <row> <number>
+  local row="$1" number="$2" id code
+  id=$(sensors_row_field "$row" id)
+  sensors_write "close #$number ($id left no condition unfiled)" \
+    bash "$SENSORS_ISSUES_DIR/close.sh" "$number" \
+      --sensor "$id" \
+      --reason "the $id check filed every condition it reported, inside its bound of $SENSORS_MAX_FILINGS condition items per run" \
+      --evidence "0 conditions were left unfiled by this run (the bound is $SENSORS_MAX_FILINGS condition items per run)"
+  code=$?
+  return "$code"
+}
+
+# A closure a returning overflow reopens, with plain text and no measurement marker, for the reason the annotation
+# above states.
+sensors_reopen_summary() { # <row> <number> <finding>
+  local row="$1" number="$2" finding="$3" status file code
+  status=$(sensors_registry_value '.labels.status')
+  file=$(mktemp) || sensors_die "run: cannot create a temporary file"
+  {
+    printf '%s condition(s) were not filed by this run (the row files at most %s condition items per run):\n\n' \
+      "$(jq -r '.measurement' <<< "$finding")" "$SENSORS_MAX_FILINGS"
+    sensors_unfiled_lines "$finding"
+  } > "$file"
+  sensors_write "reopen #$number ($(sensors_row_field "$row" id) is past its bound again)" \
+    bash "$SENSORS_ISSUES_DIR/reopen.sh" "$number" --measurement-file "$file" --status "$status"
+  code=$?
+  rm -f "$file"
+  return "$code"
+}
+
 sensors_run_row() { # <row>
-  local row="$1" id cmd status out baseline issues line problems handled=0
+  local row="$1" id cmd status out baseline issues line problems handled=0 failed_before
+  failed_before=$SENSORS_FAILED
   id=$(sensors_row_field "$row" id)
   problems=$(sensors_row_problems "$row")
   if [ -n "$problems" ]; then
     sensors_refuse "$SENSORS_REGISTRY_BAD" "row-incomplete" "$id: $(printf '%s' "$problems" | tr '\n' ';')"
   fi
+  # The bound on this run's filings, and the direct-run half of its own check: the guard refuses such a registry
+  # first, exactly as it does for the record's state (issue #666).
+  SENSORS_MAX_FILINGS=$(sensors_row_max_filings "$row")
+  case "$SENSORS_MAX_FILINGS" in
+    ''|*[!0-9]*|0) sensors_refuse "$SENSORS_REGISTRY_BAD" "row-max-filings-not-a-count" \
+      "$id: ${SENSORS_MAX_FILINGS:-no bound declared}" ;;
+  esac
+  SENSORS_FILED=0
+  SENSORS_UNFILED='[]'
   issues=$(sensors_issues_of_row "$id")
   # The baseline is the issue's own record, never a file beside it (design D8): the newest measurement
   # marker one of this row's issues carries.
@@ -584,7 +803,13 @@ sensors_run_row() { # <row>
   done <<< "$out"
   if [ "$handled" -eq 0 ]; then
     sensors_fail_row "$id" "the command printed no finding"
+    return 0
   fi
+  # What the row reported and the run did not file leaves as one item, and a summary an earlier run left over is
+  # closed by this run — so a mis-fitted bound costs the tracker one item rather than one per condition it held
+  # (issue #666). A run in which any finding failed clears nothing: the count is a measurement of this row's own
+  # output, and a row that could not determine anything has taken none.
+  sensors_summary_outcome "$row" "$id" "$issues" "$failed_before"
 }
 
 for id in "${selected[@]}"; do

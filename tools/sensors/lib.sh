@@ -141,6 +141,17 @@ sensors_row_max_recurrences() { # <row-json>
   printf '%s\n' "$value"
 }
 
+# The most conditions one run of one row may file. The number is the project's — the registry declares it for every
+# row and a row may declare its own — so the engine names none (design D12). A row that reports more conditions than
+# this files the bound and leaves the rest as one summary item, so a mis-fitted bound costs the tracker one item
+# instead of one per condition it happened to hold (issue #666).
+sensors_row_max_filings() { # <row-json>
+  local value
+  value=$(sensors_row_field "$1" maxFilings)
+  [ -n "$value" ] || value=$(sensors_registry_value '.maxFilings')
+  printf '%s\n' "$value"
+}
+
 SENSORS_REQUIRED_FIELDS="id cmd cron threshold consecutive class category lifecycle fingerprint"
 
 # Every reason a row is not a check — each naming the field or the value at fault, so a row without a
@@ -178,6 +189,14 @@ sensors_row_problems() { # <row-json> → one reason per line, empty when the ro
     ''|*[!0-9]*) printf 'row-consecutive-not-a-count: %s\n' "$value" ;;
     0) printf 'row-consecutive-not-a-count: %s\n' "$value" ;;
   esac
+  # A row may bound its own filings below or above the registry's, and the bound is a count of at least one: a row
+  # that may file nothing has no way to report a condition at all (issue #666).
+  value=$(sensors_row_field "$row" maxFilings)
+  case "$value" in
+    '') : ;;
+    *[!0-9]*) printf 'row-max-filings-not-a-count: %s\n' "$value" ;;
+    0) printf 'row-max-filings-not-a-count: %s\n' "$value" ;;
+  esac
   value=$(sensors_row_field "$row" lifecycle)
   case "$value" in
     file|file+close) : ;;
@@ -203,7 +222,7 @@ sensors_row_problems() { # <row-json> → one reason per line, empty when the ro
 # The registry as a whole: every row complete, every id distinct, and the label each row owns inside the
 # taxonomy the profile declares (design D9, task 1.1).
 sensors_registry_problems() {
-  local row id seen="" problems="" record_status
+  local row id seen="" problems="" record_status max_filings
   if ! issues_profile_value namespaces | grep -qx -- "$SENSORS_NAMESPACE"; then
     printf 'namespace-not-declared:%s\n' "$SENSORS_NAMESPACE"
   fi
@@ -216,6 +235,13 @@ sensors_registry_problems() {
   elif ! issues_core Policy labels --profile "$SENSORS_PROFILE" "status${SENSORS_SEPARATOR}${record_status}" >/dev/null 2>&1; then
     printf 'registry-record-status-outside-the-vocabulary:%s\n' "$record_status"
   fi
+  # The bound on one run's filings is the registry's unless a row declares its own, so a registry that declares no
+  # bound would leave every row unbounded — refused by name rather than read as "no bound" (issue #666).
+  max_filings=$(sensors_registry_value '.maxFilings')
+  case "$max_filings" in
+    '') printf 'registry-max-filings-missing\n' ;;
+    *[!0-9]*|0) printf 'registry-max-filings-not-a-count:%s\n' "$max_filings" ;;
+  esac
   while IFS= read -r row; do
     id=$(sensors_row_field "$row" id)
     case " $seen " in
@@ -528,7 +554,11 @@ sensors_conditions_json() { # <issues-json> → a JSON array
   # the object between the braces, never everything up to the next `>`: the marker the engine writes carries a
   # ` -->` tail, so a tail-tolerant pattern yields `{"job":"build","case":"apk"} --` and every condition
   # parses to `{}` — which turns a green build's clear into a finding that owns no issue (#230).
-  jq -c '[.[]? | select(((.body // "") | contains("<!-- sensor-record:")) | not) | . as $issue | {
+  # The row's own record issue is excluded, and so is its filing summary (issue #666): neither is a condition the
+  # check reported, so no sensor may read one as a condition it can clear.
+  jq -c '[.[]? | select((((.body // "") | contains("<!-- sensor-record:"))
+                        or ((.body // "") | contains("<!-- filing-summary:")))
+                       | not) | . as $issue | {
       number: $issue.number,
       state: ($issue.state // "OPEN"),
       fingerprint: (((($issue.body // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; "")),

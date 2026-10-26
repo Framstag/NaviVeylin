@@ -29,8 +29,20 @@ owed and the gate that runs once at the end is the shell suites and the doc chec
 - [x] 6. State the rule in `guidelines/Backlog.md` §9, beside the filing bound.
       Verified: `bash tools/check-doc-routes.sh` (the gate's own check for the guideline tree).
 - [x] 7. Add the requirement *A row's first exercise is reported, not spent* with its two scenarios.
-      Verified: `openspec validate fix-a-first-exercise-reports-its-count --strict` → valid; body 302 characters.
+      Verified: `openspec validate backlog-sensors --type spec` after the archive →
+      `Specification 'backlog-sensors' is valid`; body 302 characters before the round-2 narrowing (task 10).
 - [x] 8. Run the gate once, `./tools/loop/gate.sh`, and copy every tally it cites into `evidence/`.
-      Verified: `evidence/gate.log` and `evidence/gate-*.xml`.
+      Verified: `evidence/gate.log` and its tallies `evidence/tools_*.xml` (`tools_sensor-selftest.sh.xml`,
+      `tools_issue-tooling-selftest.sh.xml`, …).
 - [x] 9. Check the pointers mechanically and archive.
       Verified: `bash tools/loop/evidence-check.sh openspec/changes/fix-a-first-exercise-reports-its-count --root .`.
+- [x] 10. Round 2, corrections only: narrow the second limb to the run the cases exercise — body and scenario 2
+      of the requirement, the two `run.sh` comments and the `guidelines/Backlog.md` sentence say *a dispatch that
+      asked to write*, not any run a person started, because a hand run names no trigger and is a dry run by
+      default; correct the two evidence pointers above; drop the `or retuned` clause and the numbers no command in
+      the record produced.
+      Verified: the two named cases still pass (`bash tools/sensor-selftest.sh --case
+      'run#aFirstExerciseOnATickReportsInsteadOfFiling'`, `… --case 'run#aDispatchedFirstExerciseRecordsItsMeasurement'`),
+      `bash tools/check-doc-routes.sh` and `bash tools/check-openspec-hygiene.sh` exit 0,
+      `openspec validate backlog-sensors --type spec` → valid, and the narrowed body stays under 500 characters
+      (`evidence/corrections-round-2.md`).

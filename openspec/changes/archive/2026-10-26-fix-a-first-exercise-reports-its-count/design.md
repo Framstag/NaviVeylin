@@ -18,8 +18,9 @@ write paths are all below the branch.
 
 The trigger comes from the environment (`SENSORS_TRIGGER`), which `.github/workflows/sensors.yml` fills with
 GitHub's own `event_name` beside the `SENSORS_MODE` expression that already distinguishes the two triggers
-(`.github/workflows/sensors.yml:57`). An absent value is the run a person started: every hand run and every case
-in `tools/sensor-cases.sh` names none.
+(`.github/workflows/sensors.yml:57`). An absent value is the run a person started; it records a measurement only
+when it asked to write (`--apply`), and a hand run's mode defaults to `--dry-run`, so every existing case still
+names no trigger and writes nothing.
 
 This is the item's recorded decision, option 2, implemented as recorded: *the gate applies to the scheduled tick
 only, and a dispatch with `apply=true` is the acknowledgement that bootstraps the row*.

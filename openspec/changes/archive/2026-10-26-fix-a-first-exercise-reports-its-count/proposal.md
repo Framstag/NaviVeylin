@@ -3,8 +3,8 @@
 ## Why
 
 One defect, verified in this tree, issue #667: **a row with no measurement on record files its very first
-exercise straight to the tracker, so a new or retuned bound's blast radius reaches the tracker before any count
-of it has been printed.**
+exercise straight to the tracker, so a new bound's blast radius reaches the tracker before any count of it has
+been printed.**
 
 **Root cause (one).** `sensors_run_row` reads the row's baseline — the newest measurement marker its own issues
 carry — and uses it as a *value to hand on*, never as a *predicate* on how much the run may write:
@@ -25,8 +25,9 @@ $ git show a859c0bb:tools/sensors/run.sh | grep -c 'SENSORS_TRIGGER\|FIRST_EXERC
 
 No branch in the runner is gated on the trigger the pipeline names, so a scheduled tick and a dispatched run
 behave identically; `SENSORS_MODE` (`.github/workflows/sensors.yml:57`) encodes only *write or decide*, and a tick
-always writes. The item's own field evidence — 337 items (#321–#657) from one `hotspot` row, whose report line
-read `row=hotspot last=never verdict=- measurement=- issue=-` before *and after* the tick of 2026-10-26
+always writes. The item's own field evidence, quoted from its text and not re-measured here — 337 items
+(#321–#657) from one `hotspot` row, whose report line read
+`row=hotspot last=never verdict=- measurement=- issue=-` before *and after* the tick of 2026-10-26
 (`08:23:27Z`, run `40287372367`) — is the tracker's record of that mechanism firing; this change measures the
 mechanism, which is what a host test settles.
 
@@ -37,7 +38,7 @@ Log `evidence/red-on-head.log`, tally beside it, run 2026-10-26T22:14:39Z:
   `the tick files no condition on a row with no measurement on record: expected '0', got '3'`,
   `tests="1" failures="1"`: `evidence/red-on-head-aFirstExerciseOnATickReportsInsteadOfFiling.xml`
 - `run#aDispatchedFirstExerciseRecordsItsMeasurement` — green on the base by construction: it asserts that a
-  run a person started still files, which is exactly what a gate keyed on the baseline alone would break. Its
+  dispatch that asked to write still files, which is exactly what a gate keyed on the baseline alone would break. Its
   evidence is the mutation, not the base: `8.29` drops the trigger from the gate and reddens it.
 
 **Owning capability and guideline section.** The behaviour is a new requirement of `backlog-sensors`, beside
@@ -49,7 +50,8 @@ the first exercise is stated; it gains one paragraph, and no existing sentence i
 **The recorded decision is implemented, not re-derived.** The item's `ITEM_DECISION` of 2026-10-26T16:21:51Z
 records **option 2**: *the gate applies to the scheduled tick only, and a dispatch with `apply=true` is the
 acknowledgement that bootstraps the row*. So the gate is a mode check on the trigger the pipeline names, not a
-registry value and not a new tracker state, and a first exercise is spent by the run a person started.
+registry value and not a new tracker state, and a first exercise is spent by a dispatch that asked to write; a
+hand run names no trigger and, its mode defaulting to `--dry-run`, records nothing.
 
 surface: 2 cases added, 0 rewritten, 2 mutation records added (`8.29`, `8.30`), 1 requirement added with 2
 scenarios, 1 workflow env line, 1 guideline paragraph — the counts are
@@ -81,7 +83,8 @@ settled path and need no seeded measurement: the gate reads the trigger, and non
 ### Modified Capabilities
 
 - `backlog-sensors`: adds *A row's first exercise is reported, not spent* — the count the unattended tick prints
-  for a row with no measurement on record, the silence it keeps, and the dispatched run that records the first one.
+  for a row with no measurement on record, the silence it keeps, and the dispatch that asked to write, which
+  records the first one.
 
 ## Impact
 

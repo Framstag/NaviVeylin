@@ -84,8 +84,9 @@ purpose: it waits for the run's record too, and it is the *unattributable* half 
   stands for 10 s while the write lives 8 s, so the margin is ~7 s against a 1 s reading cadence instead of ~1 s.
 - `tools/loop-mutations.sh` — record `12.12` ("the candidates read from the child tree instead of from the sweep
   that has moved on") is **retired**: the writer case is the only case that could notice it, it could only do so
-  through timing (the sweep finds a writer that is still standing), and `--only 12.10 12.11` measured
-  `GREEN 12.12 … the case did not notice the mutation` on the repaired tree (`evidence/mutation-attribution.log`).
+  through timing (the sweep finds a writer that is still standing), and `bash tools/loop-mutations.sh --only 12.12`
+  measured `GREEN 12.12 … the case did not notice the mutation` on the repaired tree
+  (`evidence/mutation-12.12.log`).
   A mutation nobody notices is not evidence (the rule the change's own `13.x` records follow). Records `12.10` and `12.11` stay and were
   re-measured red (`RED 12.10`, `RED 12.11`, both restored green).
 - `guidelines/Backlog.md`, "The loop" — the paragraph that stated the cadence now states the reading's own and
@@ -110,6 +111,7 @@ an older engine reads the new line and the removed `LOOP_PROGRESS_SECONDS` expor
   because the two readings differ only in *when* they run.
 - The cost of one reading per second per child: `git status --porcelain` in the project's own tree, measured on
   this host at 0.035 s per call (10 calls in 0.347 s wall, `time (for i in $(seq 10); do git status --porcelain
-  >/dev/null; done)`), i.e. ~3.5 % of one core while a child runs — against a gate round of ~970 s.
+  >/dev/null; done)`), i.e. ~3.5 % of one core while a child runs — against a gate round of ≈695 s
+  (`evidence/gate-round2.log`: `LOOP-GATE: tests=608 …`, its 20 step durations summing 695 s).
 - A long gate child now costs ~1 reading per second instead of one per 30 s, and every difference it sees is
   recorded where it was recorded before, with the same note and the same decision rule.

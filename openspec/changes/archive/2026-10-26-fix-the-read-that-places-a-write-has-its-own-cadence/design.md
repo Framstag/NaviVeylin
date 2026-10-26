@@ -46,7 +46,8 @@ asserts that sentence. With one reading per second the in-time path is the commo
   before the exit reading by construction — that is the case's whole shape — so the second reading places
   nothing.
 - **Read on every look (20 per second).** One `git status` in the project's tree is 0.035 s here, so 20 per second
-  is 70 % of a core for the whole life of every child, paid by a gate of ~970 s.
+  is 70 % of a core for the whole life of every child, paid by a gate round of ≈695 s (`evidence/gate-round2.log`:
+  its 20 step durations sum 695 s).
 - **Add a project key for the cadence.** It is not a project fact: nothing about this project decides how often a
   tree has to be read to be evidence. `loop.conf` records what a project *chooses*; adding a key here would let a
   project configure its way back into the flake.
@@ -135,3 +136,36 @@ say which one.
 - *No standing record pins the reading's cadence half* (`12.10` deletes the call, which would be red even if the
   call sat under the report gate). Left as the review recorded it: a record for that half is new work on the
   mutation set, not part of this correction, and the one-shot red-on-HEAD run stays the falsification of it.
+
+## Correction round 2 (the review's refusal, corrections only)
+
+The round-2 review found the change green and refused it on one blocking finding plus three pointer notes. All four
+corrections subtract; no case, assertion, mutation record or engine line is touched.
+
+**1. The ADDED requirement stated a cadence the engine does not owe (blocking).** The reading is guarded by
+`if [ ! -e "$2.outside-write" ] && [ "$SECONDS" -ge "$read_next" ]` (`tools/loop/run.sh:1047`), so it stops for the
+rest of the child's life once a difference has been recorded — which is what the code's own comment says ("One
+reading per child once a difference is found") and what `guidelines/Backlog.md` said. The requirement said "at least
+once per whole second of that child's life" flatly, so it was false of the diff after the first difference. Both
+now read "… of that child's life **until the first difference is recorded**", in the delta, in the shipped spec and
+in the guideline paragraph; the requirement body is 477 characters, still under the validator's 500. The scenario
+named by the requirement is unchanged: its case reads the tree inside the writer's life, which is before any
+difference is recorded.
+
+**2. Two pointers, and the gate figure.** `proposal.md`'s `12.12` bullet cited `--only 12.10 12.11` beside
+`evidence/mutation-attribution.log`; the captured run is `bash tools/loop-mutations.sh --only 12.12`, and its
+output is `evidence/mutation-12.12.log`. The gate figure the two documents carried — the older estimate — is
+corrected to ≈695 s, which is round 2's gate measured rather than recalled: the 20 step durations on its own
+`LOOP-GATE:` line (`evidence/gate-round2.log:1186`) sum to 695 s:
+
+```
+sed -n '1186p' gate-round2.log | grep -oE '[0-9]+s(,|\))' | tr -d 's,)' | awk '{s+=$1} END {print "steps="NR, "seconds="s}'
+steps=20 seconds=695
+```
+
+Nothing in the argument depended on the old figure: the cost of one reading per second stands on the 0.035 s
+`git status` measurement and 1 Hz alone.
+
+**3. Two task labels.** `tasks.md` 4 now names the captured `--only 12.12` run; `tasks.md` 7 records that the
+`--strict` output is absent from the record and states what stands instead (the hygiene check green in the gate's
+record, and the `MODIFIED` block diffed byte-identical against the shipped requirement).

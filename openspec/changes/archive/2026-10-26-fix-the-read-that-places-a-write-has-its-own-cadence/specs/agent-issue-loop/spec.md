@@ -3,9 +3,10 @@
 ### Requirement: The reading that places a write has its own cadence
 
 A run SHALL read the project's own tree while a child runs at least once per whole second of that child's
-life, whatever `LOOP_PROGRESS_SECONDS` is, because that reading is the only evidence that can place a transient
-write and a reporting interval is not a resolution for evidence. A case that pins a placed write SHALL keep its
-write standing for a wide multiple of that cadence, so the pin does not depend on the phase between the two.
+life until the first difference is recorded, whatever `LOOP_PROGRESS_SECONDS` is, because that reading is the only
+evidence that can place a transient write and a reporting interval is not a resolution for evidence. A case that
+pins a placed write SHALL keep its write standing for a wide multiple of that cadence, so the pin does not depend
+on the phase between the two.
 
 #### Scenario: A transient write is placed whatever the reporting interval is
 

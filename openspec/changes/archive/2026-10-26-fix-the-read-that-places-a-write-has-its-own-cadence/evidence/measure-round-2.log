@@ -1,0 +1,111 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46 paths=63 insertions=3237 deletions=31
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/affected-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/corrections-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_loop-selftest.sh_--from-git_4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/measure-round-2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/mutation-12.12.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/mutation-attribution.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/mutation-check-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/phase-margin-probe.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/post-archive-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/writer-case-fixed.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/writer-case-fixed.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/writer-case-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=240 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE 2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence scenarios=13 cases=9 unnamed=4
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=178 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/bash_tools_loop-mutations.sh_--check.xml tests=178 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=22s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_issue-tooling-selftest.sh.xml tests=121 failures=0 time=55s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=224s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_loop-selftest.sh_--from-git_4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46.xml tests=240 failures=0 time=384s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence/gate-tallies-round-2/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 19 of 39 tally files not shown — at most 20 per directory (openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence/evidence)
+LOOP-MEASURE-SURFACE surface: 0 cases added, 1 rewritten, 1 mutation record retired, 1 guideline paragraph, 1 spec requirement (ADDED)
+LOOP-MEASURE-END

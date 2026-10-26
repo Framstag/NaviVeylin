@@ -1,0 +1,262 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3 paths=190 insertions=12257 deletions=65
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelSettings.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/DarkModeLateRestoreTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/MapCanvasViewModelDarkModeTest.kt
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/focused-after-comment.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/green-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/loop-mutations-311.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/loop-mutations-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/measure.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/post-archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/surface-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/evidence/validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-bound/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/evidence-check-archived.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/evidence-check-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/gate-round1-red.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/gate-round1-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/green-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/loop-mutations-315.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/loop-mutations-63-1-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/loop-mutations-check-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/measure.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/red-mutated-63-1-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/surface-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/evidence/validate-post-archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-gate-step-ends-with-its-command/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/attribution-probe.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/automotive-TEST-com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/gate-automotive-TEST-com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/gate-mobile-TEST-com.naviveylin.ui.map.DarkModeLateRestoreTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/gate-mobile-TEST-com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/green-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/green-restored.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/post-gate-doc-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/probe-fixed-code-head-testsetUp-class.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/probe-head-code-head-testsetUp-class.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/red-mutated.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/red-on-head-run3.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/TEST-com.naviveylin.ui.map.DarkModeLateRestoreTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/TEST-com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/specs/dark-mode/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-late-dark-mode-settings-restore/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/focused-declared-record-applies.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/focused-mutations-selftest.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/focused-reset-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-round1-red.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/gate-tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/green-after-fix.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/measure.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/mutation-13.8.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/mutation-13.9.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/red-on-head-names.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/red-on-head-names.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/review-round-1-report.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/evidence/surface-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/specs/dark-mode/spec.md
+LOOP-MEASURE-PATH PORTING.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/gate.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=237 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=176 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=249s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=23s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=121 failures=0 time=55s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=225s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml tests=237 failures=0 time=422s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 3 of 23 tally files not shown — at most 20 per directory (app/build/test-results/loop-gate)
+LOOP-MEASURE-GATE seconds=984 suites=23
+LOOP-MEASURE-CHANGE 2026-10-26-fix-loop-own-leftovers-do-not-stop-run scenarios=5 cases=5 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-bash_tools_loop-mutations.sh_--check.xml tests=176 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=249s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-portability-selftest.sh.xml tests=29 failures=0 time=23s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-portability.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_check-todo-references.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_issue-tooling-selftest.sh.xml tests=121 failures=0 time=55s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=225s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml tests=237 failures=0 time=422s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence/gate-tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 4 of 24 tally files not shown — at most 20 per directory (openspec/changes/2026-10-26-fix-loop-own-leftovers-do-not-stop-run/evidence)
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 1 mutation record added (13.10), 6 records re-pointed at re-indented lines
+LOOP-MEASURE-END

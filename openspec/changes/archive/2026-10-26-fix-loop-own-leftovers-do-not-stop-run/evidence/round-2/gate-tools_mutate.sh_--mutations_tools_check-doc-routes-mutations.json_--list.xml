@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list" tests="0" failures="0" errors="0" time="1">
+  <system-out># tools/check-doc-routes-mutations.json — 1 mutation(s), case command: bash tools/check-doc-routes-selftest.sh skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it</system-out>
+</testsuite>

@@ -1,0 +1,11 @@
+===== bash tools/sensor-selftest.sh --case hotspot#theBoundIsAboveOneChangedFile  (2026-10-26T22:40:03Z)  the change's final case over the base bound (5 000, i.e. mutation 8.31)
+  a path changed once is not a hotspot, whatever its size: '"path":"once.txt"' unexpectedly present in: hotspot: score=1400378 path=churned.txt size=200054 changes=7
+hotspot: score=6000 path=once.txt size=6000 changes=1
+{"path":"churned.txt","fingerprint":"2fda261ad9a71edfc6884e37a170aa950caa5be141ba208b24696560e3a1fd54","measurement":"1400378","verdict":"violation","baseline":"","title":"the path is past the hotspot bound","claim":"churned.txt scores 1400378 (200054 bytes changed 7 times), past the row's bound of 5000"}
+{"path":"once.txt","fingerprint":"0b8cca9da5a37c1627b351ca74f4e795a21b6adceda6f278e37776ed8e76f55c","measurement":"6000","verdict":"violation","baseline":"","title":"the path is past the hotspot bound","claim":"once.txt scores 6000 (6000 bytes changed 1 times), past the row's bound of 5000"}
+FAIL hotspot#theBoundIsAboveOneChangedFile
+exit=1
+# the case as first written ran on the base commit itself at 2026-10-26T22:39:01Z and failed on the same assertion
+#   ("a path changed once is not a hotspot, whatever its size", once.txt score=6000 at the base bound of 5000).
+# Its fit half was then reworked (wc ran from the fixture directory, not the tree) and re-taken above, so the record
+# matches the case the change ships.

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/sensor-selftest.sh --case hotspot#theBoundIsAboveOneChangedFile" tests="1" failures="1" errors="0" time="1">
+  <system-out>  a path changed once is not a hotspot, whatever its size: '"path":"once.txt"' unexpectedly present in: hotspot: score=1400378 path=churned.txt size=200054 changes=7
+hotspot: score=6000 path=once.txt size=6000 changes=1
+{"path":"churned.txt","fingerprint":"2fda261ad9a71edfc6884e37a170aa950caa5be141ba208b24696560e3a1fd54","measurement":"1400378","verdict":"violation","baseline":"","title":"the path is past the hotspot bound","claim":"churned.txt scores 1400378 (200054 bytes changed 7 times), past the row's bound of 5000"}
+{"path":"once.txt","fingerprint":"0b8cca9da5a37c1627b351ca74f4e795a21b6adceda6f278e37776ed8e76f55c","measurement":"6000","verdict":"violation","baseline":"","title":"the path is past the hotspot bound","claim":"once.txt scores 6000 (6000 bytes changed 1 times), past the row's bound of 5000"}
+FAIL hotspot#theBoundIsAboveOneChangedFile
+FAIL hotspot#theBoundIsAboveOneChangedFile (2026-10-26T22:40:03Z)</system-out>
+</testsuite>

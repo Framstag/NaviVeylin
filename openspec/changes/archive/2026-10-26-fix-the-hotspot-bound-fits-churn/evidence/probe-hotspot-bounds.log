@@ -1,0 +1,9 @@
+# the hotspot row's own measurement over this tree, window=200, at base 642c0278
+# command: SENSORS_ID=hotspot SENSORS_ROOT=$PWD SENSORS_THRESHOLD=<n> SENSORS_CONDITIONS='[]' SENSORS_PROFILE=tools/tooling.json SENSORS_PRINT_RANKING=0 bash tools/sensors/hotspot-report.sh
+# date: 2026-10-26T22:38:19Z
+threshold=5000 violations=358
+threshold=1000000 violations=7
+# largest tracked regular file, command: git ls-files -z | xargs -0 -r wc -c | awk '$NF != "total"' | sort -rn | head -3
+11058660 insgesamt
+9342671 insgesamt
+7387390 insgesamt

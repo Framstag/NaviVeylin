@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/build-inputs.sh --check" tests="0" failures="0" errors="0" time="0">
+  <system-out>build-inputs: every declared input has a producer (4 rows checked)</system-out>
+</testsuite>

@@ -1,0 +1,33 @@
+=== attribution probe (2026-10-26) — which half closes the CI hang, measured
+
+Both combinations were run from the change root with the two files of a combination at the commit named and
+the other half at the change's state:
+
+command for every line below:
+  ./gradlew --offline :app:testMobileDebugUnitTest -PforceTests -PjvmTestsOnly \
+    --tests "com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" \
+    --tests "com.naviveylin.ui.map.DarkModeLateRestoreTest"
+
+A. HEAD production code + HEAD test class' setUp          -> probe-head-code-head-testsetUp-class.xml
+   MapCanvasViewModelDarkModeTest  tests="9" failures="0"  timestamp="2026-10-26T06:45:58.276Z"
+   DarkModeLateRestoreTest         tests="2" failures="1"  timestamp="2026-10-26T06:45:58.357Z"
+   (this combination ran three times; the class was 9/9 green each time, the new class 2/1 red each time —
+    red-on-head-run3.xml is the third run's XML of the red class)
+   => the CI hang (`UncompletedCoroutinesError: After waiting for 1m`) does NOT reproduce in this sandbox even
+      with the un-fixed production code and the un-wired test class. Its trigger is load/timing, which is
+      exactly the property the item's condition has: the same sha was green on the next CI run.
+
+B. fixed production code + HEAD test class' setUp          -> probe-fixed-code-head-testsetUp-class.xml
+   MapCanvasViewModelDarkModeTest  tests="9" failures="0"  timestamp="2026-10-26T06:46:19.933Z"
+   => the guard alone is enough for the class' own writes; the class' start-up read is still un-wired here.
+
+C. fixed production code + fixed test class' setUp         -> green-cases.log
+   MapCanvasViewModelDarkModeTest  tests="9" failures="0"  (three consecutive runs, then the logged run)
+   DarkModeLateRestoreTest         tests="2" failures="0"
+
+Conclusion recorded in the change: the guard's own defect is proven by `DarkModeLateRestoreTest` (red in A,
+green in C, and red again under the revert-check's mutation). The CI hang is NOT reproduced here; what the
+change does about it is remove the real-thread window the class' start-up read used — the seam
+`SettingsStorage.ioDispatcher` (guidelines/Build.md §4e) plus a seeded settings file — so the class no longer
+depends on when a real thread finishes. That is stated as such in proposal.md and evidence.md, not as a proven
+causal chain.

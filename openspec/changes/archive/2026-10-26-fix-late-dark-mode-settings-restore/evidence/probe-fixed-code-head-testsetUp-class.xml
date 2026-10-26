@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-26T06:46:19.933Z" hostname="dingens" time="7.488">
+  <properties/>
+  <testcase name="preferenceOffForcesLight" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="6.601"/>
+  <testcase name="ambientSensitivityPersistsInUiState" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="0.086"/>
+  <testcase name="sensorIgnoredWhenSensitivityOff" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="0.077"/>
+  <testcase name="preferenceOnBeatsLightEnvironment" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="0.041"/>
+  <testcase name="sensorInactiveFallsBackToSystem" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="0.046"/>
+  <testcase name="automaticFollowsEnvironmentSignal" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="0.043"/>
+  <testcase name="preferenceOnForcesDark" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="0.04"/>
+  <testcase name="changedPresentationPushesTheFlagExactlyOnce" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="0.046"/>
+  <testcase name="sensorWinsWhenSensitivityActive" classname="com.naviveylin.ui.map.MapCanvasViewModelDarkModeTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

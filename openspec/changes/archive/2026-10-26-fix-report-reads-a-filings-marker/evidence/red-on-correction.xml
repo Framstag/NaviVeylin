@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-selftest.sh --case report#aTrendIsBetweenOneCondition" tests="1" failures="1" errors="0" time="3">
+  <testcase name="report#aTrendIsBetweenOneCondition" classname="tools/sensor-selftest.sh">
+    <failure message="the newest marker the record carries is the row's last measurement, and a condition with no earlier marker of its own has no trend rather than one drawn against another condition: 'row=fixture-emit last=2026-10-17T03:00:00Z verdict=clear measurement=512 issue=#81 clear=0 violation=0 occurrences=0 trend=-' not found in: row=fixture-emit last=2026-10-17T03:00:00Z verdict=clear measurement=512 issue=#81 clear=0 violation=0 occurrences=0 trend=better">the helper took the marker's fingerprint from the issue body, so both of the record issue's clears carry one identity and previous is the other condition (2026-10-26T14:19:29Z)</failure>
+  </testcase>
+  <system-out>sensor-selftest: 1 of 1 cases failed (the case run on its own)</system-out>
+</testsuite>

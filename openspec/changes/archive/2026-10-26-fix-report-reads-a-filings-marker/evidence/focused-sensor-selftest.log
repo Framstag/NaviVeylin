@@ -20,6 +20,7 @@ PASS lib#theRecordIsNotACondition
 PASS report#printsACountingLinePerRow
 PASS report#aGreenRowIsNotNever
 PASS report#aFiledRowIsReported
+PASS report#aTrendIsBetweenOneCondition
 PASS run#aFilingSetsTheBaseline
 PASS update#commentPostsExactlyOnce
 PASS update#commentRefusesOnPolicyFailure
@@ -51,5 +52,4 @@ PASS workflow#aRedRecordRunsNoRecordRow
 PASS workflow#theTickDeclaresItsWindow
 PASS sensors#engineNamesNoProjectValue
 PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
-sensor-selftest: all 53 cases passed (JDK 27, offline, no token)
-exit=0
+sensor-selftest: all 54 cases passed (JDK 27, offline, no token)

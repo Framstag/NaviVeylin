@@ -23,6 +23,14 @@ A check's measurements SHALL be recorded on the issue as comments, and no measur
   a stored baseline
 - **Case**: `report#printsACountingLinePerRow`
 
+#### Scenario: A trend is drawn between one condition's own markers
+
+- **WHEN** a row's issue carries markers of more than one condition, so nothing in its body names the
+  fingerprint each marker carries
+- **THEN** the previous number a trend is drawn against is the same condition's earlier marker, and a condition
+  with no earlier marker of its own reports no trend rather than one drawn across conditions
+- **Case**: `report#aTrendIsBetweenOneCondition`
+
 #### Scenario: A filing is a measurement of the row
 
 - **WHEN** a row's newest event is a filing, so its marker is in the new issue's body and no comment carries one

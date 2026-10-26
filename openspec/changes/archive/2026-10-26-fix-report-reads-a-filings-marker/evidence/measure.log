@@ -1,5 +1,5 @@
 LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
-LOOP-MEASURE base=6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3 paths=194 insertions=12238 deletions=57
+LOOP-MEASURE base=6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3 paths=237 insertions=13045 deletions=59
 LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModel.kt
 LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MapCanvasViewModelSettings.kt
 LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/DarkModeLateRestoreTest.kt
@@ -182,7 +182,50 @@ LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-su
 LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/proposal.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/specs/agent-issue-loop/spec.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-loop-reset-worktree-submodule/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/focused-sensor-selftest.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_sensor-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_sensor-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/measure.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/mutation-8.20.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/mutation-8.21.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/mutation-8.22.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/red-on-correction.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/red-on-correction.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/red-on-head-report.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/red-on-head-run.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/specs/backlog-sensors/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/tasks.md
 LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/specs/backlog-sensors/spec.md
 LOOP-MEASURE-PATH openspec/specs/dark-mode/spec.md
 LOOP-MEASURE-PATH PORTING.md
 LOOP-MEASURE-PATH tools/loop-cases.sh
@@ -220,8 +263,49 @@ LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
 LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
 LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
 LOOP-MEASURE-SUITE cases=236 cmd=tools/loop-selftest.sh --list
-LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
-LOOP-MEASURE-CHANGE fix-report-reads-a-filings-marker scenarios=5 cases=5 unnamed=0
-LOOP-MEASURE-TALLY openspec/changes/fix-report-reads-a-filings-marker/evidence/red-on-head.xml tests=2 failures=2 time=12s
-LOOP-MEASURE-SURFACE surface: 2 readers rewritten (tools/sensors/lib.sh, tools/sensors/report.sh), 2 cases added, 0 cases rewritten, 3 existing scenarios given their case, 1 fixture helper extended (issue_record, no fixture file), 2 mutation records added (8.20, 8.21) — `grep -rn 'comments // \[\]' tools/sensors` (2 on the base), `grep -cE "^  '8\.[0-9]+@" tools/sensor-mutations.sh` (19 on the base)
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=175 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=242s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=22s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=121 failures=0 time=56s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=226s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml tests=236 failures=0 time=376s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 5 of 25 tally files not shown — at most 20 per directory (app/build/test-results/loop-gate)
+LOOP-MEASURE-GATE seconds=976 suites=25
+LOOP-MEASURE-CHANGE 2026-10-26-fix-report-reads-a-filings-marker scenarios=6 cases=6 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-bash_tools_loop-mutations.sh_--check.xml tests=175 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=242s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-summary.xml tests=655 failures=0 time=976s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-portability-selftest.sh.xml tests=29 failures=0 time=22s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_check-todo-references.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_issue-tooling-selftest.sh.xml tests=121 failures=0 time=56s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=226s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_loop-selftest.sh_--from-git_6e8b28892ea19d52a322b2c4c155a7d4d2ef4ed3.xml tests=236 failures=0 time=376s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence/gate-tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 8 of 28 tally files not shown — at most 20 per directory (openspec/changes/archive/2026-10-26-fix-report-reads-a-filings-marker/evidence)
+LOOP-MEASURE-SURFACE surface: 2 readers rewritten (tools/sensors/lib.sh, tools/sensors/report.sh), 3 cases added, 0 cases rewritten, 3 shipped scenarios given their case, 3 scenarios added, 1 fixture helper extended (issue_record, no fixture file), 3 mutation records added (8.20, 8.21, 8.22) — `grep -rn 'comments // \[\]' tools/sensors` (3 on the base), `grep -cE "^  '8\.[0-9]+@" tools/sensor-mutations.sh` (19 on the base)
 LOOP-MEASURE-END

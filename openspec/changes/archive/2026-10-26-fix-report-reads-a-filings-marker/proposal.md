@@ -38,14 +38,14 @@ the filing's marker carries (a violation at 1.5×).
 the body would have no instant to sort it by. A filing's marker has no `createdAt` of its own: the issue and its
 marker are one write, so the issue's `createdAt` is the marker's.
 
-**Surface, counted before the plan (`grep -rn 'comments // \[\]' tools/sensors`,
-`grep -cE "^  '8\.[0-9]+@" tools/sensor-mutations.sh`).** Two readers walk comments only
+**Surface, counted before the plan (`grep -rn 'comments // \[\]' tools/sensors` — 3 on the base,
+`grep -cE "^  '8\.[0-9]+@" tools/sensor-mutations.sh` — 19 on the base).** Two readers walk comments only
 (`tools/sensors/lib.sh:488`, `tools/sensors/report.sh:48`); `sensors_last_marker` has one caller
-(`tools/sensors/run.sh:560`); five existing cases name a `last=` field and three of them build their fixtures
+(`tools/sensors/run.sh:560`); three existing cases name a `last=` field and every one of them builds its fixture
 from `marker_comment`; the mutation harness holds 19 records. The plan this count sets the estimate against is
 the `surface:` line below.
 
-surface: 2 readers rewritten (tools/sensors/lib.sh, tools/sensors/report.sh), 2 cases added, 0 cases rewritten, 3 existing scenarios given their case, 1 fixture helper extended (issue_record, no fixture file), 2 mutation records added (8.20, 8.21) — `grep -rn 'comments // \[\]' tools/sensors` (2 on the base), `grep -cE "^  '8\.[0-9]+@" tools/sensor-mutations.sh` (19 on the base)
+surface: 2 readers rewritten (tools/sensors/lib.sh, tools/sensors/report.sh), 3 cases added, 0 cases rewritten, 3 shipped scenarios given their case, 3 scenarios added, 1 fixture helper extended (issue_record, no fixture file), 3 mutation records added (8.20, 8.21, 8.22) — `grep -rn 'comments // \[\]' tools/sensors` (3 on the base), `grep -cE "^  '8\.[0-9]+@" tools/sensor-mutations.sh` (19 on the base)
 
 **The two candidate repairs the tracker offers.** Reading body markers as well as comments makes `last` mean
 "the newest marker anywhere", which is what the report and the baseline both ask (first candidate). Splitting the
@@ -58,12 +58,13 @@ the second is not a fork left open but an addition nothing in the evidence asks 
 
 - `tools/sensors/lib.sh` — one helper, `sensors_markers_json`, yields every marker a row's issues carry (each
   comment's, and the marker in a filing's own body dated by the issue's `createdAt`), oldest first;
-  `sensors_last_marker` returns the newest of them.
+  `sensors_last_marker` returns the newest of them. Each marker's `fingerprint` is read from the marker itself,
+  because `report.sh` selects the `previous` marker by it and one issue carries markers of several conditions.
 - `tools/sensors/report.sh` — its inline marker walk is replaced by that helper, so the report and the baseline
   read one timeline instead of two.
 - `tools/sensors/lib.sh` — `sensors_issues_of_row` asks for `createdAt`, without which a body marker has no
   instant.
-- `tools/sensor-cases.sh`, `tools/sensor-mutations.sh` — the two cases and the two falsification records.
+- `tools/sensor-cases.sh`, `tools/sensor-mutations.sh` — the three cases and the three falsification records.
 
 Non-goals: the report's `last-comment` field (nothing asks for it), the age-based `stale` line, and every other
 row's fixture.

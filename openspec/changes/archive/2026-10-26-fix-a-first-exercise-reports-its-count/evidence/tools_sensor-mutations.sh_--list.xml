@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-mutations.sh --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>8.28 sensors#sourceSizeSkipsTheChangeTree — the change tree is not the source tree, so a frozen evidence copy is not a condition (issue #670) (tools/sensors/metrics/source-size.sh) 8.29 run#aDispatchedFirstExerciseRecordsItsMeasurement — only the unattended tick reports a first exercise, so a dispatched run still records it (issue #667) (tools/sensors/run.sh) 8.30 run#aFirstExerciseOnATickReportsI</system-out>
+</testsuite>

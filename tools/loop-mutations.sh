@@ -130,9 +130,17 @@ MUTATIONS=(
   '13.2@-@tools/loop/run.sh@run#leftoverBranchIsRecordedNotDropped@the pre-screen verdicts that need a decision being escalated by the run@s|^  \[ -n "$decision_agent" \] \|\| return 0$|  return 0|'
   '13.3@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the start-time pre-flight on a kept worktree a previous run left dirty@s|^if \[ -d "$worktree" \] && worktree_is_dirty; then$|if false; then|'
   '13.4@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the refusal being recorded under the item its branch marker names@s|^    if \[ "$dry_run" -eq 0 \] && \[ -n "$owner_item" \]; then$|    if false; then|'
-  '13.5@-@tools/loop/run.sh@run#resetWorktreeDiscardsWhatItNames@the start-time repair discarding what it named@s|^    git -C "$worktree" reset -q --hard \|\| loop_die "run: could not reset the kept worktree"$|    : # the mutation discards no tracked change|;;s|^    git -C "$worktree" clean -qfd \|\| loop_die "run: could not clean the kept worktree"$|    : # the mutation discards no untracked file|'
-  '13.8@-@tools/loop/run.sh@run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard@the repair syncing the submodule its own verbs cannot reach@s|^    if \[ -n \"\$reset_submodule_path\" \] && \[ -f \"\$worktree/.gitmodules\" \]; then$|    if false; then|'
-  '13.9@-@tools/loop/run.sh@run#resetWorktreeNamesTheDirtItCannotDiscard@the repair naming what it could not discard instead of announcing a clean tree@s|^    if \[ -n \"\$reset_after\" \]; then$|    if false; then|'
+  '13.5@-@tools/loop/run.sh@run#resetWorktreeDiscardsWhatItNames@the start-time repair discarding what it named@s|^  git -C "$worktree" reset -q --hard \|\| loop_die "run: could not reset the kept worktree"$|  : # the mutation discards no tracked change|;;s|^  git -C "$worktree" clean -qfd \|\| loop_die "run: could not clean the kept worktree"$|  : # the mutation discards no untracked file|'
+  '13.8@-@tools/loop/run.sh@run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard@the repair syncing the submodule its own verbs cannot reach@s|^  if \[ -n "\$reset_submodule_path" \] && \[ -f "\$worktree/.gitmodules" \]; then$|  if false; then|'
+  '13.9@-@tools/loop/run.sh@run#resetWorktreeNamesTheDirtItCannotDiscard@the repair naming what it could not discard instead of announcing a clean tree@s|^  if \[ -n "\$reset_after" \]; then$|  if false; then|'
+  # 13.10 is the one distinction the mid-run refusal cannot read from the tree (issue #664): dirt this run ended
+  # itself is already written to the item's patch, so that tree may be discarded and the start retried — the dirt
+  # of another item is not, and still stops the run (`run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds`).
+  '13.10@-@tools/loop/run.sh@run#theStartAfterTheRunsOwnEndedChildIsNotRefused@the run discarding the dirt its own ended child left, the record being in place@s|^        if own_leftovers_of "\$owner_item" .*$|        if false; then|'
+  # 13.11 is the reason a retry answered with, which is not the dirt it was retried over (issue #664, round 2): the
+  # retry's line was printed and dropped, so a start refused for its branch was recorded as "the worktree is not
+  # clean" with an empty list of files, on a tree the run had just cleaned itself.
+  '13.11@-@tools/loop/run.sh@run#aRetriedStartStopsWithItsOwnReason@the retry'"'"'s own refusal written down instead of the dirt it was retried over@s|^          case "\$start_out" in$|          case "not clean" in|'
     # 13.6 was the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers. The lock is taken before the
   # kept worktree is read now, so a live run is refused at the lock and never reaches that check; the invariant
   # the record still owns is the refusal itself: a live owner'"'"'s lock is a refusal, not a takeover.
@@ -406,9 +414,9 @@ MUTATIONS=(
   # them), 53.2 records the item a second time instead of joining its one record — which is what counted one item
   # twice in every figure the report derives from `.items` and let `next` read one block as two consecutive ones —
   # and 53.3 puts the refusal's first line back as the stop reason, which names neither the item nor the files.
-  '53.1@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the leftovers recorded under the item whose work the tree holds, and escalated (issue #284)@s|^        if \[ "\$dry_run" -eq 0 \] \&\& \[ -n "\$owner_item" \]; then$|        if false; then|'
+  '53.1@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the leftovers recorded under the item whose work the tree holds, and escalated (issue #284)@s|^          if \[ "\$dry_run" -eq 0 \] && \[ -n "\$owner_item" \]; then$|          if false; then|'
   '53.2@-@tools/loop/state.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@one record per item, a second account joining the note the item already has (issue #284)@s|^      if (\[\.items\[\] \| select(\.issue == \$i)\] \| length) == 0 then$|      if true then|'
-  '53.3@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the stop reason naming the item the leftovers belong to and the files it found (issue #284)@s|^        stop_run "the item could not be started: the worktree is not clean .*$|        stop_run "the item could not be started: $(printf %s "$start_out" \| head -1)"|'
+  '53.3@-@tools/loop/run.sh@run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds@the stop reason naming the item the leftovers belong to and the files it found (issue #284)@s|^          stop_run "the item could not be started: the worktree is not clean .*$|          stop_run "the item could not be started: $(printf %s "$start_out" \| head -1)"|'
   # 53.1 — the report scans the kept worktree's own scratch root beside its own (issue #274). Measured 2026-10-23:
   # four `loop-selftest.*` trees and four poll loops under `.pi/worktrees/loop/.pi/tmp`, three of the trees past the
   # 120-minute threshold, and `loop-clean` printed its heading with no entry — the root a suite writes into is the
@@ -513,8 +521,8 @@ MUTATIONS=(
   '62.2@-@../loop-selftest.sh@driver#aCaseInsideItsBoundKeepsItsOwnVerdict@the pool reading a case'"'"'s own verdict instead of answering every case with the bound (issue #308)@s|^    if finish_case "\$slot"; then$|    if false; then|'
   '62.3@-@../loop-selftest.sh@driver#aRunningCasePrintsItsOwnLines@the relay that carries a running case'"'"'s own line to the suite (issue #308)@s#^    ( while IFS= read -r line; do$#    ( while false; do#'
   '62.4@-@tools/loop/run.sh@run#noProcessOfASignalledRunOutlivesIt@the call that ends the heartbeat with a signalled run (issue #308)@s|^  loop_end_pid "\$active_hb"$|  : # the mutation leaves the heartbeat|'
-  '62.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue" "\$item_dir"$|    : # the mutation keeps no patch|'
-  '62.6@-@tools/loop/run.sh@run#aRefusedStartKeepsTheLeftoversItFound@the patch a refused start keeps (issue #308)@s|^        keep_leftovers "\$owner_item" "\$stage_dir/items/\$owner_item"$|        : # the mutation keeps no patch|'
+  '62.5@-@tools/loop/run.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch a cap-ended child'"'"'s tree is kept in (issue #308)@s|^    keep_leftovers "\$issue"$|    : # the mutation keeps no patch|'
+  '62.6@-@tools/loop/run.sh@run#aRefusedStartKeepsTheLeftoversItFound@the patch a refused start keeps (issue #308)@s|^          own_leftovers_of "\$owner_item" \|\| keep_leftovers "\$owner_item"$|          : # the mutation keeps no patch|'
 
   # 255.x — the evidence check reads the roots it scans from the project's configuration, and an engine may hold no
   # project path (issue #255). The check came out of the `fix-loop` skill, whose C4 looked for a leftover

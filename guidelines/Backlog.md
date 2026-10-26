@@ -514,7 +514,13 @@ leftovers and escalated, exactly as that pre-flight records it; the stop reason 
 found, not the refusal's first line. The candidate that could not start is neither recorded nor escalated:
 nothing was done to it, so it stands in the queue as its owner set it. The run then stops, and continuing is not
 an alternative it has — the tree is still dirty and nothing is discarded without `--reset-worktree`, so every
-later candidate would be refused the same way and one cause would leave one blocked item per candidate. While
+later candidate would be refused the same way and one cause would leave one blocked item per candidate. That
+argument is about dirt the run did not make. Dirt it *did* make it discards and carries on from: a child this run
+ended at its cap left the tree dirty and `keep_leftovers` wrote that work to the item's own patch, so the record the
+refusal protects is in place beside the tree — the run discards the tree with the same verbs `--reset-worktree`
+runs, says which item's work it discarded and where the patch is, and retries the start once. A retry refused again
+stops the run with that refusal's own reason — the dirt the run itself removed is not what the stop names — and it
+does not write the item's patch again, because the tree it would read is the one it just discarded. While
 this happens one item keeps one record: a second account of an item the run already recorded joins the note that
 record has, because the report's four tallies, its budget-left figure and the "two consecutive items ended
 blocked" stop condition are all derived from the same list of records. What the later account may write is the note
@@ -524,7 +530,9 @@ found later — the stop reason is what names that item, and the tally that coun
 Measured 2026-10-23: the run stopped 166
 minutes into an 8 h budget with `the item could not be started: loop: the worktree is not clean — refusing to
 start #270:`, 7 eligible items unworked, the leftovers attributed to nothing and #270 carrying no state entry at
-all (#284).
+all (#284). Measured 2026-10-26 the other way: #310 was ended at its cap at 08:08:45Z and its patch written at
+08:08:38Z, the start of #309 was refused at 08:09:04Z and the run stopped having spent 166 of its 400 minutes —
+234 minutes and the queued item unspent, for work that was green and archived (#664).
 
 The run owes the commits it makes an identity: it is the login the run's own gate preflight resolved (the
 identity that authorises it), as that login's noreply address — never the machine's `~/.gitconfig` and never

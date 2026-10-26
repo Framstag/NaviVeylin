@@ -189,6 +189,8 @@ LOOP_SHELL_CASES=(
   'run#resetWorktreeNamesTheDirtItCannotDiscard'
   'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds'
   'run#aRefusedStartKeepsTheLeftoversItFound'
+  'run#theStartAfterTheRunsOwnEndedChildIsNotRefused'
+  'run#aRetriedStartStopsWithItsOwnReason'
   'run#aSkipClearsTheInProgressMark'
   'run#stateNamesTheItemInProgress'
   'run#skipEscalationCarriesTheDecision'
@@ -473,6 +475,8 @@ loop_run_shell_case() {
     'run#resetWorktreeNamesTheDirtItCannotDiscard') fn=case_run_resetWorktreeNamesTheDirtItCannotDiscard ;;
     'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds') fn=case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds ;;
     'run#aRefusedStartKeepsTheLeftoversItFound') fn=case_run_aRefusedStartKeepsTheLeftoversItFound ;;
+    'run#theStartAfterTheRunsOwnEndedChildIsNotRefused') fn=case_run_theStartAfterTheRunsOwnEndedChildIsNotRefused ;;
+    'run#aRetriedStartStopsWithItsOwnReason') fn=case_run_aRetriedStartStopsWithItsOwnReason ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
     'run#stateNamesTheItemInProgress') fn=case_run_stateNamesTheItemInProgress ;;
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
@@ -5461,6 +5465,94 @@ case_run_aRefusedStartKeepsTheLeftoversItFound() {
   assert_contains "$reason" "leftover-from-killed-run.patch" "and the stop reason names the patch it wrote"
   assert_contains "$(jq -r '.items[0].note' "$f")" "leftovers" "the item whose work it is still carries its own account"
   return 0
+}
+
+# The dirt a run ended *itself* is not the dirt the mid-run refusal protects (issue #664). `keep_leftovers` writes
+# what a cap-ended child left to the item's patch, the item is recorded blocked, and the tree stayed dirty — so the
+# run's next start met the leftovers of the item the run had just ended and stopped the whole run on them, with the
+# work it had just recorded beside them. Measured 2026-10-26: #310 was ended at its cap at 08:08:45Z, its patch was
+# written at 08:08:38Z, the start of #309 was refused at 08:09:04Z, and the run stopped having spent 166 of its 400
+# minutes — 234 minutes and the one queued item unspent. The branch marker names the item, the patch is the record,
+# so nothing the refusal protects is in the tree any more: the run discards it and starts its next item.
+case_run_theStartAfterTheRunsOwnEndedChildIsNotRefused() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out reason f tree patch
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  # The first item's child writes, then outlasts the 2 s cap, so the run ends it and its work is what the tree
+  # carries when the second item's start is refused. The second item's child works and ends by itself, which is
+  # the start the run lost.
+  stub_per_item_worker "$d" 'VERDICT: PASS' 'VERDICT: PASS' '
+    if [ "$n" -eq 1 ]; then
+      printf "half-applied\n" > half-applied.txt
+      sleep 30
+    else
+      printf "the second item works\n" > second-item.txt
+    fi'
+  tree="$p/.pi/worktrees/loop"
+  export LOOP_CONF="$conf"
+  out=$(run_loop "$p" --items 2 --minutes 90 --review off 2>&1)
+  f=$(state_file "$p")
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
+  [ -f "$patch" ] || fail "the work the cap-ended child left was not kept as a patch"
+  assert_contains "$(cat "$patch")" "half-applied.txt" "the patch still carries the dirt the run discarded"
+  assert_eq "2" "$(grep -c '^prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the item after the cap-ended one starts, so one item's cap no longer ends its run: $out"
+  assert_contains "$out" "the work #21 left" "the run says which item's work it discards, and where the record is"
+  [ ! -f "$tree/half-applied.txt" ] || fail "the recorded dirt was not discarded, so the next start is refused"
+  assert_eq "" "$(git -C "$tree" status --porcelain)" "and the run leaves a tree the next start accepts"
+  assert_not_contains "$reason" "the worktree is not clean" "the stop is a count of items, not the tree: $reason"
+  assert_contains "$reason" "item cap reached (2/2)" "and both items were worked: $reason"
+}
+
+# The retry a discard allows is a start of its own, so it can be refused for something else entirely — and that
+# refusal is the one a reader needs. Found in this change's first review round (#664, round 2): `start-item`'s line
+# was printed and then dropped, so a retry refused for its branch was reported as "the worktree is not clean — the
+# leftovers are #21's … : " with an empty list of files, on a tree the run had just cleaned itself, and the item's
+# record said the same. The reason recorded is the retry's, and the record the discard relied on is not replaced.
+case_run_aRetriedStartStopsWithItsOwnReason() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out reason tree patch
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=2/' "$LOOP_CONF" > "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=2' "$conf" || fail "this case could not shorten the child cap in loop.conf"
+  # The first child writes dirt, then a finished-looking attempt of the *second* item on that item's own branch, and
+  # then outlasts the cap. The second item's first start is refused for the dirt; the discard clears it; the retry is
+  # refused for the branch the first child made — a reason the dirt arm must not speak for.
+  stub_per_item_worker "$d" 'VERDICT: PASS' 'VERDICT: PASS' "
+    if [ \"\$n\" -eq 1 ]; then
+      printf 'half-applied\n' > half-applied.txt
+      current=\$(git rev-parse --abbrev-ref HEAD)
+      git switch -q -c fix/issue-22-a-bug
+      mkdir -p openspec/changes/archive/2026-01-01-fix-a-bug
+      printf 'archived\n' > openspec/changes/archive/2026-01-01-fix-a-bug/proposal.md
+      git add openspec/changes/archive/2026-01-01-fix-a-bug
+      git -c user.name=case -c user.email=case@example.invalid commit -q -m 'fix: a bug (#22)'
+      git switch -q \"\$current\"
+      sleep 30
+    fi"
+  tree="$p/.pi/worktrees/loop"
+  export LOOP_CONF="$conf"
+  out=$(run_loop "$p" --items 2 --minutes 90 --review off 2>&1)
+  reason=$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")
+  patch="$p/.pi/issue-loop/items/21/leftover-from-killed-run.patch"
+  [ -f "$patch" ] || fail "the work the cap-ended child left was not kept as a patch"
+  assert_contains "$(cat "$patch")" "half-applied.txt" \
+    "the record the discard relied on is still the one the cap left, not a header over a tree that was discarded"
+  assert_contains "$reason" "carries commits the base does not" \
+    "the stop reason is the refusal the retry answered with: $reason"
+  assert_not_contains "$reason" "the worktree is not clean" \
+    "and not the dirt it was retried over, which the run itself removed: $reason"
+  assert_not_contains "$reason" "the leftovers are #21's" "so it does not speak for another item's tree either: $reason"
+  assert_eq "1" "$(grep -c '^prompt: worker-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the second item never started, so its refusal is not recorded as work: $out"
+  assert_eq "" "$(git -C "$tree" status --porcelain)" "the tree the run discarded is the one it leaves behind"
 }
 
 case_run_aSkipClearsTheInProgressMark() {

@@ -360,13 +360,14 @@ record_dir="${record_dir%/}"
 # lands in the patch, and so is any file above the size bound. Measured 2026-10-25: the item whose gate hung was
 # repaired by hand from `git status` and a diff, because the run recorded that the tree was dirty and wrote the diff
 # nowhere, and the only repair it named was `--reset-worktree`.
-keep_leftovers() { # keep_leftovers <item> <evidence dir> → sets $leftover_patch (+ the file it wrote)
-  local item="$1" dir="$2" patch path size named
+keep_leftovers() { # keep_leftovers <item> → sets $leftover_patch (+ the file it wrote)
+  local item="$1" dir patch path size named
   leftover_patch=""
   case "$item" in ''|*[!0-9]*) return 0 ;; esac
   [ -d "$LOOP_WORKTREE" ] || return 0
+  patch=$(leftover_patch_of "$item")
+  dir=$(dirname "$patch")
   mkdir -p "$dir" 2>/dev/null || return 0
-  patch="$dir/leftover-from-killed-run.patch"
   {
     printf '# the work #%s left in %s\n' "$item" "$LOOP_WORKTREE"
     # `diff HEAD` and not `diff`: a refused `end-item` leaves the work **staged** — the commit is what failed — and
@@ -492,6 +493,52 @@ worktree_is_dirty() {
 owner_of_marker() { # owner_of_marker <branch> → the item that branch names, or nothing
   printf '%s\n' "${1:-}" | sed -n 's#^fix/issue-\([0-9][0-9]*\)-.*#\1#p' | head -1
 }
+# The items this run ended *itself*, whose work `keep_leftovers` wrote to the item's own patch (issue #308). It is
+# the one distinction the mid-run start refusal cannot read from the tree: dirt this run ended and recorded may be
+# discarded to start the next item, because what the refusal protects — a record beside the tree — already exists
+# there (issue #664). The patch's path is derived, never stored: the item and the stage directory are what name it —
+# one derivation, because the writer, the reader and the line that names the record in the transcript must agree
+# about the file or one of them lies (issue #664, round 2).
+leftover_patch_of() { # leftover_patch_of <item> → the patch this run keeps that item's ended work in
+  printf '%s/items/%s/leftover-from-killed-run.patch' "$stage_dir" "$1"
+}
+own_leftovers=" "
+own_leftovers_of() { # own_leftovers_of <item> → 0 when this run ended that item and kept its work as a patch
+  case "${1:-}" in ''|*[!0-9]*) return 1 ;; esac
+  case "$own_leftovers" in *" $1 "*) ;; *) return 1 ;; esac
+  [ -s "$(leftover_patch_of "$1")" ]
+}
+# The repair both refusals share: discard what the tree carries and answer whether it is clean afterwards. The
+# start-time refusal reaches it behind `--reset-worktree`; the mid-run refusal reaches it only for the work this
+# run ended itself, whose record already exists (issue #664) — one copy of the rule, because a second copy of a rule
+# is a second rule (as `owner_of_marker` says above). The caller prints the line naming what is being discarded.
+discard_kept_worktree() { # discard_kept_worktree <the name this repair prints itself under> <leftovers> → 0 when clean
+  local label="${1:-reset-worktree}" leftovers_to_name="${2:-}" reset_submodule_path reset_after
+  printf '%s\n' "$leftovers_to_name" | sed 's/^/  /'
+  git -C "$worktree" reset -q --hard || loop_die "run: could not reset the kept worktree"
+  git -C "$worktree" clean -qfd || loop_die "run: could not clean the kept worktree"
+  # Neither verb above reaches a submodule the previous run's building left on another commit, which is dirt this
+  # repair's own refusal names: the module's index already matches its own `HEAD`, so the reset has nothing to undo
+  # there, and a module's path is tracked, so the clean leaves it alone. Measured 2026-10-25 in the kept worktree at
+  # #309: `reset --hard` and `clean -fd` still printed the module path as modified, and
+  # `submodule update --init --checkout <path>` printed nothing (issue #310). The path is the project's own, read
+  # from the profile and only where the project carries a `.gitmodules`, and the checkout is best-effort with a
+  # note exactly as the fresh worktree's is (D4).
+  reset_submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
+  if [ -n "$reset_submodule_path" ] && [ -f "$worktree/.gitmodules" ]; then
+    git -C "$worktree" submodule update --init --checkout --force "$reset_submodule_path" >&2 ||
+      loop_note "$label: the submodule could not be checked out — the tree may still be dirty"
+  fi
+  # What is still dirty after both verbs and the checkout is dirt this repair cannot discard (a file inside the
+  # module, say), so the repair says so and names it instead of announcing a clean tree the next start refuses.
+  reset_after=$(git -C "$worktree" status --porcelain)
+  if [ -n "$reset_after" ]; then
+    printf '%s: the reset cannot discard what is left in %s:\n' "$label" "$worktree"
+    printf '%s\n' "$reset_after" | sed 's/^/  /'
+    return 1
+  fi
+  printf '%s: %s is clean again — the commits on its branches are left alone\n' "$label" "$worktree"
+}
 if [ -d "$worktree" ] && worktree_is_dirty; then
   leftovers=$(git -C "$worktree" status --porcelain)
   # The item the leftovers belong to: `start-item` writes the item's branch into the worktree's own branch
@@ -500,30 +547,9 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
   owner_item=$(owner_of_marker "$marker")
   if [ "$reset_worktree" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
     printf 'reset-worktree: discarding what a previous run left in %s:\n' "$worktree"
-    printf '%s\n' "$leftovers" | sed 's/^/  /'
-    git -C "$worktree" reset -q --hard || loop_die "run: could not reset the kept worktree"
-    git -C "$worktree" clean -qfd || loop_die "run: could not clean the kept worktree"
-    # Neither verb above reaches a submodule the previous run's building left on another commit, which is dirt this
-    # repair's own refusal names: the module's index already matches its own `HEAD`, so the reset has nothing to undo
-    # there, and a module's path is tracked, so the clean leaves it alone. Measured 2026-10-25 in the kept worktree at
-    # #309: `reset --hard` and `clean -fd` still printed the module path as modified, and
-    # `submodule update --init --checkout <path>` printed nothing (issue #310). The path is the project's own, read
-    # from the profile and only where the project carries a `.gitmodules`, and the checkout is best-effort with a
-    # note exactly as the fresh worktree's is (D4).
-    reset_submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
-    if [ -n "$reset_submodule_path" ] && [ -f "$worktree/.gitmodules" ]; then
-      git -C "$worktree" submodule update --init --checkout --force "$reset_submodule_path" >&2 ||
-        loop_note "reset-worktree: the submodule could not be checked out — the tree may still be dirty"
-    fi
-    # What is still dirty after both verbs and the checkout is dirt this repair cannot discard (a file inside the
-    # module, say), so the repair says so and names it instead of announcing a clean tree the next start refuses.
-    reset_after=$(git -C "$worktree" status --porcelain)
-    if [ -n "$reset_after" ]; then
-      printf 'reset-worktree: the reset cannot discard what is left in %s:\n' "$worktree"
-      printf '%s\n' "$reset_after" | sed 's/^/  /'
+    if ! discard_kept_worktree reset-worktree "$leftovers"; then
       loop_refuse "the kept worktree is still not clean after --reset-worktree — nothing was started; the paths above are removed by hand"
     fi
-    printf 'reset-worktree: %s is clean again — the commits on its branches are left alone\n' "$worktree"
   else
     printf 'refusing to start: the kept worktree %s is not clean — a previous run left work behind\n' "$worktree"
     printf '%s\n' "$leftovers" | sed 's/^/  /'
@@ -1086,9 +1112,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     # …and the work it left is written down before the run moves on (issue #308): the item's own worker and the
     # rework worker of a refusing round both end here, both name the item the tree belongs to, and the tree itself is
     # still kept exactly as the child left it — the patch is a record *beside* it, never a replacement.
-    keep_leftovers "$issue" "$item_dir"
+    keep_leftovers "$issue"
     if [ -n "$leftover_patch" ]; then
       printf 'LOOP-LEFTOVERS: %s — the work this run ended is kept there\n' "$leftover_patch" >> "$2"
+      # …and this run now knows it may discard that tree to start its next item, because the record beside it is
+      # one this run wrote (issue #664, the mid-run start refusal).
+      own_leftovers="$own_leftovers$issue "
     fi
     rc="$LOOP_CHILD_TIMEOUT"
   fi
@@ -1224,32 +1253,70 @@ while true; do
         # its owner set it. Continuing down the queue is not an alternative and is not taken: the tree stays
         # dirty, nothing is discarded without `--reset-worktree`, so every later candidate would be refused the
         # same way and one cause would leave a blocked item per candidate.
+        # …unless the dirt is the run's *own* (issue #664). A child this run ended at its cap left it, and
+        # `keep_leftovers` has already written it to that item's patch — so the record the refusal protects is in
+        # place, and the tree is the one this run has to start its next item on. It is discarded and the start
+        # retried once; that is the whole difference between the dirt of *another* item, which still stops the run,
+        # and the dirt of the item the run itself just ended. Measured 2026-10-26: #310 was ended at its cap at
+        # 08:08:45Z and its patch written at 08:08:38Z, the start of #309 was refused at 08:09:04Z, and the run
+        # stopped having spent 166 of its 400 minutes — 234 minutes and the one queued item unspent.
         marker=$(cat "$worktree/.pi/loop-branch" 2>/dev/null || true)
         owner_item=$(owner_of_marker "$marker")
         leftovers=$(git -C "$worktree" status --porcelain 2>/dev/null)
         leftover_files=$(printf '%s\n' "$leftovers" | sed '/^$/d' | paste -sd, - | sed 's/,/, /g')
-        if [ -n "$owner_item" ]; then
-          leftover_owner="the leftovers are #$owner_item's (branch $marker)"
-        else
-          leftover_owner="the worktree is on ${marker:-an unknown branch}, which names no item"
-        fi
-        # …and the leftovers it found are written down before the run ends (issue #308): they are this item's, the
-        # item is named by the branch marker, and the stop reason below names the file — so `--reset-worktree` is no
-        # longer the only repair a person has, and the work is readable after it.
-        keep_leftovers "$owner_item" "$stage_dir/items/$owner_item"
-        if [ "$dry_run" -eq 0 ] && [ -n "$owner_item" ]; then
-          escalated_label=""
-          if loop_labels escalate "$owner_item" \
-            --reason "a start was refused mid-run because the worktree is not clean — the leftovers are this item's" \
-            --evidence "branch ${marker:-unknown}, worktree $worktree: $leftover_files" >&2; then
-            escalated_label="$decision_label"
+        start_after_discard=0
+        retry_refusal=""
+        if own_leftovers_of "$owner_item" && discard_kept_worktree discard "$leftovers"; then
+          printf 'discarding the work #%s left: this run ended that child and wrote it to %s, so #%s starts on a clean tree\n' \
+            "$owner_item" "$(leftover_patch_of "$owner_item")" "$issue"
+          if start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" 2>&1); then
+            start_after_discard=1
+          else
+            printf '%s\n' "$start_out"
+            retry_refusal=$(printf '%s' "$start_out" | head -1)
           fi
-          loop_state done "$owner_item" --result blocked --verdict blocked \
-            --note "the worktree was not clean when #$issue was started: the leftovers are #$owner_item's, and no item can start until they are dealt with — $leftover_files" \
-            --decision-label "$escalated_label" >/dev/null
         fi
-        stop_run "the item could not be started: the worktree is not clean — $leftover_owner, so #$issue and no item after it can start until they are dealt with: $leftover_files${leftover_patch:+ (the work is kept in $leftover_patch)} (repair: --reset-worktree discards them, and names them before it does)"
-        break
+        if [ "$start_after_discard" -eq 0 ]; then
+          # The retry is a start of its own and can be refused for a reason that has nothing to do with the dirt it
+          # was retried over: the base moved while the child ran, or the branch carries work the base does not. That
+          # reason is the refusal a reader needs, so it is the one recorded — read from the retry's own output, and
+          # only the dirt keeps the attribution below (issue #664, round 2: without this, a retried start refused for
+          # another reason was reported as "the worktree is not clean" with an empty list of files, on a tree the run
+          # had just cleaned itself).
+          case "$start_out" in
+            *"not clean"*) ;;
+            *) stop_run "the item could not be started: ${retry_refusal:-$(printf '%s' "$start_out" | head -1)}"; break ;;
+          esac
+          # Read again now and not before the retry: a discarded tree's files are gone, and a stop reason that named
+          # them would name work nobody can find (issue #664, round 2).
+          leftovers=$(git -C "$worktree" status --porcelain 2>/dev/null)
+          leftover_files=$(printf '%s\n' "$leftovers" | sed '/^$/d' | paste -sd, - | sed 's/,/, /g')
+          if [ -n "$owner_item" ]; then
+            leftover_owner="the leftovers are #$owner_item's (branch $marker)"
+          else
+            leftover_owner="the worktree is on ${marker:-an unknown branch}, which names no item"
+          fi
+          # …and the leftovers it found are written down before the run ends (issue #308): they are this item's, the
+          # item is named by the branch marker, and the stop reason below names the file — so `--reset-worktree` is no
+          # longer the only repair a person has, and the work is readable after it. An item whose work this run already
+          # wrote is **not** written again (issue #664, round 2): the tree it would read is the one the repair above
+          # just discarded or half-discarded, so the second write would replace a record of real work with a header
+          # and a residual, and the record is the whole reason the dirt is discardable in the first place.
+          own_leftovers_of "$owner_item" || keep_leftovers "$owner_item"
+          if [ "$dry_run" -eq 0 ] && [ -n "$owner_item" ]; then
+            escalated_label=""
+            if loop_labels escalate "$owner_item" \
+              --reason "a start was refused mid-run because the worktree is not clean — the leftovers are this item's" \
+              --evidence "branch ${marker:-unknown}, worktree $worktree: $leftover_files" >&2; then
+              escalated_label="$decision_label"
+            fi
+            loop_state done "$owner_item" --result blocked --verdict blocked \
+              --note "the worktree was not clean when #$issue was started: the leftovers are #$owner_item's, and no item can start until they are dealt with — $leftover_files" \
+              --decision-label "$escalated_label" >/dev/null
+          fi
+          stop_run "the item could not be started: the worktree is not clean — $leftover_owner, so #$issue and no item after it can start until they are dealt with: $leftover_files${leftover_patch:+ (the work is kept in $leftover_patch)} (repair: --reset-worktree discards them, and names them before it does)"
+          break
+        fi
         ;;
       *) stop_run "the item could not be started: $(printf '%s' "$start_out" | head -1)"; break ;;
     esac

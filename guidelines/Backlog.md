@@ -829,10 +829,13 @@ read of the item; that write, and a hand edit on the web UI, are why this row st
 
 One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so
 a file nobody touches scores nothing however large it is. `source-size` measures **lines per tracked file**
-over `*.kt` and `*.java`, tests included and the native sources out, and files one item per path over the
-bound — the path is the identity, so an item closes when that file drops under it. The number, the unit and
-the scope are the owner's recorded decision (2026-10-21: 1 500 lines, file level, C++ out); the bound is the
-row's, so retuning it is one edit in `sensors.json`. It bounds a *file* and not a class: a file carrying
+over `*.kt` and `*.java`, tests included, the native sources out and the change tree out — `openspec/changes/**`
+holds a change's prose and the frozen copies it keeps as evidence, which no build compiles, so a copy a change
+kept of the file it brought under the bound is not a condition (issue #670) — and files one item per path over
+the bound: the path is the identity, so an item closes when that file drops under it. A recorded condition whose
+path the tree no longer measures clears on its own identity and carries no line count rather than a number
+nobody took. The number, the unit and the scope are the owner's recorded decision (2026-10-21: 1 500 lines, file
+level, C++ out); the bound is the row's, so retuning it is one edit in `sensors.json`. It bounds a *file* and not a class: a file carrying
 several classes is one condition here, and separating them needs a counter this tooling does not have.
 
 ## 10. Portability

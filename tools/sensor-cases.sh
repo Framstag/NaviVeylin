@@ -62,6 +62,7 @@ SENSOR_CASES=(
   'sensors#packageSizeConsumesAnArtifact'
   'sensors#coverageRow'
   'sensors#sourceSizeRow'
+  'sensors#sourceSizeSkipsTheChangeTree'
   'sensors#metadataDriftRow'
   'sensors#metadataDriftClearsUnderItsOwnIdentity'
   'sensors#brokenMainFingerprintDistinguishesCauses'
@@ -131,6 +132,7 @@ sensor_run_case() {
     'sensors#packageSizeConsumesAnArtifact') case_sensors_packageSizeConsumesAnArtifact ;;
     'sensors#coverageRow') case_sensors_coverageRow ;;
     'sensors#sourceSizeRow') case_sensors_sourceSizeRow ;;
+    'sensors#sourceSizeSkipsTheChangeTree') case_sensors_sourceSizeSkipsTheChangeTree ;;
     'sensors#metadataDriftRow') case_sensors_metadataDriftRow ;;
     'sensors#metadataDriftClearsUnderItsOwnIdentity') case_sensors_metadataDriftClearsUnderItsOwnIdentity ;;
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
@@ -1694,6 +1696,50 @@ case_sensors_sourceSizeRow() {
     SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
     bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
   assert_contains "$out" '"verdict":"error"' "a tree git cannot list is a failed check, not a clear: $out"
+}
+
+# The change tree is not the source tree: a change keeps a frozen copy of a file as review evidence —
+# `2026-10-25-fix-auto-map-renderer-file-size` keeps its 2 307-line head snapshot under
+# `openspec/changes/archive/<change>/evidence/`, past the bound after the live file dropped under it — and no
+# build reads that copy. Measured 2026-10-26 (issue #670): with the row's real fixture list the snapshot alone
+# was the only condition the real tree carried, so the row refiles an item about evidence its own subject
+# produced and the item can never clear. The scope is the measurement's, so the exclusion is the measurement's
+# line, not the registry's.
+case_sensors_sourceSizeSkipsTheChangeTree() {
+  local dir out findings
+
+  dir=$(scratch)
+  mkdir -p "$dir/app/src/main/java" "$dir/openspec/changes/archive/a-change/evidence" \
+    "$dir/openspec/changes/an-open-change/evidence"
+  seq 1 1600 | sed 's/^/\/\/ line /' > "$dir/app/src/main/java/Big.kt"
+  seq 1 1600 | sed 's/^/\/\/ line /' > "$dir/openspec/changes/archive/a-change/evidence/Head.kt"
+  seq 1 1600 | sed 's/^/\/\/ line /' > "$dir/openspec/changes/an-open-change/evidence/Case.kt"
+  git -C "$dir" init -q -b main >/dev/null 2>&1 || fail "could not create the fixture repository"
+  git_commit "$dir" one
+
+  out=$(cd "$dir" && SENSORS_ID=source-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=1500 \
+    SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"path":"app/src/main/java/Big.kt"' \
+    "a live source file past the bound is still its own condition: $out"
+  assert_not_contains "$findings" 'Head.kt' \
+    "a frozen copy a change keeps as evidence is not a source file: $findings"
+  assert_not_contains "$findings" 'Case.kt' \
+    "a change that is still open is not a source tree either: $findings"
+
+  # The recorded condition over such a path clears on its own identity, with no line count invented for a file
+  # the row does not measure — the half that lets the item filed against the frozen copy close.
+  out=$(cd "$dir" && SENSORS_ID=source-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=1500 \
+    SENSORS_CONDITIONS='[{"state":"OPEN","condition":{"path":"openspec/changes/archive/a-change/evidence/Head.kt"}}]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/source-size.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"path":"openspec/changes/archive/a-change/evidence/Head.kt"' \
+    "a recorded condition on a frozen copy clears under its own path: $out"
+  assert_contains "$findings" '"verdict":"clear"' "the frozen copy's condition is a clear: $out"
+  assert_contains "$findings" '"measurement":"outside-scope"' \
+    "the clear carries no line count for a file the row does not measure: $out"
 }
 
 # The priority invariant as a scheduled check (issue #292): an item whose band label and the marker the pass

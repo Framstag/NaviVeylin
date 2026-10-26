@@ -439,7 +439,8 @@ A project's checks SHALL include a measurement of a source file's own size, so t
 hold in one reading is a condition a check reports rather than something only a reviewer notices. The bound SHALL
 be the row's, so retuning the check is one edit in the registry; the unit and the language scope are the
 measurement's own, fixed by the owner's recorded decision, and a distinct path SHALL be a distinct condition, so
-an item closes when that path drops under the bound.
+an item closes when that path drops under the bound. A frozen copy a change keeps as evidence SHALL NOT be a
+source file.
 
 #### Scenario: A file past the bound is one condition, per path
 
@@ -469,6 +470,16 @@ an item closes when that path drops under the bound.
 - **THEN** the row reports a clear naming that path and its line count, so the issue carrying the condition closes
   on the identity it holds
 - **Case**: `sensors#sourceSizeRow`
+
+#### Scenario: The change tree is not the source tree
+
+- **WHEN** a tracked Kotlin or Java file under the change tree — a frozen copy a change kept as evidence — is
+  measured past the row's bound, while a live source file is past it too
+- **THEN** the frozen copy is not a condition and is not reported, the live source file is still reported as its
+  own condition with its own line count, and a recorded condition naming the frozen copy clears under its own
+  identity with no line count — so the row measures the tree a build compiles and an item about a file a change
+  kept as evidence closes instead of staying open forever
+- **Case**: `sensors#sourceSizeSkipsTheChangeTree`
 
 ### Requirement: The priority pair is re-checked on a schedule
 

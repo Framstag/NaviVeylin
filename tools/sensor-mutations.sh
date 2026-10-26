@@ -54,6 +54,7 @@ MUTATIONS=(
   '8.25@tools/sensors/run.sh@s/if \[ "$reason" != "completed" \]; then/if false; then/@run#aSummaryClosedByAPersonIsNotReopened@a summary a person closed is annotated, never reopened (issue #666)'
   '8.26@tools/sensors/run.sh@s/\[ "$SENSORS_FAILED" -eq "$failed_before" \] || return 0/:/@run#aFailedCheckDoesNotClearTheSummary@a run in which a finding failed clears no summary (issue #666)'
   '8.27@tools/sensors/run.sh@s/  sensors_unfiled_lines "$3"/  : /@run#aSecondOverBoundRunListsWhatItDidNotFile@each over-bound run names the conditions it did not file (issue #666)'
+  '8.28@tools/sensors/metrics/source-size.sh@s|\x27:(exclude)openspec/changes/\x27||@sensors#sourceSizeSkipsTheChangeTree@the change tree is not the source tree, so a frozen evidence copy is not a condition (issue #670)'
 )
 
 if [ "$mode" = "list" ]; then

@@ -1,0 +1,35 @@
+== post-archive structural checks (the gate above ran before the archive moved the delta into the capability spec)
+--- tools/check-doc-routes.sh
+check-doc-routes: all 154 section references resolve, all 4 skill references resolve
+rc=0
+--- tools/check-doc-routes-selftest.sh
+PASS  routes#aGuidelineBodyNamingAMissingSectionIsReported — a guideline body naming a section its document lacks is reported (exit 1)
+PASS  routes#aReferenceInAChangeArtifactIsNotChecked — a reference in a change artifact is not checked (exit 0)
+PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md is untouched by every case
+check-doc-routes-selftest: 19 passed, 0 failed
+rc=0
+--- tools/check-todo-references.sh
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 203 line(s) scanned, 63 distinct citation(s), 162 in the recorded table
+check-todo-references: 63 citation(s) resolve through the recorded table; 5555 file(s) excluded by the allowlist above
+rc=0
+--- tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+rc=0
+--- bash tools/gen-feature-list.sh --check-classification
+bash: bash tools/gen-feature-list.sh --check-classification: Datei oder Verzeichnis nicht gefunden
+rc=0
+--- bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence --root .
+bash: bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence --root .: Datei oder Verzeichnis nicht gefunden
+rc=0
+--- tools/gen-feature-list.sh --check-classification
+stale: 3
+car-only areas: 1
+highlights: 19
+rc=0
+--- evidence-check on the archived change
+ok   C5 file:line: 257 resolved and in range, 2 unresolved or ambiguous
+----
+evidence-check: PASS

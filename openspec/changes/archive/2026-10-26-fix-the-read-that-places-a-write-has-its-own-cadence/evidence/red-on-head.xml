@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem" tests="1" failures="1" errors="0" time="17">
+  <testcase name="run#aWriterTheRunCanPlaceBlocksTheItem" classname="loop-selftest">
+    <failure message="a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'">a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'</failure>
+  </testcase>
+  <system-out>FAIL run#aWriterTheRunCanPlaceBlocksTheItem loop-selftest: 1 of 1 cases failed (three consecutive runs, red-on-head.log)</system-out>
+</testsuite>

@@ -1,0 +1,16 @@
+run#aWriterTheRunCanPlaceBlocksTheItem|   a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+--- run#aWriterTheRunCanPlaceBlocksTheItem[0] (exit 1)
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+run#aWriterTheRunCanPlaceBlocksTheItem|   a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+--- run#aWriterTheRunCanPlaceBlocksTheItem[0] (exit 1)
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+run#aWriterTheRunCanPlaceBlocksTheItem|   a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+--- run#aWriterTheRunCanPlaceBlocksTheItem[0] (exit 1)
+  a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+FAIL run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: 1 of 1 cases failed
+DONE

@@ -1,0 +1,12 @@
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+PASS run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem
+PASS run#childWriteOutsideTheWorktreeIsNoted
+PASS run#dirtyBaseRefusesTheMergeAndNamesThePath
+PASS run#strictOutsideWriteBlocksTheItem
+PASS run#strictOutsideWriteDiscardsTheReviewRound
+PASS run#childReportsWhileItWaits
+run#theProgressLineKeepsItsInterval| 2 running line(s) for a 4 s child at a 2 s interval
+PASS run#theProgressLineKeepsItsInterval
+run#theWaitEndsWhenTheChildDoes| the wait for a 150 ms child cost 265 ms
+PASS run#theWaitEndsWhenTheChildDoes
+PASS run#reviewerWriteInvalidatesTheRound

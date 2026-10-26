@@ -1,0 +1,8 @@
+loop-mutations: selected 2 of 178 records (labels: 12.10 12.11)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.Mi0FwE
+RED    12.10  run#aWriterTheRunCanPlaceBlocksTheItem   (the reading taken while the child runs, which is what ties a write to it)
+restore 12.10 run#aWriterTheRunCanPlaceBlocksTheItem green again
+RED    12.11  run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem   (the child chain the run itself started in the project not being a writer)
+restore 12.11 run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

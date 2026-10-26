@@ -27,6 +27,10 @@ same band, so one `update.sh 305 --label prio/p3` produces exactly the pair the 
 option 1 of three), "the refusal of a band label in `update.sh` it was weighed against is a later item". The
 item that is #671 is that later item.
 
+The `--live` output above and the pass's plan line below are the round-1 readings, quoted from that run on
+2026-10-26; neither can be re-derived offline (`check-metadata.sh --live` needs the tracker), and nothing in
+the change depends on either value.
+
 **The red tests**, three cases that fail on the base, log `evidence/red-on-head.log`, tallies beside it, run
 2026-10-26T20:34:56Z (`HEAD 0814f28e`):
 
@@ -43,18 +47,22 @@ item that is #671 is that later item.
 **Owning capability and guideline**: `openspec/specs/issue-priority/spec.md` — its requirement "An item's
 priority is stored, in a fixed range" states the detection half ("The label and the record agree", case
 `check#labelWithoutMarkerFails`); this change adds the write half. The guideline section is
-`guidelines/Backlog.md` §9 "Checks" (the `metadata-invariant` row and its deferred prevention), with the label
-gate's own contract in `guidelines/Backlog.md` §5 "Who may write what".
+`guidelines/Backlog.md` §9 "Checks" — the `metadata-invariant` row and its deferred prevention, and the paragraph
+the rule landed in.
 
-**Surface**, counted before the plan was fixed (Phase A step 5):
+**Surface**, counted before the plan was fixed (Phase A step 5), and re-counted for the round-2 correction:
 
-surface: 3 cases added, 0 rewritten, 1 mutation re-based, 0 fixtures added — `grep -n "band\|prio"
-tools/issue-tooling-cases.sh | grep -c update` → 4, `grep -n 'the-writer-skips-the-marker'
-tools/issues/metadata-mutations.sh` → 3; the fixtures are built in the cases (`band_tracker`), so no fixture file
-changes. The cases and fixtures that assert the behaviour being changed are `update#removeLabelRunsThroughTheSameGate`,
-`surface#reservedLabelRefusesInEveryWritePath`, `prioritise#writesLabelAndMarkerTogether` and
-`metadata-mutations.sh`'s `the-writer-skips-the-marker` (re-based, because the drift can no longer be produced by
-the writer it probes).
+surface: 3 cases added, 0 rewritten, 1 mutation re-based, 0 fixtures added — `git show
+0814f28e:tools/issue-tooling-cases.sh | grep -cE "^    '[A-Za-z]+#"` → 95 at the base and the same command over
+the tree → 98 (three case functions added); `grep -c 'the-writer-skips-the-marker'
+tools/issues/metadata-mutations.sh` → 4 (the mutation id, its invariant sentence, its patch arm and its probe
+arm); the fixtures are built in the cases (`band_tracker`), so no fixture file changes. Round 2 adds no case:
+two assertions inside `update#writesABandLabelWithTheBodysMarker` (the refusal, and the demotion that must stay
+allowed) and one branch in the gate — `git diff --stat 98135f1d` after the correction is that count. The cases
+and fixtures that assert the behaviour being changed are
+`update#removeLabelRunsThroughTheSameGate`, `surface#reservedLabelRefusesInEveryWritePath`,
+`prioritise#writesLabelAndMarkerTogether` and `metadata-mutations.sh`'s `the-writer-skips-the-marker` (re-based,
+because the drift can no longer be produced by the writer it probes).
 
 ## What changes
 
@@ -71,4 +79,31 @@ the writer it probes).
 ## Out of scope
 
 Repairing #304/#305: that is a tracker write and a judgement about which half is wrong, and `guidelines/`
-§9 keeps it a person's edit. This change makes the drift unproducible, not impossible to have happened.
+§9 keeps it a person's edit. This change makes the label half of the drift unproducible by this tooling — not
+the drift impossible: a `--body` that names no band label, and a hand edit on the web UI, can still move the
+marker away from the item's stored label, and those are what the row above reports. #305 keeps its
+`label-without-marker` until the pass or a person rewrites it, so the sensor will re-emit the same fingerprint
+against the closed item; that residue is visible in `check-metadata.sh --live` and is why the closure comment
+names it.
+
+## Round 2 — the correction the review asked for
+
+Review round 1 (`evidence/review-round-1-requested.md`) accepted the added-label half and reproduced the
+removal half: `update.sh 26 --remove-label prio/p1 --body <body whose marker records p3>` passed the gate and
+wrote `--remove-label prio/p1` with that body, leaving `marker-without-label` — the drift in the direction
+#305's own condition does not happen to be. The four sentences that called the pair unbreakable were therefore
+false as written.
+
+What the correction changes: one branch in `issues_band_pair_gate` (a removal that adds no band, carrying a body
+that records one, is refused with `band-label-disagrees`), two assertions in
+`update#writesABandLabelWithTheBodysMarker` (the refusal, and the demotion that must stay allowed), one sentence
+in the requirement and its scenario, and the correction of those four sentences — `tools/issues/update.sh`'s
+comment, `metadata-mutations.sh`'s invariant sentence, this change's `design.md` and `guidelines/Backlog.md`
+§9 — each now saying what the gate actually refuses instead of that the pair cannot be written apart.
+
+Evidence: `evidence/red-on-head-round2.log` and its tally (the new assertion red on HEAD
+`98135f1d`, `tests="1" failures="1"`, 2026-10-26T20:46:47Z), `evidence/mutation-671-removal.log` (the branch
+mutated away, the assertion red at `20:48:27Z`, green after the restore), `evidence/mutation-671-whole.log`
+(7 of 7 mutations noticed), and `evidence/gate-round2.log:1204` — the gate's own verdict line, 611 tests, 0
+failures, 0 errors, no compiled path in the diff — with its 22 per-suite tallies in `evidence/gate-tallies/`
+(`tools/issue-tooling-selftest.sh`: `all 124 cases passed`, 2026-10-26T21:03:12Z).

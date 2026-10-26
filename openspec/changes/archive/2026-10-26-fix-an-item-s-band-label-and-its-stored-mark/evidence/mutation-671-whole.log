@@ -1,0 +1,25 @@
+# the whole mutation set, 2026-10-26T20:48:33Z, HEAD 98135f1d
+
+── basis-drops-labels — the basis must move when a kind label changes (task 8.1, D3)
+  the rule fired with the mutation in place
+  and it is quiet again after the restore
+── basis-hashes-the-raw-body — a reflowed body must not move the basis (task 8.2, D3)
+  the rule fired with the mutation in place
+  and it is quiet again after the restore
+── basis-drops-the-anchor-flag — the basis must move when the cited code goes away (task 8.3, D3)
+  the rule fired with the mutation in place
+  and it is quiet again after the restore
+── basis-carries-the-run-timestamp — a repeated run with nothing changed must score nothing (task 8.4, D3, D9)
+  the rule fired with the mutation in place
+  and it is quiet again after the restore
+── band-edge-leaves-a-hole — every score the model can produce falls in exactly one band (task 8.5, D2)
+  the rule fired with the mutation in place
+  and it is quiet again after the restore
+── classify-writes-the-opt-in — the pass cannot write the automation opt-in (task 8.6, D7)
+  the rule fired with the mutation in place
+  and it is quiet again after the restore
+── the-writer-skips-the-marker — the band label and the body marker cannot drift apart (task 8.7, D1; the write gate of #671)
+  the rule fired with the mutation in place
+  and it is quiet again after the restore
+metadata-mutations: 7 of 7 mutations noticed, and every probe quiet again
+exit=0

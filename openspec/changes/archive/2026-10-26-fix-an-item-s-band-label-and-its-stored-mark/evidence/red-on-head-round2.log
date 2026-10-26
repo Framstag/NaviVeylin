@@ -1,0 +1,6 @@
+# red on HEAD 98135f1d (working tree carries the new assertion only), 2026-10-26T20:46:47Z
+
+## update#writesABandLabelWithTheBodysMarker — the removal half
+    a removal whose body still records a band is refused: stub gh: recorded `gh issue edit`: expected '3', got '0'
+  FAIL update#writesABandLabelWithTheBodysMarker
+exit=1

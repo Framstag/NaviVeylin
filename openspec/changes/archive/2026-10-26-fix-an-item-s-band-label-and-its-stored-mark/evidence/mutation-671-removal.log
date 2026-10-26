@@ -1,0 +1,11 @@
+# mutation-671-removal — the removal half of the band gate, 2026-10-26T20:48:27Z, HEAD 98135f1d
+
+── mutation: the removal branch of `issues_band_pair_gate` is made unreachable (`&& [ -n "$marker_band" ]` → `&& false`), the shape round 1 left accepted
+492:    if [ "${#added_values[@]}" -eq 0 ] && false; then
+  a removal whose body still records a band is refused: stub gh: recorded `gh issue edit`: expected '3', got '0'
+FAIL update#writesABandLabelWithTheBodysMarker
+  exit=1
+
+── restored
+PASS update#writesABandLabelWithTheBodysMarker
+  exit=0

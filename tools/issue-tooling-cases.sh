@@ -1402,6 +1402,24 @@ case_update_writesABandLabelWithTheBodysMarker() {
   assert_eq "3" "$status" "a band label the body's marker contradicts is refused: $out"
   assert_contains "$out" "band-label-disagrees" "the refusal names the disagreement"
   [ ! -s "$log" ] || fail "a refused band write reached the tracker: $(cat "$log")"
+
+  # The removal half, which is the drift the other way round: taking the band label off while the body's
+  # marker keeps recording a band leaves the item with a marker and no label — `marker-without-label`, the
+  # half #305 does not happen to be. Nothing about the call is unknown: a label named for removal, none
+  # added, and a body that records a band, so the gate decides it without reading the item.
+  : > "$log"
+  out=$(run_tool update.sh 26 --remove-label prio/p1 --body "$dir/body-p3" 2>&1); status=$?
+  assert_eq "3" "$status" "a removal whose body still records a band is refused: $out"
+  assert_contains "$out" "band-label-disagrees" "the removal is the same rule"
+  [ ! -s "$log" ] || fail "a refused band write reached the tracker: $(cat "$log")"
+
+  # And the removal that carries a body with no marker is the pair it should be: the item ends with neither
+  # half, which is the state a demoted item has.
+  : > "$log"
+  printf 'The body, and no marker at all.\n' > "$dir/body-none"
+  out=$(run_tool update.sh 26 --remove-label prio/p1 --body "$dir/body-none" 2>&1); status=$?
+  assert_eq "0" "$status" "a removal carrying a body with no marker succeeds: $out"
+  assert_contains "$(grep 'issue edit' "$log")" "--remove-label prio/p1" "the removal travels"
 }
 
 # A created item's body carries no marker, so no band can agree with it: the pass assigns the pair, never the

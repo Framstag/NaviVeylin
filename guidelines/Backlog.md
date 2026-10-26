@@ -820,9 +820,12 @@ repairs nothing: which half of a drifted pair is the wrong one is a judgement, s
 rewriting both halves together stays a person's edit. The row is the answer the owner recorded on #292
 (2026-10-25, option 1 of three); the prevention it was weighed against — the refusal of a band label in
 `update.sh` — landed later as the other half of the same root cause (issue #671): a call that names a
-`prio/<band>` label carries the `--body` whose marker records that band or is refused with
-`band-label-unpaired`/`band-label-disagrees` (`tools/issues/lib.sh`, "the band pair"), and `create.sh` writes
-no band at all, because the body it files carries no marker for one to agree with.
+`prio/<band>` label carries the `--body` that leaves the pair intact — the band it adds is the band the
+marker records, and a call that removes a band and adds none carries a body recording none — or is refused
+with `band-label-unpaired`/`band-label-disagrees` (`tools/issues/lib.sh`, "the band pair"), and `create.sh`
+writes no band at all, because the body it files carries no marker for one to agree with. A `--body` that
+names no band label stays ungated, since seeing that its marker disagrees with the item's stored label needs a
+read of the item; that write, and a hand edit on the web UI, are why this row still has work.
 
 One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so
 a file nobody touches scores nothing however large it is. `source-size` measures **lines per tracked file**

@@ -76,7 +76,7 @@ mutation_invariant() {
     'basis-carries-the-run-timestamp') echo "a repeated run with nothing changed must score nothing (task 8.4, D3, D9)" ;;
     'band-edge-leaves-a-hole') echo "every score the model can produce falls in exactly one band (task 8.5, D2)" ;;
     'classify-writes-the-opt-in') echo "the pass cannot write the automation opt-in (task 8.6, D7)" ;;
-    'the-writer-skips-the-marker') echo "the band label and the body marker cannot drift apart (task 8.7, D1; the write gate of #671)" ;;
+    'the-writer-skips-the-marker') echo "no band label is written or removed without the body that leaves the pair intact (task 8.7, D1; the write gate of #671)" ;;
     *) echo "" ;;
   esac
 }

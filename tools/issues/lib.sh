@@ -423,8 +423,14 @@ issues_band_label_values() { # <profile> <label>…
 # Refuses, before any write and with the two reason codes the drift is stated in from the other side:
 #
 #   band-label-unpaired   a band label named with no body — nothing records the band it asserts
-#   band-label-disagrees  the body's marker records another band than the label added, or still records the
-#                         band removed
+#   band-label-disagrees  the body's marker records another band than the label added, or the call removes the
+#                         item's band label and adds none, so a body that records a band would leave the item
+#                         with a marker and no label
+#
+# The two shapes are the two the call decides by itself. Which half is wrong when the tracker is already
+# drifted stays a judgement (`guidelines/Backlog.md` §9), and a body-only write is not gated: seeing that the
+# marker it carries disagrees with the item's stored label needs a read of the item, which this gate does not
+# buy (`design.md`, "Alternatives the evidence eliminated").
 #
 # An empty body is the one a caller has no body for (a created item's), so every band label is unpaired there.
 issues_band_pair_gate() { # <profile> <body> <added label>… -- <removed label>…
@@ -478,6 +484,15 @@ issues_band_pair_gate() { # <profile> <body> <added label>… -- <removed label>
     done
   fi
   if [ "${#removed_values[@]}" -gt 0 ]; then
+    # A removal that adds no band decides the item's other half by itself: whatever the body's marker records,
+    # the item is left with a marker and no band label (`marker-without-label`), because the label the body
+    # agrees with is the one being taken off. Round 1 asked only whether the removed band was still the recorded
+    # one, so `--remove-label prio/p1 --body <marker band=p3>` passed the gate and wrote the pair apart in the
+    # direction #305 is not (issue #671, review round 1).
+    if [ "${#added_values[@]}" -eq 0 ] && [ -n "$marker_band" ]; then
+      issues_refuse "band-label-disagrees" \
+        "${namespace}${separator}${removed_values[0]} is removed, no band is added, and the body's marker records '${marker_band}' — the item would keep a marker and no band label"
+    fi
     for label in "${removed_values[@]}"; do
       [ "$label" != "$marker_band" ] && continue
       issues_refuse "band-label-disagrees" \

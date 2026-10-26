@@ -136,9 +136,11 @@ if [ "${#remove_labels[@]}" -gt 0 ]; then
 fi
 
 # The band label and the body's marker are one write (`lib.sh`, "the band pair"): a call that names a band
-# label either carries the body that records the same band or is refused, so no write path of this tooling can
-# leave the pair apart — which is the drift `check-metadata.sh --live` reports and nothing repairs, because
-# which half of a drifted pair is wrong is a judgement (issue #292's recorded decision; issue #671).
+# label either carries the body that leaves the pair intact or is refused, so neither half is written by this
+# path on its own — the drift `check-metadata.sh --live` reports and nothing repairs, because which half of a
+# drifted pair is wrong is a judgement (issue #292's recorded decision; issue #671). Two shapes stay outside the
+# gate on purpose: a `--body` that names no band label, because seeing that its marker disagrees with the item's
+# stored label needs a read of the item the gate does not buy, and a hand edit on the web UI.
 body_text=""
 if [ -n "$body_file" ]; then
   body_text=$(cat "$body_file")

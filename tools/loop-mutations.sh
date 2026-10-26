@@ -530,7 +530,10 @@ MUTATIONS=(
   # gate after the verdict, on every run whose suite ended before its watchers expired. The mutation puts `tee` on
   # a pipe back in the command's place, so the step waits for the pipe's EOF again and the case that names it reads
   # a step that is still inside the gate long after its command exited.
-  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  \$cmd >"\$stream" 2>&1 &$|  $cmd 2>&1 \| tee "$stream" &|'
+  # Its three ampersands are escaped (`2>\&1`, the trailing `\&`): `sed`'s replacement expands an unescaped `&` to the
+  # whole match, so the round-1 record rewrote the line into a corrupted one instead of restoring the pipeline, and
+  # the case it reddened did so for a reason that was not the invariant's (issue #315, its round-1 review).
+  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pipe that command wrote into (issue #315)@s|^  \$cmd >"\$stream" 2>&1 &$|  $cmd 2>\&1 \| tee "$stream" \&|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

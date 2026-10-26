@@ -57,6 +57,7 @@ MUTATIONS=(
   '8.28@tools/sensors/metrics/source-size.sh@s|\x27:(exclude)openspec/changes/\x27||@sensors#sourceSizeSkipsTheChangeTree@the change tree is not the source tree, so a frozen evidence copy is not a condition (issue #670)'
   '8.29@tools/sensors/run.sh@s/if \[ "\$SENSORS_TRIGGER" = "schedule" \] && \[ -z "\$baseline" \]; then/if [ -z "$baseline" ]; then/@run#aDispatchedFirstExerciseRecordsItsMeasurement@only the unattended tick reports a first exercise, so a dispatched run still records it (issue #667)'
   '8.30@tools/sensors/run.sh@s/if \[ "\$SENSORS_TRIGGER" = "schedule" \] && \[ -z "\$baseline" \]; then/if false; then/@run#aFirstExerciseOnATickReportsInsteadOfFiling@a row with no measurement on record is reported by the tick and never filed (issue #667)'
+  '8.31@tools/sensors/sensors.json@s/"threshold": 1000000,/"threshold": 5000,/@hotspot#theBoundIsAboveOneChangedFile@a churn row bound is above the largest file it watches, so one change of a path it merely contains is not a condition (issue #665)'
 )
 
 if [ "$mode" = "list" ]; then

@@ -1,6 +1,6 @@
 {
   "profile": 1,
-  "comment": "THE SENSOR REGISTRY — one row per declared check, and the whole definition of that check: the command, the cadence, the bound, the consecutive count, the issue's kind and area, whether the check owns the closing, and the fields its condition fingerprint is derived from. `threshold` is the bound under `comparison` (`greater-than`, `below-floor`, `boolean`, or `baseline-multiple`, where the recorded baseline is multiplied by the threshold). `maxFilings` is the most conditions one run of one row may file: the registry's value bounds every row, a row may declare its own, and what a run does not file leaves as one summary item, so a mis-fitted bound costs one item instead of one per condition it happens to hold (issue #666). A measurement is one whitespace-free token, so the issue's own marker line can be parsed. `labels` is the set of fixed vocabulary values every issue this registry files carries — each named here rather than in the engine (design D12). A second project adapts this file (and tools/tooling.json) and edits no engine file (design D9, D12).",
+  "comment": "THE SENSOR REGISTRY — one row per declared check, and the whole definition of that check: the command, the cadence, the bound, the consecutive count, the issue's kind and area, whether the check owns the closing, and the fields its condition fingerprint is derived from. `threshold` is the bound under `comparison` (`greater-than`, `below-floor`, `boolean`, or `baseline-multiple`, where the recorded baseline is multiplied by the threshold) — and a row whose score multiplies a path's size by how often it changed sits above the largest file it watches, so one change of a path it merely contains is not a condition (issue #665). `maxFilings` is the most conditions one run of one row may file: the registry's value bounds every row, a row may declare its own, and what a run does not file leaves as one summary item, so a mis-fitted bound costs one item instead of one per condition it happens to hold (issue #666). A measurement is one whitespace-free token, so the issue's own marker line can be parsed. `labels` is the set of fixed vocabulary values every issue this registry files carries — each named here rather than in the engine (design D12). A second project adapts this file (and tools/tooling.json) and edits no engine file (design D9, D12).",
   "namespace": "sensor",
   "labels": {
     "status": "open",
@@ -47,7 +47,7 @@
       "id": "hotspot",
       "cmd": "tools/sensors/hotspot-report.sh",
       "cron": "0 5 * * 1",
-      "threshold": 5000,
+      "threshold": 1000000,
       "comparison": "greater-than",
       "consecutive": 2,
       "class": "improvement",

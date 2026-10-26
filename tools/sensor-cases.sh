@@ -61,6 +61,7 @@ SENSOR_CASES=(
   'run#escalationNeverSetsEligibility'
   'sensors#buildDurationRow'
   'hotspot#ranksBySizeTimesChanges'
+  'hotspot#theBoundIsAboveOneChangedFile'
   'sensors#packageSizeConsumesAnArtifact'
   'sensors#coverageRow'
   'sensors#sourceSizeRow'
@@ -133,6 +134,7 @@ sensor_run_case() {
     'run#escalationNeverSetsEligibility') case_run_escalationNeverSetsEligibility ;;
     'sensors#buildDurationRow') case_sensors_buildDurationRow ;;
     'hotspot#ranksBySizeTimesChanges') case_hotspot_ranksBySizeTimesChanges ;;
+    'hotspot#theBoundIsAboveOneChangedFile') case_hotspot_theBoundIsAboveOneChangedFile ;;
     'sensors#packageSizeConsumesAnArtifact') case_sensors_packageSizeConsumesAnArtifact ;;
     'sensors#coverageRow') case_sensors_coverageRow ;;
     'sensors#sourceSizeRow') case_sensors_sourceSizeRow ;;
@@ -1665,6 +1667,50 @@ case_hotspot_ranksBySizeTimesChanges() {
   hits=$(grep -nE 'threshold=[0-9]|threshold="?[0-9]' "$SENSORS_ENGINE/hotspot-report.sh" || true)
   assert_empty "$hits" "the script holds no threshold constant"
   assert_contains "$(cat "$SENSORS_ENGINE/hotspot-report.sh")" 'SENSORS_THRESHOLD' "the bound comes from the row"
+}
+
+# The churn row's bound is fitted to the tree it watches, not to the smallest file in it: a path changed once
+# scores its own size, so a bound below the largest file the row watches is passed by *existing*, and one tick
+# then files an item for nearly every path — 358 paths past 5 000 over the 200-commit window of this tree, one
+# every 6 s in the 2026-10-26 tick (issue #665). The bound is read from the row, so a refit is an edit there and
+# this case keeps asserting the property rather than the number.
+case_hotspot_theBoundIsAboveOneChangedFile() {
+  local dir row threshold comparison out largest i
+
+  row=$(jq -c '.rows[] | select(.id == "hotspot")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no hotspot row"
+  threshold=$(jq -r '.threshold' <<< "$row")
+  comparison=$(jq -r '.comparison' <<< "$row")
+  assert_eq "greater-than" "$comparison" "the row fires above its bound"
+
+  # Two paths: one is merely present (6 000 bytes, changed once, so its score is its own size), the other is
+  # churned (200 000 bytes, changed seven times).
+  dir=$(scratch)
+  cd "$dir" || fail "cannot enter the fixture repository"
+  head -c 6000 /dev/zero | tr '\0' x > once.txt
+  head -c 200000 /dev/zero | tr '\0' y > churned.txt
+  git init -q -b main . >/dev/null 2>&1
+  git add -A >/dev/null 2>&1
+  git -c user.email=selftest@example.invalid -c user.name=selftest commit -qm one >/dev/null 2>&1
+  for i in 1 2 3 4 5 6; do
+    printf 'change %s\n' "$i" >> churned.txt
+    git add -A >/dev/null 2>&1
+    git -c user.email=selftest@example.invalid -c user.name=selftest commit -qm "change $i" >/dev/null 2>&1
+  done
+
+  out=$(SENSORS_ID=hotspot SENSORS_ROOT="$dir" SENSORS_THRESHOLD="$threshold" SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/hotspot-report.sh" 2>&1)
+  assert_contains "$out" '"path":"churned.txt"' "a path changed seven times is past the bound"
+  assert_not_contains "$out" '"path":"once.txt"' "a path changed once is not a hotspot, whatever its size"
+
+  # The same property over the tree the row actually watches: the bound is above the largest tracked file, so
+  # no single change of a file this tree holds can cross it — crossing it takes a second change.
+  largest=$(cd "$SENSORS_REPO_ROOT" && LC_ALL=C git ls-files -z | LC_ALL=C xargs -0 -r wc -c 2>/dev/null |
+    awk '$NF != "total" && $1 + 0 > m { m = $1 + 0 } END { print m + 0 }')
+  [ "$largest" -gt 0 ] || fail "no tracked file could be measured"
+  [ "$threshold" -gt "$largest" ] ||
+    fail "the row's bound ($threshold) is not above the largest file it watches ($largest bytes), so one change of that file is a hotspot"
 }
 
 # The size row: one condition per tracked source file, in the unit and scope the item's recorded decision

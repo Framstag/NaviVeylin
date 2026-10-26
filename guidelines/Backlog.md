@@ -838,7 +838,12 @@ names no band label stays ungated, since seeing that its marker disagrees with t
 read of the item; that write, and a hand edit on the web UI, are why this row still has work.
 
 One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so
-a file nobody touches scores nothing however large it is. `source-size` measures **lines per tracked file**
+a file nobody touches scores nothing however large it is — and because the score is a product, its bound sits
+**above the largest file the row watches** (1 000 000 against 535 814 bytes measured 2026-10-26), so crossing it
+takes at least a second change and *existing is not heat*: at the old 5 000 bound 358 paths of this tree were past
+it, and one tick filed 337 items at one every six seconds (issue #665). The bound is the row's, so refitting it is
+one edit in `sensors.json`, and a tree that grows a larger file than the bound reddens the suite that asserts it.
+`source-size` measures **lines per tracked file**
 over `*.kt` and `*.java`, tests included, the native sources out and the change tree out — `openspec/changes/**`
 holds a change's prose and the frozen copies it keeps as evidence, which no build compiles, so a copy a change
 kept of the file it brought under the bound is not a condition (issue #670) — and files one item per path over

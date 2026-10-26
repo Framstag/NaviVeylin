@@ -110,10 +110,26 @@ if [ -z "$(printf '%s' "${LOOP_AGENT_CMD:-}" | tr -d '[:space:]')" ]; then
   loop_die "run: LOOP_AGENT_CMD is empty in $LOOP_CONF_PATH — the run has no way to start an agent process"
 fi
 
+# What one child may run (issue #663). Two recorded numbers decide it: the floor a child may run even when the
+# profile records no gate cost (`LOOP_CHILD_MAX_SECONDS`, 45 min), and what one item's gate owes
+# (`LOOP_ITEM_GATE_SECONDS`) — an item owes a red gate round and a green one, and the phases the gate is not. The
+# child is given the larger of the two, because a child ended inside its own item's cost is a green change the run
+# pays for and then discards: measured 2026-10-26, one gate round of a `tools/loop/**` item cost 971 s over 23
+# suites, an item owed 957 s + 233 s + 972 s of gate and 542 s of phases — 2 704 s against the 2 700 s constant —
+# and the child was ended 8 s after its green `gate-summary.xml` was written (#310, and #664, #666 the same way).
+child_cap() { # → the seconds a child may run
+  local floor owes
+  floor="${LOOP_CHILD_MAX_SECONDS:-2700}"
+  case "$floor" in ''|*[!0-9]*|0) floor=2700 ;; esac
+  owes="${LOOP_ITEM_GATE_SECONDS:-0}"
+  case "$owes" in ''|*[!0-9]*) owes=0 ;; esac
+  if [ "$owes" -gt "$floor" ]; then printf '%s\n' "$owes"; else printf '%s\n' "$floor"; fi
+}
+
 # The run header names every effective value, so a run can be repeated and audited (D2). The child's
-# wall-clock is a recorded value too (`loop.conf`), so it is named here with the rest of the budget.
-child_max="${LOOP_CHILD_MAX_SECONDS:-2700}"
-case "$child_max" in ''|*[!0-9]*|0) child_max=2700 ;; esac
+# wall-clock is a recorded value too (`loop.conf`), so it is named here with the rest of the budget — as the
+# bound the child is given, so the header and the `LOOP-TIMEOUT` line that ends it cannot disagree.
+child_max=$(child_cap)
 
 # The host is part of a run's numbers, so the run reads it and names it beside the budget. Both values are
 # recorded (`loop.conf`, `LOOP_MIN_FREE_MIB` and `LOOP_MEMINFO_PATH`) because both are facts about the host and
@@ -985,8 +1001,10 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   poll="${LOOP_POLL_SECONDS:-0.05}"
   case "$poll" in ''|.|*.|*[!0-9.]*|*.*.*) poll=0.05 ;; esac
   case "$poll" in *[1-9]*) ;; *) poll=0.05 ;; esac
-  cap="${LOOP_CHILD_MAX_SECONDS:-2700}"
-  case "$cap" in ''|*[!0-9]*|0) cap=2700 ;; esac
+  # The bound this child is given, derived once by `child_cap` from the profile's two recorded numbers (issue
+  # #663): the header names the same value, so a reader of the run's own line and of the transcript that ends the
+  # child reads one number.
+  cap="$child_max"
   stop="$2.progress-stop"
   rm -f "$stop"
   : > "$2"

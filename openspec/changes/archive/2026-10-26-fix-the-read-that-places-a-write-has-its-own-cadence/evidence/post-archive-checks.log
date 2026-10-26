@@ -1,3 +1,8 @@
+# Read this first (round 1's review, note 5): the `rc=` field written into the entries below is the *pipeline's*
+# status, not the command's — two of them (`bash bash tools/gen-feature-list.sh …` and
+# `bash bash tools/loop/evidence-check.sh …`, both with a doubled `bash`) never ran and still printed `rc=0`. The
+# near-duplicate commands that follow each of them did run, and the round-2 section at the end re-runs the checks
+# with the command's own status.
 == post-archive structural checks (the gate above ran before the archive moved the delta into the capability spec)
 --- tools/check-doc-routes.sh
 check-doc-routes: all 154 section references resolve, all 4 skill references resolve
@@ -33,3 +38,24 @@ rc=0
 ok   C5 file:line: 257 resolved and in range, 2 unresolved or ambiguous
 ----
 evidence-check: PASS
+
+== round 2 — the correction round's checks, on the corrected tree (re-run, not copied)
+2026-10-26T20:18:30Z
+--- tools/check-doc-routes.sh
+check-doc-routes: all 154 section references resolve, all 4 skill references resolve
+rc=0
+--- tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+rc=0
+--- openspec validate agent-issue-loop --type spec
+Specification 'agent-issue-loop' is valid
+warnings: 10, each `Requirement text is very long (>500 characters)`, on requirement bodies this change does not
+edit (it narrows one scenario inside one of them and adds one 438-character requirement)
+rc=0
+--- bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence --root .
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 462 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+rc=0

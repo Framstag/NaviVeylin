@@ -75,3 +75,63 @@ Revert the three script edits, the guideline paragraph and the spec delta. The n
 an older engine (nothing parses it back), the mutation set stays valid without `12.12`, and the case's older
 shape still passes on an engine that reads on the reporting cadence when the case exports `LOOP_PROGRESS_SECONDS=1`
 — which is exactly what this change deletes.
+
+## Correction round 1 (the review's refusal)
+
+Three findings, and what each correction is.
+
+**1. The case's rationale claimed a synchronisation the stub does not have.** The paragraph in the writer case said
+that the write waits for the process standing beside it and that both wait for the run's recorded reading
+(`worker-report.md.outside-write`). The stub waits for neither: it appends the line, forks
+`( cd "$LOOP_CHILD_ROOT" && exec sleep 10 ) &`, and then `sleep 8; rm -f …` — a fixed window, ended by the child
+itself. The paragraph is deleted. In its place the rationale states the mechanism the case is red on HEAD for (the
+engine before this change read the project's tree only on the reporting cadence, which the case does not lower) and
+the fixed window that is real (a 10 s standing process beside an 8 s write). No assertion changed, and the case is
+unchanged as a case.
+
+**2. The GREEN run that retired `12.12` had no captured output.** It does now, `evidence/mutation-12.12.log` — the
+record restored verbatim from the text the base carried, for the one run, and removed again
+(`bash tools/loop-mutations.sh --only 12.12`):
+
+```
+GREEN  12.12  run#aWriterTheRunCanPlaceBlocksTheItem   <-- the case did not notice the mutation
+red-when-mutated: 0 · not-noticed: 1 · restore-failures: 0
+```
+
+That output is also the argument for retiring the record rather than keeping it: the sweep the mutation substitutes
+is a `readlink` for every process on the host (~1 s, #288's own measurement of it), and the case's writer stands
+10 s beside an 8 s write, so the sweep finds the same writer the child's own tree does. Keeping `12.12` — the
+review's option (b) — would leave a record that is green *by measurement*, and a case that noticed it again would
+need a short-lived writer, which is the phase dependence this change exists to remove; that is the alternative the
+measurement eliminated. Abandoning the change (option (c)) leaves the 1-in-3 flake and the wrong cadence in the
+guideline.
+
+**3. A shipped scenario stated a clause no case pins.** With `12.12` retired, `run#aWriterTheRunCanPlaceBlocksTheItem`
+pins the placement and not the ordering (`outside_write_seen` reads the child's own tree before the host-wide
+sweep). The shipped scenario `A difference is attributed while the writer is alive` therefore no longer states the
+ordering: its THEN carries the marks the case holds, the ordering keeps its code and the comment beside it
+(`tools/loop/run.sh`), and its reason stays in `guidelines/Backlog.md` §7 — a guideline explains why code is written
+that way, a scenario asserts what a case holds. Because that scenario lives in a requirement the change did not
+otherwise touch, the delta carries the requirement as a `MODIFIED` block with every other scenario repeated
+verbatim: a scenario edited in the shipped spec after archive is a spec change, and the change's own record has to
+say which one.
+
+**Notes the review recorded, and what became of them.**
+
+- *The two summary XMLs stated a `time` no run took.* `evidence/red-on-head.xml` and
+  `evidence/writer-case-fixed.xml` claimed 17 s and 51 s for three runs that each stand 8 s beside the write. Both
+  state no `time` now and say in the file that the tally is the paired `.log`'s three lines, which is what the
+  reviewer verified against.
+- *The surface count contradicted itself.* `proposal.md` printed a grep's count and then enumerated twelve pointers
+  beside it. The paragraph now prints both greps as they return today — 3 lines for `outside_write_seen`, 14 for
+  `LOOP_PROGRESS_SECONDS` — and names each.
+- *`proposal.md` cited "line 1159's exit-time comparison".* The comparison is `tools/loop/run.sh:1168`; the pointer
+  says so now.
+- *`run.sh`'s comment said the first reading is taken at the next whole second.* It is taken on the first look
+  (`read_next=$SECONDS`), and the comment says that now.
+- *The guideline attributed the 1-in-3 rate to a late reading.* `guidelines/Backlog.md` states the mechanism (a
+  reading delayed past the writer's 2 s life records `done`) and attributes the rate to the issue's own report,
+  which is where it comes from.
+- *No standing record pins the reading's cadence half* (`12.10` deletes the call, which would be red even if the
+  call sat under the report gate). Left as the review recorded it: a record for that half is new work on the
+  mutation set, not part of this correction, and the one-shot red-on-HEAD run stays the falsification of it.

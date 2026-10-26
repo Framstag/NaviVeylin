@@ -20,7 +20,7 @@ removed): with `LOOP_PROGRESS_SECONDS=1` the single reading that saw the differe
 0.76 s after the write against a writer that exists for 2 s, and that write is taken back 3 s after it appears, so
 the reading at the child's exit sees nothing. Any delay of about a second between two readings — a busy host, a
 pooled suite, the `git status` of a landing — moves the first reading past the writer's life, nothing is placed,
-and line 1159's exit-time comparison (`[ "$before" != "$after" ]`) finds nothing either because the file is gone:
+and line 1168's exit-time comparison (`[ "$before" != "$after" ]`) finds nothing either because the file is gone:
 the item is recorded `done`.
 
 **Red test on HEAD, before the fix.** The case, repaired to hold its window open and no longer lowering the
@@ -46,15 +46,21 @@ what placing a difference means; it carried the wrong cadence ("reads the projec
 **Surface, counted before the plan was fixed.** The rule has three places, and the count is the plan's basis:
 
 ```
-surface: 0 cases added, 1 rewritten, 1 mutation record retired, 1 guideline paragraph, 1 spec requirement
-         — grep -rn "outside_write_seen" tools/ (3) and grep -rn "LOOP_PROGRESS_SECONDS" tools/ guidelines/ openspec/specs/ (10)
+surface: 0 cases added, 1 rewritten, 1 mutation record retired, 1 guideline paragraph, 1 spec requirement (ADDED)
+         + the correction round's 1 narrowed shipped scenario, carried in the delta as a MODIFIED requirement
+         — grep -rn "outside_write_seen" tools/ (3) and grep -rn "LOOP_PROGRESS_SECONDS" tools/ guidelines/ openspec/specs/ (14)
 ```
 
 ```
-$ grep -rn "outside_write_seen" tools/            → 2 (run.sh's definition and its one call) + 1 mutation record
-$ grep -rn "LOOP_PROGRESS_SECONDS" tools/ guidelines/ openspec/specs/
-  tools/loop/run.sh:974 (the heartbeat's doc line)  run.sh:995 (the interval)  loop-cases.sh:3837, 3885, 3893 (the
-  reporting cases)  loop-cases.sh:4658, 4698 (the two outside-write cases)  Backlog.md:274, 391  spec.md:774, 2255, 2266
+$ grep -rn "outside_write_seen" tools/   → 3 lines: tools/loop/run.sh:889 (the definition),
+                                            tools/loop/run.sh:1051 (its one call),
+                                            tools/loop-mutations.sh:119 (record 12.10, which quotes that call)
+$ grep -rn "LOOP_PROGRESS_SECONDS" tools/ guidelines/ openspec/specs/   → 14 lines:
+  tools/loop/run.sh:974 (the heartbeat's doc line), :995 (the interval), :1043 (the reading's comment)  ·
+  tools/loop-cases.sh:3837, :3885, :3893 (the reporting cases), :4656 (this case's comment), :4709 (the peer
+  case's interval)  ·  guidelines/Backlog.md:275 (the guideline paragraph), :395 (its second mention)  ·
+  openspec/specs/agent-issue-loop/spec.md:772, :2253, :2264 (the reporting requirements), :2431 (this change's added
+  requirement)
 ```
 
 So: **1 case rewritten** (`run#aWriterTheRunCanPlaceBlocksTheItem`), **0 cases added**, **1 engine site** (the
@@ -85,7 +91,9 @@ purpose: it waits for the run's record too, and it is the *unattributable* half 
 - `guidelines/Backlog.md`, "The loop" — the paragraph that stated the cadence now states the reading's own and
   the measurement that moved it.
 - `openspec/specs/agent-issue-loop/spec.md` — one ADDED requirement, "The reading that places a write has its own
-  cadence", with one scenario naming this case.
+  cadence", with one scenario naming this case; and, in the correction round, one MODIFIED requirement — the
+  scenario "A difference is attributed while the writer is alive" narrowed to the clause its case still holds, since
+  the ordering that clause stated lost its only observer with record `12.12` (see `design.md`, correction round 1).
 
 No compiled file is touched: no Kotlin, Java or C++ path is edited, so no Android build is owed (the gate owes the
 shell suites below). Rollback is a revert of the three script edits, the guideline paragraph and the spec delta;
@@ -93,7 +101,9 @@ an older engine reads the new line and the removed `LOOP_PROGRESS_SECONDS` expor
 
 ## Impact
 
-- One case rewritten, none added; one mutation record retired with the measurement that retired it.
+- One case rewritten, none added; one mutation record retired with the measurement that retired it
+  (`evidence/mutation-12.12.log`: `GREEN 12.12 … the case did not notice the mutation`, the record restored verbatim
+  for the one run); one shipped scenario narrowed to what its case holds.
 - The retired record's consequence, stated: the ordering `run.sh` argues for (#288 — the child's own tree before
   the host-wide sweep, because the sweep walks every pid and a writer is gone when it ends) keeps its code and its
   paragraph in `guidelines/Backlog.md` ("The loop"), and loses the case that noticed it. Nothing else observes that ordering,

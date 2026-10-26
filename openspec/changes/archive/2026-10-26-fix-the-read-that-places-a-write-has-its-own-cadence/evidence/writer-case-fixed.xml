@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem" tests="3" failures="0" errors="0" time="51">
+<!-- The tally of evidence/writer-case-fixed.log, three consecutive runs of the case on the repaired tree. The wall
+     time of the three runs was not recorded, so no `time` is stated here rather than a number nobody took; the
+     tally is the .log's three `PASS` lines (round-1 review, note 2). -->
+<testsuite name="tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem (repaired tree)" tests="3" failures="0" errors="0">
   <testcase name="run#aWriterTheRunCanPlaceBlocksTheItem" classname="loop-selftest"/>
   <testcase name="run#aWriterTheRunCanPlaceBlocksTheItem" classname="loop-selftest"/>
   <testcase name="run#aWriterTheRunCanPlaceBlocksTheItem" classname="loop-selftest"/>
-  <system-out>PASS PASS PASS (three consecutive runs on the repaired tree, writer-case-fixed.log)</system-out>
+  <system-out>PASS run#aWriterTheRunCanPlaceBlocksTheItem, three consecutive runs on the repaired tree (writer-case-fixed.log)</system-out>
 </testsuite>

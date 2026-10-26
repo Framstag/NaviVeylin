@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem" tests="1" failures="1" errors="0" time="17">
+<!-- The tally of evidence/red-on-head.log, three consecutive runs of the case on the unchanged engine. The wall
+     time of the three runs was not recorded, so no `time` is stated here rather than a number nobody took; the
+     tally is the .log's three `FAIL` lines (round-1 review, note 2). -->
+<testsuite name="tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem (HEAD, unchanged engine)" tests="1" failures="1" errors="0">
   <testcase name="run#aWriterTheRunCanPlaceBlocksTheItem" classname="loop-selftest">
     <failure message="a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'">a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'</failure>
   </testcase>
-  <system-out>FAIL run#aWriterTheRunCanPlaceBlocksTheItem loop-selftest: 1 of 1 cases failed (three consecutive runs, red-on-head.log)</system-out>
+  <system-out>FAIL run#aWriterTheRunCanPlaceBlocksTheItem loop-selftest: 1 of 1 cases failed, three consecutive runs (red-on-head.log)</system-out>
 </testsuite>

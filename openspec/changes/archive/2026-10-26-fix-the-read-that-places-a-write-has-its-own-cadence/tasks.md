@@ -25,3 +25,23 @@
   `evidence/gate.log` with its tallies in `evidence/gate-tallies/`.
 - [x] 9. `bash tools/loop/evidence-check.sh openspec/changes/fix-the-read-that-places-a-write-has-its-own-cadence
   --root .` and archive the change.
+- [x] 10. Correction round 1, finding 1: delete the writer case's synchronisation paragraph (the stub waits for
+  neither the standing process nor `worker-report.md.outside-write`) and state the mechanism it is red on HEAD for
+  in its place — `tools/loop-cases.sh`, no assertion touched. Verify: the case is still green,
+  `evidence/writer-case-fixed.log` beside `evidence/affected-cases.log`.
+- [x] 11. Correction round 1, finding 2: capture the GREEN run that retired `12.12` — the record restored verbatim
+  for one run, `bash tools/loop-mutations.sh --only 12.12`, removed again afterwards:
+  `evidence/mutation-12.12.log` (`GREEN  12.12 … the case did not notice the mutation`,
+  `not-noticed: 1 · restore-failures: 0`).
+- [x] 12. Correction round 1, finding 3: narrow the shipped scenario "A difference is attributed while the writer is
+  alive" to the clause `run#aWriterTheRunCanPlaceBlocksTheItem` still holds, and carry the requirement it belongs to
+  as a `MODIFIED` block in the delta with every other scenario repeated verbatim. Verify: `openspec validate
+  agent-issue-loop --type spec` and `bash tools/check-openspec-hygiene.sh` green, and the delta's block diffed
+  against the shipped requirement (identical but for the narrowed THEN).
+- [x] 13. Correction round 1's notes: the two summary XMLs state no `time` and say they tally their `.log`; the
+  surface count and the `tools/loop/run.sh:1168` pointer in `proposal.md` are the greps' and the file's own; the
+  `run.sh` comment describes the first look it actually takes; the guideline attributes the 1-in-3 rate to the
+  issue. Verify: `tools/check-doc-routes.sh` green, `bash tools/loop/evidence-check.sh
+  openspec/changes/archive/2026-10-26-fix-the-read-that-places-a-write-has-its-own-cadence --root .` PASS, and the
+  project's gate once over the corrected tree — `evidence/gate-round2.log`, whose `LOOP-GATE:` line reads 608 cases,
+  0 failures and 0 errors over the whole loop set, with the per-suite tallies in `evidence/gate-tallies-round-2/`.

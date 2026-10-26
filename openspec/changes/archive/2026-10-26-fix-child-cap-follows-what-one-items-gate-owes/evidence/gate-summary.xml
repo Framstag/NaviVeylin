@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The sum of the tallies beside it (evidence/gate/*.xml), one line per suite: the gate round this change
+     ran on 2026-10-26, and the number its LOOP-GATE line states (evidence/gate-summary.log). Derived from the
+     gate's own tallies, never invented. -->
+<testsuites tests="601" failures="0" errors="0" skipped="0" time="1152">
+  <testsuite name="bash_tools_loop-mutations.sh_--check.xml" tests="178" failures="0" time="0"/>
+  <testsuite name="tools_check-doc-routes-selftest.sh.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_check-doc-routes.sh.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_check-portability-selftest.sh.xml" tests="29" failures="0" time="0"/>
+  <testsuite name="tools_check-portability.sh.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_check-todo-references.sh.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_issue-tooling-selftest.sh.xml" tests="121" failures="0" time="0"/>
+  <testsuite name="tools_loop-mutations-selftest.sh.xml" tests="34" failures="0" time="0"/>
+  <testsuite name="tools_loop-selftest.sh_--from-git_f568b1e663bb06cf303f0cc1b3320b3b6e6a6310.xml" tests="239" failures="0" time="0"/>
+  <testsuite name="tools_mutate-selftest.sh.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml" tests="0" failures="0" time="0"/>
+  <testsuite name="tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml" tests="0" failures="0" time="0"/>
+</testsuites>

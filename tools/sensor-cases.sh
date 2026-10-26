@@ -34,6 +34,8 @@ SENSOR_CASES=(
   'lib#theRecordIsNotACondition'
   'report#printsACountingLinePerRow'
   'report#aGreenRowIsNotNever'
+  'report#aFiledRowIsReported'
+  'run#aFilingSetsTheBaseline'
   'update#commentPostsExactlyOnce'
   'update#commentRefusesOnPolicyFailure'
   'close#sensorScopeRefusesAForeignIssue'
@@ -93,6 +95,8 @@ sensor_run_case() {
     'lib#theRecordIsNotACondition') case_lib_theRecordIsNotACondition ;;
     'report#printsACountingLinePerRow') case_report_printsACountingLinePerRow ;;
     'report#aGreenRowIsNotNever') case_report_aGreenRowIsNotNever ;;
+    'report#aFiledRowIsReported') case_report_aFiledRowIsReported ;;
+    'run#aFilingSetsTheBaseline') case_run_aFilingSetsTheBaseline ;;
     'update#commentPostsExactlyOnce') case_update_commentPostsExactlyOnce ;;
     'update#commentRefusesOnPolicyFailure') case_update_commentRefusesOnPolicyFailure ;;
     'close#sensorScopeRefusesAForeignIssue') case_close_sensorScopeRefusesAForeignIssue ;;
@@ -226,14 +230,14 @@ issues_fixture() { # <scenario-dir> <issues-json>
   printf '%s' "$2" > "$1/issues.json"
 }
 
-issue_record() { # <number> <state> <stateReason> <sensor-id> <body> [comments-json]
-  local comments="${6:-[]}"
+issue_record() { # <number> <state> <stateReason> <sensor-id> <body> [comments-json] [createdAt]
+  local comments="${6:-[]}" createdAt="${7:-}"
+  # `createdAt` is the instant a filing's own marker carries — the issue and its marker are one write, so the
+  # issue's creation time is the marker's (issue #668). It is absent unless a case names it, so a reader that
+  # needs it has to be given it.
   jq -nc --argjson number "$1" --arg state "$2" --arg reason "$3" --arg label "sensor/$4" \
-         --arg body "$5" --argjson comments "$comments" \
-    '{number: $number, title: "a fixture issue", state: $state, stateReason: $reason,
-      body: $body, author: {login: "Framstag"},
-      labels: [{name: "class/bug"}, {name: "category/build-and-harness"}, {name: $label}],
-      comments: $comments}'
+         --arg body "$5" --argjson comments "$comments" --arg createdAt "$createdAt" \
+    '{number: $number, title: "a fixture issue", state: $state, stateReason: $reason, body: $body, author: {login: "Framstag"}, labels: [{name: "class/bug"}, {name: "category/build-and-harness"}, {name: $label}], comments: $comments} + (if $createdAt == "" then {} else {createdAt: $createdAt} end)'
 }
 
 comment_record() { # <createdAt> <body>
@@ -906,6 +910,69 @@ case_report_aGreenRowIsNotNever() {
   assert_not_contains "$out" "stale row=fixture-emit" "a row that ran green is not stale"
   assert_contains "$out" "row=fixture-error last=never" "a row with no measurement anywhere is still never"
   assert_contains "$out" "stale row=fixture-error" "and is still flagged: $out"
+}
+
+# A filing is a measurement too (#668): a check that files an item writes its marker into the issue's body, and
+# a row whose newest event is a filing carries no comment at all. A report that reads comments only prints
+# `last=never` on it — three minutes after 337 such items were filed — and the baseline a later run is handed is
+# empty for exactly the row that just produced the loudest event it can produce.
+case_report_aFiledRowIsReported() {
+  local dir out fp filed
+  dir=$(scratch)
+  fp=$(fingerprint_of case alpha)
+  filed=$(printf 'a filed condition\n<!-- fingerprint: %s -->\n<!-- sensor: fixture-emit fingerprint=%s verdict=violation measurement=5757 baseline= -->' \
+    "$fp" "$fp")
+
+  # The newest event is the filing: the body's own marker, dated by the issue's `createdAt`, and no comment.
+  issues_fixture "$dir" "$(jq -nc \
+    --argjson issue "$(issue_record 61 OPEN "" fixture-emit "$filed" '[]' 2026-10-26T08:20:00Z)" \
+    '[$issue]')"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine report.sh --registry "$(fixture registry.json)" --now 2026-10-26T09:05:00Z 2>&1)
+  assert_contains "$out" \
+    "row=fixture-emit last=2026-10-26T08:20:00Z verdict=violation measurement=5757 issue=#61" \
+    "a filing's own marker is the row's last measurement: $out"
+  assert_not_contains "$out" "row=fixture-emit last=never" "a row that just filed is not reported as never"
+  assert_not_contains "$out" "stale row=fixture-emit" "and is not flagged as one that never filed"
+
+  # …and the two kinds are one timeline: a comment later than the filing is the newer marker, and the trend is
+  # read against the filing's number.
+  issues_fixture "$dir" "$(jq -nc \
+    --argjson issue "$(issue_record 61 OPEN "" fixture-emit "$filed" \
+      "[$(marker_comment 2026-10-26T09:00:00Z fixture-emit "$fp" clear 512)]" 2026-10-26T08:20:00Z)" \
+    '[$issue]')"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine report.sh --registry "$(fixture registry.json)" --now 2026-10-26T09:05:00Z 2>&1)
+  assert_contains "$out" \
+    "row=fixture-emit last=2026-10-26T09:00:00Z verdict=clear measurement=512 issue=#61" \
+    "a comment after the filing is the newer marker: $out"
+  assert_contains "$out" "trend=better" "the trend is read against the filing's number, so both kinds are one history: $out"
+}
+
+# The baseline is that same timeline (#668): after a row files, its newest marker is the filing's, in the issue's
+# body — so the next run compares against that number rather than against nothing.
+case_run_aFilingSetsTheBaseline() {
+  local dir log out status timing fp filed
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  timing="$dir/gate-timings.json"
+  jq -n '{durationMs: 542000, startedAt: "2026-10-17T03:00:00Z", finishedAt: "2026-10-17T03:09:02Z",
+          taskFailures: 0, invocation: [":app:testMobileDebugUnitTest"],
+          tasks: [{path: ":app:testMobileDebugUnitTest", outcome: "executed", durationMs: 195000}]}' > "$timing"
+  fp=$(fingerprint_of job gate)
+  filed=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- sensor: build-duration fingerprint=%s verdict=violation measurement=100000 baseline= -->' \
+    "$fp" "$fp")
+  issues_fixture "$dir" "$(jq -nc \
+    --argjson issue "$(issue_record 121 OPEN "" build-duration "$filed" '[]' 2026-10-16T03:00:00Z)" \
+    '[$issue]')"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only build-duration --apply --input "$timing" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_contains "$out" "verdict=violation" "a wall time past the filing's number is a violation"
+  assert_contains "$(cat "$log")" "baseline=100000" "the baseline quoted is the number the filing's own marker carries"
 }
 
 # ----------------------------------------------------------------------------- 3. the three verbs

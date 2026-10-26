@@ -55,6 +55,8 @@ MUTATIONS=(
   '8.26@tools/sensors/run.sh@s/\[ "$SENSORS_FAILED" -eq "$failed_before" \] || return 0/:/@run#aFailedCheckDoesNotClearTheSummary@a run in which a finding failed clears no summary (issue #666)'
   '8.27@tools/sensors/run.sh@s/  sensors_unfiled_lines "$3"/  : /@run#aSecondOverBoundRunListsWhatItDidNotFile@each over-bound run names the conditions it did not file (issue #666)'
   '8.28@tools/sensors/metrics/source-size.sh@s|\x27:(exclude)openspec/changes/\x27||@sensors#sourceSizeSkipsTheChangeTree@the change tree is not the source tree, so a frozen evidence copy is not a condition (issue #670)'
+  '8.29@tools/sensors/run.sh@s/if \[ "\$SENSORS_TRIGGER" = "schedule" \] && \[ -z "\$baseline" \]; then/if [ -z "$baseline" ]; then/@run#aDispatchedFirstExerciseRecordsItsMeasurement@only the unattended tick reports a first exercise, so a dispatched run still records it (issue #667)'
+  '8.30@tools/sensors/run.sh@s/if \[ "\$SENSORS_TRIGGER" = "schedule" \] && \[ -z "\$baseline" \]; then/if false; then/@run#aFirstExerciseOnATickReportsInsteadOfFiling@a row with no measurement on record is reported by the tick and never filed (issue #667)'
 )
 
 if [ "$mode" = "list" ]; then

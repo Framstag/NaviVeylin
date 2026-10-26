@@ -26,6 +26,13 @@
 # `--dry-run` is the default, as everywhere else in this tooling: without `--apply` nothing is written to
 # the tracker and every intended write is printed instead (design D9).
 #
+# `SENSORS_TRIGGER` is the trigger the calling pipeline names, when there is one — the sensor pipeline passes
+# GitHub's own `event_name`. `schedule` is the unattended tick, and a row with no measurement on record is
+# *reported* by it rather than spent: the run prints the count of findings it would have filed and writes
+# nothing, so a new bound's blast radius is measured before it reaches the tracker (issue #667). Every other
+# run — a dispatch, and a command run by hand, which names no trigger at all — is a run a person started, and
+# its first exercise records the measurement later runs are compared against.
+#
 # The three outcomes (design D5):
 #
 #   violation  file, reopen or annotate the issue the condition's fingerprint identifies, and record the
@@ -78,6 +85,9 @@ while [ $# -gt 0 ]; do
 done
 # A dry run is the default; only `--apply` writes to the tracker.
 SENSORS_DRY_RUN="${SENSORS_DRY_RUN:-1}"
+# The trigger that started this run, as the pipeline that ran it names it: `schedule` is the unattended tick,
+# and an empty value is a run a person started (issue #667).
+SENSORS_TRIGGER="${SENSORS_TRIGGER:-}"
 # The window above is a count of minutes and it is the caller's to declare, so a value that is not one is
 # refused before anything is read: narrowing it silently to the tick's own minute is what made a late tick a
 # no-op (issue #166).
@@ -87,6 +97,8 @@ esac
 SENSORS_INPUT="$input"
 SENSORS_FAILED=0
 SENSORS_CURRENT_ID=""
+# Which row's run is its first exercise, and whether the run may spend it (issue #667).
+SENSORS_FIRST_EXERCISE=0
 export SENSORS_DRY_RUN
 
 # The record cache: one number per row whose record issue this run filed, so two clear findings of one row
@@ -773,6 +785,7 @@ sensors_run_row() { # <row>
   esac
   SENSORS_FILED=0
   SENSORS_UNFILED='[]'
+  SENSORS_FIRST_EXERCISE=0
   issues=$(sensors_issues_of_row "$id")
   # The baseline is the issue's own record, never a file beside it (design D8): the newest measurement
   # marker one of this row's issues carries.
@@ -780,6 +793,14 @@ sensors_run_row() { # <row>
   baseline=$(sensors_marker_field "$baseline" measurement)
   SENSORS_BASELINE="$baseline"
   SENSORS_CONDITIONS=$(sensors_conditions_json "$issues")
+  # A row with no measurement on record has never exercised its bound, so nothing it would file has been fitted
+  # against the tracker yet — the state `report.sh` prints as `stale row=<id> no measurement on record`. The
+  # unattended tick reports that first exercise instead of spending it, so a new bound's blast radius is a count in
+  # the log before it is items on the tracker; a run a person started is the acknowledgement that records the first
+  # measurement, and every run after it finds one (issue #667).
+  if [ "$SENSORS_TRIGGER" = "schedule" ] && [ -z "$baseline" ]; then
+    SENSORS_FIRST_EXERCISE=1
+  fi
 
   out=$(sensors_exec_cmd "$row" "$id")
   status=$?
@@ -799,10 +820,22 @@ sensors_run_row() { # <row>
       continue
     fi
     handled=$((handled + 1))
+    if [ "$SENSORS_FIRST_EXERCISE" -eq 1 ]; then
+      sensors_report "$id" "$(jq -r '.fingerprint' <<< "$line")" "$(jq -r '.verdict' <<< "$line")" \
+        "$(jq -r '.measurement' <<< "$line")" "-" "not filed (first exercise: no measurement on record)"
+      continue
+    fi
     sensors_outcome "$row" "$id" "$line" "$issues" "$baseline"
   done <<< "$out"
   if [ "$handled" -eq 0 ]; then
     sensors_fail_row "$id" "the command printed no finding"
+    return 0
+  fi
+  # The first exercise is the run's report about itself: it carries the count the tick would have filed and writes
+  # nothing — not a condition, not the record issue, not a summary — so the number reaches a reader before the
+  # tracker grows (issue #667).
+  if [ "$SENSORS_FIRST_EXERCISE" -eq 1 ]; then
+    sensors_note "first exercise: row=$id findings=$handled — no measurement on record, so this run wrote nothing (issue #667); a dispatch with inputs.apply=true records the first one"
     return 0
   fi
   # What the row reported and the run did not file leaves as one item, and a summary an earlier run left over is

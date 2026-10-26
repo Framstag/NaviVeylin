@@ -53,6 +53,8 @@ SENSOR_CASES=(
   'run#aSummaryClosedByAPersonIsNotReopened'
   'run#aSecondOverBoundRunListsWhatItDidNotFile'
   'run#aFailedCheckDoesNotClearTheSummary'
+  'run#aFirstExerciseOnATickReportsInsteadOfFiling'
+  'run#aDispatchedFirstExerciseRecordsItsMeasurement'
   'run#hysteresisBothDirections'
   'run#hysteresisCountersSurviveARestart'
   'run#escalatesPastKRecurrences'
@@ -123,6 +125,8 @@ sensor_run_case() {
     'run#aSummaryClosedByAPersonIsNotReopened') case_run_aSummaryClosedByAPersonIsNotReopened ;;
     'run#aSecondOverBoundRunListsWhatItDidNotFile') case_run_aSecondOverBoundRunListsWhatItDidNotFile ;;
     'run#aFailedCheckDoesNotClearTheSummary') case_run_aFailedCheckDoesNotClearTheSummary ;;
+    'run#aFirstExerciseOnATickReportsInsteadOfFiling') case_run_aFirstExerciseOnATickReportsInsteadOfFiling ;;
+    'run#aDispatchedFirstExerciseRecordsItsMeasurement') case_run_aDispatchedFirstExerciseRecordsItsMeasurement ;;
     'run#hysteresisBothDirections') case_run_hysteresisBothDirections ;;
     'run#hysteresisCountersSurviveARestart') case_run_hysteresisCountersSurviveARestart ;;
     'run#escalatesPastKRecurrences') case_run_escalatesPastKRecurrences ;;
@@ -1420,6 +1424,51 @@ case_run_aFailedCheckDoesNotClearTheSummary() {
   assert_eq "0" "$(recorded "$log" 'issue close')" "the summary is not closed by a failed check"
   assert_eq "0" "$(recorded "$log" 'issue comment')" "and nothing is recorded on it either"
   assert_not_contains "$out" "action=closed" "the report claims no closure"
+}
+
+# A row's *first* exercise is the one run whose blast radius nobody has seen: the report prints
+# `stale row=<id> no measurement on record` for exactly this state, so the unattended tick reports the count it
+# would file and writes nothing, and the first exercise is spent by a run a person started (issue #667).
+case_run_aFirstExerciseOnATickReportsInsteadOfFiling() {
+  local dir findings log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  # No issue carries a measurement marker, so this row has never measured — the state `report.sh` calls stale.
+  issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 900 case alpha)" \
+    "$(finding violation 800 case bravo)" \
+    "$(finding violation 700 case charlie)")
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    SENSORS_TRIGGER=schedule sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a reported first exercise is not a failed run: $out"
+  assert_eq "0" "$(condition_creates "$log")" "the tick files no condition on a row with no measurement on record"
+  assert_eq "0" "$(recorded "$log" 'issue create')" "and files no record issue and no summary either"
+  assert_eq "0" "$(recorded "$log" 'issue comment')" "nor does it annotate anything"
+  assert_contains "$out" "first exercise: row=fixture-emit findings=3" "the run reports the count it would have filed"
+  assert_contains "$out" "action=not filed (first exercise" "each finding is reported as not filed"
+}
+
+# The acknowledgement half of the same rule: a dispatch that asked to write is a person's run, so it records the
+# first measurement and every later run compares against it — a gate that ignored the trigger would starve the row.
+case_run_aDispatchedFirstExerciseRecordsItsMeasurement() {
+  local dir findings log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 900 case alpha)" \
+    "$(finding violation 800 case bravo)" \
+    "$(finding violation 700 case charlie)")
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    SENSORS_TRIGGER=workflow_dispatch sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "an acknowledged first exercise succeeds: $out"
+  assert_eq "3" "$(condition_creates "$log")" "a dispatch that asked to write records the row's first exercise"
+  assert_not_contains "$out" "first exercise" "no row is held back by a run a person started"
 }
 
 # ----------------------------------------------------------------------------- 4. the lifecycle

@@ -55,6 +55,10 @@ jobs:
     # number and the string to NaN), which would silently turn every dispatch into a dry run.
     env:
       SENSORS_MODE: ${{ (github.event_name == 'schedule' || inputs.apply == true) && '--apply' || '--dry-run' }}
+      # The trigger, so the engine can tell the unattended tick from a run a person started: a row with no
+      # measurement on record is reported by a tick, and the first exercise is spent by a dispatched
+      # `apply=true` — the acknowledgement that records the row's first measurement (issue #667).
+      SENSORS_TRIGGER: ${{ github.event_name }}
     steps:
       - uses: actions/checkout@v5
         with:

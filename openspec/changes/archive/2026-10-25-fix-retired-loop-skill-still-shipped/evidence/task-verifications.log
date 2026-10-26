@@ -1,0 +1,141 @@
+# task-verifications.log — the two verifications the round-1 review found named in tasks.md but carried by no output
+# (tasks 1.2 and 1.3), taken from the change root on the round-2 tree.
+
+$ bash tools/loop/gate.sh --plan --base d6deb7e4372c44d127b5d177d58ff22c7cc33531
+tools/loop-selftest.sh --from-git d6deb7e4372c44d127b5d177d58ff22c7cc33531
+bash tools/loop-mutations.sh --check
+tools/loop-mutations-selftest.sh
+tools/check-portability.sh
+tools/check-portability-selftest.sh
+tools/mutate.sh --mutations tools/portability-mutations.json --list
+bash tools/gen-feature-list.sh --check-classification
+tools/check-doc-routes.sh
+tools/check-doc-routes-selftest.sh
+tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+tools/check-todo-references.sh
+tools/check-openspec-hygiene.sh
+tools/check-openspec-hygiene-selftest.sh
+tools/mutate-selftest.sh
+tools/issue-tooling-selftest.sh
+tools/mutate.sh --mutations tools/status-mutations.json --list
+tools/mutate.sh --mutations tools/create-mutations.json --list
+tools/mutate.sh --mutations tools/close-mutations.json --list
+tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+bash tools/loop/evidence-check.sh --selftest
+exit=0
+
+$ bash tools/check-portability.sh --values | grep -n 'LOOP_EVIDENCE\|LOOP_SUBMODULE_PATH'
+166:  app/src/main/cpp/libosmscout             tools/loop/loop.conf LOOP_SUBMODULE_PATH [literal]
+172:  app/src                                  tools/loop/loop.conf LOOP_EVIDENCE_SCAN_PATHS [literal]
+173:  app/build/test-results                   tools/loop/loop.conf LOOP_EVIDENCE_XML_DIR [literal]
+exit=0
+
+$ bash tools/check-portability.sh
+check-portability: engines checked (49 files):
+  tools/issues/answer.sh
+  tools/issues/check-metadata.sh
+  tools/issues/citations.awk
+  tools/issues/classify.sh
+  tools/issues/close.sh
+  tools/issues/core/Bands.java
+  tools/issues/core/Fingerprint.java
+  tools/issues/core/Json.java
+  tools/issues/core/Policy.java
+  tools/issues/core/Profile.java
+  tools/issues/core/Taxonomy.java
+  tools/issues/core/WorkPackage.java
+  tools/issues/create.sh
+  tools/issues/decisions.sh
+  tools/issues/duplicates.sh
+  tools/issues/import.sh
+  tools/issues/labels.sh
+  tools/issues/lib.sh
+  tools/issues/list.sh
+  tools/issues/policy.sh
+  tools/issues/prioritise.sh
+  tools/issues/reopen.sh
+  tools/issues/resolve-stale.sh
+  tools/issues/rewrite.awk
+  tools/issues/update.sh
+  tools/loop/evidence-check.sh
+  tools/loop/gate.sh
+  tools/loop/labels.sh
+  tools/loop/lib.sh
+  tools/loop/loop-clean.sh
+  tools/loop/measure.sh
+  tools/loop/prescreen.sh
+  tools/loop/report.sh
+  tools/loop/run.sh
+  tools/loop/state.sh
+  tools/loop/worktree.sh
+  tools/sensors/conditions/broken-main.sh
+  tools/sensors/conditions/pr-conflicts.sh
+  tools/sensors/guard.sh
+  tools/sensors/hotspot-report.sh
+  tools/sensors/lib.sh
+  tools/sensors/metrics/build-duration.sh
+  tools/sensors/metrics/coverage.sh
+  tools/sensors/metrics/metadata-invariant.sh
+  tools/sensors/metrics/package-size.sh
+  tools/sensors/metrics/source-size.sh
+  tools/sensors/metrics/stale-citations.sh
+  tools/sensors/report.sh
+  tools/sensors/run.sh
+check-portability: templates checked (2 files):
+  tools/loop/prompts/reviewer.md
+  tools/loop/prompts/worker.md
+check-portability: excluded, printed so the proof names its own scope:
+  tools/issues/import/todo-md.sh	the source adapter — reads the one-time prose record's format, and is allowed to
+  tools/issues/core/TodoAdapter.java	the same adapter: it names the record format and the provenance value it
+  tools/issues/core/TodoSections.java	the adapter's grammar — the headings and the metadata line of that format
+  tools/issues/core/Cases.java	the case runner
+  tools/issues/metadata-mutations.sh	the falsification harness
+  tools/issues/check-metadata-selftest.sh	the self-test
+  tools/sensors/fixtures/**	test data
+  tools/issues/fixtures/**	test data
+  tools/loop/fixtures/**	test data
+  tools/fixtures/**	test data — the synthetic project and the mutation runner's toy tree
+  tools/*-mutations*.json	the mutation sets — they plant the very values the check forbids
+  .pi/**	machine-local state: worktrees, captures, session logs
+  openspec/**	the project's documents
+  guidelines/**	the project's documents
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:64:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 49 engines and 2 templates name no project value (108 value(s) read from the project)
+exit=0
+
+$ git grep -n -e '\.pi/skills/fix-loop' -- . ':(exclude)openspec/changes/archive' ':(exclude)tools/loop-cases.sh'   # task 2.1's widened verify
+exit=1 (1 = no match, which is what the task asserts)
+
+$ openspec validate --changes --strict   # round 2: the change is archived, so the open set is empty
+No items found to validate.
+exit=0
+
+$ openspec validate 2026-10-25-fix-retired-loop-skill-still-shipped --strict
+Unknown item '2026-10-25-fix-retired-loop-skill-still-shipped'. Did you mean: precise-location-results, auto-map-destination-picker, enhanced-details-sheet, map-repository-source, navigation-state-display?
+exit=1
+
+$ openspec validate 2026-10-25-fix-retired-loop-skill-still-shipped --type change --strict
+Change '2026-10-25-fix-retired-loop-skill-still-shipped' has issues
+✗ [ERROR] file: Change must have at least one delta. No deltas found. Ensure your change has a specs/ directory with capability folders (e.g. specs/http-server/spec.md) containing .md files that use delta headers (## ADDED/MODIFIED/REMOVED/RENAMED Requirements) and that each requirement includes at least one "#### Scenario:" block. If this change intentionally modifies no specs (pure refactor, tooling, docs), set "skip_specs: true" in the change's .openspec.yaml instead. Tip: run "openspec change show <change-id> --json --deltas-only" to inspect parsed deltas.
+Next steps:
+  - Ensure change has deltas in specs/: use headers ## ADDED/MODIFIED/REMOVED/RENAMED Requirements
+  - Each requirement MUST include at least one #### Scenario: block
+  - Debug parsed deltas: openspec show 2026-10-25-fix-retired-loop-skill-still-shipped --json --deltas-only
+exit=1
+
+$ grep -n 'The check scans the roots the configuration names' openspec/specs/agent-issue-loop/spec.md   # the delta merged
+2302:#### Scenario: The check scans the roots the configuration names
+exit=0
+# The archived directory keeps its own delta (`specs/agent-issue-loop/spec.md`, listing below) and that delta is
+# merged into the shipped capability spec (the grep above). `openspec validate <archived name> --type change`
+# reports "Change must have at least one delta" for the archived path — the CLI resolves the name but parses no
+# archived delta — and `--changes` finds an empty open set ("No items found to validate."). Neither is a defect of
+# this change; the delta's presence, its merge and the directory under archive/ are what the archive owes.
+$ ls openspec/changes/archive/2026-10-25-fix-retired-loop-skill-still-shipped
+design.md
+evidence
+proposal.md
+specs
+tasks.md

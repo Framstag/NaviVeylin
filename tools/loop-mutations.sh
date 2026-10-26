@@ -562,6 +562,10 @@ MUTATIONS=(
   # `gate-summary.xml` was written; #664 and #666 ended the same way. The mutation keeps the floor and drops the
   # derivation, so the case reads a child given less than its own item's gate costs.
   '64.1@-@tools/loop/run.sh@run#theChildCapIsNeverBelowWhatOneItemsGateOwes@the bound that follows what one item'"'"'s gate owes (issue #663)@s|^  if \[ "\$owes" -gt "\$floor" \]; then .*$|  : # the mutation keeps the floor|'
+  # 64.2 — the other clock the run answers "may this item start?" with (issue #663). `next` refuses an item the
+  # remaining budget cannot pay for, and the floor below what one item's gate owes lets an item start that pays for
+  # its gate and loses the phases after a green round: the bound's own loss through the other door.
+  '64.2@-@tools/loop/loop.conf@state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes@the item floor never recorded below what one item'"'"'s gate owes (issue #663)@s|^LOOP_ITEM_FLOOR_MINUTES=.*$|LOOP_ITEM_FLOOR_MINUTES=45|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

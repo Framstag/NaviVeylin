@@ -157,6 +157,7 @@ LOOP_SHELL_CASES=(
   'run#everyPhaseBoundaryIsPrinted'
   'run#childOutlastingTheWallClockIsBlocked'
   'run#theChildCapIsNeverBelowWhatOneItemsGateOwes'
+  'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes'
   'run#childIsEndedAtTheRunsDeadline'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
@@ -444,6 +445,7 @@ loop_run_shell_case() {
     'run#everyPhaseBoundaryIsPrinted') fn=case_run_everyPhaseBoundaryIsPrinted ;;
     'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
     'run#theChildCapIsNeverBelowWhatOneItemsGateOwes') fn=case_run_theChildCapIsNeverBelowWhatOneItemsGateOwes ;;
+    'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes') fn=case_state_theItemFloorIsOnlyBelowWhatOneItemsGateOwes ;;
     'run#childIsEndedAtTheRunsDeadline') fn=case_run_childIsEndedAtTheRunsDeadline ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
@@ -903,9 +905,11 @@ case_state_floorIsDerivedFromTheFinishedItemsWallTimes() {
   assert_contains "$out" "$conf_floor min floor" "a cheap history keeps the configured minimum as the floor"
   assert_contains "$out" "median 10 min over 3 finished items" "the cheap median is named rather than hidden"
   # one expensive item among cheap ones does not move the median (600, 600, 6000 -> 10 min), which is the
-  # failure a p90 floor would have: after a 100 min item it would refuse the cheap tail of the run
+  # failure a p90 floor would have: after a 100 min item it would refuse the cheap tail of the run. The remaining
+  # time is the configured floor plus a quarter of an hour and not a fixed 60, because the floor is 65 min since
+  # issue #663 and a hard-coded minute count would test the file's value rather than the median's rule.
   p=$(new_project)
-  init_state "$p" 9 60
+  init_state "$p" 9 $((conf_floor + 15))
   printf '%s' "$queue" | run_state "$p" queue >/dev/null
   for i in 21 22; do
     run_state "$p" done "$i" --result skipped --verdict needs-decision --wall 600 >/dev/null || fail "done #$i failed"
@@ -4061,6 +4065,26 @@ case_run_theChildCapIsNeverBelowWhatOneItemsGateOwes() {
     fail "the run itself failed"
   cap=$(printf '%s\n' "$out" | sed -n 's/.*child-max-seconds=\([0-9][0-9]*\).*/\1/p' | head -1)
   assert_eq "1200" "$cap" "a profile with no gate cost keeps the floor a child may run"
+}
+
+# The floor `next` refuses by is the other clock the run answers "may this item start?" with, and it is the same
+# measurement as the child's bound: an item started with the floor's minutes left can pay for its gate and lose the
+# phases after a green round — the loss the child's bound no longer takes, through the other door (issue #663, found
+# in the review of the change that fixed the bound). The case reads the two recorded numbers, because that is where
+# the relation lives; `state#floorWithNoHistoryIsTheConfiguredMinimum` and its neighbours read the floor's *use*.
+case_state_theItemFloorIsOnlyBelowWhatOneItemsGateOwes() {
+  # files: tools/loop/loop.conf
+  local floor owes
+  floor=$(sed -n 's/^LOOP_ITEM_FLOOR_MINUTES=//p' "$LOOP_CONF")
+  owes=$(sed -n 's/^LOOP_ITEM_GATE_SECONDS=//p' "$LOOP_CONF")
+  [ -n "$floor" ] || fail "the configuration records no LOOP_ITEM_FLOOR_MINUTES"
+  case "$floor" in ''|*[!0-9]*) fail "LOOP_ITEM_FLOOR_MINUTES is not a number: $floor" ;; esac
+  # A project with no gate owes nothing by the gate key, and the floor is then the configured minimum alone: the
+  # relation this case owns does not exist there.
+  [ -n "$owes" ] || return 0
+  case "$owes" in ''|*[!0-9]*) fail "LOOP_ITEM_GATE_SECONDS is not a number: $owes" ;; esac
+  [ $((floor * 60)) -ge "$owes" ] ||
+    fail "the item floor (LOOP_ITEM_FLOOR_MINUTES=$floor, $((floor * 60)) s) is below what one item's gate owes ($owes s): an item started there pays for its gate and loses the phases after a green round"
 }
 
 # A child that never returns used to be waited for with no bound at all: the run's deadline is consulted

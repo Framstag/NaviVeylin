@@ -1,0 +1,8 @@
+loop-mutations: selected 2 of 179 records (labels: 64.1 64.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/issue-663-floor/.pi/tmp/loop-mutations.Skxrf8
+RED    64.1  run#theChildCapIsNeverBelowWhatOneItemsGateOwes   (the bound that follows what one item's gate owes (issue #663))
+restore 64.1 run#theChildCapIsNeverBelowWhatOneItemsGateOwes green again
+RED    64.2  state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes   (the item floor never recorded below what one item's gate owes (issue #663))
+restore 64.2 state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

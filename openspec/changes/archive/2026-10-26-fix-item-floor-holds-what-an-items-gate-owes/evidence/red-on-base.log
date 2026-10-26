@@ -1,0 +1,3 @@
+  the item floor (LOOP_ITEM_FLOOR_MINUTES=45, 2700 s) is below what one item's gate owes (3900 s): an item started there pays for its gate and loses the phases after a green round
+FAIL state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case gate#aStepIsBoundedAndTheOverrunNamesIt" tests="1" failures="1" errors="0" time="20">
+  <system-out>the step ran past its bound: still inside the gate 20s into a suite that never returns, with the bound set to 2s</system-out>
+</testsuite>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="./tools/loop/gate.sh" tests="597" failures="0" errors="0">
+  <system-out>LOOP-GATE: tests=597 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 307s, tools/loop-selftest.sh --from-git 6e8b2889… 403s, … ) — the aggregate of the 23 tallies beside this file, read from the gate's own summary line of evidence/gate.log (the same derivation the gate applies per suite; no single suite tally carries the sum)</system-out>
+</testsuite>

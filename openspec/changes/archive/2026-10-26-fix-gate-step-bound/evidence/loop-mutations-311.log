@@ -1,0 +1,11 @@
+loop-mutations: selected 3 of 173 records (labels: 46.1 63.1 63.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.yMToJm
+RED    46.1  gate#theSuitesOutputReachesTheConsoleWhileItRuns   (the stream that carries a suite output to the console while the suite runs (issue #269))
+restore 46.1 gate#theSuitesOutputReachesTheConsoleWhileItRuns green again
+RED    63.1  gate#aStepEndsWithItsCommandNotWithItsWatchers   (the step ending with the command it started, not with the pipe that command wrote into (issue #315))
+restore 63.1 gate#aStepEndsWithItsCommandNotWithItsWatchers green again
+RED    63.2  gate#aStepIsBoundedAndTheOverrunNamesIt   (the bound that answers a gate step which has not returned (issue #311))
+restore 63.2 gate#aStepIsBoundedAndTheOverrunNamesIt green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+exit=0

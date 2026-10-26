@@ -1,0 +1,9 @@
+# focused neighbours of update.sh, 2026-10-26T20:41:01Z, HEAD 0814f28e
+
+## bash tools/resolve-stale-selftest.sh
+PASS pipeline#residueIsADeclaredRow
+resolve-stale-selftest: all 34 cases passed (JDK 27, offline, no token, no Gradle)
+
+## bash tools/sensor-selftest.sh
+PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
+sensor-selftest: all 61 cases passed (JDK 27, offline, no token)

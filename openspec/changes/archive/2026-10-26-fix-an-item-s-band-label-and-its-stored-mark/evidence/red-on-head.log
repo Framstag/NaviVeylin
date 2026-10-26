@@ -1,0 +1,16 @@
+# red on HEAD 0814f28e, 2026-10-26T20:34:56Z
+
+## update#refusesABandLabelWithoutItsMarker
+  a band label added with no body is refused: stub gh: recorded `gh issue edit`: expected '3', got '0'
+FAIL update#refusesABandLabelWithoutItsMarker
+exit=1
+
+## update#writesABandLabelWithTheBodysMarker
+  a band label the body's marker contradicts is refused: stub gh: recorded `gh issue edit`: expected '3', got '0'
+FAIL update#writesABandLabelWithTheBodysMarker
+exit=1
+
+## create#refusesABandLabelAtFilingTime
+  a band label at filing time is refused: https://example.invalid/Framstag/NaviVeylin/issues/1: expected '3', got '0'
+FAIL create#refusesABandLabelAtFilingTime
+exit=1

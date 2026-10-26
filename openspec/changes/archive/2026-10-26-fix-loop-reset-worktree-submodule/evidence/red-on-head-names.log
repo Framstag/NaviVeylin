@@ -1,0 +1,51 @@
+run#resetWorktreeNamesTheDirtItCannotDiscard| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261026-072818')
+run#resetWorktreeNamesTheDirtItCannotDiscard| HEAD ist jetzt bei f099dad the submodule the loop configuration names
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.CkPn4x/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.kCIokV/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.CkPn4x/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+run#resetWorktreeNamesTheDirtItCannotDiscard| Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.CkPn4x/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.kCIokV/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.CkPn4x/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+run#resetWorktreeNamesTheDirtItCannotDiscard| Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+run#resetWorktreeNamesTheDirtItCannotDiscard| worktree: the submodule could not be checked out — the build may not be able to run
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (332fbb7)
+run#resetWorktreeNamesTheDirtItCannotDiscard| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (aaf4500)
+run#resetWorktreeNamesTheDirtItCannotDiscard| HEAD ist jetzt bei aaf4500 review: 2026-01-01-fix-demo round 1 passed (#21)
+run#resetWorktreeNamesTheDirtItCannotDiscard| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war aaf4500).
+run#resetWorktreeNamesTheDirtItCannotDiscard| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| stub gh: recorded `gh issue edit`
+run#resetWorktreeNamesTheDirtItCannotDiscard| closed #21 (completed)
+run#resetWorktreeNamesTheDirtItCannotDiscard| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#resetWorktreeNamesTheDirtItCannotDiscard|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#resetWorktreeNamesTheDirtItCannotDiscard|   the repair refuses a tree it cannot make clean: expected '5', got '0'
+--- run#resetWorktreeNamesTheDirtItCannotDiscard[0] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261026-072818')
+HEAD ist jetzt bei f099dad the submodule the loop configuration names
+Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.CkPn4x/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.kCIokV/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.CkPn4x/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+Fehler beim Klonen von 'app/src/main/cpp/libosmscout'. Weiterer Versuch geplant
+Klone nach '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.CkPn4x/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout'...
+Schwerwiegend: Übertragungsart 'file' nicht erlaubt.
+Schwerwiegend: Klonen von '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.kCIokV/sub' in Submodul-Pfad '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.JXVwBI/cases/0/tree/case.CkPn4x/repo/.pi/worktrees/loop/app/src/main/cpp/libosmscout' fehlgeschlagen.
+Zweiter Versuch 'app/src/main/cpp/libosmscout' zu klonen fehlgeschlagen, breche ab.
+worktree: the submodule could not be checked out — the build may not be able to run
+stub gh: recorded `gh issue edit`
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (332fbb7)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (aaf4500)
+HEAD ist jetzt bei aaf4500 review: 2026-01-01-fix-demo round 1 passed (#21)
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war aaf4500).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+  the repair refuses a tree it cannot make clean: expected '5', got '0'
+FAIL run#resetWorktreeNamesTheDirtItCannotDiscard
+loop-selftest: 1 of 1 cases failed
+exit=1
+measured 2026-10-26T07:28:28Z (run.sh from the base 5e8d739b)

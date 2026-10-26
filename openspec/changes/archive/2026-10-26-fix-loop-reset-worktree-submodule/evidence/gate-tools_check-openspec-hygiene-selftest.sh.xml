@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-openspec-hygiene-selftest.sh" tests="6" failures="0" errors="0" time="0">
+  <system-out>check-openspec-hygiene-selftest: all 6 cases passed (throwaway OpenSpec trees, no Gradle)</system-out>
+</testsuite>

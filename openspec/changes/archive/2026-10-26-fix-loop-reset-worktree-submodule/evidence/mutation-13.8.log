@@ -1,0 +1,6 @@
+loop-mutations: selected 1 of 175 records (labels: 13.8)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.Y93kD7
+RED    13.8  run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard   (the repair syncing the submodule its own verbs cannot reach)
+restore 13.8 run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

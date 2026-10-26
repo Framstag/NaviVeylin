@@ -48,6 +48,7 @@ MUTATIONS=(
   '8.19@tools/sensors/metrics/metadata-invariant.sh@s/"$fingerprint" "drifted" violation/"$fingerprint" "drifted" clear/@sensors#metadataDriftRow@a drifted priority pair is a condition, not a clear (issue #292)'
   '8.20@tools/sensors/lib.sh@s#+ \[ (\$issue.body // "") |#+ [ ("") |#@report#aFiledRowIsReported@the filing marker in the issue body is part of the row history (issue #668)'
   '8.21@tools/sensors/run.sh@s|baseline=$(sensors_last_marker "$issues")|baseline=""|@run#aFilingSetsTheBaseline@the baseline is the newest marker the row carries, a filing included (issue #668)'
+  '8.22@tools/sensors/lib.sh@s#fingerprint: ((((.marker // "")#fingerprint: (((($issue.body // "")#@report#aTrendIsBetweenOneCondition@the marker carries its condition fingerprint, not the one the issue body would give it (issue #668)'
 )
 
 if [ "$mode" = "list" ]; then

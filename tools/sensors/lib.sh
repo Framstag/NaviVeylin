@@ -492,6 +492,10 @@ sensors_record_issue() { # <issues-json> <row-id> → the issue, or empty
 # a filing carries no comment at all — and reading comments only made such a row report that it never ran, and
 # handed the next comparison an empty baseline, three minutes after it filed (issue #668). A filing's marker has
 # no instant of its own (the issue and the marker are one write), so the issue's `createdAt` is its instant.
+#
+# The marker's fingerprint is read from the marker, never from the issue: it is a condition's identity, and one
+# issue can carry markers of several conditions (a record issue carries one clear per condition). `previous`
+# selects by that field, so a per-issue fingerprint would compare one condition against another's measurement.
 sensors_markers_json() { # <issues-json> → every marker the row's issues carry, oldest first
   jq -c '
     [ .[]? | . as $issue
@@ -501,7 +505,7 @@ sensors_markers_json() { # <issues-json> → every marker the row's issues carry
               | {createdAt: ($issue.createdAt // ""), marker: .} ] )
       | .[]
       | . + {number: ($issue.number // 0), body: ($issue.body // ""), state: ($issue.state // "OPEN"),
-             fingerprint: (((($issue.body // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; ""))}
+             fingerprint: ((((.marker // "") | [scan("fingerprint=[^ ]+")] | .[0]) // "") | sub("^fingerprint="; ""))}
     ]
     | sort_by(.createdAt)' <<< "$1"
 }

@@ -35,6 +35,7 @@ SENSOR_CASES=(
   'report#printsACountingLinePerRow'
   'report#aGreenRowIsNotNever'
   'report#aFiledRowIsReported'
+  'report#aTrendIsBetweenOneCondition'
   'run#aFilingSetsTheBaseline'
   'update#commentPostsExactlyOnce'
   'update#commentRefusesOnPolicyFailure'
@@ -96,6 +97,7 @@ sensor_run_case() {
     'report#printsACountingLinePerRow') case_report_printsACountingLinePerRow ;;
     'report#aGreenRowIsNotNever') case_report_aGreenRowIsNotNever ;;
     'report#aFiledRowIsReported') case_report_aFiledRowIsReported ;;
+    'report#aTrendIsBetweenOneCondition') case_report_aTrendIsBetweenOneCondition ;;
     'run#aFilingSetsTheBaseline') case_run_aFilingSetsTheBaseline ;;
     'update#commentPostsExactlyOnce') case_update_commentPostsExactlyOnce ;;
     'update#commentRefusesOnPolicyFailure') case_update_commentRefusesOnPolicyFailure ;;
@@ -914,8 +916,8 @@ case_report_aGreenRowIsNotNever() {
 
 # A filing is a measurement too (#668): a check that files an item writes its marker into the issue's body, and
 # a row whose newest event is a filing carries no comment at all. A report that reads comments only prints
-# `last=never` on it — three minutes after 337 such items were filed — and the baseline a later run is handed is
-# empty for exactly the row that just produced the loudest event it can produce.
+# `last=never` on it — three minutes after that row filed 337 items (the item's own evidence) — and the baseline
+# a later run is handed is empty for exactly the row that just produced the loudest event it can produce.
 case_report_aFiledRowIsReported() {
   local dir out fp filed
   dir=$(scratch)
@@ -949,6 +951,27 @@ case_report_aFiledRowIsReported() {
     "row=fixture-emit last=2026-10-26T09:00:00Z verdict=clear measurement=512 issue=#61" \
     "a comment after the filing is the newer marker: $out"
   assert_contains "$out" "trend=better" "the trend is read against the filing's number, so both kinds are one history: $out"
+}
+
+# The trend is drawn between one condition's own markers (#668). The report selects `previous` by the marker's
+# fingerprint, so a record issue carrying two conditions' clears — its body names no fingerprint, each marker
+# does — must not compare one condition against the other: a condition with no earlier marker of its own prints
+# `trend=-` rather than a number drawn across conditions.
+case_report_aTrendIsBetweenOneCondition() {
+  local dir out record_body
+  dir=$(scratch)
+  record_body=$(printf 'the row record\n<!-- sensor-record: fixture-emit -->\n<!-- occurrence: 0 -->')
+  issues_fixture "$dir" "$(jq -nc \
+    --argjson record "$(issue_record 81 OPEN "" fixture-emit "$record_body" \
+      "[$(marker_comment 2026-10-16T03:00:00Z fixture-emit aaaa1111 clear 900),
+        $(marker_comment 2026-10-17T03:00:00Z fixture-emit bbbb2222 clear 512)]")" \
+    '[$record]')"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" \
+    sensor_engine report.sh --registry "$(fixture registry.json)" --now 2026-10-17T04:00:00Z 2>&1)
+  assert_contains "$out" \
+    "row=fixture-emit last=2026-10-17T03:00:00Z verdict=clear measurement=512 issue=#81 clear=0 violation=0 occurrences=0 trend=-" \
+    "the newest marker the record carries is the row's last measurement, and a condition with no earlier marker of its own has no trend rather than one drawn against another condition: $out"
 }
 
 # The baseline is that same timeline (#668): after a row files, its newest marker is the filing's, in the issue's

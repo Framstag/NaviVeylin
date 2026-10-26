@@ -41,9 +41,15 @@ No compiled file, no engine logic, no log line.
 
 ## Risk
 
-- A run refuses items it would have started: with 65 minutes left it now stops instead of starting one. That is the
-  point — an item started there cannot finish — but it is a behaviour change, and the refusal's message already names
-  the floor it compared, so a reader sees the number rather than an unexplained stop.
+- A run refuses items it would have started: with 65 minutes left it now stops instead of starting one. For an item
+  that owes a gate that is the point — an item started there cannot finish — but it is a behaviour change, and the
+  refusal's message already names the floor it compared, so a reader sees the number rather than an unexplained stop.
+- **The floor is one number for every item, and a skip is not a gate.** Measured (`guidelines/Backlog.md` §7, "What an
+  item costs"): a gated-out skip costs 10-15 min, a change 40-65. A run whose tail is skips now stops up to ~50 minutes
+  early, because the same 65-minute floor refuses an item that would have cost 12. That is the "one constant for
+  every item" defect the child's bound was cured of, one level down; it is named as the accepted cost here and in
+  `guidelines/Backlog.md`, and a floor derived per item from what that item owes is filed as issue #674 rather than
+  folded into this change.
 - `LOOP_ITEM_FLOOR_MINUTES` is the *lower bound* of a derived floor, not the floor itself: a run with expensive
   history still raises it (median × 1.5). Nothing about that changes.
 

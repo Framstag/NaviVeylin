@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="tools/check-todo-references.sh" tests="0" failures="0" errors="0" time="1">
-  <system-out>  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration check-todo-references: 203 line(s) scanned, 63 distinct citation(s), 162 in the recorded table check-todo-references: 63 citation(s) resolve through the recorded table; 5431 file(s) excluded by the allowlist above</system-out>
+  <system-out>  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration check-todo-references: 203 line(s) scanned, 63 distinct citation(s), 162 in the recorded table check-todo-references: 63 citation(s) resolve through the recorded table; 5457 file(s) excluded by the allowlist above</system-out>
 </testsuite>

@@ -348,7 +348,10 @@ and 542 s on reading, edit, evidence, archive and report — 2 704 s against the
 its child was ended 8 s after the green `gate-summary.xml` was written; #664 and #666 ended the same way (issue
 #663). The floor `next` refuses an item below is the same measurement: `LOOP_ITEM_FLOOR_MINUTES` is 65 min, so an
 item the remaining budget can pay for can also finish its gate and the phases beside it — a floor below that starts
-an item that pays for its gate and loses the rest. A child that outlasts it is ended together with
+an item that pays for its gate and loses the rest. What that costs: a gated-out skip costs 10-15 min and is refused
+by the same 65-minute floor, so the tail of a run whose items are skips stops up to ~50 min early. That is the old
+"one constant for every item" defect one level down; a floor derived per item from what that item owes is the repair
+and is filed as issue #674. A child that outlasts it is ended together with
 everything it started — a gate leaves daemons and test workers behind, and those are the memory the next item
 needs — its transcript gains one machine-readable line (`LOOP-TIMEOUT: the child exceeded <n> s`), and the item
 is recorded `blocked` with that transcript rather than spending the run's clock. "Everything it started" is

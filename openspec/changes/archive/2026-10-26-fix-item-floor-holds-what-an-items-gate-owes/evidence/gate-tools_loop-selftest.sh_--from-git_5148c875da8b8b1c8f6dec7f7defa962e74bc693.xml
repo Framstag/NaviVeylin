@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/loop-selftest.sh --from-git 5148c875da8b8b1c8f6dec7f7defa962e74bc693" tests="240" failures="0" errors="0" time="513">
+<testsuite name="tools/loop-selftest.sh --from-git 5148c875da8b8b1c8f6dec7f7defa962e74bc693" tests="240" failures="0" errors="0" time="451">
   <system-out>PASS driver#everyCaseDeclaresTheFilesItCanReach PASS driver#theSuiteRunsItsCasesInAPool loop-selftest: all 240 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git 5148c875da8b8b1c8f6dec7f7defa962e74bc693</system-out>
 </testsuite>

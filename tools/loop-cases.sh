@@ -185,6 +185,8 @@ LOOP_SHELL_CASES=(
   'run#announcesAndRecordsTheReviewRound'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
+  'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard'
+  'run#resetWorktreeNamesTheDirtItCannotDiscard'
   'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds'
   'run#aRefusedStartKeepsTheLeftoversItFound'
   'run#aSkipClearsTheInProgressMark'
@@ -467,6 +469,8 @@ loop_run_shell_case() {
     'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
+    'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard') fn=case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard ;;
+    'run#resetWorktreeNamesTheDirtItCannotDiscard') fn=case_run_resetWorktreeNamesTheDirtItCannotDiscard ;;
     'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds') fn=case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds ;;
     'run#aRefusedStartKeepsTheLeftoversItFound') fn=case_run_aRefusedStartKeepsTheLeftoversItFound ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
@@ -5299,6 +5303,92 @@ case_run_resetWorktreeDiscardsWhatItNames() {
   # base still carries it (the run removed that run's branch, because the run merged it).
   git -C "$p" ls-tree -r --name-only main | grep -q 'openspec/changes/archive/2026-01-01-fix-demo/proposal.md' ||
     fail "the repair discarded the work the previous run did"
+}
+
+# A fixture project whose configured submodule path is a real module of two commits, the second of which the
+# superproject records (issue #310). The module's checkout can then be left on `$SUB_FIRST`, which is the dirt neither
+# `reset --hard` nor `clean -fd` reaches. Its URL is a local path, so the checkout the engine's fresh-worktree step
+# makes is best-effort and git refuses it (`transport 'file' not allowed`) — a case that needs the module places it
+# itself, with `submodule_in_worktree`.
+submodule_fixture() { # <project> <scratch dir> → $SUB_FIRST, $SUB_SECOND
+  local p="$1" d="$2" sub
+  sub="$d/sub"
+  mkdir -p "$sub"
+  printf 'the submodule\n' > "$sub/CMakeLists.txt"
+  git -C "$sub" init -q -b main >/dev/null 2>&1 || fail "could not create the throwaway submodule repository"
+  git -C "$sub" config user.email selftest@example.invalid
+  git -C "$sub" config user.name selftest
+  git -C "$sub" add -A >/dev/null 2>&1
+  git -C "$sub" commit -qm one >/dev/null 2>&1 || fail "could not commit in the throwaway submodule repository"
+  SUB_FIRST=$(git -C "$sub" rev-parse HEAD)
+  printf 'the submodule, a second commit\n' >> "$sub/CMakeLists.txt"
+  git -C "$sub" commit -qam two >/dev/null 2>&1 || fail "could not commit the second time in the submodule"
+  SUB_SECOND=$(git -C "$sub" rev-parse HEAD)
+  rm -rf "$p/app/src/main/cpp/libosmscout"
+  git -C "$p" rm -q -r --cached app/src/main/cpp/libosmscout
+  git -C "$p" -c protocol.file.allow=always submodule add "$sub" app/src/main/cpp/libosmscout >/dev/null 2>&1 ||
+    fail "could not add the submodule to the fixture project"
+  git -C "$p" commit -qm 'the submodule the loop configuration names' >/dev/null 2>&1 ||
+    fail "could not commit the submodule in the fixture project"
+}
+
+# That project's module, checked out inside a worktree of it and left on <commit>.
+submodule_in_worktree() { # <worktree> <commit>
+  git -C "$1" -c protocol.file.allow=always submodule update --init app/src/main/cpp/libosmscout >/dev/null 2>&1 ||
+    fail "could not check the submodule out in the kept worktree"
+  git -C "$1/app/src/main/cpp/libosmscout" checkout -q "$2"
+}
+
+# The repair has to repair the dirt its own refusal names, and a submodule left on a commit the superproject does not
+# record is dirt neither of its two verbs reaches: the index inside the module already matches its `HEAD`, so
+# `reset --hard` has nothing to undo, and the module's path is tracked, so `clean -fd` leaves it alone. Measured
+# 2026-10-25 in the kept worktree at #309: `git reset -q --hard && git clean -qfd` still printed the module path as
+# modified, while `git submodule update --init --checkout <path>` made the status empty and left the module on the
+# pin the base records (issue #310).
+case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status wt
+  d=$(scratch); p=$(new_project)
+  submodule_fixture "$p" "$d"
+  run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
+  wt="$p/.pi/worktrees/loop"
+  submodule_in_worktree "$wt" "$SUB_FIRST"
+  [ -n "$(git -C "$wt" status --porcelain)" ] || fail "the fixture did not leave the submodule on another commit"
+  : > "$GH_STUB_RECORD"; : > "$PI_STUB_LOG"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario none)
+  out=$(run_loop "$p" --items 1 --minutes 90 --reset-worktree 2>&1); status=$?
+  assert_contains "$out" "app/src/main/cpp/libosmscout" "the repair names the submodule it found dirty"
+  assert_eq "" "$(git -C "$wt" status --porcelain)" "the repair leaves a tree the next start accepts"
+  assert_eq "$SUB_SECOND" "$(git -C "$wt/app/src/main/cpp/libosmscout" rev-parse HEAD)" \
+    "on the commit the superproject records"
+  assert_eq "0" "$status" "so the run starts instead of refusing the same tree again"
+  assert_contains "$out" "nothing eligible" "and it then answers to the backlog, not to the submodule"
+}
+
+# The repair is a claim about a tree, and a claim it cannot make is withdrawn in the run's own words: a module that
+# carries a file of its own is dirt `reset --hard`, `clean -fd` and the checkout all leave in place, so the run names it
+# and refuses to start rather than printing the "clean again" line the next start would contradict (issue #310).
+case_run_resetWorktreeNamesTheDirtItCannotDiscard() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status wt
+  d=$(scratch); p=$(new_project)
+  submodule_fixture "$p" "$d"
+  run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
+  wt="$p/.pi/worktrees/loop"
+  submodule_in_worktree "$wt" "$SUB_SECOND"
+  # A file the module itself carries: the superproject reports the module as modified, and none of the repair's verbs
+  # removes it.
+  printf 'a build artefact inside the module\n' > "$wt/app/src/main/cpp/libosmscout/leftover.txt"
+  [ -n "$(git -C "$wt" status --porcelain)" ] || fail "the fixture did not leave the module dirty"
+  : > "$GH_STUB_RECORD"; : > "$PI_STUB_LOG"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario none)
+  out=$(run_loop "$p" --items 1 --minutes 90 --reset-worktree 2>&1); status=$?
+  assert_eq "5" "$status" "the repair refuses a tree it cannot make clean"
+  assert_contains "$out" "cannot discard" "and says so in its own words"
+  assert_contains "$out" "app/src/main/cpp/libosmscout" "naming what is left"
+  assert_not_contains "$out" "is clean again" "never announcing a clean tree"
+  assert_not_contains "$out" "pre-screen:" "and nothing is started"
+  [ -f "$wt/app/src/main/cpp/libosmscout/leftover.txt" ] || fail "the refusal discarded what it said it could not"
 }
 
 # A start the worktree refuses mid-run is the *previous* item's leftover, not the candidate's failure:

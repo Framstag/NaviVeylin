@@ -503,6 +503,26 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
     printf '%s\n' "$leftovers" | sed 's/^/  /'
     git -C "$worktree" reset -q --hard || loop_die "run: could not reset the kept worktree"
     git -C "$worktree" clean -qfd || loop_die "run: could not clean the kept worktree"
+    # Neither verb above reaches a submodule the previous run's building left on another commit, which is dirt this
+    # repair's own refusal names: the module's index already matches its own `HEAD`, so the reset has nothing to undo
+    # there, and a module's path is tracked, so the clean leaves it alone. Measured 2026-10-25 in the kept worktree at
+    # #309: `reset --hard` and `clean -fd` still printed the module path as modified, and
+    # `submodule update --init --checkout <path>` printed nothing (issue #310). The path is the project's own, read
+    # from the profile and only where the project carries a `.gitmodules`, and the checkout is best-effort with a
+    # note exactly as the fresh worktree's is (D4).
+    reset_submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
+    if [ -n "$reset_submodule_path" ] && [ -f "$worktree/.gitmodules" ]; then
+      git -C "$worktree" submodule update --init --checkout --force "$reset_submodule_path" >&2 ||
+        loop_note "reset-worktree: the submodule could not be checked out — the tree may still be dirty"
+    fi
+    # What is still dirty after both verbs and the checkout is dirt this repair cannot discard (a file inside the
+    # module, say), so the repair says so and names it instead of announcing a clean tree the next start refuses.
+    reset_after=$(git -C "$worktree" status --porcelain)
+    if [ -n "$reset_after" ]; then
+      printf 'reset-worktree: the reset cannot discard what is left in %s:\n' "$worktree"
+      printf '%s\n' "$reset_after" | sed 's/^/  /'
+      loop_refuse "the kept worktree is still not clean after --reset-worktree — nothing was started; the paths above are removed by hand"
+    fi
     printf 'reset-worktree: %s is clean again — the commits on its branches are left alone\n' "$worktree"
   else
     printf 'refusing to start: the kept worktree %s is not clean — a previous run left work behind\n' "$worktree"

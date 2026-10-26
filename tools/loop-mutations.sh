@@ -131,6 +131,8 @@ MUTATIONS=(
   '13.3@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the start-time pre-flight on a kept worktree a previous run left dirty@s|^if \[ -d "$worktree" \] && worktree_is_dirty; then$|if false; then|'
   '13.4@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the refusal being recorded under the item its branch marker names@s|^    if \[ "$dry_run" -eq 0 \] && \[ -n "$owner_item" \]; then$|    if false; then|'
   '13.5@-@tools/loop/run.sh@run#resetWorktreeDiscardsWhatItNames@the start-time repair discarding what it named@s|^    git -C "$worktree" reset -q --hard \|\| loop_die "run: could not reset the kept worktree"$|    : # the mutation discards no tracked change|;;s|^    git -C "$worktree" clean -qfd \|\| loop_die "run: could not clean the kept worktree"$|    : # the mutation discards no untracked file|'
+  '13.8@-@tools/loop/run.sh@run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard@the repair syncing the submodule its own verbs cannot reach@s|^    if \[ -n \"\$reset_submodule_path\" \] && \[ -f \"\$worktree/.gitmodules\" \]; then$|    if false; then|'
+  '13.9@-@tools/loop/run.sh@run#resetWorktreeNamesTheDirtItCannotDiscard@the repair naming what it could not discard instead of announcing a clean tree@s|^    if \[ -n \"\$reset_after\" \]; then$|    if false; then|'
     # 13.6 was the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers. The lock is taken before the
   # kept worktree is read now, so a live run is refused at the lock and never reaches that check; the invariant
   # the record still owns is the refusal itself: a live owner'"'"'s lock is a refusal, not a takeover.

@@ -424,6 +424,20 @@ class MapCanvasViewModel @Inject constructor(
     internal var preferSymbolSetByUser = false
 
     /**
+     * Set once the user changes the dark mode preference in this session. The start-up settings load
+     * then leaves the value alone: it can resume after the change (a settings read is a suspension
+     * point), and the user's newer choice must not be overwritten by the persisted one it replaced
+     * (spec: `dark-mode` — A user change outranks an in-flight settings read).
+     */
+    internal var darkModePreferenceSetByUser = false
+
+    /**
+     * Set once the user changes the ambient light sensitivity in this session; the start-up settings
+     * load then leaves it alone, for the same reason as [darkModePreferenceSetByUser].
+     */
+    internal var ambientSensitivitySetByUser = false
+
+    /**
      * The phone places search's request lifecycle: debounce, the minimum query length, supersede
      * and abandon, shared with the other surfaces (spec: `search-request-lifecycle`). A request is
      * a call of [SearchGate.request], so a repeated query text is a new request and still runs

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.data.AmbientLightSensitivity
+import com.naviveylin.data.AppSettings
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
 import com.naviveylin.data.DarkModePreference
@@ -36,6 +37,7 @@ class MapCanvasViewModelDarkModeTest {
 
     private lateinit var context: Context
     private lateinit var client: FakeOSMScoutClient
+    private lateinit var settingsStorage: SettingsStorage
     private lateinit var controller: DarkModeController
     private lateinit var viewModel: MapCanvasViewModel
 
@@ -45,11 +47,21 @@ class MapCanvasViewModelDarkModeTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
+        // The settings file lives in the sandbox and every case of this class — and of every class
+        // in the JVM — writes it, so a start-up read that saw a predecessor's value would decide
+        // this case's presentation state. Start each case from the defaults.
+        writeSettings(AppSettings())
         client = FakeOSMScoutClient()
-        controller = DarkModeController(SettingsStorage(context))
+        // One storage instance (production wires it as a singleton), with the file IO on the test's
+        // own clock: the start-up read is then drained by `advanceUntilIdle` below instead of
+        // landing at an arbitrary point relative to the case's own dark-mode writes.
+        settingsStorage = SettingsStorage(context).also {
+            it.ioDispatcher = mainDispatcherRule.dispatcher
+        }
+        controller = DarkModeController(settingsStorage)
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = SettingsStorage(context),
+            settingsStorage = settingsStorage,
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
@@ -64,6 +76,15 @@ class MapCanvasViewModelDarkModeTest {
         // Settle init work (persisted-settings load applies its defaults to
         // uiState) so tests observe a stable starting state.
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+    }
+
+    /** Writes the settings file directly, so the start-up read sees these values. */
+    private fun writeSettings(settings: AppSettings) {
+        val file = java.io.File(context.filesDir, "maps/settings.json")
+        file.parentFile?.mkdirs()
+        file.writeText(
+            kotlinx.serialization.json.Json.encodeToString(AppSettings.serializer(), settings)
+        )
     }
 
     @After

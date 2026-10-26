@@ -100,12 +100,14 @@ fun MapCanvasViewModel.setSensorDark(dark: Boolean?) {
 
 /** Set the dark mode preference (On / Off / Automatic); persists via controller. */
 fun MapCanvasViewModel.onSetDarkModePreference(preference: DarkModePreference) {
+    darkModePreferenceSetByUser = true
     darkModeController.setPreference(preference)
     _uiState.value = _uiState.value.copy(darkModePreference = preference)
 }
 
 /** Set the ambient light sensor sensitivity; persists via controller. */
 fun MapCanvasViewModel.onSetAmbientLightSensitivity(sensitivity: AmbientLightSensitivity) {
+    ambientSensitivitySetByUser = true
     darkModeController.setSensorSensitivity(sensitivity)
     _uiState.value = _uiState.value.copy(ambientLightSensitivity = sensitivity)
 }
@@ -367,10 +369,25 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
     // Load persisted settings
     viewModelScope.launch {
         val settings = settingsStorage.load()
-        darkModeController.restorePreference(settings.darkMode)
-        darkModeController.restoreSensorSensitivity(settings.ambientLightSensitivity)
         // A user change that landed while this read was in flight wins: the read is a suspension
-        // point, so the persisted value it returns may already be the one the user replaced.
+        // point, so the persisted value it returns may already be the one the user replaced
+        // (spec: `dark-mode` — A user change outranks an in-flight settings read).
+        if (!darkModePreferenceSetByUser) {
+            darkModeController.restorePreference(settings.darkMode)
+        }
+        if (!ambientSensitivitySetByUser) {
+            darkModeController.restoreSensorSensitivity(settings.ambientLightSensitivity)
+        }
+        val darkModePreference = if (darkModePreferenceSetByUser) {
+            _uiState.value.darkModePreference
+        } else {
+            settings.darkMode
+        }
+        val ambientLightSensitivity = if (ambientSensitivitySetByUser) {
+            _uiState.value.ambientLightSensitivity
+        } else {
+            settings.ambientLightSensitivity
+        }
         val preferSymbolPoiIcons = if (preferSymbolSetByUser) {
             _uiState.value.preferSymbolPoiIcons
         } else {
@@ -384,8 +401,8 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
             freeFormNorthUp = settings.freeFormNorthUp,
             navNorthUp = settings.navNorthUp,
             keepScreenOn = settings.keepScreenOn,
-            darkModePreference = settings.darkMode,
-            ambientLightSensitivity = settings.ambientLightSensitivity,
+            darkModePreference = darkModePreference,
+            ambientLightSensitivity = ambientLightSensitivity,
             laneHintsEnabled = settings.laneHintsEnabled,
             renderMode = settings.renderMode,
             overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh,

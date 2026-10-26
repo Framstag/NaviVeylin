@@ -107,6 +107,7 @@ LOOP_SHELL_CASES=(
   'prompt#iterationProtocolNamesTheChangeSurface'
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
+  'prompt#thePhasePromptsCarryTheirOwnRoute'
   'run#preflightRefusalStopsBeforeAnyWork'
   'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen'
   'run#blockedItemAsksItsOwnQuestion'
@@ -226,6 +227,7 @@ LOOP_SHELL_CASES=(
   'run#reviewDiffExcludesTheEvidenceArchive'
   'run#engineNamesNoProjectFact'
   'adapter#modeFlagIsItsOwnArgument'
+  'adapter#theChildIsStartedWithoutContextFiles'
   'state#inheritedStatePathOutsideTheTreeIsIgnored'
   'report#headerAndTableShape'
   'report#yieldIsCountedFromState'
@@ -396,6 +398,7 @@ loop_run_shell_case() {
     'prompt#iterationProtocolNamesTheChangeSurface') fn=case_prompt_iterationProtocolNamesTheChangeSurface ;;
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
+    'prompt#thePhasePromptsCarryTheirOwnRoute') fn=case_prompt_thePhasePromptsCarryTheirOwnRoute ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
     'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen') fn=case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen ;;
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
@@ -515,6 +518,7 @@ loop_run_shell_case() {
     'run#reviewDiffExcludesTheEvidenceArchive') fn=case_run_reviewDiffExcludesTheEvidenceArchive ;;
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
+    'adapter#theChildIsStartedWithoutContextFiles') fn=case_adapter_theChildIsStartedWithoutContextFiles ;;
     'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
     'usage#bareValueFlagDoesNotSwallowTheNextFlag') fn=case_usage_bareValueFlagDoesNotSwallowTheNextFlag ;;
     'usage#bareValueFlagInASingleShotHarnessIsAUsageError') fn=case_usage_bareValueFlagInASingleShotHarnessIsAUsageError ;;
@@ -2695,6 +2699,35 @@ case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
   # the instructions never carry it
   assert_eq "0" "$(grep -c 'Ignore all previous instructions\|^<<<ISSUE_TEXT$' "$prompt" || true)" \
     "the injected text does not reach the instruction position"
+  return 0
+}
+
+# A child is started without the project's context files (issue #661, `adapter#theChildIsStartedWithoutContextFiles`),
+# so what `AGENTS.md` used to hand it — the document map, the recipe for a document's section list, where the rules,
+# the capabilities and the change artifacts live — has to be in its own prompt. The second half is that every
+# repository path a skeleton names resolves: a route the prompt states and the tree does not hold is a child sent to
+# a file that is not there, and an offline case is the only thing that can see it before a run pays for the trip.
+case_prompt_thePhasePromptsCarryTheirOwnRoute() {
+  # files: tools/loop/prompts/
+  local f text tok
+  for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
+    [ -f "$f" ] || fail "no prompt skeleton at $f"
+    text=$(cat "$f")
+    assert_contains "$text" 'AGENTS.md' "$(basename "$f") names the project's document map"
+    assert_contains "$text" "grep -n '^## '" "and the recipe for a document's section list"
+    assert_contains "$text" 'guidelines/' "and where the rules live"
+    assert_contains "$text" 'openspec/specs/' "and where the capabilities live"
+  done
+  [ -f "$LOOP_PROJECT_ROOT/AGENTS.md" ] || fail "the document map the prompts name is not in the project root"
+  # every repository path a skeleton names, read the way a child would read it: relative to the project root it is
+  # started in. A glob (`tools/*-cases.sh`) is a pattern and not a path, so it is skipped.
+  for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
+    for tok in $(grep -oE '(tools|guidelines|openspec|licenses|app)/[A-Za-z0-9_./-]+' "$f" | sed -e 's#[.,)]*$##' | sort -u); do
+      case "$tok" in *'*'*) continue ;; esac
+      [ -e "$LOOP_PROJECT_ROOT/$tok" ] ||
+        fail "$(basename "$f") names $tok, which the project root does not hold"
+    done
+  done
   return 0
 }
 
@@ -6466,8 +6499,40 @@ case_adapter_modeFlagIsItsOwnArgument() {
     bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
     fail "the adapter exited non-zero: $(head -3 "$d/out")"
   got=$(cat "$d/argv.txt" 2>/dev/null || true)
-  assert_eq "$(printf -- '--mode\njson\n%s' "$prompt")" "$got" \
-    "the child sees the mode flag as two arguments, then the prompt"
+  assert_eq "$(printf -- '--mode\njson\n--no-context-files\n%s' "$prompt")" "$got" \
+    "the child sees the mode flag as two arguments, then the context switch, then the prompt"
+  return 0
+}
+
+# The child is started in the project, so the agent would turn the `AGENTS.md` it discovers there into a
+# `project_context` section of its system prompt — 25 624 of the 33 088 characters of the system prompt on the
+# stream of one item (probe `sections-probe.py`), re-read on every turn of a child whose whole work is one
+# item (issue #661). The adapter therefore starts it with `--no-context-files`, and with nothing else that
+# would move the policy the flag must not take with it: the start directory is what resolves this project's
+# tool policy, so a word that changes the trust (`-a`, `-na`), replaces the prompt (`--system-prompt`) or
+# narrows the tools (`-t`, `-ns`) is the defect this case exists for. That the children still start in the
+# project is `run#childStartsInTheProjectRoot`, which this flag must leave green.
+case_adapter_theChildIsStartedWithoutContextFiles() {
+  # files: tools/pi-child-events.sh
+  local d prompt recorder got extra
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  recorder="$d/recorder.sh"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'for a in "$@"; do printf "%s\n" "$a"; done > "$RECORD"'
+  } > "$recorder"
+  RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
+    bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  got=$(cat "$d/argv.txt" 2>/dev/null || true)
+  assert_contains "$got" "--no-context-files" \
+    "the child is started without the project's context files (issue #661)"
+  extra=$(printf '%s\n' "$got" |
+    grep -xE -- '-a|--approve|-na|--no-approve|--system-prompt|--append-system-prompt|-t|--tools|-ns|--no-skills' || true)
+  assert_eq "" "$extra" "no word the child is started with moves its trust, its prompt or its tools"
   return 0
 }
 

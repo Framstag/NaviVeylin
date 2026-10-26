@@ -11,6 +11,12 @@ Your inputs are these four things, and you obtain them by reading, not by runnin
 diff, the project's rules (`AGENTS.md` and the guideline section the change names), the evidence the change
 cites, and this task.
 
+Your system prompt carries **no project context**: this child is started without the project's context files, so
+`AGENTS.md` is a file in the project and not a section of your prompt. Read it the way the project's own map is
+read — it routes a kind of change to the guideline that owns the rule — and read only the section that
+guideline's own list names (`grep -n '^## '` over the document prints it). `guidelines/` holds the rules,
+`openspec/specs/` the shipped capabilities, and the change's `evidence/` the citations you are given by path.
+
 - item: **#{{ISSUE}}**
 - change root: `{{CHANGE_ROOT}}` — the tree under review. Your working directory is the project, so read
   there and never write anywhere.

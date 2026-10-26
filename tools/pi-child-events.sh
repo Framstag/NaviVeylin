@@ -18,8 +18,8 @@
 #
 #   The **last** argument is the prompt — that is where `run.sh` puts it (`$LOOP_AGENT_CMD "$prompt"`), and
 #   every argument before it starts the child, so a project that needs a wrapper keeps it:
-#   `LOOP_AGENT_CMD="bash tools/pi-child-events.sh sbx exec pi"`. The mode flag is appended to that command,
-#   immediately before the prompt.
+#   `LOOP_AGENT_CMD="bash tools/pi-child-events.sh sbx exec pi"`. The flags this adapter adds are appended to that
+#   command, immediately before the prompt.
 #
 # Environment:
 #   LOOP_CHILD_EVENTS  the file the event lines are appended to; `run.sh` exports one per item so the item's
@@ -33,6 +33,17 @@ set -uo pipefail
 # and a single quoted `"--mode json"` is one unknown option to it — measured 2026-10-20, when every child of a
 # run died with `Error: Unknown option: --mode json` in under 4 s and the run stopped after 3 min.
 mode=(--mode json)
+
+# …and the project's `AGENTS.md` is not handed to the child at all (issue #661). The child is started in the
+# project root, so the agent discovers that file there and turns it into the `project_context` section of its
+# system prompt — measured at 25 624 of 33 088 characters of system prompt, 77 % of it, on the stream of one
+# item (`evidence/sections-probe.py` in the change `2026-10-27-fix-a-child-carries-its-own-route`) — and that
+# section is re-read on every turn of a child whose whole work is one item. `--no-context-files` disables that
+# discovery and nothing else, which is why it may be the only word added here: the project's tool policy is
+# resolved from the directory the process starts in, and `run.sh` still starts every child in the project (spec
+# `agent-issue-loop`, "A process runs where the project's own policy applies"; case `run#childStartsInTheProjectRoot`).
+# What a phase needs to know about the project is in its own prompt — `prompt#thePhasePromptsCarryTheirOwnRoute`.
+context=(--no-context-files)
 
 if [ $# -lt 2 ]; then
   printf 'pi-child-events: usage: %s <command> [args…] <prompt-file>\n' "$(basename "$0")" >&2
@@ -58,7 +69,7 @@ trap 'rm -f "$answer_file"' EXIT
 # The stream is read line by line. A line that is a JSON object is one event and is kept; anything else is the
 # command's own text — an agent that ignores the mode flag prints its answer as plain text — and is passed
 # through, so such a command still answers the loop and a project needs no second code path to keep working.
-"${cmd[@]}" "${mode[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
+"${cmd[@]}" "${mode[@]}" "${context[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     '{'*)
       [ -z "$events" ] || printf '%s\n' "$line" >> "$events"

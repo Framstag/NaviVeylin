@@ -259,6 +259,18 @@ outcome from what it reads itself (I10).
 What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
 is the script's (I8); and the tracker credential is not in the agent's environment (§5).
 
+What a child is started with, and what it therefore re-reads. Its system prompt carries **no project context**:
+the adapter the configured command names starts it with `--no-context-files`, because a child started in the
+project would otherwise take the `AGENTS.md` it discovers there as a `project_context` section — measured on one
+item's own stream, 25 624 of the 33 088 characters of system prompt, 77 % of it — and that section is charged on
+**every** turn: 9 151 of the 17 235 tokens a turn cost (`python3 tools/loop-spend.py`, issue #661). The routing a
+phase genuinely needs is in its own prompt instead (`tools/loop/prompts/worker.md`, `reviewer.md`): the document
+map, the recipe for a document's section list (`grep -n '^## '`), and where the rules, the capabilities and the
+change artifacts live. The flag must not take the policy with it, so **the start directory stays the project** —
+that is what resolves this project's tool policy — and the case that pins it is `run#childStartsInTheProjectRoot`,
+beside `adapter#theChildIsStartedWithoutContextFiles`, which refuses any word that moves the trust, the prompt or
+the tools.
+
 What it does **not** claim: the project's own tree is not the child's, so a difference between the two readings of
 it taken around a child is recorded and not turned into a verdict. The transcript gains one line naming what
 changed — the differing status entries and any process whose working directory is inside the project but outside

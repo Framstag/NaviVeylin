@@ -2453,3 +2453,26 @@ The report printed an item's tokens with nothing to read them against, so a run 
 - **WHEN** an item's recorded `metrics.tokens` — the sum of its input, output, cache read and cache write — is above `LOOP_ITEM_TOKENS_WARN`, and another item's is below it
 - **THEN** the row above the bound carries how far above it is in a column of its own (`2.5x`), the run-level line names that item beside the bound it crossed, the row below prints `-` there and is not named, and both items keep the outcome their work earned — the flag is a warning, so a bound that is `0` prints the flag as off and flags nothing
 - **Case**: `report#anItemOverTheTokenBoundIsFlagged`
+
+### Requirement: A child carries its own route, and not the project's whole document
+
+An agent process SHALL be started without the project's context files, because a context file found in the
+project root becomes a system-prompt section charged on every turn of a child whose work is one item. Its phase
+prompt SHALL carry the routing it needs — where the rules, capabilities and change artifacts live, and how a
+document's section list is read — and the process SHALL still start in the project, so the project's own policy
+governs it.
+
+#### Scenario: The child is started without the project's context files
+
+- **WHEN** an agent process is started for an item
+- **THEN** its argv disables the agent's context-file discovery and carries no word that moves its trust, replaces
+  its system prompt or narrows its tools, so the directory it starts in is still what resolves the project's policy
+- **Case**: `adapter#theChildIsStartedWithoutContextFiles`
+
+#### Scenario: The phase prompt carries the route the child needs
+
+- **WHEN** the worker's or the reviewer's prompt is rendered
+- **THEN** it names the project's document map, the recipe that prints a document's section list, and where the
+  rules, the capabilities and the change artifacts live, and every repository path it names resolves in the project
+  root the child is started in
+- **Case**: `prompt#thePhasePromptsCarryTheirOwnRoute`

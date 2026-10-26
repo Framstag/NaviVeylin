@@ -21,6 +21,22 @@ you get: everything else you need is in the tree.
 - the project's measuring command: `{{MEASURE_CMD}}`
 - the skills this project wants you to use: `{{WORKER_SKILLS}}`
 
+## Where the project's rules are
+
+Your system prompt carries **no project context**: this child is started without the project's context files, so
+what `AGENTS.md` would have handed you on every turn is here instead, once. It is the same routing, and it is
+the whole of it:
+
+- `AGENTS.md`, in the project root, is the project's **document map**: it routes a kind of change to the guideline
+  that owns the rule. Find your change's row there, then read the section it names — never the whole file.
+- Every guideline is one document under `guidelines/`, and its section list is the document's own: `grep -n '^## '`
+  over the file prints it, so you read the section that owns the rule and never the whole document.
+- The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you plan lives in
+  `openspec/changes/<change-name>/`, and the evidence it cites is versioned in that change's `evidence/`.
+- The rules a phase like yours breaks most often are the ones measuring them: what the gate's result means and
+  what a red run is, the test constraints, and the rule that **no log or diagnostics line carries a coordinate** —
+  an object, a database or file name, a magnification, a pixel, an accuracy or a bearing instead.
+
 ## One call per measurement, and what you have read is cited
 
 Run `{{MEASURE_CMD}}` once, from the change root, before you plan. It prints the change's own numbers as one

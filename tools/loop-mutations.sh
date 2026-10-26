@@ -580,6 +580,16 @@ MUTATIONS=(
   # changes an outcome, because no outcome is derived from it.
   '65.1@-@tools/loop/report.sh@report#anItemOverTheTokenBoundIsFlagged@the run-level line that names the items above the recorded band (issue #662)@s|^if \[ "\$item_tokens_warn" -gt 0 \]; then$|if false; then|'
   '65.2@-@tools/loop/state.sh@report#anItemOverTheTokenBoundIsFlagged@the table column that says how far above the band an item is (issue #662)@s|if \$over > 0 and \$tot != null and \$tot > \$over|if false|'
+
+  # 66.x — the child is started without the project's context files, and its own phase prompt carries the routing
+  # that was in them (issue #661). Measured over the archive (2026-10-27): the system prompt of every child opened
+  # with a 25 624-character `project_context` section — 77 % of the 33 088-character system prompt — and that
+  # section is charged on every turn, 9 151 of the 17 235 tokens a turn cost (`python3 tools/loop-spend.py`, probe
+  # `evidence/sections-probe.py`). One record per invariant: 66.1 removes the context switch from the adapter, so
+  # the child is handed the project's `AGENTS.md` again; 66.2 removes the section-list recipe from the worker's
+  # route, so a child with no context files is sent to a guideline it cannot read by section.
+  '66.1@-@../pi-child-events.sh@adapter#theChildIsStartedWithoutContextFiles@the context switch that keeps the project'"'"'s own context files out of a child'"'"'s prompt (issue #661)@s|^context=(--no-context-files)$|context=()|'
+  '66.2@-@tools/loop/prompts/worker.md@prompt#thePhasePromptsCarryTheirOwnRoute@where the capabilities live, in the route a child with no context files is given (issue #661)@s|openspec/specs/|openspec/spec/|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

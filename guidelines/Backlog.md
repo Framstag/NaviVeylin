@@ -720,8 +720,8 @@ loses exactly what the work already established.
 ## 9. Checks
 
 A check is a **declared row**, not a script: the command to run, how often, the bound it compares against,
-how many consecutive runs its verdict needs, the kind and area its items carry, and whether it owns the
-item's closure. Adding a check is a row.
+how many consecutive runs its verdict needs, how many items one run of it may file, the kind and area its items
+carry, and whether it owns the item's closure. Adding a check is a row.
 
 ```
 outcome        present  -> file, or reopen the item this condition already has, or annotate it
@@ -745,6 +745,17 @@ already had:
 - **The issue is the measurement history.** Numbers live as comments; nothing is committed, because a check
   must not become a second committer (I12). The previous measurement *is* the baseline, so growth and level
   are both answerable without a store.
+
+One bound sits on a check's own output rather than on a measurement: **one run of one check files a bounded number
+of condition items** — `maxFilings` in the registry, or the count the row declares in its place. Past it the run files
+nothing further, and the conditions it did not file reach the tracker as one summary item carrying the count, the
+bound and each condition's identity and measurement (at most twenty of them, the rest named by number), so a
+mis-fitted bound costs one item instead of one per condition it
+happens to hold (issue #666: 337 items from one row in 36 minutes). The summary is not a condition of the check's —
+its identity is the engine's own and it carries no measurement marker, so it never reads as one of the row's
+measurements — and the first run that leaves nothing over closes it, while a run in which a finding failed closes
+nothing and a closure a person made is annotated instead of reopened. An annotation, a reopen and a comment spend
+nothing of the bound: none of them makes the tracker grow.
 
 Beside the rows, the same scheduled worker runs the two repairs that are pure functions of the tracker's own
 fields, and one report that is deliberately not one: `tools/issues/labels.sh --apply` (a label outside the

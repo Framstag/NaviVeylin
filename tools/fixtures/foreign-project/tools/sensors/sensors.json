@@ -12,6 +12,7 @@
     "labels": ["agent/needs-decision", "status/on-hold"]
   },
   "record": { "status": "on-hold" },
+  "maxFilings": 3,
   "rows": [
     {
       "id": "foreign-row",

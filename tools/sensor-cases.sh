@@ -46,6 +46,13 @@ SENSOR_CASES=(
   'run#dispatchMatrix'
   'run#dispatchMatrixNotPlannedClosure'
   'create#sensorFingerprintIsTheAnchor'
+  'run#aRowPastItsBoundFilesItsBoundAndOneSummary'
+  'run#aRowUnderItsBoundFilesNoSummary'
+  'run#aRowDeclaresItsOwnBound'
+  'run#theSummaryClearsWhenTheRowIsBackUnderItsBound'
+  'run#aSummaryClosedByAPersonIsNotReopened'
+  'run#aSecondOverBoundRunListsWhatItDidNotFile'
+  'run#aFailedCheckDoesNotClearTheSummary'
   'run#hysteresisBothDirections'
   'run#hysteresisCountersSurviveARestart'
   'run#escalatesPastKRecurrences'
@@ -108,6 +115,13 @@ sensor_run_case() {
     'run#dispatchMatrix') case_run_dispatchMatrix ;;
     'run#dispatchMatrixNotPlannedClosure') case_run_dispatchMatrixNotPlannedClosure ;;
     'create#sensorFingerprintIsTheAnchor') case_create_sensorFingerprintIsTheAnchor ;;
+    'run#aRowPastItsBoundFilesItsBoundAndOneSummary') case_run_aRowPastItsBoundFilesItsBoundAndOneSummary ;;
+    'run#aRowUnderItsBoundFilesNoSummary') case_run_aRowUnderItsBoundFilesNoSummary ;;
+    'run#aRowDeclaresItsOwnBound') case_run_aRowDeclaresItsOwnBound ;;
+    'run#theSummaryClearsWhenTheRowIsBackUnderItsBound') case_run_theSummaryClearsWhenTheRowIsBackUnderItsBound ;;
+    'run#aSummaryClosedByAPersonIsNotReopened') case_run_aSummaryClosedByAPersonIsNotReopened ;;
+    'run#aSecondOverBoundRunListsWhatItDidNotFile') case_run_aSecondOverBoundRunListsWhatItDidNotFile ;;
+    'run#aFailedCheckDoesNotClearTheSummary') case_run_aFailedCheckDoesNotClearTheSummary ;;
     'run#hysteresisBothDirections') case_run_hysteresisBothDirections ;;
     'run#hysteresisCountersSurviveARestart') case_run_hysteresisCountersSurviveARestart ;;
     'run#escalatesPastKRecurrences') case_run_escalatesPastKRecurrences ;;
@@ -306,7 +320,16 @@ record_creates() { # <log>
 
 condition_creates() { # <log>
   local count
-  count=$(grep -- 'issue create' "$1" 2>/dev/null | tr -d '\\' | grep -v 'sensor record:' | grep -c . 2>/dev/null || true)
+  count=$(grep -- 'issue create' "$1" 2>/dev/null | tr -d '\\' | grep -v 'sensor record:' \
+    | grep -v 'filing-summary' | grep -c . 2>/dev/null || true)
+  printf '%s\n' "${count:-0}"
+}
+
+# The creates a run made that are a row's filing summary rather than a condition: the summary's own marker says
+# so, and a case has to tell the bound's worth of conditions from the one item that names the rest (issue #666).
+summary_creates() { # <log>
+  local count
+  count=$(grep -- 'issue create' "$1" 2>/dev/null | tr -d '\\' | grep -c 'filing-summary' 2>/dev/null || true)
   printf '%s\n' "${count:-0}"
 }
 
@@ -1203,6 +1226,198 @@ case_create_sensorFingerprintIsTheAnchor() {
   assert_eq "1" "$(recorded "$log" 'issue create')" "exactly one filing"
   assert_contains "$(cat "$log")" "sensor/fixture-emit" "the ownership label is written with the issue"
   assert_contains "$(cat "$log")" "occurrence" "the recurrence count starts in the body record"
+}
+
+# ----------------------------------------------------------------------------- 3b. the filing bound
+
+# Nothing bounded how many items one run of one row could file (issue #666): a mis-fitted bound wrote 337 items
+# from one row in 36 minutes, because the violation path files every condition whose fingerprint the tracker does
+# not already carry. These seven cases pin the bound, the one item that names the rest, a row's own override,
+# the summary's clearing.
+
+case_run_aRowPastItsBoundFilesItsBoundAndOneSummary() {
+  local dir findings log out status text summary
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  # One condition already has an open issue: annotating it is not a filing, so it does not spend the bound.
+  issues_fixture "$dir" "[$(issue_record 91 OPEN "" fixture-emit \
+    "$(printf 'an open condition\n<!-- fingerprint: %s -->' "$(fingerprint_of case alpha)")")]"
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 900 case alpha)" \
+    "$(finding violation 800 case bravo)" \
+    "$(finding violation 700 case charlie)" \
+    "$(finding violation 600 case delta)" \
+    "$(finding violation 500 case echo)")
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry-bounded.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a run past the row's bound still succeeds: $out"
+  # The registry declares 2 for every row: the open condition is annotated, two conditions are filed, and the
+  # two the run did not file leave as one summary — so the run writes three items, not five.
+  assert_eq "1" "$(recorded "$log" 'issue comment')" "the condition that already has an issue is annotated"
+  assert_eq "2" "$(condition_creates "$log")" "the bound's worth of conditions is filed"
+  assert_eq "1" "$(summary_creates "$log")" "the conditions the run did not file leave as one summary"
+  assert_eq "3" "$(recorded "$log" 'issue create')" "one run writes the bound plus one item, not one per condition"
+  # The report still names every condition it did not file, so the run stays honest about what it measured.
+  assert_contains "$out" "not filed" "each condition the run did not file is reported"
+  assert_contains "$(log_text "$log")" "2 conditions not filed" "the summary's title names the count"
+  # The summary carries the conditions the run did not file, in the order the check reported them (its own rank),
+  # and nothing about the ones the bound allowed.
+  summary=$(grep -- 'issue create' "$log" | tr -d '\\' | grep -F 'filing-summary' | tail -1)
+  assert_contains "$summary" "case=delta" "the summary names a condition it did not file"
+  assert_contains "$summary" "case=echo" "and the other one"
+  assert_not_contains "$summary" "case=bravo" "a condition the bound allowed is not listed"
+  assert_not_contains "$summary" "case=alpha" "nor the condition that had an issue already"
+  # The summary is not a condition of the check's: its identity is the engine's, so the sensors that read the
+  # row's conditions never see it, and it carries no measurement marker that a report would read as the row's.
+  assert_contains "$summary" "filing-summary:" "the summary carries the engine's own marker"
+  assert_not_contains "$summary" "verdict=" "the summary carries no measurement marker"
+}
+
+case_run_aRowUnderItsBoundFilesNoSummary() {
+  local dir findings log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 800 case bravo)" \
+    "$(finding violation 700 case charlie)")
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry-bounded.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_eq "2" "$(condition_creates "$log")" "every condition the run reported is filed"
+  assert_eq "0" "$(summary_creates "$log")" "nothing was left over, so there is nothing to summarise"
+  assert_eq "2" "$(recorded "$log" 'issue create')" "the run writes one item per condition and nothing else"
+  assert_not_contains "$out" "not filed" "no condition is reported as not filed"
+}
+
+case_run_aRowDeclaresItsOwnBound() {
+  local dir findings log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 900 case alpha)" \
+    "$(finding violation 800 case bravo)" \
+    "$(finding violation 700 case charlie)" \
+    "$(finding violation 600 case delta)" \
+    "$(finding violation 500 case echo)")
+
+  # The registry declares 2 and this row declares 3, so the row's own value is what bounds it.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-own-bound --apply --input "$findings" \
+    --registry "$(fixture registry-bounded.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_eq "3" "$(condition_creates "$log")" "the row's own bound is what bounds it"
+  assert_eq "1" "$(summary_creates "$log")" "the two it left over still leave as one summary"
+  assert_eq "4" "$(recorded "$log" 'issue create')" "one run writes the row's bound plus one item"
+  assert_contains "$(log_text "$log")" "2 conditions not filed" "the summary names what the row's bound left over"
+
+  # A bound that is not a count is refused by name rather than read as "no bound": a row that may file nothing
+  # has no way to report a condition at all.
+  out=$(cd "$(throwaway_project "$(fixture registry-bounded.json)")" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve
+    sensors_registry_problems' 2>&1)
+  assert_contains "$out" "row-max-filings-not-a-count: 0" "a bound of zero is refused by name"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-no-filings --input "$findings" \
+    --registry "$(fixture registry-bounded.json)" 2>&1)
+  status=$?
+  assert_eq "9" "$status" "a run of that row refuses before it writes"
+  assert_contains "$out" "row-incomplete" "the refusal names the row's own check"
+}
+
+case_run_theSummaryClearsWhenTheRowIsBackUnderItsBound() {
+  local dir findings log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  # A previous run left a summary open; this run's bound is not reached, so there is nothing it did not file.
+  issues_fixture "$dir" "[$(issue_record 93 OPEN "" fixture-emit \
+    "$(printf 'the conditions a previous run did not file\n<!-- filing-summary: fixture-emit -->')")]"
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 800 case bravo)")
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry-bounded.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_eq "1" "$(condition_creates "$log")" "the condition the run reported is filed as its own item"
+  assert_eq "0" "$(summary_creates "$log")" "no second summary is filed"
+  assert_eq "1" "$(recorded "$log" 'issue close')" "the open summary closes"
+  assert_contains "$(cat "$log")" "issue close 93" "the summary issue is the one closed"
+  assert_contains "$out" "issue=93 action=closed" "the report says what it closed and why"
+}
+
+# The summary is a check's own item, so the rule that a check never reverses a person's decision governs it too: a
+# closure that is not a completed fix is recorded on the item and never reopened, and the report says which
+# (issue #666).
+case_run_aSummaryClosedByAPersonIsNotReopened() {
+  local dir findings log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" "[$(issue_record 94 CLOSED NOT_PLANNED fixture-emit \
+    "$(printf 'the conditions a previous run did not file\n<!-- filing-summary: fixture-emit -->')")]"
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 900 case alpha)" \
+    "$(finding violation 800 case bravo)" \
+    "$(finding violation 700 case charlie)")
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry-bounded.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds without touching the closure: $out"
+  assert_eq "2" "$(condition_creates "$log")" "the bound's worth of conditions is still filed"
+  assert_eq "0" "$(recorded "$log" 'issue reopen')" "a person's closure is not reopened"
+  assert_eq "1" "$(recorded "$log" 'issue comment 94')" "the overflow is recorded on the closed item instead"
+  assert_contains "$out" "closure is a person's decision" "the report says why it did not reopen"
+}
+
+# A row that stays over its bound reports each run's overflow on the one item: the identities are that run's, not the
+# ones the filing named, so they have to reach the tracker with the comment (issue #666).
+case_run_aSecondOverBoundRunListsWhatItDidNotFile() {
+  local dir findings log out status unfiled
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" "[$(issue_record 95 OPEN "" fixture-emit \
+    "$(printf 'the conditions a previous run did not file\n<!-- filing-summary: fixture-emit -->')")]"
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 900 case alpha)" \
+    "$(finding violation 800 case bravo)" \
+    "$(finding violation 700 case charlie)")
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry-bounded.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_eq "2" "$(condition_creates "$log")" "the bound's worth of conditions is filed"
+  assert_eq "0" "$(summary_creates "$log")" "one row owns one summary, however often it overruns"
+  assert_eq "1" "$(recorded "$log" 'issue comment 95')" "this run's overflow is recorded on the summary"
+  unfiled=$(fingerprint_of case charlie)
+  assert_contains "$(log_text "$log")" "identity $unfiled measured 700" \
+    "the comment names the condition this run did not file"
+  assert_contains "$out" "issue=95 action=annotated" "the report says the summary was annotated"
+}
+
+# Failing is not clearing, on the summary too: a run whose finding failed to determine anything measured no count of its
+# own overflow, so it closes nothing (issue #666).
+case_run_aFailedCheckDoesNotClearTheSummary() {
+  local dir findings log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" "[$(issue_record 96 OPEN "" fixture-emit \
+    "$(printf 'the conditions a previous run did not file\n<!-- filing-summary: fixture-emit -->')")]"
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding error error-unreadable case alpha)")
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry-bounded.json)" 2>&1)
+  status=$?
+  assert_eq "8" "$status" "a finding that determined nothing fails the run: $out"
+  assert_eq "0" "$(recorded "$log" 'issue close')" "the summary is not closed by a failed check"
+  assert_eq "0" "$(recorded "$log" 'issue comment')" "and nothing is recorded on it either"
+  assert_not_contains "$out" "action=closed" "the report claims no closure"
 }
 
 # ----------------------------------------------------------------------------- 4. the lifecycle

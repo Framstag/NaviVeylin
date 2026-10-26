@@ -76,7 +76,7 @@ mutation_invariant() {
     'basis-carries-the-run-timestamp') echo "a repeated run with nothing changed must score nothing (task 8.4, D3, D9)" ;;
     'band-edge-leaves-a-hole') echo "every score the model can produce falls in exactly one band (task 8.5, D2)" ;;
     'classify-writes-the-opt-in') echo "the pass cannot write the automation opt-in (task 8.6, D7)" ;;
-    'the-writer-skips-the-marker') echo "the band label and the body marker cannot drift apart (task 8.7, D1)" ;;
+    'the-writer-skips-the-marker') echo "the band label and the body marker cannot drift apart (task 8.7, D1; the write gate of #671)" ;;
     *) echo "" ;;
   esac
 }
@@ -184,22 +184,6 @@ probe_opt_in_write() { # 0 when the check catches a run whose log carries the op
   return 0
 }
 
-probe_marker_drift() { # 0 when the check catches a stored label without its marker
-  local dir out status
-  dir=$(fixture_dir 1)
-  metadata_scores 1 > "$dir/scores.json"
-  GH_STUB_DIR="$dir" metadata_store "$dir" 1 "$dir/scores.json" ||
-    { report_probe "  the write could not be applied to the fixture"; return 1; }
-  out=$(bash "$engine/check-metadata.sh" --issues "$dir/issues.json" 2>&1)
-  status=$?
-  [ "$status" -ne 0 ] || { report_probe "  the check accepted a label without its marker"; return 1; }
-  printf '%s' "$out" | grep -q 'label-without-marker' || {
-    report_probe "  the check failed for another reason: $out"
-    return 1
-  }
-  return 0
-}
-
 apply_mutation() {
   case "$1" in
     'basis-drops-labels')
@@ -227,15 +211,11 @@ apply_mutation() {
         }
         { print }' ;;
     'the-writer-skips-the-marker')
-      # The marker is composed in one home (`lib.sh`), so the mutation disables it there: both the composed
-      # body a case reads (`--body-of`) and the body the writer hands `update.sh` lose it, which is what makes
-      # the probe a real drift rather than a difference between two code paths.
-      patch "$engine/lib.sh" awk '
-        /^  local body=/ {
-          print "  printf \"%s\\\\n\" \"${1:-}\"; return 0   # mutated: the marker is never written"
-          next
-        }
-        { print }' ;;
+      # The pair is written by one home (`lib.sh`, "the band pair"), so the mutation disables it there: with no
+      # band namespace resolved, neither the writer nor the gate sees a band label, and the pass's write leaves
+      # the label half standing on its own. Before #671 the drift came out of the pass itself for the same
+      # reason; now the write path refuses it unless this gate is gone, which is what the probe measures.
+      patch "$engine/lib.sh" sed 's@^  namespace=\$(issues_core Bands meta.*@  namespace=""@' ;;
     *) return 1 ;;
   esac
 }
@@ -248,7 +228,7 @@ probe_mutation() {
     'basis-carries-the-run-timestamp') probe_case 'prioritise#secondRunScoresNothing' ;;
     'band-edge-leaves-a-hole') probe_core_case 'Bands#coversTheWholeRange' ;;
     'classify-writes-the-opt-in') probe_opt_in_write ;;
-    'the-writer-skips-the-marker') probe_marker_drift ;;
+    'the-writer-skips-the-marker') probe_case 'update#refusesABandLabelWithoutItsMarker' ;;
     *) return 1 ;;
   esac
 }

@@ -164,6 +164,12 @@ if [ "${#labels[@]}" -gt 0 ]; then
   fi
 fi
 
+# A created item carries no band: the pair is the label *and* the body's marker, and the body a create writes
+# is the finding's — it holds no marker for the pass to agree with, so any band label named here would be the
+# drift by construction. The metadata pass writes the pair, and nothing else may write half of it
+# (`lib.sh`, "the band pair"; issue #671).
+issues_band_pair_gate "$profile" "" "${labels[@]}" --
+
 # One namespace, one value. A merged set names two values of one namespace exactly when two labels share the
 # prefix before the separator — and every label here has passed the vocabulary gate, so that prefix is a
 # declared namespace. At filing time there is nothing to displace, so the rule is a refusal, not the

@@ -818,8 +818,11 @@ drifted apart therefore reaches the tracker as a verdict within a day, whoever w
 a skill, a hand edit on the web UI), instead of waiting for somebody to remember the live mode. It reports and
 repairs nothing: which half of a drifted pair is the wrong one is a judgement, so dropping a stale label or
 rewriting both halves together stays a person's edit. The row is the answer the owner recorded on #292
-(2026-10-25, option 1 of three); the refusal of a band label in `update.sh` it was weighed against is a later
-item, because prevention and detection answer different halves of the same root cause.
+(2026-10-25, option 1 of three); the prevention it was weighed against — the refusal of a band label in
+`update.sh` — landed later as the other half of the same root cause (issue #671): a call that names a
+`prio/<band>` label carries the `--body` whose marker records that band or is refused with
+`band-label-unpaired`/`band-label-disagrees` (`tools/issues/lib.sh`, "the band pair"), and `create.sh` writes
+no band at all, because the body it files carries no marker for one to agree with.
 
 One row watches a source unit's **size**, because nothing else does: `hotspot` scores size × change count, so
 a file nobody touches scores nothing however large it is. `source-size` measures **lines per tracked file**

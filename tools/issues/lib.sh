@@ -390,6 +390,103 @@ issues_prio_field() {
   printf '%s' "$marker" | grep -o "\b${name}=[^ ]*" | head -1 | cut -d= -f2-
 }
 
+# --------------------------------------------------------------------------- the band pair
+#
+# The pair is the label and the body's marker, and it is written together (`issue-priority`, "A band label is
+# written only with the body that carries its marker"). The rule lives here because a writer is not one script:
+# `prioritise.sh` writes through `update.sh`, and a person or a skill writes through the same one — a rule kept
+# in the pass alone would leave the other writer free to make the drift the `metadata-invariant` row only
+# reports (issue #671; `guidelines/Backlog.md` §9).
+
+# issues_band_label_values <profile> <label>… → the band values among them, one per line
+#
+# The namespace is the profile's, read through the core, so this names no band of its own and a project that
+# declares no bands answers nothing — the gate below then refuses nothing, which is what
+# `tooling-portability` asks of the engine.
+issues_band_label_values() { # <profile> <label>…
+  local profile="$1" namespace separator label
+  shift || true
+  [ "$#" -gt 0 ] || return 0
+  namespace=$(issues_core Bands meta --profile "$profile" 2>/dev/null | sed -n 's/^namespace=//p')
+  [ -n "$namespace" ] || return 0
+  separator=$(issues_profile_value namespaceSeparator)
+  separator="${separator:-/}"
+  for label in "$@"; do
+    case "$label" in
+      "$namespace$separator"*) printf '%s\n' "${label#"$namespace"$separator}" ;;
+    esac
+  done
+}
+
+# issues_band_pair_gate <profile> <body|""> <added label>… -- <removed label>…
+#
+# Refuses, before any write and with the two reason codes the drift is stated in from the other side:
+#
+#   band-label-unpaired   a band label named with no body — nothing records the band it asserts
+#   band-label-disagrees  the body's marker records another band than the label added, or still records the
+#                         band removed
+#
+# An empty body is the one a caller has no body for (a created item's), so every band label is unpaired there.
+issues_band_pair_gate() { # <profile> <body> <added label>… -- <removed label>…
+  local profile="$1" body="$2"
+  shift 2 || true
+  local namespace separator label first marker marker_band
+  local added=() removed=() added_values=() removed_values=()
+  while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do added+=("$1"); shift; done
+  if [ "$#" -gt 0 ]; then shift; fi
+  while [ "$#" -gt 0 ]; do removed+=("$1"); shift; done
+
+  namespace=$(issues_core Bands meta --profile "$profile" 2>/dev/null | sed -n 's/^namespace=//p')
+  [ -n "$namespace" ] || return 0
+  separator=$(issues_profile_value namespaceSeparator)
+  separator="${separator:-/}"
+
+  if [ "${#added[@]}" -gt 0 ]; then
+    while IFS= read -r label; do
+      [ -n "$label" ] || continue
+      added_values+=("$label")
+    done < <(issues_band_label_values "$profile" "${added[@]}")
+  fi
+  if [ "${#removed[@]}" -gt 0 ]; then
+    while IFS= read -r label; do
+      [ -n "$label" ] || continue
+      removed_values+=("$label")
+    done < <(issues_band_label_values "$profile" "${removed[@]}")
+  fi
+  if [ "${#added_values[@]}" -eq 0 ] && [ "${#removed_values[@]}" -eq 0 ]; then
+    return 0
+  fi
+
+  first=""
+  if [ "${#added_values[@]}" -gt 0 ]; then first="${namespace}${separator}${added_values[0]}"; fi
+  [ -n "$first" ] || first="${namespace}${separator}${removed_values[0]}"
+
+  if [ -z "$body" ]; then
+    issues_refuse "band-label-unpaired" \
+      "$first is written with no body — a band label and the marker recording it are one write, and a band label alone is the drift check-metadata.sh reports"
+  fi
+
+  marker=$(issues_prio_marker "$body")
+  marker_band=""
+  [ -z "$marker" ] || marker_band=$(issues_prio_field "$marker" band)
+
+  if [ "${#added_values[@]}" -gt 0 ]; then
+    for label in "${added_values[@]}"; do
+      [ "$label" != "$marker_band" ] || continue
+      issues_refuse "band-label-disagrees" \
+        "${namespace}${separator}${label} is written with a body whose marker records '${marker_band:-no band}'"
+    done
+  fi
+  if [ "${#removed_values[@]}" -gt 0 ]; then
+    for label in "${removed_values[@]}"; do
+      [ "$label" != "$marker_band" ] && continue
+      issues_refuse "band-label-disagrees" \
+        "${namespace}${separator}${label} is removed while the body's marker still records it"
+    done
+  fi
+  return 0
+}
+
 # --------------------------------------------------------------------------- the body record
 #
 # The body record is the block of `<!-- key: value -->` markers `create.sh` already writes

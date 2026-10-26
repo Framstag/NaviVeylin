@@ -135,6 +135,16 @@ if [ "${#remove_labels[@]}" -gt 0 ]; then
   issues_check_labels "$profile" "${remove_labels[@]}"
 fi
 
+# The band label and the body's marker are one write (`lib.sh`, "the band pair"): a call that names a band
+# label either carries the body that records the same band or is refused, so no write path of this tooling can
+# leave the pair apart — which is the drift `check-metadata.sh --live` reports and nothing repairs, because
+# which half of a drifted pair is wrong is a judgement (issue #292's recorded decision; issue #671).
+body_text=""
+if [ -n "$body_file" ]; then
+  body_text=$(cat "$body_file")
+fi
+issues_band_pair_gate "$profile" "$body_text" "${labels[@]}" -- "${remove_labels[@]}"
+
 # The state transition, after the gates and before the write: the item decides both what this call must
 # remove and whether its target is already there. Only a state write pays for the read, so a label- or
 # comment-only call is unchanged.

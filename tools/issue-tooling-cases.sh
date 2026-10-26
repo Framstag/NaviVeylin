@@ -50,6 +50,9 @@ ISSUES_SHELL_CASES=(
   'import#secondRunIsANoOp'
   'adapter#emitsOneFindingPerFixtureSection'
   'update#removeLabelRunsThroughTheSameGate'
+  'update#refusesABandLabelWithoutItsMarker'
+  'update#writesABandLabelWithTheBodysMarker'
+  'create#refusesABandLabelAtFilingTime'
   'update#statusReplacesTheOldStatus'
   'update#statusReplacementIsIdempotent'
   'update#statusRejectsTwoStatesInOneCall'
@@ -161,6 +164,9 @@ issues_run_shell_case() {
     'import#secondRunIsANoOp') case_import_secondRunIsANoOp ;;
     'adapter#emitsOneFindingPerFixtureSection') case_adapter_emitsOneFindingPerFixtureSection ;;
     'update#removeLabelRunsThroughTheSameGate') case_update_removeLabelRunsThroughTheSameGate ;;
+    'update#refusesABandLabelWithoutItsMarker') case_update_refusesABandLabelWithoutItsMarker ;;
+    'update#writesABandLabelWithTheBodysMarker') case_update_writesABandLabelWithTheBodysMarker ;;
+    'create#refusesABandLabelAtFilingTime') case_create_refusesABandLabelAtFilingTime ;;
     'update#statusReplacesTheOldStatus') case_update_statusReplacesTheOldStatus ;;
     'update#statusReplacementIsIdempotent') case_update_statusReplacementIsIdempotent ;;
     'update#statusRejectsTwoStatesInOneCall') case_update_statusRejectsTwoStatesInOneCall ;;
@@ -1333,6 +1339,84 @@ case_update_removeLabelRunsThroughTheSameGate() {
   out=$(run_tool update.sh 11 2>&1); status=$?
   assert_eq "2" "$status" "nothing to change is a usage error"
   return 0
+}
+
+# --------------------------------------------------------------------------- the band pair (#671)
+#
+# A band label is the selector over a stored record, and the record is the body's marker: the pair is one
+# write. The `metadata-invariant` row reports the drift it finds and repairs nothing (the owner's decision of
+# 2026-10-25, issue #292 — which half of a drifted pair is wrong is a judgement), so the only half left is
+# prevention: the write path that can set one without the other is the defect.
+
+band_tracker() { # <dir> → item 25 (a band label, no marker) and item 26 (the pair)
+  local dir="$1" marker
+  marker='<!-- prio: band=p1 score=6 sev=4 reach=1 conf=2 occ=1 basis=0000000000000000000000000000000000000000000000000000000000000000 at=2026-10-26 -->'
+  jq -n --arg marker "$marker" '
+    [{number: 25, title: "a band label with no marker", state: "OPEN", stateReason: "",
+      body: "The body, with no marker at all.", comments: [], author: {login: "Framstag"},
+      labels: [{name: "class/bug"}, {name: "prio/p1"}]},
+     {number: 26, title: "a band label with its marker", state: "OPEN", stateReason: "",
+      body: ("The body.\n\n" + $marker), comments: [], author: {login: "Framstag"},
+      labels: [{name: "class/bug"}, {name: "prio/p1"}]}]' > "$dir/issues.json"
+}
+
+case_update_refusesABandLabelWithoutItsMarker() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  band_tracker "$dir"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 25 --label prio/p2 2>&1); status=$?
+  assert_eq "3" "$status" "a band label added with no body is refused: $out"
+  assert_contains "$out" "band-label-unpaired" "the refusal names the pairing rule"
+
+  out=$(run_tool update.sh 25 --remove-label prio/p1 2>&1); status=$?
+  assert_eq "3" "$status" "a band label removed with no body is refused: $out"
+  assert_contains "$out" "band-label-unpaired" "the removal is the same rule"
+
+  [ ! -s "$log" ] || fail "a refused band write reached the tracker: $(cat "$log")"
+}
+
+case_update_writesABandLabelWithTheBodysMarker() {
+  local dir log out status edit
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  band_tracker "$dir"
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+  printf 'The body.\n\n<!-- prio: band=p2 score=8 sev=4 reach=1 conf=2 occ=1 basis=1111111111111111111111111111111111111111111111111111111111111111 at=2026-10-26 -->\n' \
+    > "$dir/body-p2"
+  printf 'The body.\n\n<!-- prio: band=p3 score=4 sev=2 reach=1 conf=2 occ=1 basis=2222222222222222222222222222222222222222222222222222222222222222 at=2026-10-26 -->\n' \
+    > "$dir/body-p3"
+
+  # The pass's own shape: the label and the body in one call, the old band removed beside them.
+  out=$(run_tool update.sh 26 --label prio/p2 --remove-label prio/p1 --body "$dir/body-p2" 2>&1); status=$?
+  assert_eq "0" "$status" "a band label carrying its marker is written: $out"
+  assert_eq "1" "$(grep -c 'issue edit' "$log")" "exactly one issue edit is issued"
+  edit=$(grep 'issue edit' "$log")
+  assert_contains "$edit" "--add-label prio/p2" "the band label travels"
+  assert_contains "$edit" "--remove-label prio/p1" "and the band it replaces"
+  assert_contains "$edit" "--body-file" "with the body that records it"
+
+  # A body whose marker records another band is the same drift, one call later.
+  : > "$log"
+  out=$(run_tool update.sh 26 --label prio/p2 --body "$dir/body-p3" 2>&1); status=$?
+  assert_eq "3" "$status" "a band label the body's marker contradicts is refused: $out"
+  assert_contains "$out" "band-label-disagrees" "the refusal names the disagreement"
+  [ ! -s "$log" ] || fail "a refused band write reached the tracker: $(cat "$log")"
+}
+
+# A created item's body carries no marker, so no band can agree with it: the pass assigns the pair, never the
+# filing.
+case_create_refusesABandLabelAtFilingTime() {
+  export GH_STUB_DIR="$ISSUES_FIXTURES"
+  local dir log finding out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_RECORD="$log"
+  finding=$(finding_json)
+
+  out=$(printf '%s' "$finding" | run_tool create.sh --label prio/p1 2>&1); status=$?
+  assert_eq "3" "$status" "a band label at filing time is refused: $out"
+  assert_contains "$out" "band-label-unpaired" "the refusal names the pairing rule"
+  [ ! -s "$log" ] || fail "a refused band label reached the tracker: $(cat "$log")"
 }
 
 # --------------------------------------------------------------------------- the state transition

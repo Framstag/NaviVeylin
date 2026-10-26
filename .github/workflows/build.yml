@@ -207,6 +207,13 @@ jobs:
           # are not run here: they mutate the tree (the loop's falsification run is a change-time step).
           bash tools/loop-mutations-selftest.sh
 
+      # ── loop spend ─────────────────────────────────────────────
+      # The analyser behind the `loop-spend` skill reads the children's event streams, so a renamed event field
+      # would turn it into a calm zero rather than a failure. Its case set runs on a fixture it writes itself:
+      # two items, a worker session with a repeated read and a gate call, a reviewer session. Offline, no token.
+      - name: Check loop spend analyser
+        run: bash tools/loop-spend-selftest.sh
+
       # ── backlog references ─────────────────────────────────────
       # Every `§N` a live file cites must still find its entry after `TODO.md` was deleted, and no live
       # line may name that file without citing one — that is the migration's whole justification

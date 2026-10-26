@@ -17,7 +17,8 @@ bash tools/loop-spend-selftest.sh            # 23 cases on a fixture the test wr
 
 The data source is `.pi/issue-loop/items/<issue>/events.jsonl` — the child's whole event stream, kept by
 `tools/pi-child-events.sh` for exactly this. `tools/loop/report.sh` prints one item's tokens and largest
-context; it does not answer *why*, and this skill is the *why*. The tool's own header (`tools/loop-spend.py`)
+context and flags the items above the band `LOOP_ITEM_TOKENS_WARN` records (`tools/loop/loop.conf`) — it does not
+answer *why*, and this skill is the *why*. The tool's own header (`tools/loop-spend.py`)
 carries the model; this file is how to read it and what to do next.
 
 ## Read the header block first

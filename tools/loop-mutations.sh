@@ -571,6 +571,15 @@ MUTATIONS=(
   # remaining budget cannot pay for, and the floor below what one item's gate owes lets an item start that pays for
   # its gate and loses the phases after a green round: the bound's own loss through the other door.
   '64.2@-@tools/loop/loop.conf@state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes@the item floor never recorded below what one item'"'"'s gate owes (issue #663)@s|^LOOP_ITEM_FLOOR_MINUTES=.*$|LOOP_ITEM_FLOOR_MINUTES=45|'
+
+  # 65.x — a run's report reads each item's spend against a recorded band (issue #662). Measured over the archive's
+  # states: the per-item median rose from 9.51 M to 18.30 M tokens in three days and no report said a word, because
+  # the tokens, the largest context and the run total were printed beside nothing. One record per site — the
+  # run-level line and the table's column — and the case that names both is `report#anItemOverTheTokenBoundIsFlagged`.
+  # A warning, never a stop: the mutation that matters is the one that makes the flag never fire, not one that
+  # changes an outcome, because no outcome is derived from it.
+  '65.1@-@tools/loop/report.sh@report#anItemOverTheTokenBoundIsFlagged@the run-level line that names the items above the recorded band (issue #662)@s|^if \[ "\$item_tokens_warn" -gt 0 \]; then$|if false; then|'
+  '65.2@-@tools/loop/state.sh@report#anItemOverTheTokenBoundIsFlagged@the table column that says how far above the band an item is (issue #662)@s|if \$over > 0 and \$tot != null and \$tot > \$over|if false|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

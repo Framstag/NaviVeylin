@@ -63,7 +63,9 @@ deliberately not a submodule, a package or a published binary (see *What an upda
    the expansion is what lets an inherited value win, and a plain assignment would ignore it), the one gitignored
    directory a stopped run copies into its leftovers patch (`LOOP_UNTRACKED_RECORD_DIR` — the project's own
    unarchived changes live in one, and a patch of the tracked diff alone would lose them), and how long one
-   self-test case may run (`LOOP_CASE_MAX_SECONDS`). The gate
+   self-test case may run (`LOOP_CASE_MAX_SECONDS`), and the per-item token band the report warns above
+   (`LOOP_ITEM_TOKENS_WARN` — the project's own p75 rather than this one's; `0` or no key records no band, and
+   nothing in the run reads it, so it costs a ported project one line at most). The gate
    command is the project's: leave it empty for a project with no build, and the phases still run while
    the report says the gate was skipped. The base branch is the project's too — a project on `trunk` or
    `develop` records it here, so nothing about the branch lives in the engine.

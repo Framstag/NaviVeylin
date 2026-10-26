@@ -122,6 +122,29 @@ printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reaso
   elif [ "$owner_gone" -eq 1 ]; then printf 'the run that wrote this state is gone — its process (pid %s) is not running and it recorded no reason' "$owner_pid";
   else printf 'not stopped — the run is still going, or it ended without recording a reason'; fi)"
 
+# What each item spent, read against a recorded band (issue #662). The spend was printed beside nothing: the row
+# carried the item's tokens, the table a column, and the run a total, so a run that cost twice what the one before
+# it cost printed the same shapes as a healthy one. The bound is a recorded value (`LOOP_ITEM_TOKENS_WARN`,
+# beside the two clocks in loop.conf) and this line names the items above it, because the column's ratio is read
+# against it. It is a **warning, never a stop**: nothing below changes an item's outcome, so the line says what
+# was measured and the caller decides. A configuration that records `0` — or no key at all, which is what a ported
+# project's loop.conf is — flags nothing, and the line says the flag is off rather than `none`, which would read as
+# a measurement nobody made (the rule the spend columns already follow for an unreported figure).
+item_tokens_warn=$(loop_conf_value LOOP_ITEM_TOKENS_WARN)
+case "$item_tokens_warn" in ''|*[!0-9]*) item_tokens_warn=0 ;; esac
+if [ "$item_tokens_warn" -gt 0 ]; then
+  printf 'over the item token bound (%s tokens): %s\n' "$item_tokens_warn" "$(jq -r --argjson b "$item_tokens_warn" '
+    [ .items[]
+      | ((.metrics.tokens // null) as $t
+         | if $t == null then null
+           else (($t.input // 0) + ($t.output // 0) + ($t.cacheRead // 0) + ($t.cacheWrite // 0)) end) as $tot
+      | select($tot != null and $tot > $b)
+      | "#\(.issue) \(((($tot / $b) * 10) | round) / 10)x" ]
+    | if length == 0 then "none" else join(" · ") end' "$state_file")"
+else
+  printf 'over the item token bound: off — LOOP_ITEM_TOKENS_WARN records %s, so no item is flagged\n' "$item_tokens_warn"
+fi
+
 # The run's own table is the same reader as `state.sh report`, pointed at the same file.
 LOOP_STATE_FILE="$state_file" bash "$LOOP_DIR/state.sh" report
 

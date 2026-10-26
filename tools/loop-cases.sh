@@ -242,6 +242,7 @@ LOOP_SHELL_CASES=(
   'report#landedBranchIsNoAction'
   'report#landedBranchesAreNamedAsRemovable'
   'report#emptyRunSaysNone'
+  'report#anItemOverTheTokenBoundIsFlagged'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#sweepsOnlyWhatIsInTheBase'
@@ -533,6 +534,7 @@ loop_run_shell_case() {
     'report#landedBranchIsNoAction') fn=case_report_landedBranchIsNoAction ;;
     'report#landedBranchesAreNamedAsRemovable') fn=case_report_landedBranchesAreNamedAsRemovable ;;
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
+    'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#sweepsOnlyWhatIsInTheBase') fn=case_clean_sweepsOnlyWhatIsInTheBase ;;
@@ -6899,15 +6901,15 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_eq "blocked" "$(table_cell "$row_muted" 13)" "that row is still a block"
   assert_eq "no mechanism caused this one" "$(table_cell "$row_muted" 14)" \
     "whose reason is its own note, so - in the stop column is not a row without a reason"
-  # Fifteen columns, so sixteen separators: the wall, the reason and the three spend columns were added, then
-  # the block's mechanism, and nothing was dropped.
+  # Sixteen columns, so seventeen separators: the wall, the reason and the three spend columns were added, then
+  # the block's mechanism, then the band an item's spend is read against (issue #662), and nothing was dropped.
   # The row keeps its shape with the new column, and the block neither mechanism caused has the same shape as the
   # others.
-  assert_eq "16" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
-    "the row keeps its fifteen columns"
-  assert_eq "16" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+  assert_eq "17" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its sixteen columns"
+  assert_eq "17" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
-  assert_eq "16" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
+  assert_eq "17" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
     "and so does a block no mechanism caused"
 }
 
@@ -6999,6 +7001,60 @@ case_report_emptyRunSaysNone() {
   assert_contains "$block" "none — no decision" "and says none, with what that covers"
   lines=$(printf '%s\n' "$block" | grep -c . || true)
   assert_eq "2" "$lines" "the heading and the one word, not an omitted section"
+}
+
+# A run's spend has a band it can be read against (issue #662): the report printed an item's tokens, its largest
+# context and a run-level total, and held no bound against any of them, so an item that cost twice what it used to
+# read exactly like a healthy one — over the archive the per-item median doubled from 9.51 M to 18.30 M tokens in
+# three days and no report said a word. `LOOP_ITEM_TOKENS_WARN` records the band, an item above it carries how far
+# above it is in a column of its own, and the run-level line names the items. It is a **warning, never a stop**:
+# a bound that ended an item would trade a measurement for a refusal and would fire hardest on the items that were
+# hardest to land, so both items here keep the outcome their work earned.
+case_report_anItemOverTheTokenBoundIsFlagged() {
+  # files: tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out row_over row_under
+  d=$(scratch); p=$(new_project)
+  # The band is a recorded value, so the case measures against one of its own rather than following the project's.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_ITEM_TOKENS_WARN=.*/LOOP_ITEM_TOKENS_WARN=1000000/' "$LOOP_ENGINE/loop.conf" > "$conf" ||
+    fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  # 2 500 000 tokens = input 100 000 + output 200 000 + cacheRead 2 200 000, which is 2.5x the bound.
+  cat > "$d/over.jsonl" <<'JSONL'
+{"type":"message_update","usage":{"input":100000,"output":200000,"cacheRead":2200000,"cacheWrite":0,"cost":{"total":0}}}
+{"type":"turn_end","message":{"role":"assistant","content":[]},"toolResults":[]}
+JSONL
+  # 230 000 tokens, well below the bound.
+  cat > "$d/under.jsonl" <<'JSONL'
+{"type":"message_update","usage":{"input":10000,"output":20000,"cacheRead":200000,"cacheWrite":0,"cost":{"total":0}}}
+{"type":"turn_end","message":{"role":"assistant","content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/over.jsonl" >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 42 --events "$d/under.jsonl" >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "over the item token bound (1000000 tokens): #21 2.5x" \
+    "the run names the item above the bound and how far above it is"
+  assert_not_contains "$(printf '%s\n' "$out" | grep '^over the item token bound' || true)" "#22" \
+    "and the item below it is not named"
+  row_over=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
+  row_under=$(printf '%s\n' "$out" | grep '^| #22 |' || true)
+  [ -n "$row_over" ] || fail "no table row for #21"
+  assert_eq "2.5x" "$(table_cell "$row_over" 16)" \
+    "the row above the bound says how far above it is, in a column of its own"
+  assert_eq "-" "$(table_cell "$row_under" 16)" "and a row below it prints -, not a zero"
+  assert_contains "$out" "closed 2 · mis-diagnosed 0 · skipped 0 · blocked 0" \
+    "the bound is a warning: both items keep the outcome their work earned"
+  # A project that records no band flags nothing, and the line says the flag is off rather than `none` — which
+  # would read as a measurement nobody made, the rule the spend columns already follow for an unreported figure.
+  sed -e 's/^LOOP_ITEM_TOKENS_WARN=.*/LOOP_ITEM_TOKENS_WARN=0/' "$conf" > "$d/off.conf"
+  export LOOP_CONF="$d/off.conf"
+  out=$(run_report "$p") || fail "the report failed with the bound off"
+  assert_contains "$out" "over the item token bound: off" "a bound of 0 is off, and the report says so"
+  row_over=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
+  assert_eq "-" "$(table_cell "$row_over" 16)" "and no row is flagged by a bound that is off"
 }
 
 # ----------------------------------------------------------------------------- cases: the leftovers

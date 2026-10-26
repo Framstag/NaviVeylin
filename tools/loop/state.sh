@@ -572,12 +572,19 @@ child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,con
 # `-` where no block stopped on one (issue #280).
 cmd_report() {
   require_state
-  jq -r '
+  # The band an item's spend is read against (issue #662), beside the clocks it belongs with. `0` — or a
+  # configuration that records no key, which is what a ported project's is — flags nothing, so the column prints
+  # `-` for every row exactly as a row that reported no spend does; report.sh's run-level line says which of the
+  # two it is, and nothing here decides an item's outcome from it.
+  local tokens_warn
+  tokens_warn=$(loop_conf_value LOOP_ITEM_TOKENS_WARN)
+  case "$tokens_warn" in ''|*[!0-9]*) tokens_warn=0 ;; esac
+  jq -r --argjson over "$tokens_warn" '
     "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop |",
-    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — |"
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -600,7 +607,15 @@ cmd_report() {
        # mechanism is given, and only a mechanism block carries a word: all three print `-`, and `//` alone does
        # not, because it yields the empty string for an empty one (#280, review round 1).
        | ((.stopReason // "") | if . == "" then "-" else . end) as $stopcol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) |") end),
+       # The band column (issue #662): how far above the recorded bound the spend is, and `-` otherwise — below it,
+       # no band recorded, or no spend reported at all, which is the same answer the token cell gives. Appended
+       # after the mechanism, so every column the report already had keeps its name and its order.
+       | ((.metrics.tokens // null) as $tk
+          | (if $tk == null then null
+             else (($tk.input // 0) + ($tk.output // 0) + ($tk.cacheRead // 0) + ($tk.cacheWrite // 0)) end) as $tot
+          | if $over > 0 and $tot != null and $tot > $over
+            then "\(((($tot / $over) * 10) | round) / 10)x" else "-" end) as $overcol
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

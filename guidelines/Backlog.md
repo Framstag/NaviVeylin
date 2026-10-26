@@ -390,6 +390,20 @@ the longest heartbeat read `291m30s`, and not one carried a `LOOP-TIMEOUT` line 
 after, a child that finished inside the window between the fork and the clear had its own record deleted, and
 the run waited the cap's length for a child that had already exited — the same symptom, one fork wide.
 
+The clock and the gate are not what a run spent. What an item cost in tokens had no bound either: the report
+printed an item's tokens, its largest context and a run-level total and compared them with nothing, so a run that
+cost twice what the one before it cost printed the same shapes as a healthy one — over the archive's states the
+per-item median rose from 9.51 M to 18.30 M tokens across three days and no report said a word, and the drift was
+found only by reading every child's event stream by hand (issue #662). `LOOP_ITEM_TOKENS_WARN` records the band
+— 16 858 818, the p75 of the 164 items whose spend a state records, 1.95× their median of 8 656 911 (p90 22 958
+848, maximum 44 163 688; read over `.pi/issue-loop/run.json` and `runs/*.json`) — and it is the p75 rather than the
+p90 because "twice what it used to" is where 1.95× sits, while 2.65× would sit above most
+of the items of the run that was missed, whose per-item median had already reached 18.30 M. The cost is a flag on
+about one item in four, the hardest among them — which is the point, since a regression multiplies exactly those.
+Nothing in the run reads the key: an item above the band is worked, reviewed, gated and closed exactly as before,
+and a project that records no key (or `0`) flags nothing. *Why* an item cost what it did stays the analysis
+question, and `tools/loop-spend.py` (skill `loop-spend`) is its tool.
+
 **The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
 watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it
 reports on elapsed **seconds** (`SECONDS` against its own base), not on the number of looks it took, so
@@ -656,7 +670,9 @@ prose (issue #280 — 198.8 M of refusing rounds against 22.9 M of merge refusal
 as `blocked`); **what each one cost** — the wall time
 `done --wall` records, and beside it the spend read from the child's own event stream: the tools it called with
 their count, the tokens it used and what they cost, the largest context it reached, with `-` where nothing was
-reported rather than a zero that reads as a measurement (#211) — beside the run-level `spent`; and **what the
+reported rather than a zero that reads as a measurement (#211) — beside the run-level `spent`, and each item's tokens read against the band
+`LOOP_ITEM_TOKENS_WARN` records: the row of an item above it carries how far above it is in a column of its own
+and the run-level line names the items above it, which is a **warning and never a stop** (#662); and **what the
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the

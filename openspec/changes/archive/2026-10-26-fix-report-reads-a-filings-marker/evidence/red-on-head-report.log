@@ -1,0 +1,9 @@
+  a filing's own marker is the row's last measurement: row=fixture-emit last=never verdict=- measurement=- issue=- clear=0 violation=0 occurrences=0 trend=-
+stale row=fixture-emit no measurement on record — the row has never run or never filed
+row=fixture-error last=never verdict=- measurement=- issue=- clear=0 violation=0 occurrences=0 trend=-
+stale row=fixture-error no measurement on record — the row has never run or never filed: 'row=fixture-emit last=2026-10-26T08:20:00Z verdict=violation measurement=5757 issue=#61' not found in: row=fixture-emit last=never verdict=- measurement=- issue=- clear=0 violation=0 occurrences=0 trend=-
+stale row=fixture-emit no measurement on record — the row has never run or never filed
+row=fixture-error last=never verdict=- measurement=- issue=- clear=0 violation=0 occurrences=0 trend=-
+stale row=fixture-error no measurement on record — the row has never run or never filed
+FAIL report#aFiledRowIsReported
+exit=1

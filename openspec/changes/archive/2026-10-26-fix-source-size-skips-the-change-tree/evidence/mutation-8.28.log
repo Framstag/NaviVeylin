@@ -1,6 +1,7 @@
-# The falsification of the new case: the exclusion dropped from the measurement.
+# Mutation 8.28 — the falsification of sensors#sourceSizeSkipsTheChangeTree after the correction round
+# (the case carries one more assertion; the mutation is unchanged):
 #   bash tools/sensor-mutations.sh --only 8.28
-# exit 0, wall 2.604 s, 2026-10-26T21:22:31Z
+exit 0, wall 2.739 s, 2026-10-26T22:07:38Z
 MUTATION 8.28: sensors#sourceSizeSkipsTheChangeTree red under the mutation, green after the restore — the change tree is not the source tree, so a frozen evidence copy is not a condition (issue #670)
 
 sensor-mutations: 1 behaved, 0 did not

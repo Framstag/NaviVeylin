@@ -27,10 +27,12 @@ sizes=$(git ls-files -z '*.kt' '*.java' ':(exclude)openspec/changes/' 2>/dev/nul
 the comparison, the consecutive count, the fingerprint field and the registry row are untouched, and the
 threshold still arrives in `SENSORS_THRESHOLD`.
 
-The clearing half needs no change and is checked anyway (`evidence/sensor-condition-clears.log`): the loop that
-reports a recorded open condition computes the path's size from the ranked list, and a path that is out of scope
-is absent from it, so `current=0` and the condition is reported `clear` under its own identity — which is exactly
-how issue #670 closes once this lands.
+The clearing half needs one branch, and it is checked on the real tree (`evidence/sensor-condition-clears.log`):
+the loop that reports a recorded open condition computes the path's size from the ranked list, so a path the
+exclusion removed is absent from it — and an absent path has no line count, so the loop reports
+`"measurement":"outside-scope"` and `"verdict":"clear"` under the condition's own identity instead of the `0` it
+would otherwise carry. That number is the one the item closes on: without the branch the clear would state a count
+nobody took, which is the defect the row exists to report, restated in its own clearing half (issue #670).
 
 ## Why these alternatives were eliminated
 
@@ -70,9 +72,8 @@ four were attributed rather than blamed (`guidelines/Build.md` §4d): each passe
 (`evidence/gate-red-attribution.log`, `PASS`, exit 0, 2026-10-26T22:01:39Z–22:02:09Z), and none names a path this
 delta touches. Both numbers are quoted in that file; the residual is a person's to file, because this worker does
 not write the tracker. The gate's own aggregate line is `evidence/gate-summary.txt`.
-`evidence/gate-attempt-1-killed.log` keeps the first attempt: the worker harness's own call timeout ended it
-inside step 1 (no `gate: … — Ns` line, no summary, no tally), which is why there is a second run and not a suite
-that failed.
+The first gate attempt left no log: the worker harness's own call timeout ended it inside step 1 (no
+`gate: … — Ns` line, no summary, no tally), which is why there is a second run and not a suite that failed.
 
 ## Rollback
 

@@ -36,7 +36,7 @@ own requirement names ("an item closes when that path drops under the bound"): t
 lines and stays there for as long as the archive holds its evidence.
 
 **Red test on HEAD, before the fix** (`evidence/red-on-head.log`,
-`evidence/red-on-head-sensors_sourceSizeSkipsTheChangeTree.xml`, `tests="1" failures="1"`, 2026-10-26T21:20:33Z):
+`evidence/red-on-head.xml`, `tests="1" failures="1"`, 2026-10-26T21:22:18Z):
 
 ```
 $ bash tools/sensor-selftest.sh --case sensors#sourceSizeSkipsTheChangeTree

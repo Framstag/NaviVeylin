@@ -1,4 +1,4 @@
-# The same case on the repaired tree (the fix applied):
+# The same case on the repaired tree (the fix applied, and the live-file line count asserted):
 #   bash tools/sensor-selftest.sh --case sensors#sourceSizeSkipsTheChangeTree
-# exit 0, wall 1.380 s, 2026-10-26T21:22:14Z
+exit 0, wall 1.243 s, 2026-10-26T22:07:13Z
 PASS sensors#sourceSizeSkipsTheChangeTree

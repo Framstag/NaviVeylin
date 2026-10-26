@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of evidence/sensor-suite-correction.log: the sensor tooling suite on the corrected tree, derived
+     from its summary line, wall time 63.065 s. -->
+<testsuite name="bash tools/sensor-selftest.sh (corrected tree)" tests="62" failures="0" errors="0" time="63.065">
+  <system-out>sensor-selftest: all 62 cases passed (JDK 27, offline, no token) (2026-10-26T22:07:44Z, wall 63.065 s)</system-out>
+</testsuite>

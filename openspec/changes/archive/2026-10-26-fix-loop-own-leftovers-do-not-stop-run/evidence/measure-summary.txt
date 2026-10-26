@@ -1,4 +1,4 @@
-LOOP-MEASURE-SUITE cases=237 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-SUITE cases=238 cmd=tools/loop-selftest.sh --list
 LOOP-MEASURE-GATE seconds=984 suites=23
-LOOP-MEASURE-CHANGE 2026-10-26-fix-loop-own-leftovers-do-not-stop-run scenarios=5 cases=5 unnamed=0
-LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 1 mutation record added (13.10), 6 records re-pointed at re-indented lines
+LOOP-MEASURE-CHANGE 2026-10-26-fix-loop-own-leftovers-do-not-stop-run scenarios=6 cases=6 unnamed=0
+LOOP-MEASURE-SURFACE surface: 2 cases added, 0 rewritten, 2 mutation records added (13.10, 13.11), 8 records re-pointed at re-indented lines and moved call sites

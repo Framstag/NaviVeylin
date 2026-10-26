@@ -90,11 +90,12 @@ tree with no patch at all, which is the rule issue #173 keeps and this change do
   `evidence/red-on-head.log` / `evidence/red-on-head.xml` (`tests="1" failures="1"`), then
   `evidence/green-after-fix.log`.
 - The refusal it must not weaken: `run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds`,
-  `run#aRefusedStartKeepsTheLeftoversItFound`, and the 89 `run#` cases the delta's paths declare —
-  `evidence/focused-run-cases.log` (`all 89 cases passed`).
-- The invariant, one mutation per check: `13.10` makes the retry never happen and the new case goes red; the six
-  re-pointed records keep their cases red under their own mutation — `evidence/focused-mutations.log`
-  (`red-when-mutated: 7 · not-noticed: 0 · restore-failures: 0`).
+  `run#aRefusedStartKeepsTheLeftoversItFound`, and the `run#` cases the delta's paths declare —
+  `evidence/focused-run-cases.log` (`all 90 cases passed`).
+- The invariant, one mutation per check: `13.10` makes the retry never happen and the new case goes red; `13.11` makes
+  the retry's own refusal read as dirt and `run#aRetriedStartStopsWithItsOwnReason` goes red; the re-pointed records
+  keep their cases red under their own mutation — `evidence/focused-mutations.log` (the round-1 set, `red-when-mutated:
+  7`) and `evidence/focused-mutations-round2.log` (`red-when-mutated: 9 · not-noticed: 0 · restore-failures: 0`).
 - The project's gate, once: `./tools/loop/gate.sh`.
 
 ## Round 2 — the two defects the first review round found
@@ -126,11 +127,20 @@ carrying an archived change of its own, then outlasts the cap; the second item's
 discard clears it, and the retry is refused for the branch. Asserted: the stop reason is the retry's, it names
 neither `the worktree is not clean` nor another item's leftovers, the patch still carries the work the discard relied
 on, and no second worker ran. Mutation `13.11` makes the dispatch read a constant that always looks like dirt and the
-case goes red.
+case goes red (`evidence/focused-mutations-round2.log`, `RED 13.11 run#aRetriedStartStopsWithItsOwnReason`).
 
 Left open, and argued rather than fixed: the *residual* path of finding 2 has no fixture. Reaching it needs a tree
 whose discard half-succeeds, which means a worktree whose submodule is initialised and carries a file of its own —
 the shipped `run#resetWorktreeNamesTheDirtItCannotDiscard` seeds exactly that for the `--reset-worktree` path, and
 reproducing it mid-run would need two runs and a module prepared between them. The guard is one conditional on a path
-whose residual the shipped case already measures; it is not covered by a case, and a mutation for it would report
-`not-noticed`.
+whose residual the shipped case already measures. Measured in round 2 rather than assumed: removing the guard
+(`own_leftovers_of "$owner_item" || keep_leftovers "$owner_item"` → `keep_leftovers "$owner_item"`) leaves
+`run#aRetriedStartStopsWithItsOwnReason` **green**, because the retry's own refusal stops the run before the
+attribution is reached — so a `13.12` record would report `not-noticed`, and none is added.
+
+Two further notes of that round, neither taken and both recorded rather than silently dropped: the naming line
+(`discarding the work #N left …`) prints *after* `discard_kept_worktree` has already printed the paths it removes,
+although the function's comment says the caller names the work first; and a retry refused with *carries commits the
+base does not* stops the run where the first start's own arm would adopt the finished attempt and carry on. Both are
+behaviour of a path that only opens after a discard, both are cosmetic relative to this change's two findings, and
+both are cheaper as one change of their own.

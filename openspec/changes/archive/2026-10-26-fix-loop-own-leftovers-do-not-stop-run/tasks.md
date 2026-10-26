@@ -19,14 +19,14 @@
   task is what makes it observable.
 - [x] Discard that tree and retry `start-item` once in the `*"not clean"*` arm; leave every other refusal path as it
   is. Verify: the new case passes, and `run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds` and
-  `run#aRefusedStartKeepsTheLeftoversItFound` still stop as before (`evidence/focused-run-cases.log`, `all 89 cases
+  `run#aRefusedStartKeepsTheLeftoversItFound` still stop as before (`evidence/focused-run-cases.log`, `all 90 cases
   passed` over the cases `tools/loop/run.sh` declares).
 
 ## 3. The invariant, one mutation per check
 
 - [x] Add record `13.10` to `tools/loop-mutations.sh` (the retry never happens → the new case goes red) and re-point
   `13.5`, `13.8`, `13.9`, `53.1`, `53.3`, `62.6` at the re-indented lines without changing what they assert. Verify:
-  `bash tools/loop-mutations.sh --check --files tools/loop/run.sh` reports `all 71 cases passed`, and
+  `bash tools/loop-mutations.sh --check --files tools/loop/run.sh` reports `all 72 cases passed`, and
   `--only "13.5 13.8 13.9 13.10 53.1 53.3 62.6"` reports `red-when-mutated: 7 · not-noticed: 0 ·
   restore-failures: 0` (`evidence/focused-mutations.log`).
 
@@ -56,7 +56,8 @@
 
 - [x] The retried start's own refusal is the one recorded (`run.sh:1286`–`1291`): dirt keeps the attribution,
   anything else stops the run with the retry's first line. Verify: `run#aRetriedStartStopsWithItsOwnReason` passes and
-  `13.11` reddens it.
+  `13.11` reddens it — `evidence/focused-mutations-round2.log`, `RED 13.11 run#aRetriedStartStopsWithItsOwnReason`,
+  `red-when-mutated: 9 · not-noticed: 0 · restore-failures: 0` over the nine records the arm and its neighbours own.
 - [x] The attribution does not write an item's patch again when this run already wrote it (`run.sh:1299`). Verify: the
   case's patch assertion (`half-applied.txt` still there) and the shipped `run#aRefusedStartKeepsTheLeftoversItFound`.
 - [x] One derivation of the patch path (`leftover_patch_of`) for its three readers, and the repair's prefix as a

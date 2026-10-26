@@ -47,11 +47,13 @@ argument (`guidelines/Backlog.md:515`–`517` on the base), so that paragraph ga
 surface: 1 case added, 0 rewritten, 1 mutation record added (13.10), 6 records re-pointed at re-indented lines
 (13.5, 13.8, 13.9, 53.1, 53.3, 62.6), 1 requirement added with 2 scenarios, 1 requirement modified with its 3
 scenarios repeated verbatim — the counts are `grep -c theStartAfterTheRunsOwnEndedChildIsNotRefused
-tools/loop-cases.sh` (`3`: the declared set, the dispatch table, the body — 237 cases against 236 before),
-`bash tools/loop-mutations.sh --list | wc -l` (`176` against `175`) and
-`bash tools/loop-selftest.sh --list | wc -l` (`237`); the six re-pointed records are the ones the re-indentation of
-the extracted reset moved, and `bash tools/loop-mutations.sh --check --files tools/loop/run.sh` reports
-`all 71 cases passed` on the change and `6 of 70 … no longer apply` on the base without them.
+tools/loop-cases.sh` (`3`: the declared set, the dispatch table, the body — 238 cases against 237 before; the
+round-2 case `run#aRetriedStartStopsWithItsOwnReason` is the second),
+`bash tools/loop-mutations.sh --list | wc -l` (`177` against `176`) and
+`bash tools/loop-selftest.sh --list | wc -l` (`238`); the re-pointed records are the ones the re-indentation of
+the extracted reset and the moved `keep_leftovers` call sites moved, and `bash tools/loop-mutations.sh --check
+--files tools/loop/run.sh` reports
+`all 72 cases passed` on the change and `7 of 71 … no longer apply` on the base without them.
 
 ## What changes
 

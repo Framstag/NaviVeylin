@@ -1,0 +1,16 @@
+# The patch guard's own path, measured rather than assumed (review round 2, finding 2)
+#
+# The guard this change adds is `own_leftovers_of "$owner_item" || keep_leftovers "$owner_item"` (run.sh:1305): an
+# item whose work this run already wrote is not written again. Removing it was tried on the round-2 tree, to find out
+# whether a mutation record for it could be added:
+#
+#   sed 's#^          own_leftovers_of "$owner_item" || keep_leftovers "$owner_item"$#          keep_leftovers "$owner_item"#' tools/loop/run.sh
+#   bash tools/loop-selftest.sh --case 'run#aRetriedStartStopsWithItsOwnReason'
+#
+# and the answer was:
+PASS run#aRetriedStartStopsWithItsOwnReason
+# exit 0 — so no `13.12` record is added, because it would report `not-noticed`. The reason is the shape of the path
+# and not a weak case: the retry's own refusal stops the run before the attribution is reached, so the guard executes
+# only where the discard half-succeeded — the residual path that has no fixture (design.md, "Left open").
+#
+# Restored from a backup afterwards; `git status --porcelain` on the worktree carried nothing of the probe.

@@ -1,0 +1,21 @@
+== gate.sh sites that carried the pipe / PIPESTATUS on base ==
+148:stream=$(mktemp "${TMPDIR:-/tmp}/loop-gate-output.XXXXXX") \
+166:    $cmd 2>&1 | tee "$stream"
+167:    rc=${PIPESTATUS[0]}
+== mutation records naming the streaming invariant ==
+343:  # 46.1 is the stream that carries a suite output to the console while the suite runs. Measured 2026-10-23
+349:  '46.1@-@tools/loop/gate.sh@gate#theSuitesOutputReachesTheConsoleWhileItRuns@the stream that carries a suite output to the console whil
+533:  '63.1@-@tools/loop/gate.sh@gate#aStepEndsWithItsCommandNotWithItsWatchers@the step ending with the command it started, not with the pi
+== cases that name the stream/step clock ==
+405:    'gate#theSuitesOutputReachesTheConsoleWhileItRuns') fn=case_gate_theSuitesOutputReachesTheConsoleWhileItRuns ;;
+406:    'gate#aStepEndsWithItsCommandNotWithItsWatchers') fn=case_gate_aStepEndsWithItsCommandNotWithItsWatchers ;;
+407:    'gate#aFailingSuiteIsReadFromTheSameStream') fn=case_gate_aFailingSuiteIsReadFromTheSameStream ;;
+410:    'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
+3090:case_gate_theSuitesOutputReachesTheConsoleWhileItRuns() {
+3143:case_gate_aStepEndsWithItsCommandNotWithItsWatchers() {
+3197:case_gate_aFailingSuiteIsReadFromTheSameStream() {
+3324:case_gate_theSummaryNamesWhatEachSuiteCost() {
+== spec requirements that state it ==
+1706:### Requirement: The gate streams a suite's output while it runs
+== documents that quote the rule ==
+openspec/specs/agent-issue-loop/spec.md

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="./tools/loop/gate.sh (round 1, red)" tests="589" failures="1" errors="0">
+  <system-out>LOOP-GATE: tests=589 failures=1 errors=0 — the aggregate of round 1, read from the gate own summary line of evidence/gate-round1-red.log; the failing suite was tools/loop-selftest.sh --from-git 6e8b2889… and the case gate#aFailingSuiteIsReadFromTheSameStream (see evidence.md)</system-out>
+</testsuite>

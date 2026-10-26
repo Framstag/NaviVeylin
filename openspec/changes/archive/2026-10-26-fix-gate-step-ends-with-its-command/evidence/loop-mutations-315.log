@@ -1,0 +1,12 @@
+RED    46.1  gate#theSuitesOutputReachesTheConsoleWhileItRuns   (the stream that carries a suite output to the console while the suite runs (issue #269))
+restore 46.1 gate#theSuitesOutputReachesTheConsoleWhileItRuns green again
+RED    63.1  gate#aStepEndsWithItsCommandNotWithItsWatchers   (the step ending with the command it started, not with the pipe that command wrote into (issue #315))
+restore 63.1 gate#aStepEndsWithItsCommandNotWithItsWatchers green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+RED    46.1  gate#theSuitesOutputReachesTheConsoleWhileItRuns   (the stream that carries a suite output to the console while the suite runs (issue #269))
+restore 46.1 gate#theSuitesOutputReachesTheConsoleWhileItRuns green again
+RED    63.1  gate#aStepEndsWithItsCommandNotWithItsWatchers   (the step ending with the command it started, not with the pipe that command wrote into (issue #315))
+restore 63.1 gate#aStepEndsWithItsCommandNotWithItsWatchers green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

@@ -1,0 +1,8 @@
+# The red case on the run's base 6e8b2889 — the tree of this worktree with tools/loop/gate.sh restored from the base
+# and the new case in tools/loop-cases.sh (`git stash` was not used; the case was written and run before 1.1 was
+# applied). Taken 2026-10-26, `bash tools/loop-selftest.sh --case gate#aStepEndsWithItsCommandNotWithItsWatchers`.
+gate#aStepEndsWithItsCommandNotWithItsWatchers|   the step ran on after its command exited: still inside the gate 8s into a 20s writer that command left behind
+--- gate#aStepEndsWithItsCommandNotWithItsWatchers[0] (exit 1)
+  the step ran on after its command exited: still inside the gate 8s into a 20s writer that command left behind
+FAIL gate#aStepEndsWithItsCommandNotWithItsWatchers
+loop-selftest: 1 of 1 cases failed

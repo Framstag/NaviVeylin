@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case gate#aStepEndsWithItsCommandNotWithItsWatchers" tests="1" failures="1" errors="0" time="8">
+  <system-out>the step ran on after its command exited: still inside the gate 8s into a 20s writer that command left behind</system-out>
+</testsuite>

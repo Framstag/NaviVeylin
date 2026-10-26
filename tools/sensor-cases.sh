@@ -1723,6 +1723,10 @@ case_sensors_sourceSizeSkipsTheChangeTree() {
   findings=$(printf '%s\n' "$out" | grep '^{' || true)
   assert_contains "$findings" '"path":"app/src/main/java/Big.kt"' \
     "a live source file past the bound is still its own condition: $out"
+  # …and it carries its own line count, not the zero the change tree's exclusion must not leak into it: a scope
+  # that swallowed the count while keeping the path would pass the assertion above.
+  assert_contains "$findings" '"measurement":"1600"' \
+    "the live source file still reports its own line count: $out"
   assert_not_contains "$findings" 'Head.kt' \
     "a frozen copy a change keeps as evidence is not a source file: $findings"
   assert_not_contains "$findings" 'Case.kt' \

@@ -1,0 +1,28 @@
+MUTATION 8.1: guard#refusesOffMain red under the mutation, green after the restore — HEAD is the remote main branch
+MUTATION 8.2: workflow#onlyTwoTriggers red under the mutation, green after the restore — the trigger cap — schedule and dispatch only
+MUTATION 8.3: close#sensorScopeRefusesAForeignIssue red under the mutation, green after the restore — a check closes only what carries its own label
+MUTATION 8.4: run#errorIsNeverTreatedAsClear red under the mutation, green after the restore — a failed check posts nothing and fails the run
+MUTATION 8.5: run#hysteresisBothDirections red under the mutation, green after the restore — a close needs N consecutive clear runs
+MUTATION 8.6: run#escalatesPastKRecurrences red under the mutation, green after the restore — past K recurrences a check stops reopening
+MUTATION 8.7: reopen#refusesANotPlannedClosure red under the mutation, green after the restore — only a completed closure is reopened
+MUTATION 8.8: sensors#brokenMainFingerprintDistinguishesCauses red under the mutation, green after the restore — the condition fingerprint, not the check id, is the anchor
+MUTATION 8.9: sensors#engineNamesNoProjectValue red under the mutation, green after the restore — every row's command comes from the registry
+MUTATION 8.10: run#rowsRefusesAnUndeclaredId red under the mutation, green after the restore — a row a step names must be a row the registry declares
+MUTATION 8.11: workflow#aRedRecordRunsNoRecordRow red under the mutation, green after the restore — the record rows wait for a build that succeeded
+MUTATION 8.12: run#aDelayedTickSelectsTheRowsItWasScheduledFor red under the mutation, green after the restore — the window reaches back over the minutes since the previous tick
+MUTATION 8.13: workflow#theTickDeclaresItsWindow red under the mutation, green after the restore — every scheduled tick declares the interval it selects over
+MUTATION 8.14: run#theWindowDoesNotSelectThePreviousTicksRow red under the mutation, green after the restore — a window that is not a count of minutes is refused
+MUTATION 8.15: sensors#aRecordedConditionParsesToItsObject red under the mutation, green after the restore — the recorded condition parses to its object, not to the marker tail
+MUTATION 8.16: guard#eachCheckHasItsOwnReason red under the mutation, green after the restore — the identity guard reports an unread tracker instead of turning it into a verdict (issue #231)
+MUTATION 8.17: sensors#sourceSizeRow red under the mutation, green after the restore — a file past the row bound is a violation
+MUTATION 8.18: run#aClearWithNoIssueReachesTheRecord red under the mutation, green after the restore — a clear with no condition issue reaches the tracker on the row's record (issue #257)
+MUTATION 8.19: sensors#metadataDriftRow red under the mutation, green after the restore — a drifted priority pair is a condition, not a clear (issue #292)
+MUTATION 8.20: report#aFiledRowIsReported red under the mutation, green after the restore — the filing marker in the issue body is part of the row history (issue #668)
+MUTATION 8.21: run#aFilingSetsTheBaseline red under the mutation, green after the restore — the baseline is the newest marker the row carries, a filing included (issue #668)
+MUTATION 8.22: report#aTrendIsBetweenOneCondition red under the mutation, green after the restore — the marker carries its condition fingerprint, not the one the issue body would give it (issue #668)
+MUTATION 8.23: run#aRowPastItsBoundFilesItsBoundAndOneSummary red under the mutation, green after the restore — a run files at most the bound its row declares (issue #666)
+MUTATION 8.24: run#aRowUnderItsBoundFilesNoSummary red under the mutation, green after the restore — a summary is filed only when the bound left a condition over (issue #666)
+MUTATION 8.25: run#aSummaryClosedByAPersonIsNotReopened red under the mutation, green after the restore — a summary a person closed is annotated, never reopened (issue #666)
+MUTATION 8.26: run#aFailedCheckDoesNotClearTheSummary red under the mutation, green after the restore — a run in which a finding failed clears no summary (issue #666)
+MUTATION 8.27: run#aSecondOverBoundRunListsWhatItDidNotFile red under the mutation, green after the restore — each over-bound run names the conditions it did not file (issue #666)
+sensor-mutations: 27 behaved, 0 did not

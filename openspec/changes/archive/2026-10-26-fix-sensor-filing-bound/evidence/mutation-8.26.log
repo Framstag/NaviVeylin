@@ -1,0 +1,2 @@
+MUTATION 8.26: run#aFailedCheckDoesNotClearTheSummary red under the mutation, green after the restore — a run in which a finding failed clears no summary (issue #666)
+sensor-mutations: 27 behaved, 0 did not

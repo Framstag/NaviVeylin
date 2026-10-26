@@ -1,0 +1,2 @@
+MUTATION 8.23: run#aRowPastItsBoundFilesItsBoundAndOneSummary red under the mutation, green after the restore — a run files at most the bound its row declares (issue #666)
+sensor-mutations: 27 behaved, 0 did not

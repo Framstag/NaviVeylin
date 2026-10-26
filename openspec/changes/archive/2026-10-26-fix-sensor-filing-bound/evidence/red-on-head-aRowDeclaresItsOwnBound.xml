@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/sensor-selftest.sh --case run#aRowDeclaresItsOwnBound" tests="1" failures="1" errors="0" time="3">
+  <system-out>  the row's own bound is what bounds it: expected '3', got '5'
+FAIL run#aRowDeclaresItsOwnBound (2026-10-26T18:13:39Z)</system-out>
+</testsuite>

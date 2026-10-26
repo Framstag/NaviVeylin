@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/sensor-selftest.sh --case run#theSummaryClearsWhenTheRowIsBackUnderItsBound" tests="1" failures="1" errors="0" time="3">
+  <system-out>  the open summary closes: expected '1', got '0'
+FAIL run#theSummaryClearsWhenTheRowIsBackUnderItsBound (2026-10-26T18:13:49Z)</system-out>
+</testsuite>

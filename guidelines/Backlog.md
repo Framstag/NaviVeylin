@@ -770,11 +770,12 @@ nothing of the bound: none of them makes the tracker grow.
 A row's **first exercise** is the one run whose blast radius nobody has seen, and the state is already printed:
 the report calls it `stale row=<id> no measurement on record`. The unattended tick therefore **reports that run
 instead of spending it** — it prints `first exercise: row=<id> findings=<n>` and writes nothing at all, no condition,
-no record issue and no summary — and the first exercise is spent by the run a person dispatched with `apply=true`,
+no record issue and no summary — and the first exercise is spent by a dispatch that asked to write (`apply=true`),
 which records the measurement every later run is compared against. The engine reads the trigger the pipeline names
-(`SENSORS_TRIGGER`, GitHub's own `event_name`), so a command run by hand, which names none, behaves as a dispatched
-one; the scheduled tick is the only run that reports and does not write (issue #667: 337 items from one `hotspot` row
-were filed before any count of them had been printed anywhere, and that row's report line read `last=never` throughout).
+(`SENSORS_TRIGGER`, GitHub's own `event_name`), so only the scheduled tick prints that count line: a run a person
+started records a measurement only when it asked to write, and a hand run — whose mode defaults to `--dry-run` —
+writes nothing and so leaves the row's first exercise unspent (issue #667: 337 items from one `hotspot` row were
+filed before any count of them had been printed anywhere, and that row's report line read `last=never` throughout).
 
 Beside the rows, the same scheduled worker runs the two repairs that are pure functions of the tracker's own
 fields, and one report that is deliberately not one: `tools/issues/labels.sh --apply` (a label outside the

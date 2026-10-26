@@ -29,9 +29,10 @@
 # `SENSORS_TRIGGER` is the trigger the calling pipeline names, when there is one — the sensor pipeline passes
 # GitHub's own `event_name`. `schedule` is the unattended tick, and a row with no measurement on record is
 # *reported* by it rather than spent: the run prints the count of findings it would have filed and writes
-# nothing, so a new bound's blast radius is measured before it reaches the tracker (issue #667). Every other
-# run — a dispatch, and a command run by hand, which names no trigger at all — is a run a person started, and
-# its first exercise records the measurement later runs are compared against.
+# nothing, so a new bound's blast radius is measured before it reaches the tracker (issue #667). A dispatch that
+# asked to write (`inputs.apply=true`) is the run a person started whose first exercise records the measurement
+# later runs are compared against; a hand run names no trigger and, its default mode being `--dry-run`, records
+# nothing either.
 #
 # The three outcomes (design D5):
 #
@@ -86,7 +87,7 @@ done
 # A dry run is the default; only `--apply` writes to the tracker.
 SENSORS_DRY_RUN="${SENSORS_DRY_RUN:-1}"
 # The trigger that started this run, as the pipeline that ran it names it: `schedule` is the unattended tick,
-# and an empty value is a run a person started (issue #667).
+# and an empty value is a run a person started — which records a measurement only if it asked to write (issue #667).
 SENSORS_TRIGGER="${SENSORS_TRIGGER:-}"
 # The window above is a count of minutes and it is the caller's to declare, so a value that is not one is
 # refused before anything is read: narrowing it silently to the tick's own minute is what made a late tick a
@@ -796,8 +797,8 @@ sensors_run_row() { # <row>
   # A row with no measurement on record has never exercised its bound, so nothing it would file has been fitted
   # against the tracker yet — the state `report.sh` prints as `stale row=<id> no measurement on record`. The
   # unattended tick reports that first exercise instead of spending it, so a new bound's blast radius is a count in
-  # the log before it is items on the tracker; a run a person started is the acknowledgement that records the first
-  # measurement, and every run after it finds one (issue #667).
+  # the log before it is items on the tracker; a dispatch that asked to write (`inputs.apply=true`) is the
+  # acknowledgement that records the first measurement, and every run after it finds one (issue #667).
   if [ "$SENSORS_TRIGGER" = "schedule" ] && [ -z "$baseline" ]; then
     SENSORS_FIRST_EXERCISE=1
   fi

@@ -1428,7 +1428,7 @@ case_run_aFailedCheckDoesNotClearTheSummary() {
 
 # A row's *first* exercise is the one run whose blast radius nobody has seen: the report prints
 # `stale row=<id> no measurement on record` for exactly this state, so the unattended tick reports the count it
-# would file and writes nothing, and the first exercise is spent by a run a person started (issue #667).
+# would file and writes nothing, and the first exercise is spent by a dispatch that asked to write (issue #667).
 case_run_aFirstExerciseOnATickReportsInsteadOfFiling() {
   local dir findings log out status
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
@@ -1468,7 +1468,7 @@ case_run_aDispatchedFirstExerciseRecordsItsMeasurement() {
   status=$?
   assert_eq "0" "$status" "an acknowledged first exercise succeeds: $out"
   assert_eq "3" "$(condition_creates "$log")" "a dispatch that asked to write records the row's first exercise"
-  assert_not_contains "$out" "first exercise" "no row is held back by a run a person started"
+  assert_not_contains "$out" "first exercise" "no row is held back by a dispatch that asked to write"
 }
 
 # ----------------------------------------------------------------------------- 4. the lifecycle

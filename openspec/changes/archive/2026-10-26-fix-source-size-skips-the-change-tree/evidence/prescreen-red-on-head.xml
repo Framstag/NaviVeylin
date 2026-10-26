@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/sensor-selftest.sh --case sensors#sourceSizeSkipsTheChangeTree" tests="1" failures="1" errors="0" time="2">
+  <system-out>  a frozen copy a change keeps as evidence is not a source file: 'Head.kt' unexpectedly present in: {"path":"openspec/changes/archive/a-change/evidence/Head.kt","measurement":"1600","verdict":"violation"}
+FAIL sensors#sourceSizeSkipsTheChangeTree (2026-10-26T21:09:19Z)</system-out>
+</testsuite>

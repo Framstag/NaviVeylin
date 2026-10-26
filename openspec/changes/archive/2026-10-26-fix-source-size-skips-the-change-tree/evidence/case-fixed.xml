@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of evidence/case-fixed.log: one run of the case on the repaired tree, wall time 1.380 s. -->
+<testsuite name="bash tools/sensor-selftest.sh --case sensors#sourceSizeSkipsTheChangeTree (repaired tree)" tests="1" failures="0" errors="0" time="1.380">
+  <testcase name="sensors#sourceSizeSkipsTheChangeTree" classname="sensor-selftest"/>
+  <system-out>PASS sensors#sourceSizeSkipsTheChangeTree (2026-10-26T21:22:14Z, wall 1.380 s)</system-out>
+</testsuite>

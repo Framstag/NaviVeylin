@@ -57,10 +57,13 @@ echo "$message"
 if [ -n "$out" ]; then
   failures=0
   [ "$verdict" = "pass" ] || failures=1
+  # The suite dates itself: without the attribute a reader can date the case only by the file's
+  # mtime, which a copy or a checkout moves (round-1 review of this change, NOTE on scenario 1).
+  timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   {
     printf '<?xml version="1.0" encoding="UTF-8"?>\n'
-    printf '<testsuite name="%s" tests="1" skipped="0" failures="%s" errors="0" time="0.0">\n' \
-      "$classname" "$failures"
+    printf '<testsuite name="%s" tests="1" skipped="0" failures="%s" errors="0" time="0.0" timestamp="%s">\n' \
+      "$classname" "$failures" "$timestamp"
     printf '  <testcase classname="%s" name="%s" time="0.0">\n' "$classname" "$case_name"
     if [ "$failures" -ne 0 ]; then
       printf '    <failure message="%s">%s module=%s\n' "$message" "$message" "$module"

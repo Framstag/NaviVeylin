@@ -33,8 +33,12 @@ again.
 
 ## Blast radius
 
-One test file. No production file, no fixture, no build script, no gradle property, no mutation record, no ledger
-entry. The module suite grows by one class and five cases (91 → 92 classes, 880 → 885 cases, 0 failures).
+One test file and one guideline sentence. No production file, no fixture, no build script, no gradle property, no
+mutation record, no ledger entry. `guidelines/Build.md` section 7's baseline gains the re-measurement this change
+produced (the section the map routes coverage to), so the rule and the number live beside each other. The module
+suite the change leaves behind is 92 classes / 885 cases / 0 failures
+(`evidence/module-suite-tally.txt`, `awk` over `auto/build/test-results/testDebugUnitTest/TEST-*.xml`); the base
+class count is not recorded, so this change states the count it left, not a delta.
 
 ## Alternatives the evidence eliminated
 
@@ -57,5 +61,6 @@ entry. The module suite grows by one class and five cases (91 → 92 classes, 88
 
 ## Rollback
 
-`git rm auto/src/test/java/com/naviveylin/auto/FreeDrivingScreenHostTest.kt`. Nothing else moved: the shipped spec
+`git rm auto/src/test/java/com/naviveylin/auto/FreeDrivingScreenHostTest.kt`, then drop the re-measurement
+sentence this change added to `guidelines/Build.md` section 7's baseline. Nothing else moved: the shipped spec
 gains the requirement, the change's own record and its evidence are the only other additions.

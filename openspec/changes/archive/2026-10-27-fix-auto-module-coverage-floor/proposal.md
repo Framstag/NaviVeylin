@@ -44,8 +44,9 @@ the plan was fixed:
 - `find auto/src/test -name '*Test.kt' | wc -l` → **92** test classes in the module: the change adds one, and
   none of them constructed `FreeDrivingScreen`, `NavigationScreen` or `NavigationSession`
   (`grep -rl … --exclude='FreeDrivingScreenHostTest.kt' | wc -l` → **0**).
-- `grep -c '^#### Scenario:' openspec/specs/test-coverage/spec.md` → **12** existing scenarios, none of which
-  asserts a module's suite reaching the row's floor.
+- `grep -c '^#### Scenario:' openspec/specs/test-coverage/spec.md` → **30** scenarios on the merged spec, six
+  of them this delta's, so **24** existed before it and none of them asserts a module's suite reaching the row's
+  floor.
 - `find auto/src/main -name '*.kt' | wc -l` → **77** production files; the three unconstructed screens are 3452
   lines of them (`FreeDrivingScreen.kt` 963, `NavigationScreen.kt` 1082, `NavigationSession.kt` 1407), so the
   delta is bounded to the *test* side and no production file moves.
@@ -53,7 +54,9 @@ the plan was fixed:
 ## What Changes
 
 - **Added** a `test-coverage` requirement: a module's suite reaches the classes a host test can reach, so the
-  instruction coverage the coverage row reads stays at or above that row's floor.
+  instruction coverage the coverage row reads stays at or above that row's floor. The rule is stated for every
+  module the row reads; **the measurement this change carries is `auto`'s** — `app`, `core` and the two JNI
+  provenances are not re-measured here and their floors are untouched.
 - **Added** `auto/src/test/java/com/naviveylin/auto/FreeDrivingScreenHostTest.kt`: five cases that construct the
   free-driving screen and assert the template it builds, the session surface it takes while started and releases
   when stopped, the fixes and map-data revisions it observes, the free-driving vote it casts on entry, and the
@@ -68,7 +71,8 @@ probe green (`evidence/green-on-change.xml`, `XML tests=1 failures=0`). `FreeDri
 
 - Affected spec: `test-coverage` (one added requirement, six scenarios — the probe and the five cases).
 - Affected code: `auto/src/test/java/com/naviveylin/auto/FreeDrivingScreenHostTest.kt` only. No production file,
-  no fixture, no build script, no gradle property, no ledger entry.
+  no fixture, no build script, no gradle property, no ledger entry. The owning guideline section,
+  `guidelines/Build.md` section 7 "Code coverage", gains this change's re-measurement in its baseline.
 - The module suite: 92 classes / 885 cases / 0 failures (`python3 evidence/tally.py` over
   `auto/build/test-results/testDebugUnitTest/TEST-*.xml`, `evidence/module-suite-tally.txt`); the change adds one
   class of five cases.

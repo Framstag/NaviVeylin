@@ -1,5 +1,5 @@
-# Module suite tally — auto/src/test, from the result XMLs of
-#   ./gradlew --offline :auto:koverXmlReport -PforceTests   (change tree)
+# Module suite tally — auto/src/test, from the result XMLs the round-2 gate's compiled step wrote
+#   ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache   (gate, 2026-10-27 14:46, 282s)
 # command: awk over auto/build/test-results/testDebugUnitTest/TEST-*.xml
 classes=92
 tests=885 failures=0 errors=0

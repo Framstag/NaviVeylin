@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="auto-module-suite" tests="885" skipped="0" failures="0" errors="0" time="0.0">
-  <system-out>Derived from auto/build/test-results/testDebugUnitTest/TEST-*.xml after ./gradlew --offline :auto:koverXmlReport -PforceTests (change tree): 92 classes.</system-out>
+  <system-out>Derived from auto/build/test-results/testDebugUnitTest/TEST-*.xml after the round-2 gate's ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache (2026-10-27 14:46): 92 classes, 885 tests, 0 failures, 0 errors.</system-out>
 </testsuite>

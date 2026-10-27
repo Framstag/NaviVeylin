@@ -1,4 +1,7 @@
-gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 336s
-BUILD SUCCESSFUL in 5m 35s
-166 actionable tasks: 48 executed, 118 up-to-date
-LOOP-GATE: tests=0 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 336s)
+# Round-2 gate — run once, from the change root, on the archived tree (2026-10-27, after the spec merge).
+# Each step below wrote its own JUnit-shaped tally; those are evidence/gate-tallies/*.xml, copied from
+# app/build/test-results/loop-gate/ at the moment the run ended. The tally carries the suite's last lines.
+# Round 1 ran this gate before task 9 (the archive), so its log named the compiled step alone; this run supersedes it.
+LOOP-GATE: tests=6 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 282s, bash tools/gen-feature-list.sh --check-classification 5s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 2s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)
+# tests=6 is the engine counting the hygiene selftest's "all 6 cases passed"; the doc-routes selftest's
+# 19 cases print as "19 passed, 0 failed", a form the engine's summary parser does not read, so its tally reads tests=0.

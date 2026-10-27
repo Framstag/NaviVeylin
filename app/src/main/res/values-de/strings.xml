@@ -102,6 +102,8 @@
     <string name="vehicle_position_routing">Fahrzeugposition (Navigation)</string>
     <string name="vehicle_position_free_driving">Fahrzeugposition (freies Fahren)</string>
     <string name="overspeed_delta_value">+%1$d km/h</string>
+    <string name="long_press_timeout">Langdruck-Verzögerung</string>
+    <string name="long_press_timeout_value">%1$d ms</string>
     <string name="max_speed_section">Routentempo</string>
     <string name="max_speed_value">%1$d km/h</string>
     <string name="dark_mode">Dunkelmodus</string>

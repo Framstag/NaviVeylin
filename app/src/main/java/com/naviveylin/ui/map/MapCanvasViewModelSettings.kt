@@ -9,6 +9,7 @@ import com.naviveylin.core.stringResolver
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AmbientLightSensitivity
 import com.naviveylin.data.DarkModePreference
+import com.naviveylin.data.clampLongPressTimeoutMs
 import com.naviveylin.data.RenderMode
 import com.naviveylin.core.ResultMarkings
 import com.naviveylin.core.SearchRowIcons
@@ -43,6 +44,21 @@ fun MapCanvasViewModel.onSetOverspeedWarningDelta(deltaKmh: Int) {
     _uiState.value = _uiState.value.copy(overspeedWarningDeltaKmh = deltaKmh)
     viewModelScope.launch {
         settingsStorage.update { it.copy(overspeedWarningDeltaKmh = deltaKmh) }
+    }
+}
+
+/**
+ * Set the map's long-press duration (ms, 250-1000 in 50 ms steps). Applies to the next gesture
+ * immediately and persists; the map's gesture handler reads it instead of a literal
+ * (spec: `map-long-press-timeout` — The long-press timeout is a persisted setting; `location-options-ui`
+ * — Long-press timeout control). The value is clamped to the offered range here, so a caller that computes
+ * it cannot install a timeout the sheet cannot show.
+ */
+fun MapCanvasViewModel.onSetLongPressTimeoutMs(timeoutMs: Int) {
+    val clamped = clampLongPressTimeoutMs(timeoutMs)
+    _uiState.value = _uiState.value.copy(longPressTimeoutMs = clamped)
+    viewModelScope.launch {
+        settingsStorage.update { it.copy(longPressTimeoutMs = clamped) }
     }
 }
 
@@ -406,6 +422,7 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
             laneHintsEnabled = settings.laneHintsEnabled,
             renderMode = settings.renderMode,
             overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh,
+            longPressTimeoutMs = settings.effectiveLongPressTimeoutMs,
             carMaxSpeedKmh = settings.carMaxSpeedKmh,
             bicycleMaxSpeedKmh = settings.bicycleMaxSpeedKmh,
             footMaxSpeedKmh = settings.footMaxSpeedKmh,

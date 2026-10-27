@@ -182,6 +182,10 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             onSetOverspeedWarningDelta = { delta ->
                                 viewModel.onSetOverspeedWarningDelta(delta)
                             },
+                            longPressTimeoutMs = state.longPressTimeoutMs,
+                            onSetLongPressTimeoutMs = { timeoutMs ->
+                                viewModel.onSetLongPressTimeoutMs(timeoutMs)
+                            },
                             carMaxSpeedKmh = state.carMaxSpeedKmh,
                             onSetCarMaxSpeed = { kmh ->
                                 viewModel.onSetCarMaxSpeed(kmh)
@@ -337,6 +341,10 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                             onSetOverspeedWarningDelta = { delta ->
                                 viewModel.onSetOverspeedWarningDelta(delta)
+                            },
+                            longPressTimeoutMs = state.longPressTimeoutMs,
+                            onSetLongPressTimeoutMs = { timeoutMs ->
+                                viewModel.onSetLongPressTimeoutMs(timeoutMs)
                             },
                             carMaxSpeedKmh = state.carMaxSpeedKmh,
                             onSetCarMaxSpeed = { kmh ->
@@ -523,6 +531,14 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                                 laneHintsEnabled = state.laneHintsEnabled,
                                 onToggleLaneHints = { enabled ->
                                     viewModel.onToggleLaneHints(enabled)
+                                },
+                                // Long-press timeout: required by the sheet like the max-speed
+                                // rows below, because the control renders in every mode — the
+                                // routing view must wire it too (spec: location-options-ui —
+                                // Long-press timeout control).
+                                longPressTimeoutMs = state.longPressTimeoutMs,
+                                onSetLongPressTimeoutMs = { timeoutMs ->
+                                    viewModel.onSetLongPressTimeoutMs(timeoutMs)
                                 },
                                 // Usual maximum speed per vehicle: required by the sheet, which
                                 // renders the sliders in every mode — the routing view must wire

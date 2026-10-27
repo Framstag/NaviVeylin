@@ -105,6 +105,7 @@
     "map-download-infrastructure": { "area": "offline-maps", "userVisible": false, "surfaces": ["phone"] },
     "map-download-ui": { "area": "offline-maps", "userVisible": true, "surfaces": ["phone"] },
     "map-menu": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
+    "map-long-press-timeout": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
     "map-modes": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
     "map-pan-zoom": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
     "map-recenter-button": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },

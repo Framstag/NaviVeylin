@@ -73,6 +73,15 @@ data class AppSettings(
      */
     val overspeedWarningDeltaKmh: Int = 5,
     /**
+     * The map's long-press duration in ms (spec: `map-long-press-timeout` — The long-press timeout is a
+     * persisted setting): the time a finger must rest on the map before the candidate picker opens.
+     * Default [LONG_PRESS_TIMEOUT_DEFAULT_MS] — the platform's own long-press timeout and the value the
+     * gesture handler carried before this setting existed, so a settings file written before the field
+     * decodes to today's behaviour. Phone-only: no car surface has a long-press gesture. Read through
+     * [effectiveLongPressTimeoutMs], which clamps a hand-edited file to the offered range.
+     */
+    val longPressTimeoutMs: Int = LONG_PRESS_TIMEOUT_DEFAULT_MS,
+    /**
      * The car's usual maximum speed in km/h (spec: `routing-max-speed` — A per-vehicle maximum speed is a
      * persisted setting). One value serves both surfaces: the phone's options sheet edits it and every
      * routing calculation for the car reads it, including the car's own destinations. Range 30-160,
@@ -142,6 +151,36 @@ data class AppSettings(
      * restart", "A stale result is replaced, not merged"). Additive with a default.
      */
     val mapUpdates: List<StoredMapUpdate> = emptyList()
+) {
+    /**
+     * The long-press duration the map actually uses: [longPressTimeoutMs] clamped to
+     * [LONG_PRESS_TIMEOUT_MIN_MS]..[LONG_PRESS_TIMEOUT_MAX_MS], so a value written by hand or restored
+     * from an old backup can never install a timeout the options sheet cannot show
+     * (spec: `map-long-press-timeout` — A value outside the offered range is clamped). The sheet's
+     * [LONG_PRESS_TIMEOUT_STEP_MS] granularity is the slider's, not this reader's.
+     */
+    val effectiveLongPressTimeoutMs: Int
+        get() = clampLongPressTimeoutMs(longPressTimeoutMs)
+
+    companion object {
+        /** Default long-press duration (ms): the platform's own long-press timeout. */
+        const val LONG_PRESS_TIMEOUT_DEFAULT_MS = 500
+
+        /** Shortest long-press duration the options sheet offers (ms). */
+        const val LONG_PRESS_TIMEOUT_MIN_MS = 250
+
+        /** Longest long-press duration the options sheet offers (ms). */
+        const val LONG_PRESS_TIMEOUT_MAX_MS = 1000
+
+        /** Step of the options sheet's long-press slider (ms). */
+        const val LONG_PRESS_TIMEOUT_STEP_MS = 50
+    }
+}
+
+/** Clamp [ms] to the offered long-press range (spec: `map-long-press-timeout`). */
+fun clampLongPressTimeoutMs(ms: Int): Int = ms.coerceIn(
+    AppSettings.LONG_PRESS_TIMEOUT_MIN_MS,
+    AppSettings.LONG_PRESS_TIMEOUT_MAX_MS
 )
 
 /** Persists [AppSettings] to a JSON file in app internal storage. */

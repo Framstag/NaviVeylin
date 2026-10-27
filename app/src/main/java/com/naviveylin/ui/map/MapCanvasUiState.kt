@@ -11,6 +11,7 @@ import com.naviveylin.core.ResolvedAnchor
 import com.naviveylin.core.search.MergedSearchResult
 import com.naviveylin.core.search.SearchReference
 import com.naviveylin.data.AmbientLightSensitivity
+import com.naviveylin.data.AppSettings
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
 import com.naviveylin.data.ViewportState
@@ -190,6 +191,12 @@ data class MapCanvasUiState(
      * Auto.
      */
     val overspeedWarningDeltaKmh: Int = 5,
+    /**
+     * The map's long-press duration in ms, 250-1000, default 500 (spec: `map-long-press-timeout` —
+     * The long-press timeout is a persisted setting). The map's gesture handler decides a long press
+     * against this value instead of a literal; the location-options sheet is its only editor.
+     */
+    val longPressTimeoutMs: Int = AppSettings.LONG_PRESS_TIMEOUT_DEFAULT_MS,
     /**
      * The car's usual maximum speed in km/h, 30-160, default 120 (spec: `routing-max-speed` —
      * A per-vehicle maximum speed is a persisted setting). One shared value: the sheet writes it

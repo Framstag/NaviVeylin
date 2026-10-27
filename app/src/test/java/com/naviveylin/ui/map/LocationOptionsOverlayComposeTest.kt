@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.geometry.Offset
@@ -62,12 +64,19 @@ class LocationOptionsOverlayComposeTest {
         bicycleMaxSpeedKmh: Int = 15,
         onSetBicycleMaxSpeed: (Int) -> Unit = {},
         footMaxSpeedKmh: Int = 5,
-        onSetFootMaxSpeed: (Int) -> Unit = {}
+        onSetFootMaxSpeed: (Int) -> Unit = {},
+        // The long-press timeout row: overridable so a case can assert that the configured value
+        // is what the slider shows and that a move is reported back (spec: location-options-ui —
+        // Long-press timeout control).
+        longPressTimeoutMs: Int = 500,
+        onSetLongPressTimeoutMs: (Int) -> Unit = {}
     ) {
         composeRule.setContent {
             LocationOptionsOverlay(
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = longPressTimeoutMs,
+                onSetLongPressTimeoutMs = onSetLongPressTimeoutMs,
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = {},
                 carMaxSpeedKmh = carMaxSpeedKmh,
@@ -129,6 +138,8 @@ class LocationOptionsOverlayComposeTest {
             LocationOptionsOverlay(
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = {},
                 carMaxSpeedKmh = 120,
@@ -162,6 +173,8 @@ class LocationOptionsOverlayComposeTest {
             LocationOptionsOverlay(
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = {},
                 carMaxSpeedKmh = 120,
@@ -265,6 +278,8 @@ class LocationOptionsOverlayComposeTest {
             LocationOptionsOverlay(
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = {},
                 carMaxSpeedKmh = 120,
@@ -293,6 +308,8 @@ class LocationOptionsOverlayComposeTest {
             LocationOptionsOverlay(
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = {},
                 carMaxSpeedKmh = 120,
@@ -334,6 +351,8 @@ class LocationOptionsOverlayComposeTest {
             LocationOptionsOverlay(
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = {},
                 carMaxSpeedKmh = 120,
@@ -366,6 +385,8 @@ class LocationOptionsOverlayComposeTest {
         composeRule.setContent {
             LocationOptionsOverlay(
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 onSetFreeDrivingAnchor = {},
                 mode = MapMode.NAVIGATION,
                 routingAnchor = VehicleAnchorPosition.BOTTOM_RIGHT,
@@ -392,6 +413,8 @@ class LocationOptionsOverlayComposeTest {
         var selected: VehicleAnchorPosition? = null
         composeRule.setContent {
             LocationOptionsOverlay(
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = {},
                 mode = MapMode.NAVIGATION,
@@ -437,6 +460,8 @@ class LocationOptionsOverlayComposeTest {
             LocationOptionsOverlay(
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 mode = MapMode.FREE_DRIVE,
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = { selected = it },
@@ -528,6 +553,8 @@ class LocationOptionsOverlayComposeTest {
             LocationOptionsOverlay(
                 routingAnchor = VehicleAnchorPosition.CENTER,
                 onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = {},
                 freeDrivingAnchor = VehicleAnchorPosition.CENTER,
                 onSetFreeDrivingAnchor = {},
                 // Start away from both bounds: a slider does not report a value it already holds,
@@ -591,5 +618,49 @@ class LocationOptionsOverlayComposeTest {
                 dragged.max() - dragged.min() >= span * 4 / 5
             )
         }
+    }
+
+    /**
+     * The long-press timeout row (spec: `location-options-ui` — Long-press timeout control):
+     * it shows the configured value in milliseconds and reports a change to its caller, which
+     * persists it (spec: `map-long-press-timeout` — The long-press timeout is a persisted setting).
+     */
+    @Test
+    fun longPressTimeoutSliderShowsAndWritesTheValue() {
+        val reported = mutableListOf<Int>()
+        composeRule.setContent {
+            LocationOptionsOverlay(
+                routingAnchor = VehicleAnchorPosition.CENTER,
+                onSetRoutingAnchor = {},
+                longPressTimeoutMs = 500,
+                onSetLongPressTimeoutMs = { reported.add(it) },
+                freeDrivingAnchor = VehicleAnchorPosition.CENTER,
+                onSetFreeDrivingAnchor = {},
+                carMaxSpeedKmh = 120,
+                onSetCarMaxSpeed = {},
+                bicycleMaxSpeedKmh = 15,
+                onSetBicycleMaxSpeed = {},
+                footMaxSpeedKmh = 5,
+                onSetFootMaxSpeed = {},
+                mode = MapMode.BROWSE,
+                availableStyles = listOf("standard"),
+                styleSheet = "standard",
+                onSetStyleSheet = {}
+            )
+        }
+        composeRule.onNodeWithContentDescription("Location options").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Long-press delay").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("500 ms").performScrollTo().assertIsDisplayed()
+
+        // A slider cannot report the value it already holds, so the row is moved to the
+        // 900 ms tick of its 250-1000 ms range (50 ms steps) rather than dragged blind.
+        composeRule.onNodeWithTag("longPressTimeoutSlider")
+            .performScrollTo()
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(900f) }
+        composeRule.waitForIdle()
+
+        assertEquals("the sheet reports the moved value", listOf(900), reported)
     }
 }

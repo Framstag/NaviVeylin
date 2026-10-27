@@ -196,7 +196,11 @@ internal fun BoxScope.MapCanvasMapBandContent(
                         }
                     }
                     .mapGestureHandler(
-                        object : MapGestureCallbacks {
+                        // The long-press duration is the configured setting, not a literal
+                        // (spec: map-long-press-timeout — The long-press timeout is a
+                        // configuration, not a literal).
+                        longPressTimeoutMs = state.longPressTimeoutMs.toLong(),
+                        callbacks = object : MapGestureCallbacks {
                             override fun onPan(dx: Float, dy: Float) {
                                 // Gesture-start side effects run once per gesture
                                 // (spec: render-performance — Pan hot path stays

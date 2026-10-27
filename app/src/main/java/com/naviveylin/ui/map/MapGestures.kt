@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalViewConfiguration
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -66,10 +67,20 @@ interface MapGestureCallbacks {
  *
  * The handler only reports raw gesture deltas; projection math (converting
  * deltas to geo changes) is the caller's responsibility via [MapGestureCallbacks].
+ *
+ * The long-press duration is configuration, never a literal: [longPressTimeoutMs] when the
+ * caller configures it, the platform's configured long-press timeout otherwise, and the
+ * gesture block is keyed on the resolved value so a change applies to the next gesture
+ * (spec: map-long-press-timeout — The long-press timeout is a configuration, not a literal).
  */
-fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = composed {
+fun Modifier.mapGestureHandler(
+    callbacks: MapGestureCallbacks,
+    longPressTimeoutMs: Long? = null,
+): Modifier = composed {
     val currentCallbacks by rememberUpdatedState(callbacks)
-    pointerInput(Unit) {
+    val resolvedLongPressTimeoutMs = longPressTimeoutMs
+        ?: LocalViewConfiguration.current.longPressTimeoutMillis
+    pointerInput(resolvedLongPressTimeoutMs) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
             val downPos = down.position
@@ -83,8 +94,8 @@ fun Modifier.mapGestureHandler(callbacks: MapGestureCallbacks): Modifier = compo
             // ROTATION_REPORT_THRESHOLD_RAD). Per-gesture state.
             var rotationAccumulator = 0f
 
-            // Phase 1: Wait for up, drag, or 500ms timeout
-            val upOrNull = withTimeoutOrNull(500L) {
+            // Phase 1: Wait for up, drag, or the configured long-press timeout
+            val upOrNull = withTimeoutOrNull(resolvedLongPressTimeoutMs) {
                 while (true) {
                     val event = awaitPointerEvent()
                     val change = event.changes.firstOrNull { it.id == pointerId }

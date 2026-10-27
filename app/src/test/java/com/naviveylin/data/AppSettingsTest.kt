@@ -208,4 +208,41 @@ class AppSettingsTest {
         assertEquals(20, decoded.bicycleMaxSpeedKmh)
         assertEquals(4, decoded.footMaxSpeedKmh)
     }
+
+    /** Spec: `map-long-press-timeout` — A settings file from before this change decodes to the default. */
+    @Test
+    fun longPressTimeoutDefaultsOnAnOlderSettingsFile() {
+        val decoded = json.decodeFromString(
+            AppSettings.serializer(),
+            """{"followMode":true,"overspeedWarningDeltaKmh":5}"""
+        )
+        assertEquals(500, decoded.longPressTimeoutMs)
+        assertEquals(500, decoded.effectiveLongPressTimeoutMs)
+    }
+
+    /** Spec: `map-long-press-timeout` — The value round-trips through the settings file. */
+    @Test
+    fun longPressTimeoutSurvivesJsonRoundTrip() {
+        val settings = AppSettings(longPressTimeoutMs = 900)
+        val decoded = json.decodeFromString(
+            AppSettings.serializer(),
+            json.encodeToString(AppSettings.serializer(), settings)
+        )
+        assertEquals(900, decoded.longPressTimeoutMs)
+        assertEquals(900, decoded.effectiveLongPressTimeoutMs)
+    }
+
+    /** Spec: `map-long-press-timeout` — A value outside the offered range is clamped. */
+    @Test
+    fun longPressTimeoutOutsideTheRangeIsClamped() {
+        assertEquals(
+            AppSettings.LONG_PRESS_TIMEOUT_MIN_MS,
+            AppSettings(longPressTimeoutMs = 40).effectiveLongPressTimeoutMs
+        )
+        assertEquals(
+            AppSettings.LONG_PRESS_TIMEOUT_MAX_MS,
+            AppSettings(longPressTimeoutMs = 4000).effectiveLongPressTimeoutMs
+        )
+        assertEquals(500, AppSettings().effectiveLongPressTimeoutMs)
+    }
 }

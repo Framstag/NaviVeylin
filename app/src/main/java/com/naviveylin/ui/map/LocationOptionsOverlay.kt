@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.naviveylin.R
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AmbientLightSensitivity
+import com.naviveylin.data.AppSettings
 import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.RenderMode
 import kotlin.math.roundToInt
@@ -96,6 +97,12 @@ fun LocationOptionsOverlay(
     onToggleLaneHints: (Boolean) -> Unit = {},
     overspeedWarningDeltaKmh: Int = 5,
     onSetOverspeedWarningDelta: (Int) -> Unit = {},
+    // Long-press timeout: REQUIRED (no defaults), for the same reason as the max-speed and anchor
+    // rows below. The row renders in EVERY mode, so an optional callback would let a call site
+    // compile into a slider whose selection is silently dropped
+    // (spec: location-options-ui — Long-press timeout control).
+    longPressTimeoutMs: Int,
+    onSetLongPressTimeoutMs: (Int) -> Unit,
     // Usual maximum speed per vehicle: REQUIRED (no defaults), for the same reason as the anchor
     // rows below. The sliders render in EVERY mode, so an optional callback would let a call site
     // compile into a slider whose selection is silently dropped (spec: location-options-ui —
@@ -177,6 +184,8 @@ fun LocationOptionsOverlay(
                 onToggleLaneHints = onToggleLaneHints,
                 overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
                 onSetOverspeedWarningDelta = onSetOverspeedWarningDelta,
+                longPressTimeoutMs = longPressTimeoutMs,
+                onSetLongPressTimeoutMs = onSetLongPressTimeoutMs,
                 carMaxSpeedKmh = carMaxSpeedKmh,
                 onSetCarMaxSpeed = onSetCarMaxSpeed,
                 bicycleMaxSpeedKmh = bicycleMaxSpeedKmh,
@@ -219,6 +228,8 @@ private fun LocationOptionsSheetContent(
     onToggleLaneHints: (Boolean) -> Unit,
     overspeedWarningDeltaKmh: Int,
     onSetOverspeedWarningDelta: (Int) -> Unit,
+    longPressTimeoutMs: Int,
+    onSetLongPressTimeoutMs: (Int) -> Unit,
     carMaxSpeedKmh: Int,
     onSetCarMaxSpeed: (Int) -> Unit,
     bicycleMaxSpeedKmh: Int,
@@ -414,6 +425,44 @@ private fun LocationOptionsSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("overspeedDeltaSlider")
+        )
+
+        // Long-press timeout — always visible, 250-1000 ms in 50 ms steps (spec:
+        // location-options-ui — Long-press timeout control; map-long-press-timeout — The
+        // long-press timeout is a persisted setting). The map's gesture handler reads this
+        // value instead of a literal, and the sheet is its only editor.
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.long_press_timeout),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.long_press_timeout_value, longPressTimeoutMs),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Slider(
+            value = longPressTimeoutMs.toFloat(),
+            onValueChange = { value ->
+                onSetLongPressTimeoutMs(value.roundToInt())
+            },
+            valueRange = AppSettings.LONG_PRESS_TIMEOUT_MIN_MS.toFloat()..
+                AppSettings.LONG_PRESS_TIMEOUT_MAX_MS.toFloat(),
+            steps = (AppSettings.LONG_PRESS_TIMEOUT_MAX_MS - AppSettings.LONG_PRESS_TIMEOUT_MIN_MS) /
+                AppSettings.LONG_PRESS_TIMEOUT_STEP_MS - 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("longPressTimeoutSlider")
         )
 
         // Usual maximum speed per vehicle (spec: location-options-ui — Vehicle maximum speed

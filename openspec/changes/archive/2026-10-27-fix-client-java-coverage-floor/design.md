@@ -26,9 +26,15 @@ controller's superclass, exactly as `MapDownloadManagerRegisterTest` and
 
 ## Blast radius
 
-- Test sources only: 13 new files under `osmscout-client-java/src/test/java/com/framstag/libosmscout/client/`
+- Test sources: 13 new files under `osmscout-client-java/src/test/java/com/framstag/libosmscout/client/`
   and 5 cases added to `BasemapManagerTest`; nothing under `src/main`, no build file, no fixture, no
   guideline sentence.
+- One hunk in `tools/loop-cases.sh`: the case `adapter#theChildIsStartedWithTheResultBound` unsets
+  `LOOP_TOOL_RESULT_TRIM_RECORD` beside `LOOP_CHILD_EVENTS`, because a run exports the first into every child
+  it starts. Without it the case measures the run's record file instead of the adapter's silence, and round
+  1's gate printed exactly that case as this tree's only failure (`items/320/gate-attribution.md`). No
+  product behaviour changes; the blast radius is that one case, and the suite that proves it is the gate's
+  own `tools/loop-selftest.sh` step (247 cases).
 - The module's suite grows from 48 to 106 cases (`evidence/module-suite-tally.txt`, derived from the 21
   `evidence/module-test-results/TEST-*.xml` the gate wrote; the base's 48 is the round-1 review's count of the
   base copy's 8 class results, `items/320/reviewer-report-1.md`); the four cases that
@@ -41,16 +47,18 @@ controller's superclass, exactly as `MapDownloadManagerRegisterTest` and
 
 ## Rollback
 
-Revert the change's diff: 13 test files and two hunks of `BasemapManagerTest` disappear, and the module's
-coverage returns to 37.2 %. Nothing else in the tree depends on them — no production file, no spec that
-names a case other than the scenarios this change adds.
+Revert the change's diff: 13 test files, two hunks of `BasemapManagerTest` and the one `-u
+LOOP_TOOL_RESULT_TRIM_RECORD` (with its comment) in `tools/loop-cases.sh` disappear, and the module's
+coverage returns to 37.2 % while the loop suite returns to the red round 1 recorded. Nothing else in the tree
+depends on them — no production file, no spec that names a case other than the scenarios this change adds.
 
 ## Alternatives the evidence eliminated
 
 - **Lower the floor, or narrow the report to the module's five local overrides.** Eliminated by measurement:
-  the overrides alone carry `1075/2558 = 42 %` of their own instructions, so excluding the submodule's
-  classes leaves the module below the same floor. The alternative is not cheaper — it is the same 37 % with
-  a smaller denominator, and it would hide the submodule's classes the app does call — `NavigationState`,
+  the module's own six local sources, their inner classes counted with them, carry `1207/2854 = 42.3 %` of
+  their own instructions, so excluding the submodule's classes leaves the module below the same floor. The
+  alternative is not cheaper — it is the same 37 % with a smaller denominator, and it would hide the
+  submodule's classes the app does call — `NavigationState`,
   `NavigationPosition`, `RouteInstruction` and `TurnType` are on the navigation path — behind an exclusion
   that no reader of the report can see.
 - **Attach the committed JNI stub to this module's test JVM and instantiate `OSMScoutClient`.** Eliminated by

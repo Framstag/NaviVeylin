@@ -69,10 +69,10 @@ none of them adds a claim to the change.
 9. **State the requirement's contract, not the tools that measure it.** The body named
    `tools/build-inputs.sh`, `tools/sensors/sensors.json` and `tools/sensors/metrics/coverage.sh` and ran to
    851 characters, against the 500-character limit the shipped `documentation-ownership` requirement
-   states. It now reads 419 characters and states the invariant only; the arithmetic stays documented where
+   states. It now reads 418 characters and states the invariant only; the arithmetic stays documented where
    it already lives (`guidelines/Build.md`, "Code coverage").
    Verification: `openspec/specs/test-coverage/spec.md`, requirement "The pure-Java module's suite covers the
-   classes it ships" — body 419 characters, its scenarios excluded.
+   classes it ships" — body 418 characters (its four body lines with their newlines), its scenarios excluded.
 
 10. **Unset the trim record beside the stream in the hand-started child case.**
     `tools/loop-cases.sh`: `env -u LOOP_CHILD_EVENTS -u LOOP_TOOL_RESULT_TRIM_RECORD …`, so the case measures
@@ -90,3 +90,18 @@ none of them adds a claim to the change.
     derived from them, so the `106` cases, `0` failures and their timestamps survive the build directory.
     Verification: `grep -h '<testsuite ' evidence/module-test-results/*.xml` sums to `tests="106"
     failures="0"` over 21 files.
+
+## Corrections after review round 2
+
+14. **Record the harness hunk as part of the change, and carry the delta to the shipped text.** Round 2 found
+    two blocking findings: the change's 14th file (`tools/loop-cases.sh`) stood in no recorded surface, and
+    the archived delta still carried the 846-character tool-prescribing body and the six wide THENs round 1
+    refused, while task 8 called the merged text "the delta merged". The owner decided to keep the hunk
+    (option a): `proposal.md`'s surface names it, `design.md`'s blast radius and rollback count it, and the
+    delta's requirement now reads exactly as the shipped one — deletions only, no claim, case or assertion
+    added.
+    Verification: the delta's requirement block and the shipped one are byte-identical (a `diff` of the two
+    blocks is empty); `openspec validate test-coverage --strict`; `bash tools/loop/evidence-check.sh
+    openspec/changes/archive/2026-10-27-fix-client-java-coverage-floor --root .`. Docs-only, so no build and no
+    gate run (`guidelines/Build.md` §2a: an `openspec/**` delta compiles nothing), and the round-2 gate's
+    `tests=703 failures=0` still describes this tree, whose only change since is prose.

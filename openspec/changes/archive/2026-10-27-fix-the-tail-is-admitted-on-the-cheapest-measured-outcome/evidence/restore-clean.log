@@ -1,0 +1,10 @@
+restore-clean, 2026-10-27T08:14Z — no mutation the harness applied survived it, and the two files it edits are the tree's own again
+
+$ grep -rn "REVERT-CHECK MUTATION" tools/loop/*.sh | grep -v evidence-check.sh
+(no output — every mutation the harness applied was restored)
+
+$ grep -rn "RED: no line reads\|LEFT THIS IN" tools/loop/*.sh tools/*.sh
+(no output — the two hand-applied defects of this round are gone too)
+
+$ bash tools/loop-mutations.sh --check --only "68.1 68.2 68.3 68.4 68.5 68.6"
+loop-mutations: all 6 cases passed — every selected record applies to the file it names

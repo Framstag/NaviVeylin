@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-selftest.sh --case run#reviewerEndedAtTheRunsDeadlineIsNotADecision" tests="1" failures="1" errors="0" time="24">
+  <system-out>run#reviewerEndedAtTheRunsDeadlineIsNotADecision|   the cut round was read as a refusal and bought a rework worker
+FAIL run#reviewerEndedAtTheRunsDeadlineIsNotADecision (2026-10-27T07:47:41Z)</system-out>
+</testsuite>

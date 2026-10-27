@@ -329,11 +329,23 @@ What an item costs, and the floor it is refused by. Measured over the loop's run
 class is 1–3 min after that), a forced both-flavor gate 4m42s–6m41s — and that run overwrites the previous run's
 XML evidence, which is why a cited XML is copied into the change's `evidence/` — and one item 100 min
 (2026-10-19, #126: a worker phase of 83 min plus three review rounds, the item the constant floor could not pay
-for). The floor `state.sh next` refuses by is therefore not a constant: the median of the run's own finished wall
-times × 1.5, rounded up, with `LOOP_ITEM_FLOOR_MINUTES` as its lower bound — 1.5 being the spread the numbers
-above already show (65/45 inside the change range, 100/65 for the #126 item), so a run of typical items gets a
-floor just above them, a run of skips keeps the configured minimum, and one expensive item among cheap ones does
-not move the median at all.
+for). The floor `state.sh next` refuses by is therefore not a constant: the **cheapest** of the run's own finished
+wall times × 1.5, rounded up — 1.5 being the spread the numbers above already show (65/45 inside the change range,
+100/65 for the #126 item). The cheapest item is the one the run has proof it can pay: a run of typical items gets a
+floor just above their cheapest, a run of 10-15 min skips gets 15-25 min instead of the 65-minute constant that
+stopped it up to ~50 min before its deadline (issue #674), and one expensive item among cheap ones cannot raise the
+floor the way a median would — the median of [600 s, 3600 s, 3600 s] is 60 min and derives 90, its cheapest is 10
+and derives 15. `LOOP_ITEM_FLOOR_MINUTES` (65 min) is the whole floor only for a run with no measurement, and then
+it holds what one item's gate owes (issue #663). The cost is named with the measurement: a cheap history admits a
+gated item into the tail, the run's own deadline cuts that item, and it is left for the next run — bounded at one
+item per run, because the deadline ends that child and the run stops right after it. The work it left is kept as
+the leftover patch, the item's state names that patch and the report prints the recovery, and the cut item is not
+escalated as a decision: the clock that ended it is the run's budget, not a finding about the item (issue #674).
+That holds for every child the item starts — the worker, the rework worker of a refusing round, and the reviewer
+of a review round (the round-1 review of #674 found the reviewer's `LOOP-DEADLINE` line written by `run_child` and
+read by nobody, so a cut round bought a rework worker for a change nobody refused) — and the run takes
+no second pass over the queue once the deadline has ended one: the pass would re-exclude the item whose branch the
+cut run had just made, and the report's decision list would name a decision for the item the clock cut.
 
 The clock is not the only budget an item spends. Measured 2026-10-19 (issue #209) on one host: #126's gate found
 194 MB free RAM and 18 GB of swap and spent 30 min inside `:app:kspMobileDebugUnitTestKotlin`, the same 5 680
@@ -381,12 +393,12 @@ because one constant for every item is smaller than an item that owes two gate r
 `tools/loop/**` item spent 957 s on a red round, 233 s on one focused falsification suite, 972 s on a green round
 and 542 s on reading, edit, evidence, archive and report — 2 704 s against the 2 700 s the constant allowed — and
 its child was ended 8 s after the green `gate-summary.xml` was written; #664 and #666 ended the same way (issue
-#663). The floor `next` refuses an item below is the same measurement: `LOOP_ITEM_FLOOR_MINUTES` is 65 min, so an
-item the remaining budget can pay for can also finish its gate and the phases beside it — a floor below that starts
-an item that pays for its gate and loses the rest. What that costs: a gated-out skip costs 10-15 min and is refused
-by the same 65-minute floor, so the tail of a run whose items are skips stops up to ~50 min early. That is the old
-"one constant for every item" defect one level down; a floor derived per item from what that item owes is the repair
-and is filed as issue #674. A child that outlasts it is ended together with
+#663). The floor `next` refuses an item below is the same measurement: `LOOP_ITEM_FLOOR_MINUTES` is 65 min, so a run
+with no history that starts an item with the floor's minutes left can also finish its gate and the phases beside it.
+Once a run has measured an item, the floor follows the cheapest measured one (issue #674), and a gated item started
+in that tail is ended at the run's deadline with its tree uncommitted and its work kept as a patch — recorded
+`blocked`, named by its state and the report, and left for the next run rather than escalated as a decision. A
+child that outlasts the cap is ended together with
 everything it started — a gate leaves daemons and test workers behind, and those are the memory the next item
 needs — its transcript gains one machine-readable line (`LOOP-TIMEOUT: the child exceeded <n> s`), and the item
 is recorded `blocked` with that transcript rather than spending the run's clock. "Everything it started" is
@@ -414,7 +426,10 @@ second — the deadline is a whole-second clock, and reading it on every look wo
 saving on two forks — and a child still running when the deadline passes is ended exactly as the cap ends one — its
 transcript carries `LOOP-DEADLINE: the run's deadline passed at <deadlineAt> …` beside the `LOOP-TIMEOUT` line,
 and the run records the deadline as its stop, so a run that ends there is not replaced as one that "never
-recorded a stop reason". Measured 2026-10-20: eleven of fifteen stuck runs were past their own `--minutes 90`,
+recorded a stop reason". Every child is read back that way, the reviewer of a review round included: a round whose
+transcript carries `LOOP-DEADLINE` was cut rather than answered, so no retry and no rework worker follows it and
+the item is not escalated (the round-1 review of #674). Measured 2026-10-20: eleven of fifteen stuck runs were
+past their own `--minutes 90`,
 the longest heartbeat read `291m30s`, and not one carried a `LOOP-TIMEOUT` line although the cap was 2 700 s
 (#227). The completion record the wait ends on is cleared **before** the child is started, not after it: cleared
 after, a child that finished inside the window between the fork and the clear had its own record deleted, and

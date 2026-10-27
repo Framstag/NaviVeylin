@@ -265,14 +265,23 @@ while IFS=$'\t' read -r issue; do
   actions[${#actions[@]}]="re-run the gate for #$issue — the run recorded no gate result — transcript $state_dir/items/$issue/worker-report.md"
 done < <(jq -r '.items[] | select(.result != "done") | select(.result != "falsified") | select((.metrics.gate // "") == "") | .issue | tostring' "$state_file")
 
+# The work a child the run ended left is kept as a patch, and the item's own record names it (issue #674). An
+# item the run's deadline cut carries no decision label, so this line is the only place the report tells a caller
+# that the run, not the item, ended it — and where the work it left is.
+while IFS=$'\t' read -r issue patch; do
+  [ -n "${issue:-}" ] || continue
+  [ -n "${patch:-}" ] || continue
+  actions[${#actions[@]}]="recover #$issue — the run's clock ended it and its work is kept at $patch"
+done < <(jq -r '.items[] | select((.leftover // "") != "") | [(.issue | tostring), .leftover] | @tsv' "$state_file")
+
 if [ -d "$LOOP_WORKTREE" ]; then
   actions[${#actions[@]}]="keep or remove the worktree $LOOP_WORKTREE — the next run reuses its warm build; --clean-worktree removes it at the end of a run"
 fi
 
 printf 'actions the caller owes:\n'
 if [ "${#actions[@]}" -eq 0 ]; then
-  # Empty only when every one of the five sources was read and empty — not because a list was skipped.
-  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no label write the tracker refused\n'
+  # Empty only when every one of the six sources was read and empty — not because a list was skipped.
+  printf '  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no leftover patch, no label write the tracker refused\n'
 else
   n=1
   for action in "${actions[@]}"; do

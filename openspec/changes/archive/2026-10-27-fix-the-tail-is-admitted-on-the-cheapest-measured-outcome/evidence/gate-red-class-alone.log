@@ -1,0 +1,346 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+Configuration 'mobileDebugRuntimeClasspath' was resolved during configuration time.
+This is a build performance and scalability issue.
+See https://github.com/gradle/gradle/issues/2298
+Run with --info for a stacktrace.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :osmscout-client-java:compileJava UP-TO-DATE
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes UP-TO-DATE
+> Task :osmscout-client-java:jar UP-TO-DATE
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources UP-TO-DATE
+> Task :core:generateDebugResources UP-TO-DATE
+> Task :core:packageDebugResources UP-TO-DATE
+> Task :core:parseDebugLocalResources UP-TO-DATE
+> Task :core:generateDebugRFile UP-TO-DATE
+> Task :core:kspDebugKotlin UP-TO-DATE
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources UP-TO-DATE
+> Task :auto:generateDebugResources UP-TO-DATE
+> Task :auto:packageDebugResources UP-TO-DATE
+> Task :auto:parseDebugLocalResources UP-TO-DATE
+> Task :auto:generateDebugRFile UP-TO-DATE
+> Task :auto:javaPreCompileDebug UP-TO-DATE
+> Task :auto:writeDebugAarMetadata UP-TO-DATE
+> Task :auto:extractDeepLinksDebug UP-TO-DATE
+> Task :core:compileDebugKotlin UP-TO-DATE
+> Task :auto:processDebugManifest UP-TO-DATE
+> Task :auto:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:javaPreCompileDebug UP-TO-DATE
+> Task :auto:compileDebugLibraryResources UP-TO-DATE
+> Task :core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:processDebugJavaRes UP-TO-DATE
+> Task :core:createFullJarDebug UP-TO-DATE
+> Task :core:writeDebugAarMetadata UP-TO-DATE
+> Task :core:extractDeepLinksDebug UP-TO-DATE
+> Task :core:processDebugManifest UP-TO-DATE
+> Task :core:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:compileDebugLibraryResources UP-TO-DATE
+> Task :auto:mergeDebugJniLibFolders
+> Task :core:mergeDebugJniLibFolders
+> Task :core:mergeDebugNativeLibs NO-SOURCE
+> Task :core:generateDebugAssets UP-TO-DATE
+> Task :core:mergeDebugAssets UP-TO-DATE
+> Task :core:copyDebugJniLibsProjectOnly
+> Task :auto:compileDebugKotlin UP-TO-DATE
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :auto:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :auto:processDebugJavaRes UP-TO-DATE
+> Task :auto:createFullJarDebug UP-TO-DATE
+> Task :auto:mergeDebugNativeLibs NO-SOURCE
+> Task :auto:generateDebugAssets UP-TO-DATE
+> Task :auto:copyDebugJniLibsProjectOnly
+> Task :auto:mergeDebugAssets UP-TO-DATE
+> Task :app:checkHardcodedStrings
+> Task :app:checkNativeParity
+> Task :app:checkNoCoordinatesInLogs
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons UP-TO-DATE
+> Task :app:syncSubmoduleStylesheets UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preMobileDebugBuild
+> Task :app:generateMobileDebugBuildConfig UP-TO-DATE
+> Task :app:generateMobileDebugResources UP-TO-DATE
+> Task :app:packageMobileDebugResources UP-TO-DATE
+> Task :app:processMobileDebugNavigationResources UP-TO-DATE
+> Task :app:parseMobileDebugLocalResources UP-TO-DATE
+> Task :app:generateMobileDebugRFile UP-TO-DATE
+> Task :app:kspMobileDebugKotlin UP-TO-DATE
+> Task :app:compileMobileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileMobileDebug UP-TO-DATE
+> Task :app:compileMobileDebugJavaWithJavac UP-TO-DATE
+> Task :app:hiltSyncMobileDebug UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebug UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebug UP-TO-DATE
+> Task :app:checkMobileDebugAarMetadata UP-TO-DATE
+> Task :app:mapMobileDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileMobileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeMobileDebugResources UP-TO-DATE
+> Task :app:createMobileDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksMobileDebug UP-TO-DATE
+> Task :app:processMobileDebugMainManifest UP-TO-DATE
+> Task :app:processMobileDebugManifest UP-TO-DATE
+> Task :app:processMobileDebugManifestForPackage UP-TO-DATE
+> Task :app:processMobileDebugResources UP-TO-DATE
+> Task :app:transformMobileDebugClassesWithAsm UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:downloadSbomCli
+> Task :app:generateSbomJvmMobileDebug
+> Task :app:mergeNativeSbom
+> Task :app:preMobileDebugAndroidTestBuild SKIPPED
+> Task :app:mergeMobileDebugAndroidTestJniLibFolders
+> Task :app:preAutomotiveDebugBuild
+
+> Task :app:configureCMakeDebug[arm64-v8a]
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:156 (find_package):
+C/C++:   By not providing "FindCatch2.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "Catch2", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "Catch2" (requested
+C/C++:   version 3) with any of the following names:
+C/C++:     Catch2Config.cmake
+C/C++:     catch2-config.cmake
+C/C++:   Add the installation prefix of "Catch2" to CMAKE_PREFIX_PATH or set
+C/C++:   "Catch2_DIR" to a directory containing one of the above files.  If "Catch2"
+C/C++:   provides a separate development package or SDK, be sure it has been
+C/C++:   installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at /home/tim/Android/Sdk/cmake/3.22.1/share/cmake-3.22/Modules/FindProtobuf.cmake:524 (message):
+C/C++:   Protobuf compiler version 36.1 doesn't match library version 6.33.4
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/cmake/features.cmake:181 (find_package)
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:274 (find_package):
+C/C++:   By not providing "Findharfbuzz.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "harfbuzz",
+C/C++:   but CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "harfbuzz" with any
+C/C++:   of the following names:
+C/C++:     harfbuzzConfig.cmake
+C/C++:     harfbuzz-config.cmake
+C/C++:   Add the installation prefix of "harfbuzz" to CMAKE_PREFIX_PATH or set
+C/C++:   "harfbuzz_DIR" to a directory containing one of the above files.  If
+C/C++:   "harfbuzz" provides a separate development package or SDK, be sure it has
+C/C++:   been installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:283 (find_package):
+C/C++:   By not providing "Findglm.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "glm", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "glm" with any of
+C/C++:   the following names:
+C/C++:     glmConfig.cmake
+C/C++:     glm-config.cmake
+C/C++:   Add the installation prefix of "glm" to CMAKE_PREFIX_PATH or set "glm_DIR"
+C/C++:   to a directory containing one of the above files.  If "glm" provides a
+C/C++:   separate development package or SDK, be sure it has been installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:302 (find_package):
+C/C++:   By not providing "Findglfw3.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "glfw3", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "glfw3" with any of
+C/C++:   the following names:
+C/C++:     glfw3Config.cmake
+C/C++:     glfw3-config.cmake
+C/C++:   Add the installation prefix of "glfw3" to CMAKE_PREFIX_PATH or set
+C/C++:   "glfw3_DIR" to a directory containing one of the above files.  If "glfw3"
+C/C++:   provides a separate development package or SDK, be sure it has been
+C/C++:   installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: Template dir: osmscoutmapcairo
+
+> Task :app:buildCMakeDebug[arm64-v8a]
+
+> Task :app:configureCMakeDebug[armeabi-v7a]
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:156 (find_package):
+C/C++:   By not providing "FindCatch2.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "Catch2", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "Catch2" (requested
+C/C++:   version 3) with any of the following names:
+C/C++:     Catch2Config.cmake
+C/C++:     catch2-config.cmake
+C/C++:   Add the installation prefix of "Catch2" to CMAKE_PREFIX_PATH or set
+C/C++:   "Catch2_DIR" to a directory containing one of the above files.  If "Catch2"
+C/C++:   provides a separate development package or SDK, be sure it has been
+C/C++:   installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at /home/tim/Android/Sdk/cmake/3.22.1/share/cmake-3.22/Modules/FindProtobuf.cmake:524 (message):
+C/C++:   Protobuf compiler version 36.1 doesn't match library version 6.33.4
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/cmake/features.cmake:181 (find_package)
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:274 (find_package):
+C/C++:   By not providing "Findharfbuzz.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "harfbuzz",
+C/C++:   but CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "harfbuzz" with any
+C/C++:   of the following names:
+C/C++:     harfbuzzConfig.cmake
+C/C++:     harfbuzz-config.cmake
+C/C++:   Add the installation prefix of "harfbuzz" to CMAKE_PREFIX_PATH or set
+C/C++:   "harfbuzz_DIR" to a directory containing one of the above files.  If
+C/C++:   "harfbuzz" provides a separate development package or SDK, be sure it has
+C/C++:   been installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:283 (find_package):
+C/C++:   By not providing "Findglm.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "glm", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "glm" with any of
+C/C++:   the following names:
+C/C++:     glmConfig.cmake
+C/C++:     glm-config.cmake
+C/C++:   Add the installation prefix of "glm" to CMAKE_PREFIX_PATH or set "glm_DIR"
+C/C++:   to a directory containing one of the above files.  If "glm" provides a
+C/C++:   separate development package or SDK, be sure it has been installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:302 (find_package):
+C/C++:   By not providing "Findglfw3.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "glfw3", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "glfw3" with any of
+C/C++:   the following names:
+C/C++:     glfw3Config.cmake
+C/C++:     glfw3-config.cmake
+C/C++:   Add the installation prefix of "glfw3" to CMAKE_PREFIX_PATH or set
+C/C++:   "glfw3_DIR" to a directory containing one of the above files.  If "glfw3"
+C/C++:   provides a separate development package or SDK, be sure it has been
+C/C++:   installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: Template dir: osmscoutmapcairo
+
+> Task :app:buildCMakeDebug[armeabi-v7a]
+
+> Task :app:configureCMakeDebug[x86_64]
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:156 (find_package):
+C/C++:   By not providing "FindCatch2.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "Catch2", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "Catch2" (requested
+C/C++:   version 3) with any of the following names:
+C/C++:     Catch2Config.cmake
+C/C++:     catch2-config.cmake
+C/C++:   Add the installation prefix of "Catch2" to CMAKE_PREFIX_PATH or set
+C/C++:   "Catch2_DIR" to a directory containing one of the above files.  If "Catch2"
+C/C++:   provides a separate development package or SDK, be sure it has been
+C/C++:   installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at /home/tim/Android/Sdk/cmake/3.22.1/share/cmake-3.22/Modules/FindProtobuf.cmake:524 (message):
+C/C++:   Protobuf compiler version 36.1 doesn't match library version 6.33.4
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/cmake/features.cmake:181 (find_package)
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:274 (find_package):
+C/C++:   By not providing "Findharfbuzz.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "harfbuzz",
+C/C++:   but CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "harfbuzz" with any
+C/C++:   of the following names:
+C/C++:     harfbuzzConfig.cmake
+C/C++:     harfbuzz-config.cmake
+C/C++:   Add the installation prefix of "harfbuzz" to CMAKE_PREFIX_PATH or set
+C/C++:   "harfbuzz_DIR" to a directory containing one of the above files.  If
+C/C++:   "harfbuzz" provides a separate development package or SDK, be sure it has
+C/C++:   been installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:283 (find_package):
+C/C++:   By not providing "Findglm.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "glm", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "glm" with any of
+C/C++:   the following names:
+C/C++:     glmConfig.cmake
+C/C++:     glm-config.cmake
+C/C++:   Add the installation prefix of "glm" to CMAKE_PREFIX_PATH or set "glm_DIR"
+C/C++:   to a directory containing one of the above files.  If "glm" provides a
+C/C++:   separate development package or SDK, be sure it has been installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: CMake Warning at libosmscout/cmake/features.cmake:302 (find_package):
+C/C++:   By not providing "Findglfw3.cmake" in CMAKE_MODULE_PATH this project has
+C/C++:   asked CMake to find a package configuration file provided by "glfw3", but
+C/C++:   CMake did not find one.
+C/C++:   Could not find a package configuration file provided by "glfw3" with any of
+C/C++:   the following names:
+C/C++:     glfw3Config.cmake
+C/C++:     glfw3-config.cmake
+C/C++:   Add the installation prefix of "glfw3" to CMAKE_PREFIX_PATH or set
+C/C++:   "glfw3_DIR" to a directory containing one of the above files.  If "glfw3"
+C/C++:   provides a separate development package or SDK, be sure it has been
+C/C++:   installed.
+C/C++: Call Stack (most recent call first):
+C/C++:   libosmscout/CMakeLists.txt:72 (include)
+C/C++: Template dir: osmscoutmapcairo
+
+> Task :app:buildCMakeDebug[x86_64]
+> Task :app:mergeMobileDebugJniLibFolders
+> Task :app:generateMobileDebugAssets UP-TO-DATE
+> Task :app:preMobileDebugUnitTestBuild
+> Task :app:mergeMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:processMobileDebugUnitTestManifest UP-TO-DATE
+> Task :app:koverFindJar UP-TO-DATE
+> Task :app:processMobileDebugJavaRes UP-TO-DATE
+> Task :app:bundleMobileDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processMobileDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:javaPreCompileMobileDebugUnitTest UP-TO-DATE
+> Task :app:compileMobileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltSyncMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltAggregateDepsMobileDebugUnitTest UP-TO-DATE
+> Task :app:hiltJavaCompileMobileDebugUnitTest NO-SOURCE
+> Task :app:transformMobileDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :app:mergeMobileDebugNativeLibs
+> Task :app:mergeMobileDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:stripMobileDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:stripMobileDebugDebugSymbols
+> Task :app:generateSbomMobileDebug
+
+> Task :app:generateLicenseAssetsMobileDebug
+License data written for mobileDebug: 14 permitted shipped licenses, NOTICE NOTICE
+
+> Task :app:mergeMobileDebugAssets
+> Task :app:packageMobileDebugUnitTestForUnitTest
+> Task :app:generateMobileDebugUnitTestConfig
+> Task :app:testMobileDebugUnitTest
+
+BUILD SUCCESSFUL in 4m 11s
+116 actionable tasks: 35 executed, 81 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-selftest.sh --from-git 2de16da09df996c0abe9133afddb505aff5df591" tests="247" failures="0" errors="0" time="428">
+  <system-out>PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+PASS run#childIsEndedAtTheRunsDeadline
+PASS run#treeOfACapEndedChildIsKeptAsAPatch
+loop-selftest: all 247 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git 2de16da09df996c0abe9133afddb505aff5df591 (2026-10-27T07:06:56Z)</system-out>
+</testsuite>

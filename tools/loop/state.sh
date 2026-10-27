@@ -15,9 +15,9 @@
 # `next` exits 3 whenever the run may not start another item, and that exit code — not a caller's
 # arithmetic — is the authority on whether an item may start: the item cap, the deadline, an empty
 # queue, two consecutive blocked items, or a remaining time below the next item's floor, which is
-# derived from the wall times this run records for its finished items and bounded below by
-# `LOOP_ITEM_FLOOR_MINUTES` (design D5, invariant 3). Exit 5 is a refusal that must not be retried inside
-# the same reasoning: the lock is held, or the base has moved (design D12, D4).
+# derived from the cheapest wall time this run recorded for a finished item; `LOOP_ITEM_FLOOR_MINUTES`
+# is the whole floor of a run with no such measurement (design D5, invariant 3). Exit 5 is a refusal that
+# must not be retried inside the same reasoning: the lock is held, or the base has moved (design D12, D4).
 #
 # Exit: 0 ok, 2 usage, 3 stop, 5 refuse.
 #
@@ -36,7 +36,7 @@
 #   state.sh done <issue> --result done|skipped|blocked|falsified [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
-#                         [--decision-label LABEL] [--label-failures <transition>…]
+#                         [--decision-label LABEL] [--leftover PATH] [--label-failures <transition>…]
 #                         [--stop-reason refused|unmergeable]
 #   state.sh report
 #   state.sh lock | unlock
@@ -278,31 +278,30 @@ cmd_next() {
   if [ -z "$reason" ]; then
     # The last stop condition is a clock, not a count: do not start an item the remaining budget
     # cannot pay for. What an item costs is not a constant — the run measures it, one `done --wall` at a
-    # time — so the floor is derived from the items this run has finished: their median wall time times
-    # the spread the measurements show (1.5), rounded up to the whole minute. The median is the central
-    # value because it is the one a single expensive item does not move; the margin is what turns a
-    # typical item into a floor for the one still to come. `LOOP_ITEM_FLOOR_MINUTES` remains the lower
-    # bound, so a run with no history — or a cheap one, which a run of skips is — keeps the documented
-    # floor, and the refusal names both numbers it compared (issue #206, design D5).
-    local minutes_left floor measured median n items_word
+    # time — so the floor follows the **cheapest** item this run has finished: its wall time times the
+    # spread the measurements show (1.5), rounded up to the whole minute. The cheapest outcome is the one
+    # the run has proof it can pay, and it is what admits a tail of 10-15 min skips after a history that
+    # also holds a 60-minute change; a median would let that one expensive item refuse the tail (issue
+    # #674). `LOOP_ITEM_FLOOR_MINUTES` is the whole floor only for a run with no measurement — the
+    # constant is no longer a lower bound of a derived floor — and the refusal names the cheapest wall
+    # time, the count and that configured minimum (issue #206, design D5, #674).
+    local minutes_left floor measured cheapest n items_word
     minutes_left=$(jq -r '((.run.deadlineEpoch - now) / 60 | floor)' "$STATE_FILE")
     measured=$(jq -r --argjson min "$FLOOR_MINUTES" '
       [.items[] | .metrics.wallSeconds | select(type == "number" and . > 0)] as $w
       | ($w | length) as $n
-      | ($w | sort) as $s
-      | (if $n == 0 then null
-         elif ($n % 2) == 1 then ($s[($n / 2) | floor] / 60)
-         else ((($s[$n / 2 - 1] + $s[$n / 2]) / 2) / 60) end) as $median
-      | (if $median == null then [$min, 0, 0]
-         else [([($median * 1.5 | ceil), $min] | max), $n, ($median | round)] end)
+      | ($w | min) as $cheapest
+      | (if $cheapest == null then null else ($cheapest / 60) end) as $minutes
+      | (if $minutes == null then [$min, 0, 0]
+         else [($minutes * 1.5 | ceil), $n, ($minutes | round)] end)
       | @tsv' "$STATE_FILE")
-    IFS=$'\t' read -r floor n median <<< "$measured"
+    IFS=$'\t' read -r floor n cheapest <<< "$measured"
     if [ "$minutes_left" -lt "$floor" ]; then
       items_word="finished items"; [ "$n" -eq 1 ] && items_word="finished item"
       if [ "$n" -eq 0 ]; then
         reason="only ${minutes_left} min left, below the ${floor} min floor for the next item (no finished item records a wall time, configured minimum ${FLOOR_MINUTES})"
       else
-        reason="only ${minutes_left} min left, below the ${floor} min floor for the next item (median ${median} min over ${n} ${items_word}, configured minimum ${FLOOR_MINUTES})"
+        reason="only ${minutes_left} min left, below the ${floor} min floor for the next item (cheapest ${cheapest} min over ${n} ${items_word}, configured minimum ${FLOOR_MINUTES})"
       fi
     fi
   fi
@@ -409,7 +408,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events="" stop_reason=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events="" stop_reason=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -425,6 +424,7 @@ cmd_done() {
       --root-cause) need_value "$@"; root_cause="${2:-}"; shift 2 ;;
       --red-test) need_value "$@"; red_test="${2:-}"; shift 2 ;;
       --decision-label) need_value "$@"; decision_label="${2:-}"; shift 2 ;;
+      --leftover) need_value "$@"; leftover="${2:-}"; shift 2 ;;
       --label-failures) need_value "$@"; label_failures="${2:-}"; shift 2 ;;
       --stop-reason) need_value "$@"; stop_reason="${2:-}"; shift 2 ;;
       --merged-branch) need_value "$@"; merged_branch="${2:-}"; shift 2 ;;
@@ -456,7 +456,9 @@ cmd_done() {
   # recorded as one whose state there is stale rather than as one the run escalated (issue #279).
   # `--stop-reason` is the mechanism a block stopped on, recorded so a mechanism's spend is totalled from the
   # state instead of from the note's prose; it is the blocked attempt's own fact, so a second account of the same
-  # item joins only its note and never rewrites it.
+  # item joins only its note and never rewrites it. `--leftover` is the patch a child the run ended left its work
+  # in: the transcript names it, and the state keeps it too, so the report can point a caller at the work without
+  # a reader having to find the item's transcript first (issue #674).
   local class usage
   class=$(jq -r --argjson i "$issue" '[.queue[], .excluded[]] | map(select(.issue == $i)) | (.[0].class // "")' "$STATE_FILE")
   # What the item spent is read from the event stream its children wrote, and recorded beside the wall time so
@@ -472,7 +474,8 @@ cmd_done() {
     # is replaced by an account that arrived later.
     .items = (
       if ([.items[] | select(.issue == $i)] | length) == 0 then
-        .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change, note:$note, at:$at,
+        .items + [{issue:$i, class:$c, result:$r, verdict:$v, change:$change,
+                  note:$note, leftover:(if $lo == "" then null else $lo end), at:$at,
                   stopReason:(if $sr == "" then null else $sr end),
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me},
@@ -483,6 +486,7 @@ cmd_done() {
       else
         .items | map(if .issue == $i then
           .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
+          | .leftover = (if $lo == "" then .leftover else $lo end)
           | .escalatedLabel = (if $dl == "" then .escalatedLabel else $dl end)
           | .labelFailures = (((.labelFailures // []) + ($lf | split(" ") | map(select(length > 0)))) | unique)
         else . end)
@@ -492,7 +496,7 @@ cmd_done() {
     | (if .current != null and .current.issue == $i then .current = null else . end)
   ' --argjson i "$issue" --arg c "$class" --arg r "$result" --arg v "$verdict" --arg change "$change" \
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
-    --arg lf "$label_failures" --arg sr "$stop_reason" \
+    --arg lo "$leftover" --arg lf "$label_failures" --arg sr "$stop_reason" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
     --argjson usage "$usage" \

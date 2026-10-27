@@ -1,0 +1,46 @@
+== own report (openspec/changes/fix-client-java-coverage-provenance/evidence/jacoco-own.xml)
+com/framstag/libosmscout/client/AvailableMapEntry                       127/ 141 =  90.1 % own
+com/framstag/libosmscout/client/BasemapManager                         1189/1532 =  77.6 % own
+com/framstag/libosmscout/client/BasemapManager$ActiveDownload            41/  42 =  97.6 % own
+com/framstag/libosmscout/client/BasemapManager$BasemapArchive            85/ 115 =  73.9 % own
+com/framstag/libosmscout/client/BasemapManager$BasemapInfo               97/  97 = 100.0 % own
+com/framstag/libosmscout/client/InstalledMaps                            70/  72 =  97.2 % own
+com/framstag/libosmscout/client/MapDownloadManager                      157/ 487 =  32.2 % own
+com/framstag/libosmscout/client/MapDownloadManager$ActiveDownload        16/  42 =  38.1 % own
+com/framstag/libosmscout/client/OSMScoutClient                          223/ 229 =  97.4 % own
+com/framstag/libosmscout/client/OSMScoutClientBuilder                    94/  97 =  96.9 % own
+
+own      2099/2854 = 73.5 %
+
+== vendored report (openspec/changes/fix-client-java-coverage-provenance/evidence/jacoco-vendored.xml)
+com/framstag/libosmscout/client/CurrentRoadInfo                          96/  96 = 100.0 % vendored
+com/framstag/libosmscout/client/DescriptionEntry                          3/   3 = 100.0 % vendored
+com/framstag/libosmscout/client/FavoriteLocation                         25/  25 = 100.0 % vendored
+com/framstag/libosmscout/client/FavoriteLocationGroup                    29/  29 = 100.0 % vendored
+com/framstag/libosmscout/client/LaneTurn                                171/ 171 = 100.0 % vendored
+com/framstag/libosmscout/client/LocationEntry                             6/   6 = 100.0 % vendored
+com/framstag/libosmscout/client/MapDownloadListener                       3/   3 = 100.0 % vendored
+com/framstag/libosmscout/client/MapProvider                              25/  25 = 100.0 % vendored
+com/framstag/libosmscout/client/NavigationController                      3/   3 = 100.0 % vendored
+com/framstag/libosmscout/client/NavigationListener                       11/  11 = 100.0 % vendored
+com/framstag/libosmscout/client/NavigationPosition                       49/  50 =  98.0 % vendored
+com/framstag/libosmscout/client/NavigationState                          33/  33 = 100.0 % vendored
+com/framstag/libosmscout/client/ObjectDescription                        59/  59 = 100.0 % vendored
+com/framstag/libosmscout/client/PoiCategories                           361/ 361 = 100.0 % vendored
+com/framstag/libosmscout/client/PoiEntry                                  3/   3 = 100.0 % vendored
+com/framstag/libosmscout/client/RoadInfo                                 39/  39 = 100.0 % vendored
+com/framstag/libosmscout/client/RouteCallback                             0/   4 =   0.0 % vendored
+com/framstag/libosmscout/client/RouteEntry                                3/   3 = 100.0 % vendored
+com/framstag/libosmscout/client/RouteInstruction                        151/ 160 =  94.4 % vendored
+com/framstag/libosmscout/client/RoutingProfile                           48/  48 = 100.0 % vendored
+com/framstag/libosmscout/client/StarredFavoriteLocation                  12/  12 = 100.0 % vendored
+com/framstag/libosmscout/client/TrackPoint                               24/  24 = 100.0 % vendored
+com/framstag/libosmscout/client/TurnType                                167/ 167 = 100.0 % vendored
+com/framstag/libosmscout/client/Vehicle                                  21/  21 = 100.0 % vendored
+
+vendored 1342/1356 = 99.0 %
+
+== the base tree's one mixed report (openspec/changes/fix-client-java-coverage-provenance/evidence/jacoco-head.xml)
+
+own      1782/2854 = 62.4 %
+vendored 1342/1356 = 99.0 %

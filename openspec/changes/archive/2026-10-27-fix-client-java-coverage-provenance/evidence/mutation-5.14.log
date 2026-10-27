@@ -1,0 +1,3 @@
+MUTATION 5.14: inputs#splitsTheJavaModulesCoverageByProvenance red under the mutation, green after the restore — the vendored provenance is read from its own report, not from the module's own one
+
+build-inputs-mutations: 1 behaved, 0 did not

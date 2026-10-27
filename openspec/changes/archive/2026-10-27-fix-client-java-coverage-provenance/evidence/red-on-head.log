@@ -1,0 +1,3 @@
+  the vendored key reads the vendored report, so a pin bump moves it alone: expected '95.0', got 'null'
+FAIL inputs#splitsTheJavaModulesCoverageByProvenance
+EXIT=1

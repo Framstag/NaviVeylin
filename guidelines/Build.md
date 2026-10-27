@@ -782,15 +782,19 @@ measured 2026-10-22: 1 057–5 271 bytes each, against 22 053 bytes before the s
   cause "already loaded in another classloader" failures in full-suite runs.
   The rule is enforced, not remembered: `JniStubSandboxRuleTest`
   (`app/src/test/java/com/naviveylin/test/`) reads the test sources of both
-  stub-shipping modules (`:app`, `:auto`) and fails naming file and line for a
-  line-anchored `@Config(… sdk …)`/`@GraphicsMode(…)` in a file that names the
+  Robolectric stub-shipping modules (`:app`, `:auto`) and fails naming file and
+  line for a line-anchored `@Config(… sdk …)`/`@GraphicsMode(…)` in a file that names the
   client package — one control per refused form, so neither is a sentence only.
   A `@Config(qualifiers=...)` starts no second sandbox and stays
   allowed. Scope, so the claim is not wider than the case: the scan reads `*.kt`
   under `src/test/java`, so a module-wide `sdk=…` in
   `src/test/resources/robolectric.properties` (`:auto` carries one) is outside the
   rule, and the case lives in `:app`, so a `./gradlew :auto:test` run alone
-  enforces nothing on `:auto` sources — the gate runs both modules.
+  enforces nothing on `:auto` sources — the gate runs both modules. The rule's
+  premise is Robolectric's per-test classloader: `:osmscout-client-java` carries
+  the same stub (section 6h) and runs plain JUnit 5, one classloader for the
+  whole suite, so a second sandbox cannot arise there and the rule does not
+  reach its `*.java` cases.
 
 ## 6b. Teardown, the Compose sandbox and geometry claims
 
@@ -1034,17 +1038,20 @@ measured 2026-10-22: 1 057–5 271 bytes each, against 22 053 bytes before the s
 
 ## 6h. The JNI stub for unit tests
 
-- **The JNI stub for unit tests.** `app/src/test/jniLibs/` and `auto/src/test/jniLibs/` each hold a tiny
-  host-compiled stub (ELF, no symbols, named both `libosmscout_client_java.so` and
-  `libosmscout_client_javad.so`) so `OSMScoutClient`'s static `System.loadLibrary` succeeds in
-  JVM/Robolectric unit tests — the Android `.so` cannot load on the host JVM. The `_javad` variant is the
-  fallback name the loader tries second; without it full-suite runs can fail flakily. The stubs are
-  **committed** (`.gitignore` re-includes them via `!app/src/test/jniLibs/*.so` and
-  `!auto/src/test/jniLibs/*.so`) so CI runners and fresh checkouts have them; AGP puts each module's own
-  `src/test/jniLibs` on the unit-test `java.library.path`. Keep them in the test source set only, and never
-  use them in the app. Tests override the native methods through fakes (see
-  `app/src/test/java/com/framstag/libosmscout/client/FakeOSMScoutClient.kt`). The classloader rule this stub
-  imposes is the first bullet of this section.
+- **The JNI stub for unit tests.** `app/src/test/jniLibs/`, `auto/src/test/jniLibs/` and
+  `osmscout-client-java/src/test/jniLibs/` each hold the same tiny host-compiled stub (ELF, no symbols, named
+  both `libosmscout_client_java.so` and `libosmscout_client_javad.so`) so `OSMScoutClient`'s static
+  `System.loadLibrary` succeeds in JVM/Robolectric unit tests — the Android `.so` cannot load on the host JVM.
+  The `_javad` variant is the fallback name the loader tries second; without it full-suite runs can fail
+  flakily. The stubs are **committed** (`.gitignore` re-includes them via `!app/src/test/jniLibs/*.so`,
+  `!auto/src/test/jniLibs/*.so` and `!osmscout-client-java/src/test/jniLibs/*.so`) so CI runners and fresh
+  checkouts have them; AGP puts each Android module's own `src/test/jniLibs` on the unit-test
+  `java.library.path`, and the Java module wires the same directory itself
+  (`osmscout-client-java/build.gradle.kts`, `systemProperty("java.library.path", …)`) because it has no AGP.
+  Keep them in the test source set only, and never use them in the app. Tests override the native methods
+  through fakes (see `app/src/test/java/com/framstag/libosmscout/client/FakeOSMScoutClient.kt` and the Java
+  module's own `FakeOSMScoutClient`, whose suite needs the stub to reach `OSMScoutClient`'s non-native
+  methods). The classloader rule this stub imposes is the first bullet of section 6a.
 
 ## 7. Code coverage
 
@@ -1057,18 +1064,29 @@ covered; no instrumented/device coverage):
 | Module | Engine | Report task | Output |
 |---|---|---|---|
 | `app`, `auto`, `core` | Kover 0.9.9 | `./gradlew :koverHtmlReport :koverXmlReport` (root merge) | `build/reports/kover/` (root merged), `app|auto|core/build/reports/kover/` (per module) |
-| `osmscout-client-java` | Gradle JaCoCo | `./gradlew :osmscout-client-java:jacocoTestReport` | `osmscout-client-java/build/reports/jacoco/test/` |
+| `osmscout-client-java`, own sources | Gradle JaCoCo | `./gradlew :osmscout-client-java:jacocoTestReport` | `osmscout-client-java/build/reports/jacoco/test/` |
+| `osmscout-client-java`, vendored client API | Gradle JaCoCo | `./gradlew :osmscout-client-java:jacocoVendoredTestReport` | `osmscout-client-java/build/reports/jacoco/vendored/` |
 
 Rationale for two engines: Kover measures Kotlin sources accurately (lambdas,
 inline functions) and cannot measure a pure-Java module without the Kotlin
 plugin (empty reports); the Java-only JNI bridge module therefore uses the
 standard JaCoCo plugin and is reported separately, outside the Kover merge.
 
+**The JNI module has two provenances, and each is its own report and its own coverage-row key.** The module
+compiles its own local overrides (`src/main/java`) beside the vendored `libosmscout` Java client API
+(`clientJavaDir`, the submodule's `libosmscout-client-java/java`) as two Gradle source sets, so the two get
+two classes directories and two JaCoCo reports. `tools/build-inputs.sh` turns them into two keys —
+`osmscout-client-java` (own code) and `osmscout-client-java-vendored` (what the pin ships) — and the
+`coverage` row applies its floor to each, so a vendored-code gain can no longer pay for an own-code deficit
+and a submodule bump that adds an unreached upstream class moves the vendored key alone (issue #678, spec
+`test-coverage`). Both reports read the one execution data of the module's suite.
+
 **Usage**
 
 ```bash
-# One command: all coverage (root Kover merge + JaCoCo report)
+# One command: all coverage (root Kover merge + both JaCoCo reports)
 ./gradlew :koverHtmlReport :koverXmlReport :osmscout-client-java:jacocoTestReport
+./gradlew :osmscout-client-java:jacocoVendoredTestReport
 
 # Per-module Kover report (HTML + XML)
 ./gradlew :app:koverHtmlReport :app:koverXmlReport
@@ -1087,7 +1105,7 @@ the instrumentation:
 ./gradlew :app:testMobileDebugUnitTest -PforceTests -PnoCoverage --no-build-cache
 
 # Report, from a run that requested coverage
-./gradlew :koverXmlReport :osmscout-client-java:jacocoTestReport
+./gradlew :koverXmlReport :osmscout-client-java:jacocoTestReport :osmscout-client-java:jacocoVendoredTestReport
 ```
 
 Measured 2026-10-04, one invocation per suite on the same tree, suite wall time from the first and last
@@ -1114,17 +1132,20 @@ classes (`dagger.hilt.*`, `hilt_aggregated_deps.*`, `*.Hilt_*`, `*_Hilt*`,
 
 **Baseline (2026-09-11)** — merged report: 662 classes, 59.7 % line
 (8839/14805), 58.2 % instruction; per module: `app` 58.9 %, `auto` 53.8 %,
-`core` 67.3 % (line). The JNI module's own figure moved with its suite — its own JaCoCo report (not the merged
-Kover one above) re-measured 2026-10-27 reads LINE 698 of 979 (71.3 %), INSTRUCTION 3124 of 4210 (74.2 %),
-CLASS 31 covered / 3 missed over the module's 34 classes, from 21 test classes / 106 cases / 0 failures
-(change `fix-client-java-coverage-floor`, `evidence/jacoco-report-change.xml`; the 74.2 % is the
-instruction number the coverage row compares against its 70 % floor).
+`core` 67.3 % (line). The JNI module's two provenances are two figures since the split (2026-10-27, change
+`fix-client-java-coverage-provenance`; `evidence/jacoco-own.xml` and `evidence/jacoco-vendored.xml`): the
+module's **own** report reads INSTRUCTION 2099 of 2854 (73.5 %), LINE 523 of 725 (72.1 %), CLASS 10 covered /
+0 missed; the **vendored** report reads INSTRUCTION 1342 of 1356 (99.0 %), LINE 251 of 254 (98.8 %),
+CLASS 23 covered / 1 missed (the unused `RouteCallback` interface), from 23 test classes / 116 cases / 0
+failures. Both numbers are instruction percentages the coverage row compares against its 70 % floor, one
+per key. Before the split the single report read 3124 of 4210 (74.2 %) — a mixture in which the own half stood
+at 62.4 % (1782 of 2854), below the floor, while the vendored half stood at 99.0 %.
 Re-measure after meaningful test work; a future change may add a
 `koverVerify` threshold gate on top of this baseline. Re-checked 2026-10-04 after the opt-out
 (`:core` `com/naviveylin/core/AccuracyClass` LINE 0 missed / 3 covered), i.e. the default path still
 yields non-empty counters. That opt-out check read the JNI module's suite as 2 classes / 26 tests / 0
 failures, and it was unchanged **by the opt-out**; the suite grew since — 8 classes / 48 cases before the
-change above, 21 / 106 after it — so a later opt-out
+2026-10-27 fix, 21 / 106 after it, 23 / 116 after the split — so a later opt-out
 comparison re-measures both halves.
 
 **Configuration cache: deliberately off (evaluated 2026-10-04/05).** `./gradlew --configuration-cache

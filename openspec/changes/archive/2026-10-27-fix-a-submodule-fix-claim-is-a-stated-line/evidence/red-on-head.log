@@ -1,0 +1,8 @@
+===== prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim (2026-10-27T13:57:53Z) 3s
+  an item whose body quotes the submodule path as the file the dirt was seen on stays in the queue: expected 'eligible', got 'needs-decision'
+FAIL prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim
+loop-selftest: 1 of 1 cases failed
+===== prescreen#aFixInTheSubmoduleIsAPersonsPatch (2026-10-27T13:57:53Z) 3s
+  the same claim stated without the path is the same question: expected 'needs-decision', got 'eligible'
+FAIL prescreen#aFixInTheSubmoduleIsAPersonsPatch
+loop-selftest: 1 of 1 cases failed

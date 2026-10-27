@@ -27,3 +27,38 @@ File: app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt
 
 5. Green again, same command, same file:
    BUILD SUCCESSFUL in 5s — `files=805 findings=0`, `scanned=805`
+
+6. Round 1 review correction — the prune half had no case that could fail. The case's second assertion was
+   `scanned.none { it.startsWith("app/build/") }`, vacuous in this tree (`find app/build buildSrc/build build
+   core/build auto/build -name '*.kt' | wc -l` → `0`). It is replaced by a probe tree the case builds itself —
+   `build.gradle.kts` beside `build/` and `app/build/`, no marker beside `lib/build/` and the package
+   directory `app/src/main/java/com/naviveylin/build/` — and an exact expectation of the three sources read.
+
+7. md5 before the prune-half mutation
+   11628c2552877985149f7c32f582240e  app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt
+
+8. The mutation — one mutation, the prune stopped, marked so a left-over is visible:
+      .onEnter { !it.isGradleOutput() && it.name !in SKIPPED_TOOL_DIRECTORIES }
+   ->
+      .onEnter { it.name !in SKIPPED_TOOL_DIRECTORIES } // REVERT-CHECK MUTATION 2
+
+9. Red, as required (focused, `-PforceTests --no-build-cache`), for the right reason — the assertion, not a
+   compile error or a missing file:
+   ComposeApiDeprecationTest > the scan reads the sources a directory named build holds FAILED
+       java.lang.AssertionError: the scan must prune a `build` directory only when a Gradle project root writes
+       the marker beside it: … (walked [app/build/GeneratedByApp.kt,
+       app/src/main/java/com/naviveylin/build/PackageSource.kt, app/src/main/kotlin/Widget.kt,
+       build/GeneratedByRoot.kt, lib/build/Unmarked.kt]) expected:<[app/src/main/java/com/naviveylin/build/
+       PackageSource.kt, app/src/main/kotlin/Widget.kt, lib/build/Unmarked.kt]> but was:<[… same five …]>
+   3 tests completed, 1 failed — BUILD FAILED in 5s
+   JUnit XML: evidence/TEST-ComposeApiDeprecationTest-prune-red.xml (tests=3 failures=1, `2026-10-27T17:01:48.246Z`)
+
+10. Restore, then md5 again — byte identical, and no marker left:
+   11628c2552877985149f7c32f582240e  app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt
+   grep -c 'REVERT-CHECK MUTATION' -> 0
+
+11. Green again, after the restore, forced — `2026-10-27T17:01:57.965Z`, later than the red XML:
+   BUILD SUCCESSFUL in 4s — `files=805 findings=0`, `scanned=805`,
+   `prune-probe walked=[app/src/main/java/com/naviveylin/build/PackageSource.kt,
+   app/src/main/kotlin/Widget.kt, lib/build/Unmarked.kt]`
+   JUnit XML: evidence/TEST-ComposeApiDeprecationTest-green.xml (`2026-10-27T17:01:57.965Z`)

@@ -42,23 +42,26 @@ promises the whole tree. **Owning guideline section:** `guidelines/Build.md`, th
 deprecation baseline" paragraph (`guidelines/Build.md:1195`).
 
 **Surface counted before the plan** — `grep -rn 'every `\*\.kt`' guidelines openspec/specs app/src` → 3 hits;
-`grep -rln ComposeApiDeprecationTest guidelines openspec/specs app/src` → 2 files; `ls tools/*-cases.sh` → no
+`grep -rln ComposeApiDeprecationTest guidelines openspec/specs app/src` → 3 files; `ls tools/*-cases.sh` → no
 case names the guard:
 
 surface: 1 case added, 2 cases extended, 2 documents realigned — `grep -rln ComposeApiDeprecationTest guidelines openspec/specs app/src` and `grep -rn 'every `*.kt`' guidelines openspec/specs app/src`
 
-So: 1 case added, 1 case extended (the first case's assertion message and the second case's probes, because
-the scan now reads the file they live in), 2 documents realigned (`guidelines/Build.md`, the "Code coverage" section,
-`openspec/specs/build-jvm-toolchain/spec.md`), in the one file the scan is in. Nothing else asserts the rule.
+One case added, two cases extended (the first case's assertion message, the second case's probes because the
+scan now reads the file they live in), two documents realigned (`guidelines/Build.md`, the "Code coverage"
+section; `openspec/specs/build-jvm-toolchain/spec.md`), in the one file the scan is in. Nothing else asserts the
+rule; `./tools/loop/measure.sh` prints the same `LOOP-MEASURE-SURFACE surface: 1 case added, 2 cases extended, 2
+documents realigned`.
 
 ## What Changes
 
 - `app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt`: the walk prunes a `build` directory
   only when a Gradle project root writes into it (a `build.gradle.kts`/`build.gradle` in its parent), not by
-  its name; the new case above holds that, and asserts `app/build/` is still pruned. The case's own probe
-  literals and its failure message are assembled from parts (`DEPRECATED = "quadratic" + "Bezier" + "To"`),
-  because from now on the scan reads this file too and a source line here must not carry the spelling the
-  case refuses.
+  its name; the new case above holds that, and holds the prune half against a probe tree it builds itself —
+  `build/` and `app/build/` beside a marker are pruned, `lib/build/` and the package directory
+  `com/naviveylin/build/` are read. The case's own probe literals and its failure message are assembled from
+  parts (`DEPRECATED = "quadratic" + "Bezier" + "To"`), because from now on the scan reads this file too and a
+  source line here must not carry the spelling the case refuses.
 - `guidelines/Build.md`, the "Code coverage" section: the paragraph's count becomes the number the scan prints (805 files), and it says
   what a `build` directory is pruned by.
 - `openspec/specs/build-jvm-toolchain/spec.md`: the requirement gains the scenario "The sources a package
@@ -72,15 +75,17 @@ deprecated quadratic path builder": its three scenarios each name one case of `C
 ## Cases and evidence
 
 - `app: ComposeApiDeprecationTest` "the scan reads the sources a directory named build holds" — red on base
-  `3f972aec` (`tests=3 failures=1`, `read 768`), green after the prune is fixed.
+  `3f972aec` (`tests=3 failures=1`, `read 768`), green after the prune is fixed; its prune half is held against a
+  probe tree the case builds, and one mutation — the `onEnter` without `isGradleOutput()` — reddens it
+  (`tests=3 failures=1`, `2026-10-27T17:01:48.246Z`, `evidence/TEST-ComposeApiDeprecationTest-prune-red.xml`).
 - `app: ComposeApiDeprecationTest` "no project Kotlin source calls a deprecated quadratic path builder" — green
   before and after; its `files=` count rises from 768 to 805 and its `findings=` stays 0, so the newly read
   sources carry no deprecated spelling.
 - `app: ComposeApiDeprecationTest` "the scan is still detectable" — green before and after; the probes are
   assembled from parts, so the guard does not report itself.
 - `./tools/loop/gate.sh` — the documented gate, once: exit 0, its own summary line reads
-  `LOOP-GATE: tests=645 failures=0 errors=0` over its 23 suites, `LOOP-MEASURE-GATE seconds=1120 suites=23`
-  (`evidence/gate.log`, `evidence/gate-tallies.txt`).
+  `LOOP-GATE: tests=645 failures=0 errors=0` over its 23 suites, with each suite's time on the same line
+  (`evidence/gate.log:1441`, `evidence/gate-summary.xml`, `evidence/gate-tallies/`).
 
 ## Impact
 

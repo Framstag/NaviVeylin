@@ -22,3 +22,22 @@ The suite's wall time is not that sum: it runs at the declared fork count, every
 Robolectric fork bootstrap plus the daemon and (when test sources changed) the test compile, so the
 floor is ~30s, not 10s. And a pre-gate run is NOT gate evidence: run the unfiltered module suite
 before marking the change complete.
+
+== Round 1 review corrections, re-taken 2026-10-27 (the change is archived, so `validate --specs` is the
+   artifact check; the change's own `--strict` validation is the round-1 record above)
+== openspec validate --specs
+Totals: 177 passed, 0 failed (177 items)
+== check-doc-routes
+check-doc-routes: all 154 section references resolve, all 4 skill references resolve
+== check-openspec-hygiene
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted,
+and every capability spec states its Purpose.
+== declared cases
+selected 1 of 443 test classes; measured class time 0.7s
+  1 declared app     0.653     com.naviveylin.build.ComposeApiDeprecationTest
+== the guard's own run, focused (`-PforceTests --no-build-cache`)
+tests=3 failures=0 errors=0, `2026-10-27T17:01:57.965Z`, `files=805 findings=0`, `scanned=805`,
+`prune-probe walked=[app/src/main/java/com/naviveylin/build/PackageSource.kt,
+app/src/main/kotlin/Widget.kt, lib/build/Unmarked.kt]`
+(`evidence/TEST-ComposeApiDeprecationTest-green.xml`)

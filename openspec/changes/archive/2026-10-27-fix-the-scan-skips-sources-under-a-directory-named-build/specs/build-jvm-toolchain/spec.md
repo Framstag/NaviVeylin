@@ -27,7 +27,8 @@ prune no source by a directory's name.
 
 #### Scenario: The sources a package directory named build holds are read
 
-- **WHEN** the project's own sources live under a package directory whose name is `build`
-- **THEN** the scan reads them, because it prunes a `build` directory by the Gradle marker beside it rather
-  than by its name, and it still prunes the output directories that marker names
+- **WHEN** the project's own sources live under a package directory whose name is `build`, and Gradle output
+  lives under a `build` directory a project root writes a marker beside
+- **THEN** the scan reads the first and prunes the second — in the project's own tree, and in a probe tree
+  holding both kinds — because a `build` directory is Gradle output by the marker beside it, never by its name
 - **Case**: `app: ComposeApiDeprecationTest` "the scan reads the sources a directory named build holds"

@@ -47,8 +47,15 @@ carry the deprecated spelling, so they are assembled from parts
 scan reports nothing for the file it lives in. This is what keeps the guard's promise true rather than
 exempting it: a deprecated call *in that file* is still reported, a spelling inside a string literal is not.
 
-The new case holds the delta at both ends: the two paths the name-prune hid are in the scan's set, and no path
-under `app/build/` is.
+The new case holds the delta at both ends: the two paths the name-prune hid are in the scan's set, and the
+prune half is held against a probe tree the case builds — a `build.gradle.kts` beside `build/` and
+`app/build/`, no marker beside `lib/build/` and `src/main/java/com/naviveylin/build/` — asserting exactly the
+three sources walked. The real tree cannot hold that half: `find app/build buildSrc/build build core/build
+auto/build -name '*.kt' | wc -l` → `0`, so a `scanned.none { it.startsWith("app/build/") }` assertion would be
+vacuous and an `isGradleOutput()` that pruned nothing would still pass (review round 1). One mutation — the
+`onEnter` without `isGradleOutput()` — reddens the case with the probe's own five-path list
+(`evidence/TEST-ComposeApiDeprecationTest-prune-red.xml`, `tests=3 failures=1`, `2026-10-27T17:01:48.246Z`), and
+the restore is byte-identical (`evidence/revert-check.txt` steps 6–11).
 
 ## Blast radius
 

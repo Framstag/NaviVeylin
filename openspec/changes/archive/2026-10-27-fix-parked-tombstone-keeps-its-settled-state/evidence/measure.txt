@@ -1,0 +1,16 @@
+# The measurement, quoted
+
+One run of `./tools/loop/measure.sh` from the change root, 2026-10-27, with this change open and its gate run
+already in the tree:
+
+```
+LOOP-MEASURE-SUITE cases=256 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=1155 suites=28
+LOOP-MEASURE-CHANGE fix-parked-tombstone-keeps-its-settled-state scenarios=3 cases=3 unnamed=0
+LOOP-MEASURE-SURFACE surface: 2 cases added, 1 mutation added, 1 profile role declared, 2 documents corrected — `grep -rln 'revisit-parked\|reopen_item\|openStatus' tools/*-cases.sh tools/issues/ tools/loop/ guidelines/ openspec/specs/ .github/workflows/` (6 files)
+```
+
+`LOOP-MEASURE-CHANGE […] unnamed=0` is the delta's scenario-to-case map: three scenarios, three cases, none
+unnamed. The gate's own numbers are quoted in `gate.md` from the gate run itself
+(`LOOP-GATE: tests=803 failures=0 errors=0`), whose per-suite tallies sit under `gate-tallies/`; the block's
+`LOOP-MEASURE-GATE seconds=1155 suites=28` is that same run's wall clock, read from the tallies it wrote.

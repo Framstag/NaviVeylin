@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list" tests="0" failures="0" errors="0" time="1">
+  <system-out>5.15	resolver#titleSuffixBesideItsCanonicalPathIsSettled	a token the body does not carry being settled instead of rewritten into a no-op the item keeps being reported for (#226) 5.16	resolver#ambiguityLineNamesTheAmbiguity	an item the ladder only found ambiguous being named as one it repaired, contradicting the summary that counts no write (#258) 5.17	resolver#cleanParkedItemIsReopened	only an ite</system-out>
+</testsuite>

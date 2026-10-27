@@ -35,3 +35,30 @@ carries `tests="0" failures="0" errors="0"` (Gradle's tally line reports the ste
 network residual therefore did not recur, and the hand-written `gate-summary.xml` that aggregated round 1's tallies
 was removed with it: `evidence/gate.log`'s own `LOOP-GATE` line is this run's summary, and a file that quoted the
 old run beside the new one is a number a reader cannot tell from a measurement (issue #244).
+
+## Round 3 (2026-10-27, the round the decision's option 1 asked for): green
+
+The item's decision was option 1 — re-run `./tools/loop/gate.sh` once on the tree being merged and close on that
+tally. Two things differ from rounds 1 and 2: the branch is merged with `main` (so the delta is measured against
+the base it will land on), and the base is passed explicitly.
+
+- **`main` was merged in first.** The branch's base was `2de16da0`; `main` had moved to `de769144` (#320) and the
+  only conflict was the `adapter#theChildIsStartedWithTheResultBound` hunk both items had written. It was resolved
+  by keeping `main`'s text — the same behaviour, the shipped wording — so the change does not restate a
+  correction another item landed.
+- **Run 1 of this round: two failures, both inside the loop suite.** The gate's stream
+  file is a `mktemp` its `EXIT` trap removes, so the two case names were lost with it; the same command re-run
+  alone was green in full, `tools/loop-selftest.sh --from-git main` → `all 248 cases passed` (534 s,
+  `evidence/loop-suite-green-rerun.log`). Recorded as the flake it is, not as a pass: the gate tally of that
+  attempt is in this file's history (`evidence/gate-round2-red.log` is round 2's red; run 1 of this round is not
+  retained, because it measured nothing the tree still has).
+- **Run 2: green.** 20 steps, no failure — `tools/loop-selftest.sh --from-git main` 610 s
+  (`evidence/gate-tallies/tools_loop-selftest.sh_--from-git_main.xml`, `tests="248" failures="0"`),
+  `bash tools/loop-mutations.sh --check` 4 s (`tests="194" failures="0"`), `tools/loop-mutations-selftest.sh` 423 s
+  (34), `tools/check-portability-selftest.sh` 44 s (29), `tools/issue-tooling-selftest.sh` 357 s (124), and the
+  doc/hygiene/list steps. The transcript is `evidence/gate.log` and the tallies are `evidence/gate-tallies/`;
+  round 2's red log and its tallies are kept beside them and named by their suffix.
+- **No compiled step was selected**, and none is owed: with `main` as the base, no compiled path differs
+  (`gate.sh --plan` lists the shell steps only), which is `guidelines/Build.md` §2's scope rule for a delta that
+  touches `tools/**` and `*.md` alone. Rounds 1 and 2 saw Gradle only because their base was an older
+  `origin/main`.

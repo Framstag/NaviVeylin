@@ -45,7 +45,8 @@ and "What bounds it".
    round's reviewer** was ended by the run's own deadline carries `LOOP-DEADLINE` in its transcript. It is still
    recorded `blocked`, with its tree uncommitted and the `LOOP-TIMEOUT` line as its reason, but the run writes no
    decision label for it: it is left for the next run, not escalated. A round the clock ended is cut rather than
-   refused, so no retry and no rework worker is started for it, and no second pre-screen pass runs after the
+   refused, so no rework worker is started for a verdict nobody wrote (the cut-short retry could not fire: the retry
+   condition already read `LOOP-TIMEOUT`, which `run_child` writes beside `LOOP-DEADLINE`), and no second pre-screen pass runs after the
    deadline — the pass would exclude the item whose branch the cut run had just made and name a decision for it.
    A cap-ended child is unchanged — that item did ask a question.
 3. **`tools/loop/state.sh` + `tools/loop/report.sh` — the leftover is a persisted record.** `done --leftover <path>`

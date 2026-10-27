@@ -107,13 +107,17 @@ hand-started child as naming a record file. It unsets the record with the event 
 ## Verification
 
 - Red on the base, green on the change: `evidence/red-on-base-*.xml` (the floor, the worker's deadline cut, the
-  leftover patch, and round 1's review: `evidence/red-on-base-reviewer-deadline.xml`), plus
-  `evidence/green-on-change-suite.xml`.
-- The whole shell suite and the gate once: `evidence/gate.log`, `evidence/gate-tallies/`. **The gate is red as it
-  ran** — its loop-suite step is `tests=248 failures=1 errors=0` and its mutations-check step `errors=1`, both on
-  `MUTATION-PATTERN-STALE 31.1`: this round's own edit moved the retry line that record quotes. The record is
-  re-pointed after the run and `tools/loop-mutations.sh --check --only 31.1` passes on the shipped tree; the gate
-  was not re-run, so the item is blocked for a clean tally rather than closed on a run that did not measure the
-  tree it ships (`tasks.md` 6.2).
+  leftover patch, and round 1's review: `evidence/red-on-base-reviewer-deadline.xml`), and the whole shell suite on
+  the merged tree inside the green gate (`evidence/gate.log`: `tools/loop-selftest.sh --from-git main`,
+  `tests="248" failures="0"`, 610 s). Round 1's `evidence/green-on-change-suite.xml` (247 cases against base
+  `2de16da0`) is kept as the record of that round's tree, not as this tree's green.
+- The whole shell suite and the gate once, on the tree being merged: 20 steps and no failure, the loop suite
+  `tests="248" failures="0"` and `tools/loop-mutations.sh --check` `tests="194" failures="0"`
+  (`evidence/gate.log`, `evidence/gate-tallies/`), measured with `./tools/loop/gate.sh --base main` after `main`
+  was merged in. It replaces the red tally of round 2, which is kept beside it
+  (`evidence/gate-round2-red.log`, `evidence/gate-tallies-round2-red/`) and whose one failure was a mutation record
+  this round's edit had moved — re-pointed before this run. `evidence/gate-attribution.md` "Round 3" names the
+  first attempt of this round (two failures whose case names the gate's `mktemp` stream took with it) and the green
+  re-run of the same suite command that followed it (`evidence/loop-suite-green-rerun.log`).
 - The six mutation records go red on the named case and green on restore: `evidence/mutations.log` (each RED line
   now carries the assertion it failed and its timestamp); `evidence/mutations-check.log` for the record check.

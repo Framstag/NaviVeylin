@@ -57,24 +57,25 @@
 ## 6. The suite and the gate
 
 - [x] 6.1 The cases the change's files declare pass: `tools/loop-selftest.sh --from-git <base>`. Verify:
-      `evidence/focused-suite.log` and the tallies beside it. This round: the groups whose cases the delta touches
-      ran green before the gate — `state` (19), `report` (16) and `run` (92) — plus the new case alone and the
-      adapter isolation case, and `tools/loop-mutations-selftest.sh` (34).
-- [ ] 6.2 The gate once: `./tools/loop/gate.sh`. **Red as it ran**, and it is quoted as it ran: its loop-suite step
-      is `tests=248 failures=1 errors=0` (554 s) — the one failure is `mutation#everyDeclaredRecordApplies`,
-      reporting `MUTATION-PATTERN-STALE 31.1 tools/loop/run.sh` — and its own `tools/loop-mutations.sh --check`
-      step is `errors=1` for the same record. Root cause, and it is this round's: the edit that put
-      `[ -z "$reviewer_deadline" ]` in front of the cut-short retry moved the line record `31.1` quotes. The
-      record is re-pointed **after** the run and verified (`--check --only 31.1`: “all 1 cases passed”), and the
-      gate was not re-run — the rule is one run per item, and a second attempt is not this round's to make. The
-      item is therefore `blocked` for a clean tally; the transcript is `evidence/gate.log` and
-      `evidence/gate-tallies/`. The compiled step was selected **and passed** this run (`./gradlew test
-      -PforceTests -PjvmTestsOnly --no-build-cache`, 321 s, `tests=0 failures=0 errors=0` — Gradle's own tally line
-      reports the step, not its cases), so round 1's network residual did not recur and is kept only as
-      `evidence/gate-attribution.md`.
+      `evidence/focused-suite.log` (round 1's selection, 247 of 247) and the tallies beside it. This round: the
+      groups whose cases the delta touches ran green before the gate — `state` (19), `report` (16) and `run` (92)
+      — plus the new case alone and the adapter isolation case, and `tools/loop-mutations-selftest.sh` (34); the
+      whole suite green on the merged tree is the gate's own step, 6.2.
+- [x] 6.2 The gate once, on the merged tree: `./tools/loop/gate.sh --base main` — its aggregate line names 635
+      checks and no failure over 20 steps, its loop-suite step `tools/loop-selftest.sh --from-git main` ran 610 s
+      (`evidence/gate-tallies/tools_loop-selftest.sh_--from-git_main.xml`, `tests="248" failures="0"`) and its
+      `tools/loop-mutations.sh --check` step 194 records
+      (`evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml`, `tests="194" failures="0"`). The
+      transcript is `evidence/gate.log`, the tallies `evidence/gate-tallies/`. Round 2's red run is kept beside
+      them: `evidence/gate-round2-red.log` and `evidence/gate-tallies-round2-red/` (one failure, record `31.1`
+      stale at the time, re-pointed before this run). A first attempt of this round had two failures, both inside
+      the loop suite, with the case names lost to the gate's `mktemp` stream; the same suite command re-run alone
+      was green in full (`evidence/loop-suite-green-rerun.log`, 248 cases), and the next full run of the gate was
+      green. `evidence/gate-attribution.md` "Round 3" states both.
 - [x] 6.3 No compiled file is touched, so the profile's compiled step owes nothing: the structural checks above are
-      the build task this change owes (`guidelines/Build.md` §2, the scope block). The gate's own scope selected the
-      compiled step against its base anyway, and it passed — 6.2 has the line.
+      the build task this change owes (`guidelines/Build.md` §2, the scope block). With `main` as the base the
+      gate selected no compiled step at all (`gate.sh --base main --plan` lists the shell steps only); rounds 1
+      and 2 saw Gradle because their base was an older `origin/main`.
 - [x] 6.4 `bash tools/loop/evidence-check.sh openspec/changes/<change> --root .` passes (`evidence-check: PASS`):
       every tally, `/tmp` pointer and `§N` resolves, and its `C5` line reports **no** unresolved or ambiguous
       `file:line` (`618 resolved and in range, 0 unresolved or ambiguous` on the shipped tree) — round 1's one

@@ -43,9 +43,10 @@ agent detached, and the tests' results SHALL be unaffected by the choice.
 ### Requirement: The pure-Java module's suite covers the classes it ships
 
 The `:osmscout-client-java` module's JVM suite SHALL exercise every class the module compiles that a host
-test can reach — the local overrides and the submodule's Java client API beside them — so that the module's
-measured instruction coverage stays at or above the coverage row's floor. A class that only the native side
-can reach SHALL NOT be counted as coverable, and no case SHALL be asked to execute native code.
+test can reach — the local overrides and the submodule's Java client API beside them. Its coverage SHALL be
+measured per provenance, one coverage-row key each, and each key SHALL stay at or above the row's floor. A
+class that only the native side can reach SHALL NOT be counted as coverable, and no case SHALL be asked to
+execute native code.
 
 #### Scenario: The POI category table is exercised
 
@@ -102,9 +103,31 @@ can reach SHALL NOT be counted as coverable, and no case SHALL be asked to execu
 
 #### Scenario: The module's coverage is measured against the row's floor
 
-- **WHEN** the module's JaCoCo report is read after its suite has run
-- **THEN** the module's measured instruction coverage is at or above the coverage row's floor
-- **Case**: `coverage-floor-probe: the module instruction coverage reaches the 70% floor`
+- **WHEN** the module's own JaCoCo report is read after its suite has run
+- **THEN** the percentage the coverage row reads under the module's own key is at or above the row's floor
+- **Case**: `coverage-floor-probe: the own-code instruction coverage reaches the 70% floor`
+
+#### Scenario: The client's own methods are exercised
+
+- **WHEN** one of `OSMScoutClient`'s convenience methods runs on a client whose native entry points answer from
+  a fake
+- **THEN** the method hands the native call the arguments and the request generation it promises, and it ends
+  the request it began even when the native call fails
+- **Case**: `OSMScoutClientWrappersTest.aStandaloneSearchBeginsAndEndsItsOwnRequest`
+
+#### Scenario: The settings builder stores what it is handed
+
+- **WHEN** a caller chains the builder's setters before `build()`
+- **THEN** every setter returns the same builder, and a repeated custom-POI registration appends instead of
+  replacing the first
+- **Case**: `OSMScoutClientBuilderTest.everySettingIsChainableAndKeepsItsValue`
+
+#### Scenario: The two provenances are two row keys
+
+- **WHEN** the coverage summary is written from the module's own report and its vendored report
+- **THEN** the summary carries a percentage for each provenance under its own key, and a missing vendored report
+  is refused instead of read as the module's mixed number
+- **Case**: `inputs#splitsTheJavaModulesCoverageByProvenance`
 
 ### Requirement: Aggregated multi-module report
 A single aggregated coverage report SHALL combine the unit test coverage of the Kotlin modules `app`, `auto`, and `core` so the whole Kotlin surface can be judged from one report (the pure-Java module is reported separately by JaCoCo).

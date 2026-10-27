@@ -1,0 +1,13 @@
+gate: bash tools/loop/gate.sh (compiled gate `./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache`, 370s, BUILD SUCCESSFUL in 6m 9s)
+exit: 0
+suites (result-XML tallies, classes / tests / failures / errors):
+  :app mobile      290 / 2111 / 0 / 0
+  :app automotive  290 / 2111 / 0 / 0
+  :auto             91 /  880 / 0 / 0
+  :core             61 /  646 / 0 / 0
+  osmscout-client-java 23 / 116 / 0 / 0
+shell suites the changed paths pulled in (all pass): tools/build-inputs.sh --check, tools/build-inputs-selftest.sh,
+  tools/build-inputs-mutations.sh --list, tools/check-action-runtimes.sh (+selftest), tools/check-compose-sandbox-rule.sh
+  (+selftest), tools/check-doc-routes.sh (+selftest, mutations --list), tools/check-todo-references.sh,
+  tools/gen-feature-list.sh --check-classification, tools/loop-mutations.sh --check
+LOOP-GATE: tests=10 failures=0 errors=0

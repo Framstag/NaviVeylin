@@ -542,12 +542,14 @@ jobs:
       # Code coverage (report-only, no gate): root Kover tasks merge
       # app/auto/core unit-test coverage into one HTML+XML report; the
       # pure-Java osmscout-client-java module is measured by its own JaCoCo
-      # report. The per-module Kover XML reports are named as well, because the
-      # sensor registry measures one percentage per module and the merged
-      # report cannot be split back into its modules (`tools/build-inputs.sh`).
+      # reports, one per provenance — its local overrides and the vendored
+      # libosmscout client API it compiles beside them (issue #678). The
+      # per-module Kover XML reports are named as well, because the sensor
+      # registry measures one percentage per module and the merged report
+      # cannot be split back into its modules (`tools/build-inputs.sh`).
       # One invocation, so the test tasks behind all of them run once.
       - name: Generate coverage reports
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverHtmlReport :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverHtmlReport :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport :osmscout-client-java:jacocoVendoredTestReport
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v7
@@ -555,7 +557,7 @@ jobs:
           name: coverage-reports
           path: |
             build/reports/kover/**
-            osmscout-client-java/build/reports/jacoco/test/**
+            osmscout-client-java/build/reports/jacoco/**
           if-no-files-found: error
 
       # ── the sensor rows' inputs ────────────────────────────────

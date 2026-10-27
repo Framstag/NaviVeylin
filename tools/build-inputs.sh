@@ -55,10 +55,14 @@ result_record="app/build/gate-result.json"
 # release artifact is produced by the release pipeline only (design D4).
 package_apk="app/build/outputs/apk/mobile/debug/app-mobile-debug.apk"
 
-# The per-module Kover XML reports the coverage summary is derived from, and the pure-Java module's JaCoCo
-# report. `:koverXmlReport` merges the three Android modules, so each module is measured from its own.
+# The per-module Kover XML reports the coverage summary is derived from, and the pure-Java module's two JaCoCo
+# reports. `:koverXmlReport` merges the three Android modules, so each module is measured from its own.
+# The Java module compiles two provenances — its own local overrides and the vendored libosmscout Java client API
+# beside them — and each report measures one of them, so the row carries one key per provenance instead of one
+# number for both.
 kover_modules="app auto core"
 jacoco_xml="osmscout-client-java/build/reports/jacoco/test/jacocoTestReport.xml"
+jacoco_vendored_xml="osmscout-client-java/build/reports/jacoco/vendored/jacocoVendoredTestReport.xml"
 
 # The test-result directories the result record's failing case is read from — the same directories the build
 # pipeline names in its "Report executed test suites" step.
@@ -143,6 +147,7 @@ write_coverage_summary() {
     lines="$lines$module	$(xml_instruction_percentage "$xml")"$'\n'
   done
   lines="${lines}osmscout-client-java	$(xml_instruction_percentage "$jacoco_xml")"$'\n'
+  lines="${lines}osmscout-client-java-vendored	$(xml_instruction_percentage "$jacoco_vendored_xml")"$'\n'
   mkdir -p "$(dirname "$coverage_summary")"
   printf '%s' "$lines" | jq -Rn \
     '[inputs | split("\t")] | map({key: .[0], value: (.[1] | tonumber)}) | from_entries | {modules: .}' \
@@ -174,6 +179,7 @@ coverage_inputs_present() {
     [ -f "$module/build/reports/kover/report.xml" ] || return 1
   done
   [ -f "$jacoco_xml" ] || return 1
+  [ -f "$jacoco_vendored_xml" ] || return 1
   return 0
 }
 
@@ -192,7 +198,8 @@ case "$mode" in
     missing=""
     add_missing() { missing="${missing}${missing:+; }$1"; }
     write_result_record
-    coverage_inputs_present || add_missing "$coverage_summary (the per-module Kover XMLs are missing — the coverage step did not run, which a red test run explains)"
+    coverage_inputs_present || add_missing "$coverage_summary (the per-module coverage XMLs are missing — the coverage step did not run, which a red test run explains)"
+    [ -f "$jacoco_vendored_xml" ] || add_missing "$jacoco_vendored_xml (the JaCoCo step that measures the vendored client API did not run)"
     [ -f "$timing_record" ] || add_missing "$timing_record (the Gradle steps must run with -I tools/gate-timings.init.gradle.kts)"
     [ -f "$package_apk" ] || add_missing "$package_apk (the step that assembles :app:assembleDebug did not run)"
     if [ -n "$missing" ]; then

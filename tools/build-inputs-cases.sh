@@ -14,6 +14,7 @@ INPUTS_CASES=(
   'inputs#refusesADeclaredInputWithNoProducer'
   'inputs#writesTheGateTimingRecord'
   'inputs#convertsPerModuleCoverage'
+  'inputs#splitsTheJavaModulesCoverageByProvenance'
   'inputs#resultRecordShapes'
   'inputs#aRedBuildStillCarriesTheResultRecord'
   'inputs#fetchRestoresTheDeclaredPaths'
@@ -33,6 +34,7 @@ inputs_run_case() {
     'inputs#refusesADeclaredInputWithNoProducer') case_inputs_refusesADeclaredInputWithNoProducer ;;
     'inputs#writesTheGateTimingRecord') case_inputs_writesTheGateTimingRecord ;;
     'inputs#convertsPerModuleCoverage') case_inputs_convertsPerModuleCoverage ;;
+    'inputs#splitsTheJavaModulesCoverageByProvenance') case_inputs_splitsTheJavaModulesCoverageByProvenance ;;
     'inputs#resultRecordShapes') case_inputs_resultRecordShapes ;;
     'inputs#aRedBuildStillCarriesTheResultRecord') case_inputs_aRedBuildStillCarriesTheResultRecord ;;
     'inputs#fetchRestoresTheDeclaredPaths') case_inputs_fetchRestoresTheDeclaredPaths ;;
@@ -101,11 +103,14 @@ coverage_xml() { # <file> <covered> <missed> [minified] — a report whose root 
 XML
 }
 
-module_reports() { # <tree> — one kover XML per Android module plus the JaCoCo module, both shapes
+module_reports() { # <tree> — one kover XML per Android module plus the Java module's two JaCoCo reports, both shapes
   coverage_xml "$1/app/build/reports/kover/report.xml" 90 10
   coverage_xml "$1/auto/build/reports/kover/report.xml" 80 20
   coverage_xml "$1/core/build/reports/kover/report.xml" 100 0 minified
-  coverage_xml "$1/osmscout-client-java/build/reports/jacoco/test/jacocoTestReport.xml" 70 30 minified
+  # The Java module compiles two provenances — its own local overrides and the vendored client API beside them —
+  # and each has its report; the numbers differ so a reader that mixes them cannot pass.
+  coverage_xml "$1/osmscout-client-java/build/reports/jacoco/test/jacocoTestReport.xml" 60 40 minified
+  coverage_xml "$1/osmscout-client-java/build/reports/jacoco/vendored/jacocoVendoredTestReport.xml" 95 5
 }
 
 timing_record() { # <tree>
@@ -250,8 +255,38 @@ case_inputs_convertsPerModuleCoverage() {
   test_results "$dir" clean
   publisher --root "$dir" --write >/dev/null 2>&1 || fail "--write failed"
   out=$(jq -c '.modules' "$dir/app/build/reports/jacoco/coverage.json") || fail "the coverage summary is not JSON"
-  assert_eq '{"app":90.0,"auto":80.0,"core":100.0,"osmscout-client-java":70.0}' "$out" \
+  assert_eq '{"app":90.0,"auto":80.0,"core":100.0,"osmscout-client-java":60.0,"osmscout-client-java-vendored":95.0}' "$out" \
     "one percentage per module, minified and pretty-printed reports alike, class counters not mistaken for the module's"
+}
+
+# The Java module's row used to be one number for two provenances — the module's own sources and the vendored
+# `libosmscout` Java client API it compiles beside them — so a gain in the vendored half paid for a deficit in the
+# module's own half and the condition could not name whose code moved. One report per provenance, one row key per
+# report, and a missing report is refused instead of read as a mixed denominator.
+case_inputs_splitsTheJavaModulesCoverageByProvenance() {
+  local dir out own vendored
+  dir=$(workspace)
+  module_reports "$dir"
+  timing_record "$dir"
+  package_apk "$dir"
+  test_results "$dir" clean
+  publisher --root "$dir" --write >/dev/null 2>&1 || fail "--write failed"
+  own=$(jq -r '.modules["osmscout-client-java"]' "$dir/app/build/reports/jacoco/coverage.json") || fail "no own-code key"
+  vendored=$(jq -r '.modules["osmscout-client-java-vendored"]' "$dir/app/build/reports/jacoco/coverage.json") \
+    || fail "the vendored provenance has no key of its own — its number is still read as the module's"
+  assert_eq '60.0' "$own" "the own-code key reads the module's own report, not the vendored classes beside it"
+  assert_eq '95.0' "$vendored" "the vendored key reads the vendored report, so a pin bump moves it alone"
+
+  # A missing report is named, never silently folded into the other provenance's number.
+  dir=$(workspace)
+  module_reports "$dir"
+  rm -f "$dir/osmscout-client-java/build/reports/jacoco/vendored/jacocoVendoredTestReport.xml"
+  timing_record "$dir"
+  package_apk "$dir"
+  test_results "$dir" clean
+  out=$(publisher --root "$dir" --write 2>&1); status=$?
+  [ "$status" -eq 1 ] || fail "--write exited $status without the vendored report, expected 1"
+  assert_contains "$out" "jacocoVendoredTestReport.xml" "the refusal names the report the vendored provenance is read from"
 }
 
 case_inputs_resultRecordShapes() {

@@ -1,0 +1,2 @@
+PASS inputs#splitsTheJavaModulesCoverageByProvenance
+PASS inputs#convertsPerModuleCoverage

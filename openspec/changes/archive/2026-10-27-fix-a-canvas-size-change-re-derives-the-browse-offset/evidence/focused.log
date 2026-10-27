@@ -1,0 +1,5 @@
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFixQualityTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-27T17:18:54.674Z"
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-10-27T17:18:54.777Z"
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelNavEndRestoreTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-27T17:19:10.821Z"
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelVehicleAnchorTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-27T17:19:05.713Z"
+<testsuite name="com.naviveylin.ui.map.MapReCenterButtonOverlayTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-27T17:19:11.085Z"

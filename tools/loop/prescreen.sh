@@ -137,20 +137,16 @@ cited_symbols_of() {
 # `worktree.sh end-item` may commit or push there, so the item is a person's patch followed by the gitlink bump —
 # and a run that admits it spends a worker phase, a review and a decision slot to reach exactly that (issue #254,
 # measured on #30, #60 and #122 of the 2026-10-22 run; the owner's answer on #60 was a pre-screen rule as the
-# durable guard). The signal is the item's own text naming the submodule, which is what the tooling already has:
-# the path the loop's configuration records, a path under it, or the submodule's directory name. Nothing fuzzier —
-# a rule that guessed from a word like "upstream" would refuse items whose fix is the app's, and a falsely refused
-# item is lost from the queue.
+# durable guard). The signal is the author's **stated claim** — a line of its own beginning
+# `The fix lands in the submodule` — and never the submodule's path or its name: a body quotes the path as the file
+# a dirty tree was seen on, and reading that as the claim parked three items of the loop's own tooling with
+# `needs-decision` before any run could take them (#309, #310, #305; issue #314). The match is a line prefix, so a
+# body that quotes the marker inline, in backticks or as an example is quoting it and stays eligible.
 submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
-names_the_submodule() { # <title> <body> → 0 when the item's own text names the submodule
-  local text name
+states_the_fix_lands_in_the_submodule() { # <title> <body> → 0 when the author states the claim on a line of its own
+  local marker='The fix lands in the submodule'
   [ -n "$submodule_path" ] || return 1
-  text="$1
-$2"
-  case "$text" in *"$submodule_path"*) return 0 ;; esac
-  name="${submodule_path##*/}"
-  [ -n "$name" ] || return 1
-  printf '%s\n' "$text" | grep -qwF -- "$name"
+  printf '%s\n%s\n' "$1" "$2" | grep -q "^$marker"
 }
 
 # The base every item of this run descends from: the branch question below is asked against it, exactly as
@@ -386,9 +382,10 @@ while [ "$i" -lt "$count" ]; do
   # A fix that must land inside the submodule is the one question a script can settle before a child spends a
   # phase on it (#254): the loop may neither commit nor push there, so the item is its owner's, and the verdict is
   # the profile's decision value — no new label, and the same state the run reached minutes later from a worker
-  # report. It is asked after the awaiting-decision clauses and not before: a hold or an earlier escalation has
+  # report. It is asked of the claim the author writes and not of the item's vocabulary (issue #314), and it is
+  # asked after the awaiting-decision clauses and not before: a hold or an earlier escalation has
   # already stated what the item is, and a second verdict would escalate it twice.
-  if [ "$verdict" = "$queued_verdict" ] && names_the_submodule "$title" "$body"; then
+  if [ "$verdict" = "$queued_verdict" ] && states_the_fix_lands_in_the_submodule "$title" "$body"; then
     verdict="$decision_verdict"
     reason="the fix has to be committed inside ${submodule_path}, where this run may neither commit nor push — a person lands the patch there and the gitlink bump that follows"
     evidence="$submodule_path"

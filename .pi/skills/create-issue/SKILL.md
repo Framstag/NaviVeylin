@@ -46,6 +46,19 @@ Fields: `title` (required), `class` (required: a value of the profile's `class/`
 (`path` or `path:Symbol`, **never** a line number), `labels`, `body`, and `sourceId` when the finding comes
 from an existing record (the `§N` of the prose backlog, say) — it becomes the `<!-- nvid: N -->` marker.
 
+**One line of the body is read by the tooling, so write it on purpose.** An item whose fix has to be committed
+inside the submodule is not work the loop can deliver — it may neither commit nor push there, so the item is a
+person's patch followed by the gitlink bump. Such a body states that on a line of its own beginning:
+
+```
+The fix lands in the submodule
+```
+
+The loop's pre-screen refuses exactly that, and reads nothing else: naming the submodule's path or its directory
+name anywhere in the body is *evidence* — the file a dirty tree was seen on, a quoted stop reason — and leaves the
+item in the queue, which is what #309, #310 and #305 were parked for (#314). The phrase quoted inline, in
+backticks or as an example is a quotation, not the claim: the match is a line prefix.
+
 Variants:
 
 ```bash

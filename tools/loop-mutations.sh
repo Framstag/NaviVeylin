@@ -622,6 +622,13 @@ MUTATIONS=(
   '68.4@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the reviewer'"'"'s own `LOOP-DEADLINE` read, so a round the run'"'"'s clock ended is read as a refusal and buys a rework worker (issue #674)@s|^      reviewer_deadline=.*LOOP-DEADLINE.*$|      reviewer_deadline=""|'
   '68.5@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674)@s|^    \[ "\$deadline_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
   '68.6@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the escalation a cap-ended item still owes, so a cap the item'"'"'s own clock hit is silent as well (issue #674)@s|^      if \[ -z "\$deadline_claim" \]; then$|      if [ -n "$deadline_claim" ]; then|'
+
+  # 69.x — the pre-screen asks the item's text where its fix lands, and the answer is the author's own claim: a
+  # line beginning `The fix lands in the submodule` (#314). Measured 2026-10-26 on the adoption run: the path in a
+  # body is evidence — the file a dirty tree was seen on — and reading it as the claim parked #309, #310 and #305
+  # as submodule patches. The mutation drops the line anchor and matches the phrase anywhere, which is precisely
+  # what makes a body that quotes the marker indistinguishable from one that states it.
+  '69.1@-@tools/loop/prescreen.sh@prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim@the line anchor that separates the author'"'"'s stated claim from a quoted mention of it (issue #314)@s|grep -q "^\$marker"|grep -qF "$marker"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

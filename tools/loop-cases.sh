@@ -71,6 +71,7 @@ LOOP_SHELL_CASES=(
   'prescreen#escalatedItemKeepsItsBranchAsEvidence'
   'prescreen#refusalLeavesATraceInTheTracker'
   'prescreen#aFixInTheSubmoduleIsAPersonsPatch'
+  'prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim'
   'prescreen#oneUnreadableCandidateDoesNotStopTheScreen'
   'prescreen#anUnansweredTrackerIsNotAnEmptyQueue'
   'worktree#seedsAllFourInputs'
@@ -370,6 +371,7 @@ loop_run_shell_case() {
     'prescreen#escalatedItemKeepsItsBranchAsEvidence') fn=case_prescreen_escalatedItemKeepsItsBranchAsEvidence ;;
     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
     'prescreen#aFixInTheSubmoduleIsAPersonsPatch') fn=case_prescreen_aFixInTheSubmoduleIsAPersonsPatch ;;
+    'prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim') fn=case_prescreen_aQuotedSubmodulePathIsEvidenceNotAClaim ;;
     'prescreen#oneUnreadableCandidateDoesNotStopTheScreen') fn=case_prescreen_oneUnreadableCandidateDoesNotStopTheScreen ;;
     'prescreen#anUnansweredTrackerIsNotAnEmptyQueue') fn=case_prescreen_anUnansweredTrackerIsNotAnEmptyQueue ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
@@ -1440,9 +1442,9 @@ case_prescreen_refusalLeavesATraceInTheTracker() {
 # A fix that has to be committed inside the submodule is not work this loop can deliver: the run and
 # `worktree.sh end-item` may neither commit nor push there, so the item is a person's patch plus the gitlink bump
 # that follows it (issue #254). Measured 2026-10-22: #30, #60 and #122 each spent a worker phase to reach exactly
-# that question, and the owner's answer on #60 was a pre-screen rule as the durable guard. The rule reads the
-# item's own text — the recorded path, a file under it, or the submodule by name — and nothing fuzzier, because a
-# false exclusion costs an item.
+# that question, and the owner's answer on #60 was a pre-screen rule as the durable guard. The signal is the
+# author's **stated claim** — a line of its own beginning `The fix lands in the submodule` — and never the
+# submodule's path or name, which a body quotes as evidence (issue #314).
 case_prescreen_aFixInTheSubmoduleIsAPersonsPatch() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out status reason
@@ -1452,15 +1454,35 @@ case_prescreen_aFixInTheSubmoduleIsAPersonsPatch() {
   out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
   assert_eq "0" "$status" "the app-side item beside them is still work (stderr: $(tr '\n' ' ' < "$p/prescreen.err"))"
   assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 71) | .verdict')" \
-    "an item that names the submodule path is its owner's, not the run's"
+    "an item that states the fix lands in the submodule is its owner's, not the run's"
   reason=$(printf '%s' "$out" | jq -r '.[] | select(.issue == 71) | .reason')
   assert_contains "$reason" "app/src/main/cpp/libosmscout" "the reason names the path the fix has to be committed in"
   assert_contains "$reason" "a person lands the patch" "and the route that remains: a person lands the patch"
   assert_eq "needs-decision" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 72) | .verdict')" \
-    "the submodule named without its path is the same question"
+    "the same claim stated without the path is the same question"
   assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 73) | .verdict')" \
-    "an item that names neither is queued"
-  assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$p")")" "only the app-side item reaches the queue"
+    "an item that states nothing of the kind is queued"
+  assert_eq "3" "$(jq -r '.queue | length' "$(state_file "$p")")" \
+    "the items the tree can deliver reach the queue, and the two stated submodule claims do not"
+}
+
+# The other half of the same rule, and the defect #314 measured: the signal is the author's claim and never the
+# submodule's path. Three items of the loop's own tooling — #309, #310 and #305 — were parked as submodule patches
+# because their bodies quote `app/src/main/cpp/libosmscout` as the file a dirty tree was seen on. Evidence is not
+# the claim, and neither is the marker quoted back at the reader: the phrase has to stand on a line of its own.
+case_prescreen_aQuotedSubmodulePathIsEvidenceNotAClaim() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario submodule)
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || true
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 74) | .verdict')" \
+    "an item whose body quotes the submodule path as the file the dirt was seen on stays in the queue"
+  assert_eq "eligible" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 75) | .verdict')" \
+    "an item that quotes the marker inline and backticked is quoting it, not stating it"
+  assert_eq "3" "$(jq -r '.queue | length' "$(state_file "$p")")" \
+    "the three items whose fix is this tree's reach the queue, and nothing else"
 }
 
 # One candidate the tracker refuses to answer for is an unknown, not a verdict and not the end of the screen

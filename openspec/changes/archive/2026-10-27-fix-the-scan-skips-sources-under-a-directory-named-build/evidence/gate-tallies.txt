@@ -1,0 +1,26 @@
+# the gate's own tallies — ./tools/loop/gate.sh on 3f972aec+this change, 2026-10-27T16:38:08Z
+bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+bash_tools_loop-mutations.sh_--check.xml tests=197 failures=0 time=2s
+gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=253s
+tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=0s
+tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+tools_check-portability-selftest.sh.xml tests=29 failures=0 time=24s
+tools_check-portability.sh.xml tests=0 failures=0 time=1s
+tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+tools_issue-tooling-selftest.sh.xml tests=125 failures=0 time=70s
+tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=332s
+tools_loop-selftest.sh_--from-git_6f61cffe4f82e91c38349f5a6787c28011466387.xml tests=254 failures=0 time=430s
+tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+
+LOOP-GATE: tests=645 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 253s, tools/loop-selftest.sh --from-git 6f61cffe4f82e91c38349f5a6787c28011466387 430s, bash tools/loop-mutations.sh --check 2s, tools/loop-mutations-selftest.sh 332s, tools/check-portability-selftest.sh 24s, tools/check-compose-sandbox-rule.sh 0s, tools/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 2s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 70s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s)

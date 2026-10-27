@@ -1,0 +1,24 @@
+== openspec validate change --strict
+Change 'fix-the-scan-skips-sources-under-a-directory-named-build' is valid
+== openspec validate --specs
+  ⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ spec/zoom-transition-scaling
+  ⚠ [WARNING] requirements[2]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 177 passed, 0 failed (177 items)
+== check-doc-routes
+check-doc-routes: all 154 section references resolve, all 4 skill references resolve
+== check-openspec-hygiene
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+== declared cases
+
+  # rule     module  last time test class
+──────────────────────────────────────────────────────────────────────────────
+  1 declared app     0.621     com.naviveylin.build.ComposeApiDeprecationTest
+──────────────────────────────────────────────────────────────────────────────
+selected 1 of 443 test classes; measured class time 0.6s
+The suite's wall time is not that sum: it runs at the declared fork count, every invocation pays the
+Robolectric fork bootstrap plus the daemon and (when test sources changed) the test compile, so the
+floor is ~30s, not 10s. And a pre-gate run is NOT gate evidence: run the unfiltered module suite
+before marking the change complete.

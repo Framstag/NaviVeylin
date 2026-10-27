@@ -1,0 +1,29 @@
+Revert-check — fix-the-scan-skips-sources-under-a-directory-named-build (issue #223)
+
+Tree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop, base 3f972aec2c2f8efb33bf5e90a97a92a31581eac1
+File: app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt
+
+1. md5 before the mutation
+   1eed9a303fb87649eb8a51d4a4314d33  app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt
+
+2. The mutation — the name-based prune the change removes, marked so a left-over is visible:
+      .onEnter { !it.isGradleOutput() && it.name !in SKIPPED_TOOL_DIRECTORIES }
+   ->
+      .onEnter { it.name !in SKIPPED_TOOL_DIRECTORIES + setOf("build") } // REVERT-CHECK MUTATION
+
+3. Red, as required (focused, `-PforceTests --no-build-cache`):
+   ComposeApiDeprecationTest > the scan reads the sources a directory named build holds FAILED
+       java.lang.AssertionError: the scan must read every `*.kt` the project owns, including the sources a
+       package directory named `build` holds — a directory is Gradle output by the marker its project root
+       writes, not by its name (read 768, missing
+       [app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt,
+       buildSrc/src/main/kotlin/com/naviveylin/build/testing/BuildFlags.kt])
+   3 tests completed, 1 failed — BUILD FAILED in 5s
+   JUnit XML: evidence/TEST-ComposeApiDeprecationTest-revert-red.xml (tests=3 failures=1)
+
+4. Restore, then md5 again — byte identical, and no marker left:
+   1eed9a303fb87649eb8a51d4a4314d33  app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt
+   grep -c 'REVERT-CHECK MUTATION' -> 0
+
+5. Green again, same command, same file:
+   BUILD SUCCESSFUL in 5s — `files=805 findings=0`, `scanned=805`

@@ -71,6 +71,8 @@ LOOP_SHELL_CASES=(
   'prescreen#escalatedItemKeepsItsBranchAsEvidence'
   'prescreen#refusalLeavesATraceInTheTracker'
   'prescreen#aFixInTheSubmoduleIsAPersonsPatch'
+  'prescreen#oneUnreadableCandidateDoesNotStopTheScreen'
+  'prescreen#anUnansweredTrackerIsNotAnEmptyQueue'
   'worktree#seedsAllFourInputs'
   'evidence#scansWhatTheProfileNames'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
@@ -116,6 +118,7 @@ LOOP_SHELL_CASES=(
   'run#mayCloseNoKeepsAFalsificationOpen'
   'run#falsificationWithAChangedTreeIsBlocked'
   'run#decisionCapRefusesToStart'
+  'run#aFailedPreScreenRecordsItsStopReason'
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
   'gate#theMapCoversEveryPipelineStep'
@@ -367,6 +370,8 @@ loop_run_shell_case() {
     'prescreen#escalatedItemKeepsItsBranchAsEvidence') fn=case_prescreen_escalatedItemKeepsItsBranchAsEvidence ;;
     'prescreen#refusalLeavesATraceInTheTracker') fn=case_prescreen_refusalLeavesATraceInTheTracker ;;
     'prescreen#aFixInTheSubmoduleIsAPersonsPatch') fn=case_prescreen_aFixInTheSubmoduleIsAPersonsPatch ;;
+    'prescreen#oneUnreadableCandidateDoesNotStopTheScreen') fn=case_prescreen_oneUnreadableCandidateDoesNotStopTheScreen ;;
+    'prescreen#anUnansweredTrackerIsNotAnEmptyQueue') fn=case_prescreen_anUnansweredTrackerIsNotAnEmptyQueue ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'evidence#scansWhatTheProfileNames') fn=case_evidence_scansWhatTheProfileNames ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
@@ -412,6 +417,7 @@ loop_run_shell_case() {
     'run#mayCloseNoKeepsAFalsificationOpen') fn=case_run_mayCloseNoKeepsAFalsificationOpen ;;
     'run#falsificationWithAChangedTreeIsBlocked') fn=case_run_falsificationWithAChangedTreeIsBlocked ;;
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
+    'run#aFailedPreScreenRecordsItsStopReason') fn=case_run_aFailedPreScreenRecordsItsStopReason ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
     'gate#theMapCoversEveryPipelineStep') fn=case_gate_theMapCoversEveryPipelineStep ;;
@@ -1457,6 +1463,49 @@ case_prescreen_aFixInTheSubmoduleIsAPersonsPatch() {
   assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$p")")" "only the app-side item reaches the queue"
 }
 
+# One candidate the tracker refuses to answer for is an unknown, not a verdict and not the end of the screen
+# (issue #231's rule, applied per read). Until 2026-10-27 the first failed `gh issue view` ended the pre-screen —
+# `loop_die`, exit 2 — and the run with it, so a 321-candidate screen was worth one flaky answer; the reason was not
+# even recorded, because `loop_issue_json` sent the seam's retry and `tracker-unreachable` lines to /dev/null.
+case_prescreen_oneUnreadableCandidateDoesNotStopTheScreen() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/issues/fixtures/gh
+  local p out status reason
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  export GH_STUB_READ_FAIL="gh issue view 21 "
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  unset GH_STUB_READ_FAIL
+  assert_eq "0" "$status" "a candidate that cannot be read does not end the screen"
+  assert_eq "22" "$(printf '%s' "$out" | jq -r '[.[] | select(.verdict == "eligible") | .issue] | join(" ")')" \
+    "the candidates that did answer are still queued"
+  assert_eq "unreadable" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .verdict')" \
+    "the item the tracker did not answer for is recorded as unreadable"
+  reason=$(printf '%s' "$out" | jq -r '.[] | select(.issue == 21) | .reason')
+  assert_contains "$reason" "could not be read" "its reason says so"
+  assert_contains "$reason" "Could not resolve" "and carries the CLI's own words, which the seam no longer discards"
+  assert_contains "$(cat "$p/prescreen.err")" "Could not resolve" "the console says what the CLI said"
+  assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$p")")" "only the readable item reaches the queue"
+}
+
+# The other side of the same rule: when *nothing* answered, an empty queue is not "nothing eligible". The screen
+# stops with a reason instead of reporting a tracker that refused every item (issue #231: an outage is not a verdict).
+case_prescreen_anUnansweredTrackerIsNotAnEmptyQueue() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/issues/fixtures/gh
+  local p status err
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  export GH_STUB_READ_FAIL="gh issue view"
+  run_prescreen "$p" --json >/dev/null 2>"$p/prescreen.err"; status=$?
+  unset GH_STUB_READ_FAIL
+  err=$(cat "$p/prescreen.err")
+  assert_eq "2" "$status" "an unanswered tracker stops the screen rather than reporting an empty one"
+  assert_contains "$err" "could not be read" "the stop names the unreadable candidates"
+  assert_not_contains "$err" "nothing eligible" "and is not the empty-queue answer"
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "nothing is queued on a guess"
+}
+
 case_prescreen_doesNotClaimJudgementGates() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local p out
@@ -1513,8 +1562,11 @@ case_prescreen_settledItemIsDropped() {
   assert_eq "settled" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .verdict')" \
     "an item the tracker has already settled is dropped"
   assert_contains "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 91) | .reason')" "fixed-by" "the reason names the state"
-  assert_eq "settled" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 92) | .verdict')" \
-    "so is a closed issue whose labels were never moved on"
+  # A closed issue is not even a candidate since 2026-10-27: `list.sh --eligible-only` filters `CLOSED` out of the
+  # query (before that it selected them, and the closed #310 was the candidate whose unreadable record ended a run).
+  # The pre-screen's own CLOSED branch remains for the item closed between the list and its read.
+  assert_eq "" "$(printf '%s' "$out" | jq -r '.[] | select(.issue == 92) | .verdict')" \
+    "a closed issue is no longer a candidate at all"
   assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "neither reaches the queue"
 }
 
@@ -2957,6 +3009,28 @@ case_run_decisionCapRefusesToStart() {
   assert_contains "$out" "#41" "the open decisions are printed"
   assert_contains "$out" "#43" "all of them are printed"
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although the run refused"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+}
+
+# A run that ends because the pre-screen could not reach a verdict records that reason. Before 2026-10-27 the `*)`
+# arm of the pre-screen verdict was a bare `exit "$prescreen_status"`: the lock came off through the EXIT trap while
+# `run.stop` stayed empty, so the state file then read "the run that wrote this state is gone — its process is not
+# running and it recorded no reason", which is the shape of a crash rather than of a refusal.
+case_run_aFailedPreScreenRecordsItsStopReason() {
+  # files: tools/loop/run.sh tools/loop/prescreen.sh tools/loop/state.sh tools/loop/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json tools/issues/fixtures/gh
+  local d p out status reason
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  stub_success "$d"
+  export GH_STUB_READ_FAIL="gh issue view"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
+  unset GH_STUB_READ_FAIL
+  assert_eq "2" "$status" "an unanswered tracker ends the run"
+  assert_contains "$out" "stop: the pre-screen ended with exit 2" "the end is announced as itself"
+  reason=$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")
+  assert_contains "$reason" "pre-screen" "and the state keeps the reason: $reason"
+  assert_contains "$reason" "no work was started" "naming what the exit did not do"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although no item was picked"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
 }
 

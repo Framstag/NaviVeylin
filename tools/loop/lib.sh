@@ -400,9 +400,19 @@ loop_profile() {
 # asked for, and the fixture `gh` now does the same. The pre-screen asks for neither, so its per-candidate read
 # stays as small as it was.
 loop_issue_json() {
-  local fields="number,title,body,labels,author,state"
+  local fields="number,title,body,labels,author,state" errfile status
   [ "${2:-}" = "--comments" ] && fields="$fields,comments"
-  gh issue view "$1" --json "$fields" 2>/dev/null
+  # The CLI's own words survive a failure. Swallowing them (`2>/dev/null`, which is what this function did) made
+  # every failed read an anonymous exit status: the retry seam's `tracker-unreachable:` line, its retry lines and
+  # the tracker's refusals all went to the same /dev/null, so an operator holding a dead run could not tell an
+  # outage from a refusal (measured 2026-10-27: a run died at the pre-screen on one unreadable candidate and the
+  # reason was gone). The caller decides whether to record or to print them; this seam only stops losing them.
+  errfile=$(mktemp) || { gh issue view "$1" --json "$fields"; return $?; }
+  gh issue view "$1" --json "$fields" 2>"$errfile"
+  status=$?
+  [ "$status" -eq 0 ] || cat "$errfile" >&2
+  rm -f "$errfile"
+  return "$status"
 }
 
 loop_issue_tool() { # run one of the tooling's scripts

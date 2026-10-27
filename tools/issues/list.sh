@@ -17,7 +17,15 @@
 # "the pass has not scored this item yet", which is a legitimate state and not an error.
 #
 # Usage: list.sh [--id <n>] [--class <value>] [--category <value>] [--status <value>] [--author <login>]
-#                [--prio <p0,p1,…>] [--unranked] [--eligible-only] [--json] [--limit <n>] [--profile <path>]
+#                [--prio <p0,p1,…>] [--unranked] [--eligible-only] [--include-closed] [--json] [--limit <n>]
+#                [--profile <path>]
+#
+# A closed item is not a selection: the query is made against `--state all` (one paged call, and the tracker's own
+# `--state` flag cannot say "open and everything a label asks for" in one call), so the *filter* is here. Closed
+# entries stayed candidates for `--eligible-only` until 2026-10-27 — 321 of them, each costing a full read in the
+# pre-screen, and the closed #310 was the candidate whose unreadable record ended a run. `--include-closed` is the
+# opt-in for a caller that wants them; `--id` keeps resolving a closed entry, because a citation of a migrated
+# record does not care about the state.
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -27,6 +35,7 @@ source "$here/lib.sh"
 profile_arg=""
 json=0
 eligible_only=0
+include_closed=0
 limit=400
 id_arg=""
 prio_filter=""
@@ -43,6 +52,7 @@ while [ $# -gt 0 ]; do
     --prio) need_value "$@"; prio_filter="${2:-}"; shift 2 ;;
     --unranked) unranked=1; shift ;;
     --eligible-only) eligible_only=1; shift ;;
+    --include-closed) include_closed=1; shift ;;
     --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
@@ -111,9 +121,12 @@ if [ -n "$prio_filter" ]; then
 fi
 
 required_json=$(issues_profile_value requiredLabels | jq -R . | jq -s .)
-issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author)
+issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author,state)
 
 query='[.[]'
+if [ "$include_closed" -eq 0 ]; then
+  query="$query | select((.state // \"OPEN\") != \"CLOSED\")"
+fi
 for filter in "${filters[@]}"; do
   namespace="${filter%%=*}"
   value="${filter#*=}"

@@ -71,6 +71,10 @@ vocabulary() { loop_compat_profile_value "$1"; }
 queued_verdict=$(loop_role queuedVerdict)
 held_verdict=$(loop_role heldVerdict)
 decision_verdict=$(loop_role decisionAgent)
+# The verdict for a candidate the tracker did not answer for. It is deliberately *not* a profile role: it names no
+# judgement about the item, only that nothing is known about it, so it writes no label and reaches no other
+# verdict's branch (issue #231's rule, applied to a single read).
+unreadable_verdict="unreadable"
 worked_classes="$(loop_role workedClasses)"
 # The categories whose defects lead the queue, in the profile's order (this project: the tooling, the process and
 # the proof rather than the shipped app). Empty is a project that wants no category priority, and the queue then
@@ -186,15 +190,36 @@ candidates_json=$(loop_issue_tool list.sh --eligible-only --json --limit "$limit
 # The tracker writes the refusals need are collected here and applied once, after the queue is written, so
 # a pre-screen that dies mid-selection changes no item (the labels are the run script's, never a child's).
 label_writes=$(mktemp) || loop_die "prescreen: could not create the label write list"
-trap 'rm -f "$label_writes"' EXIT
 
 records='[]'
 count=$(printf '%s' "$candidates_json" | jq 'length')
+unreadable_count=0
+read_err=$(mktemp) || loop_die "prescreen: could not create the read error file"
+# The trap cleans both temporary files: the label write list and the one candidate's stderr it holds at a time.
+trap 'rm -f "$label_writes" "$read_err"' EXIT
 i=0
 while [ "$i" -lt "$count" ]; do
   number=$(printf '%s' "$candidates_json" | jq -r ".[$i].number")
   i=$((i + 1))
-  issue=$(loop_issue_json "$number") || loop_die "prescreen: gh could not read issue #$number"
+  # One candidate the tracker did not answer for is *unknown*, never "no" — and never the end of the screen. Until
+  # 2026-10-27 a single failed `gh issue view` ended the pre-screen (and the run) on the first flaky answer, so a
+  # 321-candidate screen was worth one socket; what killed it was not even recorded, because the seam's retry and
+  # its `tracker-unreachable` verdict went to /dev/null (#231). The item is recorded with the CLI's own words, the
+  # queue is still built from the candidates that did answer, and the count below decides whether the run has an
+  # answer at all.
+  if ! issue=$(loop_issue_json "$number" 2>"$read_err"); then
+    unreadable_count=$((unreadable_count + 1))
+    read_error=$(tr '\n' ' ' < "$read_err" | sed -e 's/  */ /g' -e 's/ $//')
+    printf 'pre-screen: the tracker could not be read for #%s — %s (recorded as %s, the screen continues)\n' \
+      "$number" "${read_error:-the CLI gave no message}" "$unreadable_verdict" >&2
+    record=$(jq -n --argjson issue "$number" --arg verdict "$unreadable_verdict" \
+      --arg reason "the tracker could not be read for this item, so nothing is decided about it — ${read_error:-the CLI gave no message}" '
+      {issue:$issue, title:"", class:"", category:"", status:"", author:"", verdict:$verdict, reason:$reason,
+       evidence:"", absentCitation:"", rank:null, alreadyEscalated:false,
+       gates:{oneRootCause:"pending", oneFix:"pending", falsifiable:"pending", oneCapability:"pending"}}')
+    records=$(printf '%s' "$records" | jq -c --argjson r "$record" '. + [$r]')
+    continue
+  fi
   labels=$(printf '%s' "$issue" | jq -c '[.labels[]? | if type == "string" then {name: .} else . end]')
   title=$(printf '%s' "$issue" | jq -r '.title // ""')
   body=$(printf '%s' "$issue" | jq -r '.body // ""')
@@ -235,6 +260,8 @@ while [ "$i" -lt "$count" ]; do
     verdict="$inflight_status"
     reason="status${separator}${status} — another change already holds it"
   elif [ "$gh_state" = "CLOSED" ] || is_settled_status "$status"; then
+    # The closed half of this guard covers the item closed between the list and this read: `list.sh --eligible-only`
+    # filters `CLOSED` out of the query itself (2026-10-27), so a closed item is normally never a candidate.
     condition="${status:-closed}"
     verdict="settled"
     reason="the item is already ${condition} — nothing is left for this loop to work"
@@ -457,6 +484,12 @@ else
     if .verdict == $queued
     then "  #\(.issue) [\(.class)/\(.category)] rank \(.rank) — \(.title | .[0:80])\(if (.absentCitation // "") != "" then " (cites absent `\(.absentCitation)`)" else "" end)"
     else "  excluded #\(.issue) \(.verdict): \(.reason)" end'
+fi
+# An empty queue has two causes and they are not the same answer (#231): the tracker refused every candidate, or it
+# did not answer at all. Only the first is a stop; the second is an outage, and the run must not print "nothing
+# eligible" over it.
+if [ "$eligible_count" -eq 0 ] && [ "$unreadable_count" -gt 0 ]; then
+  loop_die "prescreen: $unreadable_count of $count candidate(s) could not be read — nothing is queued and nothing was refused, so the tracker's answer is unknown"
 fi
 [ "$eligible_count" -gt 0 ] || exit "$LOOP_STOP"
 exit "$LOOP_OK"

@@ -108,6 +108,7 @@ ISSUES_SHELL_CASES=(
   'list#prioSelector'
   'list#unrankedSelector'
   'list#eligibleOnlyIgnoresTheBand'
+  'list#closedItemIsNotASelection'
   'check#markerLabelMismatchFails'
   'check#outOfRangeBandFails'
   'check#neverWritesEligibility'
@@ -222,6 +223,7 @@ issues_run_shell_case() {
     'list#prioSelector') case_list_prioSelector ;;
     'list#unrankedSelector') case_list_unrankedSelector ;;
     'list#eligibleOnlyIgnoresTheBand') case_list_eligibleOnlyIgnoresTheBand ;;
+    'list#closedItemIsNotASelection') case_list_closedItemIsNotASelection ;;
     'check#markerLabelMismatchFails'|'check#outOfRangeBandFails'|'check#neverWritesEligibility'|\
       'check#incompleteMarkerFails'|'check#labelWithoutMarkerFails'|\
       'check#aQuotationIsNotAMarker'|'check#aMarkerLineBesideAQuotationIsTheRecord'|\
@@ -2422,5 +2424,28 @@ case_list_eligibleOnlyIgnoresTheBand() {
   out=$(run_tool list.sh --eligible-only --json) || fail "the eligibility query failed: $out"
   assert_eq "1" "$(jq -r 'length' <<< "$out")" "one of the two items is eligible"
   assert_eq "2" "$(jq -r '.[0].number' <<< "$out")" "and it is the one that carries the opt-in, not the band"
+  return 0
+}
+
+# A closed item is not a selection. The query is made against `--state all` (one paged call, and the tracker's own
+# `--state` flag cannot say "open *and* every label this asks for"), and until 2026-10-27 nothing filtered the closed
+# entries out again: 321 candidates reached the pre-screen, each costing a full read, and the closed #310 was the
+# candidate whose unreadable record ended a run. `--include-closed` is the opt-in for a caller that wants them.
+case_list_closedItemIsNotASelection() {
+  local dir out
+  dir=$(scratch)
+  metadata_issues 2 | jq '.[0].labels += [{name: "agent/eligible"}] | .[1].labels += [{name: "agent/eligible"}] | .[1].state = "CLOSED"' \
+    > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(run_tool list.sh --json) || fail "the plain query failed: $out"
+  assert_eq "1" "$(jq -r 'length' <<< "$out")" "the closed item is not in the plain selection"
+  assert_eq "1" "$(jq -r '.[0].number' <<< "$out")" "only the open one is"
+
+  out=$(run_tool list.sh --eligible-only --json) || fail "the eligibility query failed: $out"
+  assert_eq "1" "$(jq -r 'length' <<< "$out")" "it is not eligible either, whatever its labels say"
+
+  out=$(run_tool list.sh --eligible-only --include-closed --json) || fail "the opt-in query failed: $out"
+  assert_eq "2" "$(jq -r 'length' <<< "$out")" "the opt-in asks for it and gets it"
   return 0
 }

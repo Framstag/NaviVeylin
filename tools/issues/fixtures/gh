@@ -38,6 +38,16 @@ set -uo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 stub="${GH_STUB_DIR:-$here}"
 
+# A read the tracker *answers* with a failure, which is not the transport's (the block above): the retry seam
+# passes it straight through (issue #231), so the caller has to decide what one unreadable candidate means. A case
+# exports GH_STUB_READ_FAIL (a substring of an invocation) and the stub refuses those calls the way the GraphQL API
+# does when the item it is asked for cannot be resolved.
+if [ -n "${GH_STUB_READ_FAIL:-}" ] && printf 'gh %s\n' "$*" | grep -qF -- "$GH_STUB_READ_FAIL"; then
+  printf 'GraphQL: Could not resolve to an issue or pull request with the number of %s. (repository.issue)\n' \
+    "$(printf '%s\n' "$*" | awk '{print $3}')" >&2
+  exit 1
+fi
+
 refuse() {
   printf 'stub gh: unsupported invocation: gh %s\n' "$*" >&2
   printf 'stub gh: fixtures are in %s — add the invocation there or change the tool\n' "$stub" >&2

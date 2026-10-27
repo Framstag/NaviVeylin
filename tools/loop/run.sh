@@ -649,7 +649,14 @@ case "$prescreen_status" in
     end_run
     exit "$LOOP_OK"
     ;;
-  *) exit "$prescreen_status" ;;
+  *)
+    # A pre-screen that could not reach a verdict ends the run, and the run says why. Without this arm's reason the
+    # exit was bare: the lock came off through the EXIT trap while `run.stop` stayed empty, so the next reader was
+    # told the process "is gone — it recorded no reason", which is the shape of a crash rather than of a refusal
+    # (measured 2026-10-27: a run died 30 s in at exit 2 and the state blamed nobody).
+    stop_run "the pre-screen ended with exit $prescreen_status before an item was picked — no work was started"
+    exit "$prescreen_status"
+    ;;
 esac
 
 if [ "$dry_run" -eq 1 ]; then

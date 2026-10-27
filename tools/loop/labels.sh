@@ -85,7 +85,7 @@ case "$verdict" in
   unpick)
     remove_labels=("$in_progress")
     ;;
-  stale|unspecifiable|too-wide|not-spec-shaped|needs-target)
+  unspecifiable|too-wide|not-spec-shaped|needs-target)
     # The item is not thrown away and no new issue is filed for it: the verdict and its one clause of
     # evidence are what the run produces, and they are attached to the item itself (D6, #192).
     status_value="$hold_status"

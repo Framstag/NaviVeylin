@@ -166,7 +166,7 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   three write paths plus the other label flags to prove no route sets it. The import is also asserted to
   arrive with 0 eligible items.
 
-Four rules keep the decision queue answerable, because it is a query over one label and the run's ceiling
+Five rules keep the decision queue answerable, because it is a query over one label and the run's ceiling
 counts that query (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
 
 - **An answer reaches the next worker's package.** The answer is a comment, and the item's body still states
@@ -186,6 +186,12 @@ again.
 - **A block asks its own question.** When the reviewer wrote no decision, the run states the only two-way
   choice a block leaves — retry the item, or abandon it — because a reason is not something a person can
   answer (`issue #225`).
+- **A stale skip asks its own question, and is never parked on a bare hold.** The verdict says the item's
+  claim no longer holds in the tree, which the run cannot close on: the falsification closure owes a
+  measurement and a review that a stale skip does not carry. The run writes the decision label, the hold and
+  the one comment naming the reason and the choice — retire the item as stale, or re-diagnose it — because a
+  bare hold is reported by the pre-screen as held, which is neither work nor a decision, and leaves the item
+  open for good (issue #682, measured on #147; spec `agent-issue-loop`).
 - **A reviewed falsification closes the item as mis-diagnosed, and only on an unchanged tree.** A run that
   measured that the item's premise does not hold holds the evidence that settles it, so it closes the item in
   the settled state a decision not to act records, with the measurement as the comment — under the same

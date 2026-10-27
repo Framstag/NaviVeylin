@@ -1092,7 +1092,8 @@ and calling it a decision.
 
 A skip SHALL distinguish an item whose premise the run disproved from the items it could not finish: the
 former is a finding the run holds the evidence for, and SHALL be closed with that evidence when closure is
-allowed; a falsification without a measurement, and every other skip, SHALL keep the existing escalation.
+allowed; a falsification without a measurement SHALL be escalated as a question, and every other skip SHALL
+keep the state it writes today.
 
 #### Scenario: A measured falsification closes the item
 
@@ -2597,3 +2598,24 @@ still carry work, and SHALL print what it removed and what it kept.
 - **THEN** the run removes that branch, keeps and names a branch that still carries work, a branch a worktree
   holds, and a branch whose archived change carries a reviewer's refusal, and prints the number it removed
 - **Case**: `run#theEndSweepsTheLandedBranchesItMade`
+
+### Requirement: A stale skip asks its own question
+
+A skip whose verdict is `stale` — the item's claim no longer holds in the tree — SHALL be escalated, not parked
+on a bare hold: the run SHALL write the decision label and the hold together with one comment carrying the
+verdict's reason and the question a person answers, and SHALL NOT close the item, because a stale skip carries
+neither the measurement nor the review a falsification closure requires.
+
+#### Scenario: A stale skip leaves a question, not a bare hold
+
+- **WHEN** a worker skips an item with the sub-verdict `stale` and the run records that verdict
+- **THEN** the item carries the decision label and the hold, its one comment names the worker's reason and the
+  choice between retiring it as stale and re-diagnosing it — the worker's own question when it stated one, the
+  run's otherwise — and nothing is closed
+- **Case**: `run#staleSkipAsksItsQuestion`
+
+#### Scenario: The worker's own question is carried unchanged
+
+- **WHEN** a stale skip's report carries a `LOOP-DECISION`
+- **THEN** that text is the escalation's decision field, unchanged, and the run states no choice of its own
+- **Case**: `run#staleSkipKeepsTheWorkersQuestion`

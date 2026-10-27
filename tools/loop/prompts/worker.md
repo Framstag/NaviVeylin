@@ -96,7 +96,10 @@ option lists, and the recorded `2` came to mean a different option).
 ## Phase A — root cause and the red test
 
 1. Verify the entry against the tree. Confirm the condition still holds, with a `file:line`, and that it
-   is not already fixed. If it no longer holds, stop: verdict `skipped`, sub-verdict `stale`.
+   is not already fixed. If it no longer holds, stop: verdict `skipped`, sub-verdict `stale`, with the
+   `file:line` that shows the claim is gone. A stale claim carries no measurement and no review, so the run
+   does not retire the item on it: it escalates it, and your `LOOP-DECISION` is the question a person answers —
+   retire it as stale, or re-diagnose it.
 2. Name the root cause in one sentence: the single mechanism that explains the symptom. Two mechanisms
    means the item is not eligible — verdict `skipped`, sub-verdict `needs-diagnosis`. For `{{PROPOSE_CLASS}}`
    there is no root cause to name: name the one missing capability and the `file:line` (or the named run)
@@ -209,8 +212,8 @@ LOOP-FALSIFIED: <the mechanism the item blames, quoted — only with LOOP-SKIP-V
 LOOP-MEASURED: <the number you measured instead, and how you took it: case name, command, or probe>
 ```
 
-`LOOP-DECISION` is required when your verdict leaves a person a choice — a skip on `needs-decision` or
-`needs-diagnosis`, or a blocked item. It is what the item's escalation carries onto the tracker, and it is the
+`LOOP-DECISION` is required when your verdict leaves a person a choice — a skip on `needs-decision`,
+`needs-diagnosis` or `stale`, or a blocked item. It is what the item's escalation carries onto the tracker, and it is the
 only thing a later reader will see: name what must be chosen between, what each option costs, and which one you
 recommend. An escalation that carries a verdict and no question is a state nobody can answer.
 

@@ -1847,7 +1847,7 @@ $review_notes_text"
       loop_labels unpick "$issue" >&2 || true   # the exit path clears the mark
       escalated_label=""
       if [ "$skip_verdict" = "$decision_agent" ] || [ "$skip_verdict" = "needs-diagnosis" ] \
-        || [ "$skip_verdict" = "falsified" ]; then
+        || [ "$skip_verdict" = "falsified" ] || [ "$skip_verdict" = "stale" ]; then
         # Escalation, not abandonment: the work already done is named on the item (spec, D9), and so is the
         # question — a worker that reached a decision states it in LOOP-DECISION, and an escalation that
         # carries a verdict without one leaves the owner a state nobody can answer (#194). The worker's
@@ -1858,6 +1858,15 @@ $review_notes_text"
           escalate_reason="$escalate_reason
 
 **The decision:** $worker_decision"
+        elif [ "$skip_verdict" = "stale" ]; then
+          # A stale skip is the one verdict that says nothing is left to do, and it carries neither the
+          # measurement nor the review the falsification closure requires (`falsified-items-close-in-the-loop`).
+          # It is therefore a question, and the bare hold it used to write stated none: the pre-screen reports
+          # such an item as held — neither work nor a decision — for good (issue #682, measured on #147). The
+          # verdict leaves one two-way choice, so the run states it with its own finding as the ground.
+          escalate_reason="$escalate_reason
+
+**The decision:** retire the item as stale, or re-diagnose it — ${root_cause:-the claim no longer holds in the tree}. Retiring it costs nothing, because the tree does not hold the claim any more; re-diagnosing costs another item's attempt and may find the defect the claim states wrongly."
         fi
         if loop_labels escalate "$issue" --reason "$escalate_reason" \
           --evidence "$item_dir, branch fix/issue-$issue-$slug, red test: ${red_test:-not reached}" >&2; then

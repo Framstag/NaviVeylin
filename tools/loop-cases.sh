@@ -202,6 +202,8 @@ LOOP_SHELL_CASES=(
   'run#theStartAfterTheRunsOwnEndedChildIsNotRefused'
   'run#aRetriedStartStopsWithItsOwnReason'
   'run#aSkipClearsTheInProgressMark'
+  'run#staleSkipAsksItsQuestion'
+  'run#staleSkipKeepsTheWorkersQuestion'
   'run#stateNamesTheItemInProgress'
   'run#skipEscalationCarriesTheDecision'
   'run#workPackageCarriesTheRecordedDecision'
@@ -504,6 +506,8 @@ loop_run_shell_case() {
     'run#theStartAfterTheRunsOwnEndedChildIsNotRefused') fn=case_run_theStartAfterTheRunsOwnEndedChildIsNotRefused ;;
     'run#aRetriedStartStopsWithItsOwnReason') fn=case_run_aRetriedStartStopsWithItsOwnReason ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
+    'run#staleSkipAsksItsQuestion') fn=case_run_staleSkipAsksItsQuestion ;;
+    'run#staleSkipKeepsTheWorkersQuestion') fn=case_run_staleSkipKeepsTheWorkersQuestion ;;
     'run#stateNamesTheItemInProgress') fn=case_run_stateNamesTheItemInProgress ;;
     'run#skipEscalationCarriesTheDecision') fn=case_run_skipEscalationCarriesTheDecision ;;
     'run#workPackageCarriesTheRecordedDecision') fn=case_run_workPackageCarriesTheRecordedDecision ;;
@@ -2473,7 +2477,6 @@ case_labels_verdictToLabelMatrix() {
   # displaced label, so a verdict that only ever added one would leave two states on the item and fail here.
   check_labels pick "agent/in-progress" ""
   check_labels unpick "" "agent/in-progress"
-  check_labels stale "status/on-hold" "status/open"
   check_labels unspecifiable "status/on-hold" "status/open"
   check_labels too-wide "status/on-hold" "status/open"
   check_labels needs-device "agent/needs-device status/on-hold" "status/open"
@@ -2499,11 +2502,12 @@ case_labels_holdCarriesItsReason() {
   log="$d/gh-hold.log"; : > "$log"; export GH_STUB_RECORD="$log"
 
   # A hold states no question, so it needs no decision label — but it needs its reason on the item (#192).
-  out=$(run_labels "$p" stale 21 2>&1); status=$?
+  # `stale` is not a hold any more (issue #682: the run escalates it instead), so the case names one that is.
+  out=$(run_labels "$p" unspecifiable 21 2>&1); status=$?
   assert_eq "2" "$status" "a hold without a reason is refused as usage: $out"
   [ ! -s "$log" ] || fail "a refused hold wrote something: $(cat "$log")"
 
-  run_labels "$p" stale 21 --reason "the cited path no longer exists" --evidence "base abc123, the tree" >/dev/null 2>&1 ||
+  run_labels "$p" unspecifiable 21 --reason "the cited path no longer exists" --evidence "base abc123, the tree" >/dev/null 2>&1 ||
     fail "a hold with reason and evidence failed"
   assert_eq "1" "$(grep -c 'issue comment' "$log" || true)" "exactly one comment carries the reason"
   assert_contains "$(cat "$log")" "the cited path no longer exists" "the comment names the reason"
@@ -2637,6 +2641,9 @@ case_prompt_workerNamesTheDecisionField() {
   # The handover: what a person gets on the item when the worker reaches a fork (#194).
   assert_contains "$(cat "$prompt")" 'LOOP-DECISION:' "the worker prompt asks for the decision field"
   assert_contains "$(cat "$prompt")" 'the question in one sentence' "and says what it must contain"
+  # A stale skip is a question too (issue #682): the verdict leaves retire-or-re-diagnose, and a bare hold
+  # parks the item where nobody can answer it.
+  assert_contains "$(cat "$prompt")" '`needs-diagnosis` or `stale`' "and names the stale verdict among those that ask"
   # The two fields a falsification carries (openspec change `falsified-items-close-in-the-loop`): without them
   # in the rendered prompt the worker cannot answer the shape the run reads.
   assert_contains "$(cat "$prompt")" 'LOOP-FALSIFIED:' "the worker prompt asks what the item blames"
@@ -5946,6 +5953,44 @@ case_run_aSkipClearsTheInProgressMark() {
     "the skip posts exactly one comment, naming why the item is held"
   assert_contains "$(grep 'issue comment' "$GH_STUB_RECORD" || true)" "the fixture condition no longer holds" \
     "and the comment carries the worker's own root cause"
+}
+
+# A `stale` skip is the one verdict that says nothing is left to do, and it carries no measurement and no review:
+# the run parked it as a bare hold, and the pre-screen then reports the item as held — neither work nor a
+# decision — for good (issue #682, measured on #147, 2026-10-27T17:11:06Z). A stale claim leaves one two-way
+# choice, so the item must carry it and the decision label that makes it visible to the queue.
+case_run_staleSkipAsksItsQuestion() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$(printf 'LOOP-VERDICT: skipped\nLOOP-SKIP-VERDICT: stale\nLOOP-ROOT-CAUSE: the cited guard is already in the tree\nLOOP-RED-TEST: none — the claim no longer holds on HEAD')" 'VERDICT: PASS'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run failed: $out"
+  log=$(cat "$d/gh.log")
+  assert_eq "skipped" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is still a skip"
+  assert_contains "$log" "--add-label agent/needs-decision" \
+    "a stale skip leaves a decision, not a bare hold nobody can answer"
+  assert_contains "$log" "status/on-hold" "with the state that holds it"
+  assert_eq "1" "$(grep -c 'issue comment' "$d/gh.log" || true)" "exactly one comment carries the reason and the question"
+  assert_contains "$(grep 'issue comment' "$d/gh.log" || true)" "the cited guard is already in the tree" \
+    "the comment names the worker's own root cause"
+  assert_contains "$(grep 'issue comment' "$d/gh.log" || true)" "**The decision:**" \
+    "and states the choice a person answers"
+  assert_not_contains "$log" "issue close" "nothing is closed: a stale skip carries no measurement to close on"
+}
+
+# The worker's own question is the one the item carries: a stale skip that states its fork must not get the run's
+# fallback sentence beside it, exactly as a block with a reviewer decision does not (issues #194, #225).
+case_run_staleSkipKeepsTheWorkersQuestion() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_write "$d" "$(printf 'LOOP-VERDICT: skipped\nLOOP-SKIP-VERDICT: stale\nLOOP-ROOT-CAUSE: the cited guard is already in the tree\nLOOP-RED-TEST: none — the claim no longer holds on HEAD\nLOOP-DECISION: retire #21, or re-diagnose it against the newer guard | recommended: retire it')" 'VERDICT: PASS'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run failed: $out"
+  assert_contains "$(cat "$d/gh.log")" "recommended: retire it" "the comment carries the worker's question"
+  assert_not_contains "$(cat "$d/gh.log")" "retire the item as stale, or re-diagnose it —" \
+    "and not the run's own question beside it"
 }
 
 # The state is the only thing a person can open after a run was killed, and it named neither the item nor the

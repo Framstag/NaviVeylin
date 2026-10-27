@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/gate.sh" tests="706" failures="0" errors="1" time="1260">
+  <system-out>LOOP-GATE: tests=706 failures=0 errors=1 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 297s, tools/loop-selftest.sh --from-git 4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46 527s, …) — failing: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+This tally restates the gate's own summary line, which is the text of `evidence/gate.log`'s last line; the per-step tallies the gate wrote are in `evidence/gate-tallies/`.</system-out>
+</testsuite>

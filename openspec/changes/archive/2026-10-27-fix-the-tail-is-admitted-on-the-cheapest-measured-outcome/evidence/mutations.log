@@ -1,0 +1,10 @@
+loop-mutations: selected 3 of 191 records (labels: 68.1 68.2 68.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.YdeM0e
+RED    68.1  state#floorIsDerivedFromTheFinishedItemsWallTimes   (the floor following the cheapest measured item rather than the most expensive one (issue #674))
+restore 68.1 state#floorIsDerivedFromTheFinishedItemsWallTimes green again
+RED    68.2  run#childIsEndedAtTheRunsDeadline   (the guard that leaves an item the run's own deadline cut for the next run instead of escalating it (issue #674))
+restore 68.2 run#childIsEndedAtTheRunsDeadline green again
+RED    68.3  run#treeOfACapEndedChildIsKeptAsAPatch   (the patch path the item's record carries, so the report can name the work an ended child left (issue #674))
+restore 68.3 run#treeOfACapEndedChildIsKeptAsAPatch green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

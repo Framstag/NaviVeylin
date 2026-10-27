@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-selftest.sh --case run#childIsEndedAtTheRunsDeadline" tests="1" failures="1" errors="0" time="9">
+  <system-out>  an item the run's own deadline cut is not escalated as a decision: expected '', got 'agent/needs-decision'
+FAIL run#childIsEndedAtTheRunsDeadline (2026-10-27T06:43:22Z)</system-out>
+</testsuite>

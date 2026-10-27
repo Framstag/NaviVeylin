@@ -1210,8 +1210,9 @@ others. A `build` directory is pruned by the marker a Gradle project root writes
 (`build.gradle.kts`/`build.gradle`), never by its name: the name-based prune this guard started with hid the
 project's own 37 `com.naviveylin.build` package sources — its own case file among them — so the count this
 paragraph quoted (731) sat beside a scan that read 768 of the tree's 805, and the case
-"the scan reads the sources a directory named build holds" now holds the two ends of that rule (change
-`fix-the-scan-skips-sources-under-a-directory-named-build`).
+"the scan reads the sources a directory named build holds" now holds the two ends of that rule — the read
+end in the tree, the prune end in a probe tree the case builds, since the tree keeps no `.kt` under its own
+output directories (change `fix-the-scan-skips-sources-under-a-directory-named-build`).
 
 ## 8. SBOM generation (CycloneDX)
 

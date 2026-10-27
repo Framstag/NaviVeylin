@@ -4,11 +4,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.nio.file.Files
 
 /**
  * Holds the project's own Kotlin sources to `build-jvm-toolchain`'s requirement "The project's own Kotlin
  * sources call no deprecated quadratic path builder" (scenarios "A marker outline is built with the kept
- * builder" and "The scan is still detectable").
+ * builder", "The scan is still detectable" and "The sources a package directory named build holds are read").
  *
  * `androidx.compose.ui.graphics.Path.quadraticBezierTo` is deprecated in the pinned Compose ui 1.7.6 with
  * "'fun quadraticBezierTo(x1, y1, x2, y2)' is deprecated. Use quadraticTo() for consistency with cubicTo()":
@@ -68,11 +69,49 @@ class ComposeApiDeprecationTest {
                 "not by its name (read ${scanned.size}, missing $missing)",
             missing.isEmpty()
         )
-        assertTrue(
-            "the scan must still prune Gradle output: ${scanned.count { it.startsWith("app/build/") }} " +
-                "source(s) under app/build/ were read",
-            scanned.none { it.startsWith("app/build/") }
-        )
+        val probe = pruneProbe()
+        try {
+            val walked = kotlinSources(probe).map { it.relativeTo(probe).invariantSeparatorsPath }.sorted()
+            println("prune-probe walked=$walked")
+            assertEquals(
+                "the scan must prune a `build` directory only when a Gradle project root writes the marker " +
+                    "beside it: `build/` and `app/build/` are output beside a `build.gradle.kts`, while the " +
+                    "package directory `com/naviveylin/build/` and `lib/build/` are sources no marker stands " +
+                    "beside — a name is not a provenance (walked $walked)",
+                listOf(
+                    "app/src/main/java/com/naviveylin/build/PackageSource.kt",
+                    "app/src/main/kotlin/Widget.kt",
+                    "lib/build/Unmarked.kt"
+                ),
+                walked
+            )
+        } finally {
+            probe.deleteRecursively()
+        }
+    }
+
+    /**
+     * The two kinds of `build` directory the walk must tell apart, in a throwaway tree: output beside a Gradle
+     * marker, and a source directory no marker stands beside. The real tree carries no `.kt` file under its own
+     * output directories (`find app/build buildSrc/build build core/build auto/build -name '*.kt' | wc -l` →
+     * `0`), so this probe — not the real tree — is what makes the prune half of the rule falsifiable.
+     */
+    private fun pruneProbe(): File {
+        val root = Files.createTempDirectory("compose-api-deprecation-prune").toFile().canonicalFile
+        root.write("build.gradle.kts", "// the root's Gradle marker\n")
+        root.write("build/GeneratedByRoot.kt", "// Gradle output\n")
+        root.write("app/build.gradle.kts", "// the app project's marker\n")
+        root.write("app/build/GeneratedByApp.kt", "// Gradle output\n")
+        root.write("app/src/main/kotlin/Widget.kt", "class Widget\n")
+        root.write("app/src/main/java/com/naviveylin/build/PackageSource.kt", "class PackageSource\n")
+        root.write("lib/build/Unmarked.kt", "class Unmarked\n")
+        return root
+    }
+
+    private fun File.write(path: String, body: String) {
+        val file = File(this, path)
+        file.parentFile?.mkdirs()
+        file.writeText(body)
     }
 
     @Test
@@ -104,9 +143,11 @@ class ComposeApiDeprecationTest {
      * (`build.gradle.kts`/`build.gradle`) in its parent. Pruning by name alone also swallowed the project's own
      * `com.naviveylin.build` package directories, 37 `.kt` files on base `3f972aec` (issue #223), so a passing
      * scan promised coverage of sources it had never read.
+     *
+     * `root` is a parameter so the prune can be held against a probe tree; the project's own tree is the default.
      */
-    private fun kotlinSources(): List<File> =
-        repoRoot.walkTopDown()
+    private fun kotlinSources(root: File = repoRoot): List<File> =
+        root.walkTopDown()
             .onEnter { !it.isGradleOutput() && it.name !in SKIPPED_TOOL_DIRECTORIES }
             .filter { it.isFile && it.name.endsWith(".kt") }
             .sorted()

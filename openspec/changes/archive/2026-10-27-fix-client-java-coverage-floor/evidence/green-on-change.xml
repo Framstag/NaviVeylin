@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="coverage-floor-probe" tests="1" failures="0" errors="0" time="0" timestamp="2026-10-27T00:55:46Z">
+  <testcase name="the module instruction coverage reaches the 70% floor" classname="coverage-floor-probe" time="0">
+
+  </testcase>
+  <system-out>LOOP-COVERAGE module=osmscout-client-java covered=3124 missed=1086 percentage=74.2 floor=70 verdict=passed at=2026-10-27T00:55:46Z</system-out>
+</testsuite>

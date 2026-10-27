@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git 4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46" tests="247" failures="1" errors="0" time="413">
+  <system-out>PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt PASS driver#aSecondSuiteInOneRepositoryIsRefused loop-selftest: 1 of 247 cases failed</system-out>
+</testsuite>

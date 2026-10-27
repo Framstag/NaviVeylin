@@ -35,10 +35,10 @@ One rule, in one file, applied where a result passes from the tool to the child'
 
 The archive's per-result distribution decides both. `p90` is 7 194 characters, so 8 000 is the smallest round
 bound above nine results in ten: an ordinary result — the median is 825 — is handed over byte for byte, and the
-spend that goes is the tail. The other two numbers the measurement offers cost more than they buy: 16 000 is past
-`p99` and saves 2 %, and 4 000 cuts 18.9 % of all results and saves 27 %, which is one result in five of the
-material an item is worked from. `LOOP_TOOL_RESULT_MAX_CHARS=0` turns the bound off, like the other recorded
-bounds' `0`.
+spend that goes is the tail. The other two numbers the measurement offers cost more than they buy: 16 000 sits just
+under `p99` (16 149) and above 1.2 % of the results, and saves 2 %, and 4 000 cuts 18.9 % of all results and saves
+27 %, which is one result in five of the material an item is worked from. `LOOP_TOOL_RESULT_MAX_CHARS=0` turns the
+bound off, like the other recorded bounds' `0`.
 
 ## The risk, and what proves it did not happen
 
@@ -47,18 +47,23 @@ bounds' `0`.
   file exposes (`trim#aResultAboveTheBoundIsTrimmedAndNamed`, `trim#aResultUnderTheBoundIsHandedOverWhole`,
   `trim#theTrimIsRecorded`), so a mistake in the cut or in the notice is a red case, not a silent trim.
 - **A child started without the bound.** `adapter#theChildIsStartedWithTheResultBound` asserts the `-e` word and
-  the file it names, and that the file is a hook on `tool_result` rather than a flag the agent happens to accept;
-  `adapter#modeFlagIsItsOwnArgument` asserts the child's whole argv, so a word that moves in front of the prompt is
-  a red case. What an offline case cannot do is run the agent: the hook's *loading* is pinned, its *behaviour* is
-  the CLI's behaviour.
-- **A claim judged on a cut line.** The trim names the tool, the size and the bound, and records the same three
+  the file it names, that the file is a hook on `tool_result` rather than a flag the agent happens to accept, and —
+  when the child is given an event stream — that it names `<item dir>/tool-result-trims.log` beside that stream and
+  names nothing for a child started by hand; `adapter#modeFlagIsItsOwnArgument` asserts the child's whole argv, so a
+  word that moves in front of the prompt is a red case. What an offline case cannot do is run the agent: the hook's
+  *loading* is pinned, its *behaviour* is the CLI's behaviour — and `evidence/hook-probe.mjs` drives the factory with
+  a stand-in for pi's API, at 20 005 characters, at 1 005 and at exactly the bound. That pi itself dispatches
+  `tool_result` with `event.content`/`event.toolName` and honours a returned `{ content }` is the documented
+  extension contract (`docs/extensions.md`: `tool_result` may replace `content`); no case in this tree can pin
+  another program's dispatcher, so that half is a coverage note and not a claim of this change.
+- **A reader who is handed a cut line.** The trim names the tool, the size and the bound, and records the same three
   facts beside the child's event stream, so a reader of the item sees which result was cut and can re-read the
-  range.
+  range the notice names.
 
 ## Blast radius
 
 `tools/pi-trim-result.mjs` (new), `tools/pi-child-events.sh`, one key in `tools/loop/loop.conf`, 4 cases added and
-1 rewritten in `tools/loop-cases.sh`, 4 records in `tools/loop-mutations.sh`, one paragraph in
+1 rewritten in `tools/loop-cases.sh`, 6 records in `tools/loop-mutations.sh`, one paragraph in
 `guidelines/Backlog.md` section 7 "The loop", and this change. No engine script (`tools/loop/*.sh`) changes, so
 `run#engineNamesNoProjectFact` and `tools/check-portability.sh` are owed but not moved by it; a ported project
 deletes the adapter and keeps whatever its own configured command does, exactly as with #661.
@@ -80,8 +85,8 @@ the extension is still loaded and hands every result over unchanged. Nothing els
 - **Prose in the phase prompts** — "prefer `mode=map` above 8 000 characters", "`tail -n` a gate log". Eliminated by
   measurement: the worker prompt has carried size and re-read guidance since #246 (`worker-prompt.md`
   "read the section that owns the rule and never the whole document", "a second read of the same path is a second
-  model turn and buys nothing"), and the archive's repeated-read share is 45 % before and after that change, with
-  a 116.6 k single result standing beside it.
+  model turn and buys nothing"), and the archive still records `LOOP-SPEND-READS calls=4798 duplicate=2174` — 45 % of its
+  reads a second read of a path it already read — with a 116.6 k single result standing beside it.
 - **Bounding the reader itself** (`ctx_read`, `ctx_shell`). Not this tree's to change — those are a separate tool's
   modes, configured outside this repository — and the bound has to hold for every tool a child calls, including
   one this project has never named.

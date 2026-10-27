@@ -1,5 +1,8 @@
-loop-mutations: selected 4 of 186 records (labels: 67.1 67.2 67.3 67.4)
-loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.fdkt7x
+# the revert check, taken 2026-10-27T00:28:05Z, from the change root
+# command: bash tools/loop-mutations.sh --only "67.1 67.2 67.3 67.4 67.5 67.6"
+
+loop-mutations: selected 6 of 188 records (labels: 67.1 67.2 67.3 67.4 67.5 67.6)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.p1flck
 RED    67.1  trim#aResultAboveTheBoundIsTrimmedAndNamed   (the cut itself, so an oversized result is handed over whole again (issue #660))
 restore 67.1 trim#aResultAboveTheBoundIsTrimmedAndNamed green again
 RED    67.2  trim#aResultAboveTheBoundIsTrimmedAndNamed   (the line that names the size the result had, so a cut is judged as the whole answer (issue #660))
@@ -8,5 +11,18 @@ RED    67.3  trim#theTrimIsRecorded   (the record of what was cut, so the item c
 restore 67.3 trim#theTrimIsRecorded green again
 RED    67.4  adapter#theChildIsStartedWithTheResultBound   (the word that loads the bound with every child (issue #660))
 restore 67.4 adapter#theChildIsStartedWithTheResultBound green again
+RED    67.5  adapter#theChildIsStartedWithTheResultBound   (the line that names the trim record beside the child's own event stream, so every trim record silently vanishes (issue #660))
+restore 67.5 adapter#theChildIsStartedWithTheResultBound green again
+RED    67.6  trim#aResultUnderTheBoundIsHandedOverWhole   (the boundary that hands a result of exactly the bound over whole, so a result that fitted is cut (issue #660))
+restore 67.6 trim#aResultUnderTheBoundIsHandedOverWhole green again
 
-red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0
+
+# the assertion each record turns red, with the line it stands on in tools/loop-cases.sh
+# (the harness runs the case with its output discarded, so the assertion is named from the case that owns it)
+67.1 -> tools/loop-cases.sh:6571  assert_eq "$kept" "$(head -c 8000 "$out")" "the first <bound> characters are handed over unchanged"
+67.2 -> tools/loop-cases.sh:6575  assert_contains "$(cat "$out")" "8000" "and the bound it was cut to"
+67.3 -> tools/loop-cases.sh:6636  assert_eq "LOOP-TOOL-RESULT-TRIM: ctx_read chars=20005 kept=8000" "$(cat "$d/trims.log")" "the trim is recorded once, with the tool, the size it cut and the bound it cut to"
+67.4 -> tools/loop-cases.sh:6673  [ -n "$line" ] || fail "the child is started without the result bound: no -e in $got"
+67.5 -> tools/loop-cases.sh:6690  assert_eq "$d/tool-result-trims.log" "$(cat "$d/events-argv.txt.record" 2>/dev/null || true)" "the trim is recorded beside the child's own event stream, in the item's directory"
+67.6 -> tools/loop-cases.sh:6612  assert_eq "$(wc -c < "$exact")" "$(wc -c < "$out")" "a result of exactly the bound is handed over whole"

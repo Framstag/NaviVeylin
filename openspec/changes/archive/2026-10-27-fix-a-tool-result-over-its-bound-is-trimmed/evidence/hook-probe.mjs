@@ -6,13 +6,15 @@
 // same object pi would put in the child's context. It is not a substitute for the gate; it is the evidence that the
 // two entry points are one rule.
 //
-// Usage: node openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/hook-probe.mjs
-//        (from the change root; the extension is resolved beside the project's tools)
+// Usage: node evidence/hook-probe.mjs   (from the root of the archived change
+//        `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`; the extension is resolved beside the project's tools)
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const extension = new URL("../../../../tools/pi-trim-result.mjs", import.meta.url);
+// The archived change sits one directory deeper than the planning path did (`openspec/changes/archive/<change>/`), so
+// the extension is five levels up; a stale `../../../../` here resolved to `openspec/tools/` and threw.
+const extension = new URL("../../../../../tools/pi-trim-result.mjs", import.meta.url);
 const mod = await import(extension.href);
 
 const record = join(mkdtempSync(join(tmpdir(), "hook-probe.")), "tool-result-trims.log");
@@ -43,8 +45,10 @@ console.log(`PROBE-HOOK record=${readFileSync(record, "utf8").trim()}`);
 const small = await call("b".repeat(1000) + "END\n", "ctx_read");
 console.log(`PROBE-HOOK undersized=${small === undefined ? "untouched (nothing returned)" : "CHANGED"}`);
 
-const image = await call("c".repeat(10), "ctx_read");
-console.log(`PROBE-HOOK at-the-bound=${image === undefined ? "untouched (nothing returned)" : "CHANGED"}`);
+// The scenario's other word is "at most the recorded bound", so exactly the bound is driven too: a `<=` that became
+// `<` would return a replacement here and the bound would cost the item the first character of a result that fitted.
+const boundary = await call("c".repeat(8000), "ctx_read");
+console.log(`PROBE-HOOK at-the-bound=${boundary === undefined ? "untouched (nothing returned)" : "CHANGED"}`);
 
 process.env.LOOP_TOOL_RESULT_MAX_CHARS = "0";
 const off = await call(big, "ctx_read");

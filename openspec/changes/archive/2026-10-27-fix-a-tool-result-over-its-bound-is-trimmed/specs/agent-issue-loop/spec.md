@@ -5,15 +5,15 @@
 A result a child's tool returns SHALL enter that child's context whole only while it is no longer than the bound
 the project records (`LOOP_TOOL_RESULT_MAX_CHARS`); above it, the result SHALL be replaced by its first
 `<bound>` characters and one line naming the tool, the size the result had, the bound it was cut to and how to read
-the rest, so no claim is ever judged on a cut line. The trim SHALL be recorded once, with the tool and both sizes,
-beside the child's own event stream in the item's directory. The bound SHALL be applied where a result passes from
-the tool to the child — not by asking the child to read less — and `0` SHALL mean no bound.
+the rest. The trim SHALL be recorded once, with the tool and both sizes, beside the child's own event stream in the
+item's directory, so a reader of the item can re-read the range the notice names. The bound SHALL be applied where a
+result passes from the tool to the child — not by asking the child to read less — and `0` SHALL mean no bound.
 
 #### Scenario: A result above the bound is trimmed and named
 
 - **WHEN** a child's tool returns more characters than the recorded bound
-- **THEN** the first `<bound>` characters are handed over unchanged, nothing past the bound reaches the context,
-  and one line names the tool, the size it had, the bound and how to read the rest
+- **THEN** the first `<bound>` characters are handed over unchanged, no character of the result past the bound
+  reaches the context, and one line names the tool, the size it had, the bound and how to read the rest
 - **Case**: `trim#aResultAboveTheBoundIsTrimmedAndNamed`
 
 #### Scenario: A result at or under the bound is handed over whole

@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/mutate.sh --mutations tools/duplicates-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+<testsuite name="tools/mutate.sh --mutations tools/duplicates-mutations.json --list" tests="0" failures="0" errors="0" time="1">
   <system-out>D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick</system-out>
 </testsuite>

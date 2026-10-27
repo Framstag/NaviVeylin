@@ -1,11 +1,13 @@
 # fix-a-tool-result-over-its-bound-is-trimmed
 
-surface: 4 cases added, 1 rewritten, 4 mutation records added, 1 adapter edited, 1 bound recorded, 0 prompt skeletons, 0 fixtures — `grep -n "adapter#" tools/loop-cases.sh` (3 adapter cases: 1 rewritten, 1 added), `grep -c "pi-child-events.sh" tools/loop-cases.sh` (223 declarations the adapter's pathspec owes), `grep -n "pi-child-events.sh@adapter#" tools/loop-mutations.sh` (2 records that mutate the adapter today), `grep -c "'6[67]\.[0-9]@" tools/loop-mutations.sh`
+surface: 4 cases added, 1 rewritten, 6 mutation records added, 1 adapter edited, 1 bound recorded, 0 prompt skeletons, 0 fixtures — `grep -c "^case_adapter_" tools/loop-cases.sh` (3 adapter cases: 1 rewritten, 1 added), `grep -c "pi-child-events.sh" tools/loop-cases.sh` (224 declarations the adapter's pathspec owes), `grep -n "pi-child-events.sh@adapter#" tools/loop-mutations.sh` (4 records that mutate the adapter today), `grep -c "'6[67]\.[0-9]@" tools/loop-mutations.sh` (8 records: #661's two and this change's six)
 
 The count is the tail the change pays for, not the first file the plan named: the adapter's argv is asserted by
-two cases and the whole suite declares the adapter as a file it can reach (223 declarations), so a word added in
+three cases and the whole suite declares the adapter as a file it can reach (224 declarations), so a word added in
 front of the prompt is a red case in more than one place, and the trim rule itself needs a case per invariant —
-the cut, the pass-through, the notice and the record.
+the cut, the pass-through, the notice and the record. Round 2's corrections move that tail by one assertion and two
+records, not by a new file: the adapter case now drives the event stream and asserts where the trim record lands, and
+the pass-through case drives a result of exactly the bound.
 
 ## Why
 
@@ -23,10 +25,10 @@ it arrives and prints the answer whole, and the run starts that command without 
   re-read by every later turn of that session, so one oversized result is paid for once per turn that follows it.
   Nothing trims a result, and no prompt can: the worker prompt has asked a child to read the section it needs
   rather than the whole document since before #246, and to cite a file rather than read it again since #246 — and
-  the archive's repeated-read share did not move at all (45 % of all reads both before and after that change, issue
-  #246).
+  the archive still records `LOOP-SPEND-READS calls=4798 duplicate=2174`: 45 % of its reads are a second read of a
+  path the item already read (issue #246).
 - **Measured, on the archive this run reads.** `python3 tools/loop-spend.py` over
-  `.pi/issue-loop/items` (137 items, 365 child sessions, 20 540 turns): `LOOP-SPEND-TOKENS
+  `.pi/issue-loop/items` (137 items, 365 child sessions, 20 648 turns): `LOOP-SPEND-TOKENS
   input=40298231 cacheRead=1610329592 output=13226175 total=1663853998`; the children injected **59.2 M
   characters** of tool output once, 876.4 M tokens of it re-read (53 % of all tokens); the heaviest single results
   are 116.6 k characters (one `ctx_read` in #78) and 51.3 k (`ctx_shell`); `LOOP-SPEND-CAP8K saved=228988001` (14 %
@@ -62,12 +64,12 @@ it arrives and prints the answer whole, and the run starts that command without 
    records no key, means no bound.
 3. `tools/loop/loop.conf` — `LOOP_TOOL_RESULT_MAX_CHARS=8000`, with the derivation the archive measured: p90 of
    the 22 901 results is 7 194 characters, so the smallest round bound above it leaves 9 results in 10 untouched
-   and buys the 14 % that `LOOP-SPEND-CAP8K` names; 16 000 is past p99 and buys 2 %, and 4 000 cuts one result in
-   five — the material an item is worked from.
+   and buys the 14 % that `LOOP-SPEND-CAP8K` names; 16 000 sits just under p99 (16 149) and above 1.2 % of the
+   results, and buys 2 %; and 4 000 cuts one result in five — the material an item is worked from.
 4. `tools/loop-cases.sh` — three cases for the rule (`trim#…`) and one for the adapter's loading of it, and
    `adapter#modeFlagIsItsOwnArgument`, whose assertion is the child's whole argv, rewritten for the extra words.
-5. `tools/loop-mutations.sh` — four records, one per invariant: the cut, the notice, the record and the adapter's
-   `-e`.
+5. `tools/loop-mutations.sh` — six records, one per invariant: the cut, the notice, the record, the adapter's
+   `-e`, the export that names the record file, and the pass-through's `at or under` boundary.
 6. `guidelines/Backlog.md`, section 7 "The loop" — the rule, the measurement, the value and what disables it.
 
 ## Impact

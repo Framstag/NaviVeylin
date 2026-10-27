@@ -987,6 +987,9 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
   local before after rc phase stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed
+  # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
+  # sets it, and the item's record must name the patch of the child that just ended (issue #674).
+  leftover_patch=""
   before=$(project_state)
   phase=$(basename "$1" .md)
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
@@ -1413,6 +1416,10 @@ while true; do
   gate_claim=$(report_field "$item_dir/worker-report.md" LOOP-GATE)
   outside_write=$(report_field "$item_dir/worker-report.md" LOOP-OUTSIDE-WRITE)
   timeout_claim=$(report_field "$item_dir/worker-report.md" LOOP-TIMEOUT)
+  # The run's own deadline is a different clock from the item's wall-clock cap (issue #227): the transcript says
+  # which one ended the child, and only the deadline's cut leaves the item for the next run instead of asking a
+  # question about it (issue #674).
+  deadline_claim=$(report_field "$item_dir/worker-report.md" LOOP-DEADLINE 2>/dev/null || true)
   # A falsification is the one skip whose finding is not a question: the worker measured that the mechanism the
   # item blames does not hold. Both halves are required before the run treats it as one — what was blamed, and
   # what was measured instead with how it was taken — because a claim nobody can check is a question again
@@ -1678,6 +1685,10 @@ while true; do
       # shipped requirement was universal and this call site was left as it stood, so the sentence and the code
       # disagreed until the reviewer read them against each other.
       round2_timeout=$(report_field "$item_dir/worker-report-round2.md" LOOP-TIMEOUT)
+      # …and the deadline's own line, because a rework worker the run's clock cut is the same clock's item as one
+      # the item's own worker cut (issue #674).
+      round2_deadline=$(report_field "$item_dir/worker-report-round2.md" LOOP-DEADLINE 2>/dev/null || true)
+      if [ -n "$round2_deadline" ]; then deadline_claim="$round2_deadline"; fi
       if [ "$round2_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$round2_timeout" ]; then
         review_verdict="round2-ended"
         outcome="blocked"
@@ -1842,39 +1853,46 @@ $review_notes_text"
       # The block's escalation carries the decision itself, not only the news that one is needed: the reviewer
       # already answered the question when it wrote its report, so the owner reads the options and the
       # recommendation instead of re-deriving them (#186).
-      escalation_reason="${blocked_reason:-the item was blocked}"
-      decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
-      if [ -n "$decision_field" ]; then
-        escalation_reason="$escalation_reason
+      if [ -z "$deadline_claim" ]; then
+        escalation_reason="${blocked_reason:-the item was blocked}"
+        decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
+        if [ -n "$decision_field" ]; then
+          escalation_reason="$escalation_reason
 
 **The decision:** $decision_field"
-      else
-        # A block that never reached a review round asked the item no question — most often because the cause is
-        # the run's own child rather than the item (a claim with no commit, a timeout, a child that could not
-        # start). Escalating the reason alone put an entry in the decision queue that nobody can answer, and the
-        # ceiling counts labels (issues #194, #225). The block leaves exactly one two-way choice, so the run
-        # states it, with the reason it holds as the ground for either answer.
-        escalation_reason="$escalation_reason
+        else
+          # A block that never reached a review round asked the item no question — most often because the cause is
+          # the run's own child rather than the item (a claim with no commit, a timeout, a child that could not
+          # start). Escalating the reason alone put an entry in the decision queue that nobody can answer, and the
+          # ceiling counts labels (issues #194, #225). The block leaves exactly one two-way choice, so the run
+          # states it, with the reason it holds as the ground for either answer.
+          escalation_reason="$escalation_reason
 
 **The decision:** retry the item, or abandon it — $blocked_reason. The reason above is the run's finding, not a
 question the item asked; a retry costs another attempt, and an abandonment removes it from the loop."
-      fi
-      if loop_labels escalate "$issue" --reason "$escalation_reason" \
-        --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
-        escalated_label="$decision_label"   # the block's own escalation
-      else
-        label_failures="${label_failures:+$label_failures }escalate"
+        fi
+        if loop_labels escalate "$issue" --reason "$escalation_reason" \
+          --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
+          escalated_label="$decision_label"   # the block's own escalation
+        else
+          label_failures="${label_failures:+$label_failures }escalate"
+        fi
       fi
       # The item's own reason carries the failure too, so the state's own table (`state.sh report`) names an item
       # whose decision was never written, and not only the report's action list does.
       blocked_note="${blocked_reason:-the item was blocked}"
+      # The work an ended child left is named in the item's own record, not only in its transcript: a clock-cut
+      # item writes no comment on the tracker, so the state and the report are the only places a caller reads it.
+      if [ -n "$leftover_patch" ]; then
+        blocked_note="$blocked_note · its work is kept at $leftover_patch"
+      fi
       if [ -n "$label_failures" ]; then
         blocked_note="$blocked_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"
       fi
       loop_state done "$issue" --result blocked --verdict blocked --change "$change_claim" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
-        --events "$events_file" --decision-label "$escalated_label" \
+        --events "$events_file" --decision-label "$escalated_label" --leftover "$leftover_patch" \
         --label-failures "$label_failures" --stop-reason "$stop_reason" >/dev/null
       ;;
   esac

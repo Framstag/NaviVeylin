@@ -866,12 +866,13 @@ case_state_nextHonoursEveryStopCondition() {
   assert_contains "$out" "floor" "the floor is named"
 }
 
-# The floor a caller is refused by is the run's own measurement (issue #206): the median wall time of the
-# items this run has finished, times the spread the measurements show (1.5), with `LOOP_ITEM_FLOOR_MINUTES`
-# as its lower bound. Both numbers the refusal compared are named, so an operator can see whether the floor
-# is honest.
+# The floor a caller is refused by is the run's own measurement (issue #206): the cheapest wall time of the
+# items this run has finished, times the spread the measurements show (1.5). Both numbers the refusal compared
+# are named, so an operator can see whether the floor is honest. The configured minimum is not a lower bound of
+# a derived floor any more — it governs only a run with no history (issue #674): one constant for every item
+# made a run of 10-15 min skips stop up to ~50 min before its deadline.
 case_state_floorIsDerivedFromTheFinishedItemsWallTimes() {
-  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/state.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local p conf_floor out status i
   local queue='[{"issue":21,"class":"bug","verdict":"eligible","rank":1},
                 {"issue":22,"class":"bug","verdict":"eligible","rank":2},
@@ -880,8 +881,8 @@ case_state_floorIsDerivedFromTheFinishedItemsWallTimes() {
   conf_floor=$(sed -n 's/^LOOP_ITEM_FLOOR_MINUTES=//p' "$LOOP_CONF")
   [ -n "$conf_floor" ] || fail "the configuration records no LOOP_ITEM_FLOOR_MINUTES"
 
-  # three finished items of 60 min each: the median the state already holds decides the floor, and the
-  # configured minimum no longer decides on its own (60 min x 1.5 = 90 min)
+  # three finished items of 60 min each: the measurement the state already holds decides the floor (60 min x
+  # 1.5 = 90 min)
   p=$(new_project)
   init_state "$p" 9 28
   printf '%s' "$queue" | run_state "$p" queue >/dev/null
@@ -891,7 +892,7 @@ case_state_floorIsDerivedFromTheFinishedItemsWallTimes() {
   out=$(run_state "$p" next 2>&1); status=$?
   assert_eq "3" "$status" "a floor above the remaining time stops the run"
   assert_contains "$out" "90 min floor" "the floor is the measured one, not the constant"
-  assert_contains "$out" "median 60 min over 3 finished items" "the refusal names the median it derived"
+  assert_contains "$out" "cheapest 60 min over 3 finished items" "the refusal names the measurement it derived"
   assert_contains "$out" "configured minimum $conf_floor" "the refusal names the configured minimum too"
   assert_not_contains "$out" "$conf_floor min floor" "the constant alone does not decide the refusal any more"
 
@@ -906,32 +907,44 @@ case_state_floorIsDerivedFromTheFinishedItemsWallTimes() {
   assert_eq "0" "$status" "a remaining time above the measured floor starts the next item"
   assert_eq "24" "$out" "the next candidate"
 
-  # three finished skips of 10 min each: the derived 15 min is below the configured minimum, which stays
-  # the lower bound — a cheap history must not admit an item the documented range says costs 40-65 min
+  # three finished skips of 10 min each: the cheapest measured item (10 min x 1.5 = 15 min) admits the next
+  # item, and the configured minimum no longer refuses the tail a cheap history measured (issue #674)
   p=$(new_project)
   init_state "$p" 9 28
   printf '%s' "$queue" | run_state "$p" queue >/dev/null
   for i in 21 22 23; do
     run_state "$p" done "$i" --result skipped --verdict needs-decision --wall 600 >/dev/null || fail "done #$i failed"
   done
-  out=$(run_state "$p" next 2>&1); status=$?
-  assert_eq "3" "$status" "the configured minimum still stops a thin tail"
-  assert_contains "$out" "$conf_floor min floor" "a cheap history keeps the configured minimum as the floor"
-  assert_contains "$out" "median 10 min over 3 finished items" "the cheap median is named rather than hidden"
-  # one expensive item among cheap ones does not move the median (600, 600, 6000 -> 10 min), which is the
-  # failure a p90 floor would have: after a 100 min item it would refuse the cheap tail of the run. The remaining
-  # time is the configured floor plus a quarter of an hour and not a fixed 60, because the floor is 65 min since
-  # issue #663 and a hard-coded minute count would test the file's value rather than the median's rule.
-  p=$(new_project)
-  init_state "$p" 9 $((conf_floor + 15))
-  printf '%s' "$queue" | run_state "$p" queue >/dev/null
-  for i in 21 22; do
-    run_state "$p" done "$i" --result skipped --verdict needs-decision --wall 600 >/dev/null || fail "done #$i failed"
-  done
-  run_state "$p" done 23 --result done --verdict closed --wall 6000 >/dev/null || fail "done #23 failed"
   out=$(run_state "$p" next); status=$?
-  assert_eq "0" "$status" "one expensive item does not raise the floor over a cheap history"
-  assert_eq "24" "$out" "the cheap tail of the run is still taken"
+  assert_eq "0" "$status" "a cheap history admits the tail instead of keeping the configured minimum"
+  assert_eq "24" "$out" "the next candidate after three cheap items"
+
+  # the **cheapest** measured item, not the median: two 10 min skips and one 60 min change (600, 600, 3600) have
+  # a median of 10 min as well, but a history of [600, 3600, 3600] does not — there the median is 60 min and
+  # its 90 min floor would refuse the cheap tail the run has just shown it can pay for. 80 min left is below
+  # the median-derived floor and above the 15 min the cheapest item derives.
+  p=$(new_project)
+  init_state "$p" 9 80
+  printf '%s' "$queue" | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result skipped --verdict needs-decision --wall 600 >/dev/null || fail "done #21 failed"
+  for i in 22 23; do
+    run_state "$p" done "$i" --result done --verdict closed --wall 3600 >/dev/null || fail "done #$i failed"
+  done
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "a cheap item among expensive ones admits the tail"
+  assert_eq "24" "$out" "the tail is taken even though the median would have refused it"
+
+  # the #663 relation the floor used to hold, reversed (issue #674): a run whose cheapest measured item is a
+  # skip derives a floor below what one item's gate owes, because the item started there may be the cheap kind
+  # the history measured. That is the accepted exposure: if it is a gated item it is ended at the run's own
+  # deadline instead of overrunning it, and the work it left is kept for the next run
+  # (`run#childIsEndedAtTheRunsDeadline`). The configured minimum still holds the gate's cost for a run with
+  # no history, which `state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes` reads.
+  owes=$(sed -n 's/^LOOP_ITEM_GATE_SECONDS=//p' "$LOOP_CONF")
+  if [ -n "$owes" ]; then
+    [ $((15 * 60)) -lt "$owes" ] ||
+      fail "this case assumes the cheap floor (900 s) is below what one item's gate owes ($owes s), so it cannot observe the reversal"
+  fi
 }
 
 case_state_floorWithNoHistoryIsTheConfiguredMinimum() {
@@ -4251,6 +4264,13 @@ case_run_childIsEndedAtTheRunsDeadline() {
     "an item whose child was ended is recorded blocked"
   assert_contains "$(jq -r '.items[0].note' "$state")" "exceeded" \
     "and the reason on the item names the bound that ended it"
+  # The clock that ended it is the run's, not the item's (issue #674): the item is left for the next run, so the
+  # run asks the tracker no question about it. A decision label here would spend one of the run's decision slots
+  # on a question nobody can answer — the item was cut because its budget ran out, not because it failed.
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
+    "an item the run's own deadline cut is not escalated as a decision"
+  assert_contains "$out" "decisions the owner owes: none" \
+    "and the report asks the owner no question about the item cut at the deadline"
   assert_contains "$(jq -r '.run.stop.reason // ""' "$state")" "deadline passed at" \
     "the run records the deadline as its stop reason"
 }
@@ -4451,7 +4471,7 @@ case_run_noProcessOfASignalledRunOutlivesIt() {
 # change the child left and the untracked files beside it, written into the item's own evidence directory before the
 # run moves on, and named in the transcript a reader of the blocked item is handed.
 case_run_treeOfACapEndedChildIsKeptAsAPatch() {
-  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo pid i status out tree report patch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
@@ -4503,6 +4523,13 @@ case_run_treeOfACapEndedChildIsKeptAsAPatch() {
   assert_contains "$(cat "$patch")" "unfinished edit" "and the tracked change it left"
   assert_contains "$(cat "$report")" "LOOP-LEFTOVERS: " "the transcript names the record a reader of the blocked item is handed"
   assert_contains "$(cat "$report")" "leftover-from-killed-run.patch" "with the file itself"
+  # The record is persisted beside the transcript (issue #674): the run's own state names the patch, so the report
+  # the run prints can point a caller at the work an ended child left without a reader having to find the item's
+  # transcript first. `state.sh done --leftover` is what writes it, and the action list is where it is printed.
+  assert_eq "$patch" "$(jq -r '.items[0].leftover // ""' "$p/.pi/issue-loop/run.json")" \
+    "the item's state record names the patch the ended child's work is kept in"
+  assert_contains "$out" "recover #21" "and the report's action list names the recovery as the caller's"
+  assert_contains "$out" "leftover-from-killed-run.patch" "with the path it is kept at"
   assert_eq "$(git -C "$tree" status --porcelain | grep -c 'half-applied.txt' || true)" "1" \
     "and the tree still carries what the child left, so the patch is a record beside it and not a replacement"
   return 0
@@ -6664,8 +6691,11 @@ case_adapter_theChildIsStartedWithTheResultBound() {
     printf '%s\n' 'printf "%s\n" "${LOOP_TOOL_RESULT_TRIM_RECORD:-}" > "$RECORD.record"'
   } > "$recorder"
   # The stream is unset explicitly: the suite may itself run inside a child whose run exported one, and a "started by
-  # hand" assertion that inherited it would measure the run's stream rather than the adapter's silence.
-  env -u LOOP_CHILD_EVENTS RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
+  # hand" assertion that inherited it would measure the run's stream rather than the adapter's silence. The trim
+  # record is unset with it, because the adapter derives it from the event stream: an inherited record would name a
+  # file this hand-started child does not write, and the case would read the caller's environment as the adapter's
+  # answer (measured 2026-10-27, the first gate run after the adapter began exporting it).
+  env -u LOOP_CHILD_EVENTS -u LOOP_TOOL_RESULT_TRIM_RECORD RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
     bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
     fail "the adapter exited non-zero: $(head -3 "$d/out")"
   got=$(cat "$d/argv.txt" 2>/dev/null || true)

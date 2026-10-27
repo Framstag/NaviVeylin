@@ -1114,12 +1114,18 @@ classes (`dagger.hilt.*`, `hilt_aggregated_deps.*`, `*.Hilt_*`, `*_Hilt*`,
 
 **Baseline (2026-09-11)** — merged report: 662 classes, 59.7 % line
 (8839/14805), 58.2 % instruction; per module: `app` 58.9 %, `auto` 53.8 %,
-`core` 67.3 % (line). `osmscout-client-java`: LINE 5 covered / 1 missed.
+`core` 67.3 % (line). The JNI module's own figure moved with its suite — its own JaCoCo report (not the merged
+Kover one above) re-measured 2026-10-27 reads LINE 698 of 979 (71.3 %), INSTRUCTION 3124 of 4210 (74.2 %),
+CLASS 31 covered / 3 missed over the module's 34 classes, from 21 test classes / 106 cases / 0 failures
+(change `fix-client-java-coverage-floor`, `evidence/jacoco-report-change.xml`; the 74.2 % is the
+instruction number the coverage row compares against its 70 % floor).
 Re-measure after meaningful test work; a future change may add a
 `koverVerify` threshold gate on top of this baseline. Re-checked 2026-10-04 after the opt-out
 (`:core` `com/naviveylin/core/AccuracyClass` LINE 0 missed / 3 covered), i.e. the default path still
-yields non-empty counters. The JNI module's own suite is unchanged by the opt-out: 2 classes /
-26 tests / 0 failures.
+yields non-empty counters. That opt-out check read the JNI module's suite as 2 classes / 26 tests / 0
+failures, and it was unchanged **by the opt-out**; the suite grew since — 8 classes / 48 cases before the
+change above, 21 / 106 after it — so a later opt-out
+comparison re-measures both halves.
 
 **Configuration cache: deliberately off (evaluated 2026-10-04/05).** `./gradlew --configuration-cache
 :app:testMobileDebugUnitTest …` does not store an entry: Gradle reports **13 problems** (re-measured

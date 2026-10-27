@@ -1,8 +1,9 @@
 # fix-client-java-coverage-floor
 
 surface: 13 test classes added, 5 cases added to 1 existing test class, 0 production files, 0 fixtures, 0
-build files, and one hunk in `tools/loop-cases.sh` (the hand-started-child case unsets
-`LOOP_TOOL_RESULT_TRIM_RECORD` beside `LOOP_CHILD_EVENTS`) — `ls
+build files, one hunk in `tools/loop-cases.sh` (the hand-started-child case unsets
+`LOOP_TOOL_RESULT_TRIM_RECORD` beside `LOOP_CHILD_EVENTS`), and one paragraph (two sentences) of
+`guidelines/Build.md` §7 whose JNI-module baseline line the change measured past — `ls
 osmscout-client-java/src/test/java/com/framstag/libosmscout/client/*.java | wc -l` (8 → 21
 test classes), the module's own tally (`48` → `106` cases, 0 failures in both), and the base report's class
 counter (`CLASS covered=13 missed=21`, i.e. 21 of the module's 34 compiled classes had no covered
@@ -70,11 +71,18 @@ its floor; the module sat at 37.2 %, so the floor was a bound nothing in the tre
    successful download that installs the basemap, an archive that wraps its content in one directory being
    flattened, the listing probe reading the server's directory listing, the probe yielding nothing when the
    server fails or is unreachable, and the invalid version-date names that encode no date.
-3. **No production file changes.** The delta is a suite, not a behaviour: no `src/main` file, no build file,
-   no fixture and no guideline sentence moved.
+3. **No production file changes.** The delta is a suite, not a behaviour: no `src/main` file, no build file
+   and no fixture moved. The two documents it touches are `tools/loop-cases.sh` (item 4) and
+   `guidelines/Build.md` §7 (item 5).
 4. **One hunk in `tools/loop-cases.sh`.** The case `adapter#theChildIsStartedWithTheResultBound` starts a
    child by hand and asserts that no record path reaches it; a run exports `LOOP_TOOL_RESULT_TRIM_RECORD`
    into every child it starts, so the case unsets it beside `LOOP_CHILD_EVENTS`. That case is the engine's
    own, and it is the one failure round 1's gate printed on this tree (`items/320/gate-attribution.md`); the
    hunk is kept and recorded here rather than attributed away, because the alternative leaves every item
    started before a separate fix red on a case that is not its own.
+5. **One paragraph of `guidelines/Build.md` §7, two of its sentences, about this module's baseline.** The
+   paragraph said `LINE 5 covered / 1 missed` (2026-09-11), and its opt-out sentence said the suite was
+   unchanged at `2 classes / 26 tests`. The change's own report reads `LINE 698 of 979`, `INSTRUCTION 3124
+   of 4210` and `CLASS 31 covered / 3 missed` over 21 test classes / 106 cases, so the routed section now
+   states the measurement the change took and keeps the 2/26 figure as the dated "then" of that opt-out
+   comparison (round 2's finding, `items/320`, NOTE on §7). No rule moves — two measured sentences do.

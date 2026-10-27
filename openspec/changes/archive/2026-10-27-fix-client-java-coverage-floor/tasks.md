@@ -94,7 +94,7 @@ none of them adds a claim to the change.
 ## Corrections after review round 2
 
 14. **Record the harness hunk as part of the change, and carry the delta to the shipped text.** Round 2 found
-    two blocking findings: the change's 14th file (`tools/loop-cases.sh`) stood in no recorded surface, and
+    two blocking findings: the change's harness file (`tools/loop-cases.sh`) stood in no recorded surface, and
     the archived delta still carried the 846-character tool-prescribing body and the six wide THENs round 1
     refused, while task 8 called the merged text "the delta merged". The owner decided to keep the hunk
     (option a): `proposal.md`'s surface names it, `design.md`'s blast radius and rollback count it, and the
@@ -105,3 +105,15 @@ none of them adds a claim to the change.
     openspec/changes/archive/2026-10-27-fix-client-java-coverage-floor --root .`. Docs-only, so no build and no
     gate run (`guidelines/Build.md` §2a: an `openspec/**` delta compiles nothing), and the round-2 gate's
     `tests=703 failures=0` still describes this tree, whose only change since is prose.
+
+15. **Read the routed coverage section against the number the change produced.** Round 2's NOTE on
+    `guidelines/Build.md` §7: the section a test author is routed to for coverage still carried the
+    2026-09-11 baseline (`osmscout-client-java`: `LINE 5 covered / 1 missed`; `2 classes / 26 tests / 0
+    failures` for the suite), while this change took the module to `LINE 698 of 979`, `INSTRUCTION 3124 of
+    4210` and 21 classes / 106 cases. Two sentences of that paragraph now carry this change's measurement and
+    the 8 / 48 the suite held before it; no rule, gate or command in the section moved.
+    Verification: the `LINE` and `INSTRUCTION` root counters of
+    `evidence/jacoco-report-change.xml` (`698/281`, `3124/1086`) and `evidence/module-suite-tally.txt`
+    (21 files, 106 cases, 0 failures). Docs-only, so no build and no gate run (`guidelines/Build.md` §2a);
+    `bash tools/check-doc-routes.sh` and `bash tools/check-openspec-hygiene.sh` are the structural checks
+    the delta owes.

@@ -27,8 +27,13 @@ controller's superclass, exactly as `MapDownloadManagerRegisterTest` and
 ## Blast radius
 
 - Test sources: 13 new files under `osmscout-client-java/src/test/java/com/framstag/libosmscout/client/`
-  and 5 cases added to `BasemapManagerTest`; nothing under `src/main`, no build file, no fixture, no
-  guideline sentence.
+  and 5 cases added to `BasemapManagerTest`; nothing under `src/main`, no build file, no fixture.
+- One paragraph of `guidelines/Build.md` §7 ("Code coverage"), two of its sentences: the JNI-module baseline
+  line the section carried (`LINE 5 covered / 1 missed`) now states this change's own report (`LINE 698 of
+  979`, `INSTRUCTION 3124 of 4210`, `CLASS 31 covered / 3 missed`, 21 test classes / 106 cases), and the
+  opt-out sentence that read `2 classes / 26 tests` keeps that figure as the dated "then" and adds the 8 /
+  48 the suite held before this change. No rule, no gate and no command changes there; a reader routed to §7
+  for coverage now reads a number the tree still produces, and can tell the merge from the growth.
 - One hunk in `tools/loop-cases.sh`: the case `adapter#theChildIsStartedWithTheResultBound` unsets
   `LOOP_TOOL_RESULT_TRIM_RECORD` beside `LOOP_CHILD_EVENTS`, because a run exports the first into every child
   it starts. Without it the case measures the run's record file instead of the adapter's silence, and round
@@ -47,9 +52,10 @@ controller's superclass, exactly as `MapDownloadManagerRegisterTest` and
 
 ## Rollback
 
-Revert the change's diff: 13 test files, two hunks of `BasemapManagerTest` and the one `-u
-LOOP_TOOL_RESULT_TRIM_RECORD` (with its comment) in `tools/loop-cases.sh` disappear, and the module's
-coverage returns to 37.2 % while the loop suite returns to the red round 1 recorded. Nothing else in the tree
+Revert the change's diff: 13 test files, two hunks of `BasemapManagerTest`, the one `-u
+LOOP_TOOL_RESULT_TRIM_RECORD` (with its comment) in `tools/loop-cases.sh`, and the two §7 sentences
+return to their 2026-09-11 and 2026-10-04 readings; the module's coverage returns to 37.2 % and the loop
+suite to the red round 1 recorded. Nothing else in the tree
 depends on them — no production file, no spec that names a case other than the scenarios this change adds.
 
 ## Alternatives the evidence eliminated

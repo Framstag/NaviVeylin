@@ -77,6 +77,7 @@ LOOP_SHELL_CASES=(
   'worktree#seedsAllFourInputs'
   'evidence#scansWhatTheProfileNames'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
+  'worktree#checksOutTheNewPinWhenItReusesTheWorktree'
   'worktree#oneBranchPerItemOffTheBase'
   'worktree#refusesWhenMainAdvanced'
   'worktree#keepsByDefaultAndRemovesOnRequest'
@@ -377,6 +378,7 @@ loop_run_shell_case() {
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'evidence#scansWhatTheProfileNames') fn=case_evidence_scansWhatTheProfileNames ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
+    'worktree#checksOutTheNewPinWhenItReusesTheWorktree') fn=case_worktree_checksOutTheNewPinWhenItReusesTheWorktree ;;
     'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
     'worktree#refusesWhenMainAdvanced') fn=case_worktree_refusesWhenMainAdvanced ;;
     'worktree#keepsByDefaultAndRemovesOnRequest') fn=case_worktree_keepsByDefaultAndRemovesOnRequest ;;
@@ -2058,6 +2060,43 @@ case_worktree_checksOutTheSubmoduleTheLoopConfigNames() {
   out=$(run_worktree "$p" create --branch loop-test 2>&1) || fail "worktree create failed: $out"
   [ -s "$p/.pi/worktrees/loop/vendor/lib/vendored.txt" ] ||
     fail "the submodule the configuration names was not checked out: $out"
+}
+
+# A kept worktree is reused by switching it to the new base, and the switch moves the superproject's gitlink
+# while the module's own worktree stays on the pin the previous branch recorded. The tree is dirty the moment it is
+# switched: `start-item` refuses it, `run.sh` records the stop, and the run ends with no item the dirt can be
+# attributed to (issue #309). The fresh path places the module it inherits nothing of
+# (`worktree#checksOutTheSubmoduleTheLoopConfigNames`); the reused path owes the same placement for the module it
+# does inherit.
+case_worktree_checksOutTheNewPinWhenItReusesTheWorktree() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p wt old new out
+  d=$(scratch); p=$(new_project); wt="$p/.pi/worktrees/loop"
+  submodule_fixture "$p" "$d"
+  # The previous branch's pin, which is the base the kept worktree is left on.
+  git -C "$p/app/src/main/cpp/libosmscout" checkout -q "$SUB_FIRST"
+  git -C "$p" commit -qam 'the pin the previous branch recorded' ||
+    fail "could not commit the previous pin"
+  old=$(git -C "$p" rev-parse HEAD)
+  run_worktree "$p" create --base "$old" --branch loop-prev >/dev/null 2>&1 ||
+    fail "the first worktree create failed"
+  # The new base records the other commit, which is what the base moving a gitlink does.
+  git -C "$p/app/src/main/cpp/libosmscout" checkout -q "$SUB_SECOND"
+  git -C "$p" commit -qam 'the pin this base records' || fail "could not commit the new pin"
+  new=$(git -C "$p" rev-parse HEAD)
+  # The kept worktree is clean on the previous pin before it is reused — the state the run's pre-flight accepts.
+  submodule_in_worktree "$wt" "$SUB_FIRST"
+  assert_eq "" "$(git -C "$wt" status --porcelain)" "the fixture leaves the kept worktree clean on the previous pin"
+  assert_eq "$SUB_SECOND" "$(git -C "$p" rev-parse "$new:app/src/main/cpp/libosmscout")" \
+    "the fixture's two bases pin different commits"
+  init_state "$p" 1 90
+  out=$(run_worktree "$p" create --base "$new" --branch loop-next 2>&1) ||
+    fail "the reused worktree was not created: $out"
+  assert_eq "" "$(git -C "$wt" status --porcelain)" "the reused worktree is the tree the new base records"
+  assert_eq "$SUB_SECOND" "$(git -C "$wt/app/src/main/cpp/libosmscout" rev-parse HEAD)" \
+    "on the pin the new base records"
+  # The refusal the run died on is `start-item`'s, over the tree `create` left behind (issue #309).
+  out=$(run_worktree "$p" start-item 21 demo 2>&1) || fail "no item can start on the reused worktree: $out"
 }
 
 case_worktree_oneBranchPerItemOffTheBase() {

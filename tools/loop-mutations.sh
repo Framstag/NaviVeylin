@@ -146,6 +146,9 @@ MUTATIONS=(
   # retry's line was printed and dropped, so a start refused for its branch was recorded as "the worktree is not
   # clean" with an empty list of files, on a tree the run had just cleaned itself.
   '13.11@-@tools/loop/run.sh@run#aRetriedStartStopsWithItsOwnReason@the retry'"'"'s own refusal written down instead of the dirt it was retried over@s|^          case "\$start_out" in$|          case "not clean" in|'
+  # 13.12 is the reused worktree's own module checkout: the switch moves the gitlink, so without it the tree
+  # `create` just branched is dirty before any item starts and `start-item` refuses it under no item (issue #309).
+  '13.12@-@tools/loop/worktree.sh@worktree#checksOutTheNewPinWhenItReusesTheWorktree@the reused worktree placed on the pin the new base records@s|^    sync_submodule worktree$|    : # the mutation leaves the module on the previous pin|'
     # 13.6 was the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers. The lock is taken before the
   # kept worktree is read now, so a live run is refused at the lock and never reaches that check; the invariant
   # the record still owns is the refusal itself: a live owner'"'"'s lock is a refusal, not a takeover.

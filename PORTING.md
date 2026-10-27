@@ -55,7 +55,8 @@ deliberately not a submodule, a package or a published binary (see *What an upda
    not file leaves as one summary item (`backlog-sensors`, issue #666).
 3. **`tools/loop/loop.conf`** — how a child agent is started (`LOOP_AGENT_CMD`), which of the
    project's skills the worker is told to use (`LOOP_WORKER_SKILLS`), **how the project's gate is
-   run** (`LOOP_GATE_CMD`), the submodule a fresh worktree — or a `--reset-worktree` — has to check out
+   run** (`LOOP_GATE_CMD`), the submodule a worktree — fresh, reused or reset by `--reset-worktree` — has to
+   check out
    (`LOOP_SUBMODULE_PATH`, empty for a project without one), the command that lists the project's test cases without running one
    (`LOOP_SUITE_CASES_CMD`, empty for a project whose suite cannot list them — the measuring block then says so
    instead of reporting a count of zero) and **the branch every item descends from** (`LOOP_BASE_REF`,

@@ -45,6 +45,19 @@ state_base() {
   bash "$LOOP_DIR/state.sh" get run.base
 }
 
+# The one submodule path a worktree does not inherit, read from the loop's configuration (D4): the path is the
+# project's, so the loop never names one. Both paths of `create` owe it — the fresh one inherits no module at all,
+# and the reused one inherits the previous branch's (issue #309) — so it is one step with one note. Best-effort,
+# because a project with no submodule, no local properties or no vendored dependency is a project the loop still
+# has to serve (D16).
+sync_submodule() { # <the name this step prints itself under>
+  local path
+  path=$(loop_conf_value LOOP_SUBMODULE_PATH)
+  [ -n "$path" ] && [ -f "$worktree/.gitmodules" ] || return 0
+  gitw submodule update --init --checkout "$path" >&2 ||
+    loop_note "$1: the submodule could not be checked out — the build may not be able to run"
+}
+
 cmd_create() {
   local base="" branch="" dirty
   while [ $# -gt 0 ]; do
@@ -69,6 +82,12 @@ cmd_create() {
     [ -z "$dirty" ] || loop_refuse "the worktree at $worktree is not clean — the previous run left work behind:
 $dirty"
     git -C "$worktree" switch -c "$branch" "$base" >&2 || loop_die "create: could not branch from the base in the kept worktree"
+    # The switch moves the superproject's gitlink to the commit the new base records and leaves the module's own
+    # worktree on the pin the previous branch carried, so the tree is dirty the moment it is switched: `start-item`
+    # refuses it mid-run, under no item, and the run ends with every queued item unworked (issue #309). The tree is
+    # clean before the switch — that is what the refusal above asserts — so the checkout below discards nothing of a
+    # previous run's work; it places the module on the pin this base records, as the fresh path does.
+    sync_submodule worktree
     printf '%s\n' "$branch" > "$worktree/.pi/loop-branch"
     printf 'worktree %s reused (branch %s from %s)\n' "$worktree" "$branch" "${base:0:12}"
     return 0
@@ -78,14 +97,7 @@ $dirty"
   # Four inputs a fresh worktree does not inherit (REFERENCE.md, "Running the loop in a worktree").
   # Each is best-effort with a note, because a project with no submodule, no local properties or no
   # vendored dependency is a project the loop still has to serve (D16).
-  # The one submodule path a fresh worktree does not inherit, read from the loop's configuration (D4):
-  # the path is the project's, so the loop never names one.
-  local submodule_path
-  submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
-  if [ -n "$submodule_path" ] && [ -f "$LOOP_ROOT/.gitmodules" ]; then
-    gitw submodule update --init "$submodule_path" >&2 ||
-      loop_note "worktree: the submodule could not be checked out — the build may not be able to run"
-  fi
+  sync_submodule worktree
   local local_props=0
   for f in "$LOOP_ROOT"/local.prop*; do
     [ -e "$f" ] || continue

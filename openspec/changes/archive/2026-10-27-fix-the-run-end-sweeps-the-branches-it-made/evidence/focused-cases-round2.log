@@ -1,0 +1,19 @@
+=== run#theEndSweepsTheLandedBranchesItMade
+PASS run#theEndSweepsTheLandedBranchesItMade
+--- run#theEndSweepsTheLandedBranchesItMade 2026-10-27T16:23:28Z
+=== run#aMergedBranchIsRemoved
+run#aMergedBranchIsRemoved| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#aMergedBranchIsRemoved|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aMergedBranchIsRemoved
+--- run#aMergedBranchIsRemoved 2026-10-27T16:23:38Z
+=== worktree#keepsByDefaultAndRemovesOnRequest
+worktree#keepsByDefaultAndRemovesOnRequest| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#keepsByDefaultAndRemovesOnRequest|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#keepsByDefaultAndRemovesOnRequest
+--- worktree#keepsByDefaultAndRemovesOnRequest 2026-10-27T16:23:53Z
+=== clean#sweepsOnlyWhatIsInTheBase
+PASS clean#sweepsOnlyWhatIsInTheBase
+--- clean#sweepsOnlyWhatIsInTheBase 2026-10-27T16:23:57Z
+=== report#landedBranchesAreNamedAsRemovable
+PASS report#landedBranchesAreNamedAsRemovable
+--- report#landedBranchesAreNamedAsRemovable 2026-10-27T16:24:00Z

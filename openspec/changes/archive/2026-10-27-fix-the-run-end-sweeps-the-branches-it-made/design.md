@@ -10,9 +10,11 @@ switches the worktree off it, and every earlier branch a manual landing left sta
 
 ## The single fix
 
-Add `worktree.sh prune-landed [--apply]` and call it from `end_run` before the report, unless the run is a dry run.
-The subcommand reads the base the run recorded (falling back to the base branch), lists the loop's own refs
-(`loop_own_branches`), and decides one branch at a time:
+Add `worktree.sh prune-landed [--apply]` and call it from `end_run` after the report and after the worktree step,
+unless the run is a dry run or it ended before the pre-screen. The order is the sweep's own: `--clean-worktree`
+releases the branch that tree held in the step above, so a sweep run before it would read the run's own `loop-*`
+branch as held and keep it. The subcommand reads the base the run recorded (falling back to the base branch), lists
+the loop's own refs (`loop_own_branches`), and decides one branch at a time:
 
 1. **never the base branch** — the candidates are only `fix/issue-*` and `loop-*`, so the base is not in the set;
 2. **never a branch a worktree holds** — `loop_worktree_branches`, the same test git itself applies;
@@ -30,10 +32,13 @@ A run that is a dry run removes nothing.
 ## Blast radius
 
 `tools/loop/worktree.sh` gains one subcommand and two local helpers; no existing subcommand changes.
-`tools/loop/run.sh` gains one hook in `end_run`; the item-branch release after a merge is unchanged. The report sees
-fewer branches because the sweep runs before it, and the sweep's own lines name what was removed. `loop-clean.sh`
-keeps its current inline branch sweep; the two commands share `loop_unlanded_commits`, `loop_own_branches` and
-`loop_worktree_branches`, and the new command is deliberately more conservative because it runs unattended.
+`tools/loop/run.sh` gains one hook in `end_run`; the item-branch release after a merge is unchanged. The sweep runs
+last, so the report names the branches that stood when it printed and the sweep's own lines name what it removed
+after it. `loop-clean.sh` keeps its current inline branch sweep; the two commands share `loop_unlanded_commits`,
+`loop_own_branches` and `loop_worktree_branches`, and the new command is deliberately more conservative because it
+runs unattended. Because it is a `git branch -D` path, its refusal for a branch the base does not carry is
+falsified by one mutation record (`tools/loop-mutations.sh --only 13.13`,
+`evidence/mutation-13.13.log`: red at 2026-10-27T16:03:18Z, restored green).
 
 ## Alternatives eliminated
 
@@ -46,7 +51,8 @@ keeps its current inline branch sweep; the two commands share `loop_unlanded_com
 - **Test landed by ancestry alone.** The loop lands work as a fresh `fix: … (#N)` commit, so a landed branch is not
   an ancestor of the base; ancestry alone was exactly issue #228's defect.
 - **Delete the current `loop-*` branch too.** A worktree holds it; git refuses, and the next run needs the warm
-  checkout. It is swept by the next run once the worktree switches off it.
+  checkout. The sweep therefore keeps it and says so (`kept … — checked out`), and it stays until a run switches the
+  worktree off it and names it again.
 
 ## Rollback
 

@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 196 records (labels: 13.12) (files: tools/loop/worktree.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.p4k4kG
+RED    13.12  worktree#checksOutTheNewPinWhenItReusesTheWorktree   (the reused worktree placed on the pin the new base records)
+       2026-10-27T15:06:49Z — the reused worktree is the tree the new base records: expected '', got ' M app/src/main/cpp/libosmscout'
+restore 13.12 worktree#checksOutTheNewPinWhenItReusesTheWorktree green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

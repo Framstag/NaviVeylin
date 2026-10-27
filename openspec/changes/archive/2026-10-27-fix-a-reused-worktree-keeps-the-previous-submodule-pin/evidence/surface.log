@@ -1,0 +1,10 @@
+$ grep -c checksOutTheNewPin tools/loop-cases.sh
+3
+$ grep -c 13.12 tools/loop-mutations.sh
+2
+$ grep -n sync_submodule tools/loop/worktree.sh
+53:sync_submodule() { # <the name this step prints itself under>
+90:    sync_submodule worktree
+100:  sync_submodule worktree
+$ grep -c submodule tools/loop-cases.sh
+43

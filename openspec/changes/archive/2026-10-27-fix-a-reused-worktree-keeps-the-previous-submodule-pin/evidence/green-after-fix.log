@@ -1,0 +1,2 @@
+PASS worktree#checksOutTheNewPinWhenItReusesTheWorktree
+loop-selftest: all 1 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case worktree#checksOutTheNewPin*

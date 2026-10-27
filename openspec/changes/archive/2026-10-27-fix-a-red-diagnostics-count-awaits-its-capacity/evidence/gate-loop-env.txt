@@ -1,0 +1,13 @@
+the gate's one failing step is the run's own environment, not the tree:
+
+  ./tools/loop/gate.sh   ->  tools/loop-selftest.sh --from-git 4a4b3a95...
+  FAIL adapter#theChildIsStartedWithTheResultBound
+    a child started by hand, with no event stream, names no record file and writes nothing into the project:
+    expected '', got '/home/tim/projects/NaviVeylin/.pi/issue-loop/items/675/tool-result-trims.log'
+
+That path is this worker's own LOOP_TOOL_RESULT_TRIM_RECORD (and LOOP_CHILD_EVENTS, LOOP_STATE_FILE), inherited by the
+gate because the gate ran inside a loop child. The same case, the same tree, the three variables cleared:
+
+  tools/loop-selftest.sh --case 'adapter#theChildIsStartedWithTheResultBound'
+    with the child's env   -> FAIL (names this item's trim record)
+    with them cleared      -> PASS adapter#theChildIsStartedWithTheResultBound

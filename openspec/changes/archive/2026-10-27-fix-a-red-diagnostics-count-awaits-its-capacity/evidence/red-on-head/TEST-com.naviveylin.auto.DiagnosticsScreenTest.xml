@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DiagnosticsScreenTest" tests="5" skipped="0" failures="2" errors="0" timestamp="2026-10-27T05:57:08.201Z" hostname="dingens" time="8.481">
+  <properties/>
+  <testcase name="loadedEntriesReachTheTemplate" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="7.751"/>
+  <testcase name="thePageRowOpensTheNextSliceOfTheWindow" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.316">
+    <failure message="java.lang.AssertionError: no row titled More (12) in [This log stays on this device. It records app and session events plus map database and object names — never coordinates. Entries older than 7 days are deleted., [2026-10-27 06:57:16.002] SESSION entry-30, [2026-10-27 06:57:16.002] SESSION entry-29, [2026-10-27 06:57:16.002] SESSION entry-28, [2026-10-27 06:57:16.002] SESSION entry-27, [2026-10-27 06:57:16.002] SESSION entry-26, [2026-10-27 06:57:16.001] SESSION entry-25, More (14)]" type="java.lang.AssertionError">java.lang.AssertionError: no row titled More (12) in [This log stays on this device. It records app and session events plus map database and object names — never coordinates. Entries older than 7 days are deleted., [2026-10-27 06:57:16.002] SESSION entry-30, [2026-10-27 06:57:16.002] SESSION entry-29, [2026-10-27 06:57:16.002] SESSION entry-28, [2026-10-27 06:57:16.002] SESSION entry-27, [2026-10-27 06:57:16.002] SESSION entry-26, [2026-10-27 06:57:16.001] SESSION entry-25, More (14)]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertNotNull(Assert.java:713)
+	at com.naviveylin.auto.DiagnosticsScreenTest.tapRow(DiagnosticsScreenTest.kt:162)
+	at com.naviveylin.auto.DiagnosticsScreenTest.thePageRowOpensTheNextSliceOfTheWindow(DiagnosticsScreenTest.kt:267)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="theDiagnosticsListFitsTheHostsCapacity" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.308">
+    <failure message="java.lang.AssertionError: the page holds the host's 8 rows between the disclosure and its page row expected:&lt;10&gt; but was:&lt;8&gt;" type="java.lang.AssertionError">java.lang.AssertionError: the page holds the host's 8 rows between the disclosure and its page row expected:&lt;10&gt; but was:&lt;8&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.naviveylin.auto.DiagnosticsScreenTest.theDiagnosticsListFitsTheHostsCapacity(DiagnosticsScreenTest.kt:233)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="onGetTemplateDoesNotReadTheFile" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.049"/>
+  <testcase name="theTemplateOpensWithTheDisclosure" classname="com.naviveylin.auto.DiagnosticsScreenTest" time="0.051"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/home/tim/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.6/46e2545d7a97b6ccb195621650c5957279eb4812/byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

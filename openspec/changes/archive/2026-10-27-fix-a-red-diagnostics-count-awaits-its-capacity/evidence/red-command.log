@@ -1,0 +1,13 @@
+the red run reproduced on the base tree (assertions untouched, the two conditions the CI run met):
+
+  ./gradlew --offline :auto:testDebugUnitTest -PforceTests --no-build-cache \
+    --tests "com.naviveylin.auto.DiagnosticsScreenTest" --tests "com.naviveylin.auto.StartupScreensTest"
+  11 tests completed, 3 failed
+
+  DiagnosticsScreenTest  tests=5 failures=2  expected:<10> but was:<8> (x2)  2026-10-27T05:57:08.201Z
+  StartupScreensTest      tests=6 failures=1  expected:<4> but was:<5>          2026-10-27T05:57:16.698Z
+
+the same two reproductions on the change:
+
+  DiagnosticsScreenTest  tests=5 failures=0  2026-10-27T05:58:45.814Z
+  StartupScreensTest      tests=6 failures=0  2026-10-27T05:58:56.862Z

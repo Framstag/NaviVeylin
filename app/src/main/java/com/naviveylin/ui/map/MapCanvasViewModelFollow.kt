@@ -578,7 +578,7 @@ internal fun MapCanvasViewModel.refreshBrowseReCenter(state: MapCanvasUiState) {
         offsetPx = MapCanvasViewModel.browseCenterOffsetPx(
             state.viewport.centerLat, state.viewport.centerLon,
             state.viewport.magnification, state.viewport.angle,
-            screenWidth, screenHeight, projectionDpi,
+            state.canvasWidthPx, state.canvasHeightPx, projectionDpi,
             state.gpsMarkerLat, state.gpsMarkerLon
         )
         when {

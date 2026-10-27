@@ -697,7 +697,11 @@ Source: spec `map-modes` (drive suspension and reset; Browse re-center), spec
     case work — at a standstill the location provider goes silent (min-distance
     throttling) and nothing else emits. So it is also visible on the start screen
     when the persisted viewport is not where the vehicle is, and it appears when
-    the vehicle moves while browsing. A pending dwell is discarded when the mode
+    the vehicle moves while browsing. The canvas metrics are part of the observed
+    state the rule is derived from — published by the screen's first
+    `onSizeChanged`, exactly like the viewport — so the first layout, a rotation
+    or an unfold re-derives the offset and arms the dwell just as a fix or a pan
+    does. A pending dwell is discarded when the mode
     leaves BROWSE or the vehicle comes back inside the hide threshold, so it
     cannot reveal the button later — that includes an available fix that stops
     being usable (aged past the fix limit, or the location source switched off),

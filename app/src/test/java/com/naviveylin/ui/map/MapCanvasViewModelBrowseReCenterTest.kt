@@ -837,6 +837,39 @@ class MapCanvasViewModelBrowseReCenterTest {
         )
     }
 
+    /**
+     * The canvas metrics are an input of the derivation, so a change that moves
+     * only them must re-derive it (spec: map-modes — Browse re-center, "A canvas
+     * size change re-derives the offset"). The reachable path is the first
+     * layout: the viewport was restored and the fix is already in state while the
+     * canvas has not been measured, so the offset is unmeasurable (NaN) and no
+     * dwell is armed; nothing else emits afterwards at a standstill.
+     */
+    @Test
+    fun aCanvasSizeChangeAloneReDerivesTheOffset() = runTest(mainDispatcherRule.dispatcher) {
+        // Before the first onSizeChanged: the VM holds the unmeasured canvas.
+        viewModel.setScreenSize(0, 0)
+        moveViewportBy(400.0, 0.0)
+        emitFix()
+        advanceUntilIdle()
+        assertFalse(
+            "the offset is unmeasurable while the canvas is not measured",
+            viewModel.uiState.value.browseReCenterVisible
+        )
+
+        // The first layout, and nothing else: only the canvas metrics change.
+        viewModel.setScreenSize(SCREEN_W, SCREEN_H)
+        advanceUntilIdle()
+
+        assertTrue(
+            "a canvas size change alone must re-derive the offset and arm the dwell",
+            pumpUntil(maxSpins = 2_000) { viewModel.browseReCenterBeyondSinceMs != 0L }
+        )
+
+        fakeNowMs += MapCanvasViewModel.RECENTER_DWELL_MS + 150L
+        assertTrue("the armed dwell must complete", awaitReveal())
+    }
+
     private companion object {
         const val SCREEN_W = 1080
         const val SCREEN_H = 1920

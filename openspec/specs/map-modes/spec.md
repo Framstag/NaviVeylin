@@ -67,7 +67,7 @@ The system SHALL maintain an explicit map mode with exactly three states: BROWSE
 
 ### Requirement: Browse re-center
 
-In BROWSE mode the system SHALL show the re-center button exactly while the map is not centered on the vehicle position: the button SHALL be visible when a GPS fix is available and the vehicle's projected position is off the center of the visible map area by more than a threshold, and SHALL be hidden otherwise. The condition SHALL be derived from the current viewport and the current position — it SHALL NOT depend on remembered user interaction, and it SHALL be re-evaluated on every position fix and every viewport change. The system SHALL damp the condition so a position wandering within the GPS noise band around the center does not toggle the button: the appear edge SHALL require the off-center state to persist beyond a short dwell, and the hide edge SHALL use a smaller offset than the appear edge. The offset SHALL be a screen distance, so the threshold means the same visible displacement at every zoom level. Pressing the button SHALL set the viewport center to the current GPS position, SHALL keep the mode in BROWSE, and SHALL hide the button. BROWSE framing SHALL NOT apply the vehicle anchor presets ("Vehicle position"): those configure the driving modes only.
+In BROWSE mode the system SHALL show the re-center button exactly while the map is not centered on the vehicle position: the button SHALL be visible when a GPS fix is available and the vehicle's projected position is off the center of the visible map area by more than a threshold, and SHALL be hidden otherwise. The condition SHALL be derived from the current viewport and the current position — it SHALL NOT depend on remembered user interaction, and it SHALL be re-evaluated on every position fix, every viewport change and every canvas-metric change: the canvas metrics SHALL be part of the observed state the condition is derived from, so a change that moves only them — the first layout, a rotation, an unfold — SHALL re-evaluate the condition and SHALL arm its dwell. The system SHALL damp the condition so a position wandering within the GPS noise band around the center does not toggle the button: the appear edge SHALL require the off-center state to persist beyond a short dwell, and the hide edge SHALL use a smaller offset than the appear edge. The offset SHALL be a screen distance, so the threshold means the same visible displacement at every zoom level. Pressing the button SHALL set the viewport center to the current GPS position, SHALL keep the mode in BROWSE, and SHALL hide the button. BROWSE framing SHALL NOT apply the vehicle anchor presets ("Vehicle position"): those configure the driving modes only.
 
 The dwell SHALL be completed on elapsed time, not on the next state change: once the off-center state has been beyond the appear threshold and the dwell has elapsed, the button SHALL become visible even though no further position fix, pan, zoom or other state change occurs. A pending dwell SHALL be discarded when the map mode leaves BROWSE or the vehicle returns inside the hide threshold, so it cannot reveal the button later.
 
@@ -78,6 +78,15 @@ In BROWSE mode, the re-center button SHALL appear only when the viewport has dri
 - **WHEN** the app starts in BROWSE with a persisted viewport that is not centered on the vehicle position
 - **AND** a GPS fix is available
 - **THEN** the re-center button SHALL be visible without any user interaction with the map
+
+#### Scenario: A canvas size change re-derives the offset
+
+- **WHEN** the map mode is BROWSE, the persisted viewport is not centered on the vehicle position and a GPS fix is already available
+- **AND** the canvas metrics become usable (the first layout after the viewport and the fix arrived unmeasured) or change
+- **AND** no position fix, pan, zoom or other state change follows
+- **THEN** the offset SHALL be measured on that canvas-metric change and the appear dwell SHALL arm
+- **AND** the re-center button SHALL be visible once the dwell has elapsed
+- **Case**: `MapCanvasViewModelBrowseReCenterTest#aCanvasSizeChangeAloneReDerivesTheOffset`
 
 #### Scenario: Vehicle moves away from the center
 

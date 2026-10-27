@@ -132,6 +132,17 @@ data class MapCanvasUiState(
     val resolvedAnchor: ResolvedAnchor = ResolvedAnchor(
         VehicleAnchorPosition.DEFAULT.fx, VehicleAnchorPosition.DEFAULT.fy
     ),
+    /**
+     * Measured canvas metrics in screen px — the size the renderer draws into.
+     * Part of the state for the same reason the viewport is: the BROWSE
+     * re-center offset is derived from them, and a derivation's inputs must be
+     * in the snapshot that triggers it (spec: map-modes — Browse re-center, "A
+     * canvas size change re-derives the offset"). 0 until the screen's first
+     * `onSizeChanged`. Published by `setScreenSize`; the renderer keeps its own
+     * copy for the frame geometry.
+     */
+    val canvasWidthPx: Int = 0,
+    val canvasHeightPx: Int = 0,
     val autoZoomEnabled: Boolean = true,
     /**
      * Monotonic counter bumped exactly when the speed-driven auto-zoom

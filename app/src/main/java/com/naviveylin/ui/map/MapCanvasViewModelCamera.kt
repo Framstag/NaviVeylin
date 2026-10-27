@@ -44,6 +44,14 @@ fun MapCanvasViewModel.setScreenSize(width: Int, height: Int) {
     val wasZero = screenWidth <= 0 || screenHeight <= 0
     screenWidth = width
     screenHeight = height
+    // The canvas metrics are an input of the BROWSE re-center derivation, which is triggered by a
+    // state change — so they are published as state, exactly like the viewport, instead of being a
+    // side channel the derivation reads directly (spec: map-modes — Browse re-center, "A canvas size
+    // change re-derives the offset"). Only a real change writes.
+    val state = _uiState.value
+    if (state.canvasWidthPx != width || state.canvasHeightPx != height) {
+        _uiState.value = state.copy(canvasWidthPx = width, canvasHeightPx = height)
+    }
     // The visible-area resolution depends on the canvas size (rotation, fold).
     publishResolvedAnchor()
     mapRenderer?.let {

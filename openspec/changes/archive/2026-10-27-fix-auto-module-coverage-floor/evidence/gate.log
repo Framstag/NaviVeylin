@@ -1,0 +1,4 @@
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 336s
+BUILD SUCCESSFUL in 5m 35s
+166 actionable tasks: 48 executed, 118 up-to-date
+LOOP-GATE: tests=0 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 336s)

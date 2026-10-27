@@ -1,0 +1,5 @@
+# Module suite tally — auto/src/test, from the result XMLs of
+#   ./gradlew --offline :auto:koverXmlReport -PforceTests   (change tree)
+# command: awk over auto/build/test-results/testDebugUnitTest/TEST-*.xml
+classes=92
+tests=885 failures=0 errors=0

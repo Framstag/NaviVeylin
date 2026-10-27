@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="coverage-floor-probe" tests="1" skipped="0" failures="1" errors="0" time="0.0">
+  <testcase classname="coverage-floor-probe" name="theAutoModulesInstructionCoverageReachesTheFloor" time="0.0">
+    <failure message="covered=23923 missed=10643 percentage=69.2 floor=70 verdict=fail">covered=23923 missed=10643 percentage=69.2 floor=70 verdict=fail module=auto
+  </testcase>
+</testsuite>

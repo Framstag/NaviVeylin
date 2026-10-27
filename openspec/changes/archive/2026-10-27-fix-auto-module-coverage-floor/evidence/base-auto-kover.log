@@ -1,0 +1,4 @@
+command: ./gradlew --offline :auto:koverXmlReport -PforceTests (base tree, 6f61cffe, before the change)
+result: BUILD SUCCESSFUL in 34s
+module counter (last INSTRUCTION): missed="10643" covered="23923" -> 69.2 %
+suite tally: tests=880 failures=0 errors=0

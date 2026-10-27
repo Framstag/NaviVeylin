@@ -1,0 +1,24 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=6f61cffe4f82e91c38349f5a6787c28011466387 paths=3 insertions=50 deletions=0
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/FreeDrivingScreenHostTest.kt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/
+LOOP-MEASURE-PATH openspec/specs/test-coverage/spec.md
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=251 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=336s
+LOOP-MEASURE-GATE seconds=336 suites=1
+LOOP-MEASURE-CHANGE 2026-10-27-fix-auto-module-coverage-floor scenarios=6 cases=6 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=336s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/green-on-change.xml tests=1 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/module-suite-tally.xml tests=885 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/red-on-base.xml tests=1 failures=1
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-27-fix-auto-module-coverage-floor/evidence/TEST-com.naviveylin.auto.FreeDrivingScreenHostTest.xml tests=5 failures=0
+LOOP-MEASURE-SURFACE surface: 1 test class added, 5 cases added, 0 production files, 0 fixtures, 0 build files — measured before
+LOOP-MEASURE-END

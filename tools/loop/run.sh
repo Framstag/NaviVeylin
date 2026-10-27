@@ -364,6 +364,10 @@ active_hb=""
 # The patch the leftovers of an ended child were written to, set by `keep_leftovers` and named in the transcript a
 # reader of the blocked item is handed.
 leftover_patch=""
+# Whether the run's own deadline has ended a child (issue #674). It is the run's budget that ran out rather than a
+# finding about the item, so the run takes no further pass over the queue: a second pre-screen after it excluded the
+# item whose branch the cut run had just made, and the report named a decision the clock — not the item — had asked.
+deadline_cut=0
 # The one ignored directory `keep_leftovers` copies into that patch instead of only naming it (issue #308). Empty
 # means no ignored path is copied; the profile's key is the project fact, the engine keeps none of its own.
 record_dir="${LOOP_UNTRACKED_RECORD_DIR:-}"
@@ -1116,6 +1120,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   active_child=""
   if [ "$timed_out" -eq 1 ]; then
     if [ "$ended_by" = deadline ]; then
+      deadline_cut=1
       # The clock that ended this child is the run's budget, and the transcript says which one: "exceeded 58 s"
       # alone would name a cap that had 3 600 s to run, and the next run must read the deadline as the stop
       # instead of "the state being replaced never recorded a stop reason" (issue #227). The `LOOP-TIMEOUT` line
@@ -1198,8 +1203,11 @@ render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-
 
 queue_passes=1
 while true; do
-  if [ "$(jq -r '.queue | length' "$LOOP_STATE_FILE")" -eq 0 ] && [ "$queue_passes" -lt 2 ]; then
-    # A queue that emptied mid-run gets one more pass, never a third (SKILL.md, "Pre-screen the backlog").
+  if [ "$(jq -r '.queue | length' "$LOOP_STATE_FILE")" -eq 0 ] && [ "$queue_passes" -lt 2 ] &&
+    [ "$deadline_cut" -eq 0 ]; then
+    # A queue that emptied mid-run gets one more pass, never a third (SKILL.md, "Pre-screen the backlog") — but not
+    # after the run's own deadline ended a child: the budget is spent, the pass can admit nothing the run could work,
+    # and its verdict on the item whose branch the cut child had just made reads as a decision about that item.
     queue_passes=$((queue_passes + 1))
     bash "$LOOP_DIR/prescreen.sh" >&2 || true
     escalate_prescreen_decisions
@@ -1570,18 +1578,24 @@ while true; do
             "$round" "$change" >&2
       fi
       run_child "$item_dir/reviewer-prompt-$round.md" "$reviewer_report"
+      # A reviewer is a child too, and the run's own deadline can end it as it can end the item's worker (issue
+      # #674): the clock is the run's budget, so the round was cut rather than refused, and the item waits for
+      # the next run instead of being asked about. Read here, before the retry, because a retry started past the
+      # deadline is a second child the same clock would only have to end.
+      reviewer_deadline=$(report_field "$reviewer_report" LOOP-DEADLINE 2>/dev/null || true)
       # An answer cut on its way to the file decides nothing, and it is not a reviewer that stayed quiet either
       # (#224): it is the run's own transport, so the round is asked once more instead of the item being blocked.
       # A round the run itself ended already says so in its report (`LOOP-TIMEOUT`), so only a silent cut is
       # retried — a timeout is read exactly as it was.
-      if [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
+      if [ -z "$reviewer_deadline" ] && [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
         ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
         printf 'run: the round %s answer was cut short (%s) — retrying the round once\n' \
           "$round" "$(last_line "$reviewer_report")" >&2
         reviewer_report="$item_dir/reviewer-report-$round-retry.md"
         render_reviewer_prompt "$item_dir/reviewer-prompt-$round-retry.md" "$correction_scope"
         run_child "$item_dir/reviewer-prompt-$round-retry.md" "$reviewer_report"
-        if [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
+        reviewer_deadline=$(report_field "$reviewer_report" LOOP-DEADLINE 2>/dev/null || true)
+        if [ -z "$reviewer_deadline" ] && [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
           ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
           # Twice is not a hiccup the run can wait out: the round has no verdict at all, so the block says that
           # instead of naming a refusal no reviewer made, and it records no failed review on the branch — a
@@ -1611,6 +1625,17 @@ while true; do
       elif [ -n "$outside_write_note" ]; then
         loop_state step A --name outside-write-review-$round --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
         progress note "$outside_write_note"
+      fi
+      # The two guards above run first, because a round the reviewer wrote through is discarded whatever ended the
+      # child. Neither of them refuses the change here: the round was cut by the run's own clock rather than
+      # answered (issue #674), so the item waits for the next run as a worker the same clock cut does — the claim
+      # names the clock, and no decision label is written for a question the budget asked.
+      if [ -n "$reviewer_deadline" ]; then
+        deadline_claim="$reviewer_deadline"
+        review_verdict="deadline"
+        outcome="blocked"
+        blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
+        break
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
       # with a non-zero count contradicts itself and is read as a refusal, and a refusal with a zero count is

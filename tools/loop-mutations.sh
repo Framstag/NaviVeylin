@@ -233,7 +233,7 @@ MUTATIONS=(
   '30.2@-@tools/loop/run.sh@run#falsificationWithAChangedTreeIsBlocked@the second read of the tree after the review of a falsification@s|^    if \[ "\$head_now" != "\$base" \]; then$|    if false; then|'
   # Without the retry, an answer cut on its way to the file is read as a refusal again: the round buys a second
   # worker and the item is blocked and escalated although every scenario in the report passed (issue #224).
-  '31.1@-@tools/loop/run.sh@run#aCutReportIsRetriedInsteadOfRefused@the retry of a report that arrived cut on its way to the file (issue #224)@s|^      if \[ -z "\$(report_field "\$reviewer_report" LOOP-TIMEOUT)" \] &&$|      if false \&\&|'
+  '31.1@-@tools/loop/run.sh@run#aCutReportIsRetriedInsteadOfRefused@the retry of a report that arrived cut on its way to the file (issue #224)@s|^      if \[ -z "$reviewer_deadline" \] && \[ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" \] &&$|      if false \&\&|'
   # 32.1 — a base that moved under the run stops it with a reason; the silent exit is what the case catches.
   '32.1@-@tools/loop/run.sh@run#staleBaseStopsTheRunWithItsReason@the stop that records why a stale base ended the run@s|^      \*"base moved"\*) stop_run "|      *"base moved"*) : "|'
   # 33.x — a branch is decided by what it *carries* (issue #232). 33.1 is the credit: without it an archived
@@ -611,11 +611,17 @@ MUTATIONS=(
   # #674). Measured 2026-10-27: the floor was the median wall time × 1.5 held above
   # `LOOP_ITEM_FLOOR_MINUTES=65`, so a run of 10-15 min skips stopped up to ~50 min before its deadline. One record
   # per invariant: 68.1 makes the floor follow the most expensive measured item again (the old lower bound's
-  # effect), 68.2 escalates the item the deadline cut (the guard never holds), and 68.3 drops the patch path
-  # from the item's record so the report cannot name the work an ended child left.
+  # effect), 68.2 escalates the item the deadline cut (the guard never holds), 68.3 drops the patch path
+  # from the item's record so the report cannot name the work an ended child left, 68.4 stops reading the
+  # reviewer's own `LOOP-DEADLINE` (a round the clock cut is read as a refusal again), 68.5 lets the second
+  # pre-screen pass run after a deadline cut, so the report names a decision for the item the clock ended, and 68.6
+  # silences the escalation a cap-ended item still owes.
   '68.1@-@tools/loop/state.sh@state#floorIsDerivedFromTheFinishedItemsWallTimes@the floor following the cheapest measured item rather than the most expensive one (issue #674)@s|^      \| (\$w \| min) as \$cheapest$|      \| ($w \| max) as $cheapest|'
   '68.2@-@tools/loop/run.sh@run#childIsEndedAtTheRunsDeadline@the guard that leaves an item the run'"'"'s own deadline cut for the next run instead of escalating it (issue #674)@s|^      if \[ -z "\$deadline_claim" \]; then$|      if true; then|'
   '68.3@-@tools/loop/state.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch path the item'"'"'s record carries, so the report can name the work an ended child left (issue #674)@s|leftover:(if \$lo == "" then null else \$lo end)|leftover:null|'
+  '68.4@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the reviewer'"'"'s own `LOOP-DEADLINE` read, so a round the run'"'"'s clock ended is read as a refusal and buys a rework worker (issue #674)@s|^      reviewer_deadline=.*LOOP-DEADLINE.*$|      reviewer_deadline=""|'
+  '68.5@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674)@s|^    \[ "\$deadline_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
+  '68.6@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the escalation a cap-ended item still owes, so a cap the item'"'"'s own clock hit is silent as well (issue #674)@s|^      if \[ -z "\$deadline_claim" \]; then$|      if [ -n "$deadline_claim" ]; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine
@@ -802,18 +808,28 @@ release_fifo() {
 
 run_case() { # run_case <case> <fifo|->  → 0 the case passed, non-zero it failed
   local case_name="$1" fifo="$2" status writer=""
+  case_log="$scratch/case.out"; : > "$case_log"
   if [ "$fifo" != "-" ]; then
     release_fifo "$fifo" &
     writer=$!
     PI_STUB_WAIT="$fifo" LOOP_ENGINE="$engine" LOOP_CONF="$engine/loop.conf" \
-      timeout "$case_timeout" bash "$root/tools/loop-selftest.sh" --case "$case_name" >/dev/null 2>&1
+      timeout "$case_timeout" bash "$root/tools/loop-selftest.sh" --case "$case_name" >"$case_log" 2>&1
   else
     LOOP_ENGINE="$engine" LOOP_CONF="$engine/loop.conf" \
-      timeout "$case_timeout" bash "$root/tools/loop-selftest.sh" --case "$case_name" >/dev/null 2>&1
+      timeout "$case_timeout" bash "$root/tools/loop-selftest.sh" --case "$case_name" >"$case_log" 2>&1
   fi
   status=$?
   if [ -n "$writer" ]; then kill "$writer" 2>/dev/null; pkill -P "$writer" 2>/dev/null || true; fi
   return "$status"
+}
+
+# The assertion a red case failed on, and when: a `RED` line that names only the case is a label a reader has to
+# re-run to check, and the round-1 review of #674 read the evidence as one that carried no failing message and no
+# timestamp. The suite prints the case's own failing assertion before its `FAIL <case>` line, so the first line that
+# carries the suite's `<case>|   <message>` shape is the one that names the failure.
+case_reason() {
+  [ -s "${case_log:-}" ] || return 0
+  sed -n 's/^[^|]*|  *//p' "$case_log" | head -1 | cut -c1-240
 }
 
 apply_mutation() { # apply_mutation <file> <backup> <expressions separated by ;;>
@@ -862,6 +878,7 @@ one_mutation() { # one_mutation <record>
     not_noticed=$((not_noticed + 1))
   else
     printf 'RED    %s  %s   (%s)\n' "$label" "$case_name" "$desc"
+    printf '       %s — %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(case_reason)"
     red=$((red + 1))
   fi
 

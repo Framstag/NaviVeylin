@@ -160,6 +160,7 @@ LOOP_SHELL_CASES=(
   'run#theChildCapIsNeverBelowWhatOneItemsGateOwes'
   'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes'
   'run#childIsEndedAtTheRunsDeadline'
+  'run#reviewerEndedAtTheRunsDeadlineIsNotADecision'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
@@ -455,6 +456,7 @@ loop_run_shell_case() {
     'run#theChildCapIsNeverBelowWhatOneItemsGateOwes') fn=case_run_theChildCapIsNeverBelowWhatOneItemsGateOwes ;;
     'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes') fn=case_state_theItemFloorIsOnlyBelowWhatOneItemsGateOwes ;;
     'run#childIsEndedAtTheRunsDeadline') fn=case_run_childIsEndedAtTheRunsDeadline ;;
+    'run#reviewerEndedAtTheRunsDeadlineIsNotADecision') fn=case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
@@ -4201,6 +4203,11 @@ case_run_childOutlastingTheWallClockIsBlocked() {
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "exceeded 2 s" \
     "and the reason on the item names the cap that ended it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+  # The item's own wall-clock cap is not the run's deadline (issue #674): the cap ended a child whose item was
+  # started and worked, so the block is a finding about the item and it is escalated as a decision. The sentence
+  # that says a cap-ended child is unchanged had no case asserting it, which round 1's review read as unproven.
+  assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel // ""' "$(state_file "$p")")" \
+    "and an item its own child's wall-clock cap ended is still escalated as a decision"
 }
 
 # The child cap is not the only clock a child can outlive (issue #227): the run's deadline is consulted between
@@ -4269,6 +4276,71 @@ case_run_childIsEndedAtTheRunsDeadline() {
   # on a question nobody can answer — the item was cut because its budget ran out, not because it failed.
   assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
     "an item the run's own deadline cut is not escalated as a decision"
+  assert_contains "$out" "decisions the owner owes: none" \
+    "and the report asks the owner no question about the item cut at the deadline"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$state")" "deadline passed at" \
+    "the run records the deadline as its stop reason"
+}
+
+# The item's worker is not the only child the run's clock can end (issue #674): the deadline is consulted while a
+# child runs, and a reviewer is a child. Its transcript carries the same `LOOP-DEADLINE` line, and a round the clock
+# ended was cut rather than answered — so the run asks the tracker no question about the item, retries no round and
+# starts no rework worker for a verdict nobody wrote, and leaves the item for the next run.
+case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo pid i status out state retry rework review_report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The child cap is an hour, so only the deadline can end the reviewer.
+  conf="$d/loop.conf"
+  conf_with_child_cap 3600 "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=3600' "$conf" || fail "this case could not lengthen the child cap in loop.conf"
+  fifo="$d/review.fifo"; mkfifo "$fifo"
+  # The worker finishes the item, so the run reaches its review round; the reviewer is the child the clock ends.
+  # The action blocks on the fifo for the reviewer only: the stub's own `PI_STUB_WAIT` blocks every child started
+  # while it is set, and a worker that never answered never gets the run as far as a review.
+  printf 'case "$1" in\n  reviewer*)\n    : > %q\n    read -r _ < %q || true\n    ;;\nesac\n' \
+    "$fifo.ready" "$fifo" > "$d/block-reviewer.sh"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$d/block-reviewer.sh")"
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 3 --minutes 90 --review on > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
+  exec 8> "$fifo"
+  # The run's deadline arrives while the reviewer waits — the same hand edit the worker's own case takes, and for
+  # the same reason: a shorter `--minutes` is refused by the item floor before any child starts.
+  state=$(state_file "$p")
+  jq '.run.deadlineEpoch = ((now | floor) + 2) | .run.deadlineAt = "an earlier moment"' "$state" > "$state.tmp" &&
+    mv "$state.tmp" "$state" || fail "this case could not move the run's recorded deadline"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s after its own recorded deadline passed while the reviewer ran"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a run whose reviewer the deadline ended is not a failed run"
+  assert_contains "$out" "exit 124" "the wait ends with the timeout's own status"
+  review_report="$p/.pi/issue-loop/items/21/reviewer-report-1.md"
+  [ -f "$review_report" ] || fail "the round the deadline ended kept no transcript"
+  assert_contains "$(cat "$review_report")" "LOOP-DEADLINE: the run's deadline passed at an earlier moment" \
+    "the reviewer's transcript names the clock that ended it"
+  retry="$p/.pi/issue-loop/items/21/reviewer-report-1-retry.md"
+  [ ! -f "$retry" ] || fail "a retry was started past the deadline, for a round the clock ended rather than the transport"
+  rework="$p/.pi/issue-loop/items/21/worker-prompt-round2.md"
+  [ ! -f "$rework" ] || fail "the cut round was read as a refusal and bought a rework worker"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "deadline passed while the reviewer" \
+    "and the reason on the item names the clock and the child it ended"
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
+    "an item whose reviewer the run's own deadline cut is not escalated as a decision"
   assert_contains "$out" "decisions the owner owes: none" \
     "and the report asks the owner no question about the item cut at the deadline"
   assert_contains "$(jq -r '.run.stop.reason // ""' "$state")" "deadline passed at" \

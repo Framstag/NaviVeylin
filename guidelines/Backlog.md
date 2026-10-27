@@ -341,6 +341,11 @@ gated item into the tail, the run's own deadline cuts that item, and it is left 
 item per run, because the deadline ends that child and the run stops right after it. The work it left is kept as
 the leftover patch, the item's state names that patch and the report prints the recovery, and the cut item is not
 escalated as a decision: the clock that ended it is the run's budget, not a finding about the item (issue #674).
+That holds for every child the item starts — the worker, the rework worker of a refusing round, and the reviewer
+of a review round (the round-1 review of #674 found the reviewer's `LOOP-DEADLINE` line written by `run_child` and
+read by nobody, so a cut round was retried past the deadline and then bought a rework worker) — and the run takes
+no second pass over the queue once the deadline has ended one: the pass would re-exclude the item whose branch the
+cut run had just made, and the report's decision list would name a decision for the item the clock cut.
 
 The clock is not the only budget an item spends. Measured 2026-10-19 (issue #209) on one host: #126's gate found
 194 MB free RAM and 18 GB of swap and spent 30 min inside `:app:kspMobileDebugUnitTestKotlin`, the same 5 680
@@ -421,7 +426,10 @@ second — the deadline is a whole-second clock, and reading it on every look wo
 saving on two forks — and a child still running when the deadline passes is ended exactly as the cap ends one — its
 transcript carries `LOOP-DEADLINE: the run's deadline passed at <deadlineAt> …` beside the `LOOP-TIMEOUT` line,
 and the run records the deadline as its stop, so a run that ends there is not replaced as one that "never
-recorded a stop reason". Measured 2026-10-20: eleven of fifteen stuck runs were past their own `--minutes 90`,
+recorded a stop reason". Every child is read back that way, the reviewer of a review round included: a round whose
+transcript carries `LOOP-DEADLINE` was cut rather than answered, so no retry and no rework worker follows it and
+the item is not escalated (the round-1 review of #674). Measured 2026-10-20: eleven of fifteen stuck runs were
+past their own `--minutes 90`,
 the longest heartbeat read `291m30s`, and not one carried a `LOOP-TIMEOUT` line although the cap was 2 700 s
 (#227). The completion record the wait ends on is cleared **before** the child is started, not after it: cleared
 after, a child that finished inside the window between the fork and the clear had its own record deleted, and

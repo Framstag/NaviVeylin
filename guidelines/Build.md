@@ -1132,7 +1132,11 @@ classes (`dagger.hilt.*`, `hilt_aggregated_deps.*`, `*.Hilt_*`, `*_Hilt*`,
 
 **Baseline (2026-09-11)** — merged report: 662 classes, 59.7 % line
 (8839/14805), 58.2 % instruction; per module: `app` 58.9 %, `auto` 53.8 %,
-`core` 67.3 % (line). The JNI module's two provenances are two figures since the split (2026-10-27, change
+`core` 67.3 % (line). Re-measured 2026-10-27 (change `fix-auto-module-coverage-floor`): `auto` reads
+INSTRUCTION 25 064 of 34 566 (**72.5 %**) against 23 923 of 34 566 (**69.2 %**) before it — the coverage row's own
+arithmetic (`tools/build-inputs.sh:91-114`, the report's last instruction counter) over
+`auto/build/reports/kover/report.xml` — with the module's suite at 92 classes / 885 cases / 0 failures.
+The JNI module's two provenances are two figures since the split (2026-10-27, change
 `fix-client-java-coverage-provenance`; `evidence/jacoco-own.xml` and `evidence/jacoco-vendored.xml`): the
 module's **own** report reads INSTRUCTION 2099 of 2854 (73.5 %), LINE 523 of 725 (72.1 %), CLASS 10 covered /
 0 missed; the **vendored** report reads INSTRUCTION 1342 of 1356 (99.0 %), LINE 251 of 254 (98.8 %),

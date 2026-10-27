@@ -167,8 +167,8 @@ The CI workflow SHALL generate the coverage reports after its unit test step and
 
 ### Requirement: A module's suite reaches the coverage row's floor
 
-Each module's unit suite SHALL cover the classes a host test can reach, so the instruction coverage that the
-sensor registry's coverage row reads from the module's own report does not fall below that row's floor. A case
+A module's unit suite SHALL cover the classes a host test can reach, so the instruction coverage that the
+sensor registry's coverage row reads from that module's own report does not fall below that row's floor. A case
 added for that coverage SHALL assert a behaviour the capability owns, never that a line ran; a class only the
 native side can reach SHALL NOT be covered from a host test; and a case that builds a component with long-lived
 background work SHALL release it before it returns.
@@ -177,29 +177,28 @@ background work SHALL release it before it returns.
 
 - **WHEN** the coverage row's arithmetic — the last instruction counter of the module's Kover report against the
   row's 70 % floor — is applied to the `auto` module's report
-- **THEN** the module SHALL be at or above the floor, having been below it on the base tree with the same
-  arithmetic
+- **THEN** the module SHALL be at or above the floor
 - **Case**: `coverage-floor-probe#theAutoModulesInstructionCoverageReachesTheFloor`
 
 #### Scenario: The free-driving screen's template is the map-only template
 
 - **WHEN** the free-driving screen is asked for its template
-- **THEN** the template SHALL be a `NavigationTemplate`, the one template with no content slot, and its action
-  strips SHALL carry the pan/exit and the zoom-in/zoom-out actions
+- **THEN** the template SHALL be a `NavigationTemplate`, the one template with no content slot; its map
+  action strip SHALL carry two actions, and its action strip the zoom-in and zoom-out actions in that order
 - **Case**: `FreeDrivingScreenHostTest#theTemplateIsTheBareNavigationTemplateCarryingItsActions`
 
 #### Scenario: A started screen takes the session surface and a stopped one releases it
 
 - **WHEN** the free-driving screen reaches the started state and later the stopped state
-- **THEN** it SHALL attach itself as the session surface's owner on start and detach on stop, so no screen holds
-  the surface while the session draws through another
+- **THEN** it SHALL call the session surface's attach exactly once on start and its detach exactly once on
+  stop, so no screen holds the surface while the session draws through another
 - **Case**: `FreeDrivingScreenHostTest#aStartedScreenTakesTheSessionSurfaceAndStopsReleasing`
 
 #### Scenario: A started screen observes fixes and map-data revisions
 
 - **WHEN** the shared location source publishes a fix and the basemap notifier publishes a revision while the
   free-driving screen is started
-- **THEN** the screen SHALL consume both without faulting and still answer a `NavigationTemplate`
+- **THEN** the screen SHALL process both without faulting and still answer a `NavigationTemplate`
 - **Case**: `FreeDrivingScreenHostTest#aStartedScreenObservesFixesAndBasemapRevisions`
 
 #### Scenario: The screen votes for free driving on entry
@@ -211,6 +210,7 @@ background work SHALL release it before it returns.
 
 #### Scenario: A destroyed screen drops the road status it published
 
-- **WHEN** a free-driving screen that published the car's road/speed status is destroyed
+- **WHEN** the shared status provider carries the car's road/speed status while a free-driving screen is
+  started, and the screen is destroyed
 - **THEN** it SHALL clear that status, so no road from an ended session survives into the notification
 - **Case**: `FreeDrivingScreenHostTest#aDestroyedScreenDropsTheRoadStatusItPublishedAndItsSurface`

@@ -1,0 +1,8 @@
+PROBE-HOOK chars=20005 kept=8150
+PROBE-HOOK prefix=unchanged first 8000
+PROBE-HOOK tail=cut
+PROBE-HOOK notice=named
+PROBE-HOOK record=LOOP-TOOL-RESULT-TRIM: ctx_read chars=20005 kept=8000
+PROBE-HOOK undersized=untouched (nothing returned)
+PROBE-HOOK at-the-bound=untouched (nothing returned)
+PROBE-HOOK bound-0=no bound, nothing returned

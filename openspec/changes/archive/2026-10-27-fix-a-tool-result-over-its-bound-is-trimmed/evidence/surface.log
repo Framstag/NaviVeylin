@@ -1,0 +1,35 @@
+# surface — what the rule this change touches is asserted by (issue #660, Phase A step 5)
+
+## cases that assert the adapter's argv, which is the seam the bound is loaded at
+229:  'adapter#modeFlagIsItsOwnArgument'
+230:  'adapter#theChildIsStartedWithoutContextFiles'
+231:  'adapter#theChildIsStartedWithTheResultBound'
+2713:# A child is started without the project's context files (issue #661, `adapter#theChildIsStartedWithoutContextFiles`),
+
+## cases that declare tools/pi-child-events.sh, the pathspec the adapter owes
+223
+
+## mutation records that mutate the adapter
+210:  '26.1@-@../pi-child-events.sh@adapter#modeFlagIsItsOwnArgument@the mode flag handed to the child as two argv words, not one (measured 2026-10-20)@s|^mode=(--mode json)$|mode="--mode json"|'
+591:  '66.1@-@../pi-child-events.sh@adapter#theChildIsStartedWithoutContextFiles@the context switch that keeps the project'"'"'s own context files out of a child'"'"'s prompt (issue #661)@s|^context=(--no-context-files)$|context=()|'
+
+## the highest record label in the declared set
+255.1
+
+## scenarios in the capability spec that name a case of the adapter or of the prompt
+1391:- **Case**: `prompt#workerTreatsARecordedDecisionAsSettled`
+1408:- **Case**: `prompt#reviewerIsBoundedToReading`
+1415:- **Case**: `prompt#iterationProtocolHandsTheReviewerTheSameSkeleton`
+1423:- **Case**: `prompt#reviewerIsBoundedToReading`
+1438:- **Case**: `prompt#workerNamesTheChangeSurfaceBeforeThePlan`
+1445:- **Case**: `prompt#iterationProtocolNamesTheChangeSurface`
+1508:- **Case**: `prompt#workerIsHandedTheMeasureBlock`
+1515:- **Case**: `prompt#workerIsHandedTheMeasureBlock`
+1595:- **Case**: `prompt#workerCarriesTheFeaturePath`
+2470:- **Case**: `adapter#theChildIsStartedWithoutContextFiles`
+2478:- **Case**: `prompt#thePhasePromptsCarryTheirOwnRoute`
+
+## prose today: what the worker prompt already asks a child about size and re-reading
+33:  over the file prints it, so you read the section that owns the rule and never the whole document.
+69:your transcript, read the line you have; a second read of the same path is a second model turn and buys
+71:items of this loop (issue #246): 8 to 49 of every item's 22 to 79 file reads were a second read of a path the

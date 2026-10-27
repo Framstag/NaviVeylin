@@ -1,0 +1,26 @@
+adapter#theChildIsStartedWithTheResultBound|   the adapter loads the result bound, and /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/pi-trim-result.mjs is not in the tree (issue #660)
+adapter#modeFlagIsItsOwnArgument|   the child sees the bound's extension, the mode flag as two arguments, then the context switch, then the prompt: expected '-e
+adapter#modeFlagIsItsOwnArgument| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/pi-trim-result.mjs
+adapter#modeFlagIsItsOwnArgument| --mode
+adapter#modeFlagIsItsOwnArgument| json
+adapter#modeFlagIsItsOwnArgument| --no-context-files
+adapter#modeFlagIsItsOwnArgument| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.WVoSLq/cases/0/tree/case.qTSGDK/prompt.md', got '--mode
+adapter#modeFlagIsItsOwnArgument| json
+adapter#modeFlagIsItsOwnArgument| --no-context-files
+adapter#modeFlagIsItsOwnArgument| /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.WVoSLq/cases/0/tree/case.qTSGDK/prompt.md'
+--- adapter#modeFlagIsItsOwnArgument[2] (exit 1)
+  the adapter loads the result bound, and /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/pi-trim-result.mjs is not in the tree (issue #660)
+FAIL adapter#theChildIsStartedWithTheResultBound
+--- adapter#modeFlagIsItsOwnArgument[0] (exit 1)
+  the child sees the bound's extension, the mode flag as two arguments, then the context switch, then the prompt: expected '-e
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/pi-trim-result.mjs
+--mode
+json
+--no-context-files
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.WVoSLq/cases/0/tree/case.qTSGDK/prompt.md', got '--mode
+json
+--no-context-files
+/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.WVoSLq/cases/0/tree/case.qTSGDK/prompt.md'
+FAIL adapter#modeFlagIsItsOwnArgument
+PASS adapter#theChildIsStartedWithoutContextFiles
+loop-selftest: 2 of 3 cases failed

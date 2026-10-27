@@ -1,0 +1,12 @@
+loop-mutations: selected 4 of 186 records (labels: 67.1 67.2 67.3 67.4)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.fdkt7x
+RED    67.1  trim#aResultAboveTheBoundIsTrimmedAndNamed   (the cut itself, so an oversized result is handed over whole again (issue #660))
+restore 67.1 trim#aResultAboveTheBoundIsTrimmedAndNamed green again
+RED    67.2  trim#aResultAboveTheBoundIsTrimmedAndNamed   (the line that names the size the result had, so a cut is judged as the whole answer (issue #660))
+restore 67.2 trim#aResultAboveTheBoundIsTrimmedAndNamed green again
+RED    67.3  trim#theTrimIsRecorded   (the record of what was cut, so the item cannot say which result a claim was read from (issue #660))
+restore 67.3 trim#theTrimIsRecorded green again
+RED    67.4  adapter#theChildIsStartedWithTheResultBound   (the word that loads the bound with every child (issue #660))
+restore 67.4 adapter#theChildIsStartedWithTheResultBound green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

@@ -1,0 +1,78 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46 paths=339 insertions=15683 deletions=92
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
+LOOP-MEASURE-CHECK tools/issues/metadata-mutations.sh --list
+LOOP-MEASURE-CHECK tools/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-mutations.sh --list
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/build-inputs-selftest.sh
+LOOP-MEASURE-CHECK tools/build-inputs.sh --check
+LOOP-MEASURE-CHECK tools/build-inputs-mutations.sh --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=247 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=186 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs-mutations.sh_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs.sh_--check.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=24s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=124 failures=0 time=76s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=254s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46.xml tests=247 failures=0 time=411s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 9 of 29 tally files not shown — at most 20 per directory (app/build/test-results/loop-gate)
+LOOP-MEASURE-GATE seconds=844 suites=29
+LOOP-MEASURE-CHANGE fix-a-tool-result-over-its-bound-is-trimmed scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=186 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_build-inputs-mutations.sh_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_build-inputs-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_build-inputs.sh_--check.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-action-runtimes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=24s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=124 failures=0 time=76s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=254s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46.xml tests=247 failures=0 time=411s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence/gate-tallies/tools_mutate-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 11 of 31 tally files not shown — at most 20 per directory (openspec/changes/fix-a-tool-result-over-its-bound-is-trimmed/evidence)
+LOOP-MEASURE-SURFACE surface: 4 cases added, 1 rewritten, 4 mutation records added, 1 adapter edited, 1 bound recorded, 0 prompt skeletons, 0 fixtures — `grep -n "adapter#" tools/loop-cases.sh` (3 adapter cases: 1 rewritten, 1 added), `grep -c "pi-child-events.sh" tools/loop-cases.sh` (223 declarations the adapter's pathspec owes), `grep -n "pi-child-events.sh@adapter#" tools/loop-mutations.sh` (2 records that mutate the adapter today), `grep -c "'6[67]\.[0-9]@" tools/loop-mutations.sh`
+LOOP-MEASURE-END

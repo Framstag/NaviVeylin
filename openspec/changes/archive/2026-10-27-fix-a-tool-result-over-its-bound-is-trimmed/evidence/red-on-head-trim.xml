@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-selftest.sh --group trim" tests="3" failures="3" errors="0" time="4">
+  <system-out>FAIL trim#aResultAboveTheBoundIsTrimmedAndNamed FAIL trim#aResultUnderTheBoundIsHandedOverWhole FAIL trim#theTrimIsRecorded loop-selftest: 3 of 3 cases failed (2026-10-26T23:58:46Z)</system-out>
+</testsuite>

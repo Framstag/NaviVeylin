@@ -89,9 +89,10 @@ class MapLongPressTimeoutComposeTest {
 
     @Test
     fun longPressUsesTheConfiguredAppTimeout() {
-        // No platform override: the platform's own timeout is 500 ms here, so a press that
-        // survives 600 ms proves the app's configured 900 ms decided it, not the platform.
-        launchMap(configuredLongPressTimeoutMs = 900L)
+        // The platform timeout is pinned at 500 ms here rather than taken from the environment,
+        // so the discrimination is this case's own: a press that survives 600 ms proves the app's
+        // configured 900 ms decided it, not the platform's 500 ms.
+        launchMap(platformLongPressTimeoutMs = 500L, configuredLongPressTimeoutMs = 900L)
 
         composeRule.onRoot().performTouchInput { down(center) }
         composeRule.mainClock.advanceTimeBy(600)

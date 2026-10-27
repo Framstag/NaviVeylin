@@ -621,6 +621,37 @@ class LocationOptionsOverlayComposeTest {
     }
 
     /**
+     * The long-press timeout row, scrolled into view: the sheet's content scrolls, and the
+     * requirement is that the control renders in every mode, not only where it was added
+     * (spec: `location-options-ui` — Long-press timeout control).
+     */
+    private fun assertLongPressTimeoutSliderVisible() {
+        composeRule.onNodeWithText("Long-press delay").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("longPressTimeoutSlider").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun longPressTimeoutSliderIsReachableInBrowse() {
+        openSheet(mode = MapMode.BROWSE)
+
+        assertLongPressTimeoutSliderVisible()
+    }
+
+    @Test
+    fun longPressTimeoutSliderIsReachableInFreeDrive() {
+        openSheet(mode = MapMode.FREE_DRIVE)
+
+        assertLongPressTimeoutSliderVisible()
+    }
+
+    @Test
+    fun longPressTimeoutSliderIsReachableInNavigation() {
+        openSheet(mode = MapMode.NAVIGATION)
+
+        assertLongPressTimeoutSliderVisible()
+    }
+
+    /**
      * The long-press timeout row (spec: `location-options-ui` — Long-press timeout control):
      * it shows the configured value in milliseconds and reports a change to its caller, which
      * persists it (spec: `map-long-press-timeout` — The long-press timeout is a persisted setting).
@@ -651,7 +682,7 @@ class LocationOptionsOverlayComposeTest {
         composeRule.onNodeWithContentDescription("Location options").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Long-press delay").performScrollTo().assertIsDisplayed()
+        assertLongPressTimeoutSliderVisible()
         composeRule.onNodeWithText("500 ms").performScrollTo().assertIsDisplayed()
 
         // A slider cannot report the value it already holds, so the row is moved to the

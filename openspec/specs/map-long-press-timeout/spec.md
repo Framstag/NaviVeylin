@@ -31,7 +31,8 @@ long press, and a press held past it SHALL be exactly one.
 ### Requirement: The long-press timeout is a persisted setting
 
 The app SHALL persist the map's long-press duration in milliseconds. The default SHALL be 500 ms, the minimum
-250 ms and the maximum 1000 ms, in 50 ms steps, and a value outside that range SHALL be clamped to it rather than
+250 ms and the maximum 1000 ms (the options sheet offers them in 50 ms steps), and a value outside that range
+SHALL be clamped to it rather than
 installed. A settings file written before this field existed SHALL decode to the default rather than fail or clear.
 
 #### Scenario: A settings file from before this change decodes to the default
@@ -49,7 +50,7 @@ installed. A settings file written before this field existed SHALL decode to the
 
 #### Scenario: A value outside the offered range is clamped
 
-- **WHEN** a settings file carries a long-press timeout of 40 ms, or one of 4000 ms
+- **WHEN** the loaded settings carry a long-press timeout of 40 ms, or one of 4000 ms
 - **THEN** the effective timeout is 250 ms, or 1000 ms respectively
 - **Case**: `AppSettingsTest#longPressTimeoutOutsideTheRangeIsClamped`
 

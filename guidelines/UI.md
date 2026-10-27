@@ -959,6 +959,10 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   above the fastest road type changes nothing), for bicycle and pedestrian it is the flat speed of
   every routable way. It takes effect on the next calculation, never restarting a running one
   (spec `routing-max-speed`, change `vehicle-max-speed-settings`).
+- Phone-only: the map's long-press delay (250-1000 ms in 50 ms steps, default 500 = the
+  platform's own) is configurable in the location-options sheet, which is its only editor — no
+  car surface has a long-press gesture, so none reads it (specs `map-long-press-timeout`,
+  `location-options-ui`, change `add-configurable-long-press-timeout`).
 - Phone-only: Android Auto sizes text via the host template; parity applies to
   labels and hierarchy, not pixel sizes.
 - Free-driving street label (phone, spec `current-road-info`): bottom-center

@@ -228,6 +228,10 @@ LOOP_SHELL_CASES=(
   'run#engineNamesNoProjectFact'
   'adapter#modeFlagIsItsOwnArgument'
   'adapter#theChildIsStartedWithoutContextFiles'
+  'adapter#theChildIsStartedWithTheResultBound'
+  'trim#aResultAboveTheBoundIsTrimmedAndNamed'
+  'trim#aResultUnderTheBoundIsHandedOverWhole'
+  'trim#theTrimIsRecorded'
   'state#inheritedStatePathOutsideTheTreeIsIgnored'
   'report#headerAndTableShape'
   'report#yieldIsCountedFromState'
@@ -519,6 +523,10 @@ loop_run_shell_case() {
     'run#engineNamesNoProjectFact') fn=case_run_engineNamesNoProjectFact ;;
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
     'adapter#theChildIsStartedWithoutContextFiles') fn=case_adapter_theChildIsStartedWithoutContextFiles ;;
+    'adapter#theChildIsStartedWithTheResultBound') fn=case_adapter_theChildIsStartedWithTheResultBound ;;
+    'trim#aResultAboveTheBoundIsTrimmedAndNamed') fn=case_trim_aResultAboveTheBoundIsTrimmedAndNamed ;;
+    'trim#aResultUnderTheBoundIsHandedOverWhole') fn=case_trim_aResultUnderTheBoundIsHandedOverWhole ;;
+    'trim#theTrimIsRecorded') fn=case_trim_theTrimIsRecorded ;;
     'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
     'usage#bareValueFlagDoesNotSwallowTheNextFlag') fn=case_usage_bareValueFlagDoesNotSwallowTheNextFlag ;;
     'usage#bareValueFlagInASingleShotHarnessIsAUsageError') fn=case_usage_bareValueFlagInASingleShotHarnessIsAUsageError ;;
@@ -6484,7 +6492,7 @@ case_usage_noUnguardedValueFlagRemains() {
 # adapter and not on an agent, a model or a token. A project that has no adapter — the porting recipe deletes
 # it and names a plain command — has nothing to assert here.
 case_adapter_modeFlagIsItsOwnArgument() {
-  # files: tools/pi-child-events.sh
+  # files: tools/pi-child-events.sh tools/pi-trim-result.mjs
   local d prompt recorder got
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
   d=$(scratch)
@@ -6499,8 +6507,9 @@ case_adapter_modeFlagIsItsOwnArgument() {
     bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
     fail "the adapter exited non-zero: $(head -3 "$d/out")"
   got=$(cat "$d/argv.txt" 2>/dev/null || true)
-  assert_eq "$(printf -- '--mode\njson\n--no-context-files\n%s' "$prompt")" "$got" \
-    "the child sees the mode flag as two arguments, then the context switch, then the prompt"
+  assert_eq "$(printf -- '-e\n%s\n--mode\njson\n--no-context-files\n%s' \
+    "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$prompt")" "$got" \
+    "the child sees the bound's extension, the mode flag as two arguments, then the context switch, then the prompt"
   return 0
 }
 
@@ -6533,6 +6542,123 @@ case_adapter_theChildIsStartedWithoutContextFiles() {
   extra=$(printf '%s\n' "$got" |
     grep -xE -- '-a|--approve|-na|--no-approve|--system-prompt|--append-system-prompt|-t|--tools|-ns|--no-skills' || true)
   assert_eq "" "$extra" "no word the child is started with moves its trust, its prompt or its tools"
+  return 0
+}
+
+# A child's tool result enters its context whole and is re-read by every later turn (issue #660): the archive's
+# 22 901 results carried 59.2 M characters, and the 9.0 % of them above 8 000 characters carry 14 % of the loop's
+# whole spend (`python3 tools/loop-spend.py`: `LOOP-SPEND-CAP8K saved=228988001`). Prose does not bound that: the
+# worker prompt has asked a child to read the section it needs and to cite a file rather than read it again since
+# #246, and `ctx_read` still hands 6.7 k characters per call with a 116.6 k maximum. So the bound is applied where
+# the result passes: `tools/pi-trim-result.mjs` is one rule with two entry points — the `tool_result` hook the
+# adapter loads with every child, and the CLI these cases drive. What it keeps is the first `<bound>` characters
+# and one line naming the tool, the size and the bound, so a claim is never judged on a cut line; the size it cut
+# is recorded for the item, and the line says how to read the rest.
+case_trim_aResultAboveTheBoundIsTrimmedAndNamed() {
+  # files: tools/loop-cases.sh tools/pi-trim-result.mjs
+  local d big out kept n
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)"
+  d=$(scratch)
+  # 20 005 characters, so the cut is checkable by its prefix and by the tail that must not survive.
+  big="$d/big.txt"
+  { head -c 20000 /dev/zero | tr '\0' 'a'; printf 'TAIL\n'; } > "$big"
+  out="$d/trimmed.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --record "$d/trims.log" < "$big" > "$out" \
+    || fail "the bound exited non-zero: $(head -3 "$out")"
+  kept=$(head -c 8000 "$big")
+  assert_eq "$kept" "$(head -c 8000 "$out")" "the first <bound> characters are handed over unchanged"
+  assert_not_contains "$(cat "$out")" "TAIL" "nothing past the bound reaches the child's context"
+  assert_contains "$(cat "$out")" "LOOP-TRIMMED" "the trim is named in the result the child reads"
+  assert_contains "$(cat "$out")" "20005" "the line names the size the result had"
+  assert_contains "$(cat "$out")" "8000" "and the bound it was cut to"
+  assert_contains "$(cat "$out")" "sed -n" "and how to read the rest, so no claim is judged on a cut line"
+  n=$(wc -c < "$out")
+  [ "$n" -lt 9000 ] || fail "the trimmed result still carries $n characters against a bound of 8000"
+  return 0
+}
+
+# The bound is a rule about the tail, not about reading (issue #660): most of what a child is handed is small —
+# the archive's median result is 825 characters, its p75 2 917, and only 9.0 % of its 22 901 results are above
+# 8 000 (`evidence/result-sizes.log` in the change `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`). A
+# bound that touched an ordinary result would buy a saving with the content an item is worked from.
+case_trim_aResultUnderTheBoundIsHandedOverWhole() {
+  # files: tools/loop-cases.sh tools/pi-trim-result.mjs
+  local d small out
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)"
+  d=$(scratch)
+  small="$d/small.txt"
+  { head -c 1000 /dev/zero | tr '\0' 'b'; printf 'END\n'; } > "$small"
+  out="$d/handed.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --record "$d/trims.log" < "$small" > "$out" \
+    || fail "the bound exited non-zero: $(head -3 "$out")"
+  assert_eq "$(cat "$small")" "$(cat "$out")" "a result at or under the bound is handed over unchanged"
+  assert_contains "$(cat "$out")" "END" "its last line included"
+  assert_not_contains "$(cat "$out")" "LOOP-TRIMMED" "and carries no notice about a bound it stayed under"
+  [ ! -s "$d/trims.log" ] \
+    || fail "a result under the bound is recorded as trimmed: $(cat "$d/trims.log")"
+  return 0
+}
+
+# What was cut is a fact of the item, not of the child's memory (issue #660): the record lands beside the child's
+# own event stream, so a reviewer of the item can see that a claim stands on a trimmed result and re-read the
+# range it needs instead of reading a cut line as the whole answer.
+case_trim_theTrimIsRecorded() {
+  # files: tools/loop-cases.sh tools/pi-trim-result.mjs
+  local d big out
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)"
+  d=$(scratch)
+  big="$d/big.txt"
+  { head -c 20000 /dev/zero | tr '\0' 'a'; printf 'TAIL\n'; } > "$big"
+  out="$d/trimmed.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --record "$d/trims.log" < "$big" > "$out" \
+    || fail "the bound exited non-zero: $(head -3 "$out")"
+  assert_eq "LOOP-TOOL-RESULT-TRIM: ctx_read chars=20005 kept=8000" "$(cat "$d/trims.log")" \
+    "the trim is recorded once, with the tool, the size it cut and the bound it cut to"
+  return 0
+}
+
+# The bound reaches a child only if the process that starts it loads the extension (issue #660): the adapter is
+# the one place this project's agent flags live, and every child goes through it, so the word is asserted there
+# and not in a phase — a phase under `tools/loop/**` may name no agent flag (`run#engineNamesNoProjectFact`). What
+# the child is handed as the bound is the recorded value, not a second copy of it: the adapter reads it from
+# `tools/loop/loop.conf`, and a number that drifts from that file is a red case.
+case_adapter_theChildIsStartedWithTheResultBound() {
+  # files: tools/loop-cases.sh tools/loop/loop.conf tools/pi-child-events.sh tools/pi-trim-result.mjs
+  local d prompt recorder got ext line next recorded handed
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  ext="$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs"
+  [ -f "$ext" ] \
+    || fail "the adapter loads the result bound, and $ext is not in the tree (issue #660)"
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  recorder="$d/recorder.sh"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'for a in "$@"; do printf "%s\n" "$a"; done > "$RECORD"'
+    printf '%s\n' 'printf "%s\n" "$LOOP_TOOL_RESULT_MAX_CHARS" > "$RECORD.bound"'
+  } > "$recorder"
+  RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
+    bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  got=$(cat "$d/argv.txt" 2>/dev/null || true)
+  line=$(printf '%s\n' "$got" | grep -n -x -- '-e' | head -1 | cut -d: -f1)
+  [ -n "$line" ] || fail "the child is started without the result bound: no -e in $got"
+  next=$(printf '%s\n' "$got" | sed -n "$((line + 1))p")
+  assert_eq "$ext" "$next" "the word after -e is the file that applies the bound"
+  assert_contains "$(cat "$ext")" 'tool_result' \
+    "and that file is a hook on the tool result, not a flag that happens to be accepted"
+  recorded=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
+  handed=$(cat "$d/argv.txt.bound" 2>/dev/null || true)
+  assert_eq "$recorded" "$handed" "the bound the child is handed is the number the project recorded"
   return 0
 }
 

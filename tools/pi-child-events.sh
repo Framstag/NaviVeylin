@@ -45,6 +45,20 @@ mode=(--mode json)
 # What a phase needs to know about the project is in its own prompt — `prompt#thePhasePromptsCarryTheirOwnRoute`.
 context=(--no-context-files)
 
+# …and one bound on what a single tool result may put into the child's context (issue #660). A result is injected
+# whole and re-read by every later turn, and nothing between the tool and the context bounds it: the archive these
+# children wrote carried 59.2 M characters of tool output and re-read 876.4 M tokens of it, 53 % of everything it
+# spent (`python3 tools/loop-spend.py`). The extension is this tree's, beside this adapter, and every child is
+# started through it. The bound is the value `tools/loop/loop.conf` records — **read** here and not sourced, the
+# same shape `tools/loop/lib.sh`'s `loop_tmp_dir_for` uses for another tree's configuration — so the recorded
+# number has one home; `0`, or a project that records no key, is no bound, and the extension then hands every
+# result over unchanged.
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+extension=(-e "$here/pi-trim-result.mjs")
+bound=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+  "$here/loop/loop.conf" 2>/dev/null | tail -1)
+export LOOP_TOOL_RESULT_MAX_CHARS="${bound:-0}"
+
 if [ $# -lt 2 ]; then
   printf 'pi-child-events: usage: %s <command> [args…] <prompt-file>\n' "$(basename "$0")" >&2
   exit 2
@@ -58,6 +72,10 @@ if [ -n "$events" ]; then
     printf 'pi-child-events: cannot create %s for the event stream\n' "$(dirname "$events")" >&2
     exit 2
   }
+  # What a bound cut is a fact of the item, not of the child's memory (issue #660): the record lands beside the
+  # child's own event stream, which `run.sh` puts in the item's directory, so a reader of the item can see which
+  # result was trimmed and re-read the range instead of trusting a cut line.
+  export LOOP_TOOL_RESULT_TRIM_RECORD="$(dirname "$events")/tool-result-trims.log"
 fi
 
 # The answer is held in a file and not in a variable because the reader below runs in a pipeline, whose
@@ -69,7 +87,7 @@ trap 'rm -f "$answer_file"' EXIT
 # The stream is read line by line. A line that is a JSON object is one event and is kept; anything else is the
 # command's own text — an agent that ignores the mode flag prints its answer as plain text — and is passed
 # through, so such a command still answers the loop and a project needs no second code path to keep working.
-"${cmd[@]}" "${mode[@]}" "${context[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
+"${cmd[@]}" "${extension[@]}" "${mode[@]}" "${context[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     '{'*)
       [ -z "$events" ] || printf '%s\n' "$line" >> "$events"

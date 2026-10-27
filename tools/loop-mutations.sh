@@ -590,6 +590,17 @@ MUTATIONS=(
   # route, so a child with no context files is sent to a guideline it cannot read by section.
   '66.1@-@../pi-child-events.sh@adapter#theChildIsStartedWithoutContextFiles@the context switch that keeps the project'"'"'s own context files out of a child'"'"'s prompt (issue #661)@s|^context=(--no-context-files)$|context=()|'
   '66.2@-@tools/loop/prompts/worker.md@prompt#thePhasePromptsCarryTheirOwnRoute@where the capabilities live, in the route a child with no context files is given (issue #661)@s|openspec/specs/|openspec/spec/|'
+
+  # 67.x — a tool result over the recorded bound is cut and named, and the trim is recorded (issue #660). Measured
+  # over the archive (2026-10-27): 59.2 M characters of tool output were injected once and 876.4 M tokens of it
+  # re-read — 53 % of the 1.66 B the archive spent — while the median result is 825 characters and 9.0 % of the
+  # 22 901 results are above the 8 000 the bound records (`python3 tools/loop-spend.py`, probe
+  # `evidence/result-sizes.py`). One record per invariant: 67.1 stops the cut, 67.2 stops the line from naming the
+  # size it cut, 67.3 stops the record, and 67.4 stops the adapter from loading the rule with every child.
+  '67.1@-@../pi-trim-result.mjs@trim#aResultAboveTheBoundIsTrimmedAndNamed@the cut itself, so an oversized result is handed over whole again (issue #660)@s|  return cut + trimNotice(tool, total, bound);|  return text;|'
+  '67.2@-@../pi-trim-result.mjs@trim#aResultAboveTheBoundIsTrimmedAndNamed@the line that names the size the result had, so a cut is judged as the whole answer (issue #660)@s|the first \${bound} are shown|the first \${total} are shown|'
+  '67.3@-@../pi-trim-result.mjs@trim#theTrimIsRecorded@the record of what was cut, so the item cannot say which result a claim was read from (issue #660)@s|      appendFileSync(record, trimRecordLine(tool, total, bound));|      void record;|'
+  '67.4@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheResultBound@the word that loads the bound with every child (issue #660)@s|^extension=(-e "$here/pi-trim-result.mjs")$|extension=()|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

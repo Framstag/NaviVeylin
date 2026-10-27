@@ -149,6 +149,11 @@ MUTATIONS=(
   # 13.12 is the reused worktree's own module checkout: the switch moves the gitlink, so without it the tree
   # `create` just branched is dirty before any item starts and `start-item` refuses it under no item (issue #309).
   '13.12@-@tools/loop/worktree.sh@worktree#checksOutTheNewPinWhenItReusesTheWorktree@the reused worktree placed on the pin the new base records@s|^    sync_submodule worktree$|    : # the mutation leaves the module on the previous pin|'
+  # 13.13 is the sweep's destructive half (issue #239): `prune-landed --apply` runs unattended at the run's end and
+  # deletes a ref, so the reading that keeps a branch the base does not carry is what stands between the sweep and
+  # a branch that is somebody's only copy of its work. The case's first assertion after the run is the one that
+  # fails: the branch that carries work is gone.
+  '13.13@-@tools/loop/worktree.sh@run#theEndSweepsTheLandedBranchesItMade@the refusal that keeps a branch the base does not carry@s|^    if ! branch_is_landed "\$branch" "\$base"; then$|    if false; then|'
     # 13.6 was the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers. The lock is taken before the
   # kept worktree is read now, so a live run is refused at the lock and never reaches that check; the invariant
   # the record still owns is the refusal itself: a live owner'"'"'s lock is a refusal, not a takeover.

@@ -7065,10 +7065,28 @@ case_run_theEndSweepsTheLandedBranchesItMade() {
   git -C "$p" commit -qm "fix: the refused one (#3)" >/dev/null 2>&1 || fail "could not commit the refused branch"
   git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to main"
   git -C "$p" merge --ff-only fix/issue-3-refused >/dev/null 2>&1 || fail "could not merge the refused branch"
+  # A landed branch a worktree holds: the tree is in use, so git would refuse the delete and the branch is its
+  # HEAD. The sweep keeps it and names why — the refusal the summary counts as checked out.
+  git -C "$p" switch -c fix/issue-4-held >/dev/null 2>&1 || fail "could not create the held branch"
+  printf 'the held fix\n' > "$p/held.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the held one (#4)" >/dev/null 2>&1 || fail "could not commit the held branch"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to main"
+  git -C "$p" merge --ff-only fix/issue-4-held >/dev/null 2>&1 || fail "could not merge the held branch"
+  git -C "$p" worktree add "$(scratch)/held" fix/issue-4-held >/dev/null 2>&1 ||
+    fail "could not add the worktree that holds the landed branch"
+  # The read-only run is what `--apply` means: it names and deletes nothing, the held branch included.
+  out=$(run_worktree "$p" prune-landed 2>&1) || fail "the read-only sweep failed: $out"
+  assert_contains "$out" "would remove fix/issue-1-landed" "the read-only sweep names the landed branch"
+  assert_contains "$out" "kept fix/issue-4-held — checked out" "the read-only sweep keeps the tree's branch"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-1-landed >/dev/null ||
+    fail "the read-only sweep removed a branch"
 
   out=$(run_one_item "$p" "$(scratch)" 2>&1) || fail "the run failed: $out"
   git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-1-landed >/dev/null 2>&1 &&
     fail "the landed branch survived the run's own end"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-4-held >/dev/null ||
+    fail "the landed branch a worktree holds was removed"
   git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-2-work >/dev/null ||
     fail "the branch that carries work was removed"
   git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-3-refused >/dev/null ||
@@ -7076,6 +7094,7 @@ case_run_theEndSweepsTheLandedBranchesItMade() {
   assert_contains "$out" "removed fix/issue-1-landed" "the landed branch is named as removed"
   assert_contains "$out" "kept fix/issue-2-work" "the branch that carries work is kept"
   assert_contains "$out" "kept fix/issue-3-refused" "the branch whose reviewer refused is kept"
+  assert_contains "$out" "kept fix/issue-4-held — checked out" "the branch a worktree holds is kept and named"
   assert_contains "$out" "landed branch(es) removed" "the run's end says what it swept"
   [ -z "$(git -C "$p" branch --list 'loop-*' --format='%(refname:short)')" ] ||
     fail "the run's own branch is a leftover once its work is in the base: $(git -C "$p" branch --list 'loop-*' --format='%(refname:short)') — output: $out"

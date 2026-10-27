@@ -654,12 +654,14 @@ A branch the run made is a leftover once its work is in the base, and it goes wh
 branch it committed for an item and merged, releasing the kept worktree from it first (git refuses to delete a
 branch a worktree holds) and deleting it with git's own safe delete, which refuses a branch whose work is not
 in the base. The run's **end** sweeps the rest — every branch the loop names whose patches the base already
-holds, asked by **patch identity** (`git cherry`), never by ancestry alone, because the loop lands work as
-`fix: … (#N)` and a landed branch is not an ancestor of the base. The sweep also reads ancestry, identical
-content of the files the branch touched, and the branch's archived change on the base; it refuses a branch a
+holds — by asking all **four** readings: **patch identity** (`git cherry`), ancestry, identical content of the
+files the branch touched, and the branch's archived change on the base. Patch identity is the one the loop needs,
+because it lands work as `fix: … (#N)`, so a landed branch is not an ancestor of the base; the four together are
+what the item's measurement used, and they keep a branch that merely looks landed from being deleted. The sweep
+refuses a branch a
 worktree holds, a branch that still carries unlanded work, and a branch whose change carries
 `review-failed-round-*.md`, which is its owner's verdict (#185). It prints what it removed and why it kept the
-rest. The manual command that answers "what has the loop left behind" (`tools/loop/loop-clean.sh`) removes the
+rest, and without `--apply` it removes nothing at all. The manual command that answers "what has the loop left behind" (`tools/loop/loop-clean.sh`) removes the
 same landed branches together with the scratch paths. Measured 2026-10-27 on the tree that carried #239: 28
 branches were leftovers, 12 of them `loop-*` run branches, and the run's end removed none of them.
 

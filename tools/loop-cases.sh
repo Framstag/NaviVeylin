@@ -6764,10 +6764,10 @@ case_adapter_theChildIsStartedWithTheResultBound() {
   } > "$recorder"
   # The stream is unset explicitly: the suite may itself run inside a child whose run exported one, and a "started by
   # hand" assertion that inherited it would measure the run's stream rather than the adapter's silence. The trim
-  # record is unset with it, because the adapter derives it from the event stream: an inherited record would name a
-  # file this hand-started child does not write, and the case would read the caller's environment as the adapter's
-  # answer (measured 2026-10-27, the first gate run after the adapter began exporting it).
-  env -u LOOP_CHILD_EVENTS -u LOOP_TOOL_RESULT_TRIM_RECORD RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
+  # record is unset with it, for the same reason: a run exports one into every child it starts, and a hand-started
+  # child that inherited it would name the run's record instead of none (review of #320).
+  env -u LOOP_CHILD_EVENTS -u LOOP_TOOL_RESULT_TRIM_RECORD RECORD="$d/argv.txt" \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
     bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
     fail "the adapter exited non-zero: $(head -3 "$d/out")"
   got=$(cat "$d/argv.txt" 2>/dev/null || true)

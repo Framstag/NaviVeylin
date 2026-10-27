@@ -105,6 +105,188 @@ class BasemapManagerTest {
     }
 
     @Test
+    void testSuccessfulDownloadInstallsTheBasemap() throws Exception {
+        byte[] tarData = createSimpleTar("water.idx", "water".getBytes());
+        java.io.ByteArrayOutputStream gzOut = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.GZIPOutputStream gz = new java.util.zip.GZIPOutputStream(gzOut)) {
+            gz.write(tarData);
+        }
+        byte[] archive = gzOut.toByteArray();
+
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(
+            new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/basemap/BaseMap-2026-02-23.tar.gz", exchange -> {
+            exchange.sendResponseHeaders(200, archive.length);
+            try (java.io.OutputStream out = exchange.getResponseBody()) {
+                out.write(archive);
+            }
+        });
+        server.start();
+        try {
+            int port = server.getAddress().getPort();
+            java.nio.file.Path mapsDir = java.nio.file.Files.createTempDirectory("basemap-maps");
+            try {
+                BasemapManager mgr = new BasemapManager(
+                    new MapProvider("test", "http://127.0.0.1:" + port, ""),
+                    mapsDir);
+
+                java.util.concurrent.atomic.AtomicReference<String> installedAt =
+                    new java.util.concurrent.atomic.AtomicReference<>();
+                java.util.concurrent.atomic.AtomicLong lastProgress =
+                    new java.util.concurrent.atomic.AtomicLong(-1);
+                java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+                MapDownloadListener listener = new MapDownloadListener() {
+                    @Override
+                    public void onProgress(String mapName, long bytesDownloaded, long totalBytes) {
+                        lastProgress.set(bytesDownloaded);
+                    }
+
+                    @Override
+                    public void onComplete(String mapName, String targetDir) {
+                        installedAt.set(targetDir);
+                        done.countDown();
+                    }
+
+                    @Override
+                    public void onError(String mapName, String errorMessage) {
+                        done.countDown();
+                    }
+                };
+
+                BasemapManager.BasemapArchive archiveEntry = new BasemapManager.BasemapArchive(
+                    "BaseMap-2026-02-23.tar.gz", archive.length, null);
+                mgr.downloadBasemap(archiveEntry, listener);
+
+                assertTrue(done.await(10, java.util.concurrent.TimeUnit.SECONDS));
+                assertEquals(mgr.getBasemapDirectory().toAbsolutePath().toString(), installedAt.get(),
+                    "the completion names the directory the basemap was installed into");
+                assertTrue(mgr.isBasemapInstalled());
+                assertTrue(java.nio.file.Files.exists(mgr.getBasemapDirectory().resolve("water.idx")));
+                assertTrue(lastProgress.get() > 0, "the download reported the bytes it wrote");
+            } finally {
+                deleteDirectory(mapsDir);
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void testFetchAvailableBasemapsReadsTheDirectoryListing() throws Exception {
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(
+            new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/basemap/", exchange -> {
+            byte[] body = SAMPLE_LISTING.getBytes("UTF-8");
+            exchange.sendResponseHeaders(200, body.length);
+            try (java.io.OutputStream out = exchange.getResponseBody()) {
+                out.write(body);
+            }
+        });
+        server.start();
+        try {
+            int port = server.getAddress().getPort();
+            BasemapManager mgr = new BasemapManager(
+                new MapProvider("test", "http://127.0.0.1:" + port, ""),
+                java.nio.file.Files.createTempDirectory("basemap-maps"));
+
+            List<BasemapManager.BasemapArchive> archives = mgr.fetchAvailableBasemaps();
+
+            assertEquals(4, archives.size(), "the listing the provider serves is what the screen offers");
+            assertEquals("BaseMap-2026-02-23.tar.gz", mgr.getLatestBasemap().getFileName());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void testFetchAvailableBasemapsYieldsNothingWhenTheServerFails() throws Exception {
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(
+            new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/basemap/", exchange -> {
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            int port = server.getAddress().getPort();
+            BasemapManager mgr = new BasemapManager(
+                new MapProvider("test", "http://127.0.0.1:" + port, ""),
+                java.nio.file.Files.createTempDirectory("basemap-maps"));
+
+            assertTrue(mgr.fetchAvailableBasemaps().isEmpty(),
+                "a basemap is optional: a failing probe is an empty list, not an exception");
+            assertNull(mgr.getLatestBasemap());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void testDownloadOfAWrappedArchiveFlattensTheSubdirectory() throws Exception {
+        byte[] tarData = createSimpleTarWithDir("BaseMap-2026-02-23/",
+            "BaseMap-2026-02-23/water.idx", "water".getBytes());
+        java.io.ByteArrayOutputStream gzOut = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.GZIPOutputStream gz = new java.util.zip.GZIPOutputStream(gzOut)) {
+            gz.write(tarData);
+        }
+        byte[] archive = gzOut.toByteArray();
+
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(
+            new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/basemap/basemap-260803-dist.tar.gz", exchange -> {
+            exchange.sendResponseHeaders(200, archive.length);
+            try (java.io.OutputStream out = exchange.getResponseBody()) {
+                out.write(archive);
+            }
+        });
+        server.start();
+        try {
+            int port = server.getAddress().getPort();
+            java.nio.file.Path mapsDir = java.nio.file.Files.createTempDirectory("basemap-wrapped");
+            try {
+                BasemapManager mgr = new BasemapManager(
+                    new MapProvider("test", "http://127.0.0.1:" + port, ""),
+                    mapsDir);
+                java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+                MapDownloadListener listener = new MapDownloadListener() {
+                    @Override
+                    public void onComplete(String mapName, String targetDir) {
+                        done.countDown();
+                    }
+
+                    @Override
+                    public void onError(String mapName, String errorMessage) {
+                        done.countDown();
+                    }
+                };
+
+                mgr.downloadBasemap(new BasemapManager.BasemapArchive(
+                    "basemap-260803-dist.tar.gz", archive.length, null), listener);
+
+                assertTrue(done.await(10, java.util.concurrent.TimeUnit.SECONDS));
+                assertTrue(java.nio.file.Files.exists(mgr.getBasemapDirectory().resolve("water.idx")),
+                    "an archive that wraps its content in one directory is flattened into the basemap directory");
+                assertFalse(java.nio.file.Files.exists(
+                    mgr.getBasemapDirectory().resolve("BaseMap-2026-02-23")),
+                    "the wrapper directory is gone after the swap");
+            } finally {
+                deleteDirectory(mapsDir);
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void testFetchAvailableBasemapsYieldsNothingWhenTheServerIsUnreachable() throws Exception {
+        BasemapManager mgr = new BasemapManager(
+            new MapProvider("test", "http://127.0.0.1:1", ""),
+            java.nio.file.Files.createTempDirectory("basemap-unreachable"));
+
+        assertTrue(mgr.fetchAvailableBasemaps().isEmpty());
+    }
+
+    @Test
     void testGetBasemapDirectory() {
         BasemapManager mgr = new BasemapManager(
             new MapProvider("test", "https://example.com", ""),
@@ -359,6 +541,9 @@ class BasemapManagerTest {
         assertEquals(java.time.LocalDate.of(2026, 2, 23),
             BasemapManager.parseVersionDate("BaseMap-2026-02-23.tar.gz"));
         assertNull(BasemapManager.parseVersionDate("basemap.tar.gz"));
+        assertNull(BasemapManager.parseVersionDate("basemap-991340-dist.tar.gz"),
+            "a name whose date fields are not a date encodes no version");
+        assertNull(BasemapManager.parseVersionDate("BaseMap-2026-13-45.tar.gz"));
     }
 
     // ---- Helpers ----

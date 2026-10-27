@@ -16,9 +16,17 @@ verdict leaves — retire the item as stale, or re-diagnose it — with the work
 shape the block path already uses for a block that reached no review (`run.sh:1899`).
 
 `tools/loop/labels.sh` loses its `stale` verdict: no caller writes it any more, and its mapping (a comment-only
-hold) is exactly the state this change removes. What the label writer can still write as a hold are the verdicts
+hold) is exactly the state this change removes. The verdict goes from the hold list (`labels.sh:88`), from the
+usage message that advertised it (`labels.sh:128`) and from the header that explained it (`labels.sh:18-20`); the
+refusal is asserted rather than assumed. What the label writer can still write as a hold are the verdicts
 that genuinely ask nothing — `unspecifiable`, `too-wide`, `not-spec-shaped`, `needs-target` — and the device and
 decision verdicts' rows are untouched.
+
+The contract is narrowed, not routed around: two shipped requirements still said the opposite of the diff —
+"A hold is not a decision" listed the worker's skip verdicts among the writers that state no question, and "A
+state the run writes is readable from the item" pointed its hold scenario at a `stale` skip — so both are
+restated in the delta and merged, together with the falsification requirement's "every other skip", which now
+names the four hold verdicts instead of a moving "today".
 
 Why not close it, the way `falsified` closes: a falsification is closed only on a measurement **and** a review of
 an unchanged tree (`run.sh:1539`, spec "A skip that falsifies the premise is closed as mis-diagnosed"), and the
@@ -30,8 +38,10 @@ the item leaves open, and the tree settles it.
 
 - `run.sh`: one condition in the skip path and one fallback question beside the existing one. The hold branch,
   the falsification branch, the block branch and the decision cap are untouched.
-- `labels.sh`: one verdict row removed from the hold list and the dispatch; `--list`/`--check` consumers of the
-  vocabulary are the cases and the mutation set, both updated here.
+- `labels.sh`: one verdict row removed from the hold list and the dispatch, its name out of the usage message and
+  the header's explanation; `--list`/`--check` consumers of the vocabulary are the cases and the mutation set, both
+  updated here (the matrix case now asserts the refusal).
+- Two shipped requirements restated and one scenario re-pointed; no other requirement's text moves.
 - `prompts/worker.md`: two sentences — the stale verdict's stop now names what the run does with it, and
   `LOOP-DECISION` is required for it.
 - No compiled file, so no build: the verification is the loop's own self-test, its mutation set, the doc-route

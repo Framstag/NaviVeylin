@@ -66,3 +66,19 @@ tools/gen-feature-list.sh --check-classification: (exit 0)
 tools/check-portability.sh: (exit 0)
 tools/loop/evidence-check.sh <archived change> --root .: evidence-check: PASS
 ```
+
+## Correction, round 2 (2026-10-27)
+
+Two sentences above are withdrawn rather than left standing:
+
+- "The suites this change's own pathspec owes" is wrong about the list it introduces: the gate ran 24 tallies,
+  and the ten quoted are the ones that carry cases. The other fourteen are the gate's `--list` and `--check`
+  steps, which run none.
+- `BUILD SUCCESSFUL in 17s` — the class-alone attribution that followed the failing build — is carried by no log
+  in this record, so it is not evidence and is withdrawn here; the failing class and its line stay as they were,
+  quoted from the log.
+- The `evidence-check` line above is now carried by numbers: `gate-round2.md` quotes its pass with the C2 pair
+  count and the C5 resolution count.
+
+The correction round's own gate run — the one that carries the labels and case edits — is `gate-round2.md`,
+`gate-round2-summary.xml` and `gate-round2-tallies/`, with `errors=0` against this run's single error.

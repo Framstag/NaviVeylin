@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.framstag.libosmscout.client.BasemapManagerInstalledTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-27T01:53:46.142Z" hostname="dingens" time="0.059">
+  <properties/>
+  <testcase name="deletingTheBasemapRemovesTheWholeDirectory()" classname="com.framstag.libosmscout.client.BasemapManagerInstalledTest" time="0.016"/>
+  <testcase name="theHumanSizeNamesItsUnit()" classname="com.framstag.libosmscout.client.BasemapManagerInstalledTest" time="0.013"/>
+  <testcase name="noInstalledBasemapMeansNoInfoAndNoSize()" classname="com.framstag.libosmscout.client.BasemapManagerInstalledTest" time="0.002"/>
+  <testcase name="anUpdateIsOnlyLookedForWhenABasemapIsInstalled()" classname="com.framstag.libosmscout.client.BasemapManagerInstalledTest" time="0.001"/>
+  <testcase name="anInstalledBasemapIsADirectoryHoldingMapData()" classname="com.framstag.libosmscout.client.BasemapManagerInstalledTest" time="0.011"/>
+  <testcase name="theInstalledInfoCountsFilesAndSumsTheirSizes()" classname="com.framstag.libosmscout.client.BasemapManagerInstalledTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

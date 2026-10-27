@@ -133,7 +133,16 @@ class TemplateFaultIsolationTest {
 
     @Test
     fun diagnosticsScreenServesTheErrorTemplateWhenTheBuildFails() {
-        assertErrorList(DiagnosticsScreen(carContext).onGetTemplate())
+        val screen = DiagnosticsScreen(carContext)
+        try {
+            assertErrorList(screen.onGetTemplate())
+        } finally {
+            // A screen owns a coroutine scope (spec: unit-test-suite-runtime — Test-created components
+            // release their background work).
+            screen.dispatchLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_CREATE)
+            screen.dispatchLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_START)
+            screen.dispatchLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_DESTROY)
+        }
     }
 
     @Test

@@ -10,6 +10,7 @@ import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import com.naviveylin.core.DiagnosticsLog
 import io.mockk.every
@@ -57,6 +58,14 @@ class DiagnosticsScreenTest {
     /** The row capacity the fake host reports for a list. */
     private var hostCapacity = CarListCapacityReader.LIBRARY_DEFAULT
 
+    /**
+     * Every screen a case built, released in [tearDown] (spec: unit-test-suite-runtime — Test-created
+     * components release their background work): a screen owns a coroutine scope, and an unreleased one
+     * goes on writing its own capacity line into whatever log target the next case sets.
+     */
+    private fun openScreen(page: Int = 0): DiagnosticsScreen =
+        DiagnosticsScreen(carContext, page).also { built += it }
+
     @Before
     fun setUp() {
         every { carContext.getCarService(AppManager::class.java) } returns appManager
@@ -78,8 +87,28 @@ class DiagnosticsScreenTest {
         DiagnosticsLog.log("SESSION", "first-entry")
     }
 
+    private val built = mutableListOf<Screen>()
+
+    /**
+     * Release a screen the way the host ends one: the lifecycle down to `DESTROYED`, which is what cancels
+     * the screen's own scope (spec: unit-test-suite-runtime — Test-created components release their
+     * background work). `DESTROYED` cannot be reached from `INITIALIZED` in one step, so the host's own
+     * sequence is dispatched.
+     */
+    private fun release(screens: List<Screen>) {
+        screens.forEach { screen ->
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        }
+    }
+
     @After
     fun tearDown() {
+        // Release every screen the case built and every page its page row opened, before the log target
+        // is dropped: a screen whose scope is still alive writes into the next case's file
+        // (spec: unit-test-suite-runtime — Test-created components release their background work).
+        release(built + pushed.filterIsInstance<DiagnosticsScreen>())
         DiagnosticsLog.reset()
         logFile.delete()
     }
@@ -178,14 +207,14 @@ class DiagnosticsScreenTest {
 
     @Test
     fun loadedEntriesReachTheTemplate() {
-        val screen = DiagnosticsScreen(carContext)
+        val screen = openScreen()
 
         assertTrue("the background load publishes entries", awaitEntries(screen, "first-entry"))
     }
 
     @Test
     fun theTemplateOpensWithTheDisclosure() {
-        val screen = DiagnosticsScreen(carContext)
+        val screen = openScreen()
         assertTrue(awaitEntries(screen, "first-entry"))
 
         assertEquals(
@@ -197,7 +226,7 @@ class DiagnosticsScreenTest {
 
     @Test
     fun onGetTemplateDoesNotReadTheFile() {
-        val screen = DiagnosticsScreen(carContext)
+        val screen = openScreen()
         assertTrue(awaitEntries(screen, "first-entry"))
 
         // Replace the file's content behind the screen's back: a template build
@@ -221,9 +250,11 @@ class DiagnosticsScreenTest {
         // `More (14)`.
         hostCapacity = 8
         logEntries(30)
-        val screen = DiagnosticsScreen(carContext)
+        val screen = openScreen()
 
-        val shown = awaitRows(screen, "the entries") { titles -> titles.any { it.contains("entry-30") } }
+        val shown = awaitRows(screen, "the host's ${hostCapacity + 2} rows") { titles ->
+            titles.size == 1 + hostCapacity + 1
+        }
         assertEquals("the disclosure opens the list", disclosure(), shown.first())
         assertEquals(
             "the page holds the host's 8 rows between the disclosure and its page row",
@@ -256,12 +287,16 @@ class DiagnosticsScreenTest {
         // entry may since have been logged) and the mapper's partition holds for the list it is given.
         hostCapacity = 8
         logEntries(30)
-        val screen = DiagnosticsScreen(carContext)
-        awaitRows(screen, "the entries") { titles -> titles.any { it.contains("entry-30") } }
+        val screen = openScreen()
+        awaitRows(screen, "the host's ${hostCapacity + 2} rows") { titles ->
+            titles.size == 1 + hostCapacity + 1
+        }
 
         tapRow(screen, more(12))
         val next = pushed.filterIsInstance<DiagnosticsScreen>().single()
-        val page = awaitRows(next, "its page") { titles -> entryNames(titles).isNotEmpty() }
+        val page = awaitRows(next, "its page") { titles ->
+            titles.size == 1 + hostCapacity + 1
+        }
 
         assertEquals("the page opens with the same disclosure", disclosure(), page.first())
         assertEquals(

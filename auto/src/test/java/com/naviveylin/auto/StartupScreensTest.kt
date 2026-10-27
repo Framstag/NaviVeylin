@@ -5,6 +5,7 @@ import androidx.car.app.CarContext
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
+import androidx.lifecycle.Lifecycle
 import com.naviveylin.core.DiagnosticsLog
 import io.mockk.every
 import io.mockk.mockk
@@ -102,19 +103,38 @@ class StartupScreensTest {
             DiagnosticsLog.log("A", "first")
             DiagnosticsLog.log("B", "second")
             DiagnosticsLog.log("C", "third")
+            // Kept as the reproduction the red run used (change
+            // `2026-10-27-fix-a-red-diagnostics-count-awaits-its-capacity`): the screen's own capacity
+            // measurement is a diagnostics line too, it is written after this case's entries, and a line
+            // another case's unreleased screen wrote lands in this file as well — so the window holds
+            // lines this case did not write and must not be counted as a total.
+            DiagnosticsLog.log("SCREEN", "list capacity 6 rows (library default, below car API 2)")
 
             val screen = DiagnosticsScreen(carContext)
-            // The log is read on a background dispatcher (spec: auto-diagnostics —
-            // Reading diagnostics does not block the UI), so wait for the load.
-            val titles = awaitRows(screen) { it.size == 4 }
+            try {
+                // The log is read on a background dispatcher (spec: auto-diagnostics —
+                // Reading diagnostics does not block the UI), so wait for the load.
+                val titles = awaitRows(screen) { it.count { title -> ENTRY_NAME.containsMatchIn(title) } == 3 }
 
-            // Row 0 is the disclosure (spec: auto-diagnostics — Export and viewers
-            // disclose the log contents); the entries follow newest first, inside the
-            // host's row capacity (spec: car-list-row-limit).
-            assertTrue(titles.size <= 21)
-            assertEquals(4, titles.size)
-            assertTrue("newest first: ${titles[1]}", titles[1].contains("third"))
-            assertTrue(titles[3].contains("first"))
+                // The entries this case wrote, in row order: the log holds 3 entries plus the screen's own
+                // measurement line, and the entries follow newest first, inside the host's row capacity
+                // (spec: car-list-row-limit).
+                val entries = titles.filter { ENTRY_NAME.containsMatchIn(it) }
+                assertTrue(
+                    "the disclosure opens the list: $titles",
+                    titles.first().contains(carContext.getString(com.naviveylin.core.R.string.diagnostics_disclosure))
+                )
+                assertEquals(3, entries.size)
+                assertTrue("newest first: ${entries[0]}", entries[0].contains("third"))
+                assertTrue(entries[1].contains("second"))
+                assertTrue("oldest last: ${entries[2]}", entries[2].contains("first"))
+            } finally {
+                // Release the screen the way the host ends one, before the log target goes
+                // (spec: unit-test-suite-runtime — Test-created components release their background work).
+                screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+                screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+                screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            }
         } finally {
             DiagnosticsLog.reset()
             file.delete()
@@ -144,5 +164,10 @@ class StartupScreensTest {
             }
         }
         return titles
+    }
+
+    private companion object {
+        /** One window entry's tag and message in a row title (`A first`, `B second`, `C third`). */
+        val ENTRY_NAME = Regex("\\b[ABC] (?:first|second|third)\\b")
     }
 }

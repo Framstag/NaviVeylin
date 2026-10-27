@@ -455,6 +455,7 @@ and name it, with no exception list. The rule is the counterpart of `guidelines/
 - **THEN** it reports no source — an imported experimental name that is never called is a finding too, so
   such an import is dropped rather than declared — exercised by
   `CoroutinesTestOptInGateTest.everyTestSourceThatUsesTheExperimentalTimeControlDeclaresTheOptIn`
+
 ### Requirement: A test that builds the search-history repository wires its I/O hop
 
 Every unit test or test helper that constructs a `SearchHistoryRepository` SHALL point that repository's I/O hop
@@ -507,3 +508,33 @@ Scope of both requirements, so the claim is not wider than the case: the obligat
 neither sweeps their tests nor reads them, and extending the guard to them is a separate item. The scan reads `*.kt` under each test-bearing module's
 `src/test/java`, so a construction that lives in another module or is reached by reflection is outside it; and
 the check lives in `:app`, so a `:auto`-only run enforces nothing on `:auto` sources.
+
+### Requirement: A row count is read only once the screen's page capacity is known
+
+A case that asserts how many rows a `DiagnosticsScreen` page holds SHALL await the page the connected
+host's capacity builds, never the publication of the entries alone. A case SHALL assert over the rows its own
+case wrote, never over a whole diagnostics window the screen also writes into. A case that builds such a
+screen SHALL release it before it returns.
+
+#### Scenario: The count waits for the host's capacity
+
+- **WHEN** a case asserts how many rows the diagnostics screen's page holds, and the fake host reports a
+  capacity other than the library default
+- **THEN** the case SHALL await the page built from the host's capacity, so the count it reads is the page
+  the host displays and not the default the screen starts from
+- **Case**: `DiagnosticsScreenTest#theDiagnosticsListFitsTheHostsCapacity`
+
+#### Scenario: A page's count waits for its own screen's capacity
+
+- **WHEN** a page row is opened and the case counts the rows of the page it opened
+- **THEN** the case SHALL await that page's host-built rows before asserting them, so the page it counts is
+  the one the host displays
+- **Case**: `DiagnosticsScreenTest#thePageRowOpensTheNextSliceOfTheWindow`
+
+#### Scenario: The newest-first order is asserted over the case's own entries
+
+- **WHEN** the diagnostics window holds the entries the case wrote plus a measurement line the screen wrote
+  after them
+- **THEN** the case SHALL assert the disclosure opens the list and its own entries follow newest-first, and
+  SHALL NOT assert the window's total
+- **Case**: `StartupScreensTest#diagnosticsScreenShowsNewestFirst`

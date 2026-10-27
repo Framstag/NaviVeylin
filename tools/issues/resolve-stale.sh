@@ -42,6 +42,13 @@
 # an item any more. A parked item with an unresolved citation is left where it is, with any repair that landed
 # still written, so the run after it can reopen the item instead of reporting the same verdict again.
 #
+# One item is not reopened into the queue: a tombstone. The park wrote its hold through `update.sh --status`, and
+# that write replaces the whole status namespace, so the settled state the migration gave a tombstone is gone from
+# the labels by the time the park is reversed — measured on #147, which was reopened to `status/open`, read as
+# eligible by the pre-screen and cost a loop run a phase concluding `stale` (#681). What survives is the record in
+# the item's own body, whose marker the profile declares (`settledRecordMarker`), and that record is what the
+# reversal restores: `roles.retiredStatus` instead of `openStatus`, counted as `restored` rather than `reopened`.
+#
 # The matrix is asked of the title and the body together — the pair the pre-screen asks — but only the body is
 # written, so a token that stands in the title alone cannot be repaired by this script: a `suffix` one is
 # settled (the class is not stale, and the body already reads as it should), an `absent` one is reported with a
@@ -116,7 +123,7 @@ printf '%s' "$issues" | jq -e 'type == "array"' >/dev/null 2>&1 ||
 issues_preflight "$profile"
 
 read_count=$(printf '%s' "$issues" | jq 'length')
-due=0; repaired=0; unresolved_items=0; still_parked=0; reopened=0; ambiguous=0; skipped=0; waiting=0
+due=0; repaired=0; unresolved_items=0; still_parked=0; reopened=0; restored=0; ambiguous=0; skipped=0; waiting=0
 writes=0
 report="$scratch/report.jsonl"
 : > "$report"
@@ -129,9 +136,25 @@ hold_status=$(jq -r '.roles.holdStatus // empty' "$profile")
 # park. Read only when the run asked for the reversal, so a profile that declares neither still runs the ladder.
 open_status=$(jq -r '.roles.openStatus // empty' "$profile")
 excluded_stale=$(jq -r '.roles.excludedStaleAgent // empty' "$profile")
+# The record a settled item keeps in its own body, and the state a reversal restores when it carries one. A park
+# wrote its hold through `update.sh --status`, and that write replaces the whole status namespace, so a
+# tombstone's settled state is gone from the labels by the time the park is reversed — the body's own record is
+# the only place it survives (#681). Read only when the run asked for the reversal.
+settled_record=$(jq -r '.roles.settledRecordMarker // empty' "$profile")
+retired_status=$(jq -r '.roles.retiredStatus // empty' "$profile")
+settled_statuses=$(jq -r '.roles.settledStatuses // [] | .[]' "$profile")
 if [ "$revisit" -eq 1 ]; then
   [ -n "$open_status" ] || issues_die "resolve-stale: --revisit-parked needs the profile's roles.openStatus"
   [ -n "$excluded_stale" ] || issues_die "resolve-stale: --revisit-parked needs the profile's roles.excludedStaleAgent"
+  # A restore target outside `settledStatuses` leaves the item as readable as the queue state does, so a
+  # profile that declares the record's marker must declare a settled state for it — refused before the first
+  # write, rather than reversed into a state the pre-screen reads as work.
+  if [ -n "$settled_record" ]; then
+    [ -n "$retired_status" ] ||
+      issues_die "resolve-stale: --revisit-parked needs the profile's roles.retiredStatus beside settledRecordMarker"
+    printf '%s\n' "$settled_statuses" | grep -qxF -- "$retired_status" ||
+      issues_die "resolve-stale: roles.retiredStatus ($retired_status) is not one of roles.settledStatuses"
+  fi
 fi
 excluded_stale_label="agent${separator}${excluded_stale}"
 
@@ -151,28 +174,49 @@ parked_by_tool() { # <labels-json> <comments-json>
   printf '%s' "$2" | jq -e --arg m "$park_marker" 'any(.[]; (.body // "") | contains($m))' >/dev/null 2>&1
 }
 
+# Whether the item keeps a settled state of its own: the record a tombstone carries, whose marker the profile
+# declares. A project that declares no marker has no tombstones, so no item is one.
+records_settled_state() { # <body>
+  [ -n "$settled_record" ] || return 1
+  printf '%s' "$1" | grep -qF -- "$settled_record"
+}
+
 # The reversal of a park this script wrote, in one write: the state the item returns to, the refusal label the
 # loop added beside it, and — when a repair landed in the same run — the body. `agent/eligible` is not written:
-# a reopened item is a candidate for the next pre-screen, not a queued one.
+# a reopened item is a candidate for the next pre-screen, not a queued one. The state is the settled one the
+# item's own record keeps when it keeps one, so a tombstone is not turned back into work (#681).
 reopen_item() { # <body-file-or-empty> <repair-list>
-  local file="$1" note="$2" text
-  reopened=$((reopened + 1))
+  local file="$1" note="$2" text state
+  state="$open_status"
+  if records_settled_state "$body"; then
+    state="$retired_status"
+    restored=$((restored + 1))
+    did_restore=1
+  else
+    reopened=$((reopened + 1))
+  fi
   did_reopen=1
   [ "$apply" -eq 1 ] || return 0
-  text="citations resolve again — the park this tool wrote is reversed:
+  if [ "$state" = "$open_status" ]; then
+    text="citations resolve again — the park this tool wrote is reversed:
 
 the pre-screen decides this item again."
+  else
+    text="citations resolve again — the park this tool wrote is reversed:
+
+the item's own record settles it: \`status${separator}${state}\` is restored, not the queue."
+  fi
   [ -z "$note" ] || text="$text
 
 Repaired in the same run:
 $note"
   if [ -n "$file" ]; then
-    bash "$here/update.sh" "$number" --body "$file" --status "$open_status" \
+    bash "$here/update.sh" "$number" --body "$file" --status "$state" \
       --remove-label "$excluded_stale_label" --comment "$text" >/dev/null ||
       issues_die "resolve-stale: could not reopen #$number"
     writes=$((writes + 4))
   else
-    bash "$here/update.sh" "$number" --status "$open_status" \
+    bash "$here/update.sh" "$number" --status "$state" \
       --remove-label "$excluded_stale_label" --comment "$text" >/dev/null ||
       issues_die "resolve-stale: could not reopen #$number"
     writes=$((writes + 3))
@@ -268,6 +312,7 @@ $body")
   is_parked "$labels" && parked_item=1
   reopening=0
   did_reopen=0
+  did_restore=0
   [ "$parked_item" -eq 1 ] && [ "$revisit" -eq 1 ] && parked_by_tool "$labels" "$comments" && reopening=1
   if [ -z "$suffix_toks" ] && [ -z "$absent_toks" ] && [ "$reopening" -eq 0 ]; then
     skipped=$((skipped + 1))
@@ -278,15 +323,15 @@ $body")
     continue
   fi
 
-  # A parked item whose citations all resolve is reopened, and that is the whole verdict for it (see the two
+  # A parked item whose citations all resolve is reversed, and that is the whole verdict for it (see the two
   # guards above): the state that parked it is gone, because a hand repaired the body, the tree gained the file or
   # a rename settled it — and no other reader could notice, since the park was the marker that stopped anyone
   # looking (#281). It reaches this branch with no token to repair, so the two loops below iterate over nothing.
   if [ -z "$suffix_toks" ] && [ -z "$absent_toks" ] && [ "$reopening" -eq 1 ]; then
     due=$((due + 1))
     reopen_item "" ""
-    printf '{"issue": %s, "repaired": false, "parked": false, "stillParked": false, "reopened": true, "ambiguous": 0, "suffix": 0, "absent": 0, "repairs": "", "unresolved": ""}\n' \
-      "$number" >> "$report"
+    printf '{"issue": %s, "repaired": false, "parked": false, "stillParked": false, "reopened": true, "restored": %s, "ambiguous": 0, "suffix": 0, "absent": 0, "repairs": "", "unresolved": ""}\n' \
+      "$number" "$([ "$did_restore" -eq 1 ] && printf true || printf false)" >> "$report"
     continue
   fi
 
@@ -429,11 +474,12 @@ $repairs" >/dev/null || issues_die "resolve-stale: could not rewrite the body of
     fi
   fi
 
-  printf '{"issue": %s, "repaired": %s, "unresolved": %s, "stillParked": %s, "reopened": %s, "ambiguous": %s, "suffix": %s, "absent": %s, "repairs": %s, "reasons": %s}\n' \
+  printf '{"issue": %s, "repaired": %s, "unresolved": %s, "stillParked": %s, "reopened": %s, "restored": %s, "ambiguous": %s, "suffix": %s, "absent": %s, "repairs": %s, "reasons": %s}\n' \
     "$number" "$([ -n "$repairs" ] && printf true || printf false)" \
     "$([ -n "$unresolved" ] && [ "$parked_item" -eq 0 ] && printf true || printf false)" \
     "$([ -n "$unresolved" ] && [ "$parked_item" -eq 1 ] && printf true || printf false)" \
-    "$([ "$did_reopen" -eq 1 ] && printf true || printf false)" "$item_ambiguous" \
+    "$([ "$did_reopen" -eq 1 ] && printf true || printf false)" \
+    "$([ "$did_restore" -eq 1 ] && printf true || printf false)" "$item_ambiguous" \
     "$(printf '%s' "$suffix_toks" | grep -c . || true)" "$(printf '%s' "$absent_toks" | grep -c . || true)" \
     "$(printf '%s' "$repairs" | jq -Rs .)" "$(printf '%s' "$unresolved" | jq -Rs .)" >> "$report"
 done
@@ -444,19 +490,19 @@ wall_ms=$(( $(issues_now_ms) - started_ms ))
 if [ "$json" -eq 1 ]; then
   jq -n --argjson read "$read_count" --argjson due "$due" --argjson repaired "$repaired" \
         --argjson unresolved "$unresolved_items" --argjson still_parked "$still_parked" --argjson reopened "$reopened" \
-        --argjson ambiguous "$ambiguous" --argjson skipped "$skipped" \
+        --argjson restored "$restored" --argjson ambiguous "$ambiguous" --argjson skipped "$skipped" \
         --argjson waiting "$waiting" --argjson writes "$writes" --argjson wall "$wall_ms" \
         --argjson applied "$apply" --slurpfile items "$report" \
     '{read: $read, due: $due, repaired: $repaired, unresolved: $unresolved, stillParked: $still_parked,
-      reopened: $reopened,
+      reopened: $reopened, restored: $restored,
       ambiguous: $ambiguous,
       skipped: $skipped, waiting: $waiting, writes: $writes, applied: ($applied == 1),
       wall_ms: $wall, items: [$items[]]}'
 else
-  printf 'resolve-stale: read=%s due=%s repaired=%s unresolved=%s stillParked=%s reopened=%s ambiguous=%s skipped=%s waiting=%s writes=%s dry_run=%s wall_ms=%s\n' \
-    "$read_count" "$due" "$repaired" "$unresolved_items" "$still_parked" "$reopened" "$ambiguous" "$skipped" "$waiting" "$writes" \
+  printf 'resolve-stale: read=%s due=%s repaired=%s unresolved=%s stillParked=%s reopened=%s restored=%s ambiguous=%s skipped=%s waiting=%s writes=%s dry_run=%s wall_ms=%s\n' \
+    "$read_count" "$due" "$repaired" "$unresolved_items" "$still_parked" "$reopened" "$restored" "$ambiguous" "$skipped" "$waiting" "$writes" \
     "$([ "$apply" -eq 1 ] && printf no || printf yes)" "$wall_ms"
-  jq -r 'select(.repaired or .unresolved or .reopened or .stillParked or (.ambiguous > 0)) | "  #\(.issue) \(if .reopened then "REOPENED" elif .stillParked then "STILL-PARKED" elif .unresolved then "UNRESOLVED" elif .repaired then "repaired" elif (.ambiguous > 0) then "AMBIGUOUS" else "skipped" end) suffix=\(.suffix) absent=\(.absent) ambiguous=\(.ambiguous) \((.repairs // "") | gsub("\n"; " · ") | gsub("- "; ""))\(if (.reasons // "") != "" then " · UNRESOLVED: \((.reasons // "") | gsub("\n"; " · ") | gsub("- "; ""))" else "" end)"' "$report" 2>/dev/null | head -40
+  jq -r 'select(.repaired or .unresolved or .reopened or .stillParked or (.ambiguous > 0)) | "  #\(.issue) \(if .restored then "RESTORED" elif .reopened then "REOPENED" elif .stillParked then "STILL-PARKED" elif .unresolved then "UNRESOLVED" elif .repaired then "repaired" elif (.ambiguous > 0) then "AMBIGUOUS" else "skipped" end) suffix=\(.suffix) absent=\(.absent) ambiguous=\(.ambiguous) \((.repairs // "") | gsub("\n"; " · ") | gsub("- "; ""))\(if (.reasons // "") != "" then " · UNRESOLVED: \((.reasons // "") | gsub("\n"; " · ") | gsub("- "; ""))" else "" end)"' "$report" 2>/dev/null | head -40
   [ "$apply" -eq 1 ] || printf 'resolve-stale: a dry run touched nothing — pass --apply to write\n'
 fi
 exit "$ISSUES_EXIT_OK"

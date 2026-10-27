@@ -16,7 +16,7 @@
     "sensor": []
   },
   "roles": {
-    "comment": "The foreign project's reading of its own vocabulary, in its own words: the loop's decisions are named after values of the namespaces above, and one of them (`deviceStatus`) is empty because this project has no device-gated state — declared empty, never omitted.",
+    "comment": "The foreign project's reading of its own vocabulary, in its own words: the loop's decisions are named after values of the namespaces above, and two of them (`deviceStatus`, `settledRecordMarker`) are empty because this project has no device-gated state and no tombstone record — declared empty, never omitted.",
     "queuedVerdict": "eligible",
     "heldVerdict": "held",
     "workedClasses": ["bug", "improvement"],
@@ -31,6 +31,7 @@
     "closeStatus": "fixed-by",
     "retiredStatus": "retired",
     "settledStatuses": ["fixed-by", "retired"],
+    "settledRecordMarker": "",
     "inProgressAgent": "in-progress",
     "deviceAgent": "",
     "decisionAgent": "needs-decision"

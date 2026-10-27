@@ -129,6 +129,14 @@
       "search": "elif (.ambiguous > 0) then \"AMBIGUOUS\"",
       "replace": "elif (.ambiguous > 0) then \"repaired\"",
       "why": "an item the ladder only found ambiguous being named as one it repaired, contradicting the summary that counts no write (#258)"
+    },
+    {
+      "label": "5.17",
+      "case": "resolver#cleanParkedItemIsReopened",
+      "file": "tools/issues/resolve-stale.sh",
+      "search": "  if records_settled_state \"$body\"; then",
+      "replace": "  if true; then",
+      "why": "only an item whose body keeps a settled state being restored to it — a mutation that restores every reversal settles an item nobody wanted settled (#681)"
     }
   ]
 }

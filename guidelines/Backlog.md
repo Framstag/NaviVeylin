@@ -752,7 +752,11 @@ the change itself creates. The pre-screen names the same token in the item's rec
 queues the item. Because a park written before #281 is skipped by the next run, it is reversible on request:
 `--revisit-parked` reopens an item this tool parked once nothing it cites is absent any more — a body repaired
 by hand, a file the tree gained, or a rule that stopped calling a word a citation — and leaves a person's own
-hold alone. A citation that stands only in an item's **title** is never rewritten — the resolver writes bodies,
+hold alone. One reversal is not a reopen: a tombstone keeps its settled state in its own body (the migration's
+`Retired` record, whose marker the profile declares as `settledRecordMarker`), the park erased the label that
+used to say so, so the reversal restores `retiredStatus` instead of `openStatus` and reports it as `restored` —
+otherwise a settled tombstone is read as work, which is what #681 measured on #147: a park, a reversal, and a
+worker phase spent concluding `stale`. A citation that stands only in an item's **title** is never rewritten — the resolver writes bodies,
 so a bare name there is reported for a person to fix. Two outcomes follow from what the tree holds: a title
 naming a file whose tracked path the body already carries leaves the item settled and unwritten (the state every
 item repaired from the doubled-directory form ends in), while a title citing a file the tree does not hold is

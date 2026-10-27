@@ -43,6 +43,8 @@ RESOLVE_CASES=(
   'resolver#cleanParkedItemIsReopened'
   'resolver#personsHoldIsNotReopened'
   'resolver#parkedItemStaysWhenACitationIsStillAbsent'
+  'resolver#parkedTombstoneKeepsItsSettledState'
+  'resolver#tombstoneRestoreNeedsASettledState'
   'pipeline#scheduledRunRepairs'
   'pipeline#residueIsADeclaredRow'
 )
@@ -83,6 +85,8 @@ resolve_run_case() {
     'resolver#cleanParkedItemIsReopened') case_resolver_cleanParkedItemIsReopened ;;
     'resolver#personsHoldIsNotReopened') case_resolver_personsHoldIsNotReopened ;;
     'resolver#parkedItemStaysWhenACitationIsStillAbsent') case_resolver_parkedItemStaysWhenACitationIsStillAbsent ;;
+    'resolver#parkedTombstoneKeepsItsSettledState') case_resolver_parkedTombstoneKeepsItsSettledState ;;
+    'resolver#tombstoneRestoreNeedsASettledState') case_resolver_tombstoneRestoreNeedsASettledState ;;
     'pipeline#scheduledRunRepairs') case_pipeline_scheduledRunRepairs ;;
     'pipeline#residueIsADeclaredRow') case_pipeline_residueIsADeclaredRow ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
@@ -735,6 +739,55 @@ case_resolver_parkedItemStaysWhenACitationIsStillAbsent() {
   assert_eq "0" "$(jq -r '.unresolved' <<< "$out")" "and its citation is not counted as a fresh report"
   assert_eq "0" "$(recorded_count "$log" '--status on-hold')" "no second park is written"
   assert_eq "0" "$(recorded_count "$log" 'status/open')" "and its state is untouched"
+}
+
+# A tombstone a park erased is not work (#681): the park's status write replaced the `status/retired` the
+# migration gave a tombstone, and the reopen then wrote `status/open` back, so the pre-screen read a settled
+# entry as eligible and a loop run spent a phase concluding `stale` on #147. `update.sh --status` replaces the
+# status namespace (`tools/issues/update.sh`), so by the time the park is reversed the state is gone from the
+# labels; the only place it survives is the body's own record, and that record is what the reopen restores.
+case_resolver_parkedTombstoneKeepsItsSettledState() {
+  local tree d out log body
+  tree=$(tree_with_file)
+  body='## 80. A rule a cleanup removed
+
+- **Observed** ✗: the entry this citation proved is gone; the rule is not.
+
+- **Retired** ℹ: removed from the backlog by commit `7a6935a` (2026-09-15, "A cleanup").  The issue exists so
+  that a live citation of `§80` still resolves after the file was deleted; it is not work to be done.
+
+The rule is still cited by `app/src/main/java/com/example/Foo.kt:12`.'
+  d=$(parked_tracker "$tree/fixture-gh" 7 "§80 a retired entry" "$body")
+  log="$d/writes.log"
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$log" resolver "$tree" --apply --json --revisit-parked 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "1" "$(jq -r '.restored' <<< "$out")" "the reversal restores the settled state the body keeps"
+  assert_eq "0" "$(jq -r '.reopened' <<< "$out")" "and is not counted as a reopen into the queue"
+  assert_eq "0" "$(recorded_count "$log" 'status/open')" "a tombstone is not reopened into the queue"
+  assert_contains "$(recorded_text "$log")" "--add-label status/retired" "its own recorded state is written back"
+  assert_eq "1" "$(recorded_count "$log" 'issue edit')" "one edit carries the state and the refusal label"
+  assert_contains "$(recorded_text "$log")" "--remove-label status/on-hold" "and the park's state leaves it"
+  assert_contains "$(recorded_text "$log")" "--remove-label agent/excluded-stale" "the stale refusal is cleared"
+  assert_eq "0" "$(recorded_count "$log" 'agent/eligible')" "and it is still not authorised for the loop"
+  assert_contains "$(recorded_text "$log")" "record settles it" "the comment says why it is not queued again"
+}
+
+# A restore target that is not a settled state would leave the item as readable as the queue state does, so a
+# profile that declares the record's marker must declare a settled `retiredStatus` — and the run refuses before
+# it writes anything, rather than reversing an item into a state the pre-screen reads as work (#681).
+case_resolver_tombstoneRestoreNeedsASettledState() {
+  local tree d out status log
+  tree=$(tree_with_file)
+  # the marker stays declared: only the restore target leaves the settled set
+  jq '.roles.retiredStatus = "unverified"' "$tree/tools/tooling.json" > "$tree/tools/tooling.json.new" &&
+    mv "$tree/tools/tooling.json.new" "$tree/tools/tooling.json" || fail "could not adapt the profile"
+  d=$(parked_tracker "$tree/fixture-gh" 7 "§80 a retired entry" 'cites `app/src/main/java/com/example/Foo.kt:12`')
+  log="$d/writes.log"
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$log" resolver "$tree" --apply --json --revisit-parked 2>&1); status=$?
+  assert_eq "2" "$status" "the run refuses a restore target that is not settled: $out"
+  assert_contains "$out" "roles.retiredStatus (unverified) is not one of roles.settledStatuses" \
+    "and the refusal names the state and the set it must belong to"
+  assert_eq "0" "$(recorded_count "$log" 'issue edit')" "nothing is written for the item"
 }
 
 # --------------------------------------------------------------------------- the pipeline (D6)

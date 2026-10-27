@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapLongPressTimeoutComposeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-27T18:09:08.723Z" hostname="dingens" time="0.087">
+<testsuite name="com.naviveylin.ui.map.MapLongPressTimeoutComposeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-27T18:44:12.519Z" hostname="dingens" time="0.121">
   <properties/>
-  <testcase name="longPressHonoursTheConfiguredPlatformTimeout" classname="com.naviveylin.ui.map.MapLongPressTimeoutComposeTest" time="0.046"/>
-  <testcase name="longPressUsesTheConfiguredAppTimeout" classname="com.naviveylin.ui.map.MapLongPressTimeoutComposeTest" time="0.037"/>
+  <testcase name="longPressHonoursTheConfiguredPlatformTimeout" classname="com.naviveylin.ui.map.MapLongPressTimeoutComposeTest" time="0.064"/>
+  <testcase name="longPressUsesTheConfiguredAppTimeout" classname="com.naviveylin.ui.map.MapLongPressTimeoutComposeTest" time="0.053"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

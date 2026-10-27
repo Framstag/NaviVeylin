@@ -16,8 +16,9 @@ See `proposal.md` — Why for the absence and the red case. The current state th
   canvas by `MapCanvasUiState`, restored on load by `MapCanvasViewModelSettings` (the restore block at
   `MapCanvasViewModelSettings.kt:397`), and edited in the location-options sheet.
 - Time in a Compose UI test is the test clock's: `mainClock.advanceTimeBy` drives the handler's own timeout, while
-  `waitForIdle` does not advance time (measured twice on this tree, 2026-10-27, with a scratch probe case that was
-  then deleted; the probe read `after-waitForIdle presses=0`, `after-499 presses=1`). `Thread.sleep` is refused by
+  `waitForIdle` does not advance time — which is what `MapLongPressTimeoutComposeTest`'s two cases rest on: each
+  holds the press, advances the clock and reads the delivery
+  (`evidence/focused/TEST-com.naviveylin.ui.map.MapLongPressTimeoutComposeTest.xml`). `Thread.sleep` is refused by
   the build's `checkNoWallClockWaits` (`guidelines/Build.md`, section "Wall-clock waits and the conversion
   measured").
 
@@ -35,9 +36,12 @@ rotate phases. No general gesture-settings framework.
 
 ### D1: The duration is a parameter of the handler, defaulting to the platform's value
 
-`mapGestureHandler(callbacks, longPressTimeoutMs: Long = …)`: the default is read from
-`LocalViewConfiguration.current.longPressTimeoutMillis` inside `composed`, and the pointer block is keyed on the
-resolved value (`pointerInput(timeoutMs)`).
+`mapGestureHandler(callbacks, longPressTimeoutMs: Long? = null)`: a null means "the platform's", resolved inside
+`composed` as `longPressTimeoutMs ?: LocalViewConfiguration.current.longPressTimeoutMillis`, and the pointer block is
+keyed on that resolved value (`pointerInput(resolvedLongPressTimeoutMs)`), so a changed value re-keys the handler for
+the next gesture. Neither Compose case exercises the re-key itself — both fix the value before `performTouchInput` —
+so what the cases pin is the resolution order (the app's value wins, the platform's applies when the app configures
+none), not the re-key.
 
 *Alternatives considered.*
 
@@ -89,8 +93,8 @@ since the value is a map-wide setting in every mode.
 - **A free-text millisecond field.** Re-opens validation, keyboard and locale surface for a value with a natural
   slider range, and the sheet has no text-entry row today.
 
-*Risk.* Sixteen slider positions is coarse for a user who wants 520 ms; the range covers Android's own default
-(500) and the accessibility touch-and-hold delays (300 / 500 / 1000) exactly, which is what the setting is for.
+*Risk.* Sixteen slider positions is coarse for a user who wants 520 ms; the range brackets Android's own default
+(500 ms) without leaving it, so the platform's own long-press duration is reachable from the control.
 
 ### D4: The two sheet parameters are required, not defaulted
 

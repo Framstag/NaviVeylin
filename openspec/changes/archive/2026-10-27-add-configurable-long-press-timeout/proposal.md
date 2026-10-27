@@ -37,20 +37,24 @@ a literal" and "The long-press timeout is a persisted setting". Existing capabil
 timeout control", beside its existing "Overspeed warning delta control".
 
 **Owning guidelines.** `guidelines/UI.md`, section "Phone map modes (Browse / Free drive / Navigation)" — the
-location-options sheet and the state it edits — and `guidelines/Design.md`, section "Data, persistence & search" —
-persist on every meaningful change, never debounced. `guidelines/Build.md`, section "Wall-clock waits and the
-conversion measured" owns how the new case drives its timeout.
+location-options sheet and the state it edits — and the phone-only settings list in the same file's section "Phone
+navigation overlay sizing (driver-seat readability)", which now carries this setting's row beside the overspeed
+delta and the per-vehicle maximum speeds; `guidelines/Design.md`, section "Data, persistence & search" — persist on
+every meaningful change, never debounced. `guidelines/Build.md`, section "Wall-clock waits and the conversion
+measured" owns how the new case drives its timeout.
 
 ## What Changes
 
 - **The gesture handler takes its timeout as configuration.** `mapGestureHandler` gains a
-  `longPressTimeoutMs: Long` parameter whose default is the platform's configured long-press timeout
-  (`LocalViewConfiguration.longPressTimeoutMillis`), replacing the literal `500L`. The pointer loop re-keys on the
-  value (`pointerInput(timeoutMs)`), so a change applies to the next gesture without recomposing the whole canvas.
+  `longPressTimeoutMs: Long? = null` parameter: null means "the platform's", resolved in composition as
+  `longPressTimeoutMs ?: LocalViewConfiguration.current.longPressTimeoutMillis` and replacing the literal `500L`. The
+  pointer loop is keyed on the resolved value (`pointerInput(resolvedLongPressTimeoutMs)`), so a changed value
+  re-keys the handler for the next gesture; the two Compose cases fix the value before the gesture, so what they pin
+  is the resolution order rather than the re-key.
 - **The value is a persisted setting.** `AppSettings.longPressTimeoutMs: Int = 500` — the settings file written
   before this change decodes to 500 (the platform default and JavaScout's), and any value is clamped to
-  `250..1000` ms in `50` ms steps at the storage's edge, so a hand-edited file cannot install a timeout outside the
-  range the sheet offers.
+  `250..1000` ms at the storage's edge (the `50` ms step is the sheet's slider granularity, not the reader's), so a
+  hand-edited file cannot install a timeout outside the range the sheet offers.
 - **The phone edits it in the location-options sheet**, as a fourth always-visible setting: a labelled slider
   (`250..1000` ms, `50` ms steps, current value shown in milliseconds), applying immediately and persisting on
   every change. Phone-only: the car surfaces have no long-press gesture, so `AutoSettings` is untouched and the

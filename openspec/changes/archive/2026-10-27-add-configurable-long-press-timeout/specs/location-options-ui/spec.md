@@ -15,3 +15,21 @@ phone SHALL be its only editor — the car surfaces have no long-press gesture a
 - **THEN** the row shows the current value in milliseconds
 - **AND** the sheet reports 900 ms to its caller, which persists it
 - **Case**: `LocationOptionsOverlayComposeTest#longPressTimeoutSliderShowsAndWritesTheValue`
+
+#### Scenario: The control renders in browse
+
+- **WHEN** the map state is BROWSE and the options bottom sheet is opened
+- **THEN** the long-press timeout slider SHALL be present and displayed
+- **Case**: `LocationOptionsOverlayComposeTest#longPressTimeoutSliderIsReachableInBrowse`
+
+#### Scenario: The control renders in free drive
+
+- **WHEN** the map state is FREE_DRIVE and the options bottom sheet is opened
+- **THEN** the long-press timeout slider SHALL be present and displayed
+- **Case**: `LocationOptionsOverlayComposeTest#longPressTimeoutSliderIsReachableInFreeDrive`
+
+#### Scenario: The control renders in navigation
+
+- **WHEN** the map state is NAVIGATION and the options bottom sheet is opened
+- **THEN** the long-press timeout slider SHALL be present and displayed
+- **Case**: `LocationOptionsOverlayComposeTest#longPressTimeoutSliderIsReachableInNavigation`

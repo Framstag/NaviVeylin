@@ -596,11 +596,15 @@ MUTATIONS=(
   # re-read — 53 % of the 1.66 B the archive spent — while the median result is 825 characters and 9.0 % of the
   # 22 901 results are above the 8 000 the bound records (`python3 tools/loop-spend.py`, probe
   # `evidence/result-sizes.py`). One record per invariant: 67.1 stops the cut, 67.2 stops the line from naming the
-  # size it cut, 67.3 stops the record, and 67.4 stops the adapter from loading the rule with every child.
+  # size it cut, 67.3 stops the record, 67.4 stops the adapter from loading the rule with every child, 67.5 stops
+  # the adapter from naming that record beside the child's event stream (the clause the spec names and round 1
+  # left undefended), and 67.6 moves the pass-through's `at or under` boundary to `under`.
   '67.1@-@../pi-trim-result.mjs@trim#aResultAboveTheBoundIsTrimmedAndNamed@the cut itself, so an oversized result is handed over whole again (issue #660)@s|  return cut + trimNotice(tool, total, bound);|  return text;|'
   '67.2@-@../pi-trim-result.mjs@trim#aResultAboveTheBoundIsTrimmedAndNamed@the line that names the size the result had, so a cut is judged as the whole answer (issue #660)@s|the first \${bound} are shown|the first \${total} are shown|'
   '67.3@-@../pi-trim-result.mjs@trim#theTrimIsRecorded@the record of what was cut, so the item cannot say which result a claim was read from (issue #660)@s|      appendFileSync(record, trimRecordLine(tool, total, bound));|      void record;|'
   '67.4@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheResultBound@the word that loads the bound with every child (issue #660)@s|^extension=(-e "$here/pi-trim-result.mjs")$|extension=()|'
+  '67.5@-@../pi-child-events.sh@adapter#theChildIsStartedWithTheResultBound@the line that names the trim record beside the child'"'"'s own event stream, so every trim record silently vanishes (issue #660)@s|^  export LOOP_TOOL_RESULT_TRIM_RECORD=.*$|  :|'
+  '67.6@-@../pi-trim-result.mjs@trim#aResultUnderTheBoundIsHandedOverWhole@the boundary that hands a result of exactly the bound over whole, so a result that fitted is cut (issue #660)@s|text.length <= bound|text.length < bound|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

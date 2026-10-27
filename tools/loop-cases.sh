@@ -6552,8 +6552,8 @@ case_adapter_theChildIsStartedWithoutContextFiles() {
 # #246, and `ctx_read` still hands 6.7 k characters per call with a 116.6 k maximum. So the bound is applied where
 # the result passes: `tools/pi-trim-result.mjs` is one rule with two entry points — the `tool_result` hook the
 # adapter loads with every child, and the CLI these cases drive. What it keeps is the first `<bound>` characters
-# and one line naming the tool, the size and the bound, so a claim is never judged on a cut line; the size it cut
-# is recorded for the item, and the line says how to read the rest.
+# and one line naming the tool, the size and the bound, with the line naming how to read the rest; the size it cut
+# is recorded for the item, so a reader can re-read the range the notice names instead of the cut line.
 case_trim_aResultAboveTheBoundIsTrimmedAndNamed() {
   # files: tools/loop-cases.sh tools/pi-trim-result.mjs
   local d big out kept n
@@ -6573,7 +6573,7 @@ case_trim_aResultAboveTheBoundIsTrimmedAndNamed() {
   assert_contains "$(cat "$out")" "LOOP-TRIMMED" "the trim is named in the result the child reads"
   assert_contains "$(cat "$out")" "20005" "the line names the size the result had"
   assert_contains "$(cat "$out")" "8000" "and the bound it was cut to"
-  assert_contains "$(cat "$out")" "sed -n" "and how to read the rest, so no claim is judged on a cut line"
+  assert_contains "$(cat "$out")" "sed -n" "and how to read the rest, so a reader can re-read the range the notice names"
   n=$(wc -c < "$out")
   [ "$n" -lt 9000 ] || fail "the trimmed result still carries $n characters against a bound of 8000"
   return 0
@@ -6585,7 +6585,7 @@ case_trim_aResultAboveTheBoundIsTrimmedAndNamed() {
 # bound that touched an ordinary result would buy a saving with the content an item is worked from.
 case_trim_aResultUnderTheBoundIsHandedOverWhole() {
   # files: tools/loop-cases.sh tools/pi-trim-result.mjs
-  local d small out
+  local d small exact out
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
     || fail "nothing bounds a tool result: tools/pi-trim-result.mjs is not in the tree (issue #660)"
   d=$(scratch)
@@ -6600,12 +6600,26 @@ case_trim_aResultUnderTheBoundIsHandedOverWhole() {
   assert_not_contains "$(cat "$out")" "LOOP-TRIMMED" "and carries no notice about a bound it stayed under"
   [ ! -s "$d/trims.log" ] \
     || fail "a result under the bound is recorded as trimmed: $(cat "$d/trims.log")"
+  # The boundary is the scenario's own word ("at most the recorded bound"), so the exact length is driven too and
+  # not only a result comfortably under it: a `<=` that became `<` would cut a result of exactly <bound>
+  # characters to an empty prefix and a notice, and the case above would not notice (review of #660, round 1).
+  exact="$d/exact.txt"
+  head -c 8000 /dev/zero | tr '\0' 'c' > "$exact"
+  out="$d/exact-out.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --record "$d/exact-trims.log" < "$exact" > "$out" \
+    || fail "the bound exited non-zero at the boundary: $(head -3 "$out")"
+  assert_eq "$(wc -c < "$exact")" "$(wc -c < "$out")" "a result of exactly the bound is handed over whole"
+  assert_not_contains "$(cat "$out")" "LOOP-TRIMMED" "with no notice at the boundary either"
+  [ ! -s "$d/exact-trims.log" ] \
+    || fail "a result of exactly the bound is recorded as trimmed: $(cat "$d/exact-trims.log")"
   return 0
 }
 
 # What was cut is a fact of the item, not of the child's memory (issue #660): the record lands beside the child's
-# own event stream, so a reviewer of the item can see that a claim stands on a trimmed result and re-read the
-# range it needs instead of reading a cut line as the whole answer.
+# own event stream, so a reviewer of the item can see that a claim stands on a trimmed result and re-read the range
+# it needs instead of reading a cut line as the whole answer. This case asserts the line; that it lands *beside the
+# stream* is the path the adapter names, asserted by `adapter#theChildIsStartedWithTheResultBound`.
 case_trim_theTrimIsRecorded() {
   # files: tools/loop-cases.sh tools/pi-trim-result.mjs
   local d big out
@@ -6627,7 +6641,11 @@ case_trim_theTrimIsRecorded() {
 # the one place this project's agent flags live, and every child goes through it, so the word is asserted there
 # and not in a phase — a phase under `tools/loop/**` may name no agent flag (`run#engineNamesNoProjectFact`). What
 # the child is handed as the bound is the recorded value, not a second copy of it: the adapter reads it from
-# `tools/loop/loop.conf`, and a number that drifts from that file is a red case.
+# `tools/loop/loop.conf`, and a number that drifts from that file is a red case. The record of a trim is a fact of
+# the item and not of the child's memory, so the second half asserts where it lands: the adapter names
+# `<item dir>/tool-result-trims.log` beside the event stream the run gave that child, and names nothing when it was
+# started by hand. That export was the one line no case and no mutation touched in the first round — deleting it
+# left all four other cases green while every trim record silently vanished (review of #660).
 case_adapter_theChildIsStartedWithTheResultBound() {
   # files: tools/loop-cases.sh tools/loop/loop.conf tools/pi-child-events.sh tools/pi-trim-result.mjs
   local d prompt recorder got ext line next recorded handed
@@ -6643,8 +6661,11 @@ case_adapter_theChildIsStartedWithTheResultBound() {
     printf '%s\n' '#!/usr/bin/env bash'
     printf '%s\n' 'for a in "$@"; do printf "%s\n" "$a"; done > "$RECORD"'
     printf '%s\n' 'printf "%s\n" "$LOOP_TOOL_RESULT_MAX_CHARS" > "$RECORD.bound"'
+    printf '%s\n' 'printf "%s\n" "${LOOP_TOOL_RESULT_TRIM_RECORD:-}" > "$RECORD.record"'
   } > "$recorder"
-  RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
+  # The stream is unset explicitly: the suite may itself run inside a child whose run exported one, and a "started by
+  # hand" assertion that inherited it would measure the run's stream rather than the adapter's silence.
+  env -u LOOP_CHILD_EVENTS RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
     bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
     fail "the adapter exited non-zero: $(head -3 "$d/out")"
   got=$(cat "$d/argv.txt" 2>/dev/null || true)
@@ -6659,6 +6680,14 @@ case_adapter_theChildIsStartedWithTheResultBound() {
   [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
   handed=$(cat "$d/argv.txt.bound" 2>/dev/null || true)
   assert_eq "$recorded" "$handed" "the bound the child is handed is the number the project recorded"
+  assert_eq "" "$(cat "$d/argv.txt.record" 2>/dev/null || true)" \
+    "a child started by hand, with no event stream, names no record file and writes nothing into the project"
+  RECORD="$d/events-argv.txt" LOOP_CHILD_EVENTS="$d/events.jsonl" \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
+    bash "$recorder" "$prompt" </dev/null >"$d/out-events" 2>&1 ||
+    fail "the adapter exited non-zero with an event stream: $(head -3 "$d/out-events")"
+  assert_eq "$d/tool-result-trims.log" "$(cat "$d/events-argv.txt.record" 2>/dev/null || true)" \
+    "the trim is recorded beside the child's own event stream, in the item's directory"
   return 0
 }
 

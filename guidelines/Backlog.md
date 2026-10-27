@@ -277,13 +277,17 @@ children injected **59.2 M characters** of tool output once and re-read 876.4 M 
 the archive spent — with a 116.6 k `ctx_read` and a 51.3 k `ctx_shell` at the top (`python3 tools/loop-spend.py`,
 issue #660). A result above `LOOP_TOOL_RESULT_MAX_CHARS` (8 000, the archive's p90 rounded up) is therefore cut to
 its first 8 000 characters and carries one line naming the tool, the size it had and how to read the rest, and the
-trim is recorded beside the child's event stream in the item's directory — so no claim is ever judged on a cut
-line. Nine results in ten are handed over byte for byte: the archive's median result is 825 characters and 9.0 %
-of its 22 901 results are above the bound, which is where 14 % of the spend sits (`LOOP-SPEND-CAP8K`,
-`evidence/result-sizes.py`). The rule is applied where a result passes — `tools/pi-trim-result.mjs`, loaded by the
-adapter with every child — and not by asking the child to read less, which the prompt has done since #246 without
-the archive's repeated-read share moving at all. `0` disables it, and a ported project that deletes the adapter
-owes nothing by it (`adapter#theChildIsStartedWithTheResultBound`, `trim#aResultAboveTheBoundIsTrimmedAndNamed`).
+trim is recorded beside the child's event stream in the item's directory, where a reader of the item can re-read the
+range the notice names. Nine results in ten are handed over byte for byte: the archive's median result is 825
+characters and 9.0 % of its 22 901 results are above the bound, which is where 14 % of the spend sits
+(`LOOP-SPEND-CAP8K`; the probe is `evidence/result-sizes.py` in the change
+`2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`, which is archived and so is reached by that path only
+inside the change). The rule is applied where a result passes —
+`tools/pi-trim-result.mjs`, loaded by the adapter with every child — and not by asking the child to read less: the
+prompt has asked for that since #246, and the archive still records `LOOP-SPEND-READS calls=4798 duplicate=2174` —
+45 % of its reads are a second read of a path it already read. `0` disables it, and a ported project that deletes
+the adapter owes nothing by it (`adapter#theChildIsStartedWithTheResultBound`,
+`trim#aResultAboveTheBoundIsTrimmedAndNamed`).
 
 What it does **not** claim: the project's own tree is not the child's, so a difference between the two readings of
 it taken around a child is recorded and not turned into a verdict. The transcript gains one line naming what

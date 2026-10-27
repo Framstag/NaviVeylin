@@ -2,16 +2,17 @@
 // pi-trim-result.mjs — one bound on what a single tool result may put into a child's context (issue #660).
 //
 // Why this file exists: a child's tool result is injected whole and stays in its context for the rest of the
-// session, so every later turn re-reads it, and nothing between the tool and the context bounds it. Measured over
-// the archive the loop reads (`python3 tools/loop-spend.py`): 59.2 M characters of tool output injected once,
-// 876.4 M tokens of it re-read — 53 % of everything the archive spent — with a 116.6 k `ctx_read` and 51.3 k
+// session, so every later turn re-reads it, and nothing in this tree between the tool and the context bounded it.
+// Measured over the archive the loop reads (`python3 tools/loop-spend.py`): 59.2 M characters of tool output injected
+// once, 876.4 M tokens of it re-read — 53 % of everything the archive spent — with a 116.6 k `ctx_read` and 51.3 k
 // `ctx_shell` at the top, while the median result is 825 characters (`evidence/result-sizes.py` in the change
 // `2026-10-27-fix-a-tool-result-over-its-bound-is-trimmed`). The spend is the tail, so the bound is a rule about
 // the tail: a result above it is cut and named, a result under it is handed over byte for byte.
 //
 // Prose does not do this job. The worker prompt has asked a child to read the section it needs rather than the
-// whole document, and to cite a file rather than read it again, since #246 — and the archive's repeated-read share
-// is 45 % before and after that change, with a 116.6 k single result standing beside it.
+// whole document, and to cite a file rather than read it again, since #246 — and the archive still records
+// `LOOP-SPEND-READS calls=4798 duplicate=2174`: 45 % of its reads are a second read of a path the child already
+// read, with a 116.6 k single result standing beside them.
 //
 // Two entry points, one rule:
 //

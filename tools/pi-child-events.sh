@@ -46,11 +46,11 @@ mode=(--mode json)
 context=(--no-context-files)
 
 # …and one bound on what a single tool result may put into the child's context (issue #660). A result is injected
-# whole and re-read by every later turn, and nothing between the tool and the context bounds it: the archive these
-# children wrote carried 59.2 M characters of tool output and re-read 876.4 M tokens of it, 53 % of everything it
-# spent (`python3 tools/loop-spend.py`). The extension is this tree's, beside this adapter, and every child is
-# started through it. The bound is the value `tools/loop/loop.conf` records — **read** here and not sourced, the
-# same shape `tools/loop/lib.sh`'s `loop_tmp_dir_for` uses for another tree's configuration — so the recorded
+# whole and re-read by every later turn, and nothing in this tree between the tool and the context bounded it: the
+# archive these children wrote carried 59.2 M characters of tool output and re-read 876.4 M tokens of it, 53 % of
+# everything it spent (`python3 tools/loop-spend.py`). The extension is this tree's, beside this adapter, and every
+# child is started through it. The bound is the value `tools/loop/loop.conf` records — **read** here and not sourced,
+# the same shape `tools/loop/lib.sh`'s `loop_tmp_dir_for` uses for another tree's configuration — so the recorded
 # number has one home; `0`, or a project that records no key, is no bound, and the extension then hands every
 # result over unchanged.
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

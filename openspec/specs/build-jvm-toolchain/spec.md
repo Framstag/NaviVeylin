@@ -107,6 +107,8 @@ The project's own Kotlin sources SHALL build a quadratic Bézier by the name the
 keeps — `quadraticTo`/`relativeQuadraticTo` — and SHALL use no `quadraticBezierTo`/`relativeQuadraticBezierTo`,
 which Compose ui 1.7.6 deprecates and a later release removes. A scan of every `*.kt` the project owns SHALL
 report no such call, so a returning one is a failing case rather than one warning among the compile's others.
+The scan SHALL prune a directory as Gradle output by the marker the project root writes beside it, and SHALL
+prune no source by a directory's name.
 
 #### Scenario: A marker outline is built with the kept builder
 
@@ -121,6 +123,13 @@ report no such call, so a returning one is a failing case rather than one warnin
 - **THEN** the scan reports a finding for that line, and leaves the kept spelling and a comment that names the
   deprecated one alone — so a passing scan means the spelling is absent, not that the scan cannot see it
 - **Case**: `app: ComposeApiDeprecationTest` "the scan is still detectable"
+
+#### Scenario: The sources a package directory named build holds are read
+
+- **WHEN** the project's own sources live under a package directory whose name is `build`
+- **THEN** the scan reads them, because it prunes a `build` directory by the Gradle marker beside it rather
+  than by its name, and it still prunes the output directories that marker names
+- **Case**: `app: ComposeApiDeprecationTest` "the scan reads the sources a directory named build holds"
 
 ### Requirement: The versioned property source names no Java home
 

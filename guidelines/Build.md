@@ -1204,9 +1204,14 @@ and the guard's own red run printed 28, all in `:app` test sources (change
 `fix-deprecated-quadratic-path-builder`: `evidence/gate.log`, `evidence/head-red-run.log`) — so `allWarningsAsErrors`
 would fail the gate on warnings this baseline does not own. The guard is the `:app` case
 `ComposeApiDeprecationTest` "no project Kotlin source calls a deprecated quadratic path builder": it scans
-every `*.kt` the project owns (731 files, `files=`/`findings=` printed) for `quadraticBezierTo` and
+every `*.kt` the project owns (805 files, `files=`/`findings=` printed) for `quadraticBezierTo` and
 `relativeQuadraticBezierTo`, so a returning spelling is a failing case rather than one warning among the
-others.
+others. A `build` directory is pruned by the marker a Gradle project root writes beside it
+(`build.gradle.kts`/`build.gradle`), never by its name: the name-based prune this guard started with hid the
+project's own 37 `com.naviveylin.build` package sources — its own case file among them — so the count this
+paragraph quoted (731) sat beside a scan that read 768 of the tree's 805, and the case
+"the scan reads the sources a directory named build holds" now holds the two ends of that rule (change
+`fix-the-scan-skips-sources-under-a-directory-named-build`).
 
 ## 8. SBOM generation (CycloneDX)
 

@@ -44,7 +44,7 @@ class ComposeApiDeprecationTest {
         findings.forEach { println("FINDING $it") }
 
         assertEquals(
-            "a Kotlin source that builds a quadratic Bézier with `quadraticBezierTo`/`relativeQuadraticBezierTo` " +
+            "a Kotlin source that builds a quadratic Bézier with `$DEPRECATED`/`relative$DEPRECATED` " +
                 "must use `quadraticTo`/`relativeQuadraticTo` instead — the pinned Compose ui 1.7.6 deprecates " +
                 "the `Bezier` spelling and a later release removes it",
             emptyList<String>(),
@@ -53,15 +53,38 @@ class ComposeApiDeprecationTest {
     }
 
     @Test
+    fun `the scan reads the sources a directory named build holds`() {
+        val scanned = kotlinSources().map { it.relativeTo(repoRoot).invariantSeparatorsPath }
+        println("scanned=${scanned.size}")
+
+        val packageDirectorySources = listOf(
+            "app/src/test/java/com/naviveylin/build/ComposeApiDeprecationTest.kt",
+            "buildSrc/src/main/kotlin/com/naviveylin/build/testing/BuildFlags.kt"
+        )
+        val missing = packageDirectorySources.filterNot(scanned::contains)
+        assertTrue(
+            "the scan must read every `*.kt` the project owns, including the sources a package directory " +
+                "named `build` holds — a directory is Gradle output by the marker its project root writes, " +
+                "not by its name (read ${scanned.size}, missing $missing)",
+            missing.isEmpty()
+        )
+        assertTrue(
+            "the scan must still prune Gradle output: ${scanned.count { it.startsWith("app/build/") }} " +
+                "source(s) under app/build/ were read",
+            scanned.none { it.startsWith("app/build/") }
+        )
+    }
+
+    @Test
     fun `the scan is still detectable`() {
         val deprecated = listOf(
-            "        path.quadraticBezierTo(0f, -hPx, x1 * hPx, y1 * hPx)",
-            "        path.relativeQuadraticBezierTo(0f, -hPx, x1 * hPx, y1 * hPx)"
+            "        path.$DEPRECATED(0f, -hPx, x1 * hPx, y1 * hPx)",
+            "        path.relative$DEPRECATED(0f, -hPx, x1 * hPx, y1 * hPx)"
         )
         val kept = listOf(
             "        path.quadraticTo(0f, -hPx, x1 * hPx, y1 * hPx)",
             "        path.relativeQuadraticTo(0f, -hPx, x1 * hPx, y1 * hPx)",
-            "    // the deprecated `quadraticBezierTo` spelling is refused, see the case above"
+            "    // the deprecated `$DEPRECATED` spelling is refused, see the case above"
         )
 
         assertTrue(
@@ -74,13 +97,26 @@ class ComposeApiDeprecationTest {
         )
     }
 
-    /** Every `*.kt` the project owns: the whole tree, minus build output and tool state. */
+    /**
+     * Every `*.kt` the project owns: the whole tree, minus Gradle's own output and tool state.
+     *
+     * A directory named `build` is output only when a Gradle project root writes into it — the marker
+     * (`build.gradle.kts`/`build.gradle`) in its parent. Pruning by name alone also swallowed the project's own
+     * `com.naviveylin.build` package directories, 37 `.kt` files on base `3f972aec` (issue #223), so a passing
+     * scan promised coverage of sources it had never read.
+     */
     private fun kotlinSources(): List<File> =
         repoRoot.walkTopDown()
-            .onEnter { it.name !in SKIPPED_DIRECTORIES }
+            .onEnter { !it.isGradleOutput() && it.name !in SKIPPED_TOOL_DIRECTORIES }
             .filter { it.isFile && it.name.endsWith(".kt") }
             .sorted()
             .toList()
+
+    /** True for a `build` directory a Gradle project root writes into, and for nothing else. */
+    private fun File.isGradleOutput(): Boolean =
+        name == "build" && parentFile?.let {
+            File(it, "build.gradle.kts").isFile || File(it, "build.gradle").isFile
+        } == true
 
     /** One finding per code line that calls a deprecated spelling, as `<path>:<line>: <text>`. */
     private fun findingsIn(path: String, lines: List<String>): List<String> =
@@ -102,6 +138,12 @@ class ComposeApiDeprecationTest {
          */
         val DEPRECATED_QUADRATIC = Regex("""\b(?:relative)?[qQ]uadraticBezierTo\b""")
 
-        val SKIPPED_DIRECTORIES = setOf("build", ".git", ".gradle", ".idea", ".pi", "node_modules")
+        /**
+         * The deprecated spelling, assembled from parts: the scan reads this file too, so a source line here
+         * must not carry the spelling the case above refuses.
+         */
+        val DEPRECATED = "quadratic" + "Bezier" + "To"
+
+        val SKIPPED_TOOL_DIRECTORIES = setOf(".git", ".gradle", ".idea", ".pi", "node_modules")
     }
 }

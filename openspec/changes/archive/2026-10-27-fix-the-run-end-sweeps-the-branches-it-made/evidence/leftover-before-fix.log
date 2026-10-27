@@ -1,0 +1,43 @@
+loop-clean: no worktree at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/worktrees/loop — no build output of the loop's to remove
+loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+  would remove loop-selftest.e3dswX (11419648 B)
+loop-clean: branches of the loop whose patches are in the base
+  kept fix/issue-239-a-landed-branch-is-kept-for-ever-the-run — a worktree holds it
+  kept fix/issue-244-the-package-carries-the-counts — a worktree holds it
+  would remove fix/issue-255-drop-the-fix-loop-skill-the-loop-is-ente (its patches are in the base)
+  would remove fix/issue-259-the-loop-s-self-test-spends-about-half-o (its patches are in the base)
+  kept fix/issue-263-the-run-s-state-never-names-the-item-it — 2 commit(s) the base does not have
+  kept fix/issue-267-gate-runs-under-the-worktree-env — 1 commit(s) the base does not have
+  kept fix/issue-281-absent-is-reported-not-refused — a worktree holds it
+  kept fix/issue-285-loop-outside-write-names-no-path-so-the — 2 commit(s) the base does not have
+  kept fix/issue-288-the-outside-write-case-fails-on-a-clean — 4 commit(s) the base does not have
+  kept fix/issue-296-the-gate-case-reads-the-stream — 1 commit(s) the base does not have
+  would remove fix/issue-310-reset-worktree-cannot-discard-a-dirty-su (its patches are in the base)
+  would remove fix/issue-314-a-pre-screen-item-whose-text-names-the-s (its patches are in the base)
+  would remove fix/issue-320-the-osmscout-client-java-module-s-covera (its patches are in the base)
+  kept fix/issue-44-phone-diagnostic-locale — 1 commit(s) the base does not have
+  would remove fix/issue-659-citations-nothing-accounts-for-have-pile (its patches are in the base)
+  would remove fix/issue-664-a-run-that-ended-its-own-child-at-the-ca (its patches are in the base)
+  would remove fix/issue-666-a-run-bounds-what-one-row-files (its patches are in the base)
+  would remove fix/issue-666-nothing-bounds-how-many-items-one-sensor (its patches are in the base)
+  would remove fix/issue-667-a-row-with-no-measurement-on-record-file (its patches are in the base)
+  would remove fix/issue-668-the-report-reads-measurement-markers-out (its patches are in the base)
+  would remove fix/issue-669-a-sensor-condition-cannot-be-withdrawn-d (its patches are in the base)
+  would remove fix/issue-672-an-item-s-band-label-and-its-stored-mark (its patches are in the base)
+  would remove fix/issue-674-the-item-floor-is-one-constant-for-every (its patches are in the base)
+  would remove fix/issue-676-the-source-size-row-counts-every-tracked (its patches are in the base)
+  would remove fix/issue-678-the-java-modules-coverage-is-split-by-provenance (its patches are in the base)
+  kept loop-20261021-170126 — 2 commit(s) the base does not have
+  would remove loop-20261025-180809 (its patches are in the base)
+  would remove loop-20261025-183830 (its patches are in the base)
+  would remove loop-20261026-045409 (its patches are in the base)
+  would remove loop-20261026-052550 (its patches are in the base)
+  would remove loop-20261026-091017 (its patches are in the base)
+  would remove loop-20261026-135019 (its patches are in the base)
+  would remove loop-20261026-191655 (its patches are in the base)
+  would remove loop-20261026-211329 (its patches are in the base)
+  would remove loop-20261027-052705 (its patches are in the base)
+  would remove loop-20261027-064026 (its patches are in the base)
+  would remove loop-20261027-131800 (its patches are in the base)
+  would remove loop-20261027-132345 (its patches are in the base)
+loop-clean: would remove 1 path(s), 11419648 B and remove 28 branch(es) — nothing removed (pass --apply)

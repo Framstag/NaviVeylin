@@ -1,0 +1,10 @@
+$ grep -l -E 'aMergedBranchIsRemoved|sweepsOnlyWhatIsInTheBase|landedBranchesAreNamedAsRemovable|release-branch|prune-landed|branch -D|branches whose patches' tools/*-cases.sh tools/loop/*.sh tools/loop/prompts/* tools/loop/fixtures/scenarios/*/*
+tools/loop-cases.sh
+tools/loop/loop-clean.sh
+tools/loop/run.sh
+tools/loop/worktree.sh
+
+$ grep -n 'theEndSweepsTheLandedBranchesItMade' tools/loop-cases.sh
+190:  'run#theEndSweepsTheLandedBranchesItMade'
+492:    'run#theEndSweepsTheLandedBranchesItMade') fn=case_run_theEndSweepsTheLandedBranchesItMade ;;
+7043:case_run_theEndSweepsTheLandedBranchesItMade() {

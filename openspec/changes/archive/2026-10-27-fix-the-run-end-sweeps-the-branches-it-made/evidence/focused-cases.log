@@ -1,0 +1,18 @@
+=== run#theEndSweepsTheLandedBranchesItMade
+PASS run#theEndSweepsTheLandedBranchesItMade
+=== run#aMergedBranchIsRemoved
+run#aMergedBranchIsRemoved| stub gh: recorded `gh issue edit`
+run#aMergedBranchIsRemoved| closed #21 (completed)
+run#aMergedBranchIsRemoved| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#aMergedBranchIsRemoved|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aMergedBranchIsRemoved
+=== worktree#keepsByDefaultAndRemovesOnRequest
+worktree#keepsByDefaultAndRemovesOnRequest| commented on #21 (left open)
+worktree#keepsByDefaultAndRemovesOnRequest| escalate #21
+worktree#keepsByDefaultAndRemovesOnRequest| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+worktree#keepsByDefaultAndRemovesOnRequest|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS worktree#keepsByDefaultAndRemovesOnRequest
+=== clean#sweepsOnlyWhatIsInTheBase
+PASS clean#sweepsOnlyWhatIsInTheBase
+=== report#landedBranchesAreNamedAsRemovable
+PASS report#landedBranchesAreNamedAsRemovable

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.data.AppSettingsTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-10-27T18:08:10.989Z" hostname="dingens" time="1.36">
+  <properties/>
+  <testcase name="longPressTimeoutOutsideTheRangeIsClamped" classname="com.naviveylin.data.AppSettingsTest" time="0.122"/>
+  <testcase name="serializeAndDeserialize" classname="com.naviveylin.data.AppSettingsTest" time="0.216"/>
+  <testcase name="ambientSensitivityRoundTrip" classname="com.naviveylin.data.AppSettingsTest" time="0.01"/>
+  <testcase name="longPressTimeoutSurvivesJsonRoundTrip" classname="com.naviveylin.data.AppSettingsTest" time="0.001"/>
+  <testcase name="settingsWithoutMaxSpeedFieldsDecodeToDefaults" classname="com.naviveylin.data.AppSettingsTest" time="0.001"/>
+  <testcase name="longPressTimeoutDefaultsOnAnOlderSettingsFile" classname="com.naviveylin.data.AppSettingsTest" time="0.0"/>
+  <testcase name="unknownAnchorIdDefaultsToCenterOnDecode" classname="com.naviveylin.data.AppSettingsTest" time="0.003"/>
+  <testcase name="oldJsonWithoutAnchorFieldsDefaultsToCenter" classname="com.naviveylin.data.AppSettingsTest" time="0.003"/>
+  <testcase name="legacyEnabledBooleanMapsToHigh" classname="com.naviveylin.data.AppSettingsTest" time="0.939"/>
+  <testcase name="anchorsSurviveJsonRoundTrip" classname="com.naviveylin.data.AppSettingsTest" time="0.001"/>
+  <testcase name="backwardCompatibleWithOldFields" classname="com.naviveylin.data.AppSettingsTest" time="0.009"/>
+  <testcase name="anchorDefaultsAreCenter" classname="com.naviveylin.data.AppSettingsTest" time="0.001"/>
+  <testcase name="nonJsonPassesThroughUnchanged" classname="com.naviveylin.data.AppSettingsTest" time="0.008"/>
+  <testcase name="maxSpeedsRoundTripThroughTheSettingsFile" classname="com.naviveylin.data.AppSettingsTest" time="0.001"/>
+  <testcase name="defaultValues" classname="com.naviveylin.data.AppSettingsTest" time="0.002"/>
+  <testcase name="missingLegacyKeyMapsToOff" classname="com.naviveylin.data.AppSettingsTest" time="0.002"/>
+  <testcase name="defaultsAreCar120Bicycle15Foot5" classname="com.naviveylin.data.AppSettingsTest" time="0.006"/>
+  <testcase name="partialOrientationFields" classname="com.naviveylin.data.AppSettingsTest" time="0.001"/>
+  <testcase name="roundTripPreservesOrientation" classname="com.naviveylin.data.AppSettingsTest" time="0.001"/>
+  <testcase name="legacyDisabledBooleanMapsToOff" classname="com.naviveylin.data.AppSettingsTest" time="0.002"/>
+  <testcase name="darkModeRoundTrip" classname="com.naviveylin.data.AppSettingsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

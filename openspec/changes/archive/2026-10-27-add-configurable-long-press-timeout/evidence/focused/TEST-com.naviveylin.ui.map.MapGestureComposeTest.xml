@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapGestureComposeTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-27T18:09:08.037Z" hostname="dingens" time="0.674">
+  <properties/>
+  <testcase name="twoFingerClockwiseRotationReportsPositiveAngleDelta" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.083"/>
+  <testcase name="pinchSpreadReportsZoom" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.042"/>
+  <testcase name="multiTouchReportsGestureCentroid" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.04"/>
+  <testcase name="singleFingerDragReportsPanDeltas" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.039"/>
+  <testcase name="singleMoveDragReportsItsTravel" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.049"/>
+  <testcase name="rotationWithConstantDistanceDoesNotZoomOrPan" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.055"/>
+  <testcase name="rotationRequestsRenderOnlyOnGestureEnd" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.057"/>
+  <testcase name="slowRotationWithSmallPerEventDeltasIsReported" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.057"/>
+  <testcase name="rotationWithSmallDistanceJitterDoesNotZoom" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.058"/>
+  <testcase name="panRequestsOneRenderAtGestureEnd" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.048"/>
+  <testcase name="sustainedPinchReportsGrowingZoom" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.045"/>
+  <testcase name="twoFingerCounterClockwiseRotationReportsNegativeAngleDelta" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.049"/>
+  <testcase name="singleFingerDragReportsTheFullFingerTravel" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.047"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

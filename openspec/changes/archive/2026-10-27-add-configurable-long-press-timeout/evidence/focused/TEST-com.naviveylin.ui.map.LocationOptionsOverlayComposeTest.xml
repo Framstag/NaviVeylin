@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-10-27T18:08:48.832Z" hostname="dingens" time="4.234">
+  <properties/>
+  <testcase name="freeDriveHeaderShowsDrivingSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.315"/>
+  <testcase name="slidersShowTheStoredValues" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.148"/>
+  <testcase name="sheetShowsTheSymbolIconPreferenceOffByDefault" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.168"/>
+  <testcase name="anchorRowsShowCurrentPresets" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.159"/>
+  <testcase name="symbolIconToggleReportsTheChange" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.139"/>
+  <testcase name="eachSliderCoversEveryWholeValueOfItsRange" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.229"/>
+  <testcase name="navigationHeaderShowsDrivingSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.114"/>
+  <testcase name="ambientSensitivityReflectsState" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.137"/>
+  <testcase name="theRangesAreTheOnesTheSheetOffers" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.055"/>
+  <testcase name="overspeedSliderCanSelectZero" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.145"/>
+  <testcase name="sheetShowsMapStyleDropdownWithAllStyles" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.199"/>
+  <testcase name="anchorPickerOffersTheFiveByThreeGridWithCurrentMarked" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.187"/>
+  <testcase name="slidersAreReachableInFreeDrive" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.128"/>
+  <testcase name="slidersAreReachableInNavigation" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.136"/>
+  <testcase name="dropdownSelectionReportsStyle" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.163"/>
+  <testcase name="threeMaximumSpeedSlidersAreShown" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.2"/>
+  <testcase name="browseHeaderShowsBrowseAndBrowseSection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.272"/>
+  <testcase name="overspeedSliderReportsWholeKmhValues" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.171"/>
+  <testcase name="anchorPickerFreeDrivingReportsSelection" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.244"/>
+  <testcase name="ambientSensitivityRendersAndReports" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.186"/>
+  <testcase name="overspeedSliderShowsCurrentValue" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.183"/>
+  <testcase name="longPressTimeoutSliderShowsAndWritesTheValue" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.21"/>
+  <testcase name="sheetHasNoModeSwitchControl" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.141"/>
+  <testcase name="slidersAreReachableInBrowse" classname="com.naviveylin.ui.map.LocationOptionsOverlayComposeTest" time="0.193"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

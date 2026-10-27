@@ -187,6 +187,7 @@ LOOP_SHELL_CASES=(
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
   'run#mergesItsCommittedBranchBeforeClosing'
   'run#aMergedBranchIsRemoved'
+  'run#theEndSweepsTheLandedBranchesItMade'
   'run#theBaseAdvancesWithEveryMerge'
   'run#staleTestResultsAreNotThisChildsGate'
   'run#doesNotCloseOnAMergeTheBaseCannotTake'
@@ -488,6 +489,7 @@ loop_run_shell_case() {
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
     'run#mergesItsCommittedBranchBeforeClosing') fn=case_run_mergesItsCommittedBranchBeforeClosing ;;
     'run#aMergedBranchIsRemoved') fn=case_run_aMergedBranchIsRemoved ;;
+    'run#theEndSweepsTheLandedBranchesItMade') fn=case_run_theEndSweepsTheLandedBranchesItMade ;;
     'run#theBaseAdvancesWithEveryMerge') fn=case_run_theBaseAdvancesWithEveryMerge ;;
     'run#staleTestResultsAreNotThisChildsGate') fn=case_run_staleTestResultsAreNotThisChildsGate ;;
     'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
@@ -7031,6 +7033,52 @@ case_run_aMergedBranchIsRemoved() {
   # item still cuts its own branch from the base.
   head=$(git -C "$w" rev-parse --abbrev-ref HEAD 2>/dev/null)
   assert_eq "HEAD" "$head" "the worktree is not on the branch that was removed"
+}
+
+# The run's own end is where the branches it made go: an item's branch is released after its merge, and every
+# other branch the loop names is a leftover once its patches are in the base. The run asked nobody to run
+# `loop-clean` afterwards, so a `loop-*` branch that landed when the next run switched off it, and every branch a
+# manual landing left behind, stayed for ever (issue #239). The sweep is the run's, and it keeps what still
+# carries work, what a worktree holds, and the branch whose change a reviewer refused.
+case_run_theEndSweepsTheLandedBranchesItMade() {
+  # files: tools/loop/worktree.sh tools/loop/run.sh tools/loop/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  local p out
+  p=$(new_project)
+  # A branch whose patch is in the base: it was merged, so it carries nothing.
+  git -C "$p" switch -c fix/issue-1-landed >/dev/null 2>&1 || fail "could not create the landed branch"
+  printf 'the fix\n' > "$p/landed.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the landed one (#1)" >/dev/null 2>&1 || fail "could not commit the landed branch"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to main"
+  git -C "$p" merge --ff-only fix/issue-1-landed >/dev/null 2>&1 || fail "could not merge the landed branch"
+  # A branch that still carries work the base does not have.
+  git -C "$p" switch -c fix/issue-2-work >/dev/null 2>&1 || fail "could not create the work branch"
+  printf 'the work\n' > "$p/work.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the work (#2)" >/dev/null 2>&1 || fail "could not commit the work branch"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to main"
+  # A branch whose change a reviewer refused, landed by hand: the verdict is its owner's, so the branch stays.
+  git -C "$p" switch -c fix/issue-3-refused >/dev/null 2>&1 || fail "could not create the refused branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-refused/evidence"
+  printf 'the reviewer refused this change\n' > "$p/openspec/changes/archive/2026-01-01-fix-refused/evidence/review-failed-round-1.md"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the refused one (#3)" >/dev/null 2>&1 || fail "could not commit the refused branch"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to main"
+  git -C "$p" merge --ff-only fix/issue-3-refused >/dev/null 2>&1 || fail "could not merge the refused branch"
+
+  out=$(run_one_item "$p" "$(scratch)" 2>&1) || fail "the run failed: $out"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-1-landed >/dev/null 2>&1 &&
+    fail "the landed branch survived the run's own end"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-2-work >/dev/null ||
+    fail "the branch that carries work was removed"
+  git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-3-refused >/dev/null ||
+    fail "the branch whose change a reviewer refused was removed"
+  assert_contains "$out" "removed fix/issue-1-landed" "the landed branch is named as removed"
+  assert_contains "$out" "kept fix/issue-2-work" "the branch that carries work is kept"
+  assert_contains "$out" "kept fix/issue-3-refused" "the branch whose reviewer refused is kept"
+  assert_contains "$out" "landed branch(es) removed" "the run's end says what it swept"
+  [ -z "$(git -C "$p" branch --list 'loop-*' --format='%(refname:short)')" ] ||
+    fail "the run's own branch is a leftover once its work is in the base: $(git -C "$p" branch --list 'loop-*' --format='%(refname:short)') — output: $out"
 }
 
 # A branch the loop made is a leftover like any other: the one command that answers "what has the loop left

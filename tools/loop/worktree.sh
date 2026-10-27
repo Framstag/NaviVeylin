@@ -23,6 +23,7 @@
 #   worktree.sh branch-state <issue> <branch>
 #   worktree.sh merge-item <issue> <branch>
 #   worktree.sh release-branch <branch>
+#   worktree.sh prune-landed [--apply]
 #   worktree.sh record-review-round <issue> <change> <round> requested|passed
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
@@ -506,6 +507,122 @@ cmd_record_review_failure() { # <issue> <change> <round>
     "$(gitw rev-parse --short HEAD)"
 }
 
+# The base a sweep compares against: the base the run recorded, or the base branch when no state exists. It is
+# read here rather than passed by the caller because both the run's end and a person's `prune-landed` ask the same
+# question, and a sweep against a base that is not the one the tree lands on would delete the wrong refs.
+prune_base() {
+  local base
+  base=$(state_base 2>/dev/null) || base=""
+  [ -n "$base" ] || base=$(gitr rev-parse --verify --quiet "$(loop_base_ref)" 2>/dev/null) || return 1
+  printf '%s\n' "$base"
+}
+
+# The archived changes a branch adds, one directory name per line. The branch's own change is what the refusal for
+# a refused review reads, and what must be on the base before a branch can be called landed on that reading.
+branch_added_changes() { # <branch> <base> → one change name per line
+  local branch="$1" base="$2" merge_base
+  merge_base=$(gitr merge-base "$base" "$branch" 2>/dev/null) || return 0
+  gitr diff --name-only --diff-filter=A "$merge_base".."$branch" -- openspec/changes/archive 2>/dev/null |
+    awk -F/ 'NF > 3 { print $4 }' | sort -u
+}
+
+# A reviewer's refusal is its owner's verdict (#185), not a leftover: the branch stays even when its patch is in the
+# base. The marker is read from the change the branch's tip commit adds: `record-review-failure` writes it last, so
+# it is the tip's own diff even after a fast-forward put the branch in the base, where a diff against the base can
+# no longer say what the branch added.
+branch_carries_refused_review() { # <branch>
+  local branch="$1" issue subject change
+  case "$branch" in fix/issue-*) ;; *) return 1 ;; esac
+  issue=${branch#fix/issue-}
+  issue=${issue%%-*}
+  case "$issue" in ''|*[!0-9]*) return 1 ;; esac
+  subject=$(gitr log -1 --format=%s "$branch" 2>/dev/null)
+  case "$subject" in *"(#$issue)"*) ;; *) return 1 ;; esac
+  while IFS= read -r change; do
+    [ -n "$change" ] || continue
+    gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
+      grep -Eq 'review-failed-round-[0-9][0-9]*\.md$' && return 0
+  done <<< "$(gitr diff-tree --no-commit-id --name-only -r --diff-filter=A "$branch" -- openspec/changes/archive 2>/dev/null |
+    awk -F/ 'NF > 3 { print $4 }' | sort -u)"
+  return 1
+}
+
+# Landed by any reading that says the base already carries the work. The four readings are not one test written
+# four ways: ancestry sees a fast-forward; patch identity (`git cherry`) sees a branch the loop re-landed as a
+# fresh `fix: … (#N)` commit; identical content sees a branch whose net change is already there; and an archived
+# change the branch adds must be on the base, so a branch that adds a change the base does not hold is never read
+# as landed by one of the first three. The fourth is a veto as well as a reading, which is why it is checked first.
+branch_is_landed() { # <branch> <base> → 0 when the base carries every patch the branch has
+  local branch="$1" base="$2" merge_base paths change changes unlanded
+  changes=$(branch_added_changes "$branch" "$base")
+  while IFS= read -r change; do
+    [ -n "$change" ] || continue
+    gitr cat-file -e "$base:openspec/changes/archive/$change" 2>/dev/null || return 1
+  done <<< "$changes"
+  gitr merge-base --is-ancestor "$branch" "$base" 2>/dev/null && return 0
+  if unlanded=$(loop_unlanded_commits "$LOOP_ROOT" "$base" "$branch"); then
+    [ -n "$unlanded" ] || return 0
+  fi
+  merge_base=$(gitr merge-base "$base" "$branch" 2>/dev/null) || return 1
+  paths=$(gitr diff --name-only "$merge_base" "$branch" 2>/dev/null)
+  [ -n "$paths" ] || return 0
+  # shellcheck disable=SC2086 # the paths are the line-separated output of git, and this tree has no path with whitespace
+  gitr diff --quiet "$base" "$branch" -- $paths 2>/dev/null && return 0
+  return 1
+}
+
+# The ref sweep at the run's end, and the command a person can repeat. It is deliberately narrower than
+# `loop-clean.sh`: it touches refs only, never a tree, a scratch path or a process. `--apply` deletes exactly the
+# branches it named, and every refusal is a branch that stays.
+cmd_prune_landed() {
+  local apply=0 base held branch kept_work=0 kept_checked=0 kept_refused=0 removed=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --apply) apply=1; shift ;;
+      *) loop_die "prune-landed: unknown argument $1" ;;
+    esac
+  done
+  base=$(prune_base) || loop_die "prune-landed: no base to compare against — run 'state.sh init' or name the base branch"
+  held=$(loop_worktree_branches "$LOOP_ROOT" | tr '\n' ' ')
+  while IFS= read -r branch; do
+    [ -n "$branch" ] || continue
+    case " $held " in
+      *" $branch "*)
+        printf 'kept %s — checked out\n' "$branch"
+        kept_checked=$((kept_checked + 1))
+        continue ;;
+    esac
+    if branch_carries_refused_review "$branch"; then
+      printf 'kept %s — the reviewer refused it\n' "$branch"
+      kept_refused=$((kept_refused + 1))
+      continue
+    fi
+    if ! branch_is_landed "$branch" "$base"; then
+      printf 'kept %s — carries work the base does not have\n' "$branch"
+      kept_work=$((kept_work + 1))
+      continue
+    fi
+    if [ "$apply" -eq 1 ]; then
+      # The force is the price of patch identity: a branch whose work was re-landed as a different commit is not
+      # an ancestor of the base, and git's own guard would refuse a branch that carries nothing.
+      gitr branch -D "$branch" >/dev/null 2>&1 || { printf 'kept %s — could not be removed\n' "$branch"; kept_work=$((kept_work + 1)); continue; }
+      printf 'removed %s (its patches are in the base)\n' "$branch"
+    else
+      printf 'would remove %s (its patches are in the base)\n' "$branch"
+    fi
+    removed=$((removed + 1))
+  done <<< "$(loop_own_branches "$LOOP_ROOT")"
+  if [ "$removed" -eq 0 ] && [ "$kept_work" -eq 0 ] && [ "$kept_checked" -eq 0 ] && [ "$kept_refused" -eq 0 ]; then
+    printf 'worktree: no branch of the loop to prune\n'
+  elif [ "$apply" -eq 1 ]; then
+    printf 'worktree: %s landed branch(es) removed · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)\n' \
+      "$removed" "$kept_work" "$kept_checked" "$kept_refused"
+  else
+    printf 'worktree: would remove %s landed branch(es) · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)\n' \
+      "$removed" "$kept_work" "$kept_checked" "$kept_refused"
+  fi
+}
+
 # A branch the run committed for an item and merged is done with: the work is in the base, and the branch
 # itself is a leftover. Git refuses to delete a branch a worktree holds, and the kept worktree is on it — so
 # the worktree is released first (detached at the branch's own HEAD, which is where the work is) and the
@@ -578,10 +695,11 @@ case "$cmd" in
   branch-state) cmd_branch_state "$@" ;;
   merge-item) cmd_merge_item "$@" ;;
   release-branch) cmd_release_branch "$@" ;;
+  prune-landed) cmd_prune_landed "$@" ;;
   head) cmd_head "$@" ;;
   status) cmd_status "$@" ;;
   strip-scratch) cmd_strip_scratch "$@" ;;
   remove) cmd_remove "$@" ;;
-  ""|-h|--help) sed -n '2,28p' "$0" ;;
+  ""|-h|--help) sed -n '2,33p' "$0" ;;
   *) loop_die "unknown command '$cmd'" ;;
 esac

@@ -653,13 +653,15 @@ is another whole agent pass, 90 to 99 % of an item's wall clock being model late
 A branch the run made is a leftover once its work is in the base, and it goes when it goes: the run removes the
 branch it committed for an item and merged, releasing the kept worktree from it first (git refuses to delete a
 branch a worktree holds) and deleting it with git's own safe delete, which refuses a branch whose work is not
-in the base. The one command that answers "what has the loop left behind" (`tools/loop/loop-clean.sh`) removes
-the rest — the branches whose patches the base already holds, asked by **patch identity** (`git cherry`), never
-by ancestry, because the loop lands work as `fix: … (#N)` and a landed branch is not an ancestor of the base.
-A branch that still carries unlanded work is never removed by the tooling: it is named as work to land, and a
-branch a worktree holds is a tree in use. The report names the two kinds apart, so a flat list of branch names
-says which are leftovers. Measured 2026-10-22: 53 local branches, 43 of them already merged into the base and
-none of them removed by anything.
+in the base. The run's **end** sweeps the rest — every branch the loop names whose patches the base already
+holds, asked by **patch identity** (`git cherry`), never by ancestry alone, because the loop lands work as
+`fix: … (#N)` and a landed branch is not an ancestor of the base. The sweep also reads ancestry, identical
+content of the files the branch touched, and the branch's archived change on the base; it refuses a branch a
+worktree holds, a branch that still carries unlanded work, and a branch whose change carries
+`review-failed-round-*.md`, which is its owner's verdict (#185). It prints what it removed and why it kept the
+rest. The manual command that answers "what has the loop left behind" (`tools/loop/loop-clean.sh`) removes the
+same landed branches together with the scratch paths. Measured 2026-10-27 on the tree that carried #239: 28
+branches were leftovers, 12 of them `loop-*` run branches, and the run's end removed none of them.
 
 The report reads the scratch root its own invocation resolves **and** the root the kept worktree resolves, because a
 suite creates its trees under the root of the tree it runs in and the gate runs the suite inside the worktree. When

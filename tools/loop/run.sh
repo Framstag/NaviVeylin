@@ -322,6 +322,15 @@ end_run() {
     fi
     printf 'worktree kept for the next run: %s\n' "$worktree"
   fi
+  # The branches the loop made are the run's leftovers too, and the next reader should not have to run a command
+  # to learn which are dead refs (issue #239): the run sweeps the ones whose patches the base already holds. It
+  # runs after the worktree step, so `--clean-worktree` also releases the branch that tree held, and it is skipped
+  # for a dry run and for a run that ended before the pre-screen (a budget of zero items writes nothing, so it
+  # sweeps nothing either). A branch that still carries work, a branch a worktree holds, and a branch whose change
+  # a reviewer refused are the sweep's refusals, not its work.
+  if [ "$dry_run" -eq 0 ] && [ -n "${stage_dir:-}" ]; then
+    bash "$LOOP_DIR/worktree.sh" prune-landed --apply || true
+  fi
 }
 
 # ── the refusals that must happen before anything exists ────────────────────────────────────────

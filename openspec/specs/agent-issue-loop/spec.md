@@ -647,12 +647,13 @@ that accounts for it — the verdict and the clause of evidence that produced it
 machine-local and is replaced wholesale by the next run, so a state whose reason lives only there cannot be
 answered, re-checked or even understood by the item's reader (#192).
 
-#### Scenario: A skip verdict carries its reason
+#### Scenario: A hold verdict carries its reason
 
-- **WHEN** a worker skips an item and the run puts it on hold
+- **WHEN** a worker skips an item with a hold verdict — `unspecifiable`, `too-wide`, `not-spec-shaped` or
+  `needs-target` — and the run puts it on hold
 - **THEN** the item carries a comment naming the verdict and the one clause of evidence the worker gave, and no
   decision label is added for it
-- **Case**: `labels#holdCarriesItsReason`, `run#aSkipClearsTheInProgressMark`
+- **Case**: `labels#holdCarriesItsReason`
 
 #### Scenario: Nothing is written when the reason is missing
 
@@ -664,9 +665,11 @@ answered, re-checked or even understood by the item's reader (#192).
 ### Requirement: A hold is not a decision
 
 An item SHALL count as awaiting a decision only when it carries the decision label an escalation writes. The hold
-state has several writers — the worker's skip verdicts, the device verdict, the citation repair's park and a
-person's own hold — and none of them states a question, so a bare hold SHALL be reported as a hold, SHALL NOT be
-escalated, and SHALL NOT count against the decision cap (#193).
+state has several writers — the worker's hold verdicts (`unspecifiable`, `too-wide`, `not-spec-shaped`,
+`needs-target`), the device verdict, the citation repair's park and a person's own hold — and none of them states
+a question, so a bare hold SHALL be reported as a hold, SHALL NOT be escalated, and SHALL NOT count against the
+decision cap (#193). A `stale` skip SHALL write no bare hold: that verdict leaves a question, so the escalation
+writes the decision label beside the hold, as the requirement "A stale skip asks its own question" states.
 
 #### Scenario: A bare hold is reported for what it is
 
@@ -1092,8 +1095,9 @@ and calling it a decision.
 
 A skip SHALL distinguish an item whose premise the run disproved from the items it could not finish: the
 former is a finding the run holds the evidence for, and SHALL be closed with that evidence when closure is
-allowed; a falsification without a measurement SHALL be escalated as a question, and every other skip SHALL
-keep the state it writes today.
+allowed; a falsification without a measurement SHALL be escalated as a question, and a skip on a hold verdict
+(`unspecifiable`, `too-wide`, `not-spec-shaped`, `needs-target`) SHALL keep the bare hold it writes. A `stale`
+skip writes no such hold: it is escalated as the requirement "A stale skip asks its own question" states.
 
 #### Scenario: A measured falsification closes the item
 
@@ -1118,18 +1122,20 @@ keep the state it writes today.
   the item
 - **Case**: `run#falsificationWithAChangedTreeIsBlocked`
 
-#### Scenario: The four question-shaped skips are unchanged
+#### Scenario: The skips this change does not re-route are unchanged
 
-- **WHEN** an item is skipped because it is too large for one fix, is spec-shaped, needs a device, or needs
-  diagnosis
-- **THEN** it is held or escalated exactly as before this requirement existed, with its own verdict
-- **Case**: `run#aSkipClearsTheInProgressMark`, `prescreen#deviceItemIsAVerdictNotWork`
+- **WHEN** an item is skipped because it is too large for one fix, is not spec-shaped, names no target, needs a
+  device, or needs diagnosis
+- **THEN** each leaves the state it wrote before this change existed — the bare hold with its one comment for
+  the hold verdicts, `agent/needs-device` with the hold for the device verdict, and `agent/needs-decision` with
+  the hold for `needs-diagnosis` — and none of them is closed
+- **Case**: `labels#verdictToLabelMatrix`, `prescreen#deviceItemIsAVerdictNotWork`
 
 #### Scenario: The reviewer reads the claim, not only the diff
 
 - **WHEN** a falsification reaches the review round with an empty diff
-- **THEN** the review still happens, and a measurement that does not cover the blamed mechanism is a
-  blocking finding, which returns the item to the escalation path instead of closing it
+- **THEN** the review still happens on that empty diff, and an item whose tree no longer stands where the claim
+  said it stood is escalated instead of closed
 - **Case**: `run#falsificationWithAChangedTreeIsBlocked`
 
 ### Requirement: A blocked attempt's branch is kept under a name of the run's own, and its item is worked
@@ -2604,7 +2610,8 @@ still carry work, and SHALL print what it removed and what it kept.
 A skip whose verdict is `stale` — the item's claim no longer holds in the tree — SHALL be escalated, not parked
 on a bare hold: the run SHALL write the decision label and the hold together with one comment carrying the
 verdict's reason and the question a person answers, and SHALL NOT close the item, because a stale skip carries
-neither the measurement nor the review a falsification closure requires.
+neither the measurement nor the review a falsification closure requires. The label writer SHALL keep no `stale`
+verdict of its own: what it can still write as a hold SHALL be a verdict that states no question.
 
 #### Scenario: A stale skip leaves a question, not a bare hold
 
@@ -2619,3 +2626,9 @@ neither the measurement nor the review a falsification closure requires.
 - **WHEN** a stale skip's report carries a `LOOP-DECISION`
 - **THEN** that text is the escalation's decision field, unchanged, and the run states no choice of its own
 - **Case**: `run#staleSkipKeepsTheWorkersQuestion`
+
+#### Scenario: The label writer refuses the verdict the run no longer writes
+
+- **WHEN** the label writer is passed `stale` as a verdict of its own
+- **THEN** it stops as a usage error naming the verdict unknown, and writes nothing on the item
+- **Case**: `labels#verdictToLabelMatrix`

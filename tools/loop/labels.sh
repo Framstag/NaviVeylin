@@ -16,8 +16,8 @@
 #                                                of evidence — a state change nobody can read is the
 #                                                defect #192, so the reason travels with the hold)
 #   (the pre-screen no longer has `exclude-stale`: a citation the tree does not hold is reported and refuses
-#    nothing, #281. The `stale` row below is a different thing — the worker's own sub-verdict, which still
-#    parks the item it is passed for)
+#    nothing, #281. The worker's `stale` sub-verdict is not one of these holds any more either: a stale claim
+#    leaves a question, so the run escalates it and this writer has no `stale` verdict to write — issue #682)
 #   … and the improvement verdicts
 #   needs-device                            + agent/needs-device + status/on-hold
 #   needs-decision · needs-diagnosis        + agent/needs-decision + status/on-hold
@@ -125,7 +125,7 @@ case "$verdict" in
     close_issue=1
     ;;
   *)
-    loop_die "labels: unknown verdict '$verdict' — pick, unpick, escalate, close, stale, unspecifiable, too-wide, not-spec-shaped, needs-target, exclude-feature, exclude-settled, clear-stale, clear-feature, clear-settled, needs-device, needs-decision, needs-diagnosis"
+    loop_die "labels: unknown verdict '$verdict' — pick, unpick, escalate, close, unspecifiable, too-wide, not-spec-shaped, needs-target, exclude-feature, exclude-settled, clear-stale, clear-feature, clear-settled, needs-device, needs-decision, needs-diagnosis"
     ;;
 esac
 

@@ -2479,9 +2479,19 @@ case_labels_verdictToLabelMatrix() {
   check_labels unpick "" "agent/in-progress"
   check_labels unspecifiable "status/on-hold" "status/open"
   check_labels too-wide "status/on-hold" "status/open"
+  check_labels not-spec-shaped "status/on-hold" "status/open"
+  check_labels needs-target "status/on-hold" "status/open"
   check_labels needs-device "agent/needs-device status/on-hold" "status/open"
   check_labels needs-decision "agent/needs-decision status/on-hold" "status/open"
   check_labels needs-diagnosis "agent/needs-decision status/on-hold" "status/open"
+
+  # `stale` left the vocabulary with issue #682: the run escalates that skip instead of parking it, so the
+  # label writer must refuse it rather than write a hold nobody can answer — an unrefused verdict is a row
+  # that parks an item for good.
+  log="$d/gh-stale.log"; : > "$log"; export GH_STUB_RECORD="$log"
+  out=$(run_labels "$p" stale 21 --reason "the fixture cause" --evidence "the fixture evidence" 2>&1); status=$?
+  assert_eq "2" "$status" "a stale verdict is refused as unknown: $out"
+  assert_eq "0" "$(grep -c 'issue' "$log" || true)" "and the refusal writes nothing"
 
   log="$d/gh-close.log"; : > "$log"; export GH_STUB_RECORD="$log"
   run_labels "$p" close 21 --reason "the fixture cause" --evidence "the fixture evidence" >/dev/null 2>&1 ||

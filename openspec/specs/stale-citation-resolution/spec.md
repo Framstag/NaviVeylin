@@ -239,8 +239,8 @@ write the authorisation label.
 
 #### Scenario: A restore target that is not a settled state is refused
 
-- **WHEN** the run asks for the reversal and the profile declares `retiredStatus` outside its
-  `settledStatuses`
+- **WHEN** the run asks for the reversal, the profile declares the settled-record marker, and its
+  `retiredStatus` lies outside `settledStatuses`
 - **THEN** the run stops before it writes anything, naming both roles, so no item is reversed into a state the
   pre-screen would read as work
 - **Case**: `resolver#tombstoneRestoreNeedsASettledState`

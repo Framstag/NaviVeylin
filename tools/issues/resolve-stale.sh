@@ -184,7 +184,9 @@ records_settled_state() { # <body>
 # The reversal of a park this script wrote, in one write: the state the item returns to, the refusal label the
 # loop added beside it, and — when a repair landed in the same run — the body. `agent/eligible` is not written:
 # a reopened item is a candidate for the next pre-screen, not a queued one. The state is the settled one the
-# item's own record keeps when it keeps one, so a tombstone is not turned back into work (#681).
+# item's own record keeps when it keeps one, so a tombstone is not turned back into work (#681). The two
+# outcomes are reported apart (#681): a restored item is not also a reopen into the queue, so the per-item
+# record carries one of the pair, from the same branch that picks the counters.
 reopen_item() { # <body-file-or-empty> <repair-list>
   local file="$1" note="$2" text state
   state="$open_status"
@@ -194,8 +196,8 @@ reopen_item() { # <body-file-or-empty> <repair-list>
     did_restore=1
   else
     reopened=$((reopened + 1))
+    did_reopen=1
   fi
-  did_reopen=1
   [ "$apply" -eq 1 ] || return 0
   if [ "$state" = "$open_status" ]; then
     text="citations resolve again — the park this tool wrote is reversed:
@@ -330,8 +332,9 @@ $body")
   if [ -z "$suffix_toks" ] && [ -z "$absent_toks" ] && [ "$reopening" -eq 1 ]; then
     due=$((due + 1))
     reopen_item "" ""
-    printf '{"issue": %s, "repaired": false, "parked": false, "stillParked": false, "reopened": true, "restored": %s, "ambiguous": 0, "suffix": 0, "absent": 0, "repairs": "", "unresolved": ""}\n' \
-      "$number" "$([ "$did_restore" -eq 1 ] && printf true || printf false)" >> "$report"
+    printf '{"issue": %s, "repaired": false, "parked": false, "stillParked": false, "reopened": %s, "restored": %s, "ambiguous": 0, "suffix": 0, "absent": 0, "repairs": "", "unresolved": ""}\n' \
+      "$number" "$([ "$did_reopen" -eq 1 ] && printf true || printf false)" \
+      "$([ "$did_restore" -eq 1 ] && printf true || printf false)" >> "$report"
     continue
   fi
 

@@ -1,0 +1,30 @@
+# The measurement block, quoted
+
+`./tools/loop/measure.sh`, from the change root, at the three points the block moved. Every line below is its
+output; none is re-derived here.
+
+## While the change was open, before the gate
+
+```
+LOOP-MEASURE-CHANGE 2026-10-27-fix-stale-skip-asks-its-question scenarios=7 cases=7 unnamed=0
+LOOP-MEASURE-SUITE cases=256 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+```
+
+## After the one gate run, with the change archived
+
+```
+LOOP-MEASURE-SUITE cases=256 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=1155 suites=24
+```
+
+The change's seven scenarios are the two added ones and the five the delta republishes from the falsification
+requirement; each names exactly one case (`unnamed=0`).
+
+## The pathspec the gate was run on
+
+The block's first line is `LOOP-MEASURE base=6f61cffe4f82e91c38349f5a6787c28011466387 paths=367
+insertions=43875 deletions=79` — the loop's recorded base, which is an ancestor of this item's own base
+(`851757a012ba3eeed36ed170831cfa8e797166a1`) and carries 367 paths of earlier landings. That is why the gate ran
+the compiled step although this change touches no compiled file, and why its single error sits in an `app/src`
+test class this change never touches. The attribution and both numbers are in `gate.md`.

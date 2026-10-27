@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#staleSkipAsksItsQuestion (on HEAD, and again on the guard-only mutation)" tests="1" failures="1" errors="0" timestamp="2026-10-27T19:38:00Z">
+  <testcase name="run#staleSkipAsksItsQuestion" classname="run" time="0">
+    <failure message="a stale skip leaves a decision, not a bare hold nobody can answer">FAIL run#staleSkipAsksItsQuestion
+  a stale skip leaves a decision, not a bare hold nobody can answer: '--add-label agent/needs-decision' not found in: gh issue edit 21 --add-label agent/in-progress
+gh issue edit 21 --remove-label agent/in-progress
+gh issue edit 21 --add-label status/on-hold --remove-label status/open
+gh issue comment 21 --body $'the cited guard is already in the tree\n\nEvidence: ..., branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e, red test: none — the claim no longer holds on HEAD'</failure>
+  </testcase>
+  <system-out>Two runs, one number. (1) On HEAD before the fix, 2026-10-27T19:36:18Z: `tools/loop-selftest.sh --case run#staleSkipAsksItsQuestion` printed the FAIL line above and `loop-selftest: 1 of 1 cases failed` — the stale skip writes the hold and one comment and no decision label. (2) `bash tools/loop-mutations.sh --only 21.3`, 2026-10-27T19:38:00Z: the same case against the single mutated guard (the `stale` clause removed from run.sh's escalation condition) printed the same FAIL line, and the restore was green again — `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0`, quoted in full in revert-check.txt. tests/failures are counted from the FAIL lines, the way tools/loop/gate.sh derives its per-suite tally.</system-out>
+</testsuite>

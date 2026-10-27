@@ -26,9 +26,10 @@
 
 ## 3. The clock cut (`agent-issue-loop` — "A child the run ended itself leaves no commit")
 
-- [x] 3.1 `tools/loop/run.sh`: read `LOOP-DEADLINE` from the item's worker and round-2 worker transcripts; an item
-      cut by the deadline is recorded blocked with no escalation (`escalatedLabel` empty) and its leftover patch
-      in the note. Verify: `run#childIsEndedAtTheRunsDeadline` passes.
+- [x] 3.1 `tools/loop/run.sh`: read `LOOP-DEADLINE` from the item's worker, the round-2 worker *and the round's
+      reviewer* (task 7.1); an item cut by the deadline is recorded blocked with no escalation (`escalatedLabel`
+      empty) and its leftover patch in the note. Verify: `run#childIsEndedAtTheRunsDeadline` and
+      `run#reviewerEndedAtTheRunsDeadlineIsNotADecision` pass.
 - [x] 3.2 `tools/loop/state.sh` `done --leftover PATH` records the patch on the item; `tools/loop/report.sh`
       prints `recover #<issue> — … kept at <path>` in its action list (and the "none" text names the sixth
       source). Verify: `run#treeOfACapEndedChildIsKeptAsAPatch` passes.
@@ -56,11 +57,50 @@
 ## 6. The suite and the gate
 
 - [x] 6.1 The cases the change's files declare pass: `tools/loop-selftest.sh --from-git <base>`. Verify:
-      `evidence/focused-suite.log` and the tallies beside it.
-- [x] 6.2 The gate once: `./tools/loop/gate.sh`. Verify: `evidence/gate.log` and `evidence/gate-tallies/`. Its
-      loop-suite step is green (247 cases); its compiled step was selected by the stale default base
-      (`origin/main`), not by this delta, and failed on a network-dependent test that passes alone — recorded
-      and attributed in `evidence/gate-attribution.md`, not re-run.
-- [x] 6.3 No compiled file is touched, so the profile's compiled step owes nothing and is not run: the structural
-      checks above are the build task this change owes (`guidelines/Build.md` §2, the scope block).
-- [x] 6.4 `bash tools/loop/evidence-check.sh openspec/changes/<change> --root .` resolves every pointer.
+      `evidence/focused-suite.log` and the tallies beside it. This round: the groups whose cases the delta touches
+      ran green before the gate — `state` (19), `report` (16) and `run` (92) — plus the new case alone and the
+      adapter isolation case, and `tools/loop-mutations-selftest.sh` (34).
+- [ ] 6.2 The gate once: `./tools/loop/gate.sh`. **Red as it ran**, and it is quoted as it ran: its loop-suite step
+      is `tests=248 failures=1 errors=0` (554 s) — the one failure is `mutation#everyDeclaredRecordApplies`,
+      reporting `MUTATION-PATTERN-STALE 31.1 tools/loop/run.sh` — and its own `tools/loop-mutations.sh --check`
+      step is `errors=1` for the same record. Root cause, and it is this round's: the edit that put
+      `[ -z "$reviewer_deadline" ]` in front of the cut-short retry moved the line record `31.1` quotes. The
+      record is re-pointed **after** the run and verified (`--check --only 31.1`: “all 1 cases passed”), and the
+      gate was not re-run — the rule is one run per item, and a second attempt is not this round's to make. The
+      item is therefore `blocked` for a clean tally; the transcript is `evidence/gate.log` and
+      `evidence/gate-tallies/`. The compiled step was selected **and passed** this run (`./gradlew test
+      -PforceTests -PjvmTestsOnly --no-build-cache`, 321 s, `tests=0 failures=0 errors=0` — Gradle's own tally line
+      reports the step, not its cases), so round 1's network residual did not recur and is kept only as
+      `evidence/gate-attribution.md`.
+- [x] 6.3 No compiled file is touched, so the profile's compiled step owes nothing: the structural checks above are
+      the build task this change owes (`guidelines/Build.md` §2, the scope block). The gate's own scope selected the
+      compiled step against its base anyway, and it passed — 6.2 has the line.
+- [x] 6.4 `bash tools/loop/evidence-check.sh openspec/changes/<change> --root .` passes (`evidence-check: PASS`):
+      every tally, `/tmp` pointer and `§N` resolves, and its `C5` line reports **no** unresolved or ambiguous
+      `file:line` (`618 resolved and in range, 0 unresolved or ambiguous` on the shipped tree) — round 1's one
+      dangling pointer cited `run.sh` by its bare basename; it now names the file it lives in. `C4` scans the
+      project's configured path only (`app/src`), so the
+      restore of the files this change mutates is recorded apart, in `evidence/restore-clean.log`.
+
+## 7. The reviewer the deadline cut, and the pass after it (round 1's review)
+
+- [x] 7.1 Red case `run#reviewerEndedAtTheRunsDeadlineIsNotADecision` in `tools/loop-cases.sh`: the reviewer
+      blocks on a fifo, the run's recorded deadline is moved past while it waits, and the case asserts the
+      transcript's `LOOP-DEADLINE` line, no retry, no rework worker, no decision label and the report's `none`.
+      Verify: red on the round-1 tree with the reviewer's `LOOP-DEADLINE` read removed —
+      `evidence/red-on-base-reviewer-deadline.xml` (`tests=1 failures=1`): `the cut round was read as a refusal
+      and bought a rework worker`.
+- [x] 7.2 `tools/loop/run.sh`: read `LOOP-DEADLINE` from `reviewer-report-$round.md` (and from the retry's report),
+      skip the cut-short retry once the clock ended the round, and break the round as `deadline` — blocked, no
+      escalation, no failed-review marker. Verify: 7.1 green; `run#childIsEndedAtTheRunsDeadline` still green.
+- [x] 7.3 `tools/loop/run.sh`: no second pre-screen pass once the deadline has ended a child (`deadline_cut`), so
+      the pass cannot exclude the item whose branch the cut run had just made and make the report name a decision
+      for it. Verify: 7.1's `decisions the owner owes: none` assertion is red when the guard is mutated
+      (`68.5`), green as shipped.
+- [x] 7.4 The delta's reviewer scenario, the queue-pass sentence and the action list's leftover source; the shipped
+      `agent-issue-loop` spec carries the same text. Verify: `tools/check-openspec-hygiene.sh` and
+      `tools/loop-selftest.sh --case 'run#reviewerEndedAtTheRunsDeadlineIsNotADecision'`.
+- [x] 7.5 Revert-check records `68.4` (the reviewer's `LOOP-DEADLINE` read), `68.5` (the queue-pass guard) and
+      `68.6` (the escalation a cap-ended item still owes, which round 1's review read as unasserted).
+      Verify: `evidence/mutations.log` — each record RED with the failing assertion and its timestamp, restored
+      green — and `evidence/mutations-check.log`.

@@ -1,10 +1,49 @@
-loop-mutations: selected 3 of 191 records (labels: 68.1 68.2 68.3)
-loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.YdeM0e
 RED    68.1  state#floorIsDerivedFromTheFinishedItemsWallTimes   (the floor following the cheapest measured item rather than the most expensive one (issue #674))
 restore 68.1 state#floorIsDerivedFromTheFinishedItemsWallTimes green again
 RED    68.2  run#childIsEndedAtTheRunsDeadline   (the guard that leaves an item the run's own deadline cut for the next run instead of escalating it (issue #674))
 restore 68.2 run#childIsEndedAtTheRunsDeadline green again
 RED    68.3  run#treeOfACapEndedChildIsKeptAsAPatch   (the patch path the item's record carries, so the report can name the work an ended child left (issue #674))
 restore 68.3 run#treeOfACapEndedChildIsKeptAsAPatch green again
+RED    68.4  run#reviewerEndedAtTheRunsDeadlineIsNotADecision   (the reviewer's own `LOOP-DEADLINE` read, so a round the run's clock ended is read as a refusal and buys a rework worker (issue #674))
+restore 68.4 run#reviewerEndedAtTheRunsDeadlineIsNotADecision green again
+RED    68.5  run#reviewerEndedAtTheRunsDeadlineIsNotADecision   (the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674))
+restore 68.5 run#reviewerEndedAtTheRunsDeadlineIsNotADecision green again
 
-red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+red-when-mutated: 5 · not-noticed: 0 · restore-failures: 0
+RED    68.1  state#floorIsDerivedFromTheFinishedItemsWallTimes   (the floor following the cheapest measured item rather than the most expensive one (issue #674))
+       2026-10-27T07:48:51Z — a cheap item among expensive ones admits the tail: expected '0', got '3'
+restore 68.1 state#floorIsDerivedFromTheFinishedItemsWallTimes green again
+RED    68.2  run#childIsEndedAtTheRunsDeadline   (the guard that leaves an item the run's own deadline cut for the next run instead of escalating it (issue #674))
+       2026-10-27T07:49:07Z — an item the run's own deadline cut is not escalated as a decision: expected '', got 'agent/needs-decision'
+restore 68.2 run#childIsEndedAtTheRunsDeadline green again
+RED    68.3  run#treeOfACapEndedChildIsKeptAsAPatch   (the patch path the item's record carries, so the report can name the work an ended child left (issue #674))
+       2026-10-27T07:49:28Z — the item's state record names the patch the ended child's work is kept in: expected '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.uDsTkf/cases/0/tree/case.1cD5dY/repo/.pi/issue-loop/items/21/leftover-from-killed-ru
+restore 68.3 run#treeOfACapEndedChildIsKeptAsAPatch green again
+RED    68.4  run#reviewerEndedAtTheRunsDeadlineIsNotADecision   (the reviewer's own `LOOP-DEADLINE` read, so a round the run's clock ended is read as a refusal and buys a rework worker (issue #674))
+       2026-10-27T07:49:53Z — the cut round was read as a refusal and bought a rework worker
+restore 68.4 run#reviewerEndedAtTheRunsDeadlineIsNotADecision green again
+RED    68.5  run#reviewerEndedAtTheRunsDeadlineIsNotADecision   (the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674))
+       2026-10-27T07:50:16Z — and the report asks the owner no question about the item cut at the deadline: 'decisions the owner owes: none' not found in: agent-issue-loop: items=3 minutes=90 review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-re
+restore 68.5 run#reviewerEndedAtTheRunsDeadlineIsNotADecision green again
+
+red-when-mutated: 5 · not-noticed: 0 · restore-failures: 0
+RED    68.1  state#floorIsDerivedFromTheFinishedItemsWallTimes   (the floor following the cheapest measured item rather than the most expensive one (issue #674))
+       2026-10-27T08:01:20Z — a cheap item among expensive ones admits the tail: expected '0', got '3'
+restore 68.1 state#floorIsDerivedFromTheFinishedItemsWallTimes green again
+RED    68.2  run#childIsEndedAtTheRunsDeadline   (the guard that leaves an item the run's own deadline cut for the next run instead of escalating it (issue #674))
+       2026-10-27T08:01:37Z — an item the run's own deadline cut is not escalated as a decision: expected '', got 'agent/needs-decision'
+restore 68.2 run#childIsEndedAtTheRunsDeadline green again
+RED    68.3  run#treeOfACapEndedChildIsKeptAsAPatch   (the patch path the item's record carries, so the report can name the work an ended child left (issue #674))
+       2026-10-27T08:02:01Z — the item's state record names the patch the ended child's work is kept in: expected '/home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.xZdulx/cases/0/tree/case.U3DgY7/repo/.pi/issue-loop/items/21/leftover-from-killed-ru
+restore 68.3 run#treeOfACapEndedChildIsKeptAsAPatch green again
+RED    68.4  run#reviewerEndedAtTheRunsDeadlineIsNotADecision   (the reviewer's own `LOOP-DEADLINE` read, so a round the run's clock ended is read as a refusal and buys a rework worker (issue #674))
+       2026-10-27T08:02:28Z — the cut round was read as a refusal and bought a rework worker
+restore 68.4 run#reviewerEndedAtTheRunsDeadlineIsNotADecision green again
+RED    68.5  run#reviewerEndedAtTheRunsDeadlineIsNotADecision   (the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674))
+       2026-10-27T08:02:54Z — and the report asks the owner no question about the item cut at the deadline: 'decisions the owner owes: none' not found in: agent-issue-loop: items=3 minutes=90 review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-re
+restore 68.5 run#reviewerEndedAtTheRunsDeadlineIsNotADecision green again
+RED    68.6  run#childOutlastingTheWallClockIsBlocked   (the escalation a cap-ended item still owes, so a cap the item's own clock hit is silent as well (issue #674))
+       2026-10-27T08:03:19Z — and an item its own child's wall-clock cap ended is still escalated as a decision: expected 'agent/needs-decision', got ''
+restore 68.6 run#childOutlastingTheWallClockIsBlocked green again
+
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0

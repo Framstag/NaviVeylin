@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/issues/check-metadata.sh" tests="0" failures="0" errors="0" time="1">
+<testsuite name="tools/issues/check-metadata.sh" tests="0" failures="0" errors="0" time="2">
   <system-out>check-metadata: 0 issue(s) checked · 0 violation(s)</system-out>
 </testsuite>

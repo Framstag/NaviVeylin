@@ -1,8 +1,6 @@
 The gate ran once, on the tree this change left, and it is red on one step the change does not touch.
 
-`LOOP-GATE: tests=706 failures=0 errors=1 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 297s,
-tools/loop-selftest.sh --from-git 4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46 527s, bash tools/loop-mutations.sh
---check 1s, … ) — failing: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache`
+Round 1's own gate line, quoted for the record — `LOOP-GATE: tests=706 failures=0 errors=1 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 297s, tools/loop-selftest.sh --from-git 4a4b3a95… 527s, bash tools/loop-mutations.sh --check 1s, … ) — failing: ./gradlew test` — not retained: it was round 1's gate, and its aggregate `gate-summary.xml` was removed with this round's gate, whose own `LOOP-GATE` line in `evidence/gate.log` is the record a reader should quote.
 
 What each half is:
 
@@ -28,3 +26,12 @@ What each half is:
 - **The gate was not re-run** (`guidelines/`/worker contract: the gate is evidence, not a thing to retry). The
   red line above is quoted as it was printed; the change's own red and green tallies are
   `evidence/red-on-base-*.xml` and `evidence/green-on-change-suite.xml`.
+
+## Round 2 (2026-10-27T08:2xZ): the compiled step passed
+
+This round's gate selected the same compiled step (`./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache`,
+321 s) and it **passed** — `evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml`
+carries `tests="0" failures="0" errors="0"` (Gradle's tally line reports the step, not its cases). Round 1's
+network residual therefore did not recur, and the hand-written `gate-summary.xml` that aggregated round 1's tallies
+was removed with it: `evidence/gate.log`'s own `LOOP-GATE` line is this run's summary, and a file that quoted the
+old run beside the new one is a number a reader cannot tell from a measurement (issue #244).

@@ -119,12 +119,13 @@ the loop lands an item's work as a commit of its own, so a branch whose patches 
 nothing to land (issue #228).
 
 - **WHEN** a run ends holding a decision it escalated, a branch that carries a patch the run's base does not
-  have, a kept worktree, an item whose gate never completed, or a citation the pre-screen refused
+  have, a kept worktree, an item whose gate never completed, a citation the pre-screen refused, or the work an
+  ended child left as a patch
 - **THEN** the report prints one named action for each: the decision with the question the run wrote beside
   it — or, where the state does not hold that text, where the question is (`gh issue view <n>`) rather than an
   invented one — the branch with the patches it carries and the item that owns it, the kept worktree with its
-  path, the item's transcript for the gate that never completed, and the repair command for the refused
-  citation
+  path, the item's transcript for the gate that never completed, the repair command for the refused
+  citation, and the recovery line naming the patch an ended child's work was kept in (issue #674)
 - **Case**: `report#actionsNameDecisionAndBranch`
 
 #### Scenario: A branch whose patches are in the base is not an action
@@ -137,8 +138,8 @@ nothing to land (issue #228).
 
 #### Scenario: An action list is empty only when the state says so
 
-- **WHEN** no decision, no branch carrying an unlanded patch, no kept worktree, no incomplete gate and no
-  refused citation is recorded — or when the state names any one of them
+- **WHEN** no decision, no branch carrying an unlanded patch, no kept worktree, no incomplete gate, no refused
+  citation and no leftover patch is recorded — or when the state names any one of them
 - **THEN** the report prints the action list heading with `none` and what that covers in the first case, and
   never prints `none` in the second, so an empty list cannot hide a branch that carries work
 - **Case**: `report#emptyRunSaysNone`
@@ -228,7 +229,10 @@ can point a caller at the work an ended child left (issue #674).
 
 An item whose child was ended by the **run's own deadline** SHALL NOT be escalated as a decision about the item:
 the clock that cut it is the run's budget, not a finding, so no decision label is written for it and the item is
-left for the next run. A child the item's own wall-clock cap ended is unchanged and is escalated.
+left for the next run. That holds for every child an item starts — its worker, the rework worker a refusing round
+starts, and the reviewer of a review round — and the run SHALL take no further pass over the queue once the
+deadline has ended one, because a pass that admitted work the spent budget cannot pay would name a decision about
+the item the clock cut. A child the item's own wall-clock cap ended is unchanged and is escalated.
 
 #### Scenario: A worker the cap ends leaves the branch at the base
 
@@ -263,3 +267,16 @@ left for the next run. A child the item's own wall-clock cap ended is unchanged 
   tree uncommitted, no decision label is written for it, and the report's decision list does not hold it — the
   item is left for the next run
 - **Case**: `run#childIsEndedAtTheRunsDeadline`
+
+#### Scenario: A reviewer the run's deadline cut is not a refusal
+
+The deadline is consulted while a child runs, and a reviewer is a child: its transcript carried the same
+`LOOP-DEADLINE` line as the worker's, and no part of the run read it — so a round the clock ended was read as one
+the reviewer never answered, which bought a retry and then a rework worker for a change nobody refused, and the
+item was escalated with the other blocks.
+
+- **WHEN** the run's deadline passes while the reviewer of a review round is running, and the run ends that child
+- **THEN** the round is recorded as cut rather than refused — the transcript's `LOOP-DEADLINE` line is read, no
+  retry and no rework worker is started for it, and the item is recorded `blocked` with no decision label and no
+  entry in the report's decision list, exactly as the item whose worker the same clock ended
+- **Case**: `run#reviewerEndedAtTheRunsDeadlineIsNotADecision`

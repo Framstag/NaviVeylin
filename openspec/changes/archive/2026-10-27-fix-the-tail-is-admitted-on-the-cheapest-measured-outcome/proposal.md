@@ -22,6 +22,12 @@ work it left must survive the run that cut it.
 | `state#floorIsDerivedFromTheFinishedItemsWallTimes` | `tests=1 failures=1` | `only 27 min left, below the 90 min floor … (median 60 min …)` — a cheap tail is refused |
 | `run#childIsEndedAtTheRunsDeadline` | `tests=1 failures=1` | `expected '', got 'agent/needs-decision'` — the deadline's item is escalated |
 | `run#treeOfACapEndedChildIsKeptAsAPatch` | `tests=1 failures=1` | the state's item record carries no `leftover` — the patch exists only in the transcript |
+| `run#reviewerEndedAtTheRunsDeadlineIsNotADecision` (round 1's review) | `tests=1 failures=1` | `the cut round was read as a refusal and bought a rework worker` — nothing read the reviewer's `LOOP-DEADLINE` |
+
+surface: 1 case added, 4 rewritten or extended, 1 adapter case realigned — `bash tools/loop-selftest.sh --list`
+(247 cases before round 1's review, 248 after it; the four are `state#floorIsDerivedFromTheFinishedItemsWallTimes`,
+`run#childIsEndedAtTheRunsDeadline`, `run#treeOfACapEndedChildIsKeptAsAPatch` and the
+`adapter#theChildIsStartedWithTheResultBound` isolation, measured with `grep -l` over `tools/loop-cases.sh`).
 
 **Owning requirement.** `agent-issue-loop` — "The floor the run refuses by is what its own items cost", "Both clocks
 a run refuses by hold what one item's gate owes", and "A child the run ended itself leaves no commit".
@@ -35,18 +41,21 @@ and "What bounds it".
    records a wall time, the floor is that item's minutes × the 1.5 spread, rounded up to the whole minute, with no
    lower bound against `LOOP_ITEM_FLOOR_MINUTES`. The configured minimum is the floor only for a run with no
    measurement. The refusal names the cheapest wall time, the count and the configured minimum.
-2. **`tools/loop/run.sh` — a clock-cut item is not a question.** An item whose worker (or rework worker) was ended
-   by the run's own deadline carries `LOOP-DEADLINE` in its transcript. It is still recorded `blocked`, with its
-   tree uncommitted and the `LOOP-TIMEOUT` line as its reason, but the run writes no decision label for it: it is
-   left for the next run, not escalated. A cap-ended child is unchanged — that item did ask a question.
+2. **`tools/loop/run.sh` — a clock-cut item is not a question.** An item whose worker, rework worker **or review
+   round's reviewer** was ended by the run's own deadline carries `LOOP-DEADLINE` in its transcript. It is still
+   recorded `blocked`, with its tree uncommitted and the `LOOP-TIMEOUT` line as its reason, but the run writes no
+   decision label for it: it is left for the next run, not escalated. A round the clock ended is cut rather than
+   refused, so no retry and no rework worker is started for it, and no second pre-screen pass runs after the
+   deadline — the pass would exclude the item whose branch the cut run had just made and name a decision for it.
+   A cap-ended child is unchanged — that item did ask a question.
 3. **`tools/loop/state.sh` + `tools/loop/report.sh` — the leftover is a persisted record.** `done --leftover <path>`
    writes the patch an ended child's work is kept in into the item's state record, and the report's action list
    prints `recover #<issue> — the run's clock ended it; the work it left is kept at <path>`.
 4. **`tools/loop/loop.conf` and `guidelines/Backlog.md` §7** carry the new derivation and the accepted exposure
    instead of the constant's accepted cost.
 5. **`tools/loop-cases.sh`** rewrites the derivation case (cheapest, cheap tail admitted, the #663 reversal), adds
-   the clock-cut assertions, and the leftover assertions. `tools/loop-mutations.sh` gains three records and
-   re-points the four blocked-path records at the re-indented escalation block. The adapter case's "started by
+   the clock-cut assertions (worker **and reviewer**), and the leftover assertions. `tools/loop-mutations.sh` gains
+   five records and re-points the four blocked-path records at the re-indented escalation block. The adapter case's "started by
    hand" invocation unsets `LOOP_TOOL_RESULT_TRIM_RECORD` with the event stream it is derived from: a worker's
    environment carries it now, and the gate selects that case because this change edits `tools/loop-cases.sh`
    (test isolation only — no production behaviour moves).

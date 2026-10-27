@@ -174,7 +174,7 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   and navigation-state publication on the main dispatcher so surface collectors
   stay main-confined. `stopNavigation()` is its release point: it stops the native
   controller, resets the reroute gate and stale-speed state, clears the position
-  flow and releases the location lease.
+  flow, releases the location lease and stops the current voice utterance.
 - **MUST**: the engine's scope carries **its own fault handler**
   (`engineFaultHandler`, change `fix-navigation-engine-fault-isolation`): a fault in
   any engine coroutine — the stale-speed ticker, route acquisition, the location

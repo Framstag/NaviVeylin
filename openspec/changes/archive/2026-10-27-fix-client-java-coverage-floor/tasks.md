@@ -40,14 +40,53 @@ gate runs once at the end and is not a retry.
 
 6. **Check the cited coordinates mechanically.**
    `bash tools/loop/evidence-check.sh openspec/changes/<this change> --root .`
-   Verification: no dangling `file:line`, `tests=`, `/tmp` pointer or `§N`.
+   Verification: no dangling `file:line`, `tests=`, `/tmp` pointer or `§N`; the run's output is retained as
+   `evidence/evidence-check.log`.
 
 7. **Run the project's gate once.**
    `./tools/loop/gate.sh`
-   Verification: one `LOOP-GATE: tests=703 failures=1 errors=0` line — the compiled step green (251 s, this
-   change's module suite included) and one failing case that is the previous landing's, not this delta's:
-   `adapter#theChildIsStartedWithTheResultBound` fails because a loop child carries
-   `LOOP_TOOL_RESULT_TRIM_RECORD` in its environment and that case unsets only `LOOP_CHILD_EVENTS`
-   (`tools/loop-cases.sh:6668`). Attributed, reproduced alone (`1 of 1 cases failed`) and re-run as a suite
-   for the attribution only (`1 of 247`, the same case): `evidence/gate-attribution.md`,
-   `evidence/gate-loop-selftest-tally.xml`. No second gate run.
+   Verification (round 1, before the corrections): one `LOOP-GATE: tests=703 failures=1 errors=0` line —
+   the compiled step green (251 s, this change's module suite included) and one failing case that was the
+   previous landing's, not this delta's: `adapter#theChildIsStartedWithTheResultBound` failed because a loop
+   child carried `LOOP_TOOL_RESULT_TRIM_RECORD` in its environment and the case unset only
+   `LOOP_CHILD_EVENTS` (`tools/loop-cases.sh:6668`). Attributed and reproduced alone (`1 of 1 cases failed`,
+   the same case in the suite: `1 of 247`): `evidence/gate-attribution.md`, `evidence/selftest-rerun.log`.
+
+## Corrections after review round 1
+
+The review refused the change with three blocking findings (the report is quoted in
+`review-round-1-requested.md`; `items/320/reviewer-report-1.md` is the same report). Each is answered here and
+none of them adds a claim to the change.
+
+8. **Narrow each delta scenario to what its named case asserts.** Six scenarios' THENs carried conjuncts
+   whose only support was a sibling case the scenario did not name. The shipped requirement
+   (`openspec/specs/test-coverage/spec.md`, the delta merged) now states, per scenario, exactly the
+   assertions the named case makes — e.g. "A downloaded basemap is installed" no longer claims the
+   wrapped-archive flattening that `testDownloadOfAWrappedArchiveFlattensTheSubdirectory` alone asserts.
+   Verification: each of the nine scenarios names one case, and the six narrowed THENs name only what that
+   case asserts (`openspec validate test-coverage --strict`, `tools/check-openspec-hygiene.sh` in the gate).
+
+9. **State the requirement's contract, not the tools that measure it.** The body named
+   `tools/build-inputs.sh`, `tools/sensors/sensors.json` and `tools/sensors/metrics/coverage.sh` and ran to
+   851 characters, against the 500-character limit the shipped `documentation-ownership` requirement
+   states. It now reads 419 characters and states the invariant only; the arithmetic stays documented where
+   it already lives (`guidelines/Build.md`, "Code coverage").
+   Verification: `openspec/specs/test-coverage/spec.md`, requirement "The pure-Java module's suite covers the
+   classes it ships" — body 419 characters, its scenarios excluded.
+
+10. **Unset the trim record beside the stream in the hand-started child case.**
+    `tools/loop-cases.sh`: `env -u LOOP_CHILD_EVENTS -u LOOP_TOOL_RESULT_TRIM_RECORD …`, so the case measures
+    the adapter's silence rather than the record path the run exports into every child.
+    Verification: the gate's own loop suite, `evidence/gate/tools_loop-selftest.sh_--from-git_4a4b3a95….xml`
+    (`tests="247" failures="0"`), where round 1 had `1 of 247` fail.
+
+11. **Re-run the project's gate once, after the corrections.**
+    `./tools/loop/gate.sh`
+    Verification: `LOOP-GATE: tests=703 failures=0 errors=0` (`evidence/gate-summary.log`, sum in
+    `evidence/gate-summary.xml`; the compiled step 248 s). No second run.
+
+12. **Carry the module's per-case results into the change.** The 21 `TEST-*.xml` the gate's compiled step
+    wrote are copied to `evidence/module-test-results/` and the tally `evidence/module-suite-tally.txt` is
+    derived from them, so the `106` cases, `0` failures and their timestamps survive the build directory.
+    Verification: `grep -h '<testsuite ' evidence/module-test-results/*.xml` sums to `tests="106"
+    failures="0"` over 21 files.

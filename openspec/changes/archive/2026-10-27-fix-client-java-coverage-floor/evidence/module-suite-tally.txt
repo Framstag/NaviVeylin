@@ -1,3 +1,7 @@
+# The module’s per-class tallies, read from module-test-results/TEST-*.xml with `grep -h '<testsuite ' module-test-results/*.xml`,
+# written by the gate’s compiled step `./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache`
+# (timestamp 2026-10-27T01:53:45.979Z–01:53:47.101Z, 248 s in the gate, LOOP-GATE tests=703 failures=0).
+# 21 classes, 106 cases, 0 failures.
 AvailableMapEntryTest tests="7" skipped="0" failures="0" errors="0"
 BasemapManagerInstalledTest tests="6" skipped="0" failures="0" errors="0"
 BasemapManagerTest tests="27" skipped="0" failures="0" errors="0"

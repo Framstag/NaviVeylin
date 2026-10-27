@@ -31,12 +31,23 @@ tools_loop-selftest.sh_--from-git_4a4b3a9554dc25fee6fa9cb441b6d2f0ec5c5a46.xml`
   the failing case declares `tools/loop-cases.sh tools/loop/loop.conf tools/pi-child-events.sh
   tools/pi-trim-result.mjs` as the files it owns, and the case ran only because the gate's diff carries the
   previous landing, whose files those are. The full suite was re-run after the gate to attribute, not to
-  improve, its number: `1 of 247` failed, the same case (`evidence/selftest-rerun.log` in the item).
-- **What it would take, and why this change does not do it.** One word beside the existing `-u` on
+  improve, its number: `1 of 247` failed, the same case (`evidence/selftest-rerun.log`).
+- **What it would take, and why this change does not do it. One word beside the existing `-u` on
   `tools/loop-cases.sh:6668` (`-u LOOP_TOOL_RESULT_TRIM_RECORD`) completes the rule the case's own comment
-  already states — "the suite may itself run inside a child whose run exported one" — but that is the
-  engine's case, not this item's delta, and the gate is not re-run to improve a number.
+  already states — "the suite may itself run inside a child whose run exported one". Round 1 recorded the
+  red and left the word to the engine's own item.
 
-The gate is therefore recorded `blocked`/red exactly as the first run printed it; the item's own green
-evidence is the module's suite (`106` cases, `0` failures, `evidence/module-suite-tally.txt`) and the probe
+The first round's gate is therefore recorded as it printed it, red, in `evidence/gate-summary-round1.log`;
+the item's own green evidence is the module's suite (`106` cases, `0` failures,
+`evidence/module-test-results/` and `evidence/module-suite-tally.txt`) and the probe
 (`evidence/green-on-change.xml`).
+
+## Round-2 correction
+
+The review of round 1 refused the change with this case as one of its three blocking findings and named the
+word, so the correction was made here rather than left to a later item: the hand-started invocation now runs
+`env -u LOOP_CHILD_EVENTS -u LOOP_TOOL_RESULT_TRIM_RECORD`, and the case measures the adapter's silence rather
+than the record path the run exports into every child. The gate was re-run once on the corrected tree and is
+green: `LOOP-GATE: tests=703 failures=0 errors=0` (`evidence/gate-summary.log`), with the loop suite at
+`tests="247" failures="0"` (`evidence/gate/tools_loop-selftest.sh_--from-git_4a4b3a95….xml`) where this
+attribution had recorded `1 of 247`.

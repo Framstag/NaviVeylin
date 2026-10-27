@@ -1,6 +1,6 @@
 # fix-client-java-coverage-floor
 
-surface: 13 test classes added, 5 cases added to 2 existing test classes, 0 production files, 0 fixtures, 0
+surface: 13 test classes added, 5 cases added to 1 existing test class, 0 production files, 0 fixtures, 0
 build files — `ls osmscout-client-java/src/test/java/com/framstag/libosmscout/client/*.java | wc -l` (8 → 21
 test classes), the module's own tally (`48` → `106` cases, 0 failures in both), and the base report's class
 counter (`CLASS covered=13 missed=21`, i.e. 21 of the module's 34 compiled classes had no covered
@@ -25,17 +25,16 @@ its floor; the module sat at 37.2 %, so the floor was a bound nothing in the tre
 - **Root cause, one mechanism.** The `:osmscout-client-java` module compiles 34 classes — its five local
   overrides plus the submodule's Java client API (`osmscout-client-java/build.gradle.kts:20-37`,
   `app/src/main/cpp/libosmscout/libosmscout-client-java/java/com/framstag/libosmscout/client/`) — and its
-  suite held 8 test classes / 48 cases that exercise 13 of them; the other 21 classes (1423 of the module's
-  4210 instructions: `PoiCategories`, `LaneTurn`, `CurrentRoadInfo`, `ObjectDescription`,
-  `NavigationPosition`, `RoadInfo`, `NavigationState`, `TrackPoint`, `FavoriteLocation`,
-  `FavoriteLocationGroup`, `StarredFavoriteLocation`, `PoiEntry`, `DescriptionEntry`, `RouteEntry`,
-  `NavigationListener`, `MapDownloadListener`, `InstalledMaps`, plus the untested paths of `BasemapManager`
-  and `MapDownloadManager`) were loaded by no case at all. Nothing in those classes is unreachable from the
-  host JVM: the five that are not — `OSMScoutClient`, `OSMScoutClientBuilder`, `RouteCallback`,
-  `NavigationController`'s natives — are the module's JNI surface, whose `System.loadLibrary` has no stub on
-  this module's test path (`guidelines/Build.md`, "The JNI stub for unit tests" keeps the stub in
-  `app/src/test/jniLibs` and
-  `auto/src/test/jniLibs` only), and they are not the delta.
+  suite held 8 test classes / 48 cases that exercise 13 of them; the other 21 classes (1421 of the module's
+  4210 instructions: `BasemapManager$BasemapInfo`, `CurrentRoadInfo`, `DescriptionEntry`, `FavoriteLocation`,
+  `FavoriteLocationGroup`, `InstalledMaps`, `LaneTurn`, `NavigationController`, `NavigationListener`,
+  `NavigationPosition`, `NavigationState`, `ObjectDescription`, `OSMScoutClient`, `OSMScoutClientBuilder`,
+  `PoiCategories`, `PoiEntry`, `RoadInfo`, `RouteCallback`, `RouteEntry`, `StarredFavoriteLocation`,
+  `TrackPoint`) held no covered instruction. Eighteen of them are reachable from the host JVM and each got a
+  case; the three that are not — `OSMScoutClient`, `OSMScoutClientBuilder` and `RouteCallback`, which load
+  the native library in a static initializer — are the module's JNI surface, whose stub lives in
+  `app/src/test/jniLibs` and `auto/src/test/jniLibs` only (`guidelines/Build.md`, "The JNI stub for unit
+  tests"), and they are not the delta.
 - **Red case.** `coverage-floor-probe.sh <tree> <out.xml>` reads the module's JaCoCo report and asserts its
   instruction coverage against the row's floor of 70 % — the same arithmetic as
   `tools/build-inputs.sh:91-114`, so the case measures what the sensor measures. On a copy of the base tree
@@ -65,7 +64,7 @@ its floor; the module sat at 37.2 %, so the floor was a bound nothing in the tre
    (`BasemapInfo`, size, installed test, delete), `MapDownloadManagerListingTest` (the listing URL, the empty
    answer on a failing provider, the refusal of a directory entry, a worker that dies being reported) and
    `NavigationControllerTest` (the substitutable controller).
-2. **Five cases in the two test classes that already exercise `BasemapManager` and its neighbours** — a
+2. **Five cases in the one test class that already exercises `BasemapManager`** — a
    successful download that installs the basemap, an archive that wraps its content in one directory being
    flattened, the listing probe reading the server's directory listing, the probe yielding nothing when the
    server fails or is unreachable, and the invalid version-date names that encode no date.

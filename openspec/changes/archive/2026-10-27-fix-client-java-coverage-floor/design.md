@@ -14,21 +14,24 @@ enum, the empty-string substitution the UI reads without a null check, the displ
 `hasInfo` decision, the unmodifiable entry list, the favourites' empty collections, the two spellings the
 bridge sends, the entry search, the `types.dat` scan, the installed basemap's description and delete, the
 listing URL's placeholders, the empty answer a failing provider yields, and a dying worker being reported
-through the listener. The five classes the host JVM cannot reach (`OSMScoutClient`,
-`OSMScoutClientBuilder`, `MapDownloadManager`'s native half, `RouteCallback`, `NavigationController`'s
-natives) stay uncovered: the stub the project keeps for them lives in `app/src/test/jniLibs` and
+through the listener. The classes the host JVM cannot reach — `OSMScoutClient`, `OSMScoutClientBuilder` and
+`RouteCallback`, which load the native library in a static initializer, and the JNI half of
+`MapDownloadManager` — stay uncovered: the stub the project keeps for them lives in `app/src/test/jniLibs` and
 `auto/src/test/jniLibs` (`guidelines/Build.md`, "The JNI stub for unit tests"), and reaching it from this
 module's test JVM would move
-that rule rather than test the module. The four JNI-touching cases that do exist assert a declaration or a
-delegation instead, exactly as `MapDownloadManagerRegisterTest` and
-`OSMScoutClientFavoriteFileFormatApiTest` already do.
+that rule rather than test the module. The cases that touch that surface assert a declaration or a
+delegation instead of executing native code, as `NavigationControllerTest` does with the substitutable
+controller's superclass, exactly as `MapDownloadManagerRegisterTest` and
+`OSMScoutClientFavoriteFileFormatApiTest` already did.
 
 ## Blast radius
 
 - Test sources only: 13 new files under `osmscout-client-java/src/test/java/com/framstag/libosmscout/client/`
   and 5 cases added to `BasemapManagerTest`; nothing under `src/main`, no build file, no fixture, no
   guideline sentence.
-- The module's suite grows from 48 to 106 cases (`evidence/module-suite-tally.txt`); the four cases that
+- The module's suite grows from 48 to 106 cases (`evidence/module-suite-tally.txt`, derived from the 21
+  `evidence/module-test-results/TEST-*.xml` the gate wrote; the base's 48 is the round-1 review's count of the
+  base copy's 8 class results, `items/320/reviewer-report-1.md`); the four cases that
   wait for a worker are bounded by a `CountDownLatch` await of 10 s and none sleeps or polls a clock
   (`guidelines/Build.md`, "Wall-clock waits and the conversion measured"), exactly as the suite's existing
   download cases do.

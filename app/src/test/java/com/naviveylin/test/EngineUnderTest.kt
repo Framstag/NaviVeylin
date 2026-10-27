@@ -7,6 +7,8 @@ import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.data.SettingsStorage
 import com.naviveylin.location.LocationService
 import com.naviveylin.navigation.NavigationEngine
+import com.naviveylin.navigation.VoiceGuidance
+import com.naviveylin.navigation.VoiceOutput
 import java.util.Collections
 
 /**
@@ -32,9 +34,14 @@ internal fun engineUnderTest(
     // The engine resolves a calculation's vehicle maximum speed from the settings store. A case that
     // exercises that path passes its own store; the default reads the app's file, which is what the
     // app's Hilt singleton does, so an unrelated case sees the shipped defaults 120 / 15 / 5.
-    settingsStorage: SettingsStorage = SettingsStorage(context)
+    // A case that observes speech passes its own seam; the default speaks into a no-op output so an
+    // unrelated engine case never starts the platform TTS engine.
+    settingsStorage: SettingsStorage = SettingsStorage(context),
+    voiceGuidance: VoiceGuidance = VoiceGuidance(context, VoiceOutput.NoOp)
 ): NavigationEngine =
-    NavigationEngine({ client() }, locationService, context, timeSource, dispatchers, settingsStorage)
+    NavigationEngine(
+        { client() }, locationService, context, timeSource, dispatchers, settingsStorage, voiceGuidance
+    )
         .also { EngineUnderTestRegistry.register(it) }
 
 /**

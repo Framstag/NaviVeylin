@@ -146,6 +146,24 @@
     <string name="calculating_route">Route wird berechnet...</string>
     <string name="calculating_route_percent">Route wird berechnet… %1$d %%</string>
     <string name="stop_navigation">Navigation beenden</string>
+    <!-- Spoken turn-by-turn guidance (spec: voice-guidance). A sentence is composed from these
+         fragments in the order the native voice agent emits its samples. -->
+    <string name="voice_after_distance_meters">nach %1$d Metern</string>
+    <string name="voice_after_distance_yards">nach %1$d Yards</string>
+    <string name="voice_then">dann</string>
+    <string name="voice_turn_left">links abbiegen</string>
+    <string name="voice_turn_right">rechts abbiegen</string>
+    <string name="voice_sharp_left">scharf links abbiegen</string>
+    <string name="voice_sharp_right">scharf rechts abbiegen</string>
+    <string name="voice_straight">geradeaus weiterfahren</string>
+    <string name="voice_roundabout">im Kreisverkehr</string>
+    <string name="voice_roundabout_exit">die %1$d. Ausfahrt nehmen</string>
+    <string name="voice_motorway_exit">die Autobahn verlassen</string>
+    <string name="voice_motorway_exit_left">die Autobahn links verlassen</string>
+    <string name="voice_motorway_exit_right">die Autobahn rechts verlassen</string>
+    <string name="voice_arrive">Sie haben Ihr Ziel erreicht</string>
+    <string name="voice_gps_found">GPS-Signal wiederhergestellt</string>
+    <string name="voice_gps_lost">GPS-Signal verloren</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Zeigt während der Fahrt die aktuelle Navigationsführung an</string>
     <string name="navigation_notification_title_free_driving">Freie Fahrt</string>

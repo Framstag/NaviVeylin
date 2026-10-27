@@ -161,7 +161,9 @@ class NavigationArrivalDeviceTest {
                 EngineDispatchers.Production,
                 // The engine resolves a calculation's vehicle maximum speed from the settings store
                 // (spec: `routing-max-speed`); a device case reads the app's own file.
-                SettingsStorage(context)
+                SettingsStorage(context),
+                // A device case asserts navigation state, not audio; keep the TTS engine out of it.
+                VoiceGuidance(context, VoiceOutput.NoOp)
             )
 
             var fed = 0

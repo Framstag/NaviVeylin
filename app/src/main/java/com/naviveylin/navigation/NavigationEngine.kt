@@ -109,7 +109,10 @@ class NavigationEngine @Inject constructor(
     // change applies to the next one — the acquisition of the next destination and the next reroute —
     // and never restarts a calculation in flight (spec: `routing-max-speed` — A speed change does not
     // restart a calculation).
-    private val settingsStorage: SettingsStorage
+    private val settingsStorage: SettingsStorage,
+    // Spoken guidance for the native voice sample sequence (spec: `voice-guidance`). The seam is
+    // injected so a test records the sentence without starting a platform TTS engine.
+    private val voiceGuidance: VoiceGuidance
 ) : com.naviveylin.core.NavigationViewModel {
 
     /**
@@ -777,6 +780,9 @@ class NavigationEngine @Inject constructor(
     override fun stopNavigation() {
         nativeController?.stop()
         nativeController = null
+        // End the current utterance with the session it belongs to (spec: `voice-guidance` —
+        // A voice instruction after navigation stops is silent).
+        voiceGuidance.stop()
         releaseNavLease()
         stopLocationFeed()
         // The fresh state carries the default, so the arrival fact of the ended session goes
@@ -986,6 +992,15 @@ class NavigationEngine @Inject constructor(
                     _state.update { it.copy(
                         maxSpeedKmH = maxSpeedKmH.takeIf { it > 0.0 } ?: Double.NaN
                     ) }
+                }
+            }
+
+            override fun onVoiceInstruction(samples: IntArray) {
+                scope.launch(Dispatchers.Main) {
+                    // A sample that races the end of a session must not speak after the stop hook
+                    // (spec: `voice-guidance` — A voice instruction after navigation stops is silent).
+                    if (!_state.value.isNavigating) return@launch
+                    voiceGuidance.announce(samples)
                 }
             }
 

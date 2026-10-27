@@ -158,6 +158,24 @@
     <string name="calculating_route">Calculating route...</string>
     <string name="calculating_route_percent">Calculating route… %1$d%%</string>
     <string name="stop_navigation">Stop Navigation</string>
+    <!-- Spoken turn-by-turn guidance (spec: voice-guidance). A sentence is composed from these
+         fragments in the order the native voice agent emits its samples. -->
+    <string name="voice_after_distance_meters">after %1$d meters</string>
+    <string name="voice_after_distance_yards">after %1$d yards</string>
+    <string name="voice_then">then</string>
+    <string name="voice_turn_left">turn left</string>
+    <string name="voice_turn_right">turn right</string>
+    <string name="voice_sharp_left">turn sharp left</string>
+    <string name="voice_sharp_right">turn sharp right</string>
+    <string name="voice_straight">continue straight</string>
+    <string name="voice_roundabout">at the roundabout</string>
+    <string name="voice_roundabout_exit">take exit %1$d</string>
+    <string name="voice_motorway_exit">leave the motorway</string>
+    <string name="voice_motorway_exit_left">leave the motorway to the left</string>
+    <string name="voice_motorway_exit_right">leave the motorway to the right</string>
+    <string name="voice_arrive">you have arrived</string>
+    <string name="voice_gps_found">GPS signal restored</string>
+    <string name="voice_gps_lost">GPS signal lost</string>
     <string name="navigation_notification_channel_name">Navigation</string>
     <string name="navigation_notification_channel_description">Shows live navigation guidance while driving</string>
     <!-- Free-driving notification title (spec: i18n-l10n — All user-facing text is

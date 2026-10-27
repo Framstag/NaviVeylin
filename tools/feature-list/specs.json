@@ -128,6 +128,7 @@
     "navigation-state-display": { "area": "routing", "userVisible": true, "surfaces": ["phone", "car"] },
     "navigation-status-details": { "area": "routing", "userVisible": true, "surfaces": ["phone"] },
     "navigation-symbols": { "area": "routing", "userVisible": false, "surfaces": ["phone"] },
+    "voice-guidance": { "area": "routing", "userVisible": true, "surfaces": ["phone", "car"] },
     "next-turn-overlay": { "area": "routing", "userVisible": true, "surfaces": ["phone"] },
     "off-route-indicator": { "area": "routing", "userVisible": true, "surfaces": ["phone"] },
     "osm-attribution": { "area": "settings-legal", "userVisible": true, "surfaces": ["phone", "car"] },

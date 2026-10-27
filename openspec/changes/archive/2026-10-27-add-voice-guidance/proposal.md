@@ -21,7 +21,8 @@ send it to the device's TTS engine, while the navigation session owns when it ma
 
 The red case is the acceptance scenario below before the capability exists:
 `NavigationEngineVoiceGuidanceTest.voiceSampleSequenceIsSpokenWhileNavigating` drives the native
-listener with the sample sequence for "After 300 meters turn left" and observes no utterance on HEAD.
+listener with the sample sequence for "After 300 meters turn left" and is recorded red before the
+engine consumes the callback (`evidence/red-before-wiring.xml`).
 
 ## What Changes
 
@@ -56,8 +57,9 @@ Marble recordings, and changing the native voice agent or its sample enum.
 - **App module**:
   - `app/src/main/java/com/naviveylin/navigation/VoiceGuidance.kt` (new): sample-to-sentence mapping and
     the session-facing seam.
-  - `app/src/main/java/com/naviveylin/navigation/VoiceOutput.kt` (new): output contract plus
-    `AndroidVoiceOutput`.
+  - `app/src/main/java/com/naviveylin/navigation/VoiceOutput.kt` (new): the output contract.
+  - `app/src/main/java/com/naviveylin/navigation/AndroidVoiceOutput.kt` (new): the production
+    `TextToSpeech` output.
   - `app/src/main/java/com/naviveylin/navigation/NavigationEngine.kt`: constructor seam, the native
     listener override, and the stop hook.
   - `app/src/main/java/com/naviveylin/di/VoiceModule.kt` (new): bind `AndroidVoiceOutput`.

@@ -33,7 +33,7 @@ a future native enum value cannot crash navigation.
 
 - The engine gains one constructor dependency and one listener override; no state field changes.
 - Navigation state, route acquisition, reroute policy, surfaces and the native bridge are untouched.
-- `EngineUnderTest` passes a no-op output by default, so 25 existing engine test classes keep their
+- `EngineUnderTest` passes a no-op output by default, so the existing engine test classes keep their
   behaviour; only the new case observes speech.
 - `tools/feature-list/specs.json` gains one classification entry because the open change introduces
   one capability.
@@ -44,8 +44,7 @@ a future native enum value cannot crash navigation.
   sequence, and a native change would force a submodule bump and a rebuild for something the app can
   compose. The sample enum is the libosmscout API for exactly this consumer.
 - **Play bundled Marble recordings.** Rejected: the repository ships no voice samples, and adding
-  recorded assets would be a larger change with no testable host behaviour. Android TTS is already on
-  every supported device.
+  recorded assets would be a larger change with no testable host behaviour.
 - **Put the sentence builder in `:core`.** Rejected: it needs Android string resources and locale
   lookup, and `:auto` does not own navigation audio; the engine in `:app` is the consumer.
 - **A user-facing on/off preference.** Rejected for this delta: the item asks for the missing

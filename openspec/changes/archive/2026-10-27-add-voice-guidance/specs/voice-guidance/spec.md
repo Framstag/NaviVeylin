@@ -4,10 +4,11 @@
 
 ### Requirement: Navigation speaks the native voice instruction
 
-While a navigation session is active, the engine SHALL announce every non-empty native voice sample
-sequence through the device's text-to-speech output. It SHALL compose the sample identifiers into one
-localized instruction sentence in the order the native agent emitted them, and it SHALL NOT speak when
-no navigation session is active.
+While a navigation session is active, the engine SHALL announce each recognised native voice
+instruction through the device's text-to-speech output, replacing any utterance in progress. It SHALL
+compose the sample identifiers into one localized instruction sentence in the order the native agent
+emitted them, SHALL stay silent when a sequence carries no recognised instruction, and SHALL NOT speak
+when no navigation session is active.
 
 #### Scenario: A native voice sequence is spoken while navigating
 

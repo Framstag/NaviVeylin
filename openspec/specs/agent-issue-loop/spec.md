@@ -2065,7 +2065,7 @@ the item the clock cut. A child the item's own wall-clock cap ended is unchanged
 
 The deadline is consulted while a child runs, and a reviewer is a child: its transcript carried the same
 `LOOP-DEADLINE` line as the worker's, and no part of the run read it — so a round the clock ended was read as one
-the reviewer never answered, which bought a retry and then a rework worker for a change nobody refused, and the
+the reviewer never answered, which bought a rework worker for a change nobody refused (the cut-short retry could not fire: `run_child` writes `LOOP-TIMEOUT` beside `LOOP-DEADLINE`, and the retry condition read that line), and the
 item was escalated with the other blocks.
 
 - **WHEN** the run's deadline passes while the reviewer of a review round is running, and the run ends that child

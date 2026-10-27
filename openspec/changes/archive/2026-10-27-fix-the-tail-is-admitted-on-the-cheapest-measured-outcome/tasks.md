@@ -49,7 +49,7 @@
 - [x] 5.3 `68.3` — `leftover` dropped from the item record; `run#treeOfACapEndedChildIsKeptAsAPatch` red, restore
       green. Verify: `evidence/mutations.log`.
 - [x] 5.4 The four blocked-path records (`14.3`, `14.5`, `14.6`, `19.3`) follow the re-indented escalation block;
-      `tools/loop-mutations.sh --check` applies all 191 records. Verify: `evidence/mutations-check.log`.
+      `tools/loop-mutations.sh --check` applies all 194 records. Verify: `evidence/mutations-check.log`.
 - [x] 5.5 `adapter#theChildIsStartedWithTheResultBound` unsets `LOOP_TOOL_RESULT_TRIM_RECORD` with the event stream
       it is derived from — test isolation for a worker's inherited environment, no production behaviour. Verify: the
       case passes inside a child whose run exported the record.

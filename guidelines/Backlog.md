@@ -343,7 +343,7 @@ the leftover patch, the item's state names that patch and the report prints the 
 escalated as a decision: the clock that ended it is the run's budget, not a finding about the item (issue #674).
 That holds for every child the item starts — the worker, the rework worker of a refusing round, and the reviewer
 of a review round (the round-1 review of #674 found the reviewer's `LOOP-DEADLINE` line written by `run_child` and
-read by nobody, so a cut round was retried past the deadline and then bought a rework worker) — and the run takes
+read by nobody, so a cut round bought a rework worker for a change nobody refused) — and the run takes
 no second pass over the queue once the deadline has ended one: the pass would re-exclude the item whose branch the
 cut run had just made, and the report's decision list would name a decision for the item the clock cut.
 

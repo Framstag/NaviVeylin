@@ -20,7 +20,8 @@ Three sites, one change:
    reviewer retry's transcript. An item ended by the run's deadline is recorded blocked exactly as before (no
    commit, tree kept, `LOOP-TIMEOUT` in the note) but the run writes no escalation for it: `escalatedLabel` stays
    empty and the item is left for the next run. A round the clock ended is cut rather than refused, so no
-   cut-short retry is started past the deadline and no rework worker is bought for a verdict nobody wrote. Once
+   rework worker is bought for a verdict nobody wrote (the cut-short retry could not fire either: `run_child`
+   writes `LOOP-TIMEOUT` beside `LOOP-DEADLINE`, and the retry condition already read that line). Once
    the deadline has ended a child, the run takes no second pass over the queue either: a pass would re-exclude
    the item whose branch the cut run had just made, and the report's decision list would name a decision the
    clock asked rather than the item.
@@ -32,8 +33,8 @@ Three sites, one change:
 
 - **Keep the constant (the item's option 2).** The recorded decision rejects it: the measured skips median is
   107 s (`evidence/wall-by-result.log`: `skipped n=63 min=31 median=107.225 max=1413`, produced by
-  `evidence/wall-by-result.sh` over the run states under `.pi/issue-loop/runs`), so the tail idles up to ~62 min
-  per run — the 65-minute floor less that median is 63 min — and nothing is ever started. The defect the title
+  `evidence/wall-by-result.sh` over the run states under `.pi/issue-loop/runs`), so the tail idles up to ~63 min
+  per run — the 65-minute floor less that 107 s median — and nothing is ever started. The defect the title
   names is exactly that idle tail.
 - **Derive the owe from the item's cited paths in the pre-screen (option 3).** A citation is not the change, and
   the classification can be wrong in both directions; more decisively, it only shortens the floor for
@@ -63,7 +64,7 @@ spending the run's decision slot and counting against the decision cap on a ques
 | `tools/loop/run.sh` | `deadline_claim` read from the worker's, the round-2 worker's and the reviewer's transcript; `deadline_cut` stops the second pre-screen pass; the blocked path skips escalation for it; `--leftover` passed |
 | `tools/loop/report.sh` | one action line and the "none" text of the action list |
 | `tools/loop/loop.conf` | the `LOOP_ITEM_FLOOR_MINUTES` comment block (value unchanged, 65) |
-| `tools/loop-cases.sh` | two cases rewritten/extended (`state#floorIsDerivedFromTheFinishedItemsWallTimes`, `run#treeOfACapEndedChildIsKeptAsAPatch`), one extended (`run#childIsEndedAtTheRunsDeadline`), one added (`run#reviewerEndedAtTheRunsDeadlineIsNotADecision`), comments on `state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes`, and `adapter#theChildIsStartedWithTheResultBound` unsets the trim record with the stream it is derived from |
+| `tools/loop-cases.sh` | two cases rewritten/extended (`state#floorIsDerivedFromTheFinishedItemsWallTimes`, `run#treeOfACapEndedChildIsKeptAsAPatch`), one extended (`run#childIsEndedAtTheRunsDeadline`), one added (`run#reviewerEndedAtTheRunsDeadlineIsNotADecision`), one extended by `68.6` (`run#childOutlastingTheWallClockIsBlocked`), comments on `state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes`, and `adapter#theChildIsStartedWithTheResultBound` unsets the trim record with the stream it is derived from |
 | `tools/loop-mutations.sh` | `68.1` (cheapest → most expensive), `68.2` (the clock-cut guard never fires), `68.3` (the leftover field dropped), `68.4` (the reviewer's `LOOP-DEADLINE` unread), `68.5` (the queue pass runs after a deadline cut) |
 | `guidelines/Backlog.md` §7 | "What an item costs, and the floor it is refused by" and "What bounds it" |
 | spec delta | three MODIFIED requirements, 23 scenarios (21 of them naming a case) |
@@ -90,9 +91,14 @@ hand-started child as naming a record file. It unsets the record with the event 
   disagree without a hand-edited transcript.
 - **The reviewer the deadline cut is read on the same line as the worker's.** Round 1 shipped the worker and the
   round-2 worker only, and the reviewer's own `LOOP-DEADLINE` line — written into `reviewer-report-$round.md` and
-  read by nobody — left the round read as one the reviewer never answered: a retry past the deadline, then a
-  rework worker, then an escalation at the round cap. `run#reviewerEndedAtTheRunsDeadlineIsNotADecision` pins
-  it, and `68.4` mutates the read away.
+  read by nobody — left the round read as one the reviewer never answered: a rework worker for a change nobody
+  refused, then an escalation at the round cap. `run#reviewerEndedAtTheRunsDeadlineIsNotADecision` pins it, and
+  `68.4` mutates the read away.
+- **A cut reviewer round leaves a branch the next run reads as unanswered.** `record-review-round … requested` is
+  committed before the reviewer starts (#262), and a cut round writes no answer, so `worktree.sh branch-state`
+  reports `review-unanswered` for that branch — the owner's question, not the run's, exactly as a round cut short
+  twice already was (#224). This case is not covered by a case of its own: the scenario's THEN (no decision label,
+  no entry in the report's decision list, `blocked`) is asserted, the branch's state afterwards is not.
 - **The pass over the queue after a deadline cut.** Without `deadline_cut`, a run that blocked an item at its
   deadline re-ran the second pre-screen pass, which excluded the item whose branch the cut run had just made —
   and the report's decision list, read from what the run wrote, named a decision for it (`agent/needs-decision`

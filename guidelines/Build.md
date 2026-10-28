@@ -140,7 +140,13 @@ habit of running everything:
    a plan of two functions (issue #238).
 2. **Iterate with focused suites, gate once.** Run the change's own declared cases first
    (`tools/declared-cases.sh`, §4b), then the module suite of the flavor the change can affect, and the
-   full both-flavor gate once before the commit. A declared-cases pass is never gate evidence.
+   full both-flavor gate once before the commit. A declared-cases pass is never gate evidence. **The filter
+   is the inner loop; a selection naming the case file is the gate.** `tools/loop-selftest.sh --case <name>`
+   (or a small `--group`) is what an edit is checked with between rounds; a `--files` selection that names
+   `tools/*-cases.sh` selects nearly the whole suite (256 of 256 measured, 405–507 s alone) and is run
+   **once**, as the gate, never per edit — a caller's per-call ceiling can sit below this project's own case
+   and child bounds (§6c, `LOOP_CASE_MAX_SECONDS`), and a suite call that outlives it is killed with the
+   child's work uncommitted (measured twice on 2026-10-28, 900 s; issue #692).
 3. **Batch independent questions.** Ask the owner two to four independent questions in one call rather
    than one question per round, and ask for the observation (where, when) before proposing a cause.
 4. **One builder per working tree.** Two Gradle invocations in one tree corrupt each other's outputs: a
@@ -158,6 +164,12 @@ habit of running everything:
    review is the session's idle time, and the item records one reviewer that ran a suite to answer a question
    the evidence already answered — one suite held open for **4 min 1 s** of a **4 h 40 m** change, 20 min in
    total, ~7 % of it (issue #236). A diff review is a reading task.
+6. **Answer a tree question with one call.** A search is `tools/look.sh` (the whole tree at once, the
+   submodule included), `ctx_grep` or `ctx_read` — never a shell `grep`/`head`/`ls`/`sed`/`cat` chain. The
+   loop's children spent **9 338 of 16 987 shell calls (55 %)** on those verbs at a p50 of 52 per item and
+   chained them (`grep -> grep` 1 017× in 132 items, `grep -> sed` 385×), which is why the child's own policy
+   refuses a shell *tree search* and names the alternatives (issue #687): `sed -n 'N,Mp'` and `tail -n` to
+   read a range of a known file, and a filter of another command's output (`… | grep -c`), still stand.
 
 ## 2b. Liveness guard and shell recipes
 
@@ -566,6 +578,13 @@ split.
   `revert-check` skill).
 
 ## 4d. Attributing a red run
+
+- **Read the mechanical half in one call**: `tools/gate-attribute.sh <gate.log>` prints the failing case, its
+  `file:line`, the first error line, the failed step, the flake line, and the rerun command derived from the
+  step's own command — bounded, one line each (issue #689). The flake line reads `not recorded — this tree
+  keeps no flake list`, which is the fact and not a verdict: whether a red case is a flake is the judgement
+  below, never the script's. Reading the log by hand costs ~20 % of a heavy item's shell calls on suites plus
+  ~18 % on the log afterwards, every round.
 
 - **Sweep the suite for what the change moves, before the gate**: a behaviour change can move an
   expectation pinned verbatim in an unrelated class, and focused runs cannot see it (2026-10-03: the POI

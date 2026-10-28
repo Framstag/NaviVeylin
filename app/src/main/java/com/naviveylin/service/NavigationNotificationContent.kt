@@ -5,7 +5,6 @@ import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.ManoeuvreLabels
 import com.naviveylin.core.exitOrdinal
 import com.naviveylin.core.manoeuvreFromStep
-import com.naviveylin.core.remainingMeters
 import com.naviveylin.core.turnTypeFor
 import com.naviveylin.core.FreeDrivingStatus
 import com.naviveylin.core.NavigationState
@@ -151,14 +150,16 @@ object NavigationNotificationContentFormatter {
         val step = state.nextStep
             ?: state.steps.getOrNull(state.currentStepIndex)
         val eta = if (state.etaMillis > 0) etaClock(state.etaMillis) else ETA_UNKNOWN
-        val distance = formatDistanceCompact(
-            step?.remainingMeters ?: state.remainingDistance,
-            locale
-        )
+        val distance = if (step != null) {
+            // A step whose progress the engine has not published is unknown, never a zero.
+            formatDistanceCompact(step.remainingDistance, locale)
+        } else {
+            // No step known: the route's remaining distance is the hint's best available value.
+            formatDistanceCompact(state.remainingDistance, locale)
+        }
         return CarHintContent(
             title = stepText(step, resolver),
-            text = resolver.get(R.string.nav_hint_distance_eta, distance, eta),
-            turnType = step?.let(::turnTypeFor),
+            text = resolver.get(R.string.nav_hint_distance_eta, distance, eta),            turnType = step?.let(::turnTypeFor),
             roundaboutExitNumber = step?.exitOrdinal ?: 0
         )
     }
@@ -189,7 +190,7 @@ object NavigationNotificationContentFormatter {
         val title = state.destinationName?.takeIf { it.isNotBlank() }
             ?: resolver.get(R.string.nav_hint_neutral)
 
-        val distanceToTurn = formatDistanceCompact(step?.remainingMeters ?: 0.0, locale)
+        val distanceToTurn = formatDistanceCompact(step?.remainingDistance, locale)
         val remainingDistance = formatDistanceCompact(state.remainingDistance, locale)
         val remainingTime = formatRemainingTime(state.etaMillis)
         val eta = if (state.etaMillis > 0) etaClock(state.etaMillis) else "--:--"
@@ -248,11 +249,12 @@ object NavigationNotificationContentFormatter {
         )
     }
 
-    /** Compact distance like the on-screen displays: "350 m" / "1.2 km". */
-    private fun formatDistanceCompact(meters: Double, locale: Locale): String {
-        if (meters.isNaN() || meters <= 0.0) return "--"
-        val number = formatDistanceNumber(meters, locale)
-        return if (distanceUsesKilometers(meters)) "$number km" else "$number m"
+    /** Compact distance like the on-screen displays: "350 m" / "1.2 km"; null is unknown, zero is known. */
+    private fun formatDistanceCompact(meters: Double?, locale: Locale): String {
+        if (meters == null || meters.isNaN()) return "--"
+        val knownMeters = meters.coerceAtLeast(0.0)
+        val number = formatDistanceNumber(knownMeters, locale)
+        return if (distanceUsesKilometers(knownMeters)) "$number km" else "$number m"
     }
 
     /** Wall-clock arrival time, device locale ("14:32"). */

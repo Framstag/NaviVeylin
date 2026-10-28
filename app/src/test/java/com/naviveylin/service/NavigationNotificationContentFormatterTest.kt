@@ -34,6 +34,7 @@ class NavigationNotificationContentFormatterTest {
     private val resolver = StringResolver { resId, args ->
         when (resId) {
             com.naviveylin.core.R.string.nav_hint_neutral -> "Navigation active"
+            com.naviveylin.core.R.string.nav_hint_distance_eta -> "${args[0]} · ${args[1]}"
             R.string.navigation_notification_title_free_driving -> "Free driving"
             R.string.road_offroad -> "Offroad"
             R.string.speed_unit_kmh -> "%1${'$'}s km/h".format(args.firstOrNull() ?: 0)
@@ -83,6 +84,54 @@ class NavigationNotificationContentFormatterTest {
     }
 
     @Test
+    fun zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown() {
+        // A vehicle standing on the announced node has a known distance of zero — the one moment
+        // the wording matters most. A missing step or a NaN distance is unknown and keeps "--"
+        // (spec: navigation-ongoing-notification — A known zero distance is not an unknown distance).
+        val zeroStep = stepOf(0.0, TurnType.LEFT, "Hauptstrasse")
+        val zeroState = NavigationState(
+            isNavigating = true,
+            nextStep = zeroStep,
+            remainingDistance = 12_400.0,
+            etaMillis = fakeNow + 30 * 60_000
+        )
+
+        val content = NavigationNotificationContentFormatter.format(
+            zeroState,
+            resolver = resolver, freeDrivingActive = false, etaClock = { "14:32" }, locale = Locale.US
+        )
+        val statsLine = content.bigTextLines.firstOrNull { it.contains("arrive") }
+            ?: error("no stats line in ${content.bigTextLines}")
+        assertTrue(
+            "zero distance must render 0 m in the notification: $statsLine",
+            statsLine.contains("in 0 m")
+        )
+        assertFalse(statsLine.contains("in --"))
+
+        val hint = NavigationNotificationContentFormatter.carHint(
+            zeroState, resolver, etaClock = { "14:32" }, locale = Locale.US
+        )
+        assertEquals("0 m · 14:32", hint?.text)
+
+        val unknownState = NavigationState(
+            isNavigating = true,
+            nextStep = stepOf(Double.NaN, TurnType.LEFT, "Hauptstrasse"),
+            remainingDistance = 12_400.0,
+            etaMillis = fakeNow + 30 * 60_000
+        )
+        val unknownContent = NavigationNotificationContentFormatter.format(
+            unknownState,
+            resolver = resolver, freeDrivingActive = false, etaClock = { "14:32" }, locale = Locale.US
+        )
+        val unknownStatsLine = unknownContent.bigTextLines.firstOrNull { it.contains("arrive") }
+            ?: error("no stats line in ${unknownContent.bigTextLines}")
+        assertTrue(
+            "an unknown distance keeps --: $unknownStatsLine",
+            unknownStatsLine.contains("in --")
+        )
+    }
+
+    @Test
     fun navigationWithoutInstructionFallsBackToStats() {
         val state = NavigationState(
             isNavigating = true,
@@ -95,6 +144,10 @@ class NavigationNotificationContentFormatterTest {
         )
         // contentText falls back to the stats line
         assertTrue(content.contentText.contains("13:00"))
+        assertTrue(
+            "no next step is unknown, not a known zero: ${content.bigTextLines}",
+            content.bigTextLines.any { it.startsWith("in -- ·") }
+        )
     }
 
     @Test

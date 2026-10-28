@@ -383,7 +383,10 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   provenance rows of the coverage report stay one directory each, and `:app:checkClientApiInDex<Variant>` — buildSrc
   `com.naviveylin.build.dex`, on every `assemble`/`bundle` — fails when the merged dex defines no class for a
   `*.java` file under either source root. A referenced type is not a defined one: the gate reads `class_defs`, not
-  the bytes.
+  the bytes. Because a minified variant's only dex is R8's output (`minify<Variant>WithR8`, not the dex builder and
+  the merge steps a debug variant runs), the gate depends on that task for the `release` variants;
+  `tools/check-dex-gate-graph-selftest.sh` asserts the producer per variant, which is what caught the merge-only
+  wiring that made `./gradlew release` fail on an empty dex tree (2026-10-28).
 - **The two sides are compared, and their difference is recorded.** For those five files the override is the
   only Java copy the APK sees, so a native declared on one side only reaches the other as a `NoSuchMethodError`
   at the first call — no compiler error, no failing test (issue #174, the drift class §119 fixed by hand). A

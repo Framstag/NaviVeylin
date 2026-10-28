@@ -563,11 +563,23 @@ tasks.named("preBuild") { dependsOn(checkNativeParity) }
 val clientApiDexVariants = listOf("MobileDebug", "MobileRelease", "AutomotiveDebug", "AutomotiveRelease")
 clientApiDexVariants.forEach { variant ->
     val dexVariant = variant.replaceFirstChar { it.lowercase() }
-    val mergeTasks = setOf("dexBuilder$variant", "mergeProjectDex$variant", "mergeLibDex$variant", "mergeExtDex$variant")
+    // Which task writes this variant's dex, per AGP's two shapes: a plain variant runs the dex builder and the three
+    // merge steps, a minified one (both `release` builds) runs neither and R8 writes the only dex of the variant —
+    // under the same `intermediates/dex/<variant>` tree, in `minify<Variant>WithR8/`. Naming only the merge tasks left
+    // the gate without a producer on the release variants, so `./gradlew release` failed on an empty dex tree before
+    // any dex was built. The set is a superset filtered against the tasks that exist; `tasks.matching` keeps the
+    // reference lazy, so the AGP-registered names are matched whenever the graph is built.
+    val dexProducers = setOf(
+        "dexBuilder$variant",
+        "mergeProjectDex$variant",
+        "mergeLibDex$variant",
+        "mergeExtDex$variant",
+        "minify${variant}WithR8"
+    )
     val checkClientApiInDex = tasks.register<com.naviveylin.build.dex.CheckClientApiInDex>("checkClientApiInDex$variant") {
-        // The variant's whole merged-dex tree, so a merge task added later is scanned without naming it here.
+        // The variant's whole dex tree, so a producer added later is scanned without naming it here.
         dexArchives.from(layout.buildDirectory.dir("intermediates/dex/$dexVariant"))
-        dependsOn(tasks.matching { it.name in mergeTasks })
+        dependsOn(tasks.matching { it.name in dexProducers })
         submoduleSourceRoot.set(
             rootProject.layout.projectDirectory.dir(
                 "app/src/main/cpp/libosmscout/libosmscout-client-java/java"

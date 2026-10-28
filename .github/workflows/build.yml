@@ -384,6 +384,15 @@ jobs:
       - name: Check the JVM-only test graph
         run: bash tools/check-jvm-test-graph-selftest.sh
 
+      # ── the dex gate's producer ─────────────────────────────────
+      # `:app:checkClientApiInDex<Variant>` has to wait for the task that writes the variant's dex, and the two
+      # `release` variants dex through R8, not through the dex builder and the merge steps a debug variant runs.
+      # Naming only the merge tasks left the gate with no producer on either release variant, so `./gradlew
+      # release` failed on an empty dex tree after 3 s with neither AAB built (2026-10-28). Six `--dry-run`
+      # probes, no build, no vcpkg tree — they belong beside the probe above, below 'Install Android SDK'.
+      - name: Check the dex gate's producer
+        run: bash tools/check-dex-gate-graph-selftest.sh
+
       # Host build tools required by vcpkg host deps: gperf:x64-linux (used by
       # fontconfig) builds via autotools. Without these, fontconfig → cairo →
       # pango all fail and the .pc gate reports them missing.

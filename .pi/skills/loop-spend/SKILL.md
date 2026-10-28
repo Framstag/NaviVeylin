@@ -15,6 +15,12 @@ python3 tools/loop-spend.py --json           # one object, for a caller that doe
 bash tools/loop-spend-selftest.sh            # 23 cases on a fixture the test writes itself
 ```
 
+A registry row watches the same number without being asked: `loop-spend` in `tools/sensors/sensors.json`
+measures the **duplicate-read share** this report prints, files when it stays past 60 % for two consecutive
+days (`guidelines/Backlog.md` §9, issue #690), and records `no-archive` on its own record issue where the
+stream is absent — which is every CI run, because `.pi/` is machine-local. So a regression reaches the tracker
+by itself; what still needs this tool is the *why*, and every number below.
+
 The data source is `.pi/issue-loop/items/<issue>/events.jsonl` — the child's whole event stream, kept by
 `tools/pi-child-events.sh` for exactly this. `tools/loop/report.sh` prints one item's tokens and largest
 context and flags the items above the band `LOOP_ITEM_TOKENS_WARN` records (`tools/loop/loop.conf`) — it does not

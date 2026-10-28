@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issue-tooling-selftest.sh --case update#refusesToDisplaceASettledState (on HEAD, before the fix)" tests="1" failures="1" errors="0" timestamp="2026-10-28T19:45:44Z">
+  <testcase name="update#refusesToDisplaceASettledState" classname="update" time="2">
+    <failure message="a hold over a settled state is refused">FAIL update#refusesToDisplaceASettledState
+  a hold over a settled state is refused: stub gh: recorded `gh issue edit`: expected '3', got '0'</failure>
+  </testcase>
+  <system-out>The case gives the stub tracker one item carrying status/retired (a settled state, tools/tooling.json:53) and runs `update.sh 11 --status on-hold` against it. On HEAD the write exits 0 and the recorded call log holds the edit that removes status/retired — the displacement #684 measured on #146 at 2026-10-20T23:46:54Z — where the case requires exit 3 and no edit at all. tests/failures are counted from the FAIL line, the way tools/loop/gate.sh derives its per-suite tally. Run 2026-10-28T19:45:44Z from the change root.</system-out>
+</testsuite>

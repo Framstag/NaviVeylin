@@ -302,6 +302,7 @@ LOOP_SHELL_CASES=(
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
   'run#childPastItsTurnBoundIsBlocked'
+  'run#theRecordedZeroKeepsTheTurnBoundOff'
 )
 
 loop_shell_cases() {
@@ -623,6 +624,7 @@ loop_run_shell_case() {
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
     'run#childPastItsTurnBoundIsBlocked') fn=case_run_childPastItsTurnBoundIsBlocked ;;
+    'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -9735,5 +9737,47 @@ EOF
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "turn bound of 3 turns" \
     "and the reason on the item carries the count, not only the exit status"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+  return 0
+}
+
+# The recorded `0` is the switch (issue #686): a project whose children should be bounded by their clock alone — or
+# one whose agent writes no event stream at all — records `LOOP_ITEM_TURNS_MAX=0`, as the memory floor's `0` disables
+# the floor and the token warning's `0` records no band. The child here takes three turns and then outlives the
+# two-second wall clock this case records, so which bound ended it is readable in the transcript: the clock's, never
+# a turn bound that is off.
+case_run_theRecordedZeroKeepsTheTurnBoundOff() {
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fixture action out status report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  conf_with_child_cap 2 "$conf"
+  sed -e 's/^LOOP_ITEM_TURNS_MAX=.*/LOOP_ITEM_TURNS_MAX=0/' "$conf" > "$conf.zero" || fail "could not record the turn bound off"
+  mv "$conf.zero" "$conf"
+  grep -qx 'LOOP_ITEM_TURNS_MAX=0' "$conf" || fail "this case could not record the turn bound off in loop.conf"
+  export LOOP_CONF="$conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The same fixture stream the bound-on case appends, written by the child's action so the run can see it while the
+  # child still runs: with the bound off it must change nothing about how the child ends.
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  action="$d/turn-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+sleep 5
+EOF
+  export PI_STUB_ACTION="$action"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  assert_contains "$out" "item-turns-max=0" "the run's header says the turn bound is off"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child the wall clock ended"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
+    "with the bound off, the recorded wall clock is the one that ends the child"
+  assert_not_contains "$(cat "$report")" "turn bound" "and no turn bound is named in its transcript"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is recorded blocked, as before"
   return 0
 }

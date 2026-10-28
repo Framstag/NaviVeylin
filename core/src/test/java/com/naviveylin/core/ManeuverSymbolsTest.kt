@@ -3,7 +3,6 @@ package com.naviveylin.core
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import com.framstag.libosmscout.client.LaneTurn
-import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
@@ -80,12 +79,14 @@ class ManeuverSymbolsTest {
     // Robolectric's canvas discards draws, so the number itself is asserted as arithmetic and
     // as bitmap identity, and how it looks is the on-device `pixel-check` (task 7.4).
 
-    private fun roundaboutLeave(exitNumber: Int) = RouteInstruction(
-        350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
-        "Take exit $exitNumber onto Bahnhofstraße", "Exit $exitNumber",
-        0.0, TurnType.STRAIGHT_ON, "", "",
-        exitNumber, true
-    )
+    private fun roundaboutLeave(exitNumber: Int) = com.framstag.libosmscout.client.RouteStep().apply {
+        kind = com.framstag.libosmscout.client.RouteStep.Kind.ROUNDABOUT_LEAVE
+        roundaboutLeave = com.framstag.libosmscout.client.RouteStep.RoundaboutLeave().apply {
+            exitCountTaken = exitNumber.toLong()
+            clockwise = true
+        }
+        name = com.framstag.libosmscout.client.RouteStep.Name("Bahnhofstraße", "")
+    }
 
     @Test
     fun `the roundabout exit glyph carries the exit number`() {
@@ -93,16 +94,16 @@ class ManeuverSymbolsTest {
         // The number is not decoration on an unchanged arrow: the numbered glyph is its own
         // artwork, distinct from the plain leave arrow.
         assertNotSame(
-            ManeuverSymbols.bitmapForInstruction(roundaboutLeave(0)),
-            ManeuverSymbols.bitmapForInstruction(roundaboutLeave(3))
+            ManeuverSymbols.bitmapForStep(roundaboutLeave(0)),
+            ManeuverSymbols.bitmapForStep(roundaboutLeave(3))
         )
     }
 
     @Test
     fun `the roundabout exit glyph differs per ordinal`() {
-        val first = ManeuverSymbols.bitmapForInstruction(roundaboutLeave(1))
-        val third = ManeuverSymbols.bitmapForInstruction(roundaboutLeave(3))
-        val plain = ManeuverSymbols.bitmapForInstruction(roundaboutLeave(0))
+        val first = ManeuverSymbols.bitmapForStep(roundaboutLeave(1))
+        val third = ManeuverSymbols.bitmapForStep(roundaboutLeave(3))
+        val plain = ManeuverSymbols.bitmapForStep(roundaboutLeave(0))
 
         assertNotSame(first, third)
         assertNotSame(first, plain)
@@ -118,8 +119,8 @@ class ManeuverSymbolsTest {
         // A number that already fits keeps the size the glyph asked for.
         assertEquals(12f, ManeuverSymbols.fittedTextSize(12f, 8f, 10f), 0.001f)
         assertNotSame(
-            ManeuverSymbols.bitmapForInstruction(roundaboutLeave(1)),
-            ManeuverSymbols.bitmapForInstruction(roundaboutLeave(10))
+            ManeuverSymbols.bitmapForStep(roundaboutLeave(1)),
+            ManeuverSymbols.bitmapForStep(roundaboutLeave(10))
         )
     }
 
@@ -140,12 +141,12 @@ class ManeuverSymbolsTest {
     @Test
     fun `the exit glyph is cached per ordinal`() {
         assertSame(
-            ManeuverSymbols.bitmapForInstruction(roundaboutLeave(3)),
-            ManeuverSymbols.bitmapForInstruction(roundaboutLeave(3))
+            ManeuverSymbols.bitmapForStep(roundaboutLeave(3)),
+            ManeuverSymbols.bitmapForStep(roundaboutLeave(3))
         )
         assertNotSame(
-            ManeuverSymbols.bitmapForInstruction(roundaboutLeave(3)),
-            ManeuverSymbols.bitmapForInstruction(roundaboutLeave(4))
+            ManeuverSymbols.bitmapForStep(roundaboutLeave(3)),
+            ManeuverSymbols.bitmapForStep(roundaboutLeave(4))
         )
     }
 
@@ -153,11 +154,15 @@ class ManeuverSymbolsTest {
     fun `an ordinal on a non-roundabout instruction draws no number`() {
         // The ordinal is only meaningful on a roundabout exit; anywhere else it must not become
         // its own cache entry nor change the artwork.
-        val plainLeft = RouteInstruction(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left")
+        val plainLeft = com.framstag.libosmscout.client.RouteStep().apply {
+            kind = com.framstag.libosmscout.client.RouteStep.Kind.TURN
+            turn = TurnType.LEFT
+            name = com.framstag.libosmscout.client.RouteStep.Name("Main St", "")
+        }
 
         assertSame(
             ManeuverSymbols.bitmapForTurnType(TurnType.LEFT),
-            ManeuverSymbols.bitmapForInstruction(plainLeft)
+            ManeuverSymbols.bitmapForStep(plainLeft)
         )
     }
 

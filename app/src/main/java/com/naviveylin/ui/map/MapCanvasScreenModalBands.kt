@@ -386,7 +386,7 @@ internal fun MapCanvasModalBandContent(
     // Expanded routing status details — full-screen route description
     if (showNavDetailsState.value && navState.isNavigating) {
         NavigationDetailsOverlay(
-            instructions = navState.instructions,
+            steps = navState.steps,
             currentStepIndex = navState.currentStepIndex,
             currentRoadInfo = navState.currentRoadInfo,
             remainingDistance = navState.remainingDistance,

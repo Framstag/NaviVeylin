@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import com.naviveylin.auto.stepOf
 import android.graphics.Bitmap
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.Distance
@@ -7,7 +8,7 @@ import androidx.car.app.navigation.model.Maneuver
 import androidx.car.app.navigation.model.TravelEstimate
 import androidx.core.graphics.drawable.IconCompat
 import com.framstag.libosmscout.client.NavigationPosition
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.StringResolver
@@ -48,7 +49,7 @@ class NavigationTripTest {
         type: TurnType = TurnType.LEFT,
         street: String = "Hauptstrasse",
         timeTo: Double = 30.0
-    ) = RouteInstruction(
+    ) = stepOf(
         distance,
         timeTo,
         // A car instruction carries the leg of its own manoeuvre as well (spec: navigation-status-details).
@@ -63,9 +64,9 @@ class NavigationTripTest {
         ""
     )
 
-    private fun navigatingState(instruction: RouteInstruction? = instr(250.0)) = NavigationState(
+    private fun navigatingState(instruction: RouteStep? = instr(250.0)) = NavigationState(
         isNavigating = true,
-        nextInstruction = instruction,
+        nextStep = instruction,
         destinationName = "Home",
         remainingDistance = 12_400.0,
         etaMillis = now + 1_800_000L
@@ -109,7 +110,7 @@ class NavigationTripTest {
     @Test
     fun tripFallsBackToRouteListInstruction() {
         val state = navigatingState(instruction = null).copy(
-            instructions = listOf(instr(400.0, TurnType.RIGHT))
+            steps = listOf(instr(400.0, TurnType.RIGHT))
         )
 
         val trip = tripFrom(state)

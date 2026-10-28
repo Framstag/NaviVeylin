@@ -3,7 +3,7 @@ package com.naviveylin.core
 import com.framstag.libosmscout.client.CurrentRoadInfo
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.NavigationPosition
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.Vehicle
 
 /**
@@ -45,8 +45,8 @@ data class RouteCalculation(
 data class NavigationState(
     val isNavigating: Boolean = false,
     val currentStepIndex: Int = 0,
-    val nextInstruction: RouteInstruction? = null,
-    val instructions: List<RouteInstruction> = emptyList(),
+    val nextStep: RouteStep? = null,
+    val steps: List<RouteStep> = emptyList(),
     val remainingDistance: Double = 0.0,
     val totalDistance: Double = 0.0,
     val etaMillis: Long = 0L,

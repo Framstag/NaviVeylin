@@ -311,11 +311,16 @@ internal const val HOST_TAG = "HOST"
  * diagnosable): the car host renders its rail widget from this notification, so
  * correlating a host failure needs the posts with the content that triggered them. A
  * deduped (unchanged) emission never reaches here — it is dropped before the post.
+ *
+ * The expanded line is recorded as well: it carries the distance-to-turn, the arrival time and the
+ * remaining distance the compact text omits whenever a manoeuvre is known, so a car run can be judged
+ * from the log without a screenshot of host-drawn text (guidelines/UI.md §3).
  */
 internal fun recordNotificationPost(post: NotificationPost) {
     DiagnosticsLog.log(
         HOST_TAG,
         "NOTIF post title='${post.content.title}' text='${post.content.contentText}' " +
-            "hint='${post.hint?.title ?: "-"}'"
+            "big='${post.content.bigTextLines.joinToString(" | ")}' " +
+            "hint='${post.hint?.title ?: "-"}' hintText='${post.hint?.text ?: "-"}'"
     )
 }

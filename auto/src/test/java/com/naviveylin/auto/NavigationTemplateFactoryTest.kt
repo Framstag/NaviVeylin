@@ -1,9 +1,9 @@
 package com.naviveylin.auto
 
+import com.naviveylin.auto.stepOf
 import androidx.car.app.model.Distance
 import androidx.car.app.navigation.model.NavigationTemplate
 import androidx.car.app.navigation.model.TravelEstimate
-import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.stringResolver
@@ -86,8 +86,8 @@ class NavigationTemplateFactoryTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(
-                RouteInstruction(
+            steps = listOf(
+                stepOf(
                     350.0, TurnType.LEFT, "Main St", "Turn left into Main St", "Turn left"
                 )
             )
@@ -96,7 +96,7 @@ class NavigationTemplateFactoryTest {
             isNavigating = true, travelEstimate = estimate,
             mapActionStrip = leftStrip, actionStrip = rightStrip,
             routingInfo = NavigationTemplateMapper.routingInfoFromState(
-                state, ManeuverGlyphs::forInstruction, includeLanes = false,
+                state, ManeuverGlyphs::forStep, includeLanes = false,
                 resolver = testCarContext().stringResolver()
             )
         )

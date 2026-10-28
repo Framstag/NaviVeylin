@@ -1,12 +1,12 @@
 package com.naviveylin.auto
 
+import com.naviveylin.auto.stepOf
 import android.graphics.Bitmap
 import androidx.car.app.HostException
 import androidx.car.app.model.CarIcon
 import androidx.car.app.navigation.NavigationManager
 import androidx.car.app.navigation.model.Trip
 import androidx.core.graphics.drawable.IconCompat
-import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.StringResolver
@@ -40,7 +40,7 @@ class NavigationManagerControllerTripTest {
 
     private val resolver: StringResolver by lazy { testCarContext().stringResolver() }
 
-    private fun instruction(distanceTo: Double = 250.0) = RouteInstruction(
+    private fun instruction(distanceTo: Double = 250.0) = stepOf(
         distanceTo,
         30.0,
         distanceTo,
@@ -56,7 +56,7 @@ class NavigationManagerControllerTripTest {
 
     private fun navigatingState(distanceTo: Double = 250.0) = NavigationState(
         isNavigating = true,
-        nextInstruction = instruction(distanceTo),
+        nextStep = instruction(distanceTo),
         destinationName = "Home",
         remainingDistance = 12_400.0,
         etaMillis = now + 1_800_000L

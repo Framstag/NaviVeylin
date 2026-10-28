@@ -1,12 +1,16 @@
 package com.naviveylin.service
 
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.exitOrdinal
+import com.naviveylin.core.manoeuvreFromStep
+import com.naviveylin.core.remainingMeters
+import com.naviveylin.core.turnTypeFor
 import com.naviveylin.core.FreeDrivingStatus
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.R
 import com.naviveylin.core.StringResolver
-import com.naviveylin.core.TurnInstructionLocalizer
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.ui.navigation.formatRemainingTime
@@ -142,34 +146,33 @@ object NavigationNotificationContentFormatter {
         locale: Locale = Locale.getDefault()
     ): CarHintContent? {
         if (!state.isNavigating) return null
-        // Same instruction source as the phone path: the live next instruction
-        // when the engine emits one, otherwise the frozen route list entry.
-        val instruction = state.nextInstruction
-            ?: state.instructions.getOrNull(state.currentStepIndex)
+        // Same step source as the phone path: the live step ahead when the engine emits one,
+        // otherwise the frozen route list entry.
+        val step = state.nextStep
+            ?: state.steps.getOrNull(state.currentStepIndex)
         val eta = if (state.etaMillis > 0) etaClock(state.etaMillis) else ETA_UNKNOWN
         val distance = formatDistanceCompact(
-            instruction?.distanceTo ?: state.remainingDistance,
+            step?.remainingMeters ?: state.remainingDistance,
             locale
         )
         return CarHintContent(
-            title = instructionText(instruction, resolver),
+            title = stepText(step, resolver),
             text = resolver.get(R.string.nav_hint_distance_eta, distance, eta),
-            turnType = instruction?.turnType,
-            roundaboutExitNumber = instruction?.roundaboutExitNumber ?: 0
+            turnType = step?.let(::turnTypeFor),
+            roundaboutExitNumber = step?.exitOrdinal ?: 0
         )
     }
 
     /**
-     * The maneuver instruction in the wording of the on-screen next-turn
-     * display ([com.naviveylin.ui.navigation.splitInstruction]'s generic line):
-     * the localized short description, falling back to the native description
-     * and finally to the neutral text while no maneuver is known.
+     * The manoeuvre in the wording of the on-screen next-turn display: the localized short
+     * description of the step's own manoeuvre, and the neutral text while no manoeuvre is known.
+     * The native layer publishes no text, so there is nothing to fall back to
+     * (spec: `turn-instruction-localization`).
      */
-    private fun instructionText(instruction: RouteInstruction?, resolver: StringResolver): String {
-        if (instruction == null) return resolver.get(R.string.nav_hint_neutral)
-        return TurnInstructionLocalizer.shortDescription(resolver, instruction)
+    private fun stepText(step: RouteStep?, resolver: StringResolver): String {
+        if (step == null) return resolver.get(R.string.nav_hint_neutral)
+        return ManoeuvreLabels.short(resolver, manoeuvreFromStep(step))
             .takeIf { it.isNotBlank() }
-            ?: instruction.description.takeIf { it.isNotBlank() }
             ?: resolver.get(R.string.nav_hint_neutral)
     }
 
@@ -179,16 +182,14 @@ object NavigationNotificationContentFormatter {
         etaClock: (Long) -> String,
         locale: Locale
     ): NavigationNotificationContent {
-        val instruction = state.nextInstruction
-        val manoeuvre = instruction?.description
-            ?.takeIf { it.isNotBlank() }
-            ?: instruction?.shortDescription?.takeIf { it.isNotBlank() }
-            ?: ""
+        val step = state.nextStep
+        val manoeuvre = step?.let { ManoeuvreLabels.description(resolver, manoeuvreFromStep(it)) }
+            .orEmpty()
 
         val title = state.destinationName?.takeIf { it.isNotBlank() }
             ?: resolver.get(R.string.nav_hint_neutral)
 
-        val distanceToTurn = formatDistanceCompact(instruction?.distanceTo ?: 0.0, locale)
+        val distanceToTurn = formatDistanceCompact(step?.remainingMeters ?: 0.0, locale)
         val remainingDistance = formatDistanceCompact(state.remainingDistance, locale)
         val remainingTime = formatRemainingTime(state.etaMillis)
         val eta = if (state.etaMillis > 0) etaClock(state.etaMillis) else "--:--"

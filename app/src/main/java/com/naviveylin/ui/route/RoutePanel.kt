@@ -476,7 +476,7 @@ fun RoutePanel(
     // It brings the headline distance and duration with it, which is where the phone shows
     // them (spec: `route-analysis` — Step selection).
     val bodyList: @Composable () -> Unit = {
-        if (state.routeEntry != null && state.routeSteps.isNotEmpty()) {
+        if (state.routeEntry != null) {
             Spacer(modifier = Modifier.height(8.dp))
             RouteSummary(
                 routeEntry = state.routeEntry!!,

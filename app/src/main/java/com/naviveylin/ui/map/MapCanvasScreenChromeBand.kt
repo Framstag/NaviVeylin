@@ -450,7 +450,7 @@ internal fun BoxScope.MapCanvasChromeBandContent(
         ) {
             // Top: full-width turn hints
             NextTurnOverlay(
-                instruction = navState.nextInstruction,
+                step = navState.nextStep,
                 laneOneway = navState.laneOneway,
                 laneCount = navState.laneCount,
                 laneSuggested = navState.laneSuggested,

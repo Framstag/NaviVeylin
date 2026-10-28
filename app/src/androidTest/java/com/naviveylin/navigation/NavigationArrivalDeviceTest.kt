@@ -176,7 +176,7 @@ class NavigationArrivalDeviceTest {
                 assumeTrue(
                     "the engine published neither instructions nor a route distance for this route",
                     await(engine, 10_000) {
-                        engine.state.value.instructions.isNotEmpty() ||
+                        engine.state.value.steps.isNotEmpty() ||
                             engine.state.value.totalDistance > 0.0
                     }
                 )
@@ -228,7 +228,7 @@ class NavigationArrivalDeviceTest {
                     "ArrivalDeviceTest",
                     "arrival device: fixes=$fed vertices=$vertices lastEdge=${lastEdgeM.toInt()}m" +
                         " reached=${state.hasReachedDestination} offRoute=${state.isOffRoute}" +
-                        " nextInstruction=${state.nextInstruction != null}" +
+                        " nextStep=${state.nextStep != null}" +
                         " remaining=${state.remainingDistance.toInt()}m"
                 )
 

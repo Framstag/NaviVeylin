@@ -551,7 +551,7 @@ class NavigationScreen(
         // maneuver + distance, next-next step, lane guidance.
         val routingInfo = NavigationTemplateMapper.routingInfoFromState(
             state,
-            ManeuverGlyphs::forInstruction,
+            ManeuverGlyphs::forStep,
             includeLanes = laneHintsEnabled,
             laneImageFor = ManeuverGlyphs::lanesImage,
             resolver = carContext.stringResolver()

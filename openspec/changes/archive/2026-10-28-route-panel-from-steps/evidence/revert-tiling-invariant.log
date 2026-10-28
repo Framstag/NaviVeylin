@@ -1,0 +1,4 @@
+> Task :app:testMobileDebugUnitTest FAILED
+RouteRowDerivationTest > rows tile the polyline without a gap or an overlap FAILED
+11 tests completed, 1 failed
+BUILD FAILED in 5s

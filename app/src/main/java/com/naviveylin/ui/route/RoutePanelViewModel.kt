@@ -19,7 +19,9 @@ import com.naviveylin.location.LocationService
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.FailureReason
 import com.naviveylin.core.LocationGrant
+import com.naviveylin.core.ManoeuvreLabels
 import com.naviveylin.core.NavigationFailure
+import com.naviveylin.core.stringResolver
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.navigationFailureText
 import com.naviveylin.navigation.navigationFailureOf
@@ -88,23 +90,33 @@ enum class RouteSessionState { INACTIVE, EDITING, REVIEWING, STOPPED }
 enum class RouteOverlayAnchor { EXPANDED, COMPACT }
 
 /**
- * Parsed step info for display.
+ * One row of the route panel's step list, as the panel renders it.
  *
- * [distanceMeters] and [durationSeconds] are the values of the leg that ends at this step's
- * manoeuvre (spec: `osmscout-jni` — Per-step leg values on a calculated route), formatted by the app
- * with the shared formatters. Zero means "unknown": the route's start line owns a zero-length leg,
- * and a step whose values could not be resolved shows none - never a neighbour's and never the last
- * geometry edge before its manoeuvre (owner finding, 2026-10-04: "14 m" and "2 s" for one step of a
- * 17,3 km route).
+ * The row is derived from the route's structured steps (spec: `route-analysis` — Rows are derived
+ * from the route's steps) and its text is localized from the manoeuvre's own values (spec:
+ * `turn-instruction-localization` — Route analysis rows are localized from the step model).
+ *
+ * [distanceMeters] and [durationSeconds] are the run from the previous row's manoeuvre to this one,
+ * folded over every step the row absorbed (spec: `osmscout-jni` — A calculated route publishes
+ * structured route steps), formatted by the app with the shared formatters. Zero means "unknown":
+ * the route's start line owns a zero-length leg, and a row without values shows none - never a
+ * neighbour's and never the last geometry edge before its manoeuvre (owner finding, 2026-10-04:
+ * "14 m" and "2 s" for one step of a 17,3 km route).
+ *
+ * [turnType], [kind] and [roundaboutExit] are the manoeuvre's own fields: the icon is chosen from
+ * them, never from the row's text.
  */
 data class RouteStepDisplay(
-    val instruction: String,       // clean description, no brackets
+    val instruction: String,
     val distanceMeters: Double = 0.0,   // leg distance in metres, 0 = unknown
     val durationSeconds: Double = 0.0,  // leg travel time in seconds, 0 = unknown
     val turnType: com.framstag.libosmscout.client.TurnType =
-        com.framstag.libosmscout.client.TurnType.STRAIGHT_ON
+        com.framstag.libosmscout.client.TurnType.STRAIGHT_ON,
+    val kind: com.framstag.libosmscout.client.RouteStep.Kind =
+        com.framstag.libosmscout.client.RouteStep.Kind.UNKNOWN,
+    val roundaboutExit: Int? = null
 ) {
-    /** Whether this step carries leg values at all. */
+    /** Whether this row carries leg values at all. */
     val hasLegValues: Boolean
         get() = distanceMeters > 0.0 || durationSeconds > 0.0
 }
@@ -561,14 +573,16 @@ class RoutePanelViewModel @Inject constructor(
 
                         override fun onSuccess(route: RouteEntry) {
                             viewModelScope.launch {
-                                val steps = buildSteps(route)
-                                logStepValues(route, steps)
+                                val rows = buildRows(route)
+                                val steps = rows.map { row -> row.toDisplay() }
+                                val anchors = rowAnchors(rows)
+                                logStepValues(route, rows, steps)
 
                                 _uiState.value = _uiState.value.copy(
                                     routeState = RouteState.Done,
                                     routeEntry = route,
                                     routeSteps = steps,
-                                    stepAnchors = instructionAnchors(route),
+                                    stepAnchors = anchors,
                                     // A finished calculation starts at the route's current step
                                     // (owner finding, 2026-10-03): the min overlay then shows
                                     // a real entry and its position from the start, while the
@@ -579,7 +593,7 @@ class RoutePanelViewModel @Inject constructor(
                                         _uiState.value.copy(
                                             routeEntry = route,
                                             routeSteps = steps,
-                                            stepAnchors = instructionAnchors(route)
+                                            stepAnchors = anchors
                                         ),
                                         currentStepOf(steps) ?: 0
                                     ),
@@ -776,50 +790,63 @@ class RoutePanelViewModel @Inject constructor(
             ?: steps.indices.firstOrNull()
 
     /**
-     * The route's steps for display: the instruction text and turn type from the native description
-     * lines, and the distance and duration from the route's per-step leg values when it carries them
-     * (spec: `osmscout-jni` — Per-step leg values on a calculated route). A route without the arrays
-     * - a bridge that predates them, or an alignment guard that dropped them - falls back to the
-     * values in the description's bracket, so the step list keeps working across the change.
+     * The route's rows for display: derived from the route's structured steps (spec: `route-analysis`
+     * — Rows are derived from the route's steps) and worded from the manoeuvre's own values in the
+     * device language (spec: `turn-instruction-localization` — Route analysis rows are localized from
+     * the step model).
+     *
+     * A route that carries no steps yields no rows at all — never rows invented from a description
+     * line, and never text parsed back into structure. The full step list stays on
+     * [RoutePanelUiState.routeEntry]: the rows are a view of it, not a replacement.
      */
-    private fun buildSteps(route: RouteEntry): List<RouteStepDisplay> {
-        val steps = route.descriptions
-            ?.filter { isInstructionLine(it) }
-            ?.map { desc -> parseStepDisplay(desc) }
-            ?: emptyList()
-        val values = instructionValues(route)
-        if (values.isEmpty() || values.size != steps.size) return steps
-        // The bridge's own numbers win over the bracket: same leg, but they add up to the route's
-        // totals and the app formats them with the locale instead of showing native text.
-        return steps.mapIndexed { index, step ->
-            step.copy(
-                distanceMeters = values[index].distanceMeters,
-                durationSeconds = values[index].durationSeconds
-            )
-        }
+    private fun buildSteps(route: RouteEntry): List<RouteStepDisplay> =
+        buildRows(route).map { row -> row.toDisplay() }
+
+    /** The derived rows of [route] (spec: `route-analysis` — Rows are derived from the route's steps). */
+    private fun buildRows(route: RouteEntry): List<RouteRow> {
+        val steps = route.steps ?: return emptyList()
+        return routeRows(steps.toList())
+    }
+
+    /** One row as the panel renders it: localized text, folded values, the manoeuvre's own fields. */
+    private fun RouteRow.toDisplay(): RouteStepDisplay {
+        val resolver = context.stringResolver()
+        return RouteStepDisplay(
+            instruction = ManoeuvreLabels.description(resolver, manoeuvre),
+            distanceMeters = distanceMeters,
+            durationSeconds = durationSeconds,
+            turnType = rowTurnType(manoeuvre),
+            kind = manoeuvre.kind,
+            roundaboutExit = manoeuvre.roundaboutExit
+        )
     }
 
     /**
-     * Record what the route's steps add up to against the route's own totals, as numbers only
-     * (spec: `route-analysis` — Step values describe the step's own leg; spec: `auto-diagnostics` —
-     * Diagnostics carry no coordinates).
+     * Record what the route's rows add up to against the route's own totals, and the census that
+     * settles the row policy, as numbers only (spec: `route-analysis` — Step values describe the
+     * step's own leg; spec: `auto-diagnostics` — Diagnostics carry no coordinates).
      *
-     * This is the measurement the change's device check reads: the per-step distances are the legs
-     * the analysis highlights, so they have to add up to the route's distance. A bridge that measures
-     * between route nodes instead of between instructions falls short by orders of magnitude, which
-     * no screenshot would show.
+     * This is the measurement the change's device check reads: the per-row distances are the legs the
+     * analysis highlights, so they have to add up to the route's distance. A bridge that measures
+     * between route nodes instead of between instructions falls short by orders of magnitude, which no
+     * screenshot would show.
      */
-    private fun logStepValues(route: RouteEntry, steps: List<RouteStepDisplay>) {
-        if (steps.none { it.hasLegValues }) return
+    private fun logStepValues(route: RouteEntry, rows: List<RouteRow>, displays: List<RouteStepDisplay>) {
+        val steps = route.steps ?: return
         DiagnosticsLog.log(
             DiagnosticsLog.ROUTE_TAG,
-            stepValuesSummary(steps, route.distance, route.duration)
+            routeCensus(steps.toList(), rows)
         )
-        if (stepValuesDiverge(steps, route.distance)) {
+        if (displays.none { it.hasLegValues }) return
+        DiagnosticsLog.log(
+            DiagnosticsLog.ROUTE_TAG,
+            stepValuesSummary(displays, route.distance, route.duration)
+        )
+        if (stepValuesDiverge(displays, route.distance)) {
             Log.w(
                 TAG,
-                "route analysis: per-step distances sum to ${steps.sumOf { it.distanceMeters }.toInt()} m " +
-                    "but the route totals ${route.distance.toInt()} m (steps=${steps.size})"
+                "route analysis: row distances sum to ${displays.sumOf { it.distanceMeters }.toInt()} m " +
+                    "but the route totals ${route.distance.toInt()} m (steps=${displays.size})"
             )
         }
     }
@@ -956,9 +983,10 @@ class RoutePanelViewModel @Inject constructor(
      * own state.
      */
     fun adoptRoute(route: RouteEntry, vehicle: Vehicle) {
-        val steps = buildSteps(route)
-        logStepValues(route, steps)
-        val anchors = instructionAnchors(route)
+        val rows = buildRows(route)
+        val steps = rows.map { row -> row.toDisplay() }
+        val anchors = rowAnchors(rows)
+        logStepValues(route, rows, steps)
         // A new route starts at its current step (owner finding, 2026-10-03: the min
         // overlay showed no usable entry before the first paging). The camera stays with
         // the overview fit — the step is the *current* one, not a camera request: only an
@@ -1037,93 +1065,5 @@ class RoutePanelViewModel @Inject constructor(
          * Long enough for "restart that", short enough that no route lingers.
          */
         const val GRACE_PERIOD_MS = 45_000L
-    }
-}
-
-/**
- * Parse a native description line into a [RouteStepDisplay].
- *
- * This is the **fallback** path: it is used only when the route carries no per-step arrays
- * (spec: `osmscout-jni` — Per-step leg values on a calculated route), i.e. with a bridge that predates
- * them or when the native alignment guard dropped them. It therefore has to read the description's
- * own bracket, and it has to do so by unit rather than by position.
- *
- * Native format: `Turn left into Main Street  [1.2 km, 5 min]`, below a minute `[45 s]`, below 10 m
- * only a time (`[2 s]`, no distance at all), and for a segment under a second an empty bracket
- * (`[]`). Classifying each token by its unit keeps a time out of the distance slot, which the
- * positional parser did (`[2 s]` became a distance of "2 s").
- */
-internal fun parseStepDisplay(desc: String): RouteStepDisplay {
-    val bracketIdx = desc.lastIndexOf("  [")
-    if (bracketIdx < 0) {
-        return RouteStepDisplay(instruction = desc, turnType = parseTurnType(desc))
-    }
-
-    val instruction = desc.substring(0, bracketIdx)
-    val bracket = desc.substring(bracketIdx + 2) // "[1.2 km, 5 min]"
-
-    var meters = 0.0
-    var seconds = 0.0
-    for (raw in bracket.removeSurrounding("[", "]").split(", ")) {
-        val token = raw.trim()
-        when {
-            // "1 h 5 min" is one token, so the combined form has to be read before either unit.
-            token.contains("h") && token.contains("min") -> {
-                val parts = token.split("h")
-                seconds += number(parts[0].removeSuffix("h")) * 3600.0 +
-                    number(parts.getOrElse(1) { "" }.removeSuffix("min")) * 60.0
-            }
-            token.endsWith("km") -> meters += number(token.removeSuffix("km")) * 1000.0
-            token.endsWith("min") -> seconds += number(token.removeSuffix("min")) * 60.0
-            token.endsWith("m") -> meters += number(token.removeSuffix("m"))
-            token.endsWith("h") -> seconds += number(token.removeSuffix("h")) * 3600.0
-            token.endsWith("s") -> seconds += number(token.removeSuffix("s"))
-        }
-    }
-
-    return RouteStepDisplay(
-        instruction = instruction,
-        distanceMeters = meters,
-        durationSeconds = seconds,
-        turnType = parseTurnType(instruction)
-    )
-}
-
-/**
- * The number of a description token. The native layer writes C++ formatted values (a `.` decimal
- * separator) in this build's locale-independent `std::fixed` form; a comma is accepted too, so a
- * localized description would not silently become zero. An unparsable token counts as unknown (0).
- */
-private fun number(text: String): Double =
-    text.trim().replace(',', '.').toDoubleOrNull() ?: 0.0
-
-/**
- * Infer [TurnType] from the instruction text.
- * Native descriptions start with phrases like "Turn left", "Turn right", etc.
- */
-internal fun parseTurnType(instruction: String): com.framstag.libosmscout.client.TurnType {
-    val lower = instruction.lowercase()
-    return when {
-        // Check start/depart first
-        lower.startsWith("start") || lower.startsWith("depart") -> com.framstag.libosmscout.client.TurnType.START
-        // Check destination/arrive
-        lower.startsWith("destination") || lower.startsWith("arrive") ||
-            lower.startsWith("target") || lower.contains("reached") -> com.framstag.libosmscout.client.TurnType.TARGET_REACHED
-        // Check turn directions BEFORE road type keywords (descriptions contain "highway_*" road names)
-        lower.startsWith("sharp left") -> com.framstag.libosmscout.client.TurnType.SHARP_LEFT
-        lower.startsWith("sharp right") -> com.framstag.libosmscout.client.TurnType.SHARP_RIGHT
-        lower.startsWith("slight left") || lower.startsWith("slightly left") -> com.framstag.libosmscout.client.TurnType.SLIGHTLY_LEFT
-        lower.startsWith("slight right") || lower.startsWith("slightly right") -> com.framstag.libosmscout.client.TurnType.SLIGHTLY_RIGHT
-        lower.startsWith("turn left") || lower.startsWith("bear left") ||
-            lower.startsWith("left") -> com.framstag.libosmscout.client.TurnType.LEFT
-        lower.startsWith("turn right") || lower.startsWith("bear right") ||
-            lower.startsWith("right") -> com.framstag.libosmscout.client.TurnType.RIGHT
-        lower.startsWith("enter roundabout") || lower.startsWith("enter the roundabout") -> com.framstag.libosmscout.client.TurnType.ROUNDABOUT_ENTER
-        lower.startsWith("leave roundabout") || lower.startsWith("leave the roundabout") ||
-            lower.startsWith("exit roundabout") -> com.framstag.libosmscout.client.TurnType.ROUNDABOUT_LEAVE
-        // Road type keywords (checked last to avoid false matches on road names)
-        lower.contains("motorway") || lower.contains("highway") -> com.framstag.libosmscout.client.TurnType.MOTORWAY_ENTER
-        lower.contains("straight") || lower.contains("continue") -> com.framstag.libosmscout.client.TurnType.STRAIGHT_ON
-        else -> com.framstag.libosmscout.client.TurnType.STRAIGHT_ON
     }
 }

@@ -1,0 +1,4 @@
+> Task :app:testMobileDebugUnitTest FAILED
+RouteRowDerivationTest > a street-name change restated by the next manoeuvre is merged into it FAILED
+11 tests completed, 1 failed
+BUILD FAILED in 8s

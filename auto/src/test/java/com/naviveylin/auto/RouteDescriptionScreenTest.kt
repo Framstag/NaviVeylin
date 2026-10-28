@@ -1,6 +1,6 @@
 package com.naviveylin.auto
 
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.auto.stepOf
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import org.junit.Assert.assertEquals
@@ -21,7 +21,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class RouteDescriptionScreenTest {
 
-    private fun roundaboutExit(exitNumber: Int, street: String) = RouteInstruction(
+    private fun roundaboutExit(exitNumber: Int, street: String) = stepOf(
         350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, street,
         "Take exit $exitNumber onto $street", "Exit $exitNumber",
         0.0, TurnType.STRAIGHT_ON, "", "",
@@ -33,7 +33,7 @@ class RouteDescriptionScreenTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(
+            steps = listOf(
                 roundaboutExit(3, "Bahnhofstraße"),
                 roundaboutExit(1, "Marktplatz")
             )
@@ -56,7 +56,7 @@ class RouteDescriptionScreenTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(roundaboutExit(0, "Ringstraße"))
+            steps = listOf(roundaboutExit(0, "Ringstraße"))
         )
 
         val rows = NavigationTemplateMapper.routeDescriptionRows(testCarContext(), state)

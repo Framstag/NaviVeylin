@@ -1,5 +1,7 @@
 package com.naviveylin.auto
 
+import com.naviveylin.auto.stepOf
+import com.naviveylin.auto.streetNameOf
 import android.graphics.Bitmap
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.Distance
@@ -7,7 +9,6 @@ import androidx.car.app.navigation.model.LaneDirection
 import androidx.car.app.navigation.model.Maneuver
 import androidx.core.graphics.drawable.IconCompat
 import com.framstag.libosmscout.client.LaneTurn
-import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.StringResolver
@@ -36,7 +37,7 @@ class NavigationTemplateMapperTest {
     private val resolver: StringResolver by lazy { testCarContext().stringResolver() }
 
     private fun instr(distance: Double, type: TurnType, street: String) =
-        RouteInstruction(distance, type, street, "desc", "short")
+        stepOf(distance, type, street, "desc", "short")
 
     // --- maneuverTypeFromTurnType ---
 
@@ -223,7 +224,7 @@ class NavigationTemplateMapperTest {
 
     @Test
     fun stepForInstruction_setsManeuverRoadAndCue() {
-        val step = NavigationTemplateMapper.stepForInstruction(
+        val step = NavigationTemplateMapper.stepForStep(
             instr(350.0, TurnType.LEFT, "Main St"), testIcon, resolver = resolver
         )
         assertEquals(Maneuver.TYPE_TURN_NORMAL_LEFT, step.maneuver!!.type)
@@ -233,7 +234,7 @@ class NavigationTemplateMapperTest {
 
     @Test
     fun stepForInstruction_hidesBlankStreet() {
-        val step = NavigationTemplateMapper.stepForInstruction(
+        val step = NavigationTemplateMapper.stepForStep(
             instr(100.0, TurnType.RIGHT, ""), testIcon, resolver = resolver
         )
         assertNull(step.road)
@@ -243,7 +244,7 @@ class NavigationTemplateMapperTest {
     @Test
     @Config(qualifiers = "de")
     fun stepForInstruction_cueIsGermanOnGermanLocale() {
-        val step = NavigationTemplateMapper.stepForInstruction(
+        val step = NavigationTemplateMapper.stepForStep(
             instr(350.0, TurnType.LEFT, "Hauptstraße"), testIcon, resolver = resolver
         )
         assertEquals("Links abbiegen", step.cue.toString())
@@ -254,7 +255,7 @@ class NavigationTemplateMapperTest {
     fun `a roundabout exit maneuver carries the exit number`() {
         // spec: auto/navigation-view - A roundabout exit uses the number-bearing host maneuver
         val instruction = roundaboutLeave(exit = 3)
-        val step = NavigationTemplateMapper.stepForInstruction(
+        val step = NavigationTemplateMapper.stepForStep(
             instruction, testIcon, resolver = resolver
         )
         assertEquals(3, step.maneuver!!.roundaboutExitNumber)
@@ -266,7 +267,7 @@ class NavigationTemplateMapperTest {
         exit: Int,
         clockwise: Boolean = true,
         street: String = "Bahnhofstraße"
-    ) = RouteInstruction(
+    ) = stepOf(
         350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, street,
         "Take exit $exit onto $street", "Exit $exit",
         0.0, TurnType.STRAIGHT_ON, "", "",
@@ -277,7 +278,7 @@ class NavigationTemplateMapperTest {
     fun `a known exit ordinal selects a number-bearing maneuver type`() {
         assertEquals(
             Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW,
-            NavigationTemplateMapper.maneuverTypeForInstruction(roundaboutLeave(exit = 3))
+            NavigationTemplateMapper.maneuverTypeForStep(roundaboutLeave(exit = 3))
         )
     }
 
@@ -286,7 +287,7 @@ class NavigationTemplateMapperTest {
         // A number-bearing type with no number is rejected by the host builder, so the fallback has to
         // stay on the numberless type and supply the app's own glyph.
         val instruction = roundaboutLeave(exit = 0)
-        val step = NavigationTemplateMapper.stepForInstruction(
+        val step = NavigationTemplateMapper.stepForStep(
             instruction, testIcon, resolver = resolver
         )
 
@@ -299,7 +300,7 @@ class NavigationTemplateMapperTest {
     fun `a roundabout exit asks the host for the number as well as our icon`() {
         // Both are supplied: the exit number for the host's own glyph, and our numbered icon, because
         // which of the two the driver sees is host behaviour no test here can observe.
-        val step = NavigationTemplateMapper.stepForInstruction(
+        val step = NavigationTemplateMapper.stepForStep(
             roundaboutLeave(exit = 3), testIcon, resolver = resolver
         )
 
@@ -311,20 +312,20 @@ class NavigationTemplateMapperTest {
     fun `a counter-clockwise roundabout uses the counter-clockwise type`() {
         assertEquals(
             Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW,
-            NavigationTemplateMapper.maneuverTypeForInstruction(roundaboutLeave(exit = 3, clockwise = false))
+            NavigationTemplateMapper.maneuverTypeForStep(roundaboutLeave(exit = 3, clockwise = false))
         )
-        val enter = RouteInstruction(100.0, TurnType.ROUNDABOUT_ENTER, "Ring", "Enter roundabout", "Roundabout")
+        val enter = stepOf(100.0, TurnType.ROUNDABOUT_ENTER, "Ring", "Enter roundabout", "Roundabout")
         assertEquals(
             Maneuver.TYPE_ROUNDABOUT_ENTER_CW,
-            NavigationTemplateMapper.maneuverTypeForInstruction(enter)
+            NavigationTemplateMapper.maneuverTypeForStep(enter)
         )
-        val enterCcw = RouteInstruction(
+        val enterCcw = stepOf(
             100.0, 0.0, 0.0, TurnType.ROUNDABOUT_ENTER, "Ring", "Enter roundabout", "Roundabout",
             0.0, TurnType.STRAIGHT_ON, "", "", 0, false, 0
         )
         assertEquals(
             Maneuver.TYPE_ROUNDABOUT_ENTER_CCW,
-            NavigationTemplateMapper.maneuverTypeForInstruction(enterCcw)
+            NavigationTemplateMapper.maneuverTypeForStep(enterCcw)
         )
     }
 
@@ -333,7 +334,7 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(
+            steps = listOf(
                 roundaboutLeave(exit = 3),
                 roundaboutLeave(exit = 1, street = "Marktplatz")
             )
@@ -349,7 +350,7 @@ class NavigationTemplateMapperTest {
     @Test
     fun `the host-numbered roundabout keeps the shared cue text`() {
         // The label stays at parity with the phone; only the glyph's source differs.
-        val step = NavigationTemplateMapper.stepForInstruction(
+        val step = NavigationTemplateMapper.stepForStep(
             roundaboutLeave(exit = 3), testIcon, resolver = resolver
         )
 
@@ -372,7 +373,7 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 1,
-            instructions = listOf(
+            steps = listOf(
                 instr(1000.0, TurnType.START, "Start St"),
                 instr(800.0, TurnType.LEFT, "Main St"),
                 instr(200.0, TurnType.RIGHT, "Elm St")
@@ -396,11 +397,11 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(
+            steps = listOf(
                 instr(1000.0, TurnType.START, "Start St"),
                 instr(800.0, TurnType.LEFT, "Main St")
             ),
-            nextInstruction = instr(350.0, TurnType.LEFT, "Main St")
+            nextStep = instr(350.0, TurnType.LEFT, "Main St")
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
             state, { testIcon }, includeLanes = false, resolver = resolver
@@ -415,14 +416,14 @@ class NavigationTemplateMapperTest {
         // (spec: auto/navigation-view — step distance not frozen at zero):
         // it must render as a destination maneuver with that distance, not an
         // empty step.
-        val arrive = RouteInstruction(
+        val arrive = stepOf(
             250.0, TurnType.TARGET_REACHED, "", "Arrive", "Arrive"
         )
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(instr(500.0, TurnType.LEFT, "Home St"), arrive),
-            nextInstruction = arrive
+            steps = listOf(instr(500.0, TurnType.LEFT, "Home St"), arrive),
+            nextStep = arrive
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
             state, { testIcon }, includeLanes = false, resolver = resolver
@@ -436,7 +437,7 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(instr(100.0, TurnType.LEFT, "Main St"))
+            steps = listOf(instr(100.0, TurnType.LEFT, "Main St"))
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
             state, { testIcon }, includeLanes = false, resolver = resolver
@@ -458,7 +459,7 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(instr(350.0, TurnType.LEFT, "Main St")),
+            steps = listOf(instr(350.0, TurnType.LEFT, "Main St")),
             laneCount = 2,
             laneSuggested = true,
             laneSuggestedFrom = 0,
@@ -485,14 +486,14 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 1,
-            instructions = listOf(
+            steps = listOf(
                 instr(1000.0, TurnType.START, "Start St"),
                 instr(800.0, TurnType.LEFT, "Main St"),
                 instr(200.0, TurnType.RIGHT, "Elm St")
             )
         )
-        val remaining = NavigationTemplateMapper.instructionsFromCurrentStep(state)
-        assertEquals(listOf("Main St", "Elm St"), remaining.map { it.streetName })
+        val remaining = NavigationTemplateMapper.stepsFromCurrentStep(state)
+        assertEquals(listOf("Main St", "Elm St"), remaining.map { streetNameOf(it) })
     }
 
     @Test
@@ -500,7 +501,7 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 1,
-            instructions = listOf(
+            steps = listOf(
                 instr(1000.0, TurnType.START, "Start St"),
                 instr(800.0, TurnType.LEFT, "Main St"),
                 instr(200.0, TurnType.RIGHT, "Elm St")
@@ -520,7 +521,7 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            instructions = listOf(instr(500.0, TurnType.LEFT, ""))
+            steps = listOf(instr(500.0, TurnType.LEFT, ""))
         )
         val rows = NavigationTemplateMapper.routeDescriptionRows(testCarContext(), state)
         assertEquals("500 m · Turn left", rows[0].title)
@@ -577,22 +578,22 @@ class NavigationTemplateMapperTest {
         // 505 m and 520 m both display as 500 m: rebuilding for the sub-bucket change
         // would send the host a new template (and a new lane image) per GPS update
         // (spec: car-host-fault-isolation — Bounded host-facing traffic while not visible).
-        val old = NavigationState(isNavigating = true, nextInstruction = instr(505.0, TurnType.LEFT, "Main St"))
-        val new = NavigationState(isNavigating = true, nextInstruction = instr(520.0, TurnType.LEFT, "Main St"))
+        val old = NavigationState(isNavigating = true, nextStep = instr(505.0, TurnType.LEFT, "Main St"))
+        val new = NavigationState(isNavigating = true, nextStep = instr(520.0, TurnType.LEFT, "Main St"))
         assertFalse(NavigationTemplateMapper.hasStateChanged(old, new))
     }
 
     @Test
     fun hasStateChanged_detectsAStepDistanceChangeAcrossTheDisplayedBucket() {
-        val old = NavigationState(isNavigating = true, nextInstruction = instr(505.0, TurnType.LEFT, "Main St"))
-        val new = NavigationState(isNavigating = true, nextInstruction = instr(560.0, TurnType.LEFT, "Main St"))
+        val old = NavigationState(isNavigating = true, nextStep = instr(505.0, TurnType.LEFT, "Main St"))
+        val new = NavigationState(isNavigating = true, nextStep = instr(560.0, TurnType.LEFT, "Main St"))
         assertTrue(NavigationTemplateMapper.hasStateChanged(old, new))
     }
 
     @Test
     fun hasStateChanged_ignoresASubBucketChangeOverOneKilometre() {
-        val old = NavigationState(isNavigating = true, nextInstruction = instr(2_010.0, TurnType.LEFT, "Main St"))
-        val new = NavigationState(isNavigating = true, nextInstruction = instr(2_040.0, TurnType.LEFT, "Main St"))
+        val old = NavigationState(isNavigating = true, nextStep = instr(2_010.0, TurnType.LEFT, "Main St"))
+        val new = NavigationState(isNavigating = true, nextStep = instr(2_040.0, TurnType.LEFT, "Main St"))
         assertFalse(NavigationTemplateMapper.hasStateChanged(old, new))
     }
 
@@ -661,20 +662,20 @@ class NavigationTemplateMapperTest {
     @Test
     fun hasStateChanged_detectsNextInstructionBecomingNull() {
         val old = NavigationState(
-            nextInstruction = com.framstag.libosmscout.client.RouteInstruction(
+            nextStep = stepOf(
                 100.0, com.framstag.libosmscout.client.TurnType.LEFT,
                 "Main St", "Turn left into Main St", "Turn left"
             )
         )
-        val new = NavigationState(nextInstruction = null)
+        val new = NavigationState(nextStep = null)
         assertTrue(NavigationTemplateMapper.hasStateChanged(old, new))
     }
 
     @Test
     fun hasStateChanged_detectsNextInstructionAppearing() {
-        val old = NavigationState(nextInstruction = null)
+        val old = NavigationState(nextStep = null)
         val new = NavigationState(
-            nextInstruction = com.framstag.libosmscout.client.RouteInstruction(
+            nextStep = stepOf(
                 100.0, com.framstag.libosmscout.client.TurnType.LEFT,
                 "Main St", "Turn left into Main St", "Turn left"
             )
@@ -685,13 +686,13 @@ class NavigationTemplateMapperTest {
     @Test
     fun hasStateChanged_detectsNextInstructionDescriptionChange() {
         val old = NavigationState(
-            nextInstruction = com.framstag.libosmscout.client.RouteInstruction(
+            nextStep = stepOf(
                 100.0, com.framstag.libosmscout.client.TurnType.LEFT,
                 "Main St", "Turn left into Main St", "Turn left"
             )
         )
         val new = NavigationState(
-            nextInstruction = com.framstag.libosmscout.client.RouteInstruction(
+            nextStep = stepOf(
                 100.0, com.framstag.libosmscout.client.TurnType.RIGHT,
                 "Elm St", "Turn right into Elm St", "Turn right"
             )

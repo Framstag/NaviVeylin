@@ -6,11 +6,13 @@ import android.content.Context
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.TurnType
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
@@ -19,6 +21,7 @@ import com.naviveylin.location.LocationService
 import com.naviveylin.test.ComposeSandboxRule
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -84,15 +87,12 @@ class RoutePanelStoppedStateTest {
             viewModel.updateLocationsForReroute(entry("Start"), entry("Destination"))
         }
         viewModel.adoptRoute(
-            RouteEntry().apply {
-                routeHandle = 1L
-                latitudes = doubleArrayOf(48.0, 48.5, 49.0)
-                longitudes = doubleArrayOf(2.0, 2.3, 2.6)
-                distance = 120_000.0
-                descriptions = arrayOf("Start: A  [0.0 km]", "Right onto B  [120.0 km]")
-                instructionLats = doubleArrayOf(48.0, 48.5)
-                instructionLons = doubleArrayOf(2.0, 2.3)
-            },
+            routeWithSteps(
+                startStep(lat = 48.0, lon = 2.0),
+                turnStep(TurnType.RIGHT, lat = 48.5, lon = 2.3, legDistance = 120_000.0, legTime = 5_400.0, name = "B"),
+                distance = 120_000.0,
+                duration = 5_400.0
+            ),
             Vehicle.CAR
         )
         viewModel.openSession()
@@ -116,6 +116,51 @@ class RoutePanelStoppedStateTest {
         }
         composeRule.waitForIdle()
         return viewModel
+    }
+
+    @Test
+    fun `a route without steps lists no rows`() {
+        // A route the bridge published without structured steps (spec: `route-analysis` — A route
+        // without per-step values still lists its steps): no row is invented for it, and the
+        // analysis's selector is not offered.
+        val client = FakeOSMScoutClient()
+        val viewModel = RoutePanelViewModel(
+            client = client,
+            favoriteRepository = FavoriteRepository(client),
+            searchHistoryRepository = SearchHistoryRepository(context())
+                .also { it.defaultDispatcher = Dispatchers.Unconfined },
+            locationService = LocationService(context()),
+            context = context(),
+            settingsStorage = SettingsStorage(context())
+        )
+        runBlocking {
+            viewModel.updateLocationsForReroute(entry("Start"), entry("Destination"))
+        }
+        viewModel.adoptRoute(
+            com.framstag.libosmscout.client.RouteEntry().apply {
+                routeHandle = 1L
+                latitudes = doubleArrayOf(48.0, 48.5)
+                longitudes = doubleArrayOf(2.0, 2.3)
+                distance = 120_000.0
+            },
+            Vehicle.CAR
+        )
+        viewModel.openSession()
+        viewModel.setOverlayAnchor(RouteOverlayAnchor.EXPANDED)
+
+        composeRule.setContent {
+            RoutePanel(
+                viewModel = viewModel,
+                onOpenFavoritePicker = {},
+                centerLat = 48.5,
+                centerLon = 2.3
+            )
+        }
+        composeRule.waitForIdle()
+
+        assertTrue(viewModel.uiState.value.routeSteps.isEmpty())
+        composeRule.onNodeWithTag("routeStep0").assertDoesNotExist()
+        composeRule.onNodeWithTag("routeStepsEmpty").assertExists()
     }
 
     @Test

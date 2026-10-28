@@ -13,15 +13,20 @@ import androidx.car.app.navigation.model.Step
 import androidx.car.app.navigation.model.TravelEstimate
 import androidx.car.app.navigation.model.Trip
 import com.framstag.libosmscout.client.LaneTurn
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.auto.R
+import com.naviveylin.core.ManoeuvreLabels
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.StringResolver
-import com.naviveylin.core.TurnInstructionLocalizer
+import com.naviveylin.core.exitOrdinal
 import com.naviveylin.core.formatDistanceNumber
+import com.naviveylin.core.manoeuvreFromStep
+import com.naviveylin.core.remainingMeters
+import com.naviveylin.core.remainingSeconds
 import com.naviveylin.core.roundDistanceMeters
 import com.naviveylin.core.stringResolver
+import com.naviveylin.core.turnTypeFor
 import java.util.TimeZone
 
 /**
@@ -68,16 +73,16 @@ object NavigationTemplateMapper {
      * app's own glyph. The number-bearing type requires its number, so [stepForInstruction] sets it on
      * exactly this branch.
      */
-    fun maneuverTypeForInstruction(instruction: RouteInstruction): Int {
-        val clockwise = instruction.roundaboutClockwise
-        return when (instruction.turnType) {
+    fun maneuverTypeForStep(step: RouteStep): Int {
+        val clockwise = step.roundaboutLeave?.clockwise ?: step.roundaboutEnter?.clockwise ?: true
+        return when (turnTypeFor(step)) {
             TurnType.ROUNDABOUT_ENTER -> if (clockwise) {
                 Maneuver.TYPE_ROUNDABOUT_ENTER_CW
             } else {
                 Maneuver.TYPE_ROUNDABOUT_ENTER_CCW
             }
             TurnType.ROUNDABOUT_LEAVE -> when {
-                instruction.roundaboutExitNumber <= 0 -> if (clockwise) {
+                step.exitOrdinal <= 0 -> if (clockwise) {
                     Maneuver.TYPE_ROUNDABOUT_EXIT_CW
                 } else {
                     Maneuver.TYPE_ROUNDABOUT_EXIT_CCW
@@ -85,16 +90,16 @@ object NavigationTemplateMapper {
                 clockwise -> Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CW
                 else -> Maneuver.TYPE_ROUNDABOUT_ENTER_AND_EXIT_CCW
             }
-            else -> maneuverTypeFromTurnType(instruction.turnType)
+            else -> maneuverTypeFromTurnType(turnTypeFor(step))
         }
     }
 
     /**
-     * Whether [instruction]'s maneuver carries its exit ordinal to the host, so the host draws its own
+     * Whether [step]'s maneuver carries its exit ordinal to the host, so the host draws its own
      * numbered roundabout and the app supplies no icon for it.
      */
-    fun carriesExitNumber(instruction: RouteInstruction): Boolean =
-        instruction.turnType == TurnType.ROUNDABOUT_LEAVE && instruction.roundaboutExitNumber > 0
+    fun carriesExitNumber(step: RouteStep): Boolean =
+        turnTypeFor(step) == TurnType.ROUNDABOUT_LEAVE && step.exitOrdinal > 0
 
     /** Map [LaneTurn] to [LaneDirection] shape constant. */
     fun laneDirectionShapeFromLaneTurn(turn: LaneTurn?): Int {
@@ -121,29 +126,30 @@ object NavigationTemplateMapper {
      * [lanes] are attached to the step (with the [lanesImage] strip, which the
      * host requires alongside lane data).
      */
-    fun stepForInstruction(
-        instruction: RouteInstruction,
+    fun stepForStep(
+        step: RouteStep,
         icon: CarIcon,
         lanes: List<Lane> = emptyList(),
         lanesImage: CarIcon? = null,
         resolver: StringResolver
     ): Step {
-        val builder = Maneuver.Builder(maneuverTypeForInstruction(instruction))
-        if (carriesExitNumber(instruction)) {
+        val manoeuvre = manoeuvreFromStep(step)
+        val builder = Maneuver.Builder(maneuverTypeForStep(step))
+        if (carriesExitNumber(step)) {
             // The number goes to the host, AND our own numbered glyph is supplied below. The two are
             // independent setters, and which of them the driver sees is host behaviour: phone
             // projection is rendered by Google's host while the DHU drives the AOSP reference
             // renderer, so relying on either precedence would rest the requirement on something no
             // test here can observe. Setting both identifies the exit whichever glyph the host picks
             // (spec: auto/navigation-view - A roundabout exit uses the number-bearing host maneuver).
-            builder.setRoundaboutExitNumber(instruction.roundaboutExitNumber)
+            builder.setRoundaboutExitNumber(step.exitOrdinal)
         }
         builder.setIcon(icon)
         val maneuver = builder.build()
         val stepBuilder = Step.Builder()
             .setManeuver(maneuver)
-            .setCue(TurnInstructionLocalizer.shortDescription(resolver, instruction))
-        instruction.streetName?.takeIf { it.isNotBlank() }?.let { stepBuilder.setRoad(it) }
+            .setCue(ManoeuvreLabels.short(resolver, manoeuvre))
+        manoeuvre.displayName?.takeIf { it.isNotBlank() }?.let { stepBuilder.setRoad(it) }
         lanes.forEach { stepBuilder.addLane(it) }
         if (lanes.isNotEmpty()) {
             lanesImage?.let { stepBuilder.setLanesImage(it) }
@@ -189,20 +195,19 @@ object NavigationTemplateMapper {
      */
     fun routingInfoFromState(
         state: NavigationState,
-        iconFor: (RouteInstruction) -> CarIcon,
+        iconFor: (RouteStep) -> CarIcon,
         includeLanes: Boolean,
         laneImageFor: (List<LaneTurn>, IntRange) -> CarIcon? = { _, _ -> null },
         resolver: StringResolver
     ): RoutingInfo? {
         if (!state.isNavigating) return null
-        // Prefer the live next instruction: the native engine re-emits it with
-        // an updated distance on every position update, while the
-        // instructions list is frozen at route start. Using the list entry
-        // froze the distance after the first turn.
-        val current = state.nextInstruction
-            ?: state.instructions.getOrNull(state.currentStepIndex)
+        // Prefer the live step ahead: the native engine re-emits it with an updated remaining
+        // distance on every position update, while the step list is frozen at route start. Using the
+        // list entry froze the distance after the first turn.
+        val current = state.nextStep
+            ?: state.steps.getOrNull(state.currentStepIndex)
             ?: return null
-        val next = state.instructions.getOrNull(state.currentStepIndex + 1)
+        val next = state.steps.getOrNull(state.currentStepIndex + 1)
 
         val recommended = if (state.laneSuggested) {
             state.laneSuggestedFrom..state.laneSuggestedTo
@@ -219,17 +224,17 @@ object NavigationTemplateMapper {
 
         val builder = RoutingInfo.Builder()
             .setCurrentStep(
-                stepForInstruction(
+                stepForStep(
                     current,
                     iconFor(current),
                     lanes,
                     if (lanes.isNotEmpty()) laneImageFor(state.laneTurns, recommended) else null,
                     resolver
                 ),
-                distanceForDisplay(current.distanceTo)
+                distanceForDisplay(current.remainingMeters)
             )
         if (next != null) {
-            builder.setNextStep(stepForInstruction(next, iconFor(next), resolver = resolver))
+            builder.setNextStep(stepForStep(next, iconFor(next), resolver = resolver))
         }
         return builder.build()
     }
@@ -239,9 +244,9 @@ object NavigationTemplateMapper {
      * screen (spec: auto/navigation-view — "Route description screen"),
      * ordered from the current step on.
      */
-    fun instructionsFromCurrentStep(state: NavigationState): List<RouteInstruction> {
-        val start = state.currentStepIndex.coerceIn(0, state.instructions.lastIndex.coerceAtLeast(0))
-        return state.instructions.drop(start)
+    fun stepsFromCurrentStep(state: NavigationState): List<RouteStep> {
+        val start = state.currentStepIndex.coerceIn(0, state.steps.lastIndex.coerceAtLeast(0))
+        return state.steps.drop(start)
     }
 
     /** One row of the route description screen. */
@@ -264,19 +269,20 @@ object NavigationTemplateMapper {
      */
     fun routeDescriptionRows(carContext: CarContext, state: NavigationState): List<RouteDescriptionRow> {
         val resolver = carContext.stringResolver()
-        return instructionsFromCurrentStep(state).mapIndexed { index, instruction ->
+        return stepsFromCurrentStep(state).mapIndexed { index, step ->
+            val manoeuvre = manoeuvreFromStep(step)
             val distance = carContext.getString(
-                if (roundDistanceMeters(instruction.distanceTo) >= 1000) R.string.distance_unit_km else R.string.distance_unit_m,
-                formatDistanceNumber(instruction.distanceTo)
+                if (roundDistanceMeters(step.distanceFromStart) >= 1000) R.string.distance_unit_km else R.string.distance_unit_m,
+                formatDistanceNumber(step.distanceFromStart)
             )
-            val target = instruction.streetName?.takeIf { it.isNotBlank() }
-                ?: TurnInstructionLocalizer.shortDescription(resolver, instruction)
+            val target = manoeuvre.displayName?.takeIf { it.isNotBlank() }
+                ?: ManoeuvreLabels.short(resolver, manoeuvre)
             RouteDescriptionRow(
-                turnType = instruction.turnType,
+                turnType = turnTypeFor(step),
                 title = carContext.getString(R.string.distance_target, distance, target),
-                text = TurnInstructionLocalizer.description(resolver, instruction),
+                text = ManoeuvreLabels.description(resolver, manoeuvre),
                 isCurrent = index == 0,
-                roundaboutExitNumber = instruction.roundaboutExitNumber
+                roundaboutExitNumber = step.exitOrdinal
             )
         }
     }
@@ -297,11 +303,13 @@ object NavigationTemplateMapper {
     fun hasStateChanged(oldState: NavigationState?, newState: NavigationState): Boolean {
         val old = oldState ?: return true
         return old.isNavigating != newState.isNavigating ||
-                displayedDistanceBucket(old.nextInstruction?.distanceTo) !=
-                    displayedDistanceBucket(newState.nextInstruction?.distanceTo) ||
-                old.nextInstruction?.turnType != newState.nextInstruction?.turnType ||
-                old.nextInstruction?.roundaboutExitNumber != newState.nextInstruction?.roundaboutExitNumber ||
-                old.nextInstruction?.description != newState.nextInstruction?.description ||
+                displayedDistanceBucket(old.nextStep?.remainingMeters) !=
+                    displayedDistanceBucket(newState.nextStep?.remainingMeters) ||
+                old.nextStep?.let(::turnTypeFor) != newState.nextStep?.let(::turnTypeFor) ||
+                old.nextStep?.exitOrdinal != newState.nextStep?.exitOrdinal ||
+                old.nextStep?.kind != newState.nextStep?.kind ||
+                manoeuvreFromStepOrNull(old.nextStep)?.displayName !=
+                    manoeuvreFromStepOrNull(newState.nextStep)?.displayName ||
                 displayedDistanceBucket(old.remainingDistance) !=
                     displayedDistanceBucket(newState.remainingDistance) ||
                 old.etaMillis / 1000 != newState.etaMillis / 1000 ||
@@ -342,7 +350,7 @@ object NavigationTemplateMapper {
      */
     fun tripFromState(
         state: NavigationState,
-        iconFor: (RouteInstruction) -> CarIcon,
+        iconFor: (RouteStep) -> CarIcon,
         resolver: StringResolver,
         nowMillis: Long = System.currentTimeMillis(),
         timeZone: TimeZone = TimeZone.getDefault()
@@ -350,31 +358,36 @@ object NavigationTemplateMapper {
         if (!state.isNavigating) return null
         if (state.isRerouting) return loadingTrip()
 
-        val current = state.nextInstruction
-            ?: state.instructions.getOrNull(state.currentStepIndex)
+        val current = state.nextStep
+            ?: state.steps.getOrNull(state.currentStepIndex)
             ?: return loadingTrip()
         if (state.etaMillis <= 0L) return loadingTrip()
 
-        val step = stepForInstruction(current, iconFor(current), resolver = resolver)
-        val stepArrivalMillis = if (current.timeTo > 0.0) {
-            nowMillis + (current.timeTo * 1000.0).toLong()
+        val step = stepForStep(current, iconFor(current), resolver = resolver)
+        val remainingSeconds = current.remainingSeconds
+        val stepArrivalMillis = if (remainingSeconds > 0.0) {
+            nowMillis + (remainingSeconds * 1000.0).toLong()
         } else {
             state.etaMillis
         }
         val stepEstimate = TravelEstimate.Builder(
-            distanceForDisplay(current.distanceTo),
+            distanceForDisplay(current.remainingMeters),
             DateTimeWithZone.create(stepArrivalMillis, timeZone)
         ).apply {
-            if (current.timeTo > 0.0) setRemainingTimeSeconds(current.timeTo.toLong())
+            if (remainingSeconds > 0.0) setRemainingTimeSeconds(remainingSeconds.toLong())
         }.build()
 
         val builder = Trip.Builder().addStep(step, stepEstimate)
         destinationFromState(state, nowMillis, timeZone)?.let { (destination, estimate) ->
             builder.addDestination(destination, estimate)
         }
-        current.streetName?.takeIf { it.isNotBlank() }?.let { builder.setCurrentRoad(it) }
+        manoeuvreFromStepOrNull(current)?.displayName?.let { builder.setCurrentRoad(it) }
         return builder.build()
     }
+
+    /** The manoeuvre of [step], or null for a state without a step. */
+    private fun manoeuvreFromStepOrNull(step: RouteStep?) : com.naviveylin.core.Manoeuvre? =
+        step?.let(::manoeuvreFromStep)
 
     /** Transient host state: recalculating, or no usable step/arrival time yet. */
     private fun loadingTrip(): Trip = Trip.Builder().setLoading(true).build()
@@ -425,12 +438,13 @@ object NavigationTemplateMapper {
         val old = previous ?: return true
         return old.isNavigating != current.isNavigating ||
                 old.isRerouting != current.isRerouting ||
-                old.nextInstruction?.turnType != current.nextInstruction?.turnType ||
-                old.nextInstruction?.roundaboutExitNumber != current.nextInstruction?.roundaboutExitNumber ||
-                old.nextInstruction?.shortDescription != current.nextInstruction?.shortDescription ||
-                old.nextInstruction?.streetName != current.nextInstruction?.streetName ||
-                roundDistanceMeters(old.nextInstruction?.distanceTo ?: 0.0) !=
-                    roundDistanceMeters(current.nextInstruction?.distanceTo ?: 0.0) ||
+                old.nextStep?.let(::turnTypeFor) != current.nextStep?.let(::turnTypeFor) ||
+                old.nextStep?.exitOrdinal != current.nextStep?.exitOrdinal ||
+                old.nextStep?.kind != current.nextStep?.kind ||
+                manoeuvreFromStepOrNull(old.nextStep)?.displayName !=
+                    manoeuvreFromStepOrNull(current.nextStep)?.displayName ||
+                roundDistanceMeters(old.nextStep?.remainingMeters ?: 0.0) !=
+                    roundDistanceMeters(current.nextStep?.remainingMeters ?: 0.0) ||
                 roundDistanceMeters(old.remainingDistance) !=
                     roundDistanceMeters(current.remainingDistance) ||
                 old.etaMillis / 1000 != current.etaMillis / 1000 ||

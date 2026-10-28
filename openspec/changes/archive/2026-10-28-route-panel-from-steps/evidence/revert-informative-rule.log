@@ -1,0 +1,6 @@
+> Task :app:testMobileDebugUnitTest FAILED
+RouteRowDerivationTest > merged legs are attributed to the surviving row FAILED
+RouteRowDerivationTest > an informative step is not a row and its leg moves to the row above FAILED
+RouteRowDerivationTest > row derivation leaves the step list intact FAILED
+11 tests completed, 3 failed
+BUILD FAILED in 6s

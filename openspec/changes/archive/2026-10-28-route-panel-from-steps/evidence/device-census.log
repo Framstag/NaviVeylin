@@ -1,0 +1,2 @@
+10-28 08:42:57.621  9736  9736 D Diag/ROUTE: route census: steps=501 rows=34 turn=4 straightOn=0 nameChange=1 roundabout=26 motorway=2 info=466 start=1 target=1 dist_km turn=0.1 straightOn=0.0 nameChange=0.0 info=8.8 leg_m median=10 p90=39 under20=353 so_runs=0 so_len_median=0 so_len_max=0 nc_total=1 nc_restated=1 nc_runs2plus=0 nc_blank=0 nc_short=1 nc_leg_median=2 info_name_only=0 info_poi=11 info_via=0
+10-28 08:42:57.622  9736  9736 D Diag/ROUTE: route analysis: steps=34 withValues=33 sumM=9100 totalM=9100 sumS=558 totalS=655 maxErrM=0

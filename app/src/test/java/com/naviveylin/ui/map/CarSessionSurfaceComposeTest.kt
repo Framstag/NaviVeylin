@@ -8,11 +8,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.R
 import com.naviveylin.core.NavigationState
-import com.naviveylin.core.TurnInstructionLocalizer
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.manoeuvreFromStep
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.stringResolver
@@ -40,7 +41,7 @@ class CarSessionSurfaceComposeTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
 
-    private val instruction = RouteInstruction(
+    private val instruction = stepOf(
         DISTANCE_TO_TURN,
         TurnType.LEFT,
         "Hauptstrasse",
@@ -50,7 +51,7 @@ class CarSessionSurfaceComposeTest {
 
     private val navigating = NavigationState(
         isNavigating = true,
-        nextInstruction = instruction,
+        nextStep = instruction,
         remainingDistance = 4_200.0,
         etaMillis = System.currentTimeMillis() + 12 * 60_000L,
         destinationName = "Hauptbahnhof"
@@ -58,7 +59,7 @@ class CarSessionSurfaceComposeTest {
 
     /** The label the car's routing cue and the phone's next-turn card share. */
     private fun sharedInstructionLabel(): String =
-        TurnInstructionLocalizer.shortDescription(context.stringResolver(), instruction)
+        ManoeuvreLabels.short(context.stringResolver(), manoeuvreFromStep(instruction))
 
     private fun sharedDistanceLabel(): String = context.getString(
         if (distanceUsesKilometers(DISTANCE_TO_TURN)) R.string.distance_unit_km else R.string.distance_unit_m,

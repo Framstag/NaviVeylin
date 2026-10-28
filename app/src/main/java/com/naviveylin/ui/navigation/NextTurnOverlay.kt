@@ -27,16 +27,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.framstag.libosmscout.client.LaneTurn
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.naviveylin.R
-import com.naviveylin.core.TurnInstructionLocalizer
+import com.naviveylin.core.Manoeuvre
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.StringResolver
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
+import com.naviveylin.core.manoeuvreFromStep
+import com.naviveylin.core.nextNextGapMeters
+import com.naviveylin.core.remainingMeters
 import com.naviveylin.core.stringResolver
+import com.naviveylin.core.turnTypeFor
 
 @Composable
 fun NextTurnOverlay(
-    instruction: RouteInstruction?,
+    step: RouteStep?,
     laneOneway: Boolean = false,
     laneCount: Int = 0,
     laneSuggested: Boolean = false,
@@ -46,11 +52,12 @@ fun NextTurnOverlay(
     laneHintsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    if (instruction == null) return
+    if (step == null) return
 
     val context = LocalContext.current
     val resolver = remember(context) { context.stringResolver() }
     val hasLanes = laneHintsEnabled && laneCount > 0 && laneTurns.isNotEmpty()
+    val manoeuvre = remember(step) { manoeuvreFromStep(step) }
 
     Card(
         modifier = modifier
@@ -73,7 +80,7 @@ fun NextTurnOverlay(
                 verticalAlignment = Alignment.Top
             ) {
                 NavigationArrow(
-                    symbol = navSymbolForInstruction(instruction),
+                    symbol = navSymbolFor(turnTypeFor(manoeuvre), manoeuvre.roundaboutExit ?: 0),
                     size = 64.dp,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
@@ -84,18 +91,14 @@ fun NextTurnOverlay(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(
-                            if (distanceUsesKilometers(instruction.distanceTo)) R.string.distance_unit_km else R.string.distance_unit_m,
-                            formatDistanceNumber(instruction.distanceTo)
+                            if (distanceUsesKilometers(step.remainingMeters)) R.string.distance_unit_km else R.string.distance_unit_m,
+                            formatDistanceNumber(step.remainingMeters)
                         ),
                         style = nextTurnDistanceStyle(),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    val lines = splitInstruction(
-                        description = instruction.description,
-                        shortDescription = TurnInstructionLocalizer.shortDescription(resolver, instruction),
-                        streetName = instruction.streetName
-                    )
+                    val lines = instructionLines(resolver, manoeuvre)
                     Text(
                         text = lines.generic,
                         style = nextTurnDescriptionStyle(),
@@ -130,14 +133,19 @@ fun NextTurnOverlay(
             }
 
             // Row 3: Next-next turn hint (optional)
-            if (instruction.hasNextNext()) {
+            val nextNext = step.nextNext
+            if (nextNext != null) {
                 Spacer(modifier = Modifier.height(4.dp))
+                val nextNextManoeuvre = remember(nextNext) { manoeuvreFromStep(nextNext) }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     NavigationArrow(
-                        symbol = navSymbolForNextNext(instruction),
+                        symbol = navSymbolFor(
+                            turnTypeFor(nextNextManoeuvre),
+                            nextNextManoeuvre.roundaboutExit ?: 0
+                        ),
                         size = 36.dp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
@@ -147,21 +155,13 @@ fun NextTurnOverlay(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(
-                                if (distanceUsesKilometers(instruction.nextNextDistanceTo)) R.string.distance_unit_km else R.string.distance_unit_m,
-                                formatDistanceNumber(instruction.nextNextDistanceTo)
+                                if (distanceUsesKilometers(step.nextNextGapMeters)) R.string.distance_unit_km else R.string.distance_unit_m,
+                                formatDistanceNumber(step.nextNextGapMeters)
                             ),
                             style = nextTurnNextNextStyle(),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        val nextNextLines = splitInstruction(
-                            description = instruction.nextNextDescription,
-                            shortDescription = TurnInstructionLocalizer.shortDescriptionFor(
-                                resolver,
-                                instruction.nextNextTurnType,
-                                instruction.nextNextShortDescription,
-                                instruction.nextNextRoundaboutExitNumber
-                            )
-                        )
+                        val nextNextLines = instructionLines(resolver, nextNextManoeuvre)
                         Text(
                             text = nextNextLines.generic,
                             style = nextTurnNextNextStyle(),
@@ -258,35 +258,17 @@ internal fun nextTurnNextNextStyle(): TextStyle =
     MaterialTheme.typography.bodyMedium.copy(fontSize = 20.sp)
 
 /**
- * Split an instruction description into the generic instruction part
- * (e.g. "Turn left") and the destination name (e.g. "Hauptstrasse").
- * The destination is taken from the explicit street name when available,
- * otherwise extracted from the description after " into "/" onto ".
+ * The two lines a guidance row shows: the manoeuvre itself ("Turn left") and the street or motorway
+ * it leads onto. Both come from the manoeuvre's own values — there is no description to split because
+ * the native layer publishes none (spec: `turn-instruction-localization`).
  */
 internal data class InstructionLines(
     val generic: String,
     val destination: String?
 )
 
-internal fun splitInstruction(
-    description: String,
-    shortDescription: String,
-    streetName: String = ""
-): InstructionLines {
-    val hasShort = shortDescription.isNotBlank()
-    val generic = if (hasShort) shortDescription else description
-    var destination = streetName.takeIf { it.isNotEmpty() }
-    if (destination == null && hasShort) {
-        destination = listOf(" into ", " onto ")
-            .mapNotNull { marker ->
-                val idx = description.indexOf(marker)
-                if (idx >= 0) {
-                    description.substring(idx + marker.length).trim().takeIf { it.isNotEmpty() }
-                } else {
-                    null
-                }
-            }
-            .firstOrNull()
-    }
-    return InstructionLines(generic, destination)
-}
+internal fun instructionLines(resolver: StringResolver, manoeuvre: Manoeuvre): InstructionLines =
+    InstructionLines(
+        generic = ManoeuvreLabels.short(resolver, manoeuvre),
+        destination = (manoeuvre.displayName ?: manoeuvre.motorwayTo)?.takeIf { it.isNotBlank() }
+    )

@@ -185,6 +185,7 @@
     <string name="clear">Löschen</string>
     <string name="route_summary">Routenzusammenfassung</string>
     <string name="steps">Schritte</string>
+    <string name="route_steps_unavailable">Diese Route enthält keine Schritte.</string>
     <string name="route_overlay_expand">Routenfenster aufklappen</string>
     <string name="route_overlay_collapse">Routenfenster zuklappen</string>
     <string name="close">Schließen</string>

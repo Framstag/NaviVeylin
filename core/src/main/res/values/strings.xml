@@ -30,6 +30,9 @@
     <string name="nav_keep_onto">%1$s onto %2$s</string>
     <string name="nav_exit_onto">Take exit %1$d onto %2$s</string>
     <string name="nav_enter_onto">Enter %1$s</string>
+    <!-- A street-name change row: the route continues on the named street (spec:
+         turn-instruction-localization — Route analysis rows are localized from the step model). -->
+    <string name="nav_continue_on">Continue on %1$s</string>
 
     <!-- Car-screen hint fallback while no maneuver is known yet (rerouting, before the first instruction). -->
     <string name="nav_hint_neutral">Navigation active</string>

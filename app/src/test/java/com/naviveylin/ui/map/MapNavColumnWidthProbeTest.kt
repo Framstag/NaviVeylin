@@ -193,7 +193,6 @@ class MapNavColumnWidthProbeTest {
         duration = 1_500.0
         latitudes = doubleArrayOf(51.5136, 51.5226)
         longitudes = doubleArrayOf(7.4653, 7.4653)
-        descriptions = arrayOf("Start: A  [0.0 km]", "Turn left into Main Street  [1.2 km, 5 min]")
     }
 
     @Test

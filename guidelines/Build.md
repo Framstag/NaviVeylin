@@ -1889,6 +1889,34 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   live in `classes3.dex`) and always read the case's own log lines, never just the runner's
   `OK (N tests)` — the same trap as the stale asset APK in `TODO.md` §17, one layer down.
 
+## 10k. The route-row census — what the phone's route list may show (`route-panel-from-steps`)
+
+- **One line per calculated route, on the `ROUTE` tag, coordinate-free.** The view model logs
+  `route census:` with `steps=` / `rows=` and counts per step kind (`turn`, `straightOn`, `nameChange`,
+  `roundabout`, `motorway`, `info`, `start`, `target`), the kilometres each kind carries, the leg
+  quantiles (`leg_m median= p90= under20=`), the straight-on run lengths (`so_runs`, `so_len_median`,
+  `so_len_max`), the name-change statistics (`nc_total`, `nc_restated`, `nc_runs2plus`, `nc_empty`,
+  `nc_leg_median`) and `info_name_only`. Metres and counts only — a coordinate, and a coordinate
+  *word*, never reach the line (spec `auto-diagnostics`, `checkNoCoordinatesInLogs`).
+- **Why measure before changing the policy:** three numbers could not be settled from the code — whether
+  an `informative`/`POIAtRoute`/`via` step earns a row, and the `MinRowLegMeters` floor
+  (`app/ui/route/RouteRows.kt`). The census supplies them, and the filter keeps **one** predicate
+  (`informativeEarnsRow()`) so the answer changes in one place. The roundabout/motorway counts are also
+  the proof that those manoeuvres exist on a route at all — the prose list dropped every one of them.
+- **Recipe** — no instrumentation needed; the line is written when a route is applied to the panel's state
+  (a calculation or an adopted reroute):
+
+  ```bash
+  adb logcat -c
+  # calculate a city route, then a motorway route in the app
+  adb logcat -d -s ROUTE:* NaviVeylin:* | grep 'route census'
+  ```
+
+  Take one city route and one motorway route before reading the policy off it (a single route generalises
+  badly), and record both lines verbatim: the numbers, not a summary of them, are the evidence. The
+  neighbouring `route analysis:` line reports the same routes' row sum against the route's total and
+  `maxErrM`, so a projection that lost a leg shows up beside the census.
+
 ## 11. Measuring a phone UI finding (do this before changing code)
 
 A finding that lives in pixels ("the segment is still not completely visible", "the card is too

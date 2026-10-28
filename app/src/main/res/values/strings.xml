@@ -206,6 +206,10 @@
     <string name="clear">Clear</string>
     <string name="route_summary">Route Summary</string>
     <string name="steps">Steps</string>
+    <!-- A calculated route that carries no structured steps: the list states why it is empty
+         instead of inventing rows (spec: `route-analysis` — A route without per-step values still
+         lists its steps). -->
+    <string name="route_steps_unavailable">This route carries no steps.</string>
     <string name="route_overlay_expand">Expand route panel</string>
     <string name="route_overlay_collapse">Collapse route panel</string>
     <string name="close">Close</string>

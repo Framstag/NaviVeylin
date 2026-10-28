@@ -98,7 +98,22 @@ The phone's **min overlay** SHALL carry a step navigator for a calculated route:
 
 ### Requirement: Analysed step is locatable on the map
 
-Each step of a calculated route SHALL have a position on the map that agrees with the drawn polyline, so that analysing a step can show where that manoeuvre is. A step SHALL own the polyline leg that **leads to** its manoeuvre — from the previous manoeuvre's vertex up to its own — because a step's distance and duration are the values of exactly that leg (spec: `osmscout-jni` — Per-step leg values on a calculated route), so the values a row shows and the segment the map highlights describe the same piece of route. (Owner finding, 2026-10-03: the highlight and the camera used the leg *after* the manoeuvre named in the card, so a correctly fitted view still showed the wrong segment.) The start line sits on the route's first vertex and therefore owns no leg. Selecting a step SHALL move the map camera **onto that leg** at a magnification that shows **it completely**: the leg's bounding box (with the marker margin) SHALL lie inside the map area the overlay leaves free, and the leg SHALL be centred on that free area. The magnification SHALL be the fit for the leg's bounding box, with a readable lower bound for short legs, and a leg too long for the current zoom SHALL be zoomed **out** until it fits — the earlier fixed focus level left parts of a long leg behind the card (owner requirement, 2026-10-03: "adjust the zoom level so that the bounding box of the current segment is really inside the visible part").
+Each row of a calculated route SHALL have a position on the map that agrees with the drawn polyline, so that
+analysing a row can show where that manoeuvre is. A row SHALL own the polyline run between its own boundary and
+the previous row's boundary — the vertices from where the previous row's manoeuvre happens up to where this
+row's manoeuvre happens — because a row's distance and duration are the values of exactly that run (spec:
+`osmscout-jni` — Per-step leg values on a calculated route), so the values a row shows and the segment the map
+highlights describe the same piece of route. A row that represents a collapsed or merged run SHALL own the whole
+run, from the first vertex of the first step it absorbed to its own manoeuvre, so the highlight has no gap
+inside it. (Owner finding, 2026-10-03: the highlight and the camera used the leg *after* the manoeuvre named in
+the card, so a correctly fitted view still showed the wrong segment.) The start line sits on the route's first
+vertex and therefore owns no leg. Selecting a row SHALL move the map camera **onto that run** at a
+magnification that shows **it completely**: the run's bounding box (with the marker margin) SHALL lie inside the
+map area the overlay leaves free, and the run SHALL be centred on that free area. The magnification SHALL be
+the fit for the run's bounding box, with a readable lower bound for short runs, and a run too long for the
+current zoom SHALL be zoomed **out** until it fits — the earlier fixed focus level left parts of a long leg
+behind the card (owner requirement, 2026-10-03: "adjust the zoom level so that the bounding box of the current
+segment is really inside the visible part").
 
 #### Scenario: Camera moves to the analysed manoeuvre
 
@@ -130,6 +145,14 @@ Each step of a calculated route SHALL have a position on the map that agrees wit
 - **WHEN** a step is analysed and the route polyline is empty
 - **THEN** the map SHALL NOT fail to render
 - **AND** no highlight segment SHALL be drawn
+
+#### Scenario: A condensed row is highlighted without a gap
+
+- **WHEN** the user analyses a row that represents several collapsed or merged steps
+- **THEN** the highlight SHALL cover the polyline from the first absorbed step's vertex up to the row's own
+  manoeuvre
+- **AND** SHALL contain no break where a merged step's manoeuvre sits inside the run
+- **Case**: `app: RouteStepSegmentsTest` "a condensed row's segment spans every absorbed step"
 
 ### Requirement: Analysed segment is highlighted on the map
 
@@ -171,15 +194,15 @@ The portion of the route polyline belonging to the analysed step SHALL be drawn 
 
 ### Requirement: Step values describe the step's own leg
 
-Every place the route analysis shows a step's distance and duration — the selectable step list, the step
-navigator's analysed step, and the session card's statistic line for the route — SHALL show the leg that
-belongs to that step, taken from the route's per-step values (spec: `osmscout-jni` — Per-step leg values on a
-calculated route). The numbers of a row SHALL describe the same leg that selecting that row highlights, and
-the rows' distances SHALL add up to the distance the route's per-step values carry and cover the route once
-(the two native total distances — the router's overall distance and the description's cumulative node distances —
-are different sources and may disagree; measured 1.34× on a 70 km route, TODO.md §126).
-The values SHALL be formatted by the app with the shared locale-aware formatters, not shown as they arrive
-from the native layer.
+Every place the route analysis shows a row's distance and duration — the selectable step list, the step
+navigator's analysed row, and the session card's statistic line for the route — SHALL show the run that belongs
+to that row: its own step's leg plus the legs of every step merged into it, taken from the route's per-step
+values (spec: `osmscout-jni` — Per-step leg values on a calculated route). The numbers of a row SHALL describe
+the same run that selecting that row highlights, and the rows' distances SHALL add up to the distance the
+route's per-step values carry and cover the route once (the two native total distances — the router's overall
+distance and the description's cumulative node distances — are different sources and may disagree; measured
+1.34× on a 70 km route, TODO.md §126). The values SHALL be formatted by the app with the shared locale-aware
+formatters, not shown as they arrive from the native layer.
 
 #### Scenario: Row values and highlighted leg are the same leg
 
@@ -207,8 +230,9 @@ from the native layer.
 
 #### Scenario: A route without per-step values still lists its steps
 
-- **WHEN** a calculated route carries no per-step distance or duration
-- **THEN** the step list SHALL still show every step's instruction text and turn type
+- **WHEN** a calculated route carries no structured steps at all
+- **THEN** the step list SHALL show no rows
+- **AND** the panel SHALL state that the route carries no steps instead of inventing rows or values
 - **AND** a row SHALL omit the missing values instead of showing a wrong one
 
 #### Scenario: Divergence from the route's total is reported
@@ -217,6 +241,12 @@ from the native layer.
 - **THEN** the app SHALL record a coordinate-free diagnostics entry naming the step count, the summed distance and the route's total distance
 - **AND** the analysis SHALL still show the route and its steps
 
+#### Scenario: A merged row carries the absorbed legs
+
+- **WHEN** a row absorbed one or more steps that carry no row of their own
+- **THEN** its distance and duration SHALL include those steps' legs
+- **AND** the sum over all rows SHALL still equal the sum over all steps
+- **Case**: `app: RouteRowDerivationTest` "merged legs are attributed to the surviving row"
 ### Requirement: A step's values are its own, never a neighbour's
 
 The analysis SHALL decide whether a step carries values from the route's per-step values for that step, so a
@@ -264,3 +294,76 @@ A route reaching the map SHALL carry an analysed step only when a session's own 
 - **AND** the user analyses a step
 - **THEN** that step SHALL be the analysed one and its segment SHALL be highlighted
 - **AND** the step navigation follows SHALL NOT change
+
+### Requirement: Rows are derived from the route's steps
+
+The route analysis SHALL derive its rows from the route's structured steps, never from description text. A row
+SHALL exist for the start, the arrival, every turn, roundabout, motorway and street-name manoeuvre;
+consecutive straight-on turns SHALL form one row. A step carrying only informational values SHALL NOT be a row.
+A row SHALL carry the legs of every step merged into it, so the rows still cover the route once.
+
+#### Scenario: Roundabout and motorway manoeuvres are rows
+
+- **WHEN** a calculated route leaves a roundabout at its third exit and later enters a motorway
+- **THEN** the step list SHALL contain a row for the roundabout exit carrying exit ordinal 3
+- **AND** a row for the motorway entry naming the motorway
+- **Case**: `app: RouteRowDerivationTest` "roundabout exit and motorway entry become rows"
+
+#### Scenario: Consecutive straight-on turns collapse into one row
+
+- **WHEN** three consecutive steps are turns whose move is straight on, with no street-name change between them
+- **THEN** one row SHALL represent the three
+- **AND** its distance and duration SHALL be the sum of the three legs
+- **Case**: `app: RouteRowDerivationTest` "consecutive straight-on turns collapse into one row"
+
+#### Scenario: A street-name change earns its own row
+
+- **WHEN** the street name changes and the next row's manoeuvre is further away than the close-manoeuvre window
+  or does not name the new street
+- **THEN** a row SHALL exist naming the new street
+- **Case**: `app: RouteRowDerivationTest` "a street-name change earns its own row"
+
+#### Scenario: A street-name change restated by the next manoeuvre is merged
+
+- **WHEN** the street name changes to the street the next manoeuvre turns into, and that manoeuvre is closer
+  than the close-manoeuvre window
+- **THEN** no separate row SHALL exist for the change
+- **AND** its leg SHALL be added to that manoeuvre's row
+- **Case**: `app: RouteRowDerivationTest` "a street-name change restated by the next manoeuvre is merged into it"
+
+#### Scenario: A step without a readable name change is merged
+
+- **WHEN** a step's new name is empty after trimming, or equal to the previous name after folding case and
+  spacing
+- **THEN** it SHALL NOT produce a row
+- **AND** its leg SHALL be added to the nearest row
+- **Case**: `app: RouteRowDerivationTest` "an empty or repeated name change is merged"
+
+#### Scenario: An informative step is data, never a row
+
+- **WHEN** a step carries only a maximum speed, lanes, a way type, crossing ways, a junction or a destination
+- **THEN** the step list SHALL contain no row for it
+- **AND** its leg SHALL be added to the previous row's values
+- **Case**: `app: RouteRowDerivationTest` "an informative step is not a row and its leg moves to the row above"
+
+#### Scenario: Rows tile the route
+
+- **WHEN** two consecutive rows of a calculated route are inspected
+- **THEN** the second row's segment SHALL begin where the first row's segment ends
+- **AND** the first row's segment SHALL begin at the route's first vertex
+- **AND** the last row's segment SHALL end at the route's last vertex
+- **Case**: `app: RouteRowDerivationTest` "rows tile the polyline without a gap or an overlap"
+
+#### Scenario: The rows add up to the route's length
+
+- **WHEN** the distances of a calculated route's rows are summed
+- **THEN** the sum SHALL equal the route's length, whichever rows the filter kept or merged
+- **Case**: `app: RouteRowDerivationTest` "row distances sum to the route length after merging"
+
+#### Scenario: Filtering is a view, not a data loss
+
+- **WHEN** the rows are derived for display
+- **THEN** the route's complete step list SHALL remain available in the navigation state
+- **AND** deriving rows SHALL NOT mutate or shorten it
+- **Case**: `app: RouteRowDerivationTest` "row derivation leaves the step list intact"
+

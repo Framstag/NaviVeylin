@@ -78,6 +78,6 @@ private fun logAbsentGeometry(route: RouteEntry, lats: DoubleArray?, lons: Doubl
     }
     DiagnosticsLog.log(
         DiagnosticsLog.ROUTE_TAG,
-        "route geometry absent: descriptions=${route.descriptions?.size ?: 0} polyline=$shape"
+        "route geometry absent: steps=${route.steps?.size ?: 0} polyline=$shape"
     )
 }

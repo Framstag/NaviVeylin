@@ -124,7 +124,12 @@ POI category names returned by libosmscout (hardcoded English in native code) SH
 - **THEN** the app SHALL fall back to the English resource string for that category
 
 ### Requirement: Native-generated navigation text is localized at the frontend
-Turn-by-turn instruction text produced by the native JNI bridge (hardcoded English in `OSMScoutClient.cpp`, e.g. "Turn left", "Exit 3", "Enter motorway", "Keep left") SHALL be rebuilt from the structured instruction fields (`turnType`, `streetName`) into localized resource strings in the frontend. The native layer SHALL remain unchanged. When a turn type or native text pattern has no localized mapping, the app SHALL fall back to the native English text.
+
+Turn-by-turn guidance text SHALL be produced by the frontend from the route step model — the manoeuvre's kind,
+move, roundabout exit ordinal and circulation direction, street name or ref, and way type — and resolved from
+localized `:core` resources in the device language. The native layer SHALL NOT produce guidance text: it
+publishes values only. No surface SHALL depend on an English string for a manoeuvre, and no native fallback
+SHALL exist.
 
 #### Scenario: German turn instruction on Android Auto
 - **WHEN** the device locale is German and the next instruction is a left turn
@@ -143,8 +148,9 @@ Turn-by-turn instruction text produced by the native JNI bridge (hardcoded Engli
 - **THEN** the instruction SHALL render in German (e.g. "Links halten", "Autobahn verlassen"), not "Keep left" / "Leave motorway"
 
 #### Scenario: Unknown turn type falls back to native text
-- **WHEN** the native layer returns a turn type or text pattern with no localized mapping
-- **THEN** the app SHALL display the native English text rather than an empty or wrong string
+- **WHEN** the step ahead carries a manoeuvre the localizer has no wording for
+- **THEN** the app SHALL display the localized neutral turn wording rather than an empty string
+- **AND** SHALL NOT display a native English text, because the native layer publishes none
 
 #### Scenario: English device locale
 - **WHEN** the device locale is English

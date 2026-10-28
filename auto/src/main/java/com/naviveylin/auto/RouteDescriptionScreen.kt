@@ -11,7 +11,7 @@ import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.naviveylin.auto.R
 import com.naviveylin.core.NavigationViewModel
 import kotlinx.coroutines.Job
@@ -34,7 +34,7 @@ class RouteDescriptionScreen(
 
     private val scope = carScreenScope("RouteDescriptionScreen")
     private var observeJob: Job? = null
-    private var lastInstructions: List<RouteInstruction>? = null
+    private var lastSteps: List<RouteStep>? = null
     private var lastIndex = 0
 
     init {
@@ -91,8 +91,8 @@ class RouteDescriptionScreen(
         if (observeJob != null) return
         observeJob = scope.launch {
             navigationViewModel.state.collect { state ->
-                val changed = state.instructions !== lastInstructions || state.currentStepIndex != lastIndex
-                lastInstructions = state.instructions
+                val changed = state.steps !== lastSteps || state.currentStepIndex != lastIndex
+                lastSteps = state.steps
                 lastIndex = state.currentStepIndex
                 if (changed) {
                     Log.d(TAG, "route description state changed — invalidating")

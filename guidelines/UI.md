@@ -765,12 +765,37 @@ Source: spec `route-planning-session`.
 - The step navigator (previous / next, "i / n", and the analysed instruction with its distance and duration)
   is the min overlay's content. It moves the analysed step exactly as tapping a list row does (camera to the
   manoeuvre, segment highlighted) and its controls are disabled at the ends; with nothing analysed the
-  indicator names no step. Wide layouts keep the side panel with the selectable list instead. A step's
-  distance and duration are the values of the **leg that ends at that step's manoeuvre** — the route's
-  per-step values (spec `osmscout-jni` — Per-step leg values on a calculated route), formatted by the app with
-  `formatDistanceNumber` + `formatStepDurationText` — never the native description's `[x km, y min]` text
-  (that is only the fallback for a route without per-step values) and never a value measured between two route
-  nodes; the rows of a step list therefore add up to the route's total distance and duration.
+  indicator names no step. Wide layouts keep the side panel with the selectable list instead. A row's
+  distance and duration are the values of the **run that ends at that row's manoeuvre** — its own step's leg
+  plus the legs of every step the row absorbed, taken from the route's structured steps (spec `osmscout-jni`
+  — A calculated route publishes structured route steps), formatted by the app with `formatDistanceNumber` +
+  `formatStepDurationText` — never a native description's `[x km, y min]` text (that path is retired, change
+  `route-panel-from-steps`) and never a value measured between two route nodes; the rows of a step list
+  therefore add up to the route's total distance and duration.
+- **The route list is derived from the route's structured steps, never from description text (change
+  `route-panel-from-steps`, spec `route-analysis` — Rows are derived from the route's steps).** A *row* is not
+  a step: the panel derives rows from `RouteEntry.steps` with one pure function (`routeRows` in
+  `app/ui/route/RouteRows.kt`), so the start, the arrival, every turn, roundabout, motorway and street-name
+  manoeuvre earns a row, consecutive straight-on turns collapse into one, and an `informative` step becomes
+  data on the row it precedes instead of a row of its own. A row carries the legs of every step it merged, and
+  its text is rebuilt from the manoeuvre's own values through `:core` resources (`ManoeuvreLabels`) in the
+  device language — which is why a roundabout exit and a motorway entry/change/leave are now *named in the
+  list*, in the same wording as the overlay, and why a row's glyph comes from the manoeuvre's kind and move
+  (`navSymbolFor`) rather than from matching prose. A row also **owns a polyline range, not a point**: it
+  covers the vertices from the previous row's boundary up to its own, the first row starts at the route's
+  first vertex and the last ends at the route's last, so a highlight has no gap where a merged step's
+  manoeuvre sits inside the run. A route that carries no steps lists **no rows** and says so — nothing is
+  parsed back into structure, and `RouteEntry.descriptions` is not read by the phone's route surfaces any
+  more.
+- **Live guidance uses the same step model and the same wording (change `route-steps-live-guidance`,
+  specs `next-turn-overlay`, `turn-instruction-localization`).** The engine publishes `RouteStep[]` and
+  a step ahead with `remainingMeters`/`remainingSeconds` and a nested `nextNext` hint, so the next-turn
+  overlay, the notification, the HUD, the car instruction panel and the car trip all word their
+  manoeuvre from `core/ManoeuvreLabels` and draw their glyph from `turnTypeFor(step)` — there is no
+  native text to fall back to, and none is published. The overlay's second row is the nested step
+  (icon and wording of *that* manoeuvre, distance = the gap between the two), and a motorway change is
+  drawn as a keep, never as a plain turn. The car route-description rows keep the *distance from the
+  route start* (`distanceFromStart`); every live surface shows the *remaining* distance.
 - The analysis is the **session's, not the route's**: the analysed step, the camera anchor that moves onto it
   and the highlighted segment live exactly as long as the session, so every exit ends all three — Start
   Navigation above all, and End while navigation runs — while the route itself stays drawn, because

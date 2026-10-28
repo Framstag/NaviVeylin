@@ -273,6 +273,30 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 
 ## 5. Native boundary
 
+- **Live guidance publishes the step model, not instructions** (change `route-steps-live-guidance`,
+  spec `osmscout-jni` — Live guidance publishes route steps): the navigation engine runs
+  `RouteInstructionAgent<osmscout::client::RouteStep, RouteStepBuilder>`, so
+  `NavigationListener.onRouteSteps(RouteStep[])` / `onNextRouteStep(RouteStep)` deliver the same record
+  a calculated route publishes, extended with `remainingDistance`, `remainingTime` and a nested
+  `nextNext` step. **No guidance text crosses the boundary** — not a description, not a short
+  description, not a turn-type name; a surface words every manoeuvre from `:core/ManoeuvreLabels`.
+  The patch is one fork commit on the submodule's `naviveylin-local` branch (`de37a2bd1`) plus the pin
+  bump, and it is a compile-time break for a sibling consumer that read instruction callbacks
+  (JavaScout; its adaptation landed in `999acc16f` and `6c8dc6f94`). The dispatch logs one coordinate-free line per
+  publication (`[JNI] guidance dispatch: list|next steps=N us=M`) — that is the number a cache
+  decision is taken from, so do not delete it without one.
+
+- **A calculated route publishes steps, never prose** (change `retire-instruction-prose`, spec
+  `osmscout-jni` — Per-step leg values on a calculated route): `RouteEntry` carries `latitudes`,
+  `longitudes`, `distance`, `duration`, the structured `steps` and the database mapping, and nothing else.
+  There is no `descriptions` array, no per-instruction position array, no per-step leg array and no
+  `RouteInstruction` class, so **no consumer can read English guidance text from the bridge** — every
+  client words a step from its values (`:core/ManoeuvreLabels` in the app, `NextTurnText` in JavaScout).
+  The route's published length is read from the step list (`LastStepDistanceMeters`, the largest
+  `distanceFromStart`), not from a second description walk; the geometry fallback stays for a route
+  without a description. `osmscout::RouteDescription` and its postprocessor **remain** a libosmscout
+  model — Qt and the other clients read them; only this bridge's Java projection of them went.
+
 - **MUST**: the native core stays platform-pure — no Android dependencies
   outside the frozen upstream dir, enforced by a CI gate. Platform
   integration is an app-owned bridge (log sink, load order).
@@ -439,6 +463,14 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 - Details: `guidelines/MapRendering.md`.
 
 ## 8. Android Auto & cross-variant
+
+- **Every car guidance surface reads the step model** (change `route-steps-live-guidance`):
+  `NavigationTemplateMapper` builds the host `Maneuver` from the step's manoeuvre kind and move
+  (`maneuverTypeForStep`, with the exit ordinal on the number-bearing type), the cue and road from
+  `ManeuverLabels`, and the trip's step estimate from `remainingMeters` / `remainingSeconds`. The
+  roundabout exit number is supplied **both** to the host and as the app's own numbered glyph, because
+  which of the two a given host draws is not observable from a test here. `ManeuverGlyphs.forStep` is
+  the only icon entry point a car surface needs.
 
 - The session owns a simple screen stack (push/popToRoot); no routing
   library. Replace, don't stack, when a screen supersedes another (navigation
@@ -826,6 +858,23 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 
 ## 13. Superseded decisions
 
+- The live guidance path built `RouteInstruction` text in native code and parsed it back in the app
+  (`TurnInstructionLocalizer`'s `"Keep "`-prefix and `"Leave motorway"` matching, the five-scalar
+  `nextNext` hint) → live guidance now publishes the **route step model** (change
+  `route-steps-live-guidance`, spec `osmscout-jni` — Live guidance publishes route steps) — the
+  instruction type could not express a motorway change or leave, so the only thing that told them
+  apart was an English sentence the app matched back; and the fallback promise ("native English when
+  unmapped") existed only because the native side wrote prose. `TurnInstructionLocalizer` is deleted,
+  every surface words its manoeuvre through `core/ManoeuvreLabels`, and step matching in the route's
+  list compares distance **and** kind instead of description text. The `RouteInstruction` type stayed in
+  the API for JavaScout one change longer and was then removed with its arrays, its field tests and the
+  bridge's second description walk (change `retire-instruction-prose`, submodule commit `6c8dc6f94`): the
+  prose path was deleted rather than shimmed, because a shim keeps a second model with a reader-shaped
+  temptation — the defect class the two changes before it removed — while a deletion shows every consumer
+  the truth at compile time. JavaScout adopted the step model in `999acc16f` and words its own rows
+  through `NextTurnText`; `TurnType` stayed, because the step model's direction and motorway sub-records
+  carry it.
+
 - Dual-mode single APK (phone + AAOS in one artifact,
   `2026-08-22-add-android-automotive-os`) → two-flavor split
   (`specs/android-automotive-os`) — Play rejects the combination.
@@ -861,6 +910,17 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   the row only for a genuinely uninitialised store, and the owner's 2026-10-10
   report ("seconds — noticeably stuck on Loading") is why the trade-off was
   reopened.
+- The route list built by parsing the native English description lines
+  (`RoutePanelViewModel.parseStepDisplay` / `parseTurnType` / `isInstructionLine`, archived
+  `route-panel-ui` designs) → the list is **derived from `RouteEntry.steps`**
+  (`route-panel-from-steps`, spec `route-analysis` — Rows are derived from the route's steps) — the
+  prose path could not see a manoeuvre the description callback never emitted, so a roundabout exit and
+  every motorway manoeuvre were missing from the list, the text was never localized, and the glyph was a
+  guess from prose that could not tell a motorway change from a plain turn. The structured projection had
+  shipped on every route calculation since submodule commit `62a248b84` and had no consumer; the rows are
+  now that consumer. The parsing path is retired in the app here, and `RouteEntry.descriptions` (with the
+  `instruction*` arrays) follows in `retire-instruction-prose`, which is also where the live path's
+  `TurnInstructionLocalizer` is replaced by the rows' structure-based builder.
 
 ---
 

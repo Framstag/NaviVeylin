@@ -1,12 +1,12 @@
 package com.naviveylin.service
 
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.R
 import com.naviveylin.core.StringResolver
-import com.naviveylin.core.TurnInstructionLocalizer
-import com.naviveylin.ui.navigation.splitInstruction
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.manoeuvreFromStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -39,13 +39,13 @@ class CarHintContentTest {
         description: String = "Turn left into Hauptstrasse",
         shortDescription: String = "Turn left",
         distanceTo: Double = 250.0
-    ) = RouteInstruction(distanceTo, turnType, streetName, description, shortDescription)
+    ) = stepOf(distanceTo, turnType, streetName, description, shortDescription)
 
     @Test
     fun instructionIsThePrimaryCarText() {
         val state = NavigationState(
             isNavigating = true,
-            nextInstruction = instruction(),
+            nextStep = instruction(),
             destinationName = "Home",
             remainingDistance = 12_400.0,
             etaMillis = 1_700_000_000_000L
@@ -64,7 +64,7 @@ class CarHintContentTest {
     fun maneuverWithoutStreetNameKeepsInstructionWording() {
         val state = NavigationState(
             isNavigating = true,
-            nextInstruction = instruction(
+            nextStep = instruction(
                 streetName = "",
                 description = "Turn left",
                 shortDescription = "Turn left"
@@ -103,7 +103,7 @@ class CarHintContentTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 4,
-            instructions = emptyList(),
+            steps = emptyList(),
             remainingDistance = 1_200.0
         )
 
@@ -128,23 +128,21 @@ class CarHintContentTest {
 
     @Test
     fun carTitleMatchesOnScreenNextTurnText() {
+        // The car hint and the phone overlay word a manoeuvre from the same builder, so the two
+        // cannot disagree — that is what the retired text comparison used to check by hand
+        // (spec: `turn-instruction-localization` — one wording for both variants).
         val cases = listOf(
             instruction(),
-            instruction(streetName = "", description = "Turn left", shortDescription = "Turn left"),
-            instruction(turnType = TurnType.RIGHT, streetName = "Ringstrasse", description = "Turn right into Ringstrasse", shortDescription = "Turn right"),
-            instruction(turnType = TurnType.START, streetName = "", description = "Start", shortDescription = "Start")
+            instruction(turnType = TurnType.RIGHT, streetName = "Ringstrasse"),
+            instruction(turnType = TurnType.START, streetName = "")
         )
 
         for (case in cases) {
-            val state = NavigationState(isNavigating = true, nextInstruction = case)
+            val state = NavigationState(isNavigating = true, nextStep = case)
             val carTitle = NavigationNotificationContentFormatter.carHint(
                 state, resolver, etaClock = { "14:32" }, locale = Locale.US
             )?.title
-            val onScreen = splitInstruction(
-                description = case.description,
-                shortDescription = TurnInstructionLocalizer.shortDescription(resolver, case),
-                streetName = case.streetName
-            ).generic
+            val onScreen = ManoeuvreLabels.short(resolver, manoeuvreFromStep(case))
 
             assertEquals("car hint title must equal the on-screen next-turn text", onScreen, carTitle)
         }

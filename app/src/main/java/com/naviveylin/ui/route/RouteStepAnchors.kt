@@ -1,12 +1,13 @@
 package com.naviveylin.ui.route
 
-import com.framstag.libosmscout.client.RouteEntry
-
 /**
- * The map position of one route manoeuvre (spec: `route-analysis`).
+ * The map position of one route row's manoeuvre (spec: `route-analysis` — Analysed step is
+ * locatable on the map).
  *
- * Produced by [instructionAnchors] from a route result; the position belongs to
- * the manoeuvre at the step with the same index in the step list.
+ * Produced by [rowAnchors] from the derived rows; the position belongs to the row with the same index
+ * in the row list. It is the row's **boundary**: the row owns the polyline run between the previous
+ * row's boundary and this one, so no row's segment overlaps its neighbour's and none of the polyline
+ * is left over.
  */
 data class StepAnchor(
     val lat: Double,
@@ -14,32 +15,25 @@ data class StepAnchor(
 )
 
 /**
- * Whether a native description line is an instruction.
+ * One boundary position per row, index-aligned with [rows] (spec: `route-analysis` — Analysed step is
+ * locatable on the map).
  *
- * The native description list starts with a `--- Route ---` header, which is not
- * an instruction and carries no manoeuvre, so it is excluded from the step list
- * and from the per-step positions alike.
- */
-internal fun isInstructionLine(description: String): Boolean = !description.startsWith("---")
-
-/**
- * Per-step manoeuvre positions of a route result, index-aligned with the step
- * list built from [RouteEntry.descriptions] (spec: `route-analysis`).
+ * A row's position is its manoeuvre's own node coordinate, which is what the bridge publishes as the
+ * step's position — no nearest-vertex guess and no prose. The first row is the route's start, so its
+ * boundary is the route's first vertex and it owns no leg; the last row is the arrival, so its
+ * boundary is the route's last vertex and the last leg ends there.
  *
- * Returns an empty list — never a shifted or partial one — when the route
- * carries no positions, or when the position arrays do not cover exactly the
- * instruction lines. A mismatch means the native alignment guard dropped the
- * positions; a partial list would move every later step to the wrong manoeuvre,
- * so no positions are better than wrong ones.
+ * A row whose manoeuvre carries no usable coordinate yields no anchor at all: an empty list is
+ * better than a list whose entries address the wrong rows, because a shifted anchor would move every
+ * later row to the wrong manoeuvre.
  */
-fun instructionAnchors(route: RouteEntry): List<StepAnchor> {
-    val descriptions = route.descriptions ?: return emptyList()
-    val lats = route.instructionLats ?: return emptyList()
-    val lons = route.instructionLons ?: return emptyList()
-
-    val instructionCount = descriptions.count { isInstructionLine(it) }
-    if (instructionCount == 0) return emptyList()
-    if (lats.size != instructionCount || lons.size != instructionCount) return emptyList()
-
-    return (0 until instructionCount).map { index -> StepAnchor(lats[index], lons[index]) }
+fun rowAnchors(rows: List<RouteRow>): List<StepAnchor> {
+    if (rows.isEmpty()) return emptyList()
+    val anchors = rows.map { row ->
+        val manoeuvre = row.manoeuvre
+        StepAnchor(manoeuvre.lat, manoeuvre.lon)
+    }
+    // A partial list would shift every later row onto the wrong manoeuvre: no anchors are better
+    // than anchors that address the wrong rows.
+    return if (anchors.all { it.lat.isFinite() && it.lon.isFinite() }) anchors else emptyList()
 }

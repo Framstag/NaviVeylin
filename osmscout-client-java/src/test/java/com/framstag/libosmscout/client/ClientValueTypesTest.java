@@ -121,20 +121,15 @@ class ClientValueTypesTest {
 
         assertNull(route.latitudes);
         assertNull(route.longitudes);
-        assertNull(route.descriptions);
-        assertNull(route.instructionLats);
-        assertNull(route.instructionLons);
-        assertNull(route.instructionDistances);
-        assertNull(route.instructionTimes);
+        assertNull(route.steps);
         assertEquals(0.0, route.distance, 0.0);
         assertEquals(0.0, route.duration, 0.0);
         assertEquals(0L, route.routeHandle);
 
         route.latitudes = new double[]{51.5, 51.6};
-        route.descriptions = new String[]{"Start", "Ziel"};
+        route.steps = new RouteStep[]{new RouteStep(), new RouteStep()};
         assertEquals(2, route.latitudes.length);
-        assertEquals(2, route.descriptions.length);
-        assertFalse(route.descriptions[0].isEmpty());
+        assertEquals(2, route.steps.length);
     }
 
     @Test
@@ -157,7 +152,7 @@ class ClientValueTypesTest {
             new LaneTurn[]{LaneTurn.LEFT, LaneTurn.STRAIGHT_ON, LaneTurn.NONE});
         navigation.onVoiceInstruction(new int[]{1, 2});
         navigation.onError("no gps");
-        navigation.onRouteInstructions(new RouteInstruction[0]);
-        navigation.onNextRouteInstruction(null);
+        navigation.onRouteSteps(new RouteStep[0]);
+        navigation.onNextRouteStep(null);
     }
 }

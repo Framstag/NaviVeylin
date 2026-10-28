@@ -94,10 +94,6 @@ class MapCanvasViewModelNavEndRestoreTest {
                 latitudes = doubleArrayOf(52.5200, 52.5230, 52.5300)
                 longitudes = doubleArrayOf(13.4050, 13.4080, 13.4100)
                 distance = 5000.0
-                descriptions = arrayOf(
-                    "Start navigation  [0.0 km, 0 min]",
-                    "Destination reached  [0.0 km, 0 min]"
-                )
             }
         }
         return engineUnderTest(

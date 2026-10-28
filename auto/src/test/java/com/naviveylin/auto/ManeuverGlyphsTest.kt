@@ -1,7 +1,7 @@
 package com.naviveylin.auto
 
+import com.naviveylin.auto.stepOf
 import com.framstag.libosmscout.client.LaneTurn
-import com.framstag.libosmscout.client.RouteInstruction
 import com.framstag.libosmscout.client.TurnType
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNotNull
@@ -60,7 +60,7 @@ class ManeuverGlyphsTest {
 
     // --- the numbered roundabout exit (spec: roundabout-renderer, auto-navigation-hints) ---
 
-    private fun roundaboutExit(exitNumber: Int) = RouteInstruction(
+    private fun roundaboutExit(exitNumber: Int) = stepOf(
         350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
         "Take exit $exitNumber onto Bahnhofstraße", "Exit $exitNumber",
         0.0, TurnType.STRAIGHT_ON, "", "",
@@ -86,11 +86,11 @@ class ManeuverGlyphsTest {
         // of the two the driver sees is host behaviour, so neither may be the only one supplied
         // (spec: auto/navigation-view - A roundabout exit uses the number-bearing host maneuver).
         assertNotSame(
-            ManeuverGlyphs.forInstruction(roundaboutExit(3)),
+            ManeuverGlyphs.forStep(roundaboutExit(3)),
             ManeuverGlyphs.forTurnType(TurnType.ROUNDABOUT_LEAVE)
         )
         assertSame(
-            ManeuverGlyphs.forInstruction(roundaboutExit(3)),
+            ManeuverGlyphs.forStep(roundaboutExit(3)),
             ManeuverGlyphs.forTurnTypeAndExit(TurnType.ROUNDABOUT_LEAVE, 3)
         )
     }

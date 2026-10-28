@@ -1,80 +1,71 @@
 package com.naviveylin.ui.route
 
 import com.framstag.libosmscout.client.RouteEntry
+import com.framstag.libosmscout.client.RouteStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The app's reading of the route's per-step values (spec: `osmscout-jni` — Per-step leg values on a
- * calculated route) and the diagnostics line the analysis records for them (spec: `route-analysis` —
- * Step values describe the step's own leg).
+ * The app's reading of the route's row values (spec: `route-analysis` — Step values describe the
+ * step's own leg) and the diagnostics line the analysis records for them.
  *
- * Pure unit tests: [RouteEntry] is a plain value holder and no client is constructed, so no native
- * library is loaded.
+ * Pure unit tests: [RouteEntry] and [RouteStep] are plain value holders and no client is
+ * constructed, so no native library is loaded.
  */
 class RouteStepValuesTest {
 
-    private fun route(
-        instructionLines: Int,
-        distances: DoubleArray? = null,
-        times: DoubleArray? = null,
-        nativeDistance: Double = 0.0
-    ) = RouteEntry().apply {
-        descriptions = Array(instructionLines + 1) { index ->
-            if (index == 0) "--- Route ---" else "Turn $index  []"
+    private fun displays(steps: List<RouteStep>): List<RouteStepDisplay> =
+        routeRows(steps).map { row ->
+            RouteStepDisplay(
+                instruction = "",
+                distanceMeters = row.distanceMeters,
+                durationSeconds = row.durationSeconds
+            )
         }
-        instructionDistances = distances
-        instructionTimes = times
-        distance = nativeDistance
-    }
 
     @Test
-    fun `values are index-aligned with the instruction lines`() {
-        val values = instructionValues(
-            route(
-                3,
-                doubleArrayOf(0.0, 900.0, 1800.0),
-                doubleArrayOf(0.0, 60.0, 120.0)
+    fun `a row's values are its own plus the merged legs`() {
+        val rows = routeRows(
+            listOf(
+                startStep(),
+                turnStep(com.framstag.libosmscout.client.TurnType.STRAIGHT_ON, legDistance = 120.0, legTime = 12.0),
+                step(RouteStep.Kind.INFORMATIVE, lat = 52.5240, legDistance = 80.0, legTime = 8.0),
+                targetStep(legDistance = 900.0, legTime = 90.0)
             )
         )
 
-        assertEquals(3, values.size)
-        assertEquals(0.0, values[0].distanceMeters, 1e-6)
-        assertEquals(900.0, values[1].distanceMeters, 1e-6)
-        assertEquals(120.0, values[2].durationSeconds, 1e-6)
+        assertEquals(200.0, rows[1].distanceMeters, 1e-6)
+        assertEquals(20.0, rows[1].durationSeconds, 1e-6)
+        assertEquals(200.0, rows[1].values.distanceMeters, 1e-6)
     }
 
     @Test
-    fun `a route without values yields none`() {
-        assertEquals(0, instructionValues(route(3)).size)
-        assertEquals(0, instructionValues(route(3, doubleArrayOf(0.0, 1.0, 2.0))).size)
-        assertEquals(0, instructionValues(route(3, null, doubleArrayOf(0.0, 1.0, 2.0))).size)
+    fun `a row without a leg shows no numbers`() {
+        val rows = routeRows(listOf(startStep(), targetStep(legDistance = 500.0)))
+
+        assertFalse("the start line owns no leg", rows.first().hasLegValues)
+        assertEquals(0.0, rows.first().distanceMeters, 1e-6)
+        assertTrue(rows.last().hasLegValues)
     }
 
     @Test
-    fun `a mismatched array yields none, never a shifted list`() {
-        // Two values for three instruction lines: using them would attribute the first two steps'
-        // numbers to the wrong rows.
-        assertEquals(
-            0,
-            instructionValues(
-                route(
-                    3,
-                    doubleArrayOf(0.0, 900.0),
-                    doubleArrayOf(0.0, 60.0)
-                )
-            ).size
+    fun `rows sum to the route length`() {
+        val steps = listOf(
+            startStep(),
+            turnStep(com.framstag.libosmscout.client.TurnType.LEFT, legDistance = 500.0, legTime = 60.0),
+            turnStep(
+                com.framstag.libosmscout.client.TurnType.RIGHT,
+                lat = 52.5250, lon = 13.4090, legDistance = 700.0, legTime = 70.0
+            ),
+            targetStep(legDistance = 400.0, legTime = 40.0)
         )
-    }
+        val route = routeWithSteps(*steps.toTypedArray())
+        val rows = routeRows(steps)
 
-    @Test
-    fun `the header does not count as an instruction`() {
-        val values = instructionValues(
-            route(2, doubleArrayOf(0.0, 500.0), doubleArrayOf(0.0, 30.0))
-        )
-        assertEquals(2, values.size)
+        assertEquals(routeLengthMeters(route), rows.sumOf { it.distanceMeters }, 1e-6)
+        assertEquals(1600.0, rows.sumOf { it.distanceMeters }, 1e-6)
     }
 
     @Test
@@ -108,11 +99,11 @@ class RouteStepValuesTest {
 
     @Test
     fun `rounding of a short route does not count as a divergence`() {
-        val steps = listOf(
+        val rows = listOf(
             RouteStepDisplay("Start", 0.0, 0.0),
             RouteStepDisplay("Left", 95.0, 5.0)
         )
-        assertFalse(stepValuesDiverge(steps, totalMeters = 100.0))
+        assertFalse(stepValuesDiverge(rows, totalMeters = 100.0))
     }
 
     @Test
@@ -155,10 +146,15 @@ class RouteStepValuesTest {
     // --- The route's own length (spec: osmscout-jni — One route length for a calculated route) ---
 
     @Test
-    fun `the route's length is what its steps add up to`() {
+    fun `the route's length is what its rows add up to`() {
         // 500 m + 1000 m of legs against a native total of 21011: the sum wins, so the statistic the
-        // card shows is the number the step list below it adds up to.
-        val route = route(2, doubleArrayOf(500.0, 1000.0), doubleArrayOf(30.0, 60.0), nativeDistance = 21_011.0)
+        // card shows is the number the row list below it adds up to.
+        val route = routeWithSteps(
+            startStep(),
+            turnStep(com.framstag.libosmscout.client.TurnType.LEFT, legDistance = 500.0, legTime = 30.0),
+            targetStep(legDistance = 1000.0, legTime = 60.0),
+            distance = 21_011.0
+        )
 
         assertEquals(1500.0, routeLengthMeters(route), 1e-6)
     }
@@ -166,32 +162,31 @@ class RouteStepValuesTest {
     @Test
     fun `a route's length follows the legs, not the native total`() {
         // The defect this replaces, measured on device 2026-10-05 (Dortmund Hbf -> Cologne Hbf): the
-        // native total reported 72 771 m while the steps summed to 97 416 m. The displayed length must
-        // not be the figure that disagrees with the steps (TODO.md §129/§139).
-        val route = route(2, doubleArrayOf(48_000.0, 49_416.0), doubleArrayOf(2_000.0, 2_100.0), nativeDistance = 72_771.0)
+        // native total reported 72 771 m while the legs summed to 97 416 m. The displayed length must
+        // not be the figure that disagrees with the rows (TODO.md §129/§139).
+        val route = routeWithSteps(
+            startStep(),
+            turnStep(com.framstag.libosmscout.client.TurnType.LEFT, legDistance = 48_000.0, legTime = 2_000.0),
+            targetStep(legDistance = 49_416.0, legTime = 2_100.0),
+            distance = 72_771.0
+        )
 
         assertEquals(97_416.0, routeLengthMeters(route), 1e-6)
     }
 
     @Test
-    fun `a route without per-step values falls back to the native total`() {
-        assertEquals(21_011.0, routeLengthMeters(route(3, null, null, nativeDistance = 21_011.0)), 1e-6)
-        // Values that cannot be aligned are dropped by `instructionValues`, so the fallback applies
-        // instead of a shifted sum.
-        assertEquals(
-            21_011.0,
-            routeLengthMeters(
-                route(3, doubleArrayOf(1.0, 2.0), doubleArrayOf(1.0, 2.0), nativeDistance = 21_011.0)
-            ),
-            1e-6
-        )
-        // An all-zero leg list carries no length either: the native total is the better answer.
-        assertEquals(
-            21_011.0,
-            routeLengthMeters(
-                route(2, doubleArrayOf(0.0, 0.0), doubleArrayOf(0.0, 0.0), nativeDistance = 21_011.0)
-            ),
-            1e-6
-        )
+    fun `a route without steps falls back to the native total`() {
+        val legacy = RouteEntry().apply {
+            distance = 21_011.0
+            steps = null
+        }
+        assertEquals(21_011.0, routeLengthMeters(legacy), 1e-6)
+
+        // A step list whose legs are all zero carries no length either: the native total is the
+        // better answer than a sum of zeros.
+        val zeroLegs = routeWithSteps(startStep(), targetStep(), distance = 21_011.0)
+        assertEquals(21_011.0, routeLengthMeters(zeroLegs), 1e-6)
+
+        assertEquals(21_011.0, routeLengthMeters(RouteEntry().apply { distance = 21_011.0 }), 1e-6)
     }
 }

@@ -17,7 +17,7 @@ When navigation is active, a next-turn overlay SHALL be displayed on the map sho
 - **AND** it SHALL show the street name to turn into
 
 #### Scenario: Overlay updates on each instruction
-- **WHEN** `NavigationListener.onNextRouteInstruction()` is called
+- **WHEN** `NavigationListener.onNextRouteStep()` is called
 - **THEN** the overlay SHALL update with the new turn type, distance, and street name
 
 #### Scenario: Overlay hides on navigation stop
@@ -26,31 +26,32 @@ When navigation is active, a next-turn overlay SHALL be displayed on the map sho
 
 ### Requirement: Turn type icon
 
-The overlay SHALL display a visual icon representing the turn type (left, right, straight, roundabout, etc.).
+The overlay SHALL display a visual icon representing the manoeuvre the step ahead describes (left, right,
+straight, roundabout, motorway, etc.), chosen from that step's manoeuvre kind and move and never from any text.
 For a roundabout exit the icon SHALL additionally identify which exit the route takes: it SHALL show the exit
-ordinal on the symbol whenever the instruction carries one, and SHALL fall back to the plain roundabout icon
-when it does not.
+ordinal on the symbol whenever the step carries one, and SHALL fall back to the plain roundabout icon when it
+does not.
 
 #### Scenario: Left turn icon
 
-- **WHEN** the next instruction has `turnType = LEFT`
+- **WHEN** the step ahead is a left turn
 - **THEN** the overlay SHALL show a left-turn icon
 
 #### Scenario: Roundabout icon
 
-- **WHEN** the next instruction has `turnType = ROUNDABOUT_ENTER`
+- **WHEN** the step ahead enters a roundabout
 - **THEN** the overlay SHALL show a roundabout icon
 
 #### Scenario: Roundabout exit icon carries the exit number
 
-- **WHEN** the next instruction has `turnType = ROUNDABOUT_LEAVE` and carries exit ordinal 3
+- **WHEN** the step ahead leaves a roundabout at exit 3
 - **THEN** the overlay SHALL show a roundabout-exit icon carrying the number 3
 - **AND** the number SHALL be the one the overlay's instruction text names
 - **Case**: `app: NextTurnOverlayTest` "a roundabout exit icon carries the exit number"
 
 #### Scenario: Roundabout exit without an exit number
 
-- **WHEN** the next instruction has `turnType = ROUNDABOUT_LEAVE` and carries no exit ordinal
+- **WHEN** the step ahead leaves a roundabout and carries no exit ordinal
 - **THEN** the overlay SHALL show the plain roundabout icon it showed before the number existed
 - **Case**: `app: NextTurnOverlayTest` "a roundabout exit without an ordinal keeps the plain leave arrow"
 
@@ -60,6 +61,12 @@ when it does not.
 - **THEN** the next-next row SHALL show the exit number of *that* manoeuvre
 - **AND** it SHALL NOT show the number of the next-manoeuvre row
 - **Case**: `app: NextTurnOverlayTest` "the next-next roundabout exit shows its own number"
+
+#### Scenario: A motorway change is not drawn as a plain turn
+
+- **WHEN** the step ahead keeps left onto another motorway
+- **THEN** the overlay SHALL show the motorway-change icon rather than a plain left-turn icon
+- **Case**: `app: NextTurnOverlayTest` "a motorway change is drawn as a keep, not a turn"
 
 ### Requirement: Distance display
 The overlay SHALL show the distance to the next manoeuvre, formatted appropriately (meters or kilometers). The distance SHALL count down as the vehicle approaches and SHALL NOT display 0 m while the manoeuvre is still ahead and the vehicle is moving, including after a reroute; after a reroute the overlay SHALL show the new route's current distance instead of the previous route's value.
@@ -89,14 +96,18 @@ The overlay SHALL show the distance to the next manoeuvre, formatted appropriate
 - **AND** it SHALL either show an up-to-date instruction or clear the distance until valid data is available
 
 ### Requirement: "Next next" hint
-When a following manoeuvre is within 200m of the current one, the overlay SHALL show a second row with the next-next turn hint.
+
+When a following manoeuvre is within 200m of the current one, the overlay SHALL show a second row with the
+next-next turn hint, built from the nested step the published step ahead carries.
 
 #### Scenario: Next next shown
-- **WHEN** `RouteInstruction.hasNextNext()` returns true
-- **THEN** the overlay SHALL display a second row with the next-next turn type and description
+
+- **WHEN** the step ahead carries a nested following manoeuvre
+- **THEN** the overlay SHALL display a second row with that manoeuvre's icon and localized short description
 
 #### Scenario: Next next hidden
-- **WHEN** `RouteInstruction.hasNextNext()` returns false
+
+- **WHEN** the step ahead carries no nested following manoeuvre
 - **THEN** the overlay SHALL NOT show a second row
 
 ### Requirement: Left-aligned layout

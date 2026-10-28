@@ -1,0 +1,6 @@
+NextTurnOverlayTest > iconsAtLeast64And36dp FAILED
+NextTurnOverlayTest > overlayRendersInstruction FAILED
+NextTurnOverlayTest > the next-next hint renders from the nested step FAILED
+10 tests completed, 3 failed
+> Task :app:testMobileDebugUnitTest FAILED
+BUILD FAILED in 47s

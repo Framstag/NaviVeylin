@@ -1,6 +1,6 @@
 package com.naviveylin.service
 
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.R
 import com.naviveylin.core.FreeDrivingStatus
@@ -22,7 +22,7 @@ import java.util.Locale
  */
 class NavigationNotificationContentFormatterTest {
 
-    private val instruction = RouteInstruction(
+    private val instruction = stepOf(
         250.0,
         TurnType.LEFT,
         "Hauptstrasse",
@@ -37,6 +37,16 @@ class NavigationNotificationContentFormatterTest {
             R.string.navigation_notification_title_free_driving -> "Free driving"
             R.string.road_offroad -> "Offroad"
             R.string.speed_unit_kmh -> "%1${'$'}s km/h".format(args.firstOrNull() ?: 0)
+            // The manoeuvre wording comes from `:core`, so the notification now resolves the same
+            // strings the phone overlay does (spec: `turn-instruction-localization`).
+            com.naviveylin.core.R.string.nav_turn_left -> "Turn left"
+            com.naviveylin.core.R.string.nav_turn_right -> "Turn right"
+            com.naviveylin.core.R.string.nav_start -> "Start"
+            com.naviveylin.core.R.string.nav_arrive -> "Arrive"
+            com.naviveylin.core.R.string.nav_straight_on -> "Straight on"
+            com.naviveylin.core.R.string.nav_turn_into -> "%1${'$'}s into %2${'$'}s".format(args[0], args[1])
+            com.naviveylin.core.R.string.nav_keep_onto -> "%1${'$'}s onto %2${'$'}s".format(args[0], args[1])
+            com.naviveylin.core.R.string.nav_exit_roundabout -> "Exit %1${'$'}d".format(args[0])
             else -> "?"
         }
     }
@@ -45,7 +55,7 @@ class NavigationNotificationContentFormatterTest {
     fun navigationShowsDestinationAndInstruction() {
         val state = NavigationState(
             isNavigating = true,
-            nextInstruction = instruction,
+            nextStep = instruction,
             destinationName = "Home",
             remainingDistance = 12_400.0,
             etaMillis = fakeNow + 30 * 60_000
@@ -64,7 +74,7 @@ class NavigationNotificationContentFormatterTest {
 
     @Test
     fun navigationWithoutDestinationUsesNeutralTitle() {
-        val state = NavigationState(isNavigating = true, nextInstruction = instruction)
+        val state = NavigationState(isNavigating = true, nextStep = instruction)
         val content = NavigationNotificationContentFormatter.format(
             state,
             resolver = resolver, freeDrivingActive = false, etaClock = { "--:--" }
@@ -189,7 +199,7 @@ class NavigationNotificationContentFormatterTest {
         // and the remaining distance — speed is host-visible only in free driving.
         val first = NavigationState(
             isNavigating = true,
-            nextInstruction = instruction,
+            nextStep = instruction,
             remainingDistance = 12_400.0,
             etaMillis = fakeNow + 30 * 60_000,
             currentSpeedKmH = 50.0
@@ -205,9 +215,9 @@ class NavigationNotificationContentFormatterTest {
 
     @Test
     fun aNewManoeuvreReposts() {
-        val first = NavigationState(isNavigating = true, nextInstruction = instruction)
+        val first = NavigationState(isNavigating = true, nextStep = instruction)
         val next = first.copy(
-            nextInstruction = RouteInstruction(
+            nextStep = stepOf(
                 250.0, TurnType.RIGHT, "Hauptstrasse", "Turn right into Hauptstrasse", "Turn right"
             )
         )
@@ -221,11 +231,11 @@ class NavigationNotificationContentFormatterTest {
 
     @Test
     fun aDistanceBucketChangeRepostsButASubBucketChangeDoesNot() {
-        val first = NavigationState(isNavigating = true, nextInstruction = instruction)
+        val first = NavigationState(isNavigating = true, nextStep = instruction)
 
         // Same rounded bucket (250 m -> the display rounds to whole metres there).
         val subBucket = first.copy(
-            nextInstruction = RouteInstruction(
+            nextStep = stepOf(
                 250.4, TurnType.LEFT, "Hauptstrasse", "Turn left into Hauptstrasse", "Turn left"
             )
         )
@@ -236,7 +246,7 @@ class NavigationNotificationContentFormatterTest {
         )
 
         val nextBucket = first.copy(
-            nextInstruction = RouteInstruction(
+            nextStep = stepOf(
                 900.0, TurnType.LEFT, "Hauptstrasse", "Turn left into Hauptstrasse", "Turn left"
             )
         )
@@ -254,7 +264,7 @@ class NavigationNotificationContentFormatterTest {
         // change within the same rendered minute is not host-visible.
         val state = NavigationState(
             isNavigating = true,
-            nextInstruction = instruction,
+            nextStep = instruction,
             // A known arrival time: with etaMillis = 0 the hint falls back to the
             // unknown placeholder, which would make the two clocks indistinguishable.
             etaMillis = fakeNow + 30 * 60_000
@@ -331,7 +341,7 @@ class NavigationNotificationContentFormatterTest {
 
     @Test
     fun anIdenticalStateDoesNotRepost() {
-        val state = NavigationState(isNavigating = true, nextInstruction = instruction)
+        val state = NavigationState(isNavigating = true, nextStep = instruction)
 
         assertFalse(
             NavigationNotificationContentFormatter.hostVisibleContentChanged(post(state), post(state))

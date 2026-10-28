@@ -58,19 +58,23 @@ class RouteStepSegmentsTest {
     }
 
     @Test
-    fun `a single step owns the leg from the route start to its manoeuvre`() {
+    fun `a single row covers the whole polyline`() {
+        // One row is the start and the arrival at once: it owns the polyline from its own boundary,
+        // the route's first vertex, to the route's last.
         assertEquals(
-            listOf(0..1),
+            listOf(0..3),
             stepSegments(straightLats, straightLons, 1, listOf(StepAnchor(0.0, 0.0009)))
         )
     }
 
     @Test
-    fun `two manoeuvres on the same vertex leave the later step without a leg`() {
+    fun `two manoeuvres on the same vertex leave the later row with the tail`() {
         val anchors = listOf(StepAnchor(0.0, 0.0009), StepAnchor(0.0, 0.0009))
 
+        // The later row is the arrival: its own boundary does not move, but the route's tail still
+        // belongs to it, so the rows tile the polyline to its end.
         assertEquals(
-            listOf(0..1, IntRange.EMPTY),
+            listOf(0..1, 1..3),
             stepSegments(straightLats, straightLons, 2, anchors)
         )
     }

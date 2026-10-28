@@ -9,7 +9,8 @@ import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.TurnType
 import com.framstag.libosmscout.client.Vehicle
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
+import com.naviveylin.test.streetNameOf
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.FailureReason
@@ -103,10 +104,6 @@ class NavigationEngineRerouteTest {
         latitudes = doubleArrayOf(52.5200, 52.5200)
         longitudes = doubleArrayOf(13.4000, 13.5000)
         distance = 7000.0
-        descriptions = arrayOf(
-            "Start navigation  [0.0 km, 0 min]",
-            "Destination reached  [0.0 km, 0 min]"
-        )
     }
 
     /**
@@ -291,22 +288,22 @@ class NavigationEngineRerouteTest {
     @Test
     fun instructionListUpdatesAfterAReroute() = runTest(mainDispatcherRule.dispatcher) {
         startSession()
-        listener().onRouteInstructions(
-            arrayOf(RouteInstruction(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left"))
+        listener().onRouteSteps(
+            arrayOf(stepOf(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left"))
         )
-        awaitState { engine.state.value.instructions.size == 1 }
+        awaitState { engine.state.value.steps.size == 1 }
 
         requestReroute(lat = 52.5218)
         awaitState { client.routeCalculationCount == 1 }
 
         // The engine clears the previous route's steps on the restart and reports
         // the new instructions when they arrive.
-        listener().onRouteInstructions(
-            arrayOf(RouteInstruction(50.0, TurnType.RIGHT, "Alt St", "Turn right", "Turn right"))
+        listener().onRouteSteps(
+            arrayOf(stepOf(50.0, TurnType.RIGHT, "Alt St", "Turn right", "Turn right"))
         )
-        awaitState { engine.state.value.instructions.size == 1 }
+        awaitState { engine.state.value.steps.size == 1 }
 
-        assertEquals("Alt St", engine.state.value.instructions[0].streetName)
+        assertEquals("Alt St", streetNameOf(engine.state.value.steps[0]))
         assertFalse(engine.state.value.isRerouting)
     }
 
@@ -347,7 +344,7 @@ class NavigationEngineRerouteTest {
     }
 
     /**
-     * A reroute that fails must stop claiming one is running. `onRouteInstructions` is the only
+     * A reroute that fails must stop claiming one is running. `onRouteSteps` is the only
      * other writer that clears the flag, and a failed attempt never reaches an instruction list,
      * so the car template would keep mapping `isRerouting` to a loading trip with no turn (spec:
      * `rerouting-visual-feedback` — Failed reroute ends rerouting state, Off-route survives a
@@ -356,10 +353,10 @@ class NavigationEngineRerouteTest {
     @Test
     fun aFailedRerouteEndsTheReroutingState() = runTest(mainDispatcherRule.dispatcher) {
         startSession()
-        listener().onRouteInstructions(
-            arrayOf(RouteInstruction(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left"))
+        listener().onRouteSteps(
+            arrayOf(stepOf(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left"))
         )
-        awaitState { engine.state.value.instructions.size == 1 }
+        awaitState { engine.state.value.steps.size == 1 }
 
         // Hold the reroute's calculation so its failure is delivered explicitly (the shape a thin
         // map set produces on device: "No routable node near destination").
@@ -384,9 +381,9 @@ class NavigationEngineRerouteTest {
         assertTrue("the failed reroute does not end the session", engine.state.value.isNavigating)
         assertEquals(
             "the running route's steps survive the failed attempt",
-            1, engine.state.value.instructions.size
+            1, engine.state.value.steps.size
         )
-        assertEquals("Main St", engine.state.value.instructions[0].streetName)
+        assertEquals("Main St", streetNameOf(engine.state.value.steps[0]))
         assertEquals(
             "the failure is still published, with its cause",
             FailureReason.TARGET_UNROUTABLE,
@@ -395,10 +392,10 @@ class NavigationEngineRerouteTest {
 
         // A later emission must not resurrect the claim: the car rebuilds its template from any
         // state change, so a stale `true` would come back with the next one.
-        listener().onNextRouteInstruction(
-            RouteInstruction(80.0, TurnType.RIGHT, "Alt St", "Turn right", "Turn right")
+        listener().onNextRouteStep(
+            stepOf(80.0, TurnType.RIGHT, "Alt St", "Turn right", "Turn right")
         )
-        awaitState { engine.state.value.nextInstruction?.streetName == "Alt St" }
+        awaitState { streetNameOf(engine.state.value.nextStep) == "Alt St" }
         assertFalse(engine.state.value.isRerouting)
     }
 

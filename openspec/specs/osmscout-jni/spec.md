@@ -239,73 +239,47 @@ field that carries it SHALL be named or documented as an estimate.
 
 ### Requirement: Per-step leg values on a calculated route
 
-A calculated route SHALL expose one distance (in metres) and one duration (in seconds) per instruction line,
-each describing the leg that **ends at that line's manoeuvre** — never a value measured between two
-consecutive route nodes that carry no instruction line. Index alignment SHALL hold with the route's
-instruction lines and with the per-step positions, and the legs SHALL cover the route once: their sum SHALL
-be the route's own length as the description measures it, and SHALL NOT be one geometry edge per step.
-(The router's overall distance is a separate native number; the two may disagree — TODO.md §126.) Index
-alignment SHALL hold with the route's instruction lines and with the per-step positions. When the values
-cannot be aligned one-to-one with the instruction lines, both SHALL be absent for that route rather than
-shifted.
+A calculated route SHALL expose, on every step it publishes, one distance (in metres) and one duration (in
+seconds), each describing the leg that **ends at that step's manoeuvre** — never a value measured between two
+consecutive route nodes that carry no step. The legs SHALL cover the route once: their sum SHALL be the route's
+own length as the description measures it, and SHALL NOT be one geometry edge per step. (The router's overall
+distance is a separate native number; the two may disagree — TODO.md §126.) A route that yields no step SHALL
+publish no per-step values, so a client never reads a value that belongs to no manoeuvre.
 
 #### Scenario: Legs sum to the route's total
 
-- **WHEN** a route of 17.3 km with 19 instruction lines is calculated
+- **WHEN** a route of 17.3 km with 19 steps is calculated
 - **THEN** the per-step distances SHALL cover the route once, i.e. sum to the route's own total as the description measures it (the router's overall distance is a second, independent number - measured on device 2026-10-05 as 1.34× on a 70 km route, TODO.md §126)
 - **AND** the sum SHALL NOT be the length of a single geometry edge per step (measured before this change: a few hundred metres for a 17,3 km route)
 
 #### Scenario: A step's values belong to its own leg
 
 - **WHEN** a step's values are inspected
-- **THEN** its distance SHALL be the route distance from the previous instruction's manoeuvre to this one
+- **THEN** its distance SHALL be the route distance from the previous step's manoeuvre to this one
 - **AND** its duration SHALL be the travel time of that same leg
 - **AND** the value SHALL NOT be the distance or time of the last geometry edge before the manoeuvre
 
 #### Scenario: Unaligned values are absent, not shifted
 
-- **WHEN** the per-step values cannot be aligned one-to-one with the instruction lines
-- **THEN** no per-step distance and no per-step duration SHALL be published for the route
-- **AND** the instruction lines SHALL remain valid and complete
+- **WHEN** a route yields no described node at all
+- **THEN** the route SHALL publish no step and therefore no per-step distance and no per-step duration
+- **AND** the route's own geometry and totals SHALL remain valid and complete
 
 #### Scenario: Start line owns no leg
 
-- **WHEN** the route's first instruction line is the start line
+- **WHEN** the route's first step is the start step
 - **THEN** its distance SHALL be zero and it SHALL carry no duration
 
-### Requirement: Instruction segment time is the leg's travel time
-
-The time a route exposes for an instruction SHALL be the travel time of the leg that ends at that
-instruction's manoeuvre, so that a client can tell how long driving that step takes. It SHALL NOT be the
-travel time between two consecutive route nodes, and it SHALL agree with the per-step duration the same
-route exposes for that step.
-
-#### Scenario: A step's time covers its whole leg, not one of its edges
-
-- **WHEN** a step's leg spans several hundred metres between two manoeuvres
-- **THEN** its reported time SHALL be the travel time of that whole leg, i.e. at least tens of seconds
-- **AND** SHALL NOT be the sub-second to few-second time of a single geometry edge inside the leg
-
-#### Scenario: A city step is reported in minutes, not in seconds
-
-- **WHEN** a step's leg covers several hundred metres of a city route
-- **THEN** its reported time SHALL be on the order of the driving time of that leg
-- **AND** SHALL NOT be the sub-second to few-second time of a single geometry edge
-
-#### Scenario: The two step lists of one route agree
-
-- **WHEN** a route exposes per-step durations and an instruction list built from the same route
-- **THEN** the time of an instruction SHALL equal the per-step duration of the same step
 
 ### Requirement: A next instruction's time is the remaining time of its leg
 
-For the next instruction — the one the instruction list is asked for ahead of the current position — the
-time SHALL be the **remaining** travel time of that instruction's leg, consistent with the remaining
-distance the same instruction reports, and it SHALL reach zero as the manoeuvre is reached.
+For the step ahead — the one published for the current position — the remaining time SHALL be the **remaining**
+travel time of that step's leg, consistent with the remaining distance the same step reports, and it SHALL reach
+zero as the manoeuvre is reached.
 
 #### Scenario: The arrival estimate shrinks while the leg is driven
 
-- **WHEN** the next instruction is reported, then reported again after the driver has covered most of its leg
+- **WHEN** the step ahead is published, then published again after the driver has covered most of its leg
 - **THEN** the second remaining time SHALL be smaller than the first
 - **AND** the estimate of arriving at that manoeuvre SHALL NOT stay at its initial value while the manoeuvre is approached
 
@@ -421,92 +395,92 @@ direction-restricted.
 - **WHEN** the nearest routable way can carry the endpoint in a permitted direction
 - **THEN** the endpoint SHALL be attached to that way, as before
 
-### Requirement: A route instruction carries the roundabout exit ordinal
+### Requirement: A route step carries the roundabout exit ordinal
 
-The navigation bridge SHALL expose, on every route instruction, the ordinal of the roundabout exit the route
-takes: its 1-based position counted in circulation order. It SHALL be readable without parsing the
-instruction's English text. An instruction that is not a roundabout manoeuvre SHALL NOT carry an ordinal.
+The navigation bridge SHALL expose, on every published route step that leaves a roundabout, the ordinal of the
+exit the route takes: its 1-based position counted in circulation order. It SHALL be readable without parsing
+any text, because no text is published. A step that is not a roundabout manoeuvre SHALL NOT carry an ordinal.
 
-#### Scenario: A roundabout exit instruction carries its ordinal
+#### Scenario: A roundabout exit step carries its ordinal
 
 - **WHEN** a route leaves a roundabout at the third exit
-- **THEN** the instruction for that manoeuvre SHALL carry exit ordinal 3
-- **AND** the ordinal SHALL NOT have to be recovered from the instruction's description text
-- **Case**: `app(device): RouteInstructionRoundaboutDeviceTest` "a roundabout exit instruction carries its ordinal"
+- **THEN** the step for that manoeuvre SHALL carry exit ordinal 3
+- **AND** the ordinal SHALL NOT have to be recovered from any description text
+- **Case**: `app(device): RouteStepModelBridgeTest` "a roundabout leave step carries ordinal and direction"
 
-#### Scenario: A non-roundabout instruction carries no exit ordinal
+#### Scenario: A non-roundabout step carries no exit ordinal
 
-- **WHEN** the instruction is a plain turn, a motorway manoeuvre, the start or the arrival
+- **WHEN** the step is a plain turn, a motorway manoeuvre, the start or the arrival
 - **THEN** its exit ordinal SHALL be absent
 - **AND** a surface reading the ordinal SHALL be able to tell "no exit" from "exit 1"
-- **Case**: `osmscout-client-java: RouteInstructionFieldsTest` "a plain turn carries no exit ordinal"
+- **Case**: `osmscout-client-java: RouteStepFieldsTest` "a plain turn carries no exit ordinal and no roundabout record"
 
-#### Scenario: The instruction text is unchanged
+#### Scenario: No description text accompanies the step
 
-- **WHEN** a roundabout exit instruction carries its ordinal
-- **THEN** its description and short description SHALL still read as they read before this field existed
-- **AND** a caller that reads only those strings SHALL observe no change
-- **Case**: `osmscout-client-java: RouteInstructionFieldsTest` "the native roundabout text is unchanged"
+- **WHEN** a roundabout exit step carries its ordinal
+- **THEN** the bridge SHALL publish no description or short description for that manoeuvre
+- **AND** the ordinal SHALL be the only thing a client reads it from
+- **Case**: `osmscout-client-java: RouteStepFieldsTest` "a published step carries no guidance text"
 
-### Requirement: A route instruction carries the roundabout circulation direction
+### Requirement: A route step carries the roundabout circulation direction
 
-The navigation bridge SHALL expose whether the roundabout's traffic circulates clockwise, on every route
-instruction, and SHALL NOT leave it to be inferred from the instruction text.
+The navigation bridge SHALL expose whether the roundabout's traffic circulates clockwise, on every published
+route step that leaves a roundabout, and SHALL NOT leave it to be inferred from text.
 
 #### Scenario: The circulation direction is carried
 
 - **WHEN** a route leaves a roundabout whose traffic circulates counter-clockwise
-- **THEN** the instruction SHALL report the circulation direction as counter-clockwise
-- **Case**: `osmscout-client-java: RouteInstructionFieldsTest` "a counter-clockwise instruction reports its direction"
+- **THEN** the step SHALL report the circulation direction as counter-clockwise
+- **Case**: `osmscout-client-java: RouteStepFieldsTest` "a counter-clockwise roundabout reports its direction"
 
 #### Scenario: A counter-clockwise roundabout is not reported as clockwise
 
 - **WHEN** a route leaves a clockwise roundabout and another route leaves a counter-clockwise one
-- **THEN** the two instructions SHALL report different circulation directions
-- **Case**: `app(device): RouteInstructionRoundaboutDeviceTest` "circulation direction follows the roundabout"
+- **THEN** the two steps SHALL report different circulation directions
+- **Case**: `app(device): RouteStepModelBridgeTest` "a roundabout leave step carries ordinal and direction"
 
 ### Requirement: The next-next hint carries its own exit ordinal
 
-The bridge SHALL expose the roundabout exit ordinal of the manoeuvre the "next next" hint describes, as a field
-of the instruction that carries the hint and separately from that instruction's own exit ordinal, so two
-roundabouts in a row can be told apart.
+The bridge SHALL expose the roundabout exit ordinal of the manoeuvre the "next next" hint describes inside the
+nested step that carries the hint, separately from the enclosing step's own exit ordinal, so two roundabouts in a
+row can be told apart.
 
 #### Scenario: The hint's ordinal is its own
 
-- **WHEN** an instruction leaves a roundabout at exit 3 and its next-next hint is a roundabout exit taken at
+- **WHEN** a step leaves a roundabout at exit 3 and its next-next hint is a roundabout exit taken at
   exit 1
-- **THEN** the instruction's own exit ordinal SHALL be 3
-- **AND** the hint's exit ordinal SHALL be 1, not the instruction's
-- **Case**: `osmscout-client-java: RouteInstructionFieldsTest` "the next-next hint carries its own exit ordinal"
+- **THEN** the enclosing step's own exit ordinal SHALL be 3
+- **AND** the nested hint step's exit ordinal SHALL be 1, not the enclosing step's
+- **Case**: `osmscout-client-java: RouteStepFieldsTest` "the next-next hint carries its own exit ordinal"
 
 #### Scenario: No hint means no hint ordinal
 
-- **WHEN** an instruction carries no next-next hint
-- **THEN** its hint exit ordinal SHALL be absent
-- **Case**: `osmscout-client-java: RouteInstructionFieldsTest` "no exit is distinguishable from exit one"
+- **WHEN** a step carries no next-next hint
+- **THEN** no nested step SHALL be published for it
+- **AND** its own exit ordinal SHALL be distinguishable from exit 1
+- **Case**: `osmscout-client-java: RouteStepFieldsTest` "no exit is distinguishable from exit one"
 
-### Requirement: An unbuildable instruction never reaches a listener as null
+### Requirement: An unbuildable step never reaches a listener as null
 
-The navigation bridge SHALL deliver only instructions it built: a delivered instruction list SHALL contain no
-null element, and when it could build none of a list's instructions it SHALL deliver no list at all. A listener
-SHALL NOT have to defend against a null element, because one surfaces far from the bridge where its cause is
-no longer visible.
+The navigation bridge SHALL deliver only steps it built: a delivered step list SHALL contain no null element, and
+when it could build none of a list's steps it SHALL deliver no list at all. A listener SHALL NOT have to defend
+against a null element, because one surfaces far from the bridge where its cause is no longer visible.
 
-#### Scenario: Every delivered instruction is non-null
+#### Scenario: Every delivered step is non-null
 
-- **WHEN** a route is calculated and navigation starts, including when the bridge cannot build an instruction
-- **THEN** every instruction the listener receives SHALL be non-null
-- **AND** the bridge SHALL deliver no instruction list at all rather than a list whose elements are null
-- **Case**: `app(device): RouteInstructionRoundaboutDeviceTest` "a route start delivers a non-empty instruction list of non-null instructions"
+- **WHEN** a route is calculated and navigation starts, including when the bridge cannot build a step
+- **THEN** every step the listener receives SHALL be non-null
+- **AND** the bridge SHALL deliver no step list at all rather than a list whose elements are null
+- **Case**: `app(device): RouteStepLiveGuidanceDeviceTest` "a route change publishes the full step list"
 
 #### Scenario: A method lookup that fails degrades instead of aborting
 
 - **WHEN** a class or method the bridge looks up cannot be resolved, including a descriptor that matches no
   constructor of the Java class it names
 - **THEN** the lookup SHALL leave a null method id and SHALL NOT leave an exception pending
-- **AND** the bridge SHALL degrade to delivering no instruction list rather than aborting the process, because
+- **AND** the bridge SHALL degrade to delivering no step list rather than aborting the process, because
   a pending lookup exception aborts on the *next* JNI call and so reaches the guard before it can run
-- **Case**: `app(device): RouteInstructionRoundaboutDeviceTest` "a route start delivers a non-empty instruction list of non-null instructions", falsified by the task-7.9 descriptor mutation — with the descriptor mutated to `…;III)V` and no exception clear, the abort landed on the following `FindClass` for `TurnType` and the instrumentation reported `Process crashed`; with the clear in place the same mutation fails the case with "the route was calculated but the bridge delivered no instruction list"
+- **Case**: `app(device): RouteStepLiveGuidanceDeviceTest` "a route change publishes the full step list"
 
 ### Requirement: A search request carries a generation
 
@@ -612,3 +586,87 @@ build gate `:app:checkNativeParity`, wired into `preBuild`, SHALL assert it.
 - **THEN** every line carries four fields with a reason and one of the five overridden files, and the list
   holds exactly the divergences the two trees carry — five submodule-only, five override-only
 - **Case**: `app: NativeOverrideParityGuardTest` "the recorded deviations are the tree's own"
+
+### Requirement: A calculated route publishes structured route steps
+
+A calculated route SHALL publish one step per described route node, in route order, each carrying that node's
+manoeuvre records, its node identity, its position, its distance and time from the route start, and the legs of
+its own step — all as values, none as prose. A step SHALL state which manoeuvre it is, so a client can tell a
+roundabout leave from a motorway change without reading text. A node with no description SHALL produce no step.
+
+#### Scenario: Steps arrive in route order with their manoeuvre
+
+- **WHEN** a route of 19 manoeuvres is calculated
+- **THEN** the route SHALL publish one step per described node, in route order
+- **AND** each step SHALL name its manoeuvre kind and carry the records of that manoeuvre
+- **Case**: `app: RouteStepModelBridgeTest` "a calculated route publishes steps in route order"
+
+#### Scenario: A roundabout leave states its exit ordinal and direction
+
+- **WHEN** a route leaves a roundabout at the third exit, counter-clockwise
+- **THEN** that step SHALL carry exit ordinal 3 and the counter-clockwise direction
+- **AND** neither value SHALL have to be recovered from text
+- **Case**: `app: RouteStepModelBridgeTest` "a roundabout leave step carries ordinal and direction"
+
+#### Scenario: A motorway manoeuvre is distinguishable from a plain turn
+
+- **WHEN** a route keeps left onto another motorway
+- **THEN** the step SHALL report a motorway change with its move
+- **AND** a client SHALL NOT have to tell it apart from a plain left turn by its text
+- **Case**: `app: RouteStepModelBridgeTest` "a motorway change is not a plain turn"
+
+#### Scenario: Each step carries the leg that ends at it
+
+- **WHEN** a step's leg values are inspected
+- **THEN** its leg distance and leg time SHALL describe the run from the preceding step's manoeuvre to its own
+- **AND** the legs of all steps SHALL sum to the route's length
+- **Case**: `app: RouteStepModelBridgeTest` "step legs sum to the route length"
+
+#### Scenario: A step names the database its node belongs to
+
+- **WHEN** a route crosses two map regions
+- **THEN** each step SHALL carry its database identity
+- **AND** the route SHALL publish the mapping from that identity to the map directory
+- **Case**: `app: RouteStepModelBridgeTest` "steps of a cross-database route resolve their database"
+
+### Requirement: Live guidance publishes route steps
+
+Live guidance SHALL publish, on every position update, the step of the manoeuvre ahead as the same structured
+record a calculated route publishes, extended with the distance and time remaining to that manoeuvre and, when
+the following manoeuvre is within the close-manoeuvre window, that manoeuvre as a nested step. It SHALL publish
+no guidance text.
+
+#### Scenario: The step ahead carries its manoeuvre and remaining distance
+
+- **WHEN** the vehicle is 300 m before a roundabout exit while navigating
+- **THEN** the published next step SHALL describe that roundabout leave with its exit ordinal
+- **AND** SHALL report 300 m, within the tolerance of the position's progress, as remaining distance
+- **Case**: `app(device): RouteStepModelBridgeTest` "a roundabout leave step carries ordinal and direction"
+
+#### Scenario: A published step carries no guidance text
+
+- **WHEN** any step is published to a listener
+- **THEN** it SHALL carry no description string for its manoeuvre
+- **AND** a client SHALL be able to word it from the values alone
+- **Case**: `osmscout-client-java: RouteStepModelBridgeTest` "a published step carries no guidance text"
+
+#### Scenario: The next-next hint is a nested step
+
+- **WHEN** two manoeuvres are 120 m apart and the first is ahead of the vehicle
+- **THEN** the published step ahead SHALL carry the second manoeuvre as a nested step
+- **AND** that nested step SHALL carry its own kind, exit ordinal and circulation direction
+- **Case**: `app(device): RouteStepLiveGuidanceDeviceTest` "the next-next hint is a nested step"
+
+#### Scenario: A route change publishes the full step list
+
+- **WHEN** navigation starts on a calculated route, and again when a reroute replaces it
+- **THEN** the listener SHALL receive that route's steps in route order
+- **AND** the list SHALL NOT contain an element that is null
+- **Case**: `app(device): RouteStepLiveGuidanceDeviceTest` "a route change publishes the full step list"
+
+#### Scenario: The published list follows the position
+
+- **WHEN** the vehicle passes the manoeuvre the published list begins with
+- **THEN** a later publication SHALL begin with the next manoeuvre
+- **AND** the passed manoeuvre SHALL no longer be published as the next step
+- **Case**: `app: NavigationEngineStepIndexTest` "the published step advances with the position"

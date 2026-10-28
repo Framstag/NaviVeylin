@@ -465,8 +465,8 @@ _Phone and car_
   <!-- cap: i18n-l10n#RTL readiness -->
   <!-- cap: i18n-l10n#Units are localized resources -->
   <!-- cap: turn-instruction-localization#All native instruction kinds are covered -->
-  <!-- cap: turn-instruction-localization#Fallback to native text -->
   <!-- cap: turn-instruction-localization#Instruction text is rebuilt from structured fields -->
+  <!-- cap: turn-instruction-localization#Route analysis rows are localized from the step model -->
   <!-- cap: turn-instruction-localization#Shared resources for phone and Auto -->
 
 ## Settings, Data & Legal

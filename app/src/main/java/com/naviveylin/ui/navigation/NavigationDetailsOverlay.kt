@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -35,12 +36,16 @@ import com.naviveylin.R
 import com.naviveylin.core.distanceUsesKilometers
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.formatStepDurationText
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.CurrentRoadInfo
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
+import com.naviveylin.core.ManoeuvreLabels
+import com.naviveylin.core.manoeuvreFromStep
+import com.naviveylin.core.stringResolver
 
 /**
  * Full-screen expansion of the routing status card during active navigation.
@@ -50,7 +55,7 @@ import com.framstag.libosmscout.client.RouteInstruction
  */
 @Composable
 fun NavigationDetailsOverlay(
-    instructions: List<RouteInstruction>,
+    steps: List<RouteStep>,
     currentStepIndex: Int,
     currentRoadInfo: CurrentRoadInfo? = null,
     remainingDistance: Double,
@@ -71,9 +76,11 @@ fun NavigationDetailsOverlay(
 
     // Open with the current step as the first visible item; re-scroll as the
     // user progresses so the current step stays at the top.
+    val context = LocalContext.current
+    val resolver = remember(context) { context.stringResolver() }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = currentStepIndex)
     LaunchedEffect(currentStepIndex) {
-        if (currentStepIndex in instructions.indices) {
+        if (currentStepIndex in steps.indices) {
             listState.animateScrollToItem(currentStepIndex)
         }
     }
@@ -136,7 +143,7 @@ fun NavigationDetailsOverlay(
                 state = listState,
                 modifier = Modifier.fillMaxSize()
             ) {
-                itemsIndexed(instructions) { index, instruction ->
+                itemsIndexed(steps) { index, step ->
                     val isActive = index == currentStepIndex
                     val bg = if (isActive) {
                         Modifier.background(
@@ -152,7 +159,7 @@ fun NavigationDetailsOverlay(
                     ) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                             NavigationArrow(
-                                symbol = navSymbolForInstruction(instruction),
+                                symbol = navSymbolForStep(step),
                                 size = 28.dp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -165,19 +172,19 @@ fun NavigationDetailsOverlay(
                                 // bridge's per-instruction leg distance and leg time. `distanceTo` is not
                                 // shown here - in this list it is the distance from the route start, and a
                                 // route-start distance next to a leg time is not a pair.
-                                if (instruction.legDistance > 0.0) {
+                                if (step.legDistance > 0.0) {
                                     Text(
                                         stringResource(
-                                            if (distanceUsesKilometers(instruction.legDistance)) R.string.distance_unit_km
+                                            if (distanceUsesKilometers(step.legDistance)) R.string.distance_unit_km
                                             else R.string.distance_unit_m,
-                                            formatDistanceNumber(instruction.legDistance)
+                                            formatDistanceNumber(step.legDistance)
                                         ),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                val segmentTime = formatStepDurationText(instruction.timeTo)
+                                val segmentTime = formatStepDurationText(step.legTime)
                                 if (segmentTime.isNotEmpty()) {
                                     Text(
                                         segmentTime,
@@ -188,7 +195,7 @@ fun NavigationDetailsOverlay(
                             }
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                instruction.description,
+                                ManoeuvreLabels.description(resolver, manoeuvreFromStep(step)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                                 modifier = Modifier

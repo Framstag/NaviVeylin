@@ -1392,7 +1392,7 @@ internal fun sessionEndNavigationDecisionMessage(state: NavigationState, ended: 
  * for unit testing ([NavigationSession] cannot be constructed in Robolectric).
  */
 internal fun carTripFor(state: NavigationState, resolver: StringResolver): Trip? =
-    NavigationTemplateMapper.tripFromState(state, ManeuverGlyphs::forInstruction, resolver)
+    NavigationTemplateMapper.tripFromState(state, ManeuverGlyphs::forStep, resolver)
 
 /**
  * Resolve the car dark presentation from the shared dark mode preference

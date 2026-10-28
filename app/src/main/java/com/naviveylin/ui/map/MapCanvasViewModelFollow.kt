@@ -8,6 +8,7 @@ import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.DrivingModeProvider
 import com.naviveylin.core.FreeDrivingStatusProvider
 import com.naviveylin.core.SpeedZoomTable
+import com.naviveylin.core.remainingMeters
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.anchorCenter
 import com.naviveylin.core.resolveAnchorFraction
@@ -1136,7 +1137,7 @@ internal fun MapCanvasViewModel.wireFollowMode() {
                 val filteredSpeed = filterSpeed(rawSpeed)
                 val speedTarget = SpeedZoomTable.compute(filteredSpeed)
 
-                val turnDist = navState?.nextInstruction?.distanceTo ?: Double.NaN
+                val turnDist = navState?.nextStep?.remainingMeters ?: Double.NaN
                 val turnFloor = computeTurnBoost(turnDist)
 
                 val curveDist = findNearestCurve(markerLat, markerLon)

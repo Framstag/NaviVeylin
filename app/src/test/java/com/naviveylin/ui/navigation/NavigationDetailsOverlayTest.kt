@@ -10,7 +10,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.test.ComposeSandboxRule
 import org.junit.Assert.assertEquals
@@ -33,34 +34,32 @@ class NavigationDetailsOverlayTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun instructions(): List<RouteInstruction> {
+    private fun instructions(): List<RouteStep> {
         // Long enough that the list overflows the viewport, so scrolling
         // to the current step actually moves earlier steps off-screen.
         return (0 until 20).map { i ->
-            RouteInstruction(
-                500.0 + i * 100,
-                if (i % 2 == 0) TurnType.LEFT else TurnType.RIGHT,
-                "Street $i",
-                "Turn into Street $i",
-                "Turn"
+            stepOf(
+                distanceTo = 500.0 + i * 100,
+                turnType = if (i % 2 == 0) TurnType.LEFT else TurnType.RIGHT,
+                streetName = "Street $i"
             )
         }
     }
 
     // --- the numbered roundabout exit (spec: navigation-status-details - Route description list) ---
 
-    private fun roundaboutSteps(): List<RouteInstruction> = listOf(
-        RouteInstruction(
+    private fun roundaboutSteps(): List<RouteStep> = listOf(
+        stepOf(
             500.0, 300.0, 500.0, TurnType.ROUNDABOUT_LEAVE, "Bahnhofstraße",
             "Take exit 3 onto Bahnhofstraße", "Exit 3",
             0.0, TurnType.STRAIGHT_ON, "", "", 3, true, 0
         ),
-        RouteInstruction(
+        stepOf(
             900.0, 300.0, 400.0, TurnType.ROUNDABOUT_LEAVE, "Marktplatz",
             "Take exit 1 onto Marktplatz", "Exit 1",
             0.0, TurnType.STRAIGHT_ON, "", "", 1, true, 0
         ),
-        RouteInstruction(
+        stepOf(
             1300.0, 300.0, 400.0, TurnType.ROUNDABOUT_LEAVE, "Ringstraße",
             "Leave roundabout", "Exit ?",
             0.0, TurnType.STRAIGHT_ON, "", "", 0, true, 0
@@ -71,14 +70,14 @@ class NavigationDetailsOverlayTest {
     fun `a roundabout exit step icon carries that step's number`() {
         val steps = roundaboutSteps()
 
-        assertEquals(NavSymbol.RoundaboutExit(3), navSymbolForInstruction(steps[0]))
-        assertEquals(NavSymbol.RoundaboutExit(1), navSymbolForInstruction(steps[1]))
+        assertEquals(NavSymbol.RoundaboutExit(3), navSymbolForStep(steps[0]))
+        assertEquals(NavSymbol.RoundaboutExit(1), navSymbolForStep(steps[1]))
 
         // and the list renders those steps, so the icon decision reaches the row rather than only
         // the helper: the expanded view is the surface the delta's scenario names.
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = steps,
+                steps = steps,
                 currentStepIndex = 0,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
@@ -93,14 +92,14 @@ class NavigationDetailsOverlayTest {
     fun `a roundabout exit step without an ordinal keeps the plain icon`() {
         assertEquals(
             NavSymbol.TurnArrow(TurnType.ROUNDABOUT_LEAVE),
-            navSymbolForInstruction(roundaboutSteps()[2])
+            navSymbolForStep(roundaboutSteps()[2])
         )
     }
 
     private fun launchOverlay(currentStepIndex: Int) {
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = instructions(),
+                steps = instructions(),
                 currentStepIndex = currentStepIndex,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
@@ -119,7 +118,7 @@ class NavigationDetailsOverlayTest {
     fun ringsShownInExpandedView() {
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = instructions(),
+                steps = instructions(),
                 currentStepIndex = 0,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
@@ -138,7 +137,7 @@ class NavigationDetailsOverlayTest {
     fun currentStepIsHighlighted() {
         launchOverlay(currentStepIndex = 2)
         composeRule.onNodeWithTag("activeStep").assertIsDisplayed()
-        composeRule.onNodeWithTag("activeStep").assertTextEquals("Turn into Street 2")
+        composeRule.onNodeWithTag("activeStep").assertTextEquals("Turn left into Street 2")
     }
 
     @Test
@@ -146,8 +145,8 @@ class NavigationDetailsOverlayTest {
         launchOverlay(currentStepIndex = 2)
         // Current step is the first visible item: earlier steps are not composed.
         composeRule.onNodeWithTag("activeStep").assertIsDisplayed()
-        composeRule.onNodeWithText("Turn into Street 0").assertDoesNotExist()
-        composeRule.onNodeWithText("Turn into Street 1").assertDoesNotExist()
+        composeRule.onNodeWithText("Turn left into Street 0").assertDoesNotExist()
+        composeRule.onNodeWithText("Turn left into Street 1").assertDoesNotExist()
     }
 
     @Test
@@ -155,7 +154,7 @@ class NavigationDetailsOverlayTest {
         var stepIndex by mutableStateOf(0)
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = instructions(),
+                steps = instructions(),
                 currentStepIndex = stepIndex,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
@@ -163,21 +162,21 @@ class NavigationDetailsOverlayTest {
                 onDismiss = {}
             )
         }
-        composeRule.onNodeWithTag("activeStep").assertTextEquals("Turn into Street 0")
+        composeRule.onNodeWithTag("activeStep").assertTextEquals("Turn left into Street 0")
 
         stepIndex = 3
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("activeStep").assertTextEquals("Turn into Street 3")
-        composeRule.onNodeWithText("Turn into Street 0").assertDoesNotExist()
+        composeRule.onNodeWithTag("activeStep").assertTextEquals("Turn right into Street 3")
+        composeRule.onNodeWithText("Turn left into Street 0").assertDoesNotExist()
     }
 
     @Test
     fun perStepTimeShown() {
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = listOf(
-                    RouteInstruction(
-                        500.0, 300.0, 900.0, TurnType.LEFT, "Street 0", "Turn into Street 0", "Turn",
+                steps = listOf(
+                    stepOf(
+                        500.0, 300.0, 900.0, TurnType.LEFT, "Street 0", "Turn left into Street 0", "Turn",
                         0.0, TurnType.STRAIGHT_ON, "", ""
                     )
                 ),
@@ -196,12 +195,12 @@ class NavigationDetailsOverlayTest {
     fun perStepDistanceIsTheStepsOwnSegment() {
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = listOf(
-                    RouteInstruction(
+                steps = listOf(
+                    stepOf(
                         // `distanceTo` is the distance from the route start in this list; the row
                         // shows the step's own leg (spec: navigation-status-details — Route
                         // description list), so a row must not show the 8.4 km.
-                        8_400.0, 60.0, 900.0, TurnType.LEFT, "Street 0", "Turn into Street 0", "Turn",
+                        8_400.0, 60.0, 900.0, TurnType.LEFT, "Street 0", "Turn left into Street 0", "Turn",
                         0.0, TurnType.STRAIGHT_ON, "", ""
                     )
                 ),
@@ -220,9 +219,9 @@ class NavigationDetailsOverlayTest {
     fun aRowWithoutALegShowsNoNumbers() {
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = listOf(
-                    RouteInstruction(
-                        0.0, 0.0, 0.0, TurnType.LEFT, "Street 0", "Turn into Street 0", "Turn",
+                steps = listOf(
+                    stepOf(
+                        0.0, 0.0, 0.0, TurnType.LEFT, "Street 0", "Turn left into Street 0", "Turn",
                         0.0, TurnType.STRAIGHT_ON, "", ""
                     )
                 ),
@@ -233,7 +232,7 @@ class NavigationDetailsOverlayTest {
                 onDismiss = {}
             )
         }
-        composeRule.onNodeWithText("Turn into Street 0").assertIsDisplayed()
+        composeRule.onNodeWithText("Turn left into Street 0").assertIsDisplayed()
         composeRule.onNodeWithText("0 m").assertDoesNotExist()
         composeRule.onNodeWithText("0 min").assertDoesNotExist()
     }
@@ -242,7 +241,7 @@ class NavigationDetailsOverlayTest {
     fun perStepTimeHiddenWhenUnknown() {
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = instructions(), // 5-arg ctor → timeTo = 0
+                steps = instructions(), // 5-arg ctor → timeTo = 0
                 currentStepIndex = 0,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
@@ -258,7 +257,7 @@ class NavigationDetailsOverlayTest {
         var dismissed = false
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = instructions(),
+                steps = instructions(),
                 currentStepIndex = 0,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,
@@ -275,7 +274,7 @@ class NavigationDetailsOverlayTest {
         var stops = 0
         composeRule.setContent {
             NavigationDetailsOverlay(
-                instructions = instructions(),
+                steps = instructions(),
                 currentStepIndex = 0,
                 remainingDistance = 5000.0,
                 etaMillis = System.currentTimeMillis() + 30 * 60 * 1000,

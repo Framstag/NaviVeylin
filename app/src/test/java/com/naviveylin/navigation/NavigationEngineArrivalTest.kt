@@ -71,10 +71,6 @@ class NavigationEngineArrivalTest {
         latitudes = doubleArrayOf(52.5200, 52.5200)
         longitudes = doubleArrayOf(13.4000, 13.5000)
         distance = 7000.0
-        descriptions = arrayOf(
-            "Start navigation  [0.0 km, 0 min]",
-            "Destination reached  [0.0 km, 0 min]"
-        )
     }
 
     private fun advanceUntilIdleBlocking() {

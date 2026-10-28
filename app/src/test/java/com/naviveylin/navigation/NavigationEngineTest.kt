@@ -7,7 +7,8 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LaneTurn
 import com.framstag.libosmscout.client.NavigationPosition
 import com.framstag.libosmscout.client.RouteEntry
-import com.framstag.libosmscout.client.RouteInstruction
+import com.naviveylin.test.stepOf
+import com.naviveylin.test.streetNameOf
 import com.framstag.libosmscout.client.TurnType
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.EngineDispatchers
@@ -16,6 +17,7 @@ import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.location.LocationService
 import com.naviveylin.test.MainDispatcherRule
+import com.naviveylin.ui.route.step
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
@@ -130,9 +132,9 @@ class NavigationEngineTest {
             true, 3, true, 0, 1, "", arrayOf(LaneTurn.LEFT, LaneTurn.STRAIGHT_ON, LaneTurn.RIGHT)
         )
         val instruction =
-            RouteInstruction(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left")
-        listener.onRouteInstructions(arrayOf(instruction))
-        listener.onNextRouteInstruction(instruction)
+            stepOf(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left")
+        listener.onRouteSteps(arrayOf(instruction))
+        listener.onNextRouteStep(instruction)
         listener.onArrivalEstimate(1234L, 4200.0)
         listener.onCurrentSpeed(72.0)
         listener.onMaxAllowedSpeed(100.0)
@@ -149,8 +151,8 @@ class NavigationEngineTest {
         assertEquals(52.5210, state.position!!.lat, 1e-9)
         assertEquals(52.5210, engine.positionFlow.value!!.lat, 1e-9)
         assertTrue("lane guidance mirrored", state.laneSuggested && state.laneCount == 3)
-        assertEquals("instructions mirrored", 1, state.instructions.size)
-        assertEquals(instruction.description, state.nextInstruction!!.description)
+        assertEquals("instructions mirrored", 1, state.steps.size)
+        assertEquals(streetNameOf(instruction), streetNameOf(state.nextStep))
         assertEquals(1234L, state.etaMillis)
         assertEquals(4200.0, state.remainingDistance, 1e-9)
         assertEquals(100.0, state.maxSpeedKmH, 1e-9)
@@ -336,9 +338,15 @@ class NavigationEngineTest {
         // progress denominator is the number the card and the step list show (TODO.md §129/§139).
         val route = RouteEntry().apply {
             distance = 72_771.0
-            instructionDistances = doubleArrayOf(48_000.0, 49_416.0)
-            instructionTimes = doubleArrayOf(2_000.0, 2_100.0)
-            descriptions = arrayOf("--- Route ---", "Turn 1  []", "Destination: Koeln")
+            steps = arrayOf(
+                step(com.framstag.libosmscout.client.RouteStep.Kind.START, lat = 51.5177, lon = 7.4592),
+                step(
+                    com.framstag.libosmscout.client.RouteStep.Kind.TURN,
+                    lat = 50.9430, lon = 6.9580,
+                    legDistance = 97_416.0, legTime = 4_100.0,
+                    turn = com.framstag.libosmscout.client.TurnType.LEFT
+                )
+            )
         }
 
         assertEquals(
@@ -356,8 +364,14 @@ class NavigationEngineTest {
         // length (spec: navigation-engine — Acquisition without usable polyline geometry).
         val route = RouteEntry().apply {
             distance = 5000.0
-            instructionDistances = doubleArrayOf(0.0, 5000.0)
-            descriptions = arrayOf("--- Route ---", "Turn 1  []")
+            steps = arrayOf(
+                step(com.framstag.libosmscout.client.RouteStep.Kind.START),
+                step(
+                    com.framstag.libosmscout.client.RouteStep.Kind.TARGET,
+                    legDistance = 5000.0,
+                    legTime = 300.0
+                )
+            )
         }
 
         assertEquals(0.0, NavigationEngine.routeTotalDistanceMeters(route, null, null), 1e-9)
@@ -413,7 +427,7 @@ class NavigationEngineTest {
     fun turnTypesRemainSelectableFromInstructions() {
         // Guards the instruction plumbing used by the step-index logic.
         val instruction =
-            RouteInstruction(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left")
-        assertEquals(TurnType.LEFT, instruction.turnType)
+            stepOf(100.0, TurnType.LEFT, "Main St", "Turn left", "Turn left")
+        assertEquals(TurnType.LEFT, com.naviveylin.core.turnTypeFor(instruction))
     }
 }

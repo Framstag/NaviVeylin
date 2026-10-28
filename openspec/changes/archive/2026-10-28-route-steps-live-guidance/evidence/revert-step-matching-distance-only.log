@@ -1,0 +1,4 @@
+> Task :app:testMobileDebugUnitTest FAILED
+StepIndexSelectionTest > a dual node binds to the step with the same kind FAILED
+6 tests completed, 1 failed
+BUILD FAILED in 11s

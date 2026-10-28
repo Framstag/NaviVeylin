@@ -10,12 +10,13 @@ import com.framstag.libosmscout.client.NavigationPosition
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
-import com.framstag.libosmscout.client.RouteInstruction
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.EngineDispatchers
 import com.naviveylin.core.EngineTimeSource
+import com.naviveylin.core.guidanceStep
 import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.FailureReason
 import com.naviveylin.core.NavigationFailure
@@ -389,8 +390,8 @@ class NavigationEngine @Inject constructor(
             // Clear the previous route's steps (reroute restart): the old route's
             // last maneuver must not render over the new route until the engine
             // emits its first instruction list.
-            instructions = emptyList(),
-            nextInstruction = null,
+            steps = emptyList(),
+            nextStep = null,
             totalDistance = totalDistance,
             // Progress starts at 0%: remaining distance equals the total until the
             // first arrival estimate arrives.
@@ -713,13 +714,13 @@ class NavigationEngine @Inject constructor(
      * live calculation's state). Main-thread only.
      */
     /**
-     * One coordinate-free line per roundabout instruction, not one per position update: the engine is
+     * One coordinate-free line per roundabout manoeuvre, not one per position update: the engine is
      * fed on every fix, and the fields only change when the manoeuvre does (task 7.2). Main-thread only,
      * like the state it reads. The line's shape is asserted in `RoundaboutInstructionDiagnosticsTest`.
      */
-    private fun logRoundaboutInstruction(instruction: RouteInstruction) {
-        if (!logsRoundabout(instruction)) return
-        val line = roundaboutInstructionLine(instruction)
+    private fun logRoundaboutStep(step: RouteStep) {
+        if (!logsRoundabout(step)) return
+        val line = roundaboutStepLine(step)
         if (line == lastRoundaboutLine) return
         lastRoundaboutLine = line
         DiagnosticsLog.log(ROUNDABOUT_TAG, line)
@@ -759,7 +760,7 @@ class NavigationEngine @Inject constructor(
 
     /**
      * The reroute flag belongs to the attempt that set it, so every terminal outcome ends the
-     * claim that one is running — success clears it in [onRouteInstructions], a failure and a
+     * claim that one is running — success clears it in [onRouteSteps], a failure and a
      * cancellation through this one rule (spec: `rerouting-visual-feedback` — Rerouting state is
      * exposed in navigation state). A superseded attempt never reaches a clear site: its
      * `endCalculation` guard returns first.
@@ -938,31 +939,33 @@ class NavigationEngine @Inject constructor(
                 }
             }
 
-            override fun onNextRouteInstruction(instruction: RouteInstruction) {
+            override fun onNextRouteStep(step: RouteStep) {
                 scope.launch(Dispatchers.Main) {
+                    val announced = guidanceStep(step, _state.value.steps)
                     val idx = nextStepIndex(
-                        _state.value.instructions,
+                        _state.value.steps,
                         _state.value.currentStepIndex,
-                        instruction
+                        announced
                     )
-                    logRoundaboutInstruction(instruction)
+                    logRoundaboutStep(announced)
                     _state.update { it.copy(
-                        nextInstruction = instruction,
+                        nextStep = announced,
                         currentStepIndex = idx
                     ) }
                 }
             }
 
-            override fun onRouteInstructions(instructions: Array<RouteInstruction>) {
+            override fun onRouteSteps(steps: Array<RouteStep>) {
                 scope.launch(Dispatchers.Main) {
                     _state.update { it.copy(
-                        instructions = instructions.toList(),
+                        steps = steps.toList(),
                         currentStepIndex = 0,
                         isRerouting = false,
                         isOffRoute = false
                     ) }
-                    if (instructions.isNotEmpty()) {
-                        _state.update { it.copy(nextInstruction = instructions[0]) }
+                    if (steps.isNotEmpty()) {
+                        val list = steps.toList()
+                        _state.update { it.copy(nextStep = guidanceStep(list[0], list)) }
                     }
                 }
             }

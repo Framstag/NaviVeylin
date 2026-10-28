@@ -301,6 +301,7 @@ LOOP_SHELL_CASES=(
   'repeat#aRepeatAfterAnEditIsHandedOverWhole'
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
+  'run#childPastItsTurnBoundIsBlocked'
 )
 
 loop_shell_cases() {
@@ -621,6 +622,7 @@ loop_run_shell_case() {
     'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
+    'run#childPastItsTurnBoundIsBlocked') fn=case_run_childPastItsTurnBoundIsBlocked ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -9661,5 +9663,77 @@ case_repeat_aBrokenLedgerLeavesTheResultAsReturned() {
   status=$?
   assert_eq "0" "$status" "a ledger the process cannot read or write does not fail the read"
   assert_eq "$(cat "$file")" "$(cat "$out")" "and the result is exactly what the tool returned"
+  return 0
+}
+
+# The child's bound was a clock and nothing else (issue #686): over this project's archive the 35 items at ≥250 turns
+# held 878 of 1 982 Mtok — 44 % of everything the archive spent — and every one of them was ended only after 45 min,
+# or not at all. The bound is the recorded `LOOP_ITEM_TURNS_MAX`, counted from the item's own event stream
+# (`items/<n>/events.jsonl`, one `turn_end` per turn) where the wall clock is already enforced. This case does not wait
+# for the bound: the child appends a fixture stream of three turns and then blocks, and the recorded value is 3, so a
+# tree that reads neither the key nor the stream leaves the run waiting until the case's own bound ends it.
+case_run_childPastItsTurnBoundIsBlocked() {
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  # The wall clock keeps its recorded default, so the only bound this case can reach is the turn one: a case that
+  # shortened both would pass on a tree that ended the child for time and never counted a turn.
+  sed -e 's/^LOOP_ITEM_TURNS_MAX=.*/LOOP_ITEM_TURNS_MAX=3/' "$LOOP_CONF" > "$conf" || fail "could not record a small turn bound"
+  grep -qx 'LOOP_ITEM_TURNS_MAX=3' "$conf" || fail "this case could not shorten the turn bound in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The child's own stream, in the shape the adapter keeps: one `turn_end` line per turn, appended to the item's
+  # event file the run exported. The stub prints `PI_STUB_EVENTS` only after it has been released, so a stream that
+  # has to exist *while* the child runs is written by its action — the same file, the same lines.
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  action="$d/turn-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  # The child blocks on the fifo and is never released: without the turn bound the run is still waiting on it long
+  # after the case's own bound, which is what makes this case red on the tree before the fix.
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  # The case holds the fifo's writer side for its whole life, so a child that is released never blocks and never
+  # finds a writer behind it. 60 s is the case's own margin on a host that need not be free (issue #308).
+  exec 8> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 60 s on a child that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  assert_contains "$out" "item-turns-max=3" "the run's header names the turn bound it enforces"
+  assert_contains "$out" "exit 124" "with the wall clock's own status, so the run's 'exited N' path records the block"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child the turn bound ended"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns" \
+    "the transcript says which bound ended the child, in the child's own words"
+  assert_contains "$(cat "$report")" "after 3 turn(s)" "and the count it reached, read from the child's own stream"
+  assert_not_contains "$(cat "$report")" "the child exceeded" \
+    "the wall clock took no part in it — the recorded one still had 45 min to run"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child crossed the bound is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "turn bound of 3 turns" \
+    "and the reason on the item carries the count, not only the exit status"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
   return 0
 }

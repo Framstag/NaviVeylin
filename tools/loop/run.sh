@@ -131,6 +131,18 @@ child_cap() { # → the seconds a child may run
 # bound the child is given, so the header and the `LOOP-TIMEOUT` line that ends it cannot disagree.
 child_max=$(child_cap)
 
+# How many turns one item's children may take before the run ends the one that crosses the bound (issue #686).
+# The wall clock bounds how long a child runs and says nothing about how much it spends being slow to converge:
+# over this project's archive (`.pi/issue-loop/items`, 164 items, 2026-10-28, read by `tools/loop-spend.py`) the
+# turns run p50 144, p75 236, p90 285, max 480, and the 35 items at ≥250 turns hold 878 of 1 982 Mtok — 44 % of
+# everything the archive spent — at 25.07 Mtok each against 1.23 Mtok for the 20–50 band. `cacheRead` is 97 % of
+# that spend and a turn is what re-reads it, which is why the unit is a turn and not an edit. 250 sits just past
+# p75: it escalates 21 % of the archive's items, where 200 would escalate 37 % and 300 only 7 %. The count is
+# read from the item's own event stream (`child_turns`), not from a child's claim. `0` is no bound — the shape
+# `LOOP_MIN_FREE_MIB` and `LOOP_ITEM_TOKENS_WARN` already have — so a project with no such record owes nothing.
+item_turns_max="${LOOP_ITEM_TURNS_MAX:-250}"
+case "$item_turns_max" in ''|*[!0-9]*) item_turns_max=250 ;; esac
+
 # The host is part of a run's numbers, so the run reads it and names it beside the budget. Both values are
 # recorded (`loop.conf`, `LOOP_MIN_FREE_MIB` and `LOOP_MEMINFO_PATH`) because both are facts about the host and
 # neither is a fact about a phase (D16). Measured 2026-10-19 (issue #209): item #126's gate found 194 MB free
@@ -161,9 +173,9 @@ free_mib=$(host_free_mib)
 # could not be merged" — the real cause never named (issue #241, measured 2026-10-21: five refused
 # fast-forwards, `git config --get core.bare` → `true`, `git rev-parse --is-inside-work-tree` → `false`, and one
 # `git config core.bare false` fixed all of it). The run refuses before it writes anything, and says what to do.
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
+printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s item-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
   "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
+  "$read_only" "$strict_outside_write" "$child_max" "$item_turns_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -987,6 +999,20 @@ clear_stale_test_results() {
   printf 'run: cleared %s from the worktree before this child — test results an earlier child wrote, which its gate would have counted\n' "$cleared"
 }
 
+# How many turns the child running now has taken, read from the stream the adapter keeps for it (issue #686):
+# `tools/pi-child-events.sh` appends one JSON object per event to the file `LOOP_CHILD_EVENTS` names, and a turn
+# ends in exactly one `turn_end` line — the unit `tools/loop/state.sh` sums a child's spend per and the archive's
+# 1.05–1.16 tool calls per turn are amortised over. A stream that is absent, empty or unreadable is no count
+# rather than an error: a child whose command writes no events is bounded by its clock alone, as it was before,
+# and a count this wait cannot take never ends a child.
+child_turns() { # child_turns <events file> → the `turn_end` lines it holds
+  local n
+  [ -n "${1:-}" ] && [ -f "$1" ] || { printf '0\n'; return 0; }
+  n=$(grep -cE '"type": *"turn_end"' "$1" 2>/dev/null) || true
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  printf '%s\n' "$n"
+}
+
 # A child's own stream is silent by construction: the adapter the configured agent command names keeps the
 # child's event stream for the report (`LOOP_CHILD_EVENTS`) and prints its answer once it has exited (measured
 # 2026-10-19: on a pipe nothing appears until then), so a run used to print `pick #N` and then nothing for the
@@ -1002,11 +1028,13 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # spends the whole budget inside one wait and nothing notices (measured 2026-10-19: an item's worker phase
   # ran 83 min that way — issue #203). A child that outlasts the cap is ended together with everything it
   # started and its transcript says so, so the run's ordinary "exited N" path records the item `blocked`.
+  # A third bound lives beside it, the item's turns (`LOOP_ITEM_TURNS_MAX`, issue #686), and it ends the child the
+  # same way: the wall clock says how long an item may run, not how much it spends failing to converge.
   # The working directory is the project and not the worktree on purpose: the project's own tool policy is
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed
+  local before after rc phase stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
@@ -1095,9 +1123,10 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # 2700 s. The subshell writes its own status when it returns, which is the one event the run can wait for.
   last_second=""
   while [ ! -e "$status_file" ]; do
-    # Both clocks this wait enforces — the cap and the run's deadline — are whole seconds, so they are read once per
-    # second and not once per look (issue #259): a `date` and a `jq` per wake-up would spend on forks what the finer
-    # granularity buys back. The guard is one line on purpose — the two checks below keep the indentation they had, so
+    # Both clocks this wait enforces — the cap and the run's deadline — are whole seconds, and so is the turn count
+    # of the third bound below, so all three are read once per second and not once per look (issue #259, #686): a
+    # `date`, a `jq` and a `grep` per wake-up would spend on forks what the finer
+    # granularity buys back. The guard is one line on purpose — the checks below keep the indentation they had, so
     # the records that name them (`23.1`, `23.2`) still quote them (issue #264).
     if [ "$SECONDS" = "$last_second" ]; then sleep "$poll"; continue; fi
     last_second=$SECONDS
@@ -1125,6 +1154,20 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       kill -KILL -"$child" 2>/dev/null || true
       break
     fi
+    # …and the bound that is not a clock (issue #686): an item that has spent its turns is a decision, and one more
+    # turn does not make it converge. It is read from the stream the child appends to and checked in the same whole
+    # second as the two clocks, so the wait costs one `grep` per second and not one per look.
+    if [ "$item_turns_max" -gt 0 ]; then
+      turns=$(child_turns "${LOOP_CHILD_EVENTS:-}")
+      if [ "$turns" -ge "$item_turns_max" ]; then
+        ended_by=turns
+        timed_out=1
+        kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+        sleep 1
+        kill -KILL -"$child" 2>/dev/null || true
+        break
+      fi
+    fi
     sleep "$poll"
   done
   rc=0
@@ -1147,6 +1190,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       printf 'LOOP-DEADLINE: the run%ss deadline passed at %s — the child running then was ended after %s s\n' \
         "'" "$deadline_at" "$(( $(date +%s) - started ))" >> "$2"
       stop_run "deadline passed at $deadline_at — the child running when it passed was ended"
+    elif [ "$ended_by" = turns ]; then
+      # The line the item's block is recorded from, and it says why in the item's own words: the bound, the count
+      # that reached it and the key it is recorded in, so a person reading the blocked item does not have to
+      # re-derive from a clock that had minutes left that the child was ended for what it spent (issue #686).
+      printf 'LOOP-TIMEOUT: the child reached the recorded turn bound of %s turns (LOOP_ITEM_TURNS_MAX) after %s turn(s) — the run ended it and everything it started\n' \
+        "$item_turns_max" "$(child_turns "${LOOP_CHILD_EVENTS:-}")" >> "$2"
     else
       printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
     fi

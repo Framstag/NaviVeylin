@@ -427,6 +427,18 @@ amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
+A second bound is **not a clock** (issue #686): `LOOP_ITEM_TURNS_MAX` (250 here, `0` or absent = no bound) ends a
+child that has spent its turns, read from the item's own event stream — one `turn_end` per turn, which the
+adapter already writes — and checked in the same whole second as the two clocks, so the wait costs one `grep` per
+second and not one per look. It exists because the clock is the wrong unit for a child that keeps re-reading:
+cache re-read is **97 %** of what a loop child is charged, so a turn and not an edit is what an item spends, and
+on 2026-10-28 the 35 items past 250 turns held **878 of 1 982 Mtok (44 %)** of the archive's spend at 25.07 Mtok
+each against 1.23 for the 20–50 band. An item that has spent its turns is a decision and not a slower
+convergence: the child is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT: the child reached the
+recorded turn bound of <n> turns`, and the item is recorded `blocked` with that count. The 250 sits just past the
+archive's p75 — turns p50 144, p75 236, p90 285, max 480 — so it escalates 21 % of items, where 200 would
+escalate 37 % and 300 only 7 %.
+
 The run's own deadline bounds that child as well: the wait reads `run.deadlineEpoch` from the run's state once a
 second — the deadline is a whole-second clock, and reading it on every look would spend the finer granularity's
 saving on two forks — and a child still running when the deadline passes is ended exactly as the cap ends one — its
@@ -997,6 +1009,8 @@ configuration**, not a rewrite:
 LOOP_AGENT_CMD   how a child is started          on the host  |  inside an isolated environment
 LOOP_GATE_CMD    how this project's gate runs    empty for a project with no build
 LOOP_CHILD_MAX_SECONDS   the floor under one child's run   2700 s (45 min); a longer child is ended and blocked
+LOOP_ITEM_TURNS_MAX      the turns one child may spend    250; counted from the item's event stream, and a child
+                                                       that reaches it is ended and blocked (issue #686), `0` = none
 LOOP_ITEM_GATE_SECONDS   what one item's gate owes    3900 s (65 min): two gate rounds and the phases beside them
                                                        (issue #663); a child is given the larger of the two
 LOOP_WORKER_SKILLS   which of this project's skills the worker is told to use

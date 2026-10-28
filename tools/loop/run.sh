@@ -549,12 +549,42 @@ own_leftovers_of() { # own_leftovers_of <item> → 0 when this run ended that it
   case "$own_leftovers" in *" $1 "*) ;; *) return 1 ;; esac
   [ -s "$(leftover_patch_of "$1")" ]
 }
+# A tree whose only leftovers are the module's gitlink — the module sits on another pin and its own tree is clean —
+# is not work: nothing inside the module was written, and placing the pin the base records loses nothing. The run
+# repairs it where it used to stop on dirt no item owns (measured 2026-10-28): the pin was two unpublished commits ahead of
+# the module's remote, the placement at `create` ended in `upload-pack: not our ref`, and the dirt that followed
+# ended a run with 600 minutes left after 69 seconds. The project's configuration names the module, so a project
+# without one answers no.
+submodule_only_dirt() { # <the leftovers `git status --porcelain` printed> → 0 when only the module's pin differs
+  local path line
+  path=$(loop_conf_value LOOP_SUBMODULE_PATH)
+  [ -n "$path" ] && [ -f "$worktree/.gitmodules" ] || return 1
+  [ -n "${1:-}" ] || return 1
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in " M $path") ;; *) return 1 ;; esac
+  done <<< "$1"
+  [ -z "$(git -C "$worktree/$path" status --porcelain 2>/dev/null)" ]
+}
+place_submodule_pin() { # → 0 when the tree is clean afterwards; the placement is `worktree.sh`'s, not a second copy
+  bash "$LOOP_DIR/worktree.sh" sync-module >&2 || return 1
+  [ -z "$(git -C "$worktree" status --porcelain 2>/dev/null)" ]
+}
+retry_start_item() { # → 0 when the retried start succeeded; its output is left in $start_out
+  if start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" 2>&1); then
+    start_after_discard=1
+    return 0
+  fi
+  printf '%s\n' "$start_out"
+  retry_refusal=$(printf '%s' "$start_out" | head -1)
+  return 1
+}
 # The repair both refusals share: discard what the tree carries and answer whether it is clean afterwards. The
 # start-time refusal reaches it behind `--reset-worktree`; the mid-run refusal reaches it only for the work this
 # run ended itself, whose record already exists (issue #664) — one copy of the rule, because a second copy of a rule
 # is a second rule (as `owner_of_marker` says above). The caller prints the line naming what is being discarded.
 discard_kept_worktree() { # discard_kept_worktree <the name this repair prints itself under> <leftovers> → 0 when clean
-  local label="${1:-reset-worktree}" leftovers_to_name="${2:-}" reset_submodule_path reset_after
+  local label="${1:-reset-worktree}" leftovers_to_name="${2:-}" reset_after
   printf '%s\n' "$leftovers_to_name" | sed 's/^/  /'
   git -C "$worktree" reset -q --hard || loop_die "run: could not reset the kept worktree"
   git -C "$worktree" clean -qfd || loop_die "run: could not clean the kept worktree"
@@ -565,9 +595,11 @@ discard_kept_worktree() { # discard_kept_worktree <the name this repair prints i
   # `submodule update --init --checkout <path>` printed nothing (issue #310). The path is the project's own, read
   # from the profile and only where the project carries a `.gitmodules`, and the checkout is best-effort with a
   # note exactly as the fresh worktree's is (D4).
-  reset_submodule_path=$(loop_conf_value LOOP_SUBMODULE_PATH)
-  if [ -n "$reset_submodule_path" ] && [ -f "$worktree/.gitmodules" ]; then
-    git -C "$worktree" submodule update --init --checkout --force "$reset_submodule_path" >&2 ||
+  # …and the placement itself is `worktree.sh sync-module`, which also fetches a pin only the root tree's module holds
+  # (measured 2026-10-28): `git -C"…" submodule update` here would be a second copy of that rule, and a second copy is a
+  # second rule.
+  if [ -n "$(loop_conf_value LOOP_SUBMODULE_PATH)" ] && [ -f "$worktree/.gitmodules" ]; then
+    bash "$LOOP_DIR/worktree.sh" sync-module >/dev/null 2>&1 ||
       loop_note "$label: the submodule could not be checked out — the tree may still be dirty"
   fi
   # What is still dirty after both verbs and the checkout is dirt this repair cannot discard (a file inside the
@@ -591,6 +623,10 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
     if ! discard_kept_worktree reset-worktree "$leftovers"; then
       loop_refuse "the kept worktree is still not clean after --reset-worktree — nothing was started; the paths above are removed by hand"
     fi
+  elif [ "$dry_run" -eq 0 ] && submodule_only_dirt "$leftovers" && place_submodule_pin; then
+    # The module on another pin is not work, so the repair above is not owed to it and no flag is needed to take
+    # it: the pin the base records is placed and the run goes on, instead of ending under an item nobody owns.
+    printf 'the kept worktree held no work — only the module on another pin, and the pin its base records is placed\n'
   else
     printf 'refusing to start: the kept worktree %s is not clean — a previous run left work behind\n' "$worktree"
     printf '%s\n' "$leftovers" | sed 's/^/  /'
@@ -617,6 +653,19 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
     exit "$LOOP_REFUSE"
   fi
 fi
+
+# 5b. the module's pin, before the pre-screen is paid for. A base whose gitlink names a commit no clone this host
+#     can read holds makes every start on it refuse as dirt nothing can place — measured 2026-10-28 as a whole run:
+#     the pin was two unpublished commits ahead of the module's remote, and 69 seconds in, with 600 minutes left,
+#     the run stopped under no item. `worktree.sh` owns the rule and the repair it names; this step only pays it at
+#     the start rather than after the queue is built.
+pin_out=$(bash "$LOOP_DIR/worktree.sh" check-module-pin "$base" 2>&1) || {
+  printf '%s\n' "$pin_out"
+  stop_run "the base records a submodule pin no clone this host holds: $(printf '%s' "$pin_out" | head -1)"
+  bash "$LOOP_DIR/report.sh"
+  exit "$LOOP_REFUSE"
+}
+[ -z "$pin_out" ] || printf '%s\n' "$pin_out"
 
 # 6. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 open_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
@@ -1372,12 +1421,13 @@ while true; do
         if own_leftovers_of "$owner_item" && discard_kept_worktree discard "$leftovers"; then
           printf 'discarding the work #%s left: this run ended that child and wrote it to %s, so #%s starts on a clean tree\n' \
             "$owner_item" "$(leftover_patch_of "$owner_item")" "$issue"
-          if start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" 2>&1); then
-            start_after_discard=1
-          else
-            printf '%s\n' "$start_out"
-            retry_refusal=$(printf '%s' "$start_out" | head -1)
-          fi
+          retry_start_item
+        elif submodule_only_dirt "$leftovers" && place_submodule_pin; then
+          # The module on another pin is not work: nothing inside it was written, so the pin the base records is placed
+          # and the start is retried — the case a person met before as "the worktree is not clean" under no item.
+          printf 'the tree was dirty only in the module%s gitlink — the pin the base records is placed, so #%s starts\n' \
+            "'" "$issue"
+          retry_start_item
         fi
         if [ "$start_after_discard" -eq 0 ]; then
           # The retry is a start of its own and can be refused for a reason that has nothing to do with the dirt it

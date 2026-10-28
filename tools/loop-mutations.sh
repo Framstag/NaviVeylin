@@ -136,7 +136,7 @@ MUTATIONS=(
   '13.3@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the start-time pre-flight on a kept worktree a previous run left dirty@s|^if \[ -d "$worktree" \] && worktree_is_dirty; then$|if false; then|'
   '13.4@-@tools/loop/run.sh@run#dirtyKeptWorktreeIsARecordedRefusal@the refusal being recorded under the item its branch marker names@s|^    if \[ "$dry_run" -eq 0 \] && \[ -n "$owner_item" \]; then$|    if false; then|'
   '13.5@-@tools/loop/run.sh@run#resetWorktreeDiscardsWhatItNames@the start-time repair discarding what it named@s|^  git -C "$worktree" reset -q --hard \|\| loop_die "run: could not reset the kept worktree"$|  : # the mutation discards no tracked change|;;s|^  git -C "$worktree" clean -qfd \|\| loop_die "run: could not clean the kept worktree"$|  : # the mutation discards no untracked file|'
-  '13.8@-@tools/loop/run.sh@run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard@the repair syncing the submodule its own verbs cannot reach@s|^  if \[ -n "\$reset_submodule_path" \] && \[ -f "\$worktree/.gitmodules" \]; then$|  if false; then|'
+  '13.8@-@tools/loop/run.sh@run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard@the repair syncing the submodule its own verbs cannot reach@s|^  if \[ -n "\$(loop_conf_value LOOP_SUBMODULE_PATH)" \] && \[ -f "\$worktree/.gitmodules" \]; then$|  if false; then|'
   '13.9@-@tools/loop/run.sh@run#resetWorktreeNamesTheDirtItCannotDiscard@the repair naming what it could not discard instead of announcing a clean tree@s|^  if \[ -n "\$reset_after" \]; then$|  if false; then|'
   # 13.10 is the one distinction the mid-run refusal cannot read from the tree (issue #664): dirt this run ended
   # itself is already written to the item's patch, so that tree may be discarded and the start retried — the dirt
@@ -154,6 +154,16 @@ MUTATIONS=(
   # a branch that is somebody's only copy of its work. The case's first assertion after the run is the one that
   # fails: the branch that carries work is gone.
   '13.13@-@tools/loop/worktree.sh@run#theEndSweepsTheLandedBranchesItMade@the refusal that keeps a branch the base does not carry@s|^    if ! branch_is_landed "\$branch" "\$base"; then$|    if false; then|'
+  # 13.14 is the pin a loop worktree's module cannot fetch (measured 2026-10-28): the module inside a worktree is a clone of
+  # its own with the project's URL, so a pin only the root tree's module holds — a bump landed before its submodule
+  # branch was pushed — leaves the module on its old pin and the superproject dirty under no item.
+  '13.14@-@tools/loop/worktree.sh@worktree#placesAPinOnlyTheRootCheckoutHolds@the pin the module cannot fetch placed from the root checkout@s|^  if fetch_pin_from_root "\$path" "\$(submodule_pin "\$path")" &&$|  if false \&\&|'
+  # 13.15 is the same dirt met mid-run (measured 2026-10-28): the module on another pin is not work, so the run places the pin
+  # the base records and starts the item, instead of ending under dirt no item owns.
+  '13.15@-@tools/loop/run.sh@run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin@the module-only dirt placed and the start retried instead of the run stopped@s|^  elif \[ "\$dry_run" -eq 0 \] && submodule_only_dirt "\$leftovers" && place_submodule_pin; then$|  elif false; then|'
+  # 13.16 is the pre-flight that catches the same failure at a run's start (measured 2026-10-28): a base pinning a commit no
+  # clone this host reads is refused before the pre-screen is paid for, with the push that publishes it named.
+  '13.16@-@tools/loop/worktree.sh@run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen@the pre-flight refusing a base pin no clone this host holds@s|^  \[ -n "\$path" \] && \[ -f "\$LOOP_ROOT/.gitmodules" \] \|\| return 0$|  return 0|'
     # 13.6 was the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers. The lock is taken before the
   # kept worktree is read now, so a live run is refused at the lock and never reaches that check; the invariant
   # the record still owns is the refusal itself: a live owner'"'"'s lock is a refusal, not a takeover.

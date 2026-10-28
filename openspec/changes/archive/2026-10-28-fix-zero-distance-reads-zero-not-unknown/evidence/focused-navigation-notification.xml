@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.service.NavigationNotificationContentFormatterTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-28T18:20:05.557Z" hostname="dingens" time="0.714">
+<testsuite name="com.naviveylin.service.NavigationNotificationContentFormatterTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-28T18:32:26.404Z" hostname="dingens" time="0.54">
   <properties/>
-  <testcase name="unknownSpeedLeavesNoSeparator" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.554"/>
-  <testcase name="navigationWithoutDestinationUsesNeutralTitle" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.103"/>
+  <testcase name="unknownSpeedLeavesNoSeparator" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.36"/>
+  <testcase name="navigationWithoutDestinationUsesNeutralTitle" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.11"/>
   <testcase name="navigationWithoutInstructionFallsBackToStats" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
   <testcase name="navigationShowsDestinationAndInstruction" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.004"/>
-  <testcase name="theCurrentRoadChangeRepostsInFreeDriving" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
-  <testcase name="anArrivalMinuteChangeRepostsButASubMinuteChangeDoesNot" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.011"/>
-  <testcase name="noDrivingModeProducesEmptyContent" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.002"/>
+  <testcase name="theCurrentRoadChangeRepostsInFreeDriving" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.002"/>
+  <testcase name="anArrivalMinuteChangeRepostsButASubMinuteChangeDoesNot" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.01"/>
+  <testcase name="noDrivingModeProducesEmptyContent" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
   <testcase name="aRemainingDistanceChangeReposts" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
   <testcase name="theFirstPostIsAlwaysAChange" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
-  <testcase name="noFixYetShowsNeutralTitle" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.0"/>
-  <testcase name="zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.006"/>
-  <testcase name="aNewManoeuvreReposts" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.003"/>
-  <testcase name="anIdenticalStateDoesNotRepost" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.002"/>
-  <testcase name="aDistanceBucketChangeRepostsButASubBucketChangeDoesNot" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.002"/>
-  <testcase name="aPositionOrSpeedOnlyTickDoesNotRepost" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
-  <testcase name="freeDrivingShowsStatusRoadAndSpeed" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.002"/>
-  <testcase name="theFreeDrivingSpeedChangeReposts" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.002"/>
-  <testcase name="unknownRoadShowsFallback" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.0"/>
+  <testcase name="noFixYetShowsNeutralTitle" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.004"/>
+  <testcase name="zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.013"/>
+  <testcase name="aNewManoeuvreReposts" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.004"/>
+  <testcase name="anIdenticalStateDoesNotRepost" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
+  <testcase name="aDistanceBucketChangeRepostsButASubBucketChangeDoesNot" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.004"/>
+  <testcase name="aPositionOrSpeedOnlyTickDoesNotRepost" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.002"/>
+  <testcase name="freeDrivingShowsStatusRoadAndSpeed" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
+  <testcase name="theFreeDrivingSpeedChangeReposts" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.0"/>
+  <testcase name="unknownRoadShowsFallback" classname="com.naviveylin.service.NavigationNotificationContentFormatterTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

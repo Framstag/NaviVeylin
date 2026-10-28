@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.service.CarHintContentTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-28T18:20:05.625Z" hostname="dingens" time="0.582">
+<testsuite name="com.naviveylin.service.CarHintContentTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-28T18:32:26.347Z" hostname="dingens" time="0.512">
   <properties/>
-  <testcase name="instructionIsThePrimaryCarText" classname="com.naviveylin.service.CarHintContentTest" time="0.246"/>
+  <testcase name="instructionIsThePrimaryCarText" classname="com.naviveylin.service.CarHintContentTest" time="0.337"/>
   <testcase name="noCarHintWhileFreeDriving" classname="com.naviveylin.service.CarHintContentTest" time="0.001"/>
   <testcase name="maneuverWithoutStreetNameKeepsInstructionWording" classname="com.naviveylin.service.CarHintContentTest" time="0.001"/>
   <testcase name="neutralHintWhenInstructionsListHasNoCurrentEntry" classname="com.naviveylin.service.CarHintContentTest" time="0.004"/>
-  <testcase name="neutralHintWhileNoManeuverIsKnown" classname="com.naviveylin.service.CarHintContentTest" time="0.002"/>
-  <testcase name="carTitleMatchesOnScreenNextTurnText" classname="com.naviveylin.service.CarHintContentTest" time="0.3"/>
+  <testcase name="neutralHintWhileNoManeuverIsKnown" classname="com.naviveylin.service.CarHintContentTest" time="0.001"/>
+  <testcase name="carTitleMatchesOnScreenNextTurnText" classname="com.naviveylin.service.CarHintContentTest" time="0.142"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -1,0 +1,27 @@
+# The per-module tallies of the gate run recorded in `evidence/gate.log` (2026-10-28, exit 0)
+
+Each directory below is what that run's Gradle test task wrote. The awk command that reads them is the one carried
+in `evidence/evidence.md`, repeated here so the numbers can be re-derived from a tree that still has `build/`:
+
+```
+for d in app/build/test-results/testMobileDebugUnitTest app/build/test-results/testAutomotiveDebugUnitTest \
+         auto/build/test-results/testDebugUnitTest core/build/test-results/testDebugUnitTest \
+         osmscout-client-java/build/test-results/test; do
+  awk -F'"' '/<testsuite /{t+=$4; s+=$6; f+=$8; e+=$10}
+    END{printf "%-52s cases=%s skipped=%s failed=%s errors=%s\n", "'"$d"'", t, s, f, e}' $d/*.xml
+done
+```
+
+Its output, taken after the gate:
+
+```
+app/build/test-results/testMobileDebugUnitTest       cases=2135 skipped=0 failed=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest   cases=2135 skipped=0 failed=0 errors=0
+auto/build/test-results/testDebugUnitTest             cases=885 skipped=0 failed=0 errors=0
+core/build/test-results/testDebugUnitTest             cases=642 skipped=0 failed=0 errors=0
+osmscout-client-java/build/test-results/test          cases=112 skipped=0 failed=0 errors=0
+```
+
+The raw per-class XMLs are not archived: the five directories hold 770 files and 1.9 MB, and a clean removes them
+with the rest of the build tree. This digest and the gate's own wrapper tallies under `evidence/gate-tallies/` are
+the record that survives the clean.

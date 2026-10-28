@@ -39,8 +39,10 @@ so a missing step remains unknown.
 
 One private formatter and its two call sites in `NavigationNotificationContent.kt`, one test case in
 `NavigationNotificationContentFormatterTest.kt`, and the English resolver form of `nav_hint_distance_eta`
-that the car-hint assertion reads. The on-screen next-turn overlay and the car session surface call
-`formatDistanceNumber` directly and already read `0 m`; they are untouched.
+that the car-hint assertion reads. The on-screen next-turn overlay (`NextTurnOverlay.kt:95`) and the car
+session surface (`CarSessionSurface.kt:134`) read the distance through the `:core` extension `remainingMeters`,
+which still maps an unpublished progress to `0.0`; they are untouched, so the zero/unknown distinction stops at
+the notification and the car hint and extending it to those two surfaces is a follow-up.
 
 ## Rollback
 
@@ -49,6 +51,8 @@ with `in --` and the car hint returns `-- · <arrival>`.
 
 ## Verification
 
-The red-on-HEAD case (`tests=1 failures=1`, `2026-10-28T18:08:55.848Z`) turns green; the neighbouring
-`CarHintContentTest` still passes; one revert-check mutation (`|| meters <= 0.0`) makes the case fail for the
-expected reason, then the restored tree runs green. The project gate runs once for the shared app code.
+The red-on-HEAD case (`tests=1 failures=1`, `2026-10-28T18:08:55.848Z`) turns green, with its unknown half
+asserted on both surfaces for an absent and for a `NaN` distance and its clamp asserted for a negative one;
+the neighbouring `CarHintContentTest` still passes; one revert-check mutation (`|| meters <= 0.0`) makes the
+case fail for the expected reason, then the restored tree runs green. The project gate runs once for the
+shared app code.

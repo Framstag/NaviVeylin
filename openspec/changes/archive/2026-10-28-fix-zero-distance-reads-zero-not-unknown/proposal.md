@@ -28,21 +28,26 @@ produces the phone text and the car hint.
 
 ## What Changes
 
-- **The formatter distinguishes unknown from zero.** A `null` or `NaN` distance keeps `"--"`; a known zero
-  renders the shipped numeric form `0 m`. Negative values, which can only be a rounding artefact of a passed
-  manoeuvre, clamp to zero rather than inventing a negative distance.
-- **The missing-step call site stays unknown.** `navigationContent` passes `step?.remainingMeters` rather than
-  substituting `0.0`, so no next step still reads `in --` instead of a fabricated `in 0 m`.
-- **One test case covers both surfaces.** The case asserts the phone notification's stats line and the car
-  hint's secondary text, plus the unchanged `--` for a `NaN` distance.
+- **The formatter distinguishes unknown from zero.** A distance that is absent (`null`) or `NaN` keeps `"--"`;
+  a known zero renders the shipped numeric form `0 m`. Negative values, which can only be a rounding artefact
+  of a passed manoeuvre, clamp to zero rather than inventing a negative distance — the case asserts that too.
+- **The missing-progress call site stays unknown.** `navigationContent` passes `step?.remainingDistance` rather
+  than substituting `0.0`, so a live step whose progress the engine has not published reads `in --` instead of
+  a fabricated `in 0 m`; `carHint` reads the same nullable field.
+- **One test case covers both surfaces and both kinds of unknown.** The case asserts the phone notification's
+  stats line and the car hint's secondary text for a known zero, for a step whose `remainingDistance` is
+  `null`, and for a `NaN` distance.
 - **No new string, no new locale resource.** `0 m` uses the existing `formatDistanceNumber` and the already
   shipped unit suffix; `"in now"` would need a new resource and read ungrammatically in the stats line.
 
 surface: 1 case added, 0 rewritten, 0 fixtures realigned —
 `grep -rn 'zeroDistance\|in 0 m\|in --' app/src/test --include=*.kt`.
 
-Not in scope: a localized "now" wording, the on-screen next-turn overlay and car session surface (they
-already render `0 m` through `formatDistanceNumber`), and any change to the post/dedup buckets.
+Not in scope: a localized "now" wording; any change to the post/dedup buckets; and the on-screen next-turn
+overlay and car session surface, which read the distance through the `:core` extension `remainingMeters` and
+so still render `0 m` for a step whose progress the engine has not published — the zero/unknown distinction
+this change introduces stops at the notification and the car hint, and extending it to those two surfaces is a
+follow-up of its own.
 
 ## Capabilities
 

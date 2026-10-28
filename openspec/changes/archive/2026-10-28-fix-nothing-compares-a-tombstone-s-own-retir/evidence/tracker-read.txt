@@ -1,0 +1,32 @@
+# The live tracker, read once for this change (2026-10-28)
+
+The number the proposal quotes — 21 items carry the migration's tombstone record, 20 of them carry a settled
+state, and #148 (OPEN) does not — is mine, not the measurement block's, so the command that took it is here.
+
+```
+$ gh issue list --state all --limit 400 --json number,state,labels,body > /tmp/tracker.json
+$ jq -r --arg m "$(jq -r '.roles.settledRecordMarker' tools/tooling.json)" \
+    --argjson settled "$(jq -c '.roles.settledStatuses' tools/tooling.json)" \
+    '[ .[] | select((.body // "") | contains($m))
+       | {n: .number, state: .state,
+          settled: [ .labels[]?.name | select(startswith("status/")) | sub("^status/"; "")
+                     | select(. as $v | $settled | index($v)) ]} ]
+     | "tombstones=\(length) settled=\([.[] | select((.settled|length) > 0)] | length)
+        displaced=\([.[] | select((.settled|length) == 0) | "\(.n)/\(.state)"] | join(","))"' /tmp/tracker.json
+tombstones=21 settled=20 displaced=148/OPEN
+```
+
+#148 is `§85` — an item the migration retired (its body carries the record) whose label a pre-#681 park and
+reversal left at `status/open`. It is the residue of the same fault the check now reports, and it is why the
+change is described as detecting a drift that still exists rather than one that is history.
+
+The check itself, on the same tracker, after the fix (the same command the scheduled row runs; no write):
+
+```
+$ bash tools/issues/check-metadata.sh --live
+#148 settled-record-displaced: status/open
+check-metadata: 356 issue(s) checked · 1 violation(s)
+```
+
+Before the fix the same call printed `356 issue(s) checked · 0 violation(s)` — the drift was invisible to every
+command in the tree.

@@ -176,7 +176,11 @@ if [ -n "$decision_role" ]; then
   fi
 fi
 write_status=0
-bash "$here/update.sh" "$number" --status "$settled_status" "${remove_args[@]}" --profile "$profile" >&2 || write_status=$?
+# The state a closure records is settled, and the state it displaces may be the other settled one (a completed
+# fix closed as not to be done, a retired entry closed as fixed): recording a settled state is this verb's own
+# purpose, so it names the transition to the guard `update.sh` applies to every routine writer (#684).
+bash "$here/update.sh" "$number" --status "$settled_status" --displace-settled "${remove_args[@]}" \
+  --profile "$profile" >&2 || write_status=$?
 if [ "$write_status" -ne 0 ]; then
   # The closure did not happen: the item is left open with the state it carried, which is the honest outcome —
   # a half-written item is worse than one a person can still read.

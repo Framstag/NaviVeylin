@@ -288,7 +288,8 @@ issues_issue_list() {
 # answer twice, so the write that sets a state is also the write that removes the value it displaces. The scan
 # lives here because it has two writers — `update.sh` and `reopen.sh` — and two copies of it would drift; the
 # namespace *name* is the contract, which is why the portability check reads the names and forbids only the
-# project's values (`check-portability.sh`, "the vocabulary").
+# project's values (`check-portability.sh`, "the vocabulary"). A settled value is not displaced by a routine
+# write at all (`issues_status_settled_guard`, below), which is the second half of the same rule.
 ISSUES_STATUS_NAMESPACE="status"
 
 # issues_status_prefix → the status namespace as a label prefix, e.g. `status/`. Reading the profile starts a
@@ -333,6 +334,48 @@ issues_status_displaced() {
   jq -r --arg prefix "$prefix" --arg target "$target" \
     '[.labels[]? | if type == "string" then . else .name end]
      | .[] | select(startswith($prefix)) | select(. != $target)' <<< "$issue"
+}
+
+# A *settled* state is a different claim from a state: it says the item's premise is settled — the defect
+# shipped, the entry was retired — while a hold says something about a run's capacity to take the item, and the
+# second must not erase the first by accident. One write turned #146's `status/retired` into `status/on-hold`
+# and the tombstone was queueable work two days later (#684), so the write path asks which values carry that
+# claim. Which values those are is the project's fact and lives in the profile's `roles.settledStatuses`, read
+# here so every writer asks the same question through one home (the pre-screen reads the same role,
+# `tools/loop/prescreen.sh`, to drop a settled item from the queue). The values are printed qualified with the
+# status prefix, the spelling every writer handles, so a comparison against a displaced label is exact.
+issues_settled_statuses() {
+  [ -n "${ISSUES_PROFILE:-}" ] ||
+    issues_die "issues: the profile is not resolved — call issues_resolve before issues_settled_statuses"
+  jq -e '(.roles // {}) | has("settledStatuses")' "$ISSUES_PROFILE" >/dev/null 2>&1 ||
+    issues_die "issues: the profile's roles section declares no settledStatuses — declare it empty when this project records no settled state"
+  local prefix
+  prefix=$(issues_status_prefix)
+  jq -r --arg prefix "$prefix" '.roles.settledStatuses // [] | .[] | $prefix + .' "$ISSUES_PROFILE"
+}
+
+# The settled values the last guard call found on the write it allowed: one list, filled in the caller's own
+# shell, so a writer can say what it removed instead of only what the caller named.
+ISSUES_SETTLED_DISPLACED=()
+
+# issues_status_settled_guard <issue-number> <named 0|1> <displaced-label>… → refuses the write, naming the
+# settled states it would remove, unless the caller named the transition (exit 3, `status-settled`). The labels
+# are the ones the caller is about to displace, so this is a predicate over an already-read item: no `gh` call
+# and no second scan. `<named>` is 1 for a verb whose own purpose is the transition — a closure that records a
+# settled state, a reopen that reverses one — and 0 for a routine writer, which must pass the flag instead.
+issues_status_settled_guard() {
+  ISSUES_SETTLED_DISPLACED=()
+  local number="$1" named="$2"; shift 2
+  local settled label
+  settled=$(issues_settled_statuses) || exit $?
+  [ -n "$settled" ] || return 0
+  for label in "$@"; do
+    [ -n "$label" ] || continue
+    grep -Fxq -- "$label" <<< "$settled" && ISSUES_SETTLED_DISPLACED+=("$label")
+  done
+  [ "${#ISSUES_SETTLED_DISPLACED[@]}" -gt 0 ] || return 0
+  [ "$named" -eq 1 ] && return 0
+  issues_refuse "status-settled" "#$number carries ${ISSUES_SETTLED_DISPLACED[*]}, a settled state of the project profile — pass --displace-settled to name the transition"
 }
 
 # --------------------------------------------------------------------------- the priority marker

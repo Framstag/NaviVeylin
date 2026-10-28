@@ -101,6 +101,12 @@ while IFS= read -r label; do
   [ -n "$label" ] || continue
   remove_labels+=("$label")
 done < <(issues_status_displaced "$issue" "$status_label" "$status_prefix")
+# A completed closure carries a settled state (`roles.closeStatus`), so the write below displaces one — and a
+# reopen is the call that names that transition: it may only reverse a closure recorded `completed`
+# (`closure-not-reopenable`, above) and it carries the returning measurement, so the settled state it removes is
+# the one it means to remove. The guard is the same one `update.sh` applies to every routine writer (#684); this
+# path says `named` because the verb is the transition, not because the check is weaker.
+issues_status_settled_guard "$number" 1 "${remove_labels[@]}"
 
 body_tmp=$(mktemp) || issues_die "reopen: cannot create a temporary file"
 trap 'rm -f "$body_tmp"' EXIT

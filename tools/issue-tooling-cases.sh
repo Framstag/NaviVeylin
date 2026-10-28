@@ -58,6 +58,7 @@ ISSUES_SHELL_CASES=(
   'update#statusReplacementIsIdempotent'
   'update#statusRejectsTwoStatesInOneCall'
   'update#statusReportNamesImpliedRemoval'
+  'update#refusesToDisplaceASettledState'
   'update#statusWriteReportsAnEmptyTransition'
   'update#commentOnlyReportsNoStatusWrite'
   'update#stateNamedAsALabelReplacesTheOldState'
@@ -66,6 +67,7 @@ ISSUES_SHELL_CASES=(
   'close#keepsTheItemOpenWhenTheStateCannotBeWritten'
   'close#writesNothingWhenTheItemAlreadyCarriesTheState'
   'close#refusesAProfileThatNamesNoSettledState'
+  'close#namesTheSettledStateItDisplaces'
   'decisions#listsTheQueueAndItsQuestions'
   'decisions#theQuestionIsNotTheVerdictWord'
   'decisions#emptyQueueIsNotAnError'
@@ -174,6 +176,7 @@ issues_run_shell_case() {
     'update#statusReplacementIsIdempotent') case_update_statusReplacementIsIdempotent ;;
     'update#statusRejectsTwoStatesInOneCall') case_update_statusRejectsTwoStatesInOneCall ;;
     'update#statusReportNamesImpliedRemoval') case_update_statusReportNamesImpliedRemoval ;;
+    'update#refusesToDisplaceASettledState') case_update_refusesToDisplaceASettledState ;;
     'update#statusWriteReportsAnEmptyTransition') case_update_statusWriteReportsAnEmptyTransition ;;
     'update#commentOnlyReportsNoStatusWrite') case_update_commentOnlyReportsNoStatusWrite ;;
     'update#stateNamedAsALabelReplacesTheOldState') case_update_stateNamedAsALabelReplacesTheOldState ;;
@@ -182,6 +185,7 @@ issues_run_shell_case() {
     'close#keepsTheItemOpenWhenTheStateCannotBeWritten') case_close_keepsTheItemOpenWhenTheStateCannotBeWritten ;;
     'close#writesNothingWhenTheItemAlreadyCarriesTheState') case_close_writesNothingWhenTheItemAlreadyCarriesTheState ;;
     'close#refusesAProfileThatNamesNoSettledState') case_close_refusesAProfileThatNamesNoSettledState ;;
+    'close#namesTheSettledStateItDisplaces') case_close_namesTheSettledStateItDisplaces ;;
     'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
     'decisions#theQuestionIsNotTheVerdictWord') case_decisions_theQuestionIsNotTheVerdictWord ;;
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
@@ -1588,6 +1592,55 @@ case_update_statusReportNamesImpliedRemoval() {
   assert_contains "$(jq -rc '.labels' <<< "$out")" "status/fixed-by" "the report names the state it set"
   assert_contains "$(jq -rc '.removedLabels' <<< "$out")" "status/open" \
     "and the state it displaced, which the caller never named"
+  return 0
+}
+
+# A settled state is a claim about the item's premise — the defect shipped, or the entry was retired — and a
+# hold is a claim about a run's capacity to take it, so the second must not erase the first by accident: one
+# write turned #146's `status/retired` into `status/on-hold`, and the tombstone was queueable work two days
+# later (#684). A routine state write therefore refuses to displace a value of the profile's
+# `roles.settledStatuses`, and only a call that names the transition — `--displace-settled` — performs it.
+case_update_refusesToDisplaceASettledState() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 11 status/retired class/bug category/car
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool update.sh 11 --status on-hold 2>&1); status=$?
+  assert_eq "3" "$status" "a hold over a settled state is refused: $out"
+  assert_contains "$out" "status-settled" "the refusal names the rule"
+  assert_contains "$out" "status/retired" "and the settled state the write would have displaced"
+  assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "and nothing reached the tracker"
+
+  # The same write with the transition named lands, and reports the settled state it removed.
+  out=$(run_tool update.sh 11 --status on-hold --displace-settled 2>&1); status=$?
+  assert_eq "0" "$status" "the write that names the transition succeeds: $out"
+  assert_eq "1" "$(grep -c 'issue edit' "$log")" "exactly one issue edit is issued"
+  assert_contains "$(grep 'issue edit' "$log")" "--remove-label status/retired" \
+    "the settled state is displaced in the same write"
+  assert_contains "$out" "status/retired" "and the call names what it displaced"
+
+  # The flag names a transition, so a call that sets no state cannot pass it.
+  out=$(run_tool update.sh 11 --label category/car --displace-settled 2>&1); status=$?
+  assert_eq "2" "$status" "the flag without a state is a usage error: $out"
+  return 0
+}
+
+# A closure writes a settled state on purpose — that is the transition it is — so it names it: a not-planned
+# closure over an item already settled as fixed displaces one settled state for the other instead of being
+# refused (#684).
+case_close_namesTheSettledStateItDisplaces() {
+  local dir log out status edit
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  status_tracker "$dir" 24 status/fixed-by class/bug category/car source/agent agent/eligible
+  export GH_STUB_DIR="$dir" GH_STUB_RECORD="$log"
+
+  out=$(run_tool close.sh 24 --reason "the fix was reverted" --evidence "the case is green" --not-planned 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a closure displacing one settled state for the other succeeds: $out"
+  edit=$(grep 'issue edit' "$log" || true)
+  assert_contains "$edit" "--add-label status/retired" "the settled state the closure records is set"
+  assert_contains "$edit" "--remove-label status/fixed-by" "and the settled state it displaces is removed"
   return 0
 }
 

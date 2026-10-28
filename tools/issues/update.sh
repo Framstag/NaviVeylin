@@ -20,10 +20,19 @@
 # refused instead of resolved: which state the item would carry is a decision, and a silent one would leave
 # the item's reader unable to tell what the caller meant.
 #
+# A value the profile declares settled (`roles.settledStatuses` — a fix's `closeStatus`, a person's
+# `retiredStatus`) is not displaced by a routine write at all: the claim that an item's premise is settled and
+# the claim that a run has no capacity to take it are different claims, and the second must not erase the first
+# without saying so (#684: one write turned #146's `status/retired` into `status/on-hold`). Such a write is
+# refused with exit 3 and `status-settled` unless the call passes `--displace-settled`, which is how a caller
+# says it means to take the item off the settled state; the write that does pass it reports the value it
+# removed.
+#
 # Exit: 0 updated, 2 usage, 3 policy.
 #
 # Usage: update.sh <issue-number> [--label <label>]… [--remove-label <label>]… [--status <value>]
-#                  [--body <file>] [--comment <text>] [--comment-file <file>] [--json] [--profile <path>]
+#                  [--displace-settled] [--body <file>] [--comment <text>] [--comment-file <file>] [--json]
+#                  [--profile <path>]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -43,6 +52,7 @@ json=0
 labels=()
 remove_labels=()
 status_value=""
+displace_settled=0
 body_file=""
 comment=""
 comment_file=""
@@ -52,11 +62,12 @@ while [ $# -gt 0 ]; do
     --label) need_value "$@"; labels+=("${2:-}"); shift 2 ;;
     --remove-label) need_value "$@"; remove_labels+=("${2:-}"); shift 2 ;;
     --status) need_value "$@"; status_value="${2:-}"; shift 2 ;;
+    --displace-settled) displace_settled=1; shift ;;
     --body) need_value "$@"; body_file="${2:-}"; shift 2 ;;
     --comment) need_value "$@"; comment="${2:-}"; shift 2 ;;
     --comment-file) need_value "$@"; comment_file="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) issues_die "update: unknown argument $1" ;;
   esac
 done
@@ -117,6 +128,11 @@ fi
 if [ -n "$status_label" ]; then
   labels+=("$status_label")
 fi
+# The flag names a state transition, so a call that sets no state cannot pass it: a flag every caller may pass
+# and none is checked for is how a `--displace-settled` ends up on a comment-only call nobody reads.
+if [ "$displace_settled" -eq 1 ] && [ -z "$status_label" ]; then
+  issues_die "update: --displace-settled names a state transition, and this call sets no state"
+fi
 if [ -n "$body_file" ]; then
   [ -f "$body_file" ] || issues_die "update: no such body file: $body_file"
 fi
@@ -172,6 +188,9 @@ if [ -n "$status_label" ]; then
   while IFS= read -r label; do
     [ -n "$label" ] && implied_removals+=("$label")
   done < <(issues_status_displaced "$issue" "$status_label" "$status_prefix")
+  # What the profile declares settled is not this write's to remove unless the call names the transition: the
+  # guard refuses here, after the read and before the write, so a refused call leaves the item as it was.
+  issues_status_settled_guard "$number" "$displace_settled" "${implied_removals[@]}"
 fi
 
 args=(issue edit "$number")
@@ -211,6 +230,11 @@ if [ "$edit_needed" -eq 1 ]; then
   else
     gh "${args[@]}" || issues_die "update: gh could not write #$number's labels — nothing was recorded"
   fi
+  # A transition the caller named is one it can be held to: the settled value it removed is said out loud, so a
+  # reader of the call's own output sees the claim that moved and not only the flag that allowed it. The note is
+  # on stderr, so a `--json` document on stdout stays a document a caller can pipe.
+  [ "${#ISSUES_SETTLED_DISPLACED[@]}" -eq 0 ] ||
+    issues_note "update: #$number removed ${ISSUES_SETTLED_DISPLACED[*]} — a settled state, displaced by --displace-settled"
 fi
 
 if [ "$json" -eq 1 ]; then

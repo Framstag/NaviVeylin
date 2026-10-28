@@ -295,6 +295,8 @@ LOOP_SHELL_CASES=(
   'gate#twoFailuresNameTheFirstAndCountTheRest'
   'gate#aStepThatNamesNoCaseIsAttributedByItsStep'
   'gate#theBlockStaysInsideTheRecordedBound'
+  'phase#oneCallPrintsThePhaseState'
+  'phase#aResultOverTheBoundIsCutAndNamed'
 )
 
 loop_shell_cases() {
@@ -322,7 +324,9 @@ loop_case_helper_files() {
     'run_report|tools/loop/report.sh' \
     'run_loop|tools/loop/run.sh' \
     'init_state|tools/loop/state.sh' \
-    'new_project|tools/pi-child-events.sh tools/tooling.json'
+    'new_project|tools/pi-child-events.sh tools/tooling.json' \
+    'phase_fixture|tools/loop/state.sh' \
+
 }
 
 # The repository paths a case body names, with the engine's own variables read as the paths they stand for — the same
@@ -607,6 +611,8 @@ loop_run_shell_case() {
     'gate#twoFailuresNameTheFirstAndCountTheRest') fn=case_gate_twoFailuresNameTheFirstAndCountTheRest ;;
     'gate#aStepThatNamesNoCaseIsAttributedByItsStep') fn=case_gate_aStepThatNamesNoCaseIsAttributedByItsStep ;;
     'gate#theBlockStaysInsideTheRecordedBound') fn=case_gate_theBlockStaysInsideTheRecordedBound ;;
+    'phase#oneCallPrintsThePhaseState') fn=case_phase_oneCallPrintsThePhaseState ;;
+    'phase#aResultOverTheBoundIsCutAndNamed') fn=case_phase_aResultOverTheBoundIsCutAndNamed ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -9380,5 +9386,154 @@ LOG
   n=$(printf '%s' "$out" | wc -c | tr -d ' ')
   [ "$n" -le 200 ] || fail "the block is $n characters under a bound of 200: $out"
   assert_eq "7" "$(printf '%s\n' "$out" | grep -c .)" "every fact keeps its own line at a smaller bound: $out"
+  return 0
+}
+
+# ── one call prints where the phase stands (issue #688) ─────────────────────────────────────────────────────────
+# The archive records `read:own-prompt -> read:own-prompt` 485x across 162 of 164 items and
+# `read:own-prompt -> read:own-prompt -> sh:git` 146x across 116 — three calls a round (the phase prompt, the work
+# package, `git`), re-injecting 8-17 kB at a context already at 85 k, 369 calls and 2.5 M characters over the archive
+# (`python3 tools/loop-spend.py`, 2026-10-28). `tools/loop/phase.sh` answers those three in one call from the state
+# the run already records and decides nothing. These cases are its two rules: the printed shape on a fixture state,
+# and the bound it owes like every other result of the loop's tools.
+
+# The state a phase boundary is read from: a throwaway project whose run state names an item, the item's own worktree
+# one commit ahead of the base with a dirty file in it, the work package the run rendered, and the event stream its
+# child left behind. It prints the project; the item's worktree is `<project>/.pi/worktrees/item`.
+phase_fixture() {
+  local p wt
+  p=$(new_project)
+  init_state "$p" 1 90
+  run_state "$p" start 688 --change fix-issue-688-loop-spend >/dev/null || fail "state start failed"
+  wt="$p/.pi/worktrees/item"
+  git -C "$p" worktree add -q "$wt" -b fix/issue-688-loop-spend >/dev/null 2>&1 \
+    || fail "could not create the item's worktree"
+  printf 'the change\n' > "$wt/one.txt"
+  git -C "$wt" add -A >/dev/null 2>&1
+  git -C "$wt" commit -qm 'the item commit' >/dev/null 2>&1 || fail "could not commit in the item's worktree"
+  printf 'dirty\n' > "$wt/dirty.txt"
+  mkdir -p "$p/.pi/issue-loop/items/688"
+  cat > "$p/.pi/issue-loop/items/688/work-package.md" <<'PKG'
+---- issue work package ----
+fingerprint: 0123456789abcdef
+provenance: issue #688
+issue: #688
+title: the phase state is three calls away
+<<<ISSUE_TEXT
+- **What it owes**: a case for the printed shape, on a fixture state, and a bound on the result.
+ISSUE_TEXT
+---- end issue work package ----
+PKG
+  # Two gate lines and a step line between them: what the phase state prints is the *last* verdict, and a bound that
+  # ended a step is not one.
+  {
+    printf '{"type":"tool_execution_end","text":"LOOP-GATE: tests=200 failures=3 errors=0 (an earlier focused run)"}\n'
+    printf '{"type":"tool_execution_end","text":"LOOP-GATE-STEP: ./gradlew test exceeded 600 s — the gate ended it"}\n'
+    printf '{"type":"tool_execution_end","text":"LOOP-GATE: tests=256 failures=0 errors=0 (tools/loop-selftest.sh 40s)"}\n'
+  } > "$p/.pi/issue-loop/items/688/events.jsonl"
+  printf '%s\n' "$p"
+}
+
+# One call carries what the child re-reads its prompt and the work package to rebuild: the phase's own checklist, the
+# item and the change the run asked for, where the tree stands, the last gate verdict with its case counts, the paths
+# the phase is expected to change, and the item's own text inside the delimiters it was rendered with. The checklist is
+# the prompt's own section — one home for it — so what the call prints is what a second read of that file would say.
+case_phase_oneCallPrintsThePhaseState() {
+  # files: tools/loop/phase.sh tools/loop/prompts/worker.md tools/loop/loop.conf tools/loop/lib.sh tools/loop/state.sh tools/loop-cases.sh tools/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
+  local phase p wt out status
+  phase="$LOOP_PROJECT_ROOT/tools/loop/phase.sh"
+  [ -f "$phase" ] || fail "nothing prints the phase state in one call: tools/loop/phase.sh is not in the tree (issue #688)"
+  p=$(phase_fixture)
+  wt="$p/.pi/worktrees/item"
+
+  out=$( cd "$p" && LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" bash "$phase" A 2>&1 ); status=$?
+  assert_eq "0" "$status" "one call prints the phase state: $out"
+  assert_contains "$out" 'LOOP-PHASE: A — root cause and the red test' \
+    "the phase is named with the heading its own checklist carries: $out"
+  assert_contains "$out" 'ITEM: #688 fix-issue-688-loop-spend' "the item and the change the run asked for are named: $out"
+  assert_contains "$out" 'the state records phase A' "and the phase the run recorded is printed beside the one asked for: $out"
+  # The checklist is the phase's own section of the prompt, so a phase's items arrive without a second read of it.
+  assert_contains "$out" '3. Produce the **red test**' "the phase's own checklist is printed: $out"
+  assert_contains "$out" '5. Count the surface before the plan is fixed.' "every item of it, not only the first: $out"
+  assert_not_contains "$out" '## Phase B' "and only this phase's section of it: $out"
+  # Where the tree stands, read live from the tree the item's work lands in.
+  assert_contains "$out" 'GIT: branch fix/issue-688-loop-spend · HEAD ' "the branch and HEAD are printed: $out"
+  assert_contains "$out" '· ahead 1 · behind 0' "with the item's commits ahead of the recorded base: $out"
+  assert_contains "$out" 'DIRTY: 1 path(s): dirty.txt' "and the paths the tree has dirty: $out"
+  # The last gate verdict the item's stream records, with the case counts it recorded.
+  assert_contains "$out" 'GATE: green — tests=256 failures=0 errors=0' "the last gate verdict is the one printed: $out"
+  assert_not_contains "$out" 'failures=3' "and not the round before it: $out"
+  assert_not_contains "$out" 'LOOP-GATE-STEP' "nor a step bound for a verdict: $out"
+  # The work package — identity from its own lines, and the item's text inside the delimiters it was rendered with.
+  assert_contains "$out" 'fingerprint 0123456789abcdef' "the package's fingerprint is printed with it: $out"
+  assert_contains "$out" 'provenance issue #688' "and its provenance: $out"
+  assert_contains "$out" '<<<ISSUE_TEXT' "the item's text stays inside its delimiters: $out"
+  assert_contains "$out" '- **What it owes**' "and is printed as it stands: $out"
+  assert_contains "$out" 'PATHS: none yet' "the paths phase A is expected to change are named: $out"
+
+  out=$( cd "$p" && LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" bash "$phase" C 2>&1 )
+  assert_contains "$out" 'PATHS: openspec/changes/fix-issue-688-loop-spend/ — proposal.md' \
+    "the phase that plans the change names the change's own files: $out"
+  assert_contains "$out" 'always — ' "and the item's evidence copies are named for every phase: $out"
+
+  # A phase the prompt carries no section for says so rather than inventing a checklist, and a phase outside the set
+  # the run records a step against is a usage error.
+  out=$( cd "$p" && LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" bash "$phase" E 2>&1 ); status=$?
+  assert_eq "0" "$status" "a phase with no section of its own is still a phase of the run: $out"
+  assert_contains "$out" 'the prompt carries no section for phase E' "and the absence is named instead of invented: $out"
+  out=$( cd "$p" && LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" bash "$phase" Z 2>&1 ); status=$?
+  assert_eq "2" "$status" "a phase outside the recorded set is a usage error: $out"
+  assert_contains "$out" 'is not one of prescreen A B C D E F' "and the refusal names the set: $out"
+  out=$( cd "$p" && LOOP_STATE_FILE="$p/no-such-state.json" bash "$phase" A 2>&1 ); status=$?
+  assert_eq "2" "$status" "a run that has written no state is refused instead of printed as empty: $out"
+  assert_contains "$out" 'has written no state' "and the refusal says what is missing: $out"
+  return 0
+}
+
+# The bound is a rule about the tail (issue #660), and this tool owes it like the others: the answer is printed once and
+# re-read by every later turn, so one long work package would cost what the three calls it replaced cost together. The
+# number is the project's recorded `LOOP_TOOL_RESULT_MAX_CHARS` — one home for it — and a cut says it is a cut, because
+# a reader who cannot tell a short answer from a truncated one re-runs the call.
+case_phase_aResultOverTheBoundIsCutAndNamed() {
+  # files: tools/loop/phase.sh tools/loop/prompts/worker.md tools/loop/loop.conf tools/loop/lib.sh tools/loop/state.sh tools/loop-cases.sh tools/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
+  local phase p wt out size recorded status
+  phase="$LOOP_PROJECT_ROOT/tools/loop/phase.sh"
+  [ -f "$phase" ] || fail "nothing bounds a phase question: tools/loop/phase.sh is not in the tree (issue #688)"
+  p=$(phase_fixture)
+  wt="$p/.pi/worktrees/item"
+  # A work package far over any bound this project records, every line named by its number so the tail a cut leaves out
+  # can be asserted by its text.
+  {
+    printf -- '---- issue work package ----\nfingerprint: 0123456789abcdef\nprovenance: issue #688\nissue: #688\ntitle: a long package\n<<<ISSUE_TEXT\n'
+    awk 'BEGIN { for (i = 1; i <= 300; i++) printf "PKG-LINE-%03d %s\n", i, "0123456789012345678901234567890123456789" }'
+    printf 'ISSUE_TEXT\n---- end issue work package ----\n'
+  } > "$p/.pi/issue-loop/items/688/work-package.md"
+  recorded=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
+
+  ( cd "$p" && env -u LOOP_TOOL_RESULT_MAX_CHARS LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" \
+      bash "$phase" A ) > "$p/recorded.txt" 2>&1
+  size=$(wc -c < "$p/recorded.txt" | tr -d ' ')
+  out=$(cat "$p/recorded.txt")
+  [ "$size" -le "$recorded" ] || fail "the answer carried $size characters against the recorded bound of $recorded"
+  assert_contains "$out" 'PHASE-BOUND' "a cut answer says it was cut: $out"
+  assert_contains "$out" 'LOOP-PHASE: A' "and the phase state the call exists for survives the cut: $out"
+  assert_contains "$out" 'GIT: branch fix/issue-688-loop-spend' "the tree it stands in survives it too: $out"
+  assert_contains "$out" 'PKG-LINE-001' "the package's head is part of the answer: $out"
+  assert_not_contains "$out" 'PKG-LINE-300' "the tail it could not show is not there: $out"
+
+  ( cd "$p" && LOOP_TOOL_RESULT_MAX_CHARS=900 LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" \
+      bash "$phase" A ) > "$p/env.txt" 2>&1
+  size=$(wc -c < "$p/env.txt" | tr -d ' ')
+  [ "$size" -le 900 ] || fail "a bound the environment names is not the one applied: $size characters against 900"
+  assert_contains "$(cat "$p/env.txt")" 'PHASE-BOUND' "and the answer says which bound cut it"
+
+  ( cd "$p" && LOOP_TOOL_RESULT_MAX_CHARS=0 LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" \
+      bash "$phase" A ) > "$p/unbounded.txt" 2>&1
+  size=$(wc -c < "$p/unbounded.txt" | tr -d ' ')
+  [ "$size" -gt "$recorded" ] || fail "no bound was recorded as $recorded characters and the whole answer is $size"
+  assert_contains "$(cat "$p/unbounded.txt")" 'PKG-LINE-300' "with no bound the whole answer is printed"
+  assert_not_contains "$(cat "$p/unbounded.txt")" 'PHASE-BOUND' "and nothing is said about a bound it never met"
   return 0
 }

@@ -335,6 +335,18 @@ issues_status_displaced() {
      | .[] | select(startswith($prefix)) | select(. != $target)' <<< "$issue"
 }
 
+# issues_records_settled_state <body> <marker> → success when the body keeps a settled state of its own: it
+# carries the record whose text the profile declares as `roles.settledRecordMarker`. Two readers ask this — the
+# reversal in `resolve-stale.sh` (which restores the state the record keeps instead of the queue) and
+# `check-metadata.sh` (which reports an item whose record and label disagree) — so the reading lives here and
+# the marker stays the caller's, resolved once from the profile. An empty marker means the project has no
+# tombstones and no body is one.
+issues_records_settled_state() { # <body> <marker>
+  local body="${1:-}" marker="${2:-}"
+  [ -n "$marker" ] || return 1
+  printf '%s' "$body" | grep -qF -- "$marker"
+}
+
 # --------------------------------------------------------------------------- the priority marker
 #
 # The marker is written by `prioritise.sh`, read by `check-metadata.sh` and by `list.sh`/`triage-todo`, and

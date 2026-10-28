@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# check-metadata.sh — the priority invariant, as a command.
+# check-metadata.sh — the per-item invariants, as a command.
 #
-# Four things can be true of an issue's priority, and a hand edit can break any of them: the band label is
-# inside the vocabulary, an issue carries at most one band, the marker and the label are both there, and
-# they agree with each other. This script asserts all four (`issue-metadata-loop`, D1/D7), plus the two
-# things that make the pass safe: the marker's score is inside the model's range, and the pass never wrote
-# the automation opt-in.
+# Five things can be true of an issue, and a hand edit can break any of them: the band label is inside the
+# vocabulary, an issue carries at most one band, the marker and the label are both there, they agree with each
+# other, and an item whose body keeps a settled state of its own carries a settled state label (#683). This
+# script asserts all five (`issue-metadata-loop`, D1/D7), plus the two things that make the pass safe: the
+# marker's score is inside the model's range, and the pass never wrote the automation opt-in.
 #
 # Three modes:
 #
@@ -121,7 +121,7 @@ if [ "$mode" = "self" ]; then
   report
 fi
 
-# ── the per-issue half: the label and the marker, and whether they agree ──────────────────────────────
+# ── the per-issue half: the label and the marker, whether they agree, and the settled pair ──────────────
 
 if [ "$mode" = "live" ]; then
   issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body 2>/dev/null) ||
@@ -134,6 +134,12 @@ elif [ "$mode" = "issues" ]; then
 fi
 
 issue_numbers=$(printf '%s' "$issues_json" | jq -r '.[].number')
+# An item's settled state is stated twice: by the label the pre-screen reads as settled, and by the record a
+# tombstone keeps in its own body. Both roles come from the profile, so a project with no tombstones declares an
+# empty marker and checks nothing (#683).
+status_prefix=$(issues_status_prefix) || issues_die "check-metadata: the status namespace cannot be resolved"
+settled_record=$(jq -r '.roles.settledRecordMarker // empty' "$profile")
+settled_statuses=$(jq -r '.roles.settledStatuses // [] | .[]' "$profile")
 for number in $issue_numbers; do
   checked=$((checked + 1))
   labels=$(printf '%s' "$issues_json" | jq -r --argjson n "$number" \
@@ -182,6 +188,28 @@ for number in $issue_numbers; do
     esac
   elif [ -n "$band_label" ]; then
     violate "$number" "label-without-marker" "$namespace$separator$band_label"
+  fi
+
+  # A body that keeps a settled state of its own must carry a label the pre-screen reads as settled; a park once
+  # wrote the hold state over that label while the record stayed, and the item read as work from then on (issue
+  # #683, measured on #146 and, still today, on #148). Which half is the wrong one is a judgement, so this
+  # reports and repairs nothing.
+  if issues_records_settled_state "$body" "$settled_record"; then
+    settled=0
+    states=""
+    while IFS= read -r label; do
+      [ -n "$label" ] || continue
+      case "$label" in
+        "$status_prefix"*)
+          states="${states:+$states }$label"
+          value="${label#"$status_prefix"}"
+          printf '%s\n' "$settled_statuses" | grep -qxF -- "$value" && settled=1
+          ;;
+      esac
+    done <<< "$labels"
+    if [ "$settled" -eq 0 ]; then
+      violate "$number" "settled-record-displaced" "${states:-no status label}"
+    fi
   fi
 done
 

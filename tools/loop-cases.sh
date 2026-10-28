@@ -241,6 +241,10 @@ LOOP_SHELL_CASES=(
   'trim#aResultAboveTheBoundIsTrimmedAndNamed'
   'trim#aResultUnderTheBoundIsHandedOverWhole'
   'trim#theTrimIsRecorded'
+  'look#oneCallAnswersTheWholeTree'
+  'look#aResultOverTheBoundIsCutAndNamed'
+  'policy#aShellTreeSearchIsRefusedAndARecipeIsNot'
+  'adapter#theChildIsStartedWithTheShellPolicy'
   'state#inheritedStatePathOutsideTheTreeIsIgnored'
   'report#headerAndTableShape'
   'report#yieldIsCountedFromState'
@@ -545,6 +549,10 @@ loop_run_shell_case() {
     'trim#aResultAboveTheBoundIsTrimmedAndNamed') fn=case_trim_aResultAboveTheBoundIsTrimmedAndNamed ;;
     'trim#aResultUnderTheBoundIsHandedOverWhole') fn=case_trim_aResultUnderTheBoundIsHandedOverWhole ;;
     'trim#theTrimIsRecorded') fn=case_trim_theTrimIsRecorded ;;
+    'look#oneCallAnswersTheWholeTree') fn=case_look_oneCallAnswersTheWholeTree ;;
+    'look#aResultOverTheBoundIsCutAndNamed') fn=case_look_aResultOverTheBoundIsCutAndNamed ;;
+    'policy#aShellTreeSearchIsRefusedAndARecipeIsNot') fn=case_policy_aShellTreeSearchIsRefusedAndARecipeIsNot ;;
+    'adapter#theChildIsStartedWithTheShellPolicy') fn=case_adapter_theChildIsStartedWithTheShellPolicy ;;
     'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
     'usage#bareValueFlagDoesNotSwallowTheNextFlag') fn=case_usage_bareValueFlagDoesNotSwallowTheNextFlag ;;
     'usage#bareValueFlagInASingleShotHarnessIsAUsageError') fn=case_usage_bareValueFlagInASingleShotHarnessIsAUsageError ;;
@@ -6783,7 +6791,7 @@ case_usage_noUnguardedValueFlagRemains() {
 # adapter and not on an agent, a model or a token. A project that has no adapter — the porting recipe deletes
 # it and names a plain command — has nothing to assert here.
 case_adapter_modeFlagIsItsOwnArgument() {
-  # files: tools/pi-child-events.sh tools/pi-trim-result.mjs
+  # files: tools/pi-child-events.sh tools/pi-shell-refusal.mjs tools/pi-trim-result.mjs
   local d prompt recorder got
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
   d=$(scratch)
@@ -6798,9 +6806,9 @@ case_adapter_modeFlagIsItsOwnArgument() {
     bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
     fail "the adapter exited non-zero: $(head -3 "$d/out")"
   got=$(cat "$d/argv.txt" 2>/dev/null || true)
-  assert_eq "$(printf -- '-e\n%s\n--mode\njson\n--no-context-files\n%s' \
-    "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$prompt")" "$got" \
-    "the child sees the bound's extension, the mode flag as two arguments, then the context switch, then the prompt"
+  assert_eq "$(printf -- '-e\n%s\n-e\n%s\n--mode\njson\n--no-context-files\n%s' \
+    "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" "$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs" "$prompt")" "$got" \
+    "the child sees the bound's extension, the shell policy's extension, the mode flag as two arguments, then the context switch, then the prompt"
   return 0
 }
 
@@ -8996,5 +9004,212 @@ CASES
     sleep 0.1
   done
   [ "$alive" -eq 0 ] || { kill -9 "$pid" 2>/dev/null; fail "the process the case left behind outlived the suite (pid $pid)"; }
+  return 0
+}
+
+# ── one call answers a tree question (issue #687) ────────────────────────────────────────────────────────────────
+# 9 338 of the archive's 16 987 `ctx_shell` calls (55 %) carry a search or read verb, at a p50 of 52 per item, and they
+# chain: `grep -> grep` 1 017x in 132 items, `grep -> read` 508x, `grep -> sed` 385x (`python3 tools/loop-spend.py`).
+# Neither half of the cure is prose — the tool a question needs is `tools/look.sh` for the whole tree at once, and the
+# policy that sends a child there is `tools/pi-shell-refusal.mjs`, loaded by the adapter every child is started
+# through. These cases are the two halves' own rules: that one call covers the worktree and the submodule and stays
+# inside the bound, and that a shell tree search is refused while a range read and a stream filter are not.
+
+# The question this answers is the one the measurement shows costing three calls: "where does this pattern occur" —
+# over the whole tree at once, the submodule included, with the per-file counts and the matched lines in one answer.
+# The walk is from the root, so every path in the answer is relative to it and can be cited as it stands, and the trees
+# that are generated or machine-local (`.pi`, `build`, …) are not the tree a search is answered from.
+case_look_oneCallAnswersTheWholeTree() {
+  # files: tools/look.sh
+  local d tree look out status
+  look="$LOOP_PROJECT_ROOT/tools/look.sh"
+  [ -f "$look" ] || fail "nothing answers a tree question in one call: tools/look.sh is not in the tree (issue #687)"
+  d=$(scratch); tree="$d/tree"
+  mkdir -p "$tree/src" "$tree/app/src/main/cpp/libosmscout" "$tree/build" "$tree/.pi"
+  printf 'alpha\nNEEDLE one\nbeta\n' > "$tree/src/a.txt"
+  printf 'NEEDLE two\n' > "$tree/app/src/main/cpp/libosmscout/b.cpp"
+  printf 'NEEDLE generated\n' > "$tree/build/skip.txt"
+  printf 'NEEDLE machine local\n' > "$tree/.pi/log.txt"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" 'NEEDLE' 2>&1); status=$?
+  assert_eq "0" "$status" "a pattern the tree holds exits 0: $out"
+  assert_contains "$out" 'src/a.txt:2:NEEDLE one' "the matched line is printed with its path and its line number: $out"
+  assert_contains "$out" 'app/src/main/cpp/libosmscout/b.cpp:1:NEEDLE two' \
+    "and the submodule is inside the same walk: $out"
+  assert_contains "$out" 'LOOK-FILE: src/a.txt 1' "the per-file count is printed: $out"
+  assert_contains "$out" 'LOOK: 2 matches in 2 files' "the line above the matches counts what the tree holds: $out"
+  assert_not_contains "$out" 'NEEDLE generated' "a generated tree is not searched: $out"
+  assert_not_contains "$out" 'NEEDLE machine local' "and neither is a machine-local one: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" 'NEEDLE' --files 2>&1)
+  assert_contains "$out" 'LOOK-FILE: app/src/main/cpp/libosmscout/b.cpp 1' "--files names the file the pattern is in: $out"
+  assert_not_contains "$out" 'NEEDLE one' "--files prints no matched line: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" 'NEEDLE' --context 1 2>&1)
+  assert_contains "$out" 'src/a.txt-1-alpha' "--context prints the line beside the match, in grep's own shape: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" 'nothing-of-this' 2>&1); status=$?
+  assert_eq "1" "$status" "a pattern the tree does not hold is exit 1 and not a failure: $out"
+  out=$(bash "$look" 2>&1); status=$?
+  assert_eq "2" "$status" "a call with no pattern is a usage error: $out"
+  out=$(LOOK_ROOT="$tree" bash "$look" 'NEEDLE' --context 2>&1); status=$?
+  assert_eq "2" "$status" "a bare --context never runs with the value it never got: $out"
+  assert_contains "$out" 'needs a value' "and it names the value it is missing: $out"
+  return 0
+}
+
+# The bound is a rule about the tail (issue #660), and this tool owes the same one: the answer is printed once and
+# re-read by every later turn, so one pattern that matches a thousand lines would cost what the three calls it
+# replaced cost together. The number is the project's recorded `LOOP_TOOL_RESULT_MAX_CHARS` — one home for it — and a
+# cut says it is a cut, because a reader who cannot tell a short answer from a truncated one re-runs the call.
+case_look_aResultOverTheBoundIsCutAndNamed() {
+  # files: tools/look.sh tools/loop/loop.conf
+  local d tree look out size recorded status
+  look="$LOOP_PROJECT_ROOT/tools/look.sh"
+  [ -f "$look" ] || fail "nothing bounds a tree question: tools/look.sh is not in the tree (issue #687)"
+  d=$(scratch); tree="$d/tree"
+  mkdir -p "$tree/src"
+  # 300 matching lines of ~60 characters: far over any bound this project records, and named by their number so the
+  # tail that a cut leaves out can be asserted by its text.
+  awk 'BEGIN { for (i = 1; i <= 300; i++) printf "NEEDLE-%03d %s\n", i, "0123456789012345678901234567890123456789" }' \
+    > "$tree/src/many.txt"
+  recorded=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_PROJECT_ROOT/tools/loop/loop.conf" | tail -1)
+  [ -n "$recorded" ] || fail "the project records no LOOP_TOOL_RESULT_MAX_CHARS in tools/loop/loop.conf"
+
+  env -u LOOP_TOOL_RESULT_MAX_CHARS LOOK_ROOT="$tree" bash "$look" 'NEEDLE' > "$d/recorded.txt" 2>&1
+  size=$(wc -c < "$d/recorded.txt")
+  out=$(cat "$d/recorded.txt")
+  [ "$size" -le "$recorded" ] || fail "the answer carried $size characters against the recorded bound of $recorded"
+  assert_contains "$out" 'LOOK-BOUND' "a cut answer says it was cut: $out"
+  assert_contains "$out" 'LOOK: 300 matches in 1 files' "and the count of what the tree holds survives the cut: $out"
+  assert_not_contains "$out" 'NEEDLE-300' "the tail it could not show is not there: $out"
+
+  LOOK_ROOT="$tree" LOOP_TOOL_RESULT_MAX_CHARS=900 bash "$look" 'NEEDLE' > "$d/env.txt" 2>&1
+  size=$(wc -c < "$d/env.txt")
+  [ "$size" -le 900 ] || fail "a bound the environment names is not the one applied: $size characters against 900"
+  assert_contains "$(cat "$d/env.txt")" 'LOOK-BOUND' "and the answer says which bound cut it"
+
+  LOOK_ROOT="$tree" LOOP_TOOL_RESULT_MAX_CHARS=0 bash "$look" 'NEEDLE' > "$d/unbounded.txt" 2>&1
+  size=$(wc -c < "$d/unbounded.txt")
+  [ "$size" -gt "$recorded" ] || fail "no bound was recorded as $recorded characters and the whole answer is $size"
+  assert_contains "$(cat "$d/unbounded.txt")" 'NEEDLE-300' "with no bound the whole answer is printed"
+  assert_not_contains "$(cat "$d/unbounded.txt")" 'LOOK-BOUND' "and nothing is said about a bound it never met"
+  return 0
+}
+
+# The other half of the cure, and the one prose has failed at since #246: the refusal is a policy at the seam where
+# every loop child is started (`tools/pi-child-events.sh` loads `tools/pi-shell-refusal.mjs`), so the rule is asserted
+# on the file that carries it rather than on a sentence a child may follow. What it must leave alone is as much a part
+# of the rule as what it refuses: `guidelines/Build.md` §10 reads a log by range (`sed -n 'N,Mp'`, `tail -n`), and the
+# verdict of a build is read back from `/tmp/build-app.log` by a `grep` whose output a `head` filters.
+case_policy_aShellTreeSearchIsRefusedAndARecipeIsNot() {
+  # files: tools/loop-cases.sh tools/loop-selftest.sh tools/look.sh tools/pi-shell-refusal.mjs
+  local rule d probe answer status
+  rule="$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs"
+  [ -f "$rule" ] \
+    || fail "nothing refuses a shell tree search: tools/pi-shell-refusal.mjs is not in the tree (issue #687)"
+  d=$(scratch)
+  local cmd out instead
+  # Each line is the call and the tool that answers it, because the refusal's whole value is that it names one: a block
+  # that says only "no" costs the turn it was meant to save. `cat`/`head` answer with `ctx_read`, `ls` with `ctx_ls`,
+  # and a pattern with `look.sh`.
+  while IFS='|' read -r cmd instead; do
+    [ -n "$cmd" ] || continue
+    out=$(node "$rule" --command "$cmd" 2>&1); status=$?
+    assert_eq "3" "$status" "a shell tree search is refused (exit $status): $cmd -- $out"
+    assert_contains "$out" "REFUSED" "and the refusal is what it prints: $cmd -- $out"
+    assert_contains "$out" "$instead" "and it names the call that answers the question instead: $cmd -- $out"
+  done <<'SEARCHES'
+grep -rn "14\.0" app/src/test|look.sh
+grep -n foo tools/loop-cases.sh|look.sh
+cat guidelines/Build.md|ctx_read
+head -n 20 AGENTS.md|ctx_read
+ls openspec/changes/archive|ctx_ls
+find . -name '*.kt'|look.sh
+wc -l app/build.gradle.kts|look.sh
+awk '/x/' tools/look.sh|look.sh
+grep -rn TODO|look.sh
+SEARCHES
+
+  # …and the recipes that are not a tree search, which a policy that read its verbs alone would have deleted: the
+  # gate's own command, a device log filtered by a pipe, a range read of a known log, and a report read by pattern.
+  while IFS= read -r cmd; do
+    [ -n "$cmd" ] || continue
+    out=$(node "$rule" --command "$cmd" 2>&1); status=$?
+    assert_eq "0" "$status" "a call that reads a known file or a stream is left alone (exit $status): $cmd -- $out"
+    assert_contains "$out" "ALLOWED" "and it is handed to the child unchanged: $cmd -- $out"
+  done <<'RECIPES'
+./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+bash tools/loop-selftest.sh --files tools/look.sh
+adb -s emulator-5554 logcat -d | grep -E 'Diag/(HOST|SESSION)'
+sed -n '1,180p' ki_processing_failures.log
+tail -n 200 app/build/reports/x.log
+grep -E 'BUILD SUCCESSFUL|BUILD FAILED' /tmp/build-app.log | head
+grep -o 'tests="[0-9]*"' core/build/reports/kover/reportDebug.xml | tail -1
+echo "$L" | grep -c 'lock OK'
+jq -r '.[].number' /tmp/tracker.json | sort | uniq -d
+RECIPES
+
+  # The extension itself: the file is a hook, not a flag the agent happens to accept, and the hook blocks the call with
+  # a reason rather than failing it. Driven through the factory the agent calls, with a stand-in for its API, so the
+  # assertion is on the policy and not on a model, a token or an agent.
+  probe="$d/probe.mjs"
+  cat > "$probe" <<'PROBE'
+import { pathToFileURL } from "node:url";
+const mod = await import(pathToFileURL(process.env.RULE).href);
+const handlers = {};
+mod.default({ on: (name, fn) => { handlers[name] = fn; } });
+const call = (toolName, input) => handlers.tool_call({ toolName, input });
+const blocked = await call("ctx_shell", { command: "grep -rn foo app/src" });
+const allowed = await call("ctx_shell", { command: "./gradlew :app:assembleDebug" });
+const other = await call("ctx_read", { path: "app/src/x.kt" });
+const empty = await call("ctx_shell", {});
+console.log(JSON.stringify({
+  hook: typeof handlers.tool_call,
+  block: !!blocked && blocked.block === true,
+  reason: (blocked && blocked.reason) || "",
+  allowed: allowed === undefined,
+  other: other === undefined,
+  empty: empty === undefined,
+}));
+PROBE
+  answer=$(RULE="$rule" node "$probe" 2>&1) || fail "the policy's factory could not be driven: $answer"
+  assert_contains "$answer" '"hook":"function"' "the extension registers the tool_call hook: $answer"
+  assert_contains "$answer" '"block":true' "and a shell grep over the tree is blocked: $answer"
+  assert_contains "$answer" '"allowed":true' "while ./gradlew is handed to the child: $answer"
+  assert_contains "$answer" '"other":true' "a tool that is not a shell is not the policy's business: $answer"
+  assert_contains "$answer" '"empty":true' "and a shell call with no command is not a failure: $answer"
+  return 0
+}
+
+# The policy reaches a child only if the process that starts it loads the extension (issue #687): the adapter is the one
+# place this project's agent flags live, and every child goes through it, so the word is asserted there and not in a
+# phase — a phase under `tools/loop/**` may name no agent flag (`run#engineNamesNoProjectFact`). The refusal is the
+# *second* extension, so it must not move the first: `adapter#theChildIsStartedWithTheResultBound` reads the first `-e`.
+case_adapter_theChildIsStartedWithTheShellPolicy() {
+  # files: tools/pi-child-events.sh tools/pi-shell-refusal.mjs
+  local d prompt recorder got line next ext
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  ext="$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs"
+  [ -f "$ext" ] || fail "the adapter loads no shell policy, and $ext is not in the tree (issue #687)"
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  recorder="$d/recorder.sh"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'for a in "$@"; do printf "%s\n" "$a"; done > "$RECORD"'
+  } > "$recorder"
+  env -u LOOP_CHILD_EVENTS RECORD="$d/argv.txt" bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" \
+    bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  got=$(cat "$d/argv.txt" 2>/dev/null || true)
+  line=$(printf '%s\n' "$got" | grep -n -x -- '-e' | sed -n 2p | cut -d: -f1)
+  [ -n "$line" ] || fail "the child is started with one extension only, so nothing refuses a shell tree search: $got"
+  next=$(printf '%s\n' "$got" | sed -n "$((line + 1))p")
+  assert_eq "$ext" "$next" "the second file the child is started with is the shell policy"
+  assert_contains "$(cat "$ext")" 'tool_call' \
+    "and that file is a hook on the tool call, not a flag that happens to be accepted"
   return 0
 }

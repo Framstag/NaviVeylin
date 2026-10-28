@@ -55,6 +55,14 @@ context=(--no-context-files)
 # result over unchanged.
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 extension=(-e "$here/pi-trim-result.mjs")
+# …and the shell does not answer a tree question (issue #687): 9 338 of the archive's 16 987 `ctx_shell` calls (55 %)
+# carry a search or read verb — `grep` 4 997, `head` 4 955, `ls` 2 550 — at a p50 of 52 per item, and they chain
+# (`grep -> grep` 1 017x in 132 items). The tools that answer them are there and unused (`ctx_grep` 361 calls against
+# ~1 700 shell `grep`s), so the policy sits here, where every child is started, and not in a prompt: the second
+# extension refuses the call and names `tools/look.sh`, `ctx_grep` or `ctx_read` instead, leaving `sed -n 'N,Mp'`,
+# `tail -n` and a filter of another command's output alone. Its own rule is `tools/pi-shell-refusal.mjs`, and its
+# cases are `tools/loop-cases.sh`'s `policy#*` (the rule) and `adapter#theChildIsStartedWithTheShellPolicy` (this line).
+policy=(-e "$here/pi-shell-refusal.mjs")
 bound=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
   "$here/loop/loop.conf" 2>/dev/null | tail -1)
 export LOOP_TOOL_RESULT_MAX_CHARS="${bound:-0}"
@@ -87,7 +95,7 @@ trap 'rm -f "$answer_file"' EXIT
 # The stream is read line by line. A line that is a JSON object is one event and is kept; anything else is the
 # command's own text — an agent that ignores the mode flag prints its answer as plain text — and is passed
 # through, so such a command still answers the loop and a project needs no second code path to keep working.
-"${cmd[@]}" "${extension[@]}" "${mode[@]}" "${context[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
+"${cmd[@]}" "${extension[@]}" "${policy[@]}" "${mode[@]}" "${context[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     '{'*)
       [ -z "$events" ] || printf '%s\n' "$line" >> "$events"

@@ -290,6 +290,11 @@ LOOP_SHELL_CASES=(
   'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt'
   'driver#aSecondSuiteInOneRepositoryIsRefused'
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
+  'gate#aGreenLogNamesNoFailingCase'
+  'gate#aFailingCaseCarriesItsFactsAndItsRerun'
+  'gate#twoFailuresNameTheFirstAndCountTheRest'
+  'gate#aStepThatNamesNoCaseIsAttributedByItsStep'
+  'gate#theBlockStaysInsideTheRecordedBound'
 )
 
 loop_shell_cases() {
@@ -597,6 +602,11 @@ loop_run_shell_case() {
     'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt') fn=case_driver_aCaseThatLeavesAProcessBehindIsSweptWithIt ;;
     'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
+    'gate#aGreenLogNamesNoFailingCase') fn=case_gate_aGreenLogNamesNoFailingCase ;;
+    'gate#aFailingCaseCarriesItsFactsAndItsRerun') fn=case_gate_aFailingCaseCarriesItsFactsAndItsRerun ;;
+    'gate#twoFailuresNameTheFirstAndCountTheRest') fn=case_gate_twoFailuresNameTheFirstAndCountTheRest ;;
+    'gate#aStepThatNamesNoCaseIsAttributedByItsStep') fn=case_gate_aStepThatNamesNoCaseIsAttributedByItsStep ;;
+    'gate#theBlockStaysInsideTheRecordedBound') fn=case_gate_theBlockStaysInsideTheRecordedBound ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -9211,5 +9221,164 @@ case_adapter_theChildIsStartedWithTheShellPolicy() {
   assert_eq "$ext" "$next" "the second file the child is started with is the shell policy"
   assert_contains "$(cat "$ext")" 'tool_call' \
     "and that file is a hook on the tool call, not a flag that happens to be accepted"
+  return 0
+}
+
+# --------------------------------------------------------------------------- the gate log's attribution (issue #689)
+# Reading a red gate log is what an item keeps paying for after its first gate call (#682 47+30 of 186 shell calls,
+# #50 24+25 of 234), so the failing case's mechanical facts come from one command over a log the script does not own.
+# Every case below builds its log as a fixture: no gate log from a real run is copied into the repository, and the
+# shape is the one `tools/loop/gate.sh` writes and the suites themselves print.
+
+case_gate_aGreenLogNamesNoFailingCase() {
+  # files: tools/gate-attribute.sh tools/loop/loop.conf tools/loop-cases.sh tools/loop-selftest.sh
+  local d out
+  d=$(scratch)
+  cat > "$d/green.log" <<'LOG'
+LOOP-GATE-PROFILE: tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+> Task :app:testMobileDebugUnitTest
+com.naviveylin.ui.MapScreenTest > theMapIsDrawn PASSED
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 345s
+gate: tools/loop-selftest.sh --from-git abc1234
+driver#aCase| a line a case printed while it ran
+loop-selftest: all 190 cases passed (JDK 17, offline, no token, no sandbox)
+gate: tools/loop-selftest.sh --from-git abc1234 — 12s
+LOOP-GATE: tests=198 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 345s, tools/loop-selftest.sh --from-git abc1234 12s)
+LOG
+  out=$(bash "$LOOP_PROJECT_ROOT/tools/gate-attribute.sh" "$d/green.log" 2>&1) \
+    || fail "the reader refused a green log: $out"
+  assert_contains "$out" 'verdict: tests=198 failures=0 errors=0' "the verdict is the gate's own numbers: $out"
+  assert_contains "$out" 'case: none — every case this log reports passed' "a green log names no failing case: $out"
+  assert_not_contains "$out" 'rerun:' "and no command is printed for a case that did not fail: $out"
+  assert_not_contains "$out" 'file:line:' "…and no location either: $out"
+  return 0
+}
+
+case_gate_aFailingCaseCarriesItsFactsAndItsRerun() {
+  # files: tools/gate-attribute.sh tools/loop/loop.conf tools/loop-cases.sh tools/loop-selftest.sh
+  local d out
+  d=$(scratch)
+  cat > "$d/red.log" <<'LOG'
+LOOP-GATE-PROFILE: tools/loop/loop.conf
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+> Task :app:testMobileDebugUnitTest FAILED
+com.naviveylin.ui.MapScreenTest > theMapIsDrawn FAILED
+    java.lang.AssertionError: expected:<14.0> but was:<7.0>
+        at com.naviveylin.ui.MapScreenTest.theMapIsDrawn(MapScreenTest.kt:198)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+8 tests completed, 1 failed
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 345s
+LOOP-GATE: tests=8 failures=1 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 345s) — failing: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOG
+  out=$(bash "$LOOP_PROJECT_ROOT/tools/gate-attribute.sh" "$d/red.log" 2>&1) \
+    || fail "the reader refused a red log: $out"
+  assert_contains "$out" 'step: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache' \
+    "the failed step is the gate's own line: $out"
+  assert_contains "$out" 'case: com.naviveylin.ui.MapScreenTest > theMapIsDrawn' "the failing case: $out"
+  assert_contains "$out" 'file:line: MapScreenTest.kt:198' "the location the log printed: $out"
+  assert_contains "$out" 'error: java.lang.AssertionError: expected:<14.0> but was:<7.0>' \
+    "the failure's own first line, not its location: $out"
+  # The flake line is a recorded blank and says so: §4d decides what a red case is, and a reader must not read
+  # "no" about a case nobody classified.
+  assert_contains "$out" 'flake: not recorded — this tree keeps no flake list' \
+    "the flake line states what is recorded: $out"
+  assert_contains "$out" 'rerun: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.MapScreenTest" -PforceTests -PjvmTestsOnly --no-build-cache' \
+    "the rerun is the log's own task and flags with the failing class: $out"
+  # One fact per line, because a block a child can read in one call is the whole point of the command.
+  assert_eq "7" "$(printf '%s\n' "$out" | grep -c .)" "seven lines, one fact each: $out"
+  return 0
+}
+
+case_gate_twoFailuresNameTheFirstAndCountTheRest() {
+  # files: tools/gate-attribute.sh tools/loop/loop.conf tools/loop-cases.sh tools/loop-selftest.sh
+  local d out
+  d=$(scratch)
+  cat > "$d/two.log" <<'LOG'
+LOOP-GATE-PROFILE: tools/loop/loop.conf
+gate: tools/loop-selftest.sh --from-git abc1234
+driver#someOtherCase| a line a passing case printed
+PASS driver#someOtherCase
+driver#aCaseThatBlocksIsEndedByItsOwnBound|   the case ended at its bound, status 124 (tools/loop-cases.sh:6690)
+FAIL driver#aCaseThatBlocksIsEndedByItsOwnBound
+FAIL driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+loop-selftest: 2 of 190 cases failed
+gate: tools/loop-selftest.sh --from-git abc1234 — 240s
+LOOP-GATE: tests=190 failures=2 errors=0 (tools/loop-selftest.sh --from-git abc1234 240s) — failing: tools/loop-selftest.sh --from-git abc1234
+LOG
+  out=$(bash "$LOOP_PROJECT_ROOT/tools/gate-attribute.sh" "$d/two.log" 2>&1) \
+    || fail "the reader refused a two-failure log: $out"
+  assert_contains "$out" 'verdict: tests=190 failures=2 errors=0 — 1 failing step' \
+    "the verdict keeps the gate's counts: $out"
+  assert_contains "$out" 'case: driver#aCaseThatBlocksIsEndedByItsOwnBound' "the first failing case: $out"
+  assert_contains "$out" 'others: driver#aCaseThatLeavesAProcessBehindIsSweptWithIt' \
+    "and the block names the other one, so two failures are not read as one: $out"
+  assert_contains "$out" 'error: the case ended at its bound, status 124 (tools/loop-cases.sh:6690)' \
+    "the case's own printed reason, without the relay's prefix: $out"
+  assert_contains "$out" 'file:line: tools/loop-cases.sh:6690' "the location its reason carried: $out"
+  assert_contains "$out" 'rerun: tools/loop-selftest.sh --from-git abc1234 --case driver#aCaseThatBlocksIsEndedByItsOwnBound' \
+    "the rerun keeps the step's words and selects the one case: $out"
+  return 0
+}
+
+case_gate_aStepThatNamesNoCaseIsAttributedByItsStep() {
+  # files: tools/gate-attribute.sh tools/loop/loop.conf tools/loop-cases.sh tools/loop-selftest.sh
+  local d out
+  d=$(scratch)
+  # The shape #268 measured: a compiled step that died at configuration, `tests=0 failures=0 errors=1`, no case ever
+  # named. The step is still the fact, and the build's own first error line is what §4a reads.
+  cat > "$d/compile.log" <<'LOG'
+LOOP-GATE-PROFILE: tools/loop/loop.conf
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+> Task :app:compileMobileDebugKotlin FAILED
+e: file:///home/x/repo/app/src/main/java/com/naviveylin/ui/Map.kt:42:13 unresolved reference: drawable
+FAILURE: Build failed with an exception.
+gate: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache — 21s
+LOOP-GATE: tests=0 failures=0 errors=1 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 21s) — failing: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOG
+  out=$(bash "$LOOP_PROJECT_ROOT/tools/gate-attribute.sh" "$d/compile.log" 2>&1) \
+    || fail "the reader refused a log whose step failed before a case ran: $out"
+  assert_contains "$out" 'verdict: tests=0 failures=0 errors=1 — 1 failing step' "an error is attributed: $out"
+  assert_contains "$out" 'step: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache' "the failed step: $out"
+  assert_contains "$out" 'case: none — a step failed before a case reported' "no case is invented: $out"
+  assert_contains "$out" 'error: e: file:///home/x/repo/app/src/main/java/com/naviveylin/ui/Map.kt:42:13 unresolved reference: drawable' \
+    "the build's own error line, not the task that carried it: $out"
+  assert_contains "$out" 'file:line: /home/x/repo/app/src/main/java/com/naviveylin/ui/Map.kt:42' \
+    "its location, with the URL's scheme resolved: $out"
+  assert_contains "$out" 'rerun: not derivable from this log' \
+    "no rerun is invented for a step that named no test task: $out"
+  return 0
+}
+
+case_gate_theBlockStaysInsideTheRecordedBound() {
+  # files: tools/gate-attribute.sh tools/loop/loop.conf tools/loop-cases.sh tools/loop-selftest.sh
+  local d out bound n
+  d=$(scratch)
+  cat > "$d/red.log" <<'LOG'
+LOOP-GATE-PROFILE: tools/loop/loop.conf
+gate: tools/loop-selftest.sh --from-git abc1234
+driver#aCaseThatBlocksIsEndedByItsOwnBound|   the case ended at its bound, status 124 (tools/loop-cases.sh:6690)
+FAIL driver#aCaseThatBlocksIsEndedByItsOwnBound
+loop-selftest: 1 of 190 cases failed
+gate: tools/loop-selftest.sh --from-git abc1234 — 240s
+LOOP-GATE: tests=190 failures=1 errors=0 (tools/loop-selftest.sh --from-git abc1234 240s) — failing: tools/loop-selftest.sh --from-git abc1234
+LOG
+  # The bound is the profile's, read here as well so the case holds the number the run holds (#660).
+  bound=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$LOOP_ENGINE/loop.conf" | tail -1)
+  [ -n "$bound" ] || fail "the profile records no LOOP_TOOL_RESULT_MAX_CHARS"
+  out=$(bash "$LOOP_PROJECT_ROOT/tools/gate-attribute.sh" "$d/red.log" 2>&1) \
+    || fail "the reader refused the log: $out"
+  n=$(printf '%s' "$out" | wc -c | tr -d ' ')
+  [ "$n" -le "$bound" ] \
+    || fail "the block is $n characters, above the recorded bound of $bound: $out"
+  # …and a smaller bound is honoured per line rather than by losing a fact: the block that arrives cut in half, its
+  # last line the rerun, would be the round this command exists to save.
+  out=$(bash "$LOOP_PROJECT_ROOT/tools/gate-attribute.sh" "$d/red.log" --max-chars 200 2>&1) \
+    || fail "the reader refused a bound of 200 characters: $out"
+  n=$(printf '%s' "$out" | wc -c | tr -d ' ')
+  [ "$n" -le 200 ] || fail "the block is $n characters under a bound of 200: $out"
+  assert_eq "7" "$(printf '%s\n' "$out" | grep -c .)" "every fact keeps its own line at a smaller bound: $out"
   return 0
 }

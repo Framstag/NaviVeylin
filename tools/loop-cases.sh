@@ -297,6 +297,10 @@ LOOP_SHELL_CASES=(
   'gate#theBlockStaysInsideTheRecordedBound'
   'phase#oneCallPrintsThePhaseState'
   'phase#aResultOverTheBoundIsCutAndNamed'
+  'repeat#aRepeatReadIsNamedNotHandedOverAgain'
+  'repeat#aRepeatAfterAnEditIsHandedOverWhole'
+  'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
+  'repeat#aBrokenLedgerLeavesTheResultAsReturned'
 )
 
 loop_shell_cases() {
@@ -613,6 +617,10 @@ loop_run_shell_case() {
     'gate#theBlockStaysInsideTheRecordedBound') fn=case_gate_theBlockStaysInsideTheRecordedBound ;;
     'phase#oneCallPrintsThePhaseState') fn=case_phase_oneCallPrintsThePhaseState ;;
     'phase#aResultOverTheBoundIsCutAndNamed') fn=case_phase_aResultOverTheBoundIsCutAndNamed ;;
+    'repeat#aRepeatReadIsNamedNotHandedOverAgain') fn=case_repeat_aRepeatReadIsNamedNotHandedOverAgain ;;
+    'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
+    'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
+    'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -9535,5 +9543,123 @@ case_phase_aResultOverTheBoundIsCutAndNamed() {
   [ "$size" -gt "$recorded" ] || fail "no bound was recorded as $recorded characters and the whole answer is $size"
   assert_contains "$(cat "$p/unbounded.txt")" 'PKG-LINE-300' "with no bound the whole answer is printed"
   assert_not_contains "$(cat "$p/unbounded.txt")" 'PHASE-BOUND' "and nothing is said about a bound it never met"
+  return 0
+}
+
+# A child that reads the same file twice is handed the same text twice (issue #685): `LOOP-SPEND-READS calls=6021
+# duplicate=2847` over the archive the loop reads — 47 % of its reads are a second read of a path that session already
+# had, and each one is injected once more and re-read by every turn after it. The bound of `trim#*` does not know the
+# child holds that text. So a repeat is replaced by one line — the path, the size, the turn the text came in at, and
+# the range syntax that asks for part of it — which is the rule `tools/pi-trim-result.mjs`'s `tool_result` hook
+# applies, driven through the same file's CLI so the case and the child cannot drift.
+case_repeat_aRepeatReadIsNamedNotHandedOverAgain() {
+  # files: tools/loop-cases.sh tools/pi-trim-result.mjs
+  local d file out size lines
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing knows what a session already read: tools/pi-trim-result.mjs is not in the tree (issue #685)"
+  d=$(scratch)
+  file="$d/section.md"
+  { printf 'FIRST-LINE\n'; head -c 600 /dev/zero | tr '\0' 'x'; printf '\nLAST-LINE\n'; } > "$file"
+  size=$(wc -c < "$file" | tr -d ' ')
+  out="$d/first.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 3 --ledger "$d/ledger.txt" < "$file" > "$out" \
+    || fail "the result rule exited non-zero on a first read: $(head -3 "$out")"
+  assert_eq "$(cat "$file")" "$(cat "$out")" "a first read is handed over whole"
+  out="$d/second.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 5 --ledger "$d/ledger.txt" < "$file" > "$out" \
+    || fail "the result rule exited non-zero on a repeat read: $(head -3 "$out")"
+  assert_not_contains "$(cat "$out")" 'FIRST-LINE' "a repeat does not put the text into the context a second time"
+  assert_not_contains "$(cat "$out")" 'LAST-LINE' "not even the line an earlier result was trusted for"
+  assert_contains "$(cat "$out")" 'LOOP-ALREADY-READ' "it is replaced by one line that says the session has it"
+  lines=$(grep -c . "$out")
+  [ "$lines" -eq 1 ] || fail "the repeat read carried $lines non-empty lines instead of one: $(cat "$out")"
+  assert_contains "$(cat "$out")" "$file" "the line names the path the session holds"
+  assert_contains "$(cat "$out")" "$size characters" "and the size the earlier read had"
+  assert_contains "$(cat "$out")" 'turn 3' "and the turn the text came in at, not the turn the repeat came in on"
+  assert_contains "$(cat "$out")" 'ctx_read mode="lines:N-M"' "and the call that reads a range of it instead"
+  return 0
+}
+
+# …and a repeat whose content changed is not a repeat (issue #685): 728 of the archive's 2 042 per-session repeats
+# follow an edit of that path, and that read is a verification — the child is checking what its own edit did, so
+# withholding it would cost a turn or a wrong edit. The rule therefore compares the content and not the path: a read
+# whose sha differs is handed over whole, and it becomes the content the next repeat is measured against, which the
+# third read of this case asserts by the size and the turn it names.
+case_repeat_aRepeatAfterAnEditIsHandedOverWhole() {
+  # files: tools/loop-cases.sh tools/pi-trim-result.mjs
+  local d file out size
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing knows what a session already read: tools/pi-trim-result.mjs is not in the tree (issue #685)"
+  d=$(scratch)
+  file="$d/section.md"
+  { printf 'FIRST-LINE\n'; head -c 600 /dev/zero | tr '\0' 'y'; printf '\nLAST-LINE\n'; } > "$file"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 3 --ledger "$d/ledger.txt" < "$file" > "$d/first.txt" \
+    || fail "the result rule exited non-zero on the first read: $(head -3 "$d/first.txt")"
+  # the session's own edit of the path it has already read
+  printf 'EDITED-LINE\n' >> "$file"
+  out="$d/after-edit.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 4 --ledger "$d/ledger.txt" < "$file" > "$out" \
+    || fail "the result rule exited non-zero on the read after an edit: $(head -3 "$out")"
+  assert_eq "$(cat "$file")" "$(cat "$out")" "a read after the session edited the path is handed over whole"
+  assert_contains "$(cat "$out")" 'EDITED-LINE' "so the edit is what the child reads"
+  size=$(wc -c < "$file" | tr -d ' ')
+  out="$d/after-edit-repeat.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 6 --ledger "$d/ledger.txt" < "$file" > "$out" \
+    || fail "the result rule exited non-zero on the repeat of the edited text: $(head -3 "$out")"
+  assert_contains "$(cat "$out")" 'LOOP-ALREADY-READ' "the unchanged read after it is a repeat again"
+  assert_contains "$(cat "$out")" "$size characters" "measured against the content the edit left, not the first read"
+  assert_contains "$(cat "$out")" 'turn 4' "at the turn that content came in"
+  return 0
+}
+
+# The recorded `0` is the switch (issue #685): `LOOP_TOOL_RESULT_MAX_CHARS` recording `0` leaves the whole file off, as
+# it leaves the size bound off, so a session can be handed every read whole when a repeat costs more than it saves.
+# What is asserted is both halves — the repeat is not replaced, and no ledger is kept for it to be recognised by.
+case_repeat_theRecordedZeroKeepsTheRepeatRuleOff() {
+  # files: tools/loop-cases.sh tools/pi-trim-result.mjs
+  local d file out
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing knows what a session already read: tools/pi-trim-result.mjs is not in the tree (issue #685)"
+  d=$(scratch)
+  file="$d/section.md"
+  { printf 'FIRST-LINE\n'; head -c 600 /dev/zero | tr '\0' 'z'; printf '\nLAST-LINE\n'; } > "$file"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 0 --tool ctx_read \
+    --path "$file" --turn 3 --ledger "$d/ledger.txt" < "$file" > "$d/first.txt" \
+    || fail "the result rule exited non-zero with no bound: $(head -3 "$d/first.txt")"
+  assert_eq "$(cat "$file")" "$(cat "$d/first.txt")" "with no bound the first read is handed over whole"
+  out="$d/second.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 0 --tool ctx_read \
+    --path "$file" --turn 5 --ledger "$d/ledger.txt" < "$file" > "$out" \
+    || fail "the result rule exited non-zero with no bound on a repeat: $(head -3 "$out")"
+  assert_eq "$(cat "$file")" "$(cat "$out")" "and so is the repeat: no bound is no repeat rule"
+  assert_not_contains "$(cat "$out")" 'LOOP-ALREADY-READ' "and nothing says the session has it"
+  [ ! -s "$d/ledger.txt" ] || fail "a bound of 0 still keeps a ledger: $(cat "$d/ledger.txt")"
+  return 0
+}
+
+# The ledger is bookkeeping and never the answer (issue #685): the rule must not be able to fail a tool mid-item,
+# because a read a child cannot get costs a turn and a stub that withholds what it asked for costs a wrong edit. A
+# ledger this process can neither read nor write — a directory where the file belongs — therefore leaves the result
+# exactly as the tool returned it, and the call still exits 0.
+case_repeat_aBrokenLedgerLeavesTheResultAsReturned() {
+  # files: tools/loop-cases.sh tools/pi-trim-result.mjs
+  local d file out status
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" ] \
+    || fail "nothing knows what a session already read: tools/pi-trim-result.mjs is not in the tree (issue #685)"
+  d=$(scratch)
+  file="$d/section.md"
+  { printf 'FIRST-LINE\n'; head -c 600 /dev/zero | tr '\0' 'w'; printf '\nLAST-LINE\n'; } > "$file"
+  mkdir -p "$d/ledger-dir"
+  out="$d/broken.txt"
+  node "$LOOP_PROJECT_ROOT/tools/pi-trim-result.mjs" --bound 8000 --tool ctx_read \
+    --path "$file" --turn 3 --ledger "$d/ledger-dir" < "$file" > "$out"
+  status=$?
+  assert_eq "0" "$status" "a ledger the process cannot read or write does not fail the read"
+  assert_eq "$(cat "$file")" "$(cat "$out")" "and the result is exactly what the tool returned"
   return 0
 }

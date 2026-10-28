@@ -78,6 +78,8 @@ SENSOR_CASES=(
   'workflow#theTickDeclaresItsWindow'
   'sensors#engineNamesNoProjectValue'
   'sensors#theDocumentedCredentialCoversEveryDeclaredRow'
+  'sensors#loopSpendRow'
+  'sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing'
 )
 
 sensor_cases() {
@@ -151,6 +153,8 @@ sensor_run_case() {
     'workflow#theTickDeclaresItsWindow') case_workflow_theTickDeclaresItsWindow ;;
     'sensors#engineNamesNoProjectValue') case_sensors_engineNamesNoProjectValue ;;
     'sensors#theDocumentedCredentialCoversEveryDeclaredRow') case_sensors_theDocumentedCredentialCoversEveryDeclaredRow ;;
+    'sensors#loopSpendRow') case_sensors_loopSpendRow ;;
+    'sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing') case_sensors_loopSpendReportsItsAbsenceWithoutFilingOrClosing ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -811,8 +815,15 @@ case_run_noBaselineFileWritten() {
 
   hits=$(grep -rn 'git commit\|git add' "$SENSORS_ENGINE" 2>/dev/null || true)
   assert_empty "$hits" "the engine never records a change of its own"
-  hits=$(grep -rln 'baseline\.json\|baseline\.tsv\|\.pi/' "$SENSORS_ENGINE" 2>/dev/null || true)
+  # The engine proper owns no side file: the measurement history is the tracker (design D8), and machine-local
+  # state is nothing it may reach for. A row's *command* is the project's side of that seam and may read a path
+  # this project declares — `build-duration` its timing record, `loop-spend` the loop's own archive — so this
+  # half names the engine's scripts, while the baseline half below still covers every command in the directory.
+  hits=$(grep -ln 'baseline\.json\|baseline\.tsv\|\.pi/' "$SENSORS_ENGINE/run.sh" "$SENSORS_ENGINE/lib.sh" \
+    "$SENSORS_ENGINE/guard.sh" "$SENSORS_ENGINE/report.sh" 2>/dev/null || true)
   assert_empty "$hits" "the engine never names a side file"
+  hits=$(grep -rln 'baseline\.json\|baseline\.tsv' "$SENSORS_ENGINE" 2>/dev/null || true)
+  assert_empty "$hits" "no row's command keeps a baseline side file either"
 }
 
 # The clear that finds no condition issue is the defect issue #257 named: the run wrote nothing, so the
@@ -2391,4 +2402,140 @@ case_sensors_theDocumentedCredentialCoversEveryDeclaredRow() {
         "$command calls 'gh $verb', and the documented scope does not name '$need'"
     done < <(grep -o 'gh [a-z][a-z-]*' "$SENSORS_REPO_ROOT/$command" 2>/dev/null | awk '{ print $2 }' | sort -u)
   done <<< "$(jq -r '.rows[].cmd' "$registry")"
+}
+
+# ----------------------------------------------------------------------------- 9. the spend row
+
+# One loop item's event stream in the shape `tools/pi-child-events.sh` keeps: a worker session whose turns read
+# the paths it is handed, one read per turn, the first turn carrying the item's day. The fixture is arithmetic
+# rather than a recording, so every share a case asserts is counted from the reads it names here.
+loop_item_stream() { # <file> <first-turn-epoch-ms> <path>…
+  local file="$1" ms="$2" id=0 path
+  shift 2
+  {
+    printf '{"type":"session","version":3,"id":"s1","timestamp":%s}\n' "$ms"
+    printf '{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"worker-prompt.md"}]}}\n'
+    for path in "$@"; do
+      id=$((id + 1)); ms=$((ms + 1000))
+      printf '{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":10,"cacheRead":17000,"cacheWrite":0,"cost":{"total":0}},"durationMs":10,"timestamp":%s,"content":[{"type":"toolCall","id":"c%s","name":"ctx_read","arguments":{"path":"%s"}}]},"toolResults":[{"toolCallId":"c%s","toolName":"ctx_read","content":[{"type":"text","text":"x"}]}]}\n' \
+        "$ms" "$id" "$path" "$id"
+    done
+  } > "$file"
+}
+
+# The spend row is one ratio, never a total: an item's price and the number of items a day carries move for
+# unrelated reasons, so a total fires on a quiet week and stays silent through a real regression. The share of
+# file reads that repeated a path the session already had is the number that moved while neither of those did.
+# Its count is `tools/loop-spend.py`'s own and its bound is the row's (issue #690).
+case_sensors_loopSpendRow() {
+  local dir row out findings status hits bound
+  row=$(jq -c '.rows[] | select(.id == "loop-spend")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no loop-spend row"
+  assert_eq "greater-than" "$(jq -r '.comparison' <<< "$row")" "the row fires above its bound"
+  assert_eq '["kind"]' "$(jq -c '.fingerprint.fields' <<< "$row")" "the condition's identity is the row's field"
+  assert_eq "improvement" "$(jq -r '.class' <<< "$row")" "the row files an improvement"
+  bound=$(jq -r '.threshold' <<< "$row")
+
+  # Four reads of one path: three of them a repeat of what the session already had, so the share is 75 %.
+  dir=$(scratch)
+  mkdir -p "$dir/archive/900"
+  loop_item_stream "$dir/archive/900/events.jsonl" "$(( $(date -u +%s) * 1000 ))" \
+    guidelines/A.md guidelines/A.md guidelines/A.md guidelines/A.md
+  out=$(cd "$SENSORS_REPO_ROOT" && SENSORS_ID=loop-spend SENSORS_ROOT="$SENSORS_REPO_ROOT" \
+    SENSORS_INPUT="$dir/archive" SENSORS_THRESHOLD="$bound" SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/loop-spend.sh" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the measurement runs: $out"
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"measurement":"75.0"' "the measurement is the share of reads that repeated one"
+  assert_contains "$findings" '"verdict":"violation"' "a share above the bound is that one condition"
+  assert_contains "$findings" '"kind":"duplicate-read-share"' "the condition's identity is the ratio's own"
+
+  # The bound is the row's, not the script's: raising it above the same archive's share turns the verdict over
+  # without touching the stream.
+  out=$(cd "$SENSORS_REPO_ROOT" && SENSORS_ID=loop-spend SENSORS_ROOT="$SENSORS_REPO_ROOT" \
+    SENSORS_INPUT="$dir/archive" SENSORS_THRESHOLD="$((bound + 20))" SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/loop-spend.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"measurement":"75.0"' "the same archive measures the same share"
+  assert_contains "$findings" '"verdict":"clear"' "a share inside the bound is no condition"
+  hits=$(grep -nE 'threshold=[0-9]|threshold="?[0-9]' "$SENSORS_ENGINE/metrics/loop-spend.sh" || true)
+  assert_empty "$hits" "the script holds no threshold constant"
+  assert_contains "$(cat "$SENSORS_ENGINE/metrics/loop-spend.sh")" 'SENSORS_THRESHOLD' \
+    "the bound comes from the row"
+
+  # An archive whose items all fall outside the window is a named absence, never a zero: a ratio of no reads is
+  # undefined, and a zero would read as the calmest possible week.
+  mkdir -p "$dir/old/901"
+  loop_item_stream "$dir/old/901/events.jsonl" "$(( ($(date -u +%s) - 30 * 86400) * 1000 ))" \
+    guidelines/A.md guidelines/A.md
+  out=$(cd "$SENSORS_REPO_ROOT" && SENSORS_ID=loop-spend SENSORS_ROOT="$SENSORS_REPO_ROOT" \
+    SENSORS_INPUT="$dir/old" SENSORS_THRESHOLD="$bound" SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/loop-spend.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"measurement":"no-items"' "an item outside the window is not measured: $out"
+  assert_not_contains "$findings" '75.0' "the window excludes the old item's reads"
+}
+
+# The archive is machine-local (`.pi/` is not committed), so an environment without it has nothing to read. That
+# is not "the check determined nothing": it is the state such an environment is in every run, and the third
+# outcome would keep the run red for a fact that says nothing about the loop. The row states the absence instead,
+# under an identity of its own — recorded on the row's record, and able to neither file a condition nor clear the
+# ratio's (issue #690).
+case_sensors_loopSpendReportsItsAbsenceWithoutFilingOrClosing() {
+  local dir log out findings status fp
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of kind duplicate-read-share)
+  # An open condition on the ratio, with the counters a run records: an absence must not reach it at all.
+  issues_fixture "$dir" "[$(issue_record 111 OPEN "" loop-spend \
+    "$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 1 -->\n<!-- violation-run: 1 -->\n<!-- clear-run: 0 -->' "$fp")")]"
+
+  # The runner's half comes first, because it is the property that matters: an absent archive neither files a
+  # condition nor reaches the open one — it is recorded on the row's record and nowhere else.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only loop-spend --apply --input "$dir/no-such-archive" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run over an absent archive succeeds: $out"
+  assert_eq "0" "$(condition_creates "$log")" "an absent archive files no condition"
+  assert_eq "1" "$(record_creates "$log")" "it is recorded on the row's record instead"
+  assert_eq "0" "$(recorded "$log" 'issue close')" "an absent archive closes nothing"
+  assert_eq "0" "$(recorded "$log" 'issue comment 111')" "it does not annotate the open condition"
+  assert_eq "0" "$(recorded "$log" 'issue edit 111')" "it does not move the open condition's counters"
+
+  findings=$(cd "$SENSORS_REPO_ROOT" && SENSORS_ID=loop-spend SENSORS_ROOT="$SENSORS_REPO_ROOT" \
+    SENSORS_INPUT="$dir/no-such-archive" SENSORS_THRESHOLD=60 SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/loop-spend.sh" 2>/dev/null)
+  assert_contains "$findings" '"measurement":"no-archive"' "no archive is named as the absence it is"
+  assert_contains "$findings" '"verdict":"clear"' "an absent stream reports no condition"
+  assert_contains "$findings" '"kind":"stream-absent"' "the absence carries an identity of its own"
+  assert_not_contains "$findings" "$fp" "the absence is not the ratio's identity"
+
+  # A stream that exists and cannot be read is a broken check, not an absence: that is the third outcome, and
+  # nothing may read it as a cleared condition. A directory where the stream should be is unreadable by
+  # construction, which is what a truncated or wrongly-shaped stream looks like to the tool.
+  mkdir -p "$dir/broken/900/events.jsonl"
+  findings=$(cd "$SENSORS_REPO_ROOT" && SENSORS_ID=loop-spend SENSORS_ROOT="$SENSORS_REPO_ROOT" \
+    SENSORS_INPUT="$dir/broken" SENSORS_THRESHOLD=60 SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/loop-spend.sh" 2>&1)
+  assert_contains "$(printf '%s\n' "$findings" | grep '^{' || true)" '"verdict":"error"' \
+    "a stream that cannot be read fails the check: $findings"
+
+  # Items in the window with no read to divide by: the ratio is undefined, and an undefined ratio is not 0 %.
+  mkdir -p "$dir/noread/902"
+  printf '%s\n' \
+    '{"type":"session","version":3,"id":"s1","timestamp":1792990800000}' \
+    '{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"worker-prompt.md"}]}}' \
+    '{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":10,"cacheRead":17000,"cacheWrite":0,"cost":{"total":0}},"durationMs":10,"timestamp":'"$(( $(date -u +%s) * 1000 ))"',"content":[]},"toolResults":[]}' \
+    > "$dir/noread/902/events.jsonl"
+  findings=$(cd "$SENSORS_REPO_ROOT" && SENSORS_ID=loop-spend SENSORS_ROOT="$SENSORS_REPO_ROOT" \
+    SENSORS_INPUT="$dir/noread" SENSORS_THRESHOLD=60 SENSORS_CONDITIONS='[]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/loop-spend.sh" 2>&1)
+  assert_contains "$(printf '%s\n' "$findings" | grep '^{' || true)" '"measurement":"no-reads"' \
+    "no read to divide by is a named absence, not a zero: $findings"
 }

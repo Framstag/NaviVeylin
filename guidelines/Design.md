@@ -350,6 +350,16 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   `InstalledMaps` — and produces `libosmscoutclientjava.jar`. Those overrides are Android ports:
   `HttpURLConnection` map downloads (no `java.net.http` desugaring), the debug-suffix library loading
   (`osmscout_client_java` → `osmscout_client_javad`), the `reloadBasemap` declaration, public constructors.
+- **Both provenances reach the app, and the dex says so.** The module compiles the overrides and the submodule's
+  client API into two classes directories, and the `jar` task joins them — but an Android consumer never reads that
+  jar: AGP dexes a project dependency from `main`'s `classesDirs` collection, so the split left the APK with no
+  `com.framstag.libosmscout.client` class and the app died at startup with `ClassNotFoundException: MapProvider`
+  (issue #691). The vendored directory is therefore one of `main`'s classes directories
+  (`sourceSets["main"].output.classesDirs`, not `output.dir(...)`, which does not reach the consumer), the
+  provenance rows of the coverage report stay one directory each, and `:app:checkClientApiInDex<Variant>` — buildSrc
+  `com.naviveylin.build.dex`, on every `assemble`/`bundle` — fails when the merged dex defines no class for a
+  `*.java` file under either source root. A referenced type is not a defined one: the gate reads `class_defs`, not
+  the bytes.
 - **The two sides are compared, and their difference is recorded.** For those five files the override is the
   only Java copy the APK sees, so a native declared on one side only reaches the other as a `NoSuchMethodError`
   at the first call — no compiler error, no failing test (issue #174, the drift class §119 fixed by hand). A

@@ -53,6 +53,15 @@ dependencies {
     testImplementation(sourceSets["vendored"].output)
 }
 
+// The split must not cost a consumer the vendored half. The jar carries both provenances, but an Android consumer
+// does not read the jar: AGP dexes a project dependency from the source set's *classes directories* (`main`'s
+// alone), so the app packaged the six overrides and started with `ClassNotFoundException:
+// com.framstag.libosmscout.client.MapProvider` (issue #691). The vendored classes directory is therefore a classes
+// directory of `main` too — `SourceSetOutput.dir(...)` is not enough, it feeds `output.files` and not the
+// `classesDirs` collection the Android consumer resolves.
+(sourceSets["main"].output.classesDirs as ConfigurableFileCollection)
+    .from(sourceSets["vendored"].output.classesDirs)
+
 tasks.named<Jar>("jar") {
     from(sourceSets["vendored"].output)
     archiveBaseName.set("libosmscoutclientjava")
@@ -93,7 +102,13 @@ val jacocoExec = layout.buildDirectory.file("jacoco/test.exec")
 
 tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.named("test"))
-    classDirectories.setFrom(files(sourceSets["main"].output.classesDirs))
+    // The override compile's own directory, not `main`'s `classesDirs` collection: that collection also carries the
+    // vendored directory, because the Android consumer only sees `classesDirs` (issue #691) — and this row measures
+    // the module's own code alone (#678).
+    classDirectories.setFrom(
+        tasks.named<org.gradle.api.tasks.compile.JavaCompile>("compileJava")
+            .flatMap { it.destinationDirectory }
+    )
     sourceDirectories.setFrom(files(sourceSets["main"].allSource.srcDirs))
     executionData.setFrom(jacocoExec)
     reports {

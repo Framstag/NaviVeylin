@@ -552,6 +552,33 @@ val checkNativeParity = tasks.register("checkNativeParity") {
 }
 tasks.named("preBuild") { dependsOn(checkNativeParity) }
 
+// ── The JNI bridge's Java classes in the packaged dex ──────────────────
+// `:osmscout-client-java` compiles two provenances into two classes directories — the six local overrides and the
+// submodule's client API beside them (#678) — and an Android consumer dexes `main`'s classes directories, not the
+// jar that carries both. The packaged APK therefore had no `com.framstag.libosmscout.client` class at all and died
+// at startup with `ClassNotFoundException: MapProvider`: a green build, a complete jar, no app (issue #691). Nothing
+// in the build read the dex, so this gate does, once per variant, beside the packaging it guards — the required
+// classes come from the two source roots, so it cannot shrink with the defect. The reader and its report live in
+// buildSrc (`com.naviveylin.build.dex`), and each variant's `assemble`/`bundle` depends on its own gate.
+val clientApiDexVariants = listOf("MobileDebug", "MobileRelease", "AutomotiveDebug", "AutomotiveRelease")
+clientApiDexVariants.forEach { variant ->
+    val dexVariant = variant.replaceFirstChar { it.lowercase() }
+    val mergeTasks = setOf("dexBuilder$variant", "mergeProjectDex$variant", "mergeLibDex$variant", "mergeExtDex$variant")
+    val checkClientApiInDex = tasks.register<com.naviveylin.build.dex.CheckClientApiInDex>("checkClientApiInDex$variant") {
+        // The variant's whole merged-dex tree, so a merge task added later is scanned without naming it here.
+        dexArchives.from(layout.buildDirectory.dir("intermediates/dex/$dexVariant"))
+        dependsOn(tasks.matching { it.name in mergeTasks })
+        submoduleSourceRoot.set(
+            rootProject.layout.projectDirectory.dir(
+                "app/src/main/cpp/libosmscout/libosmscout-client-java/java"
+            )
+        )
+        overrideSourceRoot.set(rootProject.layout.projectDirectory.dir("osmscout-client-java/src/main/java"))
+    }
+    tasks.matching { it.name == "assemble$variant" || it.name == "bundle$variant" }
+        .configureEach { dependsOn(checkClientApiInDex) }
+}
+
 // Stylesheets are sourced from the libosmscout submodule at build time. Copy the
 // submodule stylesheet directory into a generated assets root so the APK packages
 // exactly the current submodule state — "stylesheets/..." in the APK, matching the

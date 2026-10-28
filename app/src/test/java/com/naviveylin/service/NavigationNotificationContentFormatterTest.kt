@@ -86,7 +86,8 @@ class NavigationNotificationContentFormatterTest {
     @Test
     fun zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown() {
         // A vehicle standing on the announced node has a known distance of zero — the one moment
-        // the wording matters most. A missing step or a NaN distance is unknown and keeps "--"
+        // the wording matters most. A step whose progress the engine has not published, or a NaN
+        // distance, is unknown and keeps "--" on both surfaces
         // (spec: navigation-ongoing-notification — A known zero distance is not an unknown distance).
         val zeroStep = stepOf(0.0, TurnType.LEFT, "Hauptstrasse")
         val zeroState = NavigationState(
@@ -113,21 +114,58 @@ class NavigationNotificationContentFormatterTest {
         )
         assertEquals("0 m · 14:32", hint?.text)
 
+        // A step whose progress the engine has not published keeps `remainingDistance` null: unknown,
+        // never a known zero, on either surface.
+        val absentState = NavigationState(
+            isNavigating = true,
+            nextStep = stepOf(0.0, TurnType.LEFT, "Hauptstrasse").apply { remainingDistance = null },
+            remainingDistance = 12_400.0,
+            etaMillis = fakeNow + 30 * 60_000
+        )
+        assertUnknownOnBothSurfaces("an absent distance", absentState)
+
         val unknownState = NavigationState(
             isNavigating = true,
             nextStep = stepOf(Double.NaN, TurnType.LEFT, "Hauptstrasse"),
             remainingDistance = 12_400.0,
             etaMillis = fakeNow + 30 * 60_000
         )
-        val unknownContent = NavigationNotificationContentFormatter.format(
-            unknownState,
+        assertUnknownOnBothSurfaces("a NaN distance", unknownState)
+
+        // A passed manoeuvre's rounding artefact is a known zero, never a negative distance.
+        val behindState = zeroState.copy(nextStep = stepOf(-0.4, TurnType.LEFT, "Hauptstrasse"))
+        val behindContent = NavigationNotificationContentFormatter.format(
+            behindState,
             resolver = resolver, freeDrivingActive = false, etaClock = { "14:32" }, locale = Locale.US
         )
-        val unknownStatsLine = unknownContent.bigTextLines.firstOrNull { it.contains("arrive") }
-            ?: error("no stats line in ${unknownContent.bigTextLines}")
+        val behindStatsLine = behindContent.bigTextLines.firstOrNull { it.contains("arrive") }
+            ?: error("no stats line in ${behindContent.bigTextLines}")
         assertTrue(
-            "an unknown distance keeps --: $unknownStatsLine",
-            unknownStatsLine.contains("in --")
+            "a passed manoeuvre clamps to a known zero, never a negative distance: $behindStatsLine",
+            behindStatsLine.contains("in 0 m")
+        )
+    }
+
+    /** The unknown half of the case, asserted where it is read: the phone stats line and the car hint. */
+    private fun assertUnknownOnBothSurfaces(label: String, state: NavigationState) {
+        val content = NavigationNotificationContentFormatter.format(
+            state,
+            resolver = resolver, freeDrivingActive = false, etaClock = { "14:32" }, locale = Locale.US
+        )
+        val statsLine = content.bigTextLines.firstOrNull { it.contains("arrive") }
+            ?: error("no stats line in ${content.bigTextLines}")
+        assertTrue(
+            "$label keeps -- on the phone stats line: $statsLine",
+            statsLine.contains("in --")
+        )
+
+        val hint = NavigationNotificationContentFormatter.carHint(
+            state, resolver, etaClock = { "14:32" }, locale = Locale.US
+        )
+        assertEquals(
+            "$label keeps -- in the car hint",
+            "-- · 14:32",
+            hint?.text
         )
     }
 

@@ -928,6 +928,21 @@ nobody took. The number, the unit and the scope are the owner's recorded decisio
 level, C++ out); the bound is the row's, so retuning it is one edit in `sensors.json`. It bounds a *file* and not a class: a file carrying
 several classes is one condition here, and separating them needs a counter this tooling does not have.
 
+One row watches **what the loop's own children cost**, because nothing did: `loop-spend` runs
+`tools/loop-spend.py --quiet` over `.pi/issue-loop/items` and measures the **duplicate-read share** of the reads
+it counts — the share of a session's file reads that repeat a path it already had, 2 847 of 6 021 (47 %) over the
+archive on 2026-10-28 — and files when it stays past 60 % for two consecutive days. It is a *ratio* and never a
+total: items/day fell 32 → 5 and returned to 31 while per-item cost went 10.65 → 18.96 → 10.24 Mtok on the same
+days, so a total fires on a quiet week and stays silent through a regression, while the share of counted reads
+cannot move with how many items a day carried. The bound sits six points above the measured ceiling (41 → 48 → 54 %
+per day) so it fires when the archive passes its own worst day rather than at it. The archive is machine-local and
+gitignored, so the pipeline has none: an absence is a **`clear` under a second identity** (`kind=stream-absent`,
+with `no-archive`, `no-items` or `no-reads` as the measurement) and therefore lands on the row's record issue and
+nowhere else — it can neither file a false condition nor clear a real one — while a stream that exists and cannot be
+read is still an `error`, so a tool whose output shape changed fails loudly instead of reporting a calm zero. What
+it cannot do is decide whether a share that rose is a regression or a week of harness work; that is the reader's
+judgement, on the comment the row leaves.
+
 ## 10. Portability
 
 The mechanism is meant to be used in another project, so the boundary between **the engine** and **the

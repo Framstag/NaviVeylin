@@ -233,7 +233,12 @@ Source: specs `navigation-ongoing-notification` (changes
   next-turn display, the distance-to-turn, arrival/remaining time and remaining
   distance, and the "Stop Navigation" action (same label as the on-screen stop
   button, §1). The car hint shows the instruction, the distance-to-turn with the
-  arrival time, the manoeuvre arrow as large icon and the same stop action.
+  arrival time, the manoeuvre arrow as large icon and the same stop action. The
+  distance-to-turn renders a **known zero** as `0 m`, while a distance that is
+  absent or `NaN` renders `--` — the phone notification's stats line and the car
+  hint's secondary text follow the same rule (spec
+  `navigation-ongoing-notification` — A known zero distance is not an unknown
+  distance).
 - FREE_DRIVE content: the current street/ref (same text as the free-driving
   view's street label) and the current speed; no destination-dependent guidance
   and no stop action. The road and speed come from the **shared free-driving

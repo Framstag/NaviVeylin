@@ -1,20 +1,24 @@
-gate — ./tools/loop/gate.sh, run once from the change root on 2026-10-29 (worktree
-/home/tim/projects/NaviVeylin/.pi/worktrees/loop, base 821d9fc1), after the fix and before the archive move.
+gate — ./tools/loop/gate.sh, run once from the repository root on 2026-10-29 15:47-15:57 CEST (base main,
+HEAD fee726a0 plus the round-2 work left uncommitted), after the round-2 fix and before the archive move.
 
-LOOP-GATE: tests=676 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 311s,
-tools/loop-selftest.sh --from-git 42d3e0004206ebfee39e11942db0bef375e1909e 541s, bash tools/loop-mutations.sh
---check 2s, tools/loop-mutations-selftest.sh 390s, tools/check-compose-sandbox-rule.sh 1s,
-tools/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 4s,
-tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 1s, tools/mutate.sh --mutations
-tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s,
-tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s,
-tools/check-portability.sh 1s, tools/check-portability-selftest.sh 28s, tools/mutate-selftest.sh 1s,
-tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 90s,
-tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations
-tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s,
-tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations
-tools/decision-question-mutations.json --list 0s)
+LOOP-GATE: tests=6 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 397s,
+bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 0s,
+tools/check-doc-routes-selftest.sh 2s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s,
+tools/check-openspec-hygiene-selftest.sh 0s)
 
-After the archive move, one cheap check re-ran over the merged delta (it is the only file the gate had not
-seen in its final place): `bash tools/check-openspec-hygiene.sh` -> "OpenSpec artifacts are consistent: 0 open
-change(s) carry task markers ... and every capability spec states its Purpose." (exit 0).
+The 6 is the tool half only: the gate derives a suite's case count from a `all N cases passed` summary line and
+Gradle prints none, so the gradle step's tally carries `tests="0"` (the same shape round 1 recorded). The Gradle
+half of this run, summed from its own JUnit XML on the same tree, is tests=6070 failures=0 errors=0 across
+`:app:testMobileDebugUnitTest` 2138, `:app:testAutomotiveDebugUnitTest` 2138, `:auto:testDebugUnitTest` 887,
+`:core:testDebugUnitTest` 643, `:osmscout-client-java:test` 112, `:buildSrc:test` 152; the gradle step printed
+`BUILD SUCCESSFUL in 6m 36s`. The tallies of the eight steps the gate ran are `evidence/gate/`; the round-1
+run's are kept as `evidence/gate-round-1*`, because round 2 changed compiled sources and tests again.
+
+The plan the gate printed for this tree (`./tools/loop/gate.sh --plan`) named exactly those eight steps: the
+changed paths are `auto/src/**` (a module source tree), `guidelines/MapRendering.md` and the change's own `*.md`
+files, and `openspec/**`.
+
+After the archive move, one cheap check re-ran over the merged delta and the capability spec it rewrites:
+`bash tools/check-openspec-hygiene.sh` -> exit 0, and `openspec validate fix-car-style-switch-costs-one-load
+--strict` -> "Change 'fix-car-style-switch-costs-one-load' is valid" (run before the move).

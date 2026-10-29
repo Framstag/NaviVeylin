@@ -270,6 +270,66 @@ class MapScreenTest {
         destroy(screen)
     }
 
+    @Test
+    fun theFirstFlagPushWaitsForTheDatabasesAndLandsOnce() = runTest(mainDispatcherRule.dispatcher) {
+        // A `daylight` push from the warmup window is dropped by the native side without a signal
+        // (`DBThread::SetStyleFlag` returns false while the database set is not initialized and the JNI
+        // discards it), so an earlier car screen re-pushed the flag after every style load it performed —
+        // which made a style switch cost a second load of the whole stylesheet set. The push is deferred
+        // instead: a style load succeeds only once every database is open
+        // (`DBInstance::LoadStyle`), so the flag is applied exactly once, when that proof arrives, and a
+        // later load re-applies nothing (spec: `map-styles` — A style switch loads the stylesheet set
+        // once; guideline `MapRendering.md` §15 "Startup race").
+        val host = SessionCarSurfaceHost()
+        every { entryPoint.autoSurfaceHost() } returns host
+        val settings = mockk<AutoSettingsProvider>()
+        every { entryPoint.autoSettingsProvider() } returns settings
+        coEvery { settings.load() } returns AutoSettings(styleSheet = "standard")
+        val position = MutableStateFlow<AutoPosition?>(null)
+        every { entryPoint.autoLocationProvider() } returns mockk<AutoLocationProvider>().apply {
+            every { position() } returns position
+        }
+        val fake = client as FakeMapScreenClient
+        // The databases are still closed during warmup: the native load fails, which is what the
+        // stylesheet load reports until every database is open.
+        fake.styleSheetLoadResult = false
+        val screen = MapScreen(
+            carContext,
+            navigationViewModel,
+            resolvedDark = MutableStateFlow(false),
+            backgroundDispatcher = mainDispatcherRule.dispatcher
+        )
+        val lifecycle = screen.lifecycle as LifecycleRegistry
+        lifecycle.currentState = Lifecycle.State.CREATED
+        lifecycle.currentState = Lifecycle.State.STARTED
+        advanceUntilIdle()
+
+        assertTrue(
+            "the style load is attempted while the databases are closed, got ${fake.styleSheetLoads}",
+            fake.styleSheetLoads.isNotEmpty()
+        )
+        assertEquals(
+            "no flag is pushed while the native side would drop it silently, got ${fake.styleSheetFlags}",
+            0,
+            fake.styleSheetFlags.count { it.first == "daylight" }
+        )
+
+        // Warmup opened the databases: the next settings re-read loads the style, and that load is the
+        // proof the flag can land.
+        fake.styleSheetLoadResult = true
+        ShadowSystemClock.advanceBy(Duration.ofSeconds(6))
+        position.value = AutoPosition(lat = 51.5, lon = 7.4, bearing = 90.0, speedKmH = 50.0)
+        advanceUntilIdle()
+
+        assertEquals(
+            "the flag lands once the databases are open — and only then, got ${fake.styleSheetFlags}",
+            1,
+            fake.styleSheetFlags.count { it.first == "daylight" && it.second }
+        )
+
+        destroy(screen)
+    }
+
     /**
      * Count the daylight-flag pushes with [value], bounded in real time: the collector applies
      * the request on a real background dispatcher, which the test scheduler cannot drain, and the

@@ -77,14 +77,34 @@ would let that re-application go"). Both are rewritten in this change.
 
 - `MapScreen.kt` / `NavigationScreen.kt`: the settings re-read applies the style and nothing else — no
   `pushedForStyleSheet`, no `styleChanged`, no forced flag push after the load.
+- `MapScreen.kt` / `NavigationScreen.kt`: a `databasesReady` flag holds the first `daylight` push back until a
+  style load succeeded — that load is the DB-open proof — and applies it there, once (round 2; see below).
 - `CarDaylightApplier`, `RendererGate.DaylightPush` and the three car screens' `pushDark`: the `force`
   parameter is removed with its last caller, so the applier keys on the `daylight` value alone (the phone's
   key minus the style name, because the native load already carries the flag).
 - `guidelines/MapRendering.md` §15: the force-after-a-load sentence is replaced by the native fact (with its
-  `file:line`), and the warmup bullet is corrected to say what actually re-pushes the flag once the renderer
-  exists (the readiness push, which was skipped — not dropped — while there was no renderer).
-- `openspec/specs/map-styles/spec.md`: one added requirement, "A style switch loads the stylesheet set once",
-  with one scenario naming the new case.
+  `file:line`), and the warmup bullet states what re-applies the flag once the databases are open (the deferred
+  first push, not a repeat after a load).
+- `openspec/specs/map-styles/spec.md`: one modified requirement, "A style switch loads the stylesheet set
+  once", with two scenarios naming the two cases.
+
+## Round 2 — the warmup window the first draft left open
+
+Round 1's review blocked the draft on one thing: it deleted the only re-application that followed a *proof* that
+the databases were open, and claimed in §15 that none was needed. The claim was wrong. A car map screen can
+exist before the databases are open (`NavigationSession.kt:373-379` serves the root screen without waiting for
+warmup, and `RootScreen.kt:127` pushes `MapScreen` with no warmup gate), the JNI discards the dropped push's
+result (`OSMScoutClient.java:102` is `void` while `DBThread::SetStyleFlag` returns false before initialization,
+`DBThread.cpp:422-424`), and the deleted force did fire on a **successful** load — which `DBInstance::LoadStyle`
+only reports while every database is open (`DBInstance.cpp:35-37`).
+
+The round-2 fix keeps what the change was for and pays that: instead of a re-push after every load, the first
+flag application is **deferred** behind the same proof. `databasesReady` starts false, `pushDark` returns while
+it is false, and the style apply's success branch — which already exists — sets it and calls `pushDark()` once.
+The value dedupe does the rest: a style switch loads the style, finds the flag already applied and pushes
+nothing. Net cost per startup stays one load of the set (the push that used to be dropped is now not attempted),
+a switch stays one load, and the warmup window has no lost push. `FreeDrivingScreen` applies no style of its own
+and so has no such proof; it is unchanged and the gap it keeps is filed as issue #705.
 
 ## Impact
 
@@ -92,7 +112,7 @@ would let that re-application go"). Both are rewritten in this change.
   classes. No native change, no new dependency, no public API.
 - Behaviour: a user-initiated car style switch costs one load of the stylesheet set instead of two, and the
   night variant still reaches the map (the load installs it). The day/night *change* path is untouched.
-- Risk, stated: a flag push silently dropped while the database is not yet open (`SetStyleFlag` is a no-op until
-  a DB is open, `guidelines/MapRendering.md:845-851`) is not retried by this change. The `force` after a style
-  load never was that retry either — it fired on a settings read, not on a DB-ready event — so the change
-  neither adds nor removes a retry for that window.
+- Risk, stated: a car screen that never loads a style successfully applies no flag — a stylesheet the native
+  side rejects fails the DB-open proof too, so a session that only ever has a broken stylesheet draws no
+  day/night variant. The map has no style in that state, the failure is already surfaced through the car's
+  style-load notice, and a later successful load (a different style picked in the settings) applies the flag.

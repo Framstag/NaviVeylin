@@ -1,29 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The sum of the tallies beside it (evidence/gate/*.xml), one line per suite: the gate round this
+<!-- The sum of the tallies beside it (evidence/gate/*.xml), one line per suite: the round-2 gate this
      change ran, and the number its LOOP-GATE line states (evidence/gate.txt). Derived from the gate's
-     own tallies, never invented. -->
-<testsuites tests="676" failures="0" errors="0" skipped="0" time="1373">
+     own tallies, never invented. The Gradle step's tally is the gate's: `tests="0"`, because the gate
+     derives a count from a `all N cases passed` summary line and Gradle prints none — the run's own
+     JUnit XML sums to 6070 cases and 0 failures, quoted in gate.txt. -->
+<testsuites tests="6" failures="0" errors="0" skipped="0" time="404">
   <testsuite name="bash_tools_gen-feature-list.sh_--check-classification.xml" tests="0" failures="0" errors="0" time="4"/>
-  <testsuite name="bash_tools_loop-mutations.sh_--check.xml" tests="202" failures="0" errors="0" time="2"/>
-  <testsuite name="gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml" tests="0" failures="0" errors="0" time="311"/>
-  <testsuite name="tools_check-compose-sandbox-rule-selftest.sh.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_check-compose-sandbox-rule.sh.xml" tests="0" failures="0" errors="0" time="1"/>
-  <testsuite name="tools_check-doc-routes-selftest.sh.xml" tests="0" failures="0" errors="0" time="1"/>
-  <testsuite name="tools_check-doc-routes.sh.xml" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml" tests="0" failures="0" errors="0" time="397"/>
+  <testsuite name="tools_check-doc-routes-selftest.sh.xml" tests="0" failures="0" errors="0" time="2"/>
+  <testsuite name="tools_check-doc-routes.sh.xml" tests="0" failures="0" errors="0" time="0"/>
   <testsuite name="tools_check-openspec-hygiene-selftest.sh.xml" tests="6" failures="0" errors="0" time="0"/>
   <testsuite name="tools_check-openspec-hygiene.sh.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_check-portability-selftest.sh.xml" tests="29" failures="0" errors="0" time="28"/>
-  <testsuite name="tools_check-portability.sh.xml" tests="0" failures="0" errors="0" time="1"/>
-  <testsuite name="tools_check-todo-references.sh.xml" tests="0" failures="0" errors="0" time="2"/>
-  <testsuite name="tools_issue-tooling-selftest.sh.xml" tests="128" failures="0" errors="0" time="90"/>
-  <testsuite name="tools_loop-mutations-selftest.sh.xml" tests="34" failures="0" errors="0" time="390"/>
-  <testsuite name="tools_loop-selftest.sh_--from-git_42d3e0004206ebfee39e11942db0bef375e1909e.xml" tests="277" failures="0" errors="0" time="541"/>
-  <testsuite name="tools_mutate-selftest.sh.xml" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="tools_check-todo-references.sh.xml" tests="0" failures="0" errors="0" time="1"/>
   <testsuite name="tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml" tests="0" failures="0" errors="0" time="0"/>
 </testsuites>

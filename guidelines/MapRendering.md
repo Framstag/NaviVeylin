@@ -840,16 +840,21 @@ car Surface:
   dedupes the push **by value**; `invalidateStyle()` (blit bypass + full render) re-renders
   so the stale-variant overrun buffer is never blitted. Templates are host-rendered and
   follow the host automatically — only the app-drawn surface needs this.
-- **Startup race (both variants)**: `SetStyleFlag` is a silent no-op until a DB is
-  open, so a flag push attempted while the DB is still initializing (warmup) is lost.
-  The flag MUST be re-pushed once the DB is ready: phone re-pushes on the first rendered
-  frame (`stylePushedToNative` in `MapCanvasViewModel`); on AA the pre-ready push never
-  reaches the native side at all — `pushDark` returns while there is no renderer — so
-  the first push after the renderer is published is the flag's first application, and no
-  forced re-push is needed for it. Forbidding a re-application on every settings re-read
-  is what change `fix-aaos-host-crash` (design D5) established: a bare `reset()` there
-  pushed a flag, reloaded the variant and forced a full render every few seconds for
-  nothing.
+- **Startup race (both variants)**: `SetStyleFlag` is a silent no-op until every database is
+  open — `DBThread::SetStyleFlag` returns false while the set is not initialized
+  (`DBThread.cpp:422-424`) and the JNI discards that result, so the app never learns that its
+  push was dropped. The flag MUST therefore be applied once the DB is ready, and each variant
+  has its own proof of readiness: the phone re-pushes on the first rendered frame
+  (`stylePushedToNative` in `MapCanvasViewModel`); on AA a style load is the proof — a load
+  succeeds only once every database is open (`DBInstance::LoadStyle` refuses a closed one,
+  `DBInstance.cpp:35-37`), so `MapScreen`/`NavigationScreen` hold the flag back
+  (`databasesReady`) until a load succeeded and apply it then, once. A push from before that
+  moment is not attempted at all, which is why no re-application follows a later load.
+  Deferring is not the same as re-applying on every pass: forbidding the latter is what change
+  `fix-aaos-host-crash` (design D5) established — a bare `reset()` on each settings re-read
+  pushed a flag, reloaded the variant and forced a full render every few seconds for nothing.
+  `FreeDrivingScreen` applies no style of its own and so has no such proof: it pushes without
+  one, and a warmup-dropped push is not retried there (unchanged by this change; issue #705).
 - **Periodic work bound (Android Auto)**: the same change bounds the follow-mode
   full-render request — no request while a full render is in flight, and the interval is
   `max(200 ms, the last measured render duration)`. On the automotive AVD a full render
@@ -873,7 +878,9 @@ car Surface:
   and `DBThread::LoadStyleInternal` stores them for the new style and its basemap
   (`.../libosmscout-client/src/osmscoutclient/DBThread.cpp:455-460`) and installs them before the parse
   (`DBThread.cpp:366-369`). That is the native check `TODO.md` §120 asked for, which is why the car's
-  re-application after a switch is gone (change `fix-car-style-switch-costs-one-load`). The dedupe is
+  re-application after a switch is gone (change `fix-car-style-switch-costs-one-load`); the one
+  application it still makes is the first one after the DB-open proof (the `daylight` bullet above), not a
+  repeat after a load. The dedupe is
   app-side only: no native accessor exposes the installed pair, and the app is its only writer
   (`getActiveStyleSheet()` / `wasLastStyleLoadSuccessful()` report the outcome).
 

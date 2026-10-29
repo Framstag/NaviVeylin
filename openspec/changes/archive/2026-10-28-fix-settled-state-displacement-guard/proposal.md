@@ -33,7 +33,8 @@ and `<item>/settled-displacement-red.xml`.
 
 **The single fix** — one guard, in the same home as the scan it qualifies, and one flag that names the
 transition. `tools/issues/lib.sh` gains `issues_settled_statuses` (the profile's `roles.settledStatuses`, read
-once) and `issues_status_settled_displaced` (the settled subset of a write's displacement);
+once) and `issues_status_settled_guard` (the settled subset of a write's displacement,
+refused unless the call names the transition);
 `tools/issues/update.sh` refuses such a write with exit 3 and `status-settled`, naming the value it would have
 displaced, unless the call passes the new `--displace-settled`, and on the write that does pass it the call
 names the settled value it removed. The two writers whose *purpose* is the transition name it:
@@ -55,15 +56,16 @@ about the item's premise and a hold is a claim about a run's capacity. The chang
 
 surface: 2 cases added, 0 rewritten, 1 case file realigned, 3 writers and 1 profile reader edited, 1 guideline
 section and 1 spec requirement added — `grep -rln 'issues_status_displaced\|settledStatuses' tools/issues/
-tools/*-cases.sh tools/tooling.json guidelines/ openspec/specs/` (8 files on HEAD; the rule is asserted by 15
+tools/*-cases.sh tools/tooling.json guidelines/ openspec/specs/` (10 files, re-measured on the archived tree,
+2026-10-28; the rule is asserted by 15
 `status` add/remove assertions in `tools/issue-tooling-cases.sh`, `grep -c "assert_contains.*--\(add\|remove\)-label status/"
 tools/issue-tooling-cases.sh`).
 
 ## What changes
 
 - `tools/issues/lib.sh` — two helpers beside `issues_status_displaced`: `issues_settled_statuses` and
-  `issues_status_settled_displaced`; the refusal itself is `issues_status_settled_displaced` plus the caller's
-  `named` argument.
+  `issues_status_settled_guard`; the refusal is the guard's own `named` argument, and the settled labels it
+  found are left in `ISSUES_SETTLED_DISPLACED` for the caller to report.
 - `tools/issues/update.sh` — `--displace-settled`; the refusal (`status-settled`, exit 3) before the write; the
   report of the settled value the write removes; the usage line and header comment.
 - `tools/issues/close.sh` — passes `--displace-settled` (its closure is the transition).

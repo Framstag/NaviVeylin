@@ -107,6 +107,11 @@ done < <(issues_status_displaced "$issue" "$status_label" "$status_prefix")
 # the one it means to remove. The guard is the same one `update.sh` applies to every routine writer (#684); this
 # path says `named` because the verb is the transition, not because the check is weaker.
 issues_status_settled_guard "$number" 1 "${remove_labels[@]}"
+# The guard fills `ISSUES_SETTLED_DISPLACED` with the settled values this write removes, so the report below can
+# name them: a reopen is the one verb whose own purpose is that transition, and a reader of its output must see
+# the claim that moved, not only that the call was allowed to move it (#684, round 1).
+settled_removed=""
+[ "${#ISSUES_SETTLED_DISPLACED[@]}" -eq 0 ] || settled_removed="${ISSUES_SETTLED_DISPLACED[*]}"
 
 body_tmp=$(mktemp) || issues_die "reopen: cannot create a temporary file"
 trap 'rm -f "$body_tmp"' EXIT
@@ -123,8 +128,15 @@ gh issue reopen "$number" >/dev/null || issues_die "reopen: gh could not reopen 
 
 if [ "$json" -eq 1 ]; then
   jq -n --argjson issue "$number" --argjson occurrence "$occurrence" --arg status "$status_label" \
-    '{reopened: true, outcome: "reopened", issue: $issue, occurrence: $occurrence, status: $status}'
+    --arg removed "$settled_removed" \
+    '{reopened: true, outcome: "reopened", issue: $issue, occurrence: $occurrence, status: $status,
+      removed: ($removed | if . == "" then [] else split(" ") end)}'
 else
-  printf 'reopened #%s (occurrence %s, %s)\n' "$number" "$occurrence" "$status_label"
+  # The settled value it removed is a clause of the same line rather than a line of its own: every existing
+  # reader matches the `reopened #N (occurrence X, ` prefix (`tools/sensor-cases.sh`), and a settled state that
+  # went unmentioned is the defect this item is about.
+  printf 'reopened #%s (occurrence %s, %s' "$number" "$occurrence" "$status_label"
+  [ -z "$settled_removed" ] || printf ', removed %s' "$settled_removed"
+  printf ')\n'
 fi
 exit "$ISSUES_EXIT_OK"

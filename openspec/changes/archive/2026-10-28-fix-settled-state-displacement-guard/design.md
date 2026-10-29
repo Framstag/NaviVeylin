@@ -31,7 +31,9 @@ The meaning the scan lacks is added where the scan lives, so both writers keep o
 - `tools/issues/reopen.sh` — calls the guard with `named=1` on its own write path (`reopen.sh:96-115`). The
   verb itself is the named transition: it may only reverse a closure recorded `completed`
   (`reopen.sh:73-86`, `closure-not-reopenable`) and it carries the returning measurement, so the state it
-  displaces is the completed fix, deliberately.
+  displaces is the completed fix, deliberately. It passes the guard's `named` argument rather than the flag,
+  and it reports the state it returns to (`reopened #N (occurrence X, status/open)`): naming the *removed*
+  settled value is the flag-bearing routine write's obligation, which is where the requirement scopes it.
 
 Nothing else moves: the pre-screen's settled rule, the resolver's restore (#681), the one-state rule, the
 replacement report and every write that displaces a non-settled value are unchanged.
@@ -76,11 +78,13 @@ replacement report and every write that displaces a non-settled value are unchan
 
 - The red case (`update#refusesToDisplaceASettledState`) is green, and the regression case for the closure
   (`close#namesTheSettledStateItDisplaces`) proves the deliberate writers still land.
-- The suites the pathspec owes: `tools/issue-tooling-selftest.sh` (the whole issue tooling),
-  `tools/check-portability.sh` + its self-test (the guard names no project value), `tools/issues/check-metadata.sh`,
-  the mutation lists, the documentation checks (`check-doc-routes`, `check-todo-references`,
-  `check-openspec-hygiene`, `gen-feature-list --check-classification`) — through the project's one gate,
-  `./tools/loop/gate.sh`, run once.
+- The suites and checks the pathspec owes, which the map states and `./tools/loop/measure.sh` prints before
+  the run: `tools/issue-tooling-selftest.sh` (the whole issue tooling), `tools/check-portability.sh` + its
+  self-test (the guard names no project value), `tools/issues/check-metadata.sh`, the mutation lists, and the
+  documentation checks — `check-doc-routes`, `check-todo-references`, `check-openspec-hygiene` +
+  `check-openspec-hygiene-selftest`, `gen-feature-list --check-classification` — through the project's one
+  gate, `./tools/loop/gate.sh`, run once on the archived tree, so the `openspec/` pathspec that owes the last
+  three is in the run rather than landing after it.
 - Revert-check: one mutation in `tools/status-mutations.json` — the guard's `named` branch forced open — with
   `update#refusesToDisplaceASettledState` as the case that must go red.
 - No device or screen is involved: the change is tooling.

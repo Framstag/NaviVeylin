@@ -9,9 +9,10 @@
       ("a hold over a settled state is refused: … expected '3', got '0'"), recorded as
       `evidence/settled-displacement-red.xml` (`tests="1" failures="1" errors="0"`, 2026-10-28T19:45:44Z).
 - [x] 1.2 `close#namesTheSettledStateItDisplaces` in the same file: a not-planned closure of an item carrying
-      `status/fixed-by`. This one is green on HEAD by construction (the closure *is* the transition); it is the
-      regression case that turns red if the closure stops naming it. *Verify*:
-      `bash tools/issue-tooling-selftest.sh --case close#namesTheSettledStateItDisplaces` green.
+      `status/fixed-by`. It is the regression case for the closure's half of the rule — it turns red if the
+      closure stops being able to replace one settled state with the other, and its recorded green is the
+      gate's. *Verify*: `bash tools/issue-tooling-selftest.sh --case close#namesTheSettledStateItDisplaces`
+      green.
 
 ## 2. The guard
 
@@ -22,7 +23,8 @@
       *Verify*: `bash tools/issue-tooling-selftest.sh` green, 127 cases.
 - [x] 2.2 `tools/issues/update.sh`: `--displace-settled` (usage error without a state), the guard between the
       read and the write, the note naming the settled value it removed, the header comment and usage line.
-      *Verify*: task 1.1's case passes, and the suite's nine other state-write cases stay green.
+      *Verify*: task 1.1's case passes, and the suite's other state-write cases stay green
+      (`bash tools/issue-tooling-selftest.sh`, 127 cases).
 - [x] 2.3 `tools/issues/close.sh` passes `--displace-settled`; `tools/issues/reopen.sh` passes `named` to the
       same guard with the sentence that says why its verb is the transition.
       *Verify*: `bash tools/issue-tooling-selftest.sh` green; `bash tools/resolve-stale-selftest.sh` and
@@ -37,9 +39,10 @@
 ## 4. The revert-check
 
 - [x] 4.1 `tools/status-mutations.json` mutation `8.1`: the guard's `named` branch forced open, so every call
-      passes; `update#refusesToDisplaceASettledState` must go red. *Verify*:
-      `bash tools/mutate.sh --mutations tools/status-mutations.json --only 8.1` reports
-      `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0`; transcript in `evidence/revert-checks.md`.
+      passes; `update#refusesToDisplaceASettledState` must go red. *Verify*: the whole set,
+      `bash tools/mutate.sh --mutations tools/status-mutations.json`, reports
+      `mutate: 6 mutation(s) run, 6 went red and restored green, 0 problem(s)` (2026-10-28T19:59:13Z–19:59:31Z);
+      the red's own message and the restored tree's `PASS` are quoted in `evidence/revert-checks.md`.
 
 ## 5. The gate, once
 
@@ -59,3 +62,22 @@
 - [x] 6.3 Archive the change; confirm the directory exists under `openspec/changes/archive/` and the delta
       merged into `openspec/specs/issue-backlog/spec.md`.
 - [x] 6.4 The delta's every scenario names one case, and each of those cases is green in the recorded run.
+
+## 7. The review's corrections (round 2)
+
+- [x] 7.1 The gate did not cover the reviewed tree: it ran before the archive moved and before the delta merged
+      into `openspec/specs/issue-backlog/spec.md`, so the map's `openspec/*` rows were never selected. *Verify*:
+      `./tools/loop/gate.sh` re-run once on the archived tree — its `LOOP-GATE:` line and every per-suite tally
+      in `evidence/gate.md`, whose step list carries `tools/check-openspec-hygiene.sh`,
+      `tools/check-openspec-hygiene-selftest.sh` and `bash tools/gen-feature-list.sh --check-classification`.
+- [x] 7.2 The merged requirement stated the naming obligation for every call that names the transition, and a
+      reopen names it without reporting the value it removed. *Verify*: the requirement and its delta scope the
+      report to the write that passes `--displace-settled` (`openspec/specs/issue-backlog/spec.md`,
+      `<change>/specs/issue-backlog/spec.md`), `design.md`'s verification and reopen bullet say the same, and
+      each scenario's case is unchanged and green.
+- [x] 7.3 The revert-check quoted a summary line this tree's runner does not print, and its "other entries still
+      pass" named a run that did not happen. *Verify*: the whole set run and its own counts quoted, the red's
+      assertion message and timestamps recorded, the restore's byte-identity recorded, in
+      `evidence/revert-checks.md`.
+- [x] 7.4 The pointers: `proposal.md` names `issues_status_settled_guard` and the re-measured file count (10,
+      not 8); `measure.txt` is re-taken on the archived tree.

@@ -896,7 +896,7 @@ car Surface:
 - **Startup fallback**: a persisted style whose stylesheet cannot be loaded falls back to
   `BundledMapStyles.DEFAULT_STYLE_NAME` (`standard`) so the first map display is never empty; the
   failure is still reported. Do not "fix" this by clearing the user's selection.
-- **Verification**: a stylesheet defect is NOT caught by building — the app must be run once with
+- **Verification**: a stylesheet defect is NOT caught by building (§40.55) — the app must be run once with
   `adb logcat -s NaviVeylin | grep -i "style error"`; the expected outcome is a degraded map (no
   content for the affected database) plus the message, and no `Fatal signal 11`.
   `StylesheetHexColorCaseTest` guards the one packaging-time trigger it detects (uppercase hex).

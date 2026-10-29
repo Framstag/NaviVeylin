@@ -156,7 +156,7 @@ habit of running everything:
    window must abort rather than fall through into the run. Detection must be able to match the real
    process (`pgrep -af 'gradle-wrapper\.ja[r]'`, the liveness guard below), and the same probe covers an
    **edit** in flight: run `find <module> -newermt '-10 minutes'` beside the wrapper probe, and if a peer
-   is mid-edit, quote the evidence already collected and stop.
+   is mid-edit, quote the evidence already collected and stop (§40.46).
 5. **A reviewer is a reader, not a runner.** A review round is handed what it reads — the change's diff, the
    project's rules, the evidence by path — and it edits nothing, runs no gate and no suite, uses no network,
    and quotes a green result from the evidence instead of reproducing it. The text is
@@ -591,6 +591,12 @@ split.
   keeps no flake list`, which is the fact and not a verdict: whether a red case is a flake is the judgement
   below, never the script's. Reading the log by hand costs ~20 % of a heavy item's shell calls on suites plus
   ~18 % on the log afterwards, every round.
+
+- **A flake of unknown origin gets an entry with its rerun evidence, never a silent retry** (§40.38). This tree
+  keeps no flake list (`:591`), so the retry that leaves no record loses the only evidence there was: record the
+  red run and the green rerun together with the mechanism they ruled out, because the rerun alone does not say
+  what was wrong. `FavoritesSheetReorderComposeTest` is the worked example — the 5 s bound was never the problem
+  and the awaited state came from `Dispatchers.Default` (§6d).
 
 - **Sweep the suite for what the change moves, before the gate**: a behaviour change can move an
   expectation pinned verbatim in an unrelated class, and focused runs cannot see it (2026-10-03: the POI

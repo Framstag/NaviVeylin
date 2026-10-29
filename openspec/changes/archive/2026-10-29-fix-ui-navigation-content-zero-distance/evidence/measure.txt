@@ -1,0 +1,22 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=42d3e0004206ebfee39e11942db0bef375e1909e paths=1 insertions=6 deletions=1
+LOOP-MEASURE-PATH guidelines/UI.md
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-SUITE cases=276 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-GATE seconds=3 suites=4
+LOOP-MEASURE-CHANGE fix-ui-navigation-content-zero-distance scenarios=0 cases=0 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/fix-ui-navigation-content-zero-distance/evidence/green-after-fix.xml tests=1 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-ui-navigation-content-zero-distance/evidence/red-on-head.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 1 guideline bullet edited, 1 evidence probe case added, 0 Gradle cases added, 0 cases rewritten,
+LOOP-MEASURE-END

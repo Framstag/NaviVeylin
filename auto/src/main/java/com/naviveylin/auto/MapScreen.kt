@@ -113,19 +113,6 @@ class MapScreen(
     /** Posts the car-side stylesheet-failure notice (non-blocking; no template change). */
     private val styleLoadNotifier = CarStyleLoadNotifier(carContext.applicationContext)
 
-    /**
-     * True once a style load has succeeded, which is the proof that every map database is open
-     * (`DBInstance::LoadStyle` refuses to load while one is closed, `DBInstance.cpp:35-37`). The
-     * native flag setter is a silent no-op before that (`DBThread::SetStyleFlag` returns false while
-     * the database set is not initialized, `DBThread.cpp:422-424`, and the JNI discards the result),
-     * so a `daylight` push from the warmup window would be lost with no way to retry it by value.
-     * The flag is therefore applied only from this point on — once, not after every later load
-     * (guideline `MapRendering.md` §15 "Startup race"). Written from the settings re-read's
-     * background coroutine, read from the host callbacks, hence volatile.
-     */
-    @Volatile
-    private var databasesReady = false
-
     /** Applies the host day/night state to the stylesheet `daylight` flag (deduped). */
     private val daylightApplier = CarDaylightApplier { dark ->
         try {
@@ -483,18 +470,13 @@ class MapScreen(
             // Renderer not ready yet: it is constructed with angle 0.0 (north-up).
         }
         // Apply the shared map style (loadStyleSheet blocks on the native DB
-        // thread — run off the main thread; deduped by the applier).
+        // thread — run off the main thread; deduped by the applier). No day/night
+        // flag follows: the load installs the enabled flags with the new style
+        // (spec: map-styles — A style switch loads the stylesheet set once).
         val style = settings.styleSheet
         scope.launch(backgroundDispatcher) {
             if (!styleApplier.apply(style)) {
                 Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
-            } else {
-                // The load succeeded, so every database is open and the day/night flag can land:
-                // this is the one application the warmup window needs. A later load carries the
-                // enabled flags itself, so it re-applies nothing (spec: map-styles — A style
-                // switch loads the stylesheet set once).
-                databasesReady = true
-                pushDark()
             }
         }
     }
@@ -511,9 +493,6 @@ class MapScreen(
         // never first-touch it here. Re-pushed from the readiness observer and
         // after surface arrival once the init coroutine built the client.
         if (rendererGate.rendererOrNull() == null) return
-        // Skip until a style load proved the databases are open: before that the native side drops
-        // the flag without a signal (see [databasesReady]).
-        if (!databasesReady) return
         val dark = resolvedDark.value
         if (!daylightApplier.needsPush(dark)) return
         // Publish, do not push: setStyleSheetFlag reloads the style variant on the DB

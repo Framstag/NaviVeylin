@@ -239,8 +239,12 @@ class MapScreenTest {
         lifecycle.currentState = Lifecycle.State.CREATED
         lifecycle.currentState = Lifecycle.State.STARTED
 
-        // The startup flag push and the persisted style's load are through before the switch.
+        // The startup flag push and the persisted style's load are through before the switch. The push is
+        // applied by a collector on a background dispatcher, so it is awaited rather than assumed: a plain
+        // `advanceUntilIdle` is enough on an idle machine and not under a loaded suite (measured 2026-10-29, the
+        // full `:auto` run in the gate failed this line with `got []` while the focused run passed).
         advanceUntilIdle()
+        awaitDaylightPush(fake, value = true)
         val flagPushesBeforeTheSwitch = fake.styleSheetFlags.count { it.first == "daylight" }
         assertEquals(
             "the startup applies the day variant exactly once, got ${fake.styleSheetFlags}",
@@ -271,15 +275,16 @@ class MapScreenTest {
     }
 
     @Test
-    fun theFirstFlagPushWaitsForTheDatabasesAndLandsOnce() = runTest(mainDispatcherRule.dispatcher) {
-        // A `daylight` push from the warmup window is dropped by the native side without a signal
-        // (`DBThread::SetStyleFlag` returns false while the database set is not initialized and the JNI
-        // discards it), so an earlier car screen re-pushed the flag after every style load it performed —
-        // which made a style switch cost a second load of the whole stylesheet set. The push is deferred
-        // instead: a style load succeeds only once every database is open
-        // (`DBInstance::LoadStyle`), so the flag is applied exactly once, when that proof arrives, and a
-        // later load re-applies nothing (spec: `map-styles` — A style switch loads the stylesheet set
-        // once; guideline `MapRendering.md` §15 "Startup race").
+    fun theFlagIsAppliedBeforeAnyStyleLoadSucceeds() = runTest(mainDispatcherRule.dispatcher) {
+        // The startup push does not wait for a style load. A car map screen can exist before the session
+        // opened the databases (`NavigationSession.kt:373-379`, `RootScreen.kt:127`), and the flag is not
+        // lost there: `DBThread::SetStyleFlag` stores it whenever the database set is initialized, and
+        // `isInitializedInternal()` is an `all_of` over that set — vacuously true while it is empty
+        // (`DBThread.cpp:91-95`, `:422-427`) — while the open path installs the stored flags as the new
+        // database's style config (`DBThread.cpp:323`, `:360-369`). Gating the push behind "a load
+        // succeeded" therefore buys nothing and can cost the flag entirely on a screen whose single load
+        // fails (spec: `map-styles` — A style switch loads the stylesheet set once; guideline
+        // `MapRendering.md` §15 "Startup race").
         val host = SessionCarSurfaceHost()
         every { entryPoint.autoSurfaceHost() } returns host
         val settings = mockk<AutoSettingsProvider>()
@@ -290,8 +295,8 @@ class MapScreenTest {
             every { position() } returns position
         }
         val fake = client as FakeMapScreenClient
-        // The databases are still closed during warmup: the native load fails, which is what the
-        // stylesheet load reports until every database is open.
+        // No style load succeeds in this window — the state the deferral treated as "the databases are
+        // not open yet". The native side accepts the flag in exactly this state.
         fake.styleSheetLoadResult = false
         val screen = MapScreen(
             carContext,
@@ -303,26 +308,14 @@ class MapScreenTest {
         lifecycle.currentState = Lifecycle.State.CREATED
         lifecycle.currentState = Lifecycle.State.STARTED
         advanceUntilIdle()
+        awaitDaylightPush(fake, value = true)
 
         assertTrue(
-            "the style load is attempted while the databases are closed, got ${fake.styleSheetLoads}",
+            "the style load is attempted and fails, got ${fake.styleSheetLoads}",
             fake.styleSheetLoads.isNotEmpty()
         )
         assertEquals(
-            "no flag is pushed while the native side would drop it silently, got ${fake.styleSheetFlags}",
-            0,
-            fake.styleSheetFlags.count { it.first == "daylight" }
-        )
-
-        // Warmup opened the databases: the next settings re-read loads the style, and that load is the
-        // proof the flag can land.
-        fake.styleSheetLoadResult = true
-        ShadowSystemClock.advanceBy(Duration.ofSeconds(6))
-        position.value = AutoPosition(lat = 51.5, lon = 7.4, bearing = 90.0, speedKmH = 50.0)
-        advanceUntilIdle()
-
-        assertEquals(
-            "the flag lands once the databases are open — and only then, got ${fake.styleSheetFlags}",
+            "the flag is applied without waiting for a successful load, got ${fake.styleSheetFlags}",
             1,
             fake.styleSheetFlags.count { it.first == "daylight" && it.second }
         )

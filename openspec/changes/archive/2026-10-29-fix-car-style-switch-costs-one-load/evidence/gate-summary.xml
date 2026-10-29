@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The sum of the tallies beside it (evidence/gate/*.xml), one line per suite: the round-2 gate this
+<!-- The sum of the tallies beside it (evidence/gate/*.xml), one line per suite: the round-3 gate this
      change ran, and the number its LOOP-GATE line states (evidence/gate.txt). Derived from the gate's
      own tallies, never invented. The Gradle step's tally is the gate's: `tests="0"`, because the gate
      derives a count from a `all N cases passed` summary line and Gradle prints none — the run's own
-     JUnit XML sums to 6070 cases and 0 failures, quoted in gate.txt. -->
-<testsuites tests="6" failures="0" errors="0" skipped="0" time="404">
-  <testsuite name="bash_tools_gen-feature-list.sh_--check-classification.xml" tests="0" failures="0" errors="0" time="4"/>
-  <testsuite name="gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml" tests="0" failures="0" errors="0" time="397"/>
-  <testsuite name="tools_check-doc-routes-selftest.sh.xml" tests="0" failures="0" errors="0" time="2"/>
-  <testsuite name="tools_check-doc-routes.sh.xml" tests="0" failures="0" errors="0" time="0"/>
+     JUnit XML sums to 6070 cases and 0 failures (evidence/gradle-tallies-round-3.xml). -->
+<testsuites tests="6" failures="0" errors="0" skipped="0" time="376">
+  <testsuite name="bash_tools_gen-feature-list.sh_--check-classification.xml" tests="0" failures="0" errors="0" time="5"/>
+  <testsuite name="gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml" tests="0" failures="0" errors="0" time="367"/>
+  <testsuite name="tools_check-doc-routes-selftest.sh.xml" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="tools_check-doc-routes.sh.xml" tests="0" failures="0" errors="0" time="1"/>
   <testsuite name="tools_check-openspec-hygiene-selftest.sh.xml" tests="6" failures="0" errors="0" time="0"/>
   <testsuite name="tools_check-openspec-hygiene.sh.xml" tests="0" failures="0" errors="0" time="0"/>
-  <testsuite name="tools_check-todo-references.sh.xml" tests="0" failures="0" errors="0" time="1"/>
+  <testsuite name="tools_check-todo-references.sh.xml" tests="0" failures="0" errors="0" time="2"/>
   <testsuite name="tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml" tests="0" failures="0" errors="0" time="0"/>
 </testsuites>

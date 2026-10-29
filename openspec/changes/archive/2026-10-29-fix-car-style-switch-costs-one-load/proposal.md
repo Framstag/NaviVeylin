@@ -77,34 +77,39 @@ would let that re-application go"). Both are rewritten in this change.
 
 - `MapScreen.kt` / `NavigationScreen.kt`: the settings re-read applies the style and nothing else — no
   `pushedForStyleSheet`, no `styleChanged`, no forced flag push after the load.
-- `MapScreen.kt` / `NavigationScreen.kt`: a `databasesReady` flag holds the first `daylight` push back until a
-  style load succeeded — that load is the DB-open proof — and applies it there, once (round 2; see below).
 - `CarDaylightApplier`, `RendererGate.DaylightPush` and the three car screens' `pushDark`: the `force`
   parameter is removed with its last caller, so the applier keys on the `daylight` value alone (the phone's
   key minus the style name, because the native load already carries the flag).
 - `guidelines/MapRendering.md` §15: the force-after-a-load sentence is replaced by the native fact (with its
-  `file:line`), and the warmup bullet states what re-applies the flag once the databases are open (the deferred
-  first push, not a repeat after a load).
+  `file:line`), and the startup-race bullet is corrected to what the native side actually does — a flag pushed
+  before any database is open is stored and installed when one opens, so no variant needs a retry.
 - `openspec/specs/map-styles/spec.md`: one modified requirement, "A style switch loads the stylesheet set
   once", with two scenarios naming the two cases.
 
-## Round 2 — the warmup window the first draft left open
+## Round 2 — the warmup window, and why round 3 withdrew the answer
 
-Round 1's review blocked the draft on one thing: it deleted the only re-application that followed a *proof* that
-the databases were open, and claimed in §15 that none was needed. The claim was wrong. A car map screen can
-exist before the databases are open (`NavigationSession.kt:373-379` serves the root screen without waiting for
-warmup, and `RootScreen.kt:127` pushes `MapScreen` with no warmup gate), the JNI discards the dropped push's
-result (`OSMScoutClient.java:102` is `void` while `DBThread::SetStyleFlag` returns false before initialization,
-`DBThread.cpp:422-424`), and the deleted force did fire on a **successful** load — which `DBInstance::LoadStyle`
-only reports while every database is open (`DBInstance.cpp:35-37`).
+Round 1's review blocked the draft for deleting the only re-application that followed a *proof* that the
+databases were open. Round 2 answered by deferring the first push behind a successful style load
+(`databasesReady`). Round 3 withdrew that answer because the premise under it is false:
 
-The round-2 fix keeps what the change was for and pays that: instead of a re-push after every load, the first
-flag application is **deferred** behind the same proof. `databasesReady` starts false, `pushDark` returns while
-it is false, and the style apply's success branch — which already exists — sets it and calls `pushDark()` once.
-The value dedupe does the rest: a style switch loads the style, finds the flag already applied and pushes
-nothing. Net cost per startup stays one load of the set (the push that used to be dropped is now not attempted),
-a switch stays one load, and the warmup window has no lost push. `FreeDrivingScreen` applies no style of its own
-and so has no such proof; it is unchanged and the gap it keeps is filed as issue #705.
+- `DBThread::SetStyleFlag` refuses only when `!isInitializedInternal()`, and that is `std::all_of` over
+  `databases` — **true while the set is empty** (`DBThread.cpp:91-95`), i.e. in the warmup window. The push is
+  stored (`:422-427`), not dropped.
+- A load over an empty set reports success (`DBThread.cpp:455-467`, `:492`), so "a successful load" is no
+  proof that databases are open — the deferral's trigger proved nothing.
+- The stored flag reaches the maps at open: a database is pushed only after `Open` succeeded (`DBThread.cpp:290`,
+  `:323`) with a style config built by `makeStyleConfig`, which applies `stylesheetFlags` (`:360-369`). The one
+  state that would drop a push — a listed database that is not open — is unreachable: a list change closes and
+  clears the set before rebuilding it under the same write lock (`DBThread.cpp:183-188`).
+
+The deferral also introduced a hole of its own: `NavigationScreen` applies a style from exactly one call site
+(`NavigationScreen.kt:452-465`), so a failed settings read or a rejected stylesheet there would have left the
+`daylight` flag unapplied for the whole screen instance — a hole `FreeDrivingScreen` (no style load at all) would
+have had permanently. Round 3 therefore removes the gate: `pushDark` keys on the value alone, as the fix's first
+draft had it, and the round-2 test is replaced by one that pins the opposite invariant — the flag is applied
+before any style load succeeds. The `databasesReady` code, its test and its spec scenario are gone; the
+follow-up issue #705 that round 2 filed ("never retries a push dropped during warmup") was closed as
+not-planned, because no push is dropped.
 
 ## Impact
 
@@ -112,7 +117,7 @@ and so has no such proof; it is unchanged and the gap it keeps is filed as issue
   classes. No native change, no new dependency, no public API.
 - Behaviour: a user-initiated car style switch costs one load of the stylesheet set instead of two, and the
   night variant still reaches the map (the load installs it). The day/night *change* path is untouched.
-- Risk, stated: a car screen that never loads a style successfully applies no flag — a stylesheet the native
-  side rejects fails the DB-open proof too, so a session that only ever has a broken stylesheet draws no
-  day/night variant. The map has no style in that state, the failure is already surfaced through the car's
-  style-load notice, and a later successful load (a different style picked in the settings) applies the flag.
+- Risk, stated: none introduced. A push that lands before the databases are open is stored and installed at open
+  (`DBThread.cpp:91-95`, `:422-427`, `:290-323`, `:360-369`), which is what the pre-fix tree relied on as well;
+  the change's own risk is the item's premise failing, and it is checked in the load path's code
+  (`OSMScoutClient.cpp:2229-2235`, `DBThread.cpp:455-460`, `:366-369`).

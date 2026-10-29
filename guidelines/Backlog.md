@@ -941,6 +941,23 @@ nobody took. The number, the unit and the scope are the owner's recorded decisio
 level, C++ out); the bound is the row's, so retuning it is one edit in `sensors.json`. It bounds a *file* and not a class: a file carrying
 several classes is one condition here, and separating them needs a counter this tooling does not have.
 
+Two rows bound **what a session must read before it works**, because nothing did (issue #197):
+`routed-section-size` measures every section the routing table names — the pair (document, section) is read
+out of `AGENTS.md`'s own Documentation Map, so a section the table stops routing stops being a condition
+without an edit to the row — and `entry-document-size` measures the entry document itself, which every session
+is handed before it reads anything else. A section's cost is the byte count of its lines from its `## ` heading
+through the line before the next one; the line count is reported beside it and a bound is read in lines too, at
+80 bytes/line (12 000 bytes ≈ 150 lines), because a document's size is thought of in lines. A section, or a
+document, the table does not route is not part of the start cost and is never a condition. The identity is the
+document and the section (and the path, for the entry document), so one over-long section is one item that
+closes when that section shrinks; a recorded condition whose pair the table no longer routes clears on its own
+identity and carries no byte count. The unit, the two bounds (12 000 bytes per routed section, 32 000 bytes for
+the entry document) and the exclusion are the owner's recorded decision (2026-10-27), and each bound is its own
+row's, so retuning one is one edit in `sensors.json`. Measured on the tree this landed on, the bound convicts
+eight sections — `UI.md` §1 (25 206 bytes) and §8 (19 681), `MapRendering.md` §1 (22 644), `UI.md` §7a (13 102),
+this §9 (12 894 bytes before this paragraph was added), `Design.md` §5 (12 781) and §8 (12 058), and `Build.md`
+§7 (12 052) — which is exactly the silent erosion the row exists to make visible.
+
 One row watches **what the loop's own children cost**, because nothing did: `loop-spend` runs
 `tools/loop-spend.py --quiet` over `.pi/issue-loop/items` and measures the **duplicate-read share** of the reads
 it counts — the share of a session's file reads that repeat a path it already had, 2 847 of 6 021 (47 %) over the

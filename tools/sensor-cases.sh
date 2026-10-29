@@ -66,6 +66,9 @@ SENSOR_CASES=(
   'sensors#coverageRow'
   'sensors#sourceSizeRow'
   'sensors#sourceSizeSkipsTheChangeTree'
+  'sensors#routedSectionSizeRow'
+  'sensors#routedSectionSizeSkipsUnrouted'
+  'sensors#entryDocumentSizeRow'
   'sensors#metadataDriftRow'
   'sensors#metadataDriftClearsUnderItsOwnIdentity'
   'sensors#brokenMainFingerprintDistinguishesCauses'
@@ -141,6 +144,9 @@ sensor_run_case() {
     'sensors#coverageRow') case_sensors_coverageRow ;;
     'sensors#sourceSizeRow') case_sensors_sourceSizeRow ;;
     'sensors#sourceSizeSkipsTheChangeTree') case_sensors_sourceSizeSkipsTheChangeTree ;;
+    'sensors#routedSectionSizeRow') case_sensors_routedSectionSizeRow ;;
+    'sensors#routedSectionSizeSkipsUnrouted') case_sensors_routedSectionSizeSkipsUnrouted ;;
+    'sensors#entryDocumentSizeRow') case_sensors_entryDocumentSizeRow ;;
     'sensors#metadataDriftRow') case_sensors_metadataDriftRow ;;
     'sensors#metadataDriftClearsUnderItsOwnIdentity') case_sensors_metadataDriftClearsUnderItsOwnIdentity ;;
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
@@ -1850,6 +1856,220 @@ case_sensors_sourceSizeSkipsTheChangeTree() {
   assert_contains "$findings" '"verdict":"clear"' "the frozen copy's condition is a clear: $out"
   assert_contains "$findings" '"measurement":"outside-scope"' \
     "the clear carries no line count for a file the row does not measure: $out"
+}
+
+# The context a session must read before it works is bounded by two declared rows (issue #197): the entry
+# document every session is handed, and every section the routing table names. The pair (document, section) is
+# derived from the table itself — the entry document's "Documentation Map" — so a section the table stops
+# routing stops being a condition without an edit here, and a document the table does not route at all is not
+# part of the start cost. The unit is bytes, counted the way `wc -c` counts them, and the line count is carried
+# beside it because a document is read in lines; the fixture's expectation is measured with `wc -c`, never
+# restated from the script's own arithmetic.
+case_sensors_routedSectionSizeRow() {
+  local dir row out findings status expected current hits
+
+  row=$(jq -c '.rows[] | select(.id == "routed-section-size")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no routed-section-size row"
+  assert_eq "12000" "$(jq -r '.threshold' <<< "$row")" "the row's bound is the 12 000 bytes the decision recorded"
+  assert_eq "greater-than" "$(jq -r '.comparison' <<< "$row")" "the row fires above its bound"
+  assert_eq '["document","section"]' "$(jq -c '.fingerprint.fields' <<< "$row")" \
+    "the condition's identity is the document and the section"
+  assert_eq "improvement" "$(jq -r '.class' <<< "$row")" "the row files an improvement"
+  assert_eq "routed-section" "$(jq -r '.scope' <<< "$row")" "the row measures the sections the table routes"
+  assert_eq "AGENTS.md" "$(jq -r '.entry' <<< "$row")" "the table the pairs are derived from is the row's"
+
+  dir=$(scratch)
+  mkdir -p "$dir/guidelines"
+  {
+    printf '# a fixture project\n\n## Documentation Map\n\n| what you are changing | read |\n|---|---|\n'
+    printf '| the large one | `Doc.md` §1, §3 |\n'
+    printf '| the small one | `Other.md` §2 |\n\n## Tech Stack\n\n- the table ends above this heading\n'
+  } > "$dir/AGENTS.md"
+  {
+    printf '## 1. The large one\n'
+    seq 1 400 | sed 's/^/a line of prose that fills the section — and carries one em dash/'
+    printf '\n## 3. Inside the bound\n'
+    seq 1 5 | sed 's/^/a short line/'
+    printf '\n## 4. Not routed at all\n'
+    seq 1 500 | sed 's/^/a line the routing table never names/'
+    printf '\n'
+  } > "$dir/guidelines/Doc.md"
+  printf '## 2. The small one\n\none line\n' > "$dir/guidelines/Other.md"
+  git -C "$dir" init -q -b main >/dev/null 2>&1 || fail "could not create the fixture repository"
+  git_commit "$dir" one
+
+  out=$(cd "$dir" && SENSORS_ID=routed-section-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=12000 \
+    SENSORS_ROW="$row" SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the measurement runs: $out"
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  # The section's cost as `wc -c` counts it: the fixture's lines carry an em dash, so a character count would
+  # be smaller than the byte count and this assertion would fail.
+  expected=$(sed -n '/^## 1\./,/^## 3\./p' "$dir/guidelines/Doc.md" | head -n -1 | wc -c | tr -d ' ')
+  assert_contains "$findings" '"document":"Doc"' "a routed section past the bound is its own condition: $out"
+  assert_contains "$findings" '"section":"1"' "the condition names the section the table routes: $out"
+  assert_contains "$findings" '"measurement":"'"$expected"'"' \
+    "the measurement is the section's own byte count ($expected), not its character count: $out"
+  assert_contains "$findings" '"verdict":"violation"' "a routed section past the bound is a violation: $out"
+  # …and the line count beside the byte cost, because a document's size is read in lines.
+  assert_contains "$findings" 'lines' "the finding states the section's line count beside its byte cost: $out"
+  assert_not_contains "$findings" '"section":"3"' "a routed section inside the bound is no condition: $findings"
+  assert_not_contains "$findings" '"document":"Other"' \
+    "a routed section of another document, inside the bound, is no condition: $findings"
+
+  # The bound is the registry's, not the script's: retuning the check is one edit in `sensors.json`.
+  hits=$(grep -nE 'threshold=[0-9]|threshold="?[0-9]' "$SENSORS_ENGINE/metrics/doc-context.sh" || true)
+  assert_empty "$hits" "the script holds no threshold constant"
+  assert_contains "$(cat "$SENSORS_ENGINE/metrics/doc-context.sh")" 'SENSORS_THRESHOLD' \
+    "the bound comes from the row"
+
+  # A recorded open condition whose section has dropped inside the bound clears under that identity: the issue
+  # carrying the condition closes on the identity it holds, with the number this run measured.
+  {
+    printf '## 1. The large one\n\ntwo lines now\n\n## 3. Inside the bound\n'
+    seq 1 5 | sed 's/^/a short line/'
+    printf '\n## 4. Not routed at all\n'
+  } > "$dir/guidelines/Doc.md"
+  current=$(sed -n '/^## 1\./,/^## 3\./p' "$dir/guidelines/Doc.md" | head -n -1 | wc -c | tr -d ' ')
+  out=$(cd "$dir" && SENSORS_ID=routed-section-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=12000 \
+    SENSORS_ROW="$row" \
+    SENSORS_CONDITIONS='[{"state":"OPEN","condition":{"document":"Doc","section":"1"}}]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"section":"1"' \
+    "a recorded condition inside the bound clears under its own identity: $out"
+  assert_contains "$findings" '"measurement":"'"$current"'"' "the clear measures the section it names: $out"
+  assert_contains "$findings" '"verdict":"clear"' "a recorded condition inside the bound is a clear: $out"
+  assert_not_contains "$findings" '"document":"none"' "a cleared condition is not the row-level clear: $out"
+
+  # A table whose every routed section is inside the bound still reaches a verdict: the runner reads a row that
+  # printed no finding as a failed check, so the clear has to be printed.
+  out=$(cd "$dir" && SENSORS_ID=routed-section-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=12000 \
+    SENSORS_ROW="$row" SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"verdict":"clear"' "a read inside the bound reports a clear: $out"
+  assert_contains "$findings" '"document":"none"' "the row-level clear carries the row's own identity: $out"
+  assert_not_contains "$findings" '"verdict":"violation"' "nothing is past the bound"
+
+  # A table the measurement cannot find is the third outcome, never a clean tree: an unreadable routing table
+  # would otherwise reach the tracker as "no routed section is past the bound".
+  dir=$(scratch)
+  mkdir -p "$dir/guidelines"
+  printf '# a fixture project with no routing table\n' > "$dir/AGENTS.md"
+  printf '## 1. The large one\n' > "$dir/guidelines/Doc.md"
+  out=$(cd "$dir" && SENSORS_ID=routed-section-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=12000 \
+    SENSORS_ROW="$row" SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  assert_contains "$out" '"verdict":"error"' "an entry document with no routing table is a failed check: $out"
+}
+
+# An unrouted section is not the start cost: the table names the sections a session is sent to, so a section it
+# does not name is read only by someone already working in that area — and a document the table does not name at
+# all is not read before work starts. Both are huge in the fixture, and neither is a condition; the routed
+# section beside them is, so the exclusion cannot pass by the row having measured nothing.
+case_sensors_routedSectionSizeSkipsUnrouted() {
+  local dir row out findings
+
+  row=$(jq -c '.rows[] | select(.id == "routed-section-size")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no routed-section-size row"
+
+  dir=$(scratch)
+  mkdir -p "$dir/guidelines"
+  {
+    printf '# a fixture project\n\n## Documentation Map\n\n| what you are changing | read |\n|---|---|\n'
+    printf '| the routed one | `Doc.md` §1 |\n\n## Tech Stack\n'
+  } > "$dir/AGENTS.md"
+  {
+    printf '## 1. The routed one\n'
+    seq 1 400 | sed 's/^/a line of prose that fills the section/'
+    printf '\n## 2. Unrouted and large\n'
+    seq 1 900 | sed 's/^/a line the routing table never names/'
+    printf '\n## 3. Also unrouted\n'
+    seq 1 900 | sed 's/^/another line the routing table never names/'
+    printf '\n'
+  } > "$dir/guidelines/Doc.md"
+  {
+    printf '## 1. A document the table never names\n'
+    seq 1 900 | sed 's/^/a line of a document nothing routes/'
+    printf '\n'
+  } > "$dir/guidelines/Loose.md"
+
+  out=$(cd "$dir" && SENSORS_ID=routed-section-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=12000 \
+    SENSORS_ROW="$row" SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"document":"Doc"' "the routed section past the bound is still a condition: $out"
+  assert_contains "$findings" '"section":"1"' "that condition is the routed section: $out"
+  assert_not_contains "$findings" '"section":"2"' "a section the table does not route is not a condition: $findings"
+  assert_not_contains "$findings" '"section":"3"' "a second unrouted section is not a condition either: $findings"
+  assert_not_contains "$findings" 'Loose' "a document no row of the table names is not a condition: $findings"
+}
+
+# The entry document is the other half: every session is handed it before it reads anything else, so its own
+# size is bounded by a row of its own, with its own bound and its own identity (the path). The two rows share
+# one measurement and apply the scope each declares, so a section past the section row's bound is not this
+# row's condition.
+case_sensors_entryDocumentSizeRow() {
+  local dir row out findings expected current
+
+  row=$(jq -c '.rows[] | select(.id == "entry-document-size")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no entry-document-size row"
+  assert_eq "32000" "$(jq -r '.threshold' <<< "$row")" "the row's bound is the 32 000 bytes the decision recorded"
+  assert_eq "greater-than" "$(jq -r '.comparison' <<< "$row")" "the row fires above its bound"
+  assert_eq '["path"]' "$(jq -c '.fingerprint.fields' <<< "$row")" "the condition's identity is the path"
+  assert_eq "improvement" "$(jq -r '.class' <<< "$row")" "the row files an improvement"
+  assert_eq "entry-document" "$(jq -r '.scope' <<< "$row")" "the row measures the entry document alone"
+
+  dir=$(scratch)
+  mkdir -p "$dir/guidelines"
+  {
+    printf '# a fixture project\n\n## Documentation Map\n\n| what you are changing | read |\n|---|---|\n'
+    printf '| a routed read | `Doc.md` §1 |\n\n## Tech Stack\n'
+    seq 1 500 | sed 's/^/a fact the entry document carries before anything else is read/'
+  } > "$dir/AGENTS.md"
+  {
+    printf '## 1. Past the section row bound\n'
+    seq 1 400 | sed 's/^/a line of prose that fills the section/'
+    printf '\n'
+  } > "$dir/guidelines/Doc.md"
+
+  out=$(cd "$dir" && SENSORS_ID=entry-document-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=32000 \
+    SENSORS_ROW="$row" SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  expected=$(wc -c < "$dir/AGENTS.md" | tr -d ' ')
+  assert_contains "$findings" '"path":"AGENTS.md"' "the entry document past its bound is its own condition: $out"
+  assert_contains "$findings" '"measurement":"'"$expected"'"' \
+    "the measurement is the entry document's own byte count ($expected): $out"
+  assert_contains "$findings" '"verdict":"violation"' "the entry document past its bound is a violation: $out"
+  assert_not_contains "$findings" '"document"' \
+    "a routed section is not a condition of the entry document's row: $findings"
+
+  # Shrunk inside its bound with no condition recorded, the row still reaches a verdict.
+  printf '# a fixture project\n\n## Documentation Map\n\n| what you are changing | read |\n|---|---|\n| a routed read | `Doc.md` §1 |\n\n## Tech Stack\n\n- one fact\n' > "$dir/AGENTS.md"
+  out=$(cd "$dir" && SENSORS_ID=entry-document-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=32000 \
+    SENSORS_ROW="$row" SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"verdict":"clear"' "an entry document inside the bound reports a clear: $out"
+  assert_contains "$findings" '"path":"none"' "the row-level clear carries the row's own identity: $out"
+  assert_not_contains "$findings" '"verdict":"violation"' "nothing is past the bound"
+
+  # A recorded condition on the entry document clears under its path with the number this run measured.
+  current=$(wc -c < "$dir/AGENTS.md" | tr -d ' ')
+  out=$(cd "$dir" && SENSORS_ID=entry-document-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=32000 \
+    SENSORS_ROW="$row" SENSORS_CONDITIONS='[{"state":"OPEN","condition":{"path":"AGENTS.md"}}]' \
+    SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  assert_contains "$findings" '"path":"AGENTS.md"' \
+    "a recorded condition inside the bound clears under its own path: $out"
+  assert_contains "$findings" '"measurement":"'"$current"'"' "the clear measures the document it names: $out"
+  assert_contains "$findings" '"verdict":"clear"' "a recorded condition inside the bound is a clear: $out"
+  assert_not_contains "$findings" '"path":"none"' "a cleared condition is not the row-level clear: $out"
 }
 
 # The priority invariant as a scheduled check (issue #292): an item whose band label and the marker the pass

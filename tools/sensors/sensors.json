@@ -81,6 +81,34 @@
       "fingerprint": { "fields": ["path"] }
     },
     {
+      "id": "routed-section-size",
+      "cmd": "tools/sensors/metrics/doc-context.sh",
+      "cron": "0 11 * * *",
+      "threshold": 12000,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "specs-and-process",
+      "lifecycle": "file+close",
+      "scope": "routed-section",
+      "entry": "AGENTS.md",
+      "fingerprint": { "fields": ["document", "section"] }
+    },
+    {
+      "id": "entry-document-size",
+      "cmd": "tools/sensors/metrics/doc-context.sh",
+      "cron": "30 11 * * *",
+      "threshold": 32000,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "specs-and-process",
+      "lifecycle": "file+close",
+      "scope": "entry-document",
+      "entry": "AGENTS.md",
+      "fingerprint": { "fields": ["path"] }
+    },
+    {
       "id": "broken-main",
       "cmd": "tools/sensors/conditions/broken-main.sh",
       "cron": "0 */2 * * *",

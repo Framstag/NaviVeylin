@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-mutations.sh --only 70.1 (labels#closeNamesTheSettledTransition)" tests="1" failures="1" errors="0" timestamp="2026-10-29T08:27:08Z">
+  <testcase name="labels#closeNamesTheSettledTransition" classname="labels" time="0">
+    <failure message="the closure naming the transition its own write makes">RED    70.1  labels#closeNamesTheSettledTransition
+       2026-10-29T08:27:08Z — a closure over the other settled state was refused: status-settled: #21 carries status/retired, a settled state of the project profile — pass --displace-settled to name the transition</failure>
+  </testcase>
+  <system-out>`bash tools/loop-mutations.sh --only 70.1`, 2026-10-29T08:27:08Z: the record's one expression replaces `labels.sh`'s `[ "$close_issue" -eq 0 ] || args+=(--displace-settled)` with `: # the closure names no transition`, the case goes red with the refusal above, and the restore is green again — `red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0`, exit 0. The run's output is `evidence/revert-check.log`. tests/failures are counted from the RED line, the way `tools/loop/gate.sh` derives its per-suite tally.</system-out>
+</testsuite>

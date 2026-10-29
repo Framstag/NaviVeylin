@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="guardrail-tag" tests="3" failures="0" errors="0" skipped="0" timestamp="2026-10-29T12:23:21Z">
+  <testcase classname="guardrail-tag" name="entry38CarriesItsRecordTag"/>
+  <testcase classname="guardrail-tag" name="entry46CarriesItsRecordTag"/>
+  <testcase classname="guardrail-tag" name="entry55CarriesItsRecordTag"/>
+</testsuite>

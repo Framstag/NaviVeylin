@@ -1,0 +1,48 @@
+# structural checks, 2026-10-29T11:57:46Z
+$ bash tools/check-doc-routes.sh
+EXIT=0
+check-doc-routes: all 155 section references resolve, all 4 skill references resolve
+$ bash tools/check-todo-references.sh
+EXIT=0
+check-todo-references: 199 line(s) scanned, 64 distinct citation(s), 162 in the recorded table
+check-todo-references: 64 citation(s) resolve through the recorded table; 6906 file(s) excluded by the allowlist above
+$ bash tools/check-openspec-hygiene.sh
+EXIT=0
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+$ bash tools/gen-feature-list.sh --check-classification
+EXIT=0
+stale: 3
+car-only areas: 1
+highlights: 19
+$ openspec validate fix-guardrail-entries-carry-their-tags --strict
+EXIT=0
+Change 'fix-guardrail-entries-carry-their-tags' is valid
+ℹ [INFO] file: skip_specs is set in .openspec.yaml: change declares no spec-level behavior changes, zero deltas accepted
+
+# post-archive checks, 2026-10-29T12:23:00Z (the archive move renames the change's paths inside the same openspec/* and *.md globs, so no new suite is owed; the documentation suites are re-read on the archived paths)
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-29-fix-guardrail-entries-carry-their-tags --root .
+EXIT=1
+ok   C5 file:line: 215 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: FAIL (3)
+$ bash tools/check-doc-routes.sh
+EXIT=0
+check-doc-routes: all 155 section references resolve, all 4 skill references resolve
+$ bash tools/check-openspec-hygiene.sh
+EXIT=0
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+$ bash tools/check-todo-references.sh
+EXIT=0
+check-todo-references: 64 citation(s) resolve through the recorded table; 6940 file(s) excluded by the allowlist above
+$ bash openspec/changes/archive/2026-10-29-fix-guardrail-entries-carry-their-tags/evidence/red-probe.sh
+EXIT=0
+tests=3 failures=0
+PASS guardrail-tag#eachCarriedEntryCarriesItsRecordTag (exit 0)
+
+# evidence check after the JUnit XMLs were added, 2026-10-29T12:23:22Z
+$ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-29-fix-guardrail-entries-carry-their-tags --root .
+EXIT=0
+ok   C5 file:line: 215 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS

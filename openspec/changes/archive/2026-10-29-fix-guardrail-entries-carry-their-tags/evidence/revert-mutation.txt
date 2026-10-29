@@ -1,0 +1,13 @@
+# one mutation: the (§40.55) tag deleted from guidelines/MapRendering.md:899, then restored — 2026-10-29T11:57:25Z
+--- mutated:
+EXIT=1
+STATED  §40.46  guidelines/Build.md:104-174  "newermt"
+MISSING §40.55  guidelines/MapRendering.md:876-914 ("## 15a. Stylesheet load failure") carries no §40.55 tag
+tests=3 failures=1
+FAIL guardrail-tag#eachCarriedEntryCarriesItsRecordTag — 1 of 3 entries carry no §40.N tag (exit 1)
+--- restored:
+EXIT=0
+STATED  §40.46  guidelines/Build.md:104-174  "newermt"
+STATED  §40.55  guidelines/MapRendering.md:876-914  "style error"
+tests=3 failures=0
+PASS guardrail-tag#eachCarriedEntryCarriesItsRecordTag (exit 0)

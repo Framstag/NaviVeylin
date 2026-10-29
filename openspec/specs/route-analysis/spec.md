@@ -247,6 +247,7 @@ formatters, not shown as they arrive from the native layer.
 - **THEN** its distance and duration SHALL include those steps' legs
 - **AND** the sum over all rows SHALL still equal the sum over all steps
 - **Case**: `app: RouteRowDerivationTest` "merged legs are attributed to the surviving row"
+
 ### Requirement: A step's values are its own, never a neighbour's
 
 The analysis SHALL decide whether a step carries values from the route's per-step values for that step, so a
@@ -367,3 +368,32 @@ A row SHALL carry the legs of every step merged into it, so the rows still cover
 - **AND** deriving rows SHALL NOT mutate or shorten it
 - **Case**: `app: RouteRowDerivationTest` "row derivation leaves the step list intact"
 
+### Requirement: The route's start anchor is the published start position
+
+The first step of a calculated route (the start line) SHALL be anchored at the position the route's
+geometry is published from, so that analysing the start line shows the place the route begins at and
+the start line owns no leg. When the route begins with an approach from a requested start to the
+network, that position SHALL be the requested start; the invariant is that the start anchor and the
+polyline's first vertex are the same position, not that the start anchor is a network node.
+
+#### Scenario: Start anchor equals the polyline's first vertex
+
+- **WHEN** a route with a snapped start is analysed
+- **THEN** the start line's position SHALL be the polyline's first vertex
+- **AND** the start line SHALL own no leg
+  (case: `RouteStepSegmentsTest.aPrependedStartAnchorsStepZeroAndOwnsNoLeg`)
+
+#### Scenario: The first turn's leg starts at the published start
+
+- **WHEN** a route with a snapped start is analysed and the first turn is selected
+- **THEN** the first turn's highlighted segment SHALL begin at the polyline's first vertex
+- **AND** the segment's last vertex SHALL be within the polyline-match tolerance of that step's own
+  manoeuvre
+  (case: `RouteStepSegmentsTest.aPrependedStartAnchorsStepZeroAndOwnsNoLeg`)
+
+#### Scenario: The start anchor is not shifted when the start is on the network
+
+- **WHEN** a route whose start already lies on the routable network is analysed
+- **THEN** the start line's position and the highlighted first leg SHALL be the ones the routed geometry
+  produces
+  (case: `RouteStepSegmentsTest.straight route maps each step to the leg leading to its manoeuvre`)

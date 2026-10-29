@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.DiagnosticsLogWritePathTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-29T07:46:21.054Z" hostname="dingens" time="4.724">
+  <properties/>
+  <testcase name="aMissedDrainIsRecordedAndRetriedOnce" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="4.217"/>
+  <testcase name="uninitialisedLogIsANoOp" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.032"/>
+  <testcase name="pendingBufferIsBoundedAndMarksTheDropOnce" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.03"/>
+  <testcase name="workerIsCreatedLazilyAndIsADaemon" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.017"/>
+  <testcase name="entriesReachTheFileWithinTheFlushDeadline" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.016"/>
+  <testcase name="theParkedAwaitReportsTheWorkersWaitingState" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.216"/>
+  <testcase name="loggingDoesNotWriteOnTheCallingThread" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.018"/>
+  <testcase name="workPendingIsNotAParkedWorker" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.016"/>
+  <testcase name="backgroundReadsMatchTheSynchronousOnes" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.117"/>
+  <testcase name="crashTraceIsWrittenWithoutWaitingForTheWorker" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.017"/>
+  <testcase name="highWaterMarkFlushesWithoutWaitingForTheDeadline" classname="com.naviveylin.core.DiagnosticsLogWritePathTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -27,7 +27,8 @@
 # Writes (refused unless GH_STUB_RECORD is set):
 #   gh issue create|edit|close|comment …, gh label create|edit|delete …
 #   with GH_STUB_RECORD=<file> the invocation is appended to <file> as one shell-quoted `gh …` line and a
-#   plausible result is printed instead of the call being made.
+#   plausible result is printed instead of the call being made. An `issue edit` carrying none of
+#   --add-label, --remove-label or --body-file is refused, as the real CLI refuses it (#165).
 #
 # Env: GH_STUB_DIR (fixture directory, default: this file's directory), GH_STUB_RECORD (write log),
 #      GH_STUB_FAIL (a substring of an invocation the stub must refuse, so a case can watch what a writer does
@@ -102,6 +103,22 @@ check_close_reason() {
     fi
     prev="$arg"
   done
+}
+
+# An `edit` with no field to edit is the shape the real CLI refuses (`field to edit flag required when not
+# running interactively`), and it is the shape #165 filed with every suite green: the stub recorded any
+# `issue edit` it was handed, so the one `gh` the suite ever runs could not show that the call was malformed.
+# `tools/issues/update.sh` refuses to make that call itself (`edit_needed`, update.sh:192-196); the stub refuses
+# it too, so a path added later that assembles an empty edit is red here rather than on a person's desk.
+check_edit_field() {
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      --add-label|--remove-label|--body-file) return 0 ;;
+    esac
+  done
+  printf 'stub gh: `gh issue edit` with no field to edit — the CLI refuses it (`field to edit flag required when not running interactively`); pass --add-label, --remove-label or --body-file\n' >&2
+  exit 1
 }
 
 record_write() {
@@ -254,6 +271,7 @@ case "$group" in
         ;;
       create|edit|close|comment|delete|reopen)
         [ "$sub" = "close" ] && check_close_reason "$@"
+        [ "$sub" = "edit" ] && check_edit_field "$@"
         record_write issue "$sub" "$@"
         case "$sub" in
           create) printf 'https://example.invalid/%s/issues/1\n' "$(cat "$(fixture_path repo.txt)" 2>/dev/null || echo repo)" ;;

@@ -46,6 +46,7 @@ ISSUES_SHELL_CASES=(
   'surface#noDeletePath'
   'surface#reservedLabelRefusesInEveryWritePath'
   'surface#reservationIsNotBypassedByTheOtherLabelFlags'
+  'surface#theStubRefusesAnEditWithNoField'
   'import#dryRunEmitsOnePreviewPerFinding'
   'import#secondRunIsANoOp'
   'adapter#emitsOneFindingPerFixtureSection'
@@ -161,6 +162,7 @@ issues_run_shell_case() {
     'surface#noDeletePath') case_surface_noDeletePath ;;
     'surface#reservedLabelRefusesInEveryWritePath') case_surface_reservedLabelRefusesInEveryWritePath ;;
     'surface#reservationIsNotBypassedByTheOtherLabelFlags') case_surface_reservationIsNotBypassed ;;
+    'surface#theStubRefusesAnEditWithNoField') case_surface_theStubRefusesAnEditWithNoField ;;
     'import#dryRunEmitsOnePreviewPerFinding') case_import_dryRunEmitsOnePreviewPerFinding ;;
     'import#secondRunIsANoOp') case_import_secondRunIsANoOp ;;
     'adapter#emitsOneFindingPerFixtureSection') case_adapter_emitsOneFindingPerFixtureSection ;;
@@ -1188,6 +1190,27 @@ case_surface_reservationIsNotBypassed() {
   assert_contains "$out" "label-reserved" "the JSON payload route names the reservation"
 
   [ ! -s "$log" ] || fail "no write may reach the tracker: $(cat "$log")"
+}
+
+# The stub is the only `gh` the suite ever runs, so a shape the real CLI refuses is a fact no case can see:
+# the item reached the tracker with every suite green (#165), because the bare `gh issue edit <n>` that
+# `tools/issues/update.sh` issued was recorded by a stub that inspects no flags. The tool side is guarded
+# (`edit_needed`, `tools/issues/update.sh:192-196`); this case is the fixture's own guard, so a path added
+# later that assembles an empty edit is red here rather than on a person's desk.
+case_surface_theStubRefusesAnEditWithNoField() {
+  local dir log out status
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  export GH_STUB_DIR="$ISSUES_FIXTURES" GH_STUB_RECORD="$log"
+
+  out=$(gh issue edit 21 2>&1); status=$?
+  [ "$status" -ne 0 ] || fail "the stub recorded a fieldless `gh issue edit`, which the real CLI refuses: $out"
+  assert_contains "$out" "--add-label" "the refusal names a flag that would make the edit legal"
+  assert_contains "$out" "--body-file" "and the body route beside it"
+  [ ! -s "$log" ] || fail "a call the real CLI refuses was recorded as a write: $(cat "$log")"
+
+  # and a legitimate write is still recorded, unchanged: the refusal narrows the arm, it does not close it
+  gh issue edit 21 --add-label class/bug >/dev/null 2>&1 || fail "a legal `gh issue edit` was refused"
+  grep -qxF 'gh issue edit 21 --add-label class/bug' "$log" || fail "the legal edit does not reach the log: $(cat "$log")"
 }
 
 # `--id N` is the resolution a `§N` citation depends on after the source record is gone (design D3): the

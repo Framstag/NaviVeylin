@@ -955,8 +955,14 @@ identity and carries no byte count. The unit, the two bounds (12 000 bytes per r
 the entry document) and the exclusion are the owner's recorded decision (2026-10-27), and each bound is its own
 row's, so retuning one is one edit in `sensors.json`. Measured on the tree this landed on, the bound convicts
 eight sections — `UI.md` §1 (25 206 bytes) and §8 (19 681), `MapRendering.md` §1 (22 644), `UI.md` §7a (13 102),
-this §9 (14 602 bytes), `Design.md` §5 (12 781) and §8 (12 058), and `Build.md`
+this §9 (15 142 bytes), `Design.md` §5 (12 781) and §8 (12 058), and `Build.md`
 §7 (12 052) — which is exactly the silent erosion the row exists to make visible.
+
+The routing table has one condition of its own, and it is not a row because it files nothing:
+`tools/check-doc-routes.sh` reports a row that names a lettered sub-section of a document and states no cost, and
+`tools/check-doc-routes.sh --sizes` prints the cost of every section of every document the table names, routed or
+not, so the figure a row restates has a measurement it can be compared with. The figure is read as presence and
+not as accuracy: a restated number goes stale by hand, and the number that bounds anything is the row's.
 
 One row watches **what the loop's own children cost**, because nothing did: `loop-spend` runs
 `tools/loop-spend.py --quiet` over `.pi/issue-loop/items` and measures the **duplicate-read share** of the reads

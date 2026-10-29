@@ -1,0 +1,13 @@
+THE FIRST CONVICTION — the cost clause run against AGENTS.md as it stood at 7b5893fa (six rows routing a
+lettered sub-section of a document and pricing nothing), with the current check and this tree's guidelines,
+in a throwaway tree. Recorded 2026-10-29T20:13:13Z.
+
+$ bash tools/check-doc-routes.sh --root <throwaway tree: 7b5893fa:AGENTS.md + this tree's guidelines>
+::error file=AGENTS.md::the routing row 'stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache' names a lettered sub-section and states no cost — state the sections' cost in kB (bytes/1000, one decimal) beside the reference, because that number is what a reader picks a section by
+::error file=AGENTS.md::the routing row 'phone UI — modes, overlays, layering, controls, dark mode, text' names a lettered sub-section and states no cost — state the sections' cost in kB (bytes/1000, one decimal) beside the reference, because that number is what a reader picks a section by
+::error file=AGENTS.md::the routing row 'car screens — templates, wait notices, car search and details' names a lettered sub-section and states no cost — state the sections' cost in kB (bytes/1000, one decimal) beside the reference, because that number is what a reader picks a section by
+::error file=AGENTS.md::the routing row 'the car Surface, renderer startup, host-thread safety, cross-variant wiring' names a lettered sub-section and states no cost — state the sections' cost in kB (bytes/1000, one decimal) beside the reference, because that number is what a reader picks a section by
+::error file=AGENTS.md::the routing row 'a surface that must live while a phone and a car session are both active' names a lettered sub-section and states no cost — state the sections' cost in kB (bytes/1000, one decimal) beside the reference, because that number is what a reader picks a section by
+::error file=AGENTS.md::the routing row 'search, favourites, settings, persistence' names a lettered sub-section and states no cost — state the sections' cost in kB (bytes/1000, one decimal) beside the reference, because that number is what a reader picks a section by
+check-doc-routes: 0 of 161 references do not resolve, 6 row(s) name a sub-section and state no cost
+exit=1

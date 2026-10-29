@@ -13,8 +13,9 @@ that owns them, next to the measurement that proved them. **Read the section tha
 whole document** (`openspec/config.yaml` states what a whole-document read costs). Sections are named here as
 `§<number> "<heading text>"`; the complete section list of any file is `grep -n '^## ' guidelines/<file>.md`,
 which also lists the sections this table does not route. A row that names a lettered sub-section (`§15a`, a
-section a split broke up) states what those sections cost, and `tools/check-doc-routes.sh` reports a row that
-names sub-sections and prices nothing.
+section a split broke up) states what those sections cost — the rule is `openspec/specs/documentation-ownership/spec.md`,
+"The route names the sub-section" — and `tools/check-doc-routes.sh` reports a row that names sub-sections and
+prices nothing.
 
 | what you are changing | read |
 |---|---|

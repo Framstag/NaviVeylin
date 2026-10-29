@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/loop/gate.sh" tests="37" failures="0" errors="0" time="8">
+<testsuite name="tools/loop/gate.sh" tests="37" failures="0" errors="0" time="10">
   <system-out>the gate summary summed over 9 suite(s), each tally kept beside this file: bash tools/gen-feature-list.sh --check-classification tests=0, tools/check-action-runtimes-selftest.sh tests=10, tools/check-action-runtimes.sh tests=0, tools/check-doc-routes-selftest.sh tests=21, tools/check-doc-routes.sh tests=0, tools/check-openspec-hygiene-selftest.sh tests=6, tools/check-openspec-hygiene.sh tests=0, tools/check-todo-references.sh tests=0, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list tests=0</system-out>
 </testsuite>

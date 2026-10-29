@@ -45,9 +45,14 @@ was first run. Each now states the cost of its sub-sections, measured with the r
 | a surface that must live while both sessions are active | `UI.md` §10a | 2 218 |
 | search, favourites, settings, persistence | `UI.md` §6a | 6 043 |
 
-The entry document grew from 25 908 to 26 418 bytes, inside its own 32 000-byte bound (`entry-document-size`).
+The entry document grew from 25 908 to 26 521 bytes, inside its own 32 000-byte bound (`entry-document-size`).
 
 ## The run
+
+Every number below is a command's output in this directory: `round-2-sizes.log` for the sizes (the eight
+conditioned sections, the eleven sub-sections the six rows now price, the entry document's 26 521 bytes, the 146
+sections and 116 routed pairs), `round-2-first-conviction.log` for the clause's first run against `7b5893fa`'s
+table (six rows, `exit=1`).
 
 - **Red on HEAD** (`round-2-red-on-head.log`): both cases fail against `tools/check-doc-routes.sh` at
   `7b5893fa` — `--sizes` is an unknown argument (`exit=1`), and a fixture row that routes a lettered
@@ -72,9 +77,10 @@ The entry document grew from 25 908 to 26 418 bytes, inside its own 32 000-byte 
 
 - `Backlog.md` §9 said "12 894 bytes before this paragraph was added", a value no command in the record
   produced (`evidence/measure-the-tree.txt` carries `Backlog.md §9 bytes=14634`, taken *with* the paragraph).
-  It now reads `14 602`, which is the number `bash tools/check-doc-routes.sh --sizes` prints for that section
-  on this tree — the paragraph lost 32 bytes with the old clause, and `design.md`'s two restatements of the old
-  value are corrected to match.
+  It now reads `15 142`, which is the number `bash tools/check-doc-routes.sh --sizes` prints for that section on
+  this tree (`round-2-sizes.log`), after the routing-table clause and its one-sentence reference — and
+  `design.md`'s two restatements are corrected to the same value, with their attribution moved from
+  `measure-the-tree.txt` (which carries the *first* run's numbers) to this round's log.
 - Task 3.2's Verify named `openspec validate 2026-10-29-fix-unbounded-agent-context --type change`, and no
   output of it was ever carried. It cannot be produced now: the change is archived, and the CLI reads
   `openspec/changes/`, so it reports `Change … has issues — No deltas found` (`exit=1`). What holds instead is

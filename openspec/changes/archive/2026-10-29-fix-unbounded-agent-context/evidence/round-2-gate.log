@@ -2,7 +2,7 @@ LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/issue197/tools/lo
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
 gate: tools/check-action-runtimes.sh
 action runtimes: 10 action pins across 2 workflow files target Node 24.
-gate: tools/check-action-runtimes.sh — 0s
+gate: tools/check-action-runtimes.sh — 1s
 gate: tools/check-action-runtimes-selftest.sh
 ok: this repository's workflows pin a Node 24 major
 ok: pins at or above the Node 24 floor pass
@@ -12,11 +12,7 @@ ok: a subpath of a recorded action resolves to the action's floor
 ok: an action with no recorded runtime fails
 ok: an unverifiable ref fails
 ok: a container action and a local action are skipped
-ok: a container action and a local action are skipped
 ok: a workflow with no action pin passes
-ok: a workflow with no action pin passes
-ok: a tree with no workflow directory is a layout error
-check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
 ok: a tree with no workflow directory is a layout error
 check-action-runtimes-selftest: all 10 cases passed (offline, no token, no build)
 gate: tools/check-action-runtimes-selftest.sh — 0s
@@ -32,10 +28,10 @@ delta spec ids: 0
 stale: 3
 car-only areas: 1
 highlights: 19
-gate: bash tools/gen-feature-list.sh --check-classification — 3s
+gate: bash tools/gen-feature-list.sh --check-classification — 4s
 gate: tools/check-doc-routes.sh
 check-doc-routes: all 169 section references resolve, all 4 skill references resolve
-gate: tools/check-doc-routes.sh — 1s
+gate: tools/check-doc-routes.sh — 0s
 gate: tools/check-doc-routes-selftest.sh
 PASS  routes#everyReferenceResolves — a map where every reference resolves (exit 0)
 PASS  routes#aDanglingSectionNumberIsReported — a dangling section number fails naming the reference (exit 1)
@@ -50,7 +46,6 @@ PASS  routes#aSkillTheTreeCarriesResolvesWithoutEditingTheCheck — a skill the 
 PASS  routes#aSkillPathThatNoLongerResolvesIsReported — a skill path that no longer resolves is reported (exit 1)
 PASS  routes#aSkillDirectoryWithoutItsSkillFileIsReported — a skill directory without a SKILL.md is reported (exit 1)
 PASS  routes#aSkillNameThatOnlyPrefixesAnExistingOneIsReported — a skill name that only prefixes an existing one is reported (exit 1)
-PASS  routes#aSkillNameThatOnlyPrefixesAnExistingOneIsReported — a skill name that only prefixes an existing one is reported (exit 1)
 PASS  routes#aBareDuplicatedNumberInAGuidelineBodyIsReported — a bare duplicated number in a guideline body is reported as ambiguous (exit 1)
 PASS  routes#aHeadingTextInAGuidelineBodyResolvesItsNumber — a heading text in a guideline body resolves its duplicated number (exit 0)
 PASS  routes#aReferenceInsideAFencedBlockIsNotAReference — a reference inside a fenced block is not a reference (exit 0)
@@ -61,7 +56,7 @@ PASS  routed-read#bound — every section of every routed document is printed wi
 PASS  routed-read#route — a row that routes a lettered sub-section of any document states its cost, here and over the project's own table
 PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case
 check-doc-routes-selftest: all 21 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
-gate: tools/check-doc-routes-selftest.sh — 2s
+gate: tools/check-doc-routes-selftest.sh — 3s
 gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
 # tools/check-doc-routes-mutations.json — 3 mutation(s), case command: bash tools/check-doc-routes-selftest.sh --case {case}
 skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
@@ -83,7 +78,7 @@ check-todo-references: excluded, and why:
   tools/issues/core/TodoSections.java                      that grammar
   Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
 check-todo-references: 198 line(s) scanned, 62 distinct citation(s), 162 in the recorded table
-check-todo-references: 62 citation(s) resolve through the recorded table; 6925 file(s) excluded by the allowlist above
+check-todo-references: 62 citation(s) resolve through the recorded table; 6928 file(s) excluded by the allowlist above
 gate: tools/check-todo-references.sh — 2s
 gate: tools/check-openspec-hygiene.sh
 Every capability spec states its Purpose.
@@ -92,4 +87,4 @@ gate: tools/check-openspec-hygiene.sh — 0s
 gate: tools/check-openspec-hygiene-selftest.sh
 check-openspec-hygiene-selftest: all 6 cases passed (throwaway OpenSpec trees, no Gradle)
 gate: tools/check-openspec-hygiene-selftest.sh — 0s
-LOOP-GATE: tests=37 failures=0 errors=0 (tools/check-action-runtimes.sh 0s, tools/check-action-runtimes-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 2s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)
+LOOP-GATE: tests=37 failures=0 errors=0 (tools/check-action-runtimes.sh 1s, tools/check-action-runtimes-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 3s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)

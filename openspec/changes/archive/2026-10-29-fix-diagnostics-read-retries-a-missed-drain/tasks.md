@@ -2,9 +2,9 @@
 
 ## 1. Red case
 
-- [x] 1.1 Add `DiagnosticsLogWritePathTest#aMissedDrainIsRetriedAndRecorded`: park the worker on a 60 s
+- [x] 1.1 Add `DiagnosticsLogWritePathTest#aMissedDrainIsRecordedAndRetriedOnce`: park the worker on a 60 s
       deadline, log one entry below the high-water mark, read, and require both the marker and the entry. Run
-      it on HEAD. Verify: `DiagnosticsLogWritePathTest > aMissedDrainIsRetriedAndRecorded FAILED`,
+      it on HEAD. Verify: `DiagnosticsLogWritePathTest > aMissedDrainIsRecordedAndRetriedOnce FAILED`,
       `java.lang.AssertionError: the missed drain is recorded: [[2026-10-29 08:43:28.886] TEST warm-up]`,
       `tests="11" failures="1"` at `2026-10-29T07:43:26.770Z` (`evidence/red-on-head.xml`,
       `evidence/red-on-head.log`).

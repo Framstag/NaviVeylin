@@ -21,7 +21,7 @@ the boolean that says otherwise (`awaitDrained`, `DiagnosticsLog.kt:384-394`) wa
 worker still holds is absent from the snapshot, and nothing records that the snapshot was taken after a miss.
 
 **Red on HEAD** — the case that exercises the defect, in the class the item names as the existing seam:
-`DiagnosticsLogWritePathTest#aMissedDrainIsRetriedAndRecorded`
+`DiagnosticsLogWritePathTest#aMissedDrainIsRecordedAndRetriedOnce`
 (`core/src/test/java/com/naviveylin/core/DiagnosticsLogWritePathTest.kt`). It parks the worker on a 60 s
 deadline (the state `DiagnosticsLogWritePathTest.kt:83` already forces with
 `assertFalse("the entry is still buffered", DiagnosticsLog.awaitDrained(0))`), logs one entry, and reads:
@@ -78,7 +78,7 @@ a retry added to `DiagnosticsScreen` alone would leave both of them silent.
 | file | change |
 |---|---|
 | `core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt` | `readEntries()` records an expired drain on `TAG` and retries the drain once before it reads the file |
-| `core/src/test/java/com/naviveylin/core/DiagnosticsLogWritePathTest.kt` | one added case, `aMissedDrainIsRetriedAndRecorded`: parked worker, one buffered entry, the read must record the miss and return the entry |
+| `core/src/test/java/com/naviveylin/core/DiagnosticsLogWritePathTest.kt` | one added case, `aMissedDrainIsRecordedAndRetriedOnce`: parked worker, one buffered entry, the read must record the miss and return the entry |
 | `openspec/specs/auto-diagnostics/spec.md` | one ADDED requirement, one scenario, one case |
 
 Additive: no published signature, resource, string or preference changes. Rollback: revert the hunk in

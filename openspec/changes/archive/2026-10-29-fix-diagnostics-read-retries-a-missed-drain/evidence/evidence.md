@@ -36,7 +36,7 @@ openspec/specs/auto-diagnostics/spec.md -> 42 existing scenarios
 "com.naviveylin.core.DiagnosticsLogWritePathTest"` (`red-on-head.log`, `red-on-head.xml`):
 
 ```
-DiagnosticsLogWritePathTest > aMissedDrainIsRetriedAndRecorded FAILED
+DiagnosticsLogWritePathTest > aMissedDrainIsRecordedAndRetriedOnce FAILED
     java.lang.AssertionError: the missed drain is recorded: [[2026-10-29 08:43:28.886] TEST warm-up]
 11 tests completed, 1 failed
 BUILD FAILED in 20s
@@ -74,7 +74,7 @@ Mutation (restores HEAD's discarded boolean, marked in the source):
 "com.naviveylin.core.DiagnosticsLogWritePathTest"` (`revert-check.log`, `revert-check-mutated.xml`):
 
 ```
-DiagnosticsLogWritePathTest > aMissedDrainIsRetriedAndRecorded FAILED
+DiagnosticsLogWritePathTest > aMissedDrainIsRecordedAndRetriedOnce FAILED
     java.lang.AssertionError: the missed drain is recorded: [[2026-10-29 08:45:50.109] TEST warm-up]
 11 tests completed, 1 failed
 BUILD FAILED in 10s
@@ -113,3 +113,17 @@ carries the step's `time="363"`; the module XMLs it produced carry):
 ```
 Change 'fix-diagnostics-read-retries-a-missed-drain' is valid
 ```
+
+## Round 2 — corrections only
+
+Review round 1 blocked on one finding: both `Case:` lines named a case the class does not carry — the
+identifier was transposed. The case is `aMissedDrainIsRecordedAndRetriedOnce`
+(`core/src/test/java/com/naviveylin/core/DiagnosticsLogWritePathTest.kt:250`), and it is the name
+`red-on-head.log:53` and `revert-check.log` already carried.
+
+Corrected, identifier only — no new claim, case or assertion: `openspec/specs/auto-diagnostics/spec.md:305`
+and this change's `specs/auto-diagnostics/spec.md:15` (the `Case:` lines), and every other occurrence of the
+old identifier in the change's artifacts (`proposal.md`, `design.md`, `tasks.md` 1.1, this file's "Red on HEAD"
+and revert-check blocks, and `worker-report.md`). `round-2-corrections.log` carries the diff, the `grep` that
+finds no occurrence of the old identifier (exit 1), and the checks below. No compiled file changed, so no
+Gradle step: the structural checks stand in for the build task.

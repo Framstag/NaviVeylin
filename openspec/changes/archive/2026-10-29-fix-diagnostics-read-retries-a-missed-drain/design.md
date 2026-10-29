@@ -56,7 +56,7 @@ The public signature and the return type stay `List<String>`: both production ca
 ## Blast radius
 
 - One production function in one file: `DiagnosticsLog.readEntries()` (`core/src/main/.../DiagnosticsLog.kt`).
-- One added test case in one test class: `DiagnosticsLogWritePathTest#aMissedDrainIsRetriedAndRecorded`
+- One added test case in one test class: `DiagnosticsLogWritePathTest#aMissedDrainIsRecordedAndRetriedOnce`
   (the class already owns the parked-worker seam, `DiagnosticsLogWritePathTest.kt:83`). It pays the read's own
   1 000 ms bound once, because that expiry *is* the behaviour under test — no sleep, no poll loop, so
   `checkNoWallClockWaits` has nothing to refuse.

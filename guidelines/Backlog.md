@@ -955,7 +955,7 @@ identity and carries no byte count. The unit, the two bounds (12 000 bytes per r
 the entry document) and the exclusion are the owner's recorded decision (2026-10-27), and each bound is its own
 row's, so retuning one is one edit in `sensors.json`. Measured on the tree this landed on, the bound convicts
 eight sections — `UI.md` §1 (25 206 bytes) and §8 (19 681), `MapRendering.md` §1 (22 644), `UI.md` §7a (13 102),
-this §9 (12 894 bytes before this paragraph was added), `Design.md` §5 (12 781) and §8 (12 058), and `Build.md`
+this §9 (14 602 bytes), `Design.md` §5 (12 781) and §8 (12 058), and `Build.md`
 §7 (12 052) — which is exactly the silent erosion the row exists to make visible.
 
 One row watches **what the loop's own children cost**, because nothing did: `loop-spend` runs

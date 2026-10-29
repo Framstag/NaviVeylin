@@ -1,0 +1,15 @@
+RED ON HEAD — the two cases documentation-ownership names for the cost of a routed read, run against HEAD's
+check (tools/check-doc-routes.sh at 7b5893fa) with this round's self-test. Recorded 2026-10-29T20:03:32Z.
+
+--- bash tools/check-doc-routes-selftest.sh --case 'routed-read#bound'
+FAIL  routed-read#bound — every section of every routed document is printed with its cost, each equal to the requirement's ruler, and the pairs the table routes are the pairs marked routed
+        the size report is empty — the check exited 2: check-doc-routes: unknown argument '--sizes'
+check-doc-routes-selftest: 1 of 1 cases failed
+exit=1
+
+--- bash tools/check-doc-routes-selftest.sh --case 'routed-read#route'
+FAIL  routed-read#route — a row that routes a lettered sub-section of any document states its cost, here and over the project's own table
+        a fixture row naming a lettered sub-section and pricing nothing was not reported: exit 0: check-doc-routes: all 5 section references resolve
+check-doc-routes-selftest: 1 of 1 cases failed
+exit=1
+

@@ -73,3 +73,29 @@
 - [ ] 6.1 Owed after the merge, by the owner: the first scheduled run files the eight section conditions, and
   `Backlog.md` §9 is one of them — the split that section needs is a change of its own. Not runnable here: the
   pipeline's guard refuses every ref but `main`, so a dispatch from this worktree writes nothing by design.
+
+## 7. Round 2 — the cases the two widened scenarios name
+
+The round-1 review blocked on this: the delta widened `routed-read#bound`'s WHEN and `routed-read#route`'s
+Case text, and neither case existed in any harness. The owner recorded option 2 — implement both over every
+routed section and carry their run. `evidence/round-2.md` is the note, its logs are beside it.
+
+- [x] 7.1 Implement `routed-read#route` over every routed document and not only `guidelines/Build.md`
+  (`tools/check-doc-routes.sh`): a row that names a lettered sub-section of any document states what those
+  sections cost, or the check reports the row and exits 1. Verify: the case is red against HEAD's check on a
+  fixture row naming a lettered sub-section of a document that is not `Build.md` and pricing nothing
+  (`evidence/round-2-red-on-head.log`), and green here (`evidence/round-2-green.log`); the six rows of
+  `AGENTS.md` it convicted now state their sub-sections' measured cost.
+- [x] 7.2 Implement `routed-read#bound` over every routed section: `--sizes` prints every section of every
+  document the table names, each marked `routed` or `not-routed`, and the case recomputes each cost under the
+  requirement's ruler (`sed … | wc -c`) instead of trusting the report. Verify: red against HEAD's check
+  (`--sizes` is an unknown argument), green here — 146 sections, 116 routed pairs — and the ruler falsified by
+  the mutation `section-cost-ruler`.
+- [x] 7.3 Add the two mutation records to `tools/check-doc-routes-mutations.json` and narrow `case-cmd` to the
+  named case, then carry the round's run beside this file. Verify: `mutate: 3 mutation(s) run, 3 went red and
+  restored green, 0 problem(s)` (`evidence/round-2-mutations.log`) and `LOOP-GATE: tests=37 failures=0 errors=0`
+  over the nine suites this pathspec owes (`evidence/round-2-gate.log`).
+- [x] 7.4 Correct the two numbers round 1 could not resolve: §9's stated size — 14 602 bytes, the value
+  `bash tools/check-doc-routes.sh --sizes` prints for it on this tree — in `Backlog.md` §9 and in the two
+  restatements in `design.md`, and the archive's own `openspec validate` state. Verify: `evidence/round-2.md`
+  carries both, with the command behind each.

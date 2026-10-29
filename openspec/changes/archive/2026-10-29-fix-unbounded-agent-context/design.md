@@ -51,16 +51,16 @@ while the verdict stays on the measured bytes so no bound rests on an estimate. 
   one paragraph in `guidelines/Backlog.md` §9; three cases and two mutations; and one MODIFIED requirement with
   three added scenarios in `documentation-ownership`. Eight files.
 - Nothing compiled: no Kotlin, Java, C++, Gradle, manifest or resource. No `:app` behaviour changes.
-- **The self-referential risk, named:** §9 is 12 894 bytes before this change's paragraph, so it is already one of
-  the eight conditions the bound convicts, and the paragraph that documents the check grows it further. The
+- **The self-referential risk, named:** §9 is 14 602 bytes with this change's paragraph, so it is already one of
+  the eight conditions the bound convicts, and the paragraph that documents the check is part of that count. The
   alternative — documenting the rows somewhere other than the section that owns the checks' doctrine — would
   split one doctrine across two homes to keep a number under a bound, which is the erosion this row exists to
   make visible. The split §9 needs (lettered sub-sections, the route row retargeted, every `Backlog.md` §9
   citation kept resolving) is a change of its own, and the row will file it.
 - The first run of the two rows files eight section conditions on today's tree and nothing for the entry
   document, each measured in `evidence/measure-the-tree.txt`: `UI.md` §1 (25 206 bytes), `MapRendering.md` §1
-  (22 644), `UI.md` §8 (19 681), `UI.md`'s "Phone map re-center button" section (13 102), `Backlog.md` §9 (12 894
-  before this change), `Design.md` §5 (12 781), `Design.md` §8 (12 058), and `Build.md`'s "Code coverage" section
+  (22 644), `UI.md` §8 (19 681), `UI.md`'s "Phone map re-center button" section (13 102), `Backlog.md` §9 (14 602
+  bytes), `Design.md` §5 (12 781), `Design.md` §8 (12 058), and `Build.md`'s "Code coverage" section
   (12 052). Filing is not authorising: they carry no `agent/eligible`, and each closes when its own section
   shrinks.
 - `check-portability.sh` is the one structural risk: the new script is an engine and must name no project value.

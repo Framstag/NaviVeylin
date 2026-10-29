@@ -1,0 +1,18 @@
+FALSIFICATION — the mutation set for the documentation routes, 2026-10-29T20:03:37Z
+One mutation per invariant: the skill-path resolution (unchanged), the cost a row that routes a lettered
+sub-section states, and the ruler a section's cost is counted with. Each must go red on the named case and
+green again after the restore.
+
+skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+route-states-its-cost	routed-read#route	a row that routes a lettered sub-section states what those sections cost, so a row naming sub-sections and pricing nothing is reported instead of passing as routed
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+section-cost-ruler	routed-read#bound	a section's cost is the byte count of its lines from the `## ` heading through the line before the next one, so a printed cost that is not that count fails the case
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 3 mutation(s) run, 3 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+exit=0

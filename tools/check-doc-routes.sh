@@ -21,17 +21,31 @@
 # reader to a skill that is gone. The rule this serves is `openspec/specs/documentation-ownership/spec.md`,
 # "A document that names a skill resolves to a skill that exists".
 #
-# Reads text files only: no build, no device, no network. Exit 0 when every reference resolves and every
-# document is routed, 1 when one does not, 2 on a usage or layout error.
+# A row of the table that routes a lettered sub-section of a document — `§15a`, a section a split broke up — must
+# state what those sections cost, because a reader picks a section by that number, and a row that names
+# sub-sections and prices nothing has lost the measurement the split was made for (`documentation-ownership`,
+# "The route names the sub-section"). The figure is a `kB` number in the row; this check reads its presence and
+# not its accuracy, because a restated figure goes stale by hand while the measured numbers are the sensor rows'
+# (`tools/sensors/sensors.json`).
 #
-# Usage: check-doc-routes.sh [--root <dir>]      # default root: the repository this script lives in
+# `--sizes` prints the cost of every section of every document the table names, one line each, marked with
+# whether the table routes it. The ruler is the one `documentation-ownership` states — a section's cost is the
+# byte count of its lines from the `## ` heading through the line before the next `## ` heading — and the bound
+# is the sensor row's, not this check's, so the flag prints costs and compares none.
+#
+# Reads text files only: no build, no device, no network. Exit 0 when every reference resolves, every document is
+# routed and every row that names a sub-section states a cost, 1 when one does not, 2 on a usage or layout error.
+#
+# Usage: check-doc-routes.sh [--root <dir>] [--sizes]   # default root: the repository this script lives in
 set -uo pipefail
 
 root=""
+sizes=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,27p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --sizes) sizes=1; shift ;;
+    -h|--help) sed -n '2,39p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "check-doc-routes: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -169,8 +183,50 @@ for doc in "$agents" "$gdir"/*.md; do
   done
 done
 
-# 7. resolve the section references
-awk -F'\t' -v unrouted="$unrouted" -v missingdocs="$missing_docs" -v skillfail="$skill_fail" -v skilltotal="$skill_total" '
+# 7. a row that routes a lettered sub-section of a document states what those sections cost. The row is the
+#    unit, because a cost belongs beside the reference it prices; a row whose references are all whole sections
+#    needs no figure and carries one only if it wants to.
+cost_fail=0
+while IFS= read -r row; do
+  case "$row" in '|'*) ;; *) continue ;; esac   # a row, not the paragraph that introduces the table
+  printf '%s' "$row" | grep -qE '§[0-9]+[a-z]' || continue
+  printf '%s' "$row" | grep -qE '[0-9]+([.,][0-9]+)?[[:space:]]?kB' && continue
+  label=$(printf '%s' "$row" | awk -F'|' '{ label = $2; gsub(/^ +| +$/, "", label); print label }')
+  printf "::error file=AGENTS.md::the routing row '%s' names a lettered sub-section and states no cost — state the sections' cost in kB (bytes/1000, one decimal) beside the reference, because that number is what a reader picks a section by\n" "$label"
+  cost_fail=$((cost_fail + 1))
+done < "$tmp/region"
+
+# 8. --sizes: the cost of every section of every document the table names, each marked with whether the table
+#    routes it. The ruler is the requirement's, so this is the number a restated figure claims and the number
+#    the sensor row compares with its bound; nothing is compared here, because the bound is the registry's.
+if [ "$sizes" -eq 1 ]; then
+  : > "$tmp/sizes"
+  for f in $files; do
+    LC_ALL=C awk -v file="$f" '
+      /^```/ { fence = !fence }
+      !fence && /^## / {
+        if (have) printf "%s\t%s\t%d\t%d\n", file, num, bytes, lines
+        h = substr($0, 4); num = ""
+        if (h ~ /^[0-9]+[a-z]?\./) { p = index(h, "."); num = substr(h, 1, p - 1) }
+        bytes = length($0) + 1; lines = 1; have = 1; next
+      }
+      have { bytes += length($0) + 1; lines++ }
+      END { if (have) printf "%s\t%s\t%d\t%d\n", file, num, bytes, lines }
+    ' "$gdir/$f.md" >> "$tmp/sizes"
+  done
+  awk -F'\t' '$4 == "AGENTS.md" { print $1 SUBSEP $2 }' "$tmp/refs" | sort -u > "$tmp/routed-keys"
+  LC_ALL=C awk -F'\t' -v keys="$tmp/routed-keys" '
+    BEGIN { while ((getline line < keys) > 0) routed[line] = 1 }
+    {
+      key = $1 SUBSEP $2
+      label = ($2 == "" ? "(unnumbered)" : "§" $2)
+      printf "check-doc-routes: section-cost %s.md %s %s bytes %s lines %s\n", \
+        $1, label, $3, $4, ((key in routed) ? "routed" : "not-routed")
+    }' "$tmp/sizes"
+fi
+
+# 9. resolve the section references
+awk -F'\t' -v unrouted="$unrouted" -v missingdocs="$missing_docs" -v skillfail="$skill_fail" -v skilltotal="$skill_total" -v costfail="$cost_fail" '
   FNR == NR {
     key = $1 SUBSEP $2
     count[key]++
@@ -194,9 +250,10 @@ awk -F'\t' -v unrouted="$unrouted" -v missingdocs="$missing_docs" -v skillfail="
     }
   }
   END {
-    if (fail > 0 || unrouted > 0 || missingdocs > 0 || skillfail > 0) {
+    if (fail > 0 || unrouted > 0 || missingdocs > 0 || skillfail > 0 || costfail > 0) {
       printf "check-doc-routes: %d of %d references do not resolve", fail, total
       if (skillfail > 0) printf ", %d of %d skill references do not resolve", skillfail, skilltotal
+      if (costfail > 0) printf ", %d row(s) name a sub-section and state no cost", costfail
       if (unrouted > 0) printf ", %d document(s) unrouted", unrouted
       if (missingdocs > 0) printf ", %d referenced document(s) missing", missingdocs
       printf "\n"

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapGestureComposeTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-29T13:13:45.554Z" hostname="dingens" time="15.235">
+  <properties/>
+  <testcase name="twoFingerClockwiseRotationReportsPositiveAngleDelta" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="13.081"/>
+  <testcase name="pinchSpreadReportsZoom" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.146"/>
+  <testcase name="multiTouchReportsGestureCentroid" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.172"/>
+  <testcase name="singleFingerDragReportsPanDeltas" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.116"/>
+  <testcase name="singleMoveDragReportsItsTravel" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.114"/>
+  <testcase name="twoTapsBeyondTheDoubleTapWindowReportNoDoubleTap" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.127"/>
+  <testcase name="rotationWithConstantDistanceDoesNotZoomOrPan" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.122"/>
+  <testcase name="rotationRequestsRenderOnlyOnGestureEnd" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.115"/>
+  <testcase name="twoTapsInsideTheDoubleTapWindowReportOneDoubleTap" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.082"/>
+  <testcase name="slowRotationWithSmallPerEventDeltasIsReported" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.149"/>
+  <testcase name="rotationWithSmallDistanceJitterDoesNotZoom" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.094"/>
+  <testcase name="panRequestsOneRenderAtGestureEnd" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.097"/>
+  <testcase name="sustainedPinchReportsGrowingZoom" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.102"/>
+  <testcase name="twoFingerCounterClockwiseRotationReportsNegativeAngleDelta" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.077"/>
+  <testcase name="singleFingerDragReportsTheFullFingerTravel" classname="com.naviveylin.ui.map.MapGestureComposeTest" time="0.081"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

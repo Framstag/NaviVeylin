@@ -1,0 +1,12 @@
+
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Why section should not exceed 1000 characters
+Task status: ✓ Complete
+
+Specs to update:
+  smooth-zoom: update
+Applying changes to openspec/specs/smooth-zoom/spec.md:
+  + 2 added
+Totals: + 2, ~ 0, - 0, → 0
+Specs updated successfully.
+Change 'add-double-tap-zoom' archived as '2026-10-29-add-double-tap-zoom'.

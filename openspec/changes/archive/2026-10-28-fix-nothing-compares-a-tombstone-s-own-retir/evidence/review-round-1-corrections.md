@@ -25,14 +25,15 @@ and the gate re-run from `main`'s tip, which is the base the landing will fast-f
 
 - `LOOP-GATE: tests=231 failures=0 errors=0` over 21 suites — `evidence/gate.md`, tallies under
   `evidence/gate-tallies/` (21 files), summary in `evidence/gate-summary.xml`;
-- `LOOP-MEASURE base=ccbc309994e4ccd9585974ce7b67d3642ce09eb6 paths=41` and
-  `LOOP-MEASURE-GATE seconds=294 suites=21` — `evidence/measure.txt`, regenerated on the final tree;
+- `LOOP-MEASURE base=ccbc309994e4ccd9585974ce7b67d3642ce09eb6 paths=41` at the gate run (48 on the tree that carries this
+  record's own evidence, which no mapped check reads) and `LOOP-MEASURE-GATE seconds=294 suites=21` —
+  `evidence/measure.txt`, regenerated on the final tree;
 - the pathspec now pulls the `openspec/**` and `*.md` checks in (`gen-feature-list --check-classification` 9s,
   `check-openspec-hygiene` + selftest, `check-doc-routes` + selftest, `check-todo-references` 2s), which round 1
   found missing;
 - `evidence/evidence-check-archived.log`: `evidence-check: PASS` on the archived change.
 
-## The five NOTEs, all closed
+## The five NOTEs, and the residuals round 2 found
 
 - **The suite that carries cases**: `gate.md` said two, the run has three and now four — corrected from the
   tallies (`129 + 67 + 29 + 6 = 231`).
@@ -43,9 +44,24 @@ and the gate re-run from `main`'s tip, which is the base the landing will fast-f
   timestamp and its exit status, and the restore checked with `git status`/`git diff` after the run — the mutation's
   message is still the red XML's (`evidence/settled-record-red.xml`, `expected [1] got [0]`), because the harness
   decides red by exit status.
-- **The surface line**: `evidence/measure.txt` now quotes `LOOP-MEASURE-SURFACE`, the tool's own line, instead of a
-  hand-written count beside a command that printed something else.
 - **Two UNPROVEN claims**: the numbers of the settled tombstones are now read and recorded —
   `tombstones=21 settled_numbers=138,…,158` in `evidence/tracker-read.txt`, which puts #140 and #143 among the 20 —
   and `design.md`'s rejection of a line-anchored reading says what the tracker shows (the marker occurs in 21
   bodies, no others) instead of claiming what the migration created.
+- **The surface line**: it was a hand-written count beside a command that printed something else, and round 2 is
+  right that `LOOP-MEASURE-SURFACE` only re-prints the proposal's own line (`tools/loop/measure.sh:207`) — it is no
+  measurement. The count and the nine names are gone from `proposal.md`; it now says what the command prints (17
+  files on 2026-10-29, the check and its selftest among them).
+
+## Two residuals round 2 measured, closed after it
+
+- **Both requirement bodies crossed the documented 500-character bound** — the `issue-backlog` ADDED at 513 and
+  the `backlog-sensors` MODIFIED at 705 — so both were rewritten to 491 and 476 without losing a clause of what
+  they bind. The `backlog-sensors` heading still reads "The priority pair is re-checked on a schedule"; its body
+  now names the priority invariant first and the tracker's other per-item invariants beside it, so the heading
+  states its share of the subject rather than all of it.
+- **The marker's reader in the check's own case** (`tools/issues/check-metadata-selftest.sh:196`) reads
+  `.roles.settledRecordMarker` with `jq` directly, as `tools/issues/check-metadata.sh:141` does. Left as it is: the
+  single definition is the profile file both read, and routing the case's fixture guard through
+  `issues_profile_value` would compile and run the Java core for a precondition, in a case that must stay green
+  for a reason that is not the guard's.

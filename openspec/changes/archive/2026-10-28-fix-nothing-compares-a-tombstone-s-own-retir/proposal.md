@@ -78,7 +78,7 @@ row re-reads "the tracker's own **priority invariant**", and the check's own hea
 
 **Surface** — the count the estimate is set against, with the command that produced it:
 
-surface: 1 case added, 1 fixture added, 1 mutation added, 2 files rewritten, 1 row's claims generalised, 2 documents corrected — `grep -rln 'settledRecordMarker\|settledStatuses\|records_settled_state' tools/ guidelines/ openspec/specs/ .github/workflows/` (9 files: `tools/tooling.json`, `tools/fixtures/foreign-project/tools/tooling.json`, `tools/issues/lib.sh`, `tools/issues/resolve-stale.sh`, `tools/loop/prescreen.sh`, `tools/resolve-stale-cases.sh`, `tools/resolve-stale-mutations.json`, `guidelines/Backlog.md`, `openspec/specs/stale-citation-resolution/spec.md`)
+surface: 1 case added, 1 fixture added, 1 mutation added, 2 files rewritten, 1 row's claims generalised, 2 documents and 2 capability specs corrected — `grep -rln 'settledRecordMarker\|settledStatuses\|records_settled_state' tools/ guidelines/ openspec/specs/ .github/workflows/` prints 17 files (2026-10-29), the check the change adds (`tools/issues/check-metadata.sh`) and its selftest among them.
 
 Of those nine, four are read and left alone (`tooling.json` and its fixture already declare the two roles,
 `prescreen.sh` keeps reading `settledStatuses` as the settled test, `resolve-stale-cases.sh` and the mutation set

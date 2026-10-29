@@ -4,13 +4,11 @@
 
 ### Requirement: The priority pair is re-checked on a schedule
 
-A project's checks SHALL include a scheduled re-read of the tracker's own priority invariant, so that an item
-whose band label and stored marker disagree becomes a check's verdict rather than something only a person
-running the check by hand would see. The measurement SHALL read the command that owns the invariant rather than
-restating it, and a drift SHALL be identified by the item and the disagreement it breaks. Because it reads that
-command's report whole, the row SHALL report every per-item invariant the command owns — a settled record in an
-item's body against the state label included — and SHALL name each condition by the invariant its own code
-breaks rather than by a rule the row restates.
+A project's checks SHALL include a scheduled re-read of the tracker's priority invariant, and of every per-item
+invariant the command that owns them reports, so that an item whose label and its own record disagree becomes a
+check's verdict rather than something only a hand run sees. The measurement SHALL read that command rather than
+restating a rule, identify a drift by the item and the disagreement it breaks, and name each condition by the
+invariant its own code breaks.
 
 #### Scenario: A drifted item is one condition, per item and disagreement
 

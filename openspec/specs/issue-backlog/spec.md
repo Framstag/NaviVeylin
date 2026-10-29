@@ -249,9 +249,9 @@ displaced by the new state, so a caller can see the whole transition and not onl
 
 An item whose body carries the profile's `settledRecordMarker` SHALL carry a `status/*` label whose value is one
 of `roles.settledStatuses`, and a check over the tracker's per-item invariants SHALL report every item that does
-not, naming the item, the state it carries and the invariant it breaks. A project that declares no marker SHALL
-check nothing, and an item with no record SHALL never be a violation — a state label alone is how an ordinary
-closure is recorded. The check SHALL report and SHALL NOT repair.
+not, naming the item, its state and the invariant it breaks. A project declaring no marker SHALL
+check nothing, and an item without the record SHALL never be a violation — a state label alone records an
+ordinary closure. The check SHALL report and SHALL NOT repair.
 
 #### Scenario: check#aDisplacedSettledStateIsReported
 

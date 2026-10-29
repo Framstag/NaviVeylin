@@ -1,0 +1,14 @@
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 179
+classified: 182
+unclassified: 0
+delta spec ids: 0
+stale: 3
+car-only areas: 1
+highlights: 19
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+check-doc-routes: all 155 section references resolve, all 4 skill references resolve

@@ -1,0 +1,56 @@
+== round 2: corrections only (the misnamed case identifier) 2026-10-29T07:59:20Z
+== git diff --stat
+ .../2026-10-29-fix-diagnostics-read-retries-a-missed-drain/design.md  | 2 +-
+ .../evidence/evidence.md                                              | 4 ++--
+ .../proposal.md                                                       | 4 ++--
+ .../specs/auto-diagnostics/spec.md                                    | 2 +-
+ .../2026-10-29-fix-diagnostics-read-retries-a-missed-drain/tasks.md   | 4 ++--
+ openspec/specs/auto-diagnostics/spec.md                               | 2 +-
+ 6 files changed, 9 insertions(+), 9 deletions(-)
+== grep -rn 'aMissedDrainIsRetriedAndRecorded' --include='*.md' --include='*.kt' --include='*.xml' .
+exit=1 (1 = no match: the misnamed identifier is gone from the record and the delta)
+== grep -n 'aMissedDrainIsRecordedAndRetriedOnce' openspec/specs/auto-diagnostics/spec.md openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/specs/auto-diagnostics/spec.md
+openspec/specs/auto-diagnostics/spec.md:305:- **Case**: `DiagnosticsLogWritePathTest#aMissedDrainIsRecordedAndRetriedOnce`
+openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/specs/auto-diagnostics/spec.md:15:- **Case**: `DiagnosticsLogWritePathTest#aMissedDrainIsRecordedAndRetriedOnce`
+== grep -n 'fun aMissedDrain' core/src/test/java/com/naviveylin/core/DiagnosticsLogWritePathTest.kt
+250:    fun aMissedDrainIsRecordedAndRetriedOnce() {
+== bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 179
+classified: 182
+unclassified: 0
+delta spec ids: 0
+stale: 3
+car-only areas: 1
+highlights: 19
+exit=0
+== tools/check-doc-routes.sh
+
+== bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain --root . (after the round-2 section)
+ok   C1 §references: 3 checked, 0 exempted as archived pointers
+ok   C2 test tallies: 10 pairs confirmed, 0 exempted (not retained), 1 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 417 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: PASS
+exit=0
+
+== openspec validate 2026-10-29-fix-diagnostics-read-retries-a-missed-drain --strict
+Unknown item '2026-10-29-fix-diagnostics-read-retries-a-missed-drain'. Did you mean: auto-map-destination-picker, enhanced-details-sheet, style-load-diagnostics, address-book-permission, auto-destination-details?
+(expected: `openspec validate` addresses open changes and capability specs only, so an archived change name is unknown; round 1 validated the same delta before archiving, `openspec-validate.log`.)
+
+== openspec validate auto-diagnostics --strict
+Specification 'auto-diagnostics' has issues
+⚠ [WARNING] requirements[4]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[10]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[12]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Next steps:
+  - Ensure spec includes ## Purpose and ## Requirements sections
+  - Each requirement MUST include at least one #### Scenario: block
+  - Re-run with --json to see structured report
+exit=1
+(the three warnings are pre-existing: requirements[4], [10] and [12] are unchanged by this change — the base spec at 42d3e000 carried 13 requirements and the appended one is requirements[13]; `valid: true`, 0 failed, so exit 1 is --strict counting warnings, not an invalid spec)

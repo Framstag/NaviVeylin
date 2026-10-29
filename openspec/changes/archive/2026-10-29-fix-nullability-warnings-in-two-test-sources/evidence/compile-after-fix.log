@@ -1,0 +1,136 @@
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:pluginDescriptors
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:compileKotlin
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+
+> Task :buildSrc:jar
+:jar: No valid plugin descriptors were found in META-INF/gradle-plugins
+
+> Configure project :app
+app/release.keystore not found — release builds will be UNSIGNED. Generate it and app/keystore.properties before shipping.
+
+> Task :app:checkCleartextTransportPolicy
+> Task :core:checkHardcodedStrings
+> Task :auto:checkHardcodedStrings
+> Task :core:checkNoWallClockWaits
+> Task :core:preBuild
+> Task :core:preDebugBuild
+> Task :core:processDebugNavigationResources
+> Task :core:generateDebugResources
+> Task :core:packageDebugResources
+> Task :core:writeDebugAarMetadata
+> Task :core:javaPreCompileDebug
+> Task :core:extractDeepLinksDebug
+> Task :core:mapDebugSourceSetPaths
+> Task :core:processDebugManifest
+> Task :core:parseDebugLocalResources
+> Task :core:compileDebugLibraryResources
+> Task :auto:checkNoWallClockWaits
+> Task :auto:preBuild
+> Task :auto:preDebugBuild
+> Task :auto:processDebugNavigationResources
+> Task :auto:generateDebugResources
+> Task :core:generateDebugRFile
+> Task :auto:packageDebugResources
+> Task :auto:javaPreCompileDebug
+> Task :auto:writeDebugAarMetadata
+> Task :auto:extractDeepLinksDebug
+> Task :auto:parseDebugLocalResources
+> Task :auto:mapDebugSourceSetPaths
+> Task :auto:processDebugManifest
+> Task :auto:compileDebugLibraryResources
+> Task :auto:generateDebugRFile
+> Task :app:checkHardcodedStrings
+> Task :app:checkNativeParity
+> Task :osmscout-client-java:compileVendoredJava
+> Task :osmscout-client-java:processVendoredResources NO-SOURCE
+> Task :osmscout-client-java:vendoredClasses
+> Task :app:checkNoCoordinatesInLogs
+> Task :osmscout-client-java:compileJava
+> Task :osmscout-client-java:processResources NO-SOURCE
+> Task :osmscout-client-java:classes
+> Task :osmscout-client-java:jar
+> Task :app:checkNoWallClockWaits
+> Task :app:checkSubmoduleFeatureHeaders
+> Task :app:checkSubmoduleIcons
+> Task :app:checkSubmoduleStylesheets
+> Task :app:syncSubmoduleIcons
+> Task :app:syncSubmoduleStylesheets
+> Task :app:preBuild
+> Task :app:preMobileDebugBuild
+> Task :app:generateMobileDebugBuildConfig
+> Task :app:generateMobileDebugResources
+> Task :app:packageMobileDebugResources
+> Task :app:processMobileDebugNavigationResources
+> Task :app:javaPreCompileMobileDebug
+> Task :app:mapMobileDebugSourceSetPaths
+> Task :app:parseMobileDebugLocalResources
+> Task :app:compileMobileDebugNavigationResources
+> Task :app:checkMobileDebugAarMetadata
+> Task :app:generateMobileDebugRFile
+> Task :app:createMobileDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksMobileDebug
+> Task :app:processMobileDebugMainManifest
+> Task :app:processMobileDebugManifest
+> Task :app:preMobileDebugUnitTestBuild
+> Task :app:preAutomotiveDebugBuild
+> Task :app:generateAutomotiveDebugBuildConfig
+> Task :app:generateAutomotiveDebugResources
+> Task :app:packageAutomotiveDebugResources
+> Task :app:processAutomotiveDebugNavigationResources
+> Task :app:javaPreCompileAutomotiveDebug
+> Task :app:mapAutomotiveDebugSourceSetPaths
+> Task :core:kspDebugKotlin
+> Task :app:checkAutomotiveDebugAarMetadata
+> Task :app:compileAutomotiveDebugNavigationResources
+> Task :app:parseAutomotiveDebugLocalResources
+> Task :app:mergeMobileDebugResources
+> Task :app:createAutomotiveDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksAutomotiveDebug
+> Task :app:generateAutomotiveDebugRFile
+> Task :app:processAutomotiveDebugMainManifest
+> Task :app:processAutomotiveDebugManifest
+> Task :app:processMobileDebugManifestForPackage
+> Task :app:preAutomotiveDebugUnitTestBuild
+> Task :app:processAutomotiveDebugManifestForPackage
+> Task :app:mergeAutomotiveDebugResources
+> Task :app:processMobileDebugResources
+> Task :app:processAutomotiveDebugResources
+> Task :core:compileDebugKotlin
+> Task :core:compileDebugJavaWithJavac
+> Task :core:processDebugJavaRes
+> Task :core:transformDebugClassesWithAsm
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:bundleLibRuntimeToJarDebug
+> Task :core:createFullJarDebug
+> Task :auto:compileDebugKotlin
+> Task :auto:compileDebugJavaWithJavac NO-SOURCE
+> Task :auto:processDebugJavaRes
+> Task :auto:bundleLibCompileToJarDebug
+> Task :auto:bundleLibRuntimeToJarDebug
+> Task :auto:createFullJarDebug
+> Task :app:kspAutomotiveDebugKotlin
+> Task :app:kspMobileDebugKotlin
+> Task :app:compileAutomotiveDebugKotlin
+> Task :app:compileAutomotiveDebugJavaWithJavac
+> Task :app:hiltSyncAutomotiveDebug
+> Task :app:hiltAggregateDepsAutomotiveDebug
+> Task :app:compileMobileDebugKotlin
+> Task :app:hiltJavaCompileAutomotiveDebug
+> Task :app:compileMobileDebugJavaWithJavac
+> Task :app:hiltSyncMobileDebug
+> Task :app:hiltAggregateDepsMobileDebug
+> Task :app:bundleAutomotiveDebugClassesToCompileJar
+> Task :app:hiltJavaCompileMobileDebug
+> Task :app:bundleMobileDebugClassesToCompileJar
+> Task :app:kspAutomotiveDebugUnitTestKotlin
+> Task :app:kspMobileDebugUnitTestKotlin
+> Task :app:compileAutomotiveDebugUnitTestKotlin
+> Task :app:compileMobileDebugUnitTestKotlin
+
+BUILD SUCCESSFUL in 49s
+107 actionable tasks: 107 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

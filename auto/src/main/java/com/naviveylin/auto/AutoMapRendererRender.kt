@@ -12,8 +12,8 @@ import android.view.Surface
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.FollowDisplayState
-import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.MapRenderUtil
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.RenderBitmapPool
 import com.naviveylin.core.VehicleAnchorPosition
@@ -72,7 +72,7 @@ internal fun AutoMapRenderer.renderFrame() {
             // frame center (change `overlay-projects-against-displayed-frame`,
             // spec: auto-map-renderer — Map re-renders on viewport change;
             // auto-smooth-follow — Sub-region blit on viewport change):
-            // displayOffsetPx measures a displayed point against the frame the
+            // shiftPx measures a displayed point against the frame the
             // bitmap was rendered with, and the frame is rendered
             // anchor-centered, so this yields the vehicle's drift from its anchor.
             // A frame center is not a point of the rendered bitmap: passing it
@@ -81,7 +81,7 @@ internal fun AutoMapRenderer.renderFrame() {
             // preset away from the center — and then every follow viewport change
             // falls back to a full native render instead of a blit.
             val (blitLat, blitLon) = if (followMode) markerPosition() else viewportLat to viewportLon
-            val offset = FollowPrediction.displayOffsetPx(
+            val offset = OverrunWindow.shiftPx(
                 blitLat, blitLon,
                 overrunLat, overrunLon, overrunMag, overrunAngle,
                 ob.width, ob.height, w, h, projectionDpi,
@@ -273,7 +273,7 @@ internal fun AutoMapRenderer.fullRender(surf: Surface, w: Int, h: Int) {
                 0.0 to 0.0
             } else {
                 val resolved = resolvedFollowAnchor()
-                val off = FollowPrediction.displayOffsetPx(
+                val off = OverrunWindow.shiftPx(
                     mLat, mLon,
                     frameLat, frameLon, frameMag, frameAngle,
                     bitmap.width, bitmap.height, w, h, projectionDpi,

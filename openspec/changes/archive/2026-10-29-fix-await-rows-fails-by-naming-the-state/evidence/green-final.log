@@ -1,0 +1,14 @@
+# The final verification: the class after the last edit (the helper's KDoc no longer claims "no wall-clock
+# window" while taking one — the contradiction the item named). Comment-only edit; the run is the evidence that
+# the tree as left passes.
+
+./gradlew --offline :auto:testDebugUnitTest -PforceTests --no-build-cache \
+  --tests "com.naviveylin.auto.StartupScreensTest" --rerun-tasks
+
+> Task :auto:checkNoWallClockWaits
+> Task :auto:testDebugUnitTest
+
+BUILD SUCCESSFUL in 26s
+60 actionable tasks: 60 executed
+
+# green-final.xml: tests="7" failures="0" errors="0" timestamp="2026-10-29T08:14:42.907Z"

@@ -1,0 +1,22 @@
+# one mutation: the (§40.55) tag deleted from guidelines/MapRendering.md:899, then restored — 2026-10-29T12:26:45Z
+$ sed -i "899s/ (§40.55)//" guidelines/MapRendering.md && sed -n "899p" guidelines/MapRendering.md
+- **Verification**: a stylesheet defect is NOT caught by building — the app must be run once with
+$ bash red-probe.sh --root . --junit /tmp/68-mutated.xml
+STATED  §40.38  guidelines/Build.md:586-648  "flake"
+STATED  §40.46  guidelines/Build.md:104-174  "newermt"
+MISSING §40.55  guidelines/MapRendering.md:876-914 ("## 15a. Stylesheet load failure") carries no §40.55 tag
+tests=3 failures=1
+FAIL guardrail-tag#eachCarriedEntryCarriesItsRecordTag — 1 of 3 entries carry no §40.N tag (exit 1)
+EXIT=1
+$ grep -c "<testcase " /tmp/68-mutated.xml; grep -o "failures=\"[0-9]*\"" /tmp/68-mutated.xml
+3
+failures="1"
+$ cp /tmp/68-MapRendering.md.orig guidelines/MapRendering.md && sed -n "899p" guidelines/MapRendering.md
+- **Verification**: a stylesheet defect is NOT caught by building (§40.55) — the app must be run once with
+$ bash red-probe.sh --root .
+STATED  §40.38  guidelines/Build.md:586-648  "flake"
+STATED  §40.46  guidelines/Build.md:104-174  "newermt"
+STATED  §40.55  guidelines/MapRendering.md:876-914  "style error"
+tests=3 failures=0
+PASS guardrail-tag#eachCarriedEntryCarriesItsRecordTag (exit 0)
+EXIT=0

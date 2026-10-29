@@ -1,0 +1,12 @@
+./gradlew --offline :auto:testDebugUnitTest -PforceTests --no-build-cache
+# the whole :auto module, one invocation (spec: unit-test-suite-runtime — Module unit-test suite completes in a
+# single invocation); the case and its class are inside it.
+
+> Task :auto:testDebugUnitTest
+
+BUILD SUCCESSFUL in 37s
+60 actionable tasks: 5 executed, 55 up-to-date
+
+# tally over auto/build/test-results/testDebugUnitTest/TEST-*.xml (python3 evidence/auto-suite-tally.py <dir>):
+# classes=92 tests=886 failures=0 errors=0 timestamps 2026-10-29T08:09:56.422Z .. 2026-10-29T08:10:30.206Z
+# 886 against the 885 the module carried before this change: exactly one case added, no case rewritten.

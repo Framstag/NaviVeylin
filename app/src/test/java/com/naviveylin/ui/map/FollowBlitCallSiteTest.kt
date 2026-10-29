@@ -12,7 +12,7 @@ import java.io.File
  *
  * Why the sources are the surface. `FollowAnchorFramingTest` proves the framing contract with the fractions
  * it is *handed*, so it stayed green while `MapCanvasScreen`'s follow display block passed
- * `ui.activeFollowAnchor` (raw preset ≈ 0.9) to `FollowPrediction.displayOffsetPx` while the render target
+ * `ui.activeFollowAnchor` (raw preset ≈ 0.9) to the shift helper while the render target
  * and the marker used `state.resolvedAnchor` (≈ 0.76) — a `(0.9 − 0.76)·H` content offset plus per-500 ms
  * re-render churn, invisible to the suite (issue #18, `§111`; the same day's `fix-follow-vehicle-jumps`
  * reworked the same pipeline without catching it). Its own regression case asserts the *defect geometry* by
@@ -44,7 +44,7 @@ class FollowBlitCallSiteTest {
     private val seamFile = File(repoRoot, "$mapPackage/FollowBlitRules.kt")
 
     private val seamCall = "FollowBlitRules" + ".offsetFor("
-    private val inlineCall = "FollowPrediction" + ".displayOffsetPx("
+    private val inlineCall = "OverrunWindow" + ".shiftPx("
     private val rawPreset = "active" + "FollowAnchor"
     private val resolvedAnchor = "resolved" + "Anchor"
 

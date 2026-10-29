@@ -1,0 +1,35 @@
+Kotlin does not yet support 27 JDK target, falling back to Kotlin JVM_25 JVM target
+Kotlin does not yet support 27 JDK target, falling back to Kotlin JVM_25 JVM target
+> Task :checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :pluginDescriptors UP-TO-DATE
+> Task :processResources NO-SOURCE
+> Task :processTestResources NO-SOURCE
+
+> Task :compileKotlin
+Kotlin does not yet support 27 JDK target, falling back to Kotlin JVM_25 JVM target
+w: [33m[1m⚠️ Inconsistent JVM Target Compatibility Between Java and Kotlin Tasks[0m[0m
+Inconsistent JVM-target compatibility detected for tasks 'compileJava' (27) and 'compileKotlin' (25).
+[32m[1mSolution:[0m[0m
+[32m[3mConsider using JVM Toolchain: https://kotl.in/gradle/jvm/toolchain[0m[0m
+[36mLearn more about JVM-target validation: [0m[34mhttps://kotl.in/gradle/jvm/target-validation[0m[36m[0m
+
+
+> Task :compileJava NO-SOURCE
+> Task :classes UP-TO-DATE
+
+> Task :jar
+:jar: No valid plugin descriptors were found in META-INF/gradle-plugins
+
+> Task :compileTestKotlin UP-TO-DATE
+Kotlin does not yet support 27 JDK target, falling back to Kotlin JVM_25 JVM target
+
+> Task :compileTestJava NO-SOURCE
+> Task :pluginUnderTestMetadata UP-TO-DATE
+> Task :testClasses UP-TO-DATE
+> Task :test
+
+[Incubating] Problems report is available at: file:///home/tim/projects/NaviVeylin/buildSrc/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 8s
+6 actionable tasks: 3 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.1/userguide/configuration_cache_enabling.html

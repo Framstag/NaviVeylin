@@ -260,3 +260,65 @@ closure is recorded. The check SHALL report and SHALL NOT repair.
 - **THEN** the check fails, naming that item, the state it carries and the invariant it breaks, while the same
   item carrying a settled state passes and an item with no record is no violation at all
 - **Case**: `check#aDisplacedSettledStateIsReported`
+
+### Requirement: The suite's stub refuses what the real CLI refuses
+
+The suite SHALL run the issue tooling against a stub `gh` that refuses a shape the real CLI refuses, so a
+malformed invocation is red in a case instead of waiting for a person to run the client by hand. An
+`gh issue edit` that carries no field to edit SHALL be refused by the stub — a non-zero exit and a message
+naming the flags that would make the call legal — and SHALL NOT be recorded as a write, while a call carrying
+one of those flags SHALL be recorded exactly as before.
+
+#### Scenario: A bare `gh issue edit` is refused by the stub
+
+- **WHEN** the stub `gh` is asked for `gh issue edit <n>` with none of `--add-label`, `--remove-label` or
+  `--body-file`, with the write log enabled
+- **THEN** the stub exits non-zero, prints a message naming those flags, and records nothing
+- **Case**: `surface#theStubRefusesAnEditWithNoField`
+
+#### Scenario: A legitimate edit is still recorded
+
+- **WHEN** the stub `gh` is asked for `gh issue edit <n> --add-label <label>`
+- **THEN** the call exits 0 and the invocation is recorded in the write log unchanged
+- **Case**: `surface#theStubRefusesAnEditWithNoField`
+
+### Requirement: A settled state is displaced only by a call that names the transition
+
+A state write SHALL NOT displace a value of the profile's `roles.settledStatuses` unless the call names that
+transition. A write that would displace one SHALL be refused before any issue write, with exit 3 and the reason
+`status-settled` naming the settled value it would have removed, so a hold — a claim about a run's capacity —
+cannot erase a claim about the item's premise. The call that names the transition SHALL perform the
+replacement in the same single write, and SHALL name the settled value it removed. The two verbs whose own
+purpose is that transition — a closure, which records `closeStatus`/`retiredStatus`, and a reopen, which
+reverses a completed closure and carries the returning measurement — SHALL pass it. A state write that
+displaces no settled value SHALL be unchanged.
+
+#### Scenario: A routine state write does not displace a settled state
+
+- **WHEN** a state write names an item that carries a value of the profile's `roles.settledStatuses`, and the
+  call does not name the transition
+- **THEN** the call is refused with exit 3 and the reason `status-settled` naming that value, and nothing
+  reaches the tracker
+- **Case**: `update#refusesToDisplaceASettledState`
+
+#### Scenario: The write that names the transition lands and reports it
+
+- **WHEN** the same write is issued with the transition named
+- **THEN** one issue write adds the new state and removes the settled one, and the call names the settled value
+  it removed
+- **Case**: `update#refusesToDisplaceASettledState`
+
+#### Scenario: A closure displaces one settled state for the other
+
+- **WHEN** a closure records the settled state a decision not to act carries on an item that already carries
+  the other settled value
+- **THEN** the closure is not refused: one issue write adds the state it records and removes the settled value
+  it displaces
+- **Case**: `close#namesTheSettledStateItDisplaces`
+
+#### Scenario: A reopen reports the settled state it removes
+
+- **WHEN** a reopen reverses a completed closure on an item that carries a settled state
+- **THEN** its report names that settled value, as a clause of the line it prints and as a field of the document
+  it prints with `--json`
+- **Case**: `foreign#toolchainRunsEndToEnd`

@@ -1,5 +1,5 @@
 {
-  "comment": "The four revert-checks of `fix-status-label-replacement` (tasks 5.1-5.4) as a runnable set: one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/status-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. Every search is a single line and unique in its file (the runner's replacement is literal and line-based), which is what the transcript in `openspec/changes/archive/*-fix-status-label-replacement/evidence/revert-check.md` records.",
+  "comment": "The four revert-checks of `fix-status-label-replacement` (tasks 5.1-5.4) as a runnable set, later joined by `fix-settled-state-displacement-guard` (8.1, the settled-state guard): one mutation per invariant, the named case must go red, the file is restored, the case must go green again. Run it with `bash tools/mutate.sh --mutations tools/status-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the issue tooling prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. Every search is a single line and unique in its file (the runner's replacement is literal and line-based), which is what the transcript in `openspec/changes/archive/*-fix-status-label-replacement/evidence/revert-check.md` records.",
   "case-cmd": "bash tools/issue-tooling-selftest.sh --case {case}",
   "mutations": [
     {
@@ -41,6 +41,14 @@
       "search": "        status_label=\"$label\"",
       "replace": "        status_label=\"\"",
       "why": "a state named as the namespaced label being the same act as one named through the state flag"
+    },
+    {
+      "label": "8.1",
+      "case": "update#refusesToDisplaceASettledState",
+      "file": "tools/issues/lib.sh",
+      "search": "  [ \"$named\" -eq 1 ] && return 0",
+      "replace": "  return 0",
+      "why": "the guard refusing a routine write that would displace a settled state instead of letting every caller through"
     }
   ]
 }

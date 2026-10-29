@@ -1,6 +1,6 @@
 package com.naviveylin.ui.map
 
-import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 
 /**
  * The pan display window's decision rules, extracted from the map screen so the seam
@@ -66,10 +66,10 @@ internal object PanWindowRules {
         canvasW: Int,
         canvasH: Int,
         dpi: Double
-    ): FollowPrediction.Companion.DisplayOffset? {
+    ): OverrunWindow.DisplayOffset? {
         if (displayedLat.isNaN() || displayedLon.isNaN()) return null
         if (!frameUsable(frame, canvasW, canvasH)) return null
-        return FollowPrediction.displayOffsetPx(
+        return OverrunWindow.shiftPx(
             displayedLat, displayedLon,
             frame!!.lat, frame.lon, frame.mag, frame.angle,
             frame.width, frame.height,

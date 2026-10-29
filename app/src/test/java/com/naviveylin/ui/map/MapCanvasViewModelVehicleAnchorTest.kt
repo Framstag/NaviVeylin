@@ -7,6 +7,7 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.EngineTimeSource
 import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.anchorCenter
@@ -645,7 +646,7 @@ class MapCanvasViewModelVehicleAnchorTest {
                 frameLat, frameLon, mag, 0.0,
                 (SCREEN_W * 1.2).toInt(), (SCREEN_H * 1.2).toInt()
             )
-            fun offsetForAnchor(fx: Double, fy: Double) = FollowPrediction.displayOffsetPx(
+            fun offsetForAnchor(fx: Double, fy: Double) = OverrunWindow.shiftPx(
                 displayLat, displayLon, frameLat, frameLon, mag, 0.0,
                 frame.width, frame.height, SCREEN_W, SCREEN_H, dpi, fx, fy
             )

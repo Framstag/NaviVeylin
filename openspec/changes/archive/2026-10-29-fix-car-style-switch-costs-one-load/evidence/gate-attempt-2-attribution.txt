@@ -1,0 +1,7 @@
+verdict: tests=6 failures=0 errors=1 — 1 failing step
+step: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+case: StartupScreensTest > diagnosticsScreenShowsNewestFirst
+file:line: Assert.java:89
+error: java.lang.AssertionError: the startup screen never published 3 log rows: [This log stays on this device. It records app and session events plus map database and object names — never coordinates. Entries older than 7 days are deleted., CarContext(#3925).getOnBackPressedDispatcher()))), CarContext(#3925).getString(any(), VarargMatcher(all=true, prefix=[], postfix=[], centralPart=lambda))), CarContext(#3925).getString(any())), CarContext(#3925).getResources()), [2026-10-29 16:22:05.598] SCREEN list capacity 6 rows (library default, no car API level yet: io.mockk.MockKException: no answer found for CarContext(#3925).getCarAppApiLevel() among the configured an, [2026-10-29 16:22:05.592] SCREEN list capacity 6 rows (library default, below car API 2), More (3)]
+flake: not recorded — this tree keeps no flake list
+rerun: ./gradlew :auto:testDebugUnitTest --tests "StartupScreensTest" -PforceTests -PjvmTestsOnly --no-build-cache

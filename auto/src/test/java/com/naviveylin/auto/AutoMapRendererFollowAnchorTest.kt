@@ -1,6 +1,6 @@
 package com.naviveylin.auto
 
-import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.anchorCenter
@@ -240,7 +240,7 @@ class AutoMapRendererFollowAnchorTest : AutoMapRendererTestSupport() {
         // `frameMag=15,00`, where the decimal comma reads as a field separator.
         val now = System.currentTimeMillis()
         renderer.setGpsMarker(fixLat, fixLon, 0.0, 10.0, speedKmH = 50.0, timeMs = now)
-        val offset = FollowPrediction.Companion.DisplayOffset(
+        val offset = OverrunWindow.DisplayOffset(
             rawX = 3.42, rawY = -1.44, clampedX = 3.42, clampedY = -1.44
         )
 

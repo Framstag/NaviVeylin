@@ -28,6 +28,8 @@
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
+#   worktree.sh sync-module
+#   worktree.sh check-module-pin [<base>]
 #   worktree.sh strip-scratch
 #   worktree.sh remove
 set -uo pipefail
@@ -51,12 +53,66 @@ state_base() {
 # and the reused one inherits the previous branch's (issue #309) — so it is one step with one note. Best-effort,
 # because a project with no submodule, no local properties or no vendored dependency is a project the loop still
 # has to serve (D16).
+#
+# A pin the module's own clone cannot obtain is placed from the root checkout's module, and that fallback is why
+# this is a command of its own rather than two lines in `create`. The module inside a loop worktree is a clone of
+# its own, with the project's URL, so a commit only the root tree holds — a pin bumped before its branch was
+# pushed — is a commit no fetch into that clone can reach by that URL, and the module then stays on its old pin:
+# the superproject reports that as dirt under no item. Measured 2026-10-28: the pin was two unpublished commits
+# ahead of the branch the module's origin already carried, the update ended in `upload-pack: not our ref`, and a run
+# with 600 minutes left stopped after 69 seconds on `M <the module's path>`. One copy of the rule, because
+# `run.sh`'s pre-flight and its two repairs call this command.
+submodule_pin() { gitw rev-parse --verify --quiet "HEAD:$1" 2>/dev/null || true; }
+module_holds() { # <path> <pin> → 0 when the module clone inside the worktree already has that commit
+  [ -n "${2:-}" ] || return 1
+  git -C "$worktree/$1" cat-file -e "$2" 2>/dev/null
+}
+fetch_pin_from_root() { # <path> <pin> → 0 when the worktree's module can now reach the pin
+  local path="$1" pin="$2"
+  module_holds "$path" "$pin" && return 0
+  [ -n "$pin" ] && [ -d "$LOOP_ROOT/$path" ] || return 1
+  git -C "$worktree/$path" fetch -q --no-tags "$LOOP_ROOT/$path" \
+    '+refs/heads/*:refs/remotes/loop-root/*' >&2 || return 1
+  module_holds "$path" "$pin"
+}
 sync_submodule() { # <the name this step prints itself under>
   local path
   path=$(loop_conf_value LOOP_SUBMODULE_PATH)
   [ -n "$path" ] && [ -f "$worktree/.gitmodules" ] || return 0
-  gitw submodule update --init --checkout "$path" >&2 ||
-    loop_note "$1: the submodule could not be checked out — the build may not be able to run"
+  if gitw submodule update --init --checkout "$path" >&2; then return 0; fi
+  # The clone exists by now — the update initialises it before it checks anything out — so a pin only this machine
+  # holds is fetched into it from the root tree's own module and the placement is retried once.
+  if fetch_pin_from_root "$path" "$(submodule_pin "$path")" &&
+     gitw submodule update --init --checkout "$path" >&2; then
+    printf 'worktree: the module was placed from the root checkout — the pin is on no remote the module fetches\n'
+    return 0
+  fi
+  loop_note "$1: the submodule could not be checked out — the build may not be able to run"
+}
+# The check a run pays before the pre-screen, because the failure it catches costs a whole run: the base's gitlink
+# has to be a commit some clone the worktree can read holds, or every start on that base is refused as dirt nothing
+# can place. Silent when it is reachable and for a project with no module; refuses with the repair in the message,
+# so a person reads what to push instead of a run that ended under no item (measured 2026-10-28).
+cmd_check_module_pin() { # [<base>]
+  local base="${1:-}" path pin
+  path=$(loop_conf_value LOOP_SUBMODULE_PATH)
+  [ -n "$path" ] && [ -f "$LOOP_ROOT/.gitmodules" ] || return 0
+  [ -n "$base" ] || base=$(state_base)
+  pin=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$base:$path" 2>/dev/null || true)
+  [ -n "$pin" ] || return 0
+  if module_holds "$path" "$pin"; then return 0; fi
+  if [ -e "$LOOP_ROOT/$path/.git" ]; then
+    git -C "$LOOP_ROOT/$path" cat-file -e "$pin" 2>/dev/null && return 0
+    loop_refuse "the base ${base:0:12} pins $path at ${pin:0:12}, a commit neither this tree's module nor the worktree's holds — push it in the module (git -C $path push origin <branch>) or pin a commit the module's origin carries"
+  fi
+  # The root tree has no module checked out, so which commits its clone would carry is not a question this host can
+  # answer offline: the placement itself decides, and the start-time refusal names the pin if it cannot.
+  loop_note "check-module-pin: $LOOP_ROOT/$path is not checked out — a pin only that clone holds cannot be placed"
+}
+cmd_sync_module() {
+  [ -d "$worktree" ] || loop_die "sync-module: no worktree at $worktree"
+  sync_submodule sync-module
+  gitw status --porcelain
 }
 
 cmd_create() {
@@ -698,6 +754,8 @@ case "$cmd" in
   prune-landed) cmd_prune_landed "$@" ;;
   head) cmd_head "$@" ;;
   status) cmd_status "$@" ;;
+  sync-module) cmd_sync_module "$@" ;;
+  check-module-pin) cmd_check_module_pin "$@" ;;
   strip-scratch) cmd_strip_scratch "$@" ;;
   remove) cmd_remove "$@" ;;
   ""|-h|--help) sed -n '2,33p' "$0" ;;

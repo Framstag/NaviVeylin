@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntSize
 import android.content.Context
-import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.ui.route.RoutePanelUiState
 
 import android.util.Log
@@ -65,7 +65,7 @@ internal fun BoxScope.MapCanvasMapBandContent(
     animateDiscreteZoom: (Offset) -> Unit,
     animateDiscreteZoomToCenter: () -> Unit,
     freezeZoomAnimationForGesture: () -> Unit,
-    panWindowOffset: () -> FollowPrediction.Companion.DisplayOffset?,
+    panWindowOffset: () -> OverrunWindow.DisplayOffset?,
     commitPanCenter: () -> Unit,
     requestPanRecenter: (Boolean) -> Unit,
     attributionInteractionTickState: MutableState<Int>,

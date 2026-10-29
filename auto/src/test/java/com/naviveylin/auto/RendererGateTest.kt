@@ -76,11 +76,9 @@ class RendererGateTest {
 
         gate.requestDaylightPush(dark = true)
         assertEquals(true, gate.daylightPush.value?.dark)
-        assertEquals(false, gate.daylightPush.value?.force)
 
-        gate.requestDaylightPush(dark = false, force = true)
+        gate.requestDaylightPush(dark = false)
         assertEquals(false, gate.daylightPush.value?.dark)
-        assertEquals(true, gate.daylightPush.value?.force)
     }
 
     @Test

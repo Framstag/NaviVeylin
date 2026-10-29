@@ -233,7 +233,12 @@ Source: specs `navigation-ongoing-notification` (changes
   next-turn display, the distance-to-turn, arrival/remaining time and remaining
   distance, and the "Stop Navigation" action (same label as the on-screen stop
   button, §1). The car hint shows the instruction, the distance-to-turn with the
-  arrival time, the manoeuvre arrow as large icon and the same stop action.
+  arrival time, the manoeuvre arrow as large icon and the same stop action. The
+  distance-to-turn renders a **known zero** as `0 m`, while a distance that is
+  absent or `NaN` renders `--` — the phone notification's stats line and the car
+  hint's secondary text follow the same rule (spec
+  `navigation-ongoing-notification` — A known zero distance is not an unknown
+  distance).
 - FREE_DRIVE content: the current street/ref (same text as the free-driving
   view's street label) and the current speed; no destination-dependent guidance
   and no stop action. The road and speed come from the **shared free-driving
@@ -1378,5 +1383,20 @@ map bitmap.
 ## Keeping this document honest
 
 - Specs are the contract; this document is the condensed knowledge base.
-- When a spec requirement changes labels, styling, or hierarchy, update the
-  parity table (§1) and glyph table (§2) here at the same time.
+- When what a spec requirement or a code constant owns changes — a label, a style, a hierarchy, or a
+  **number** — update every restatement here in the same change: the parity table (§1), the glyph table
+  (§2), and each section listed below that quotes the value. A section is a restatement when it writes a
+  value down that another artefact already owns; the owning artefact stays the normative home.
+- **A restated value names its guard.** A section that restates such a value SHALL name the case that
+  holds the two together, or the requirement that owns it — a restatement with no guard is a defect and is
+  given one or removed in the change that finds it (`TODO.md` §187: the §8 reroute-policy bullet kept
+  50 m / 10 s through the change that moved the policy to 30 m / 4 s, because this rule obliged nothing
+  outside §1 and §2). The restatements this document owns, and the case that holds each:
+  - §1 "Cross-variant UI parity (general rule)" — `GermanTranslationCompletenessTest`,
+    `FavoritesViewModelTest`, `FavoritesScreenTest`
+  - §7a "Phone map re-center button (per-mode)" — `RoutePanelActionBandScaleTest`
+  - §8 "Phone navigation overlay sizing (driver-seat readability)" — `NavigationStateOverlayComposeTest`,
+    `CompassNeedleStrokeTest`, `ReroutePolicyGuidelineParityTest`, `StylesheetHexColorCaseTest`
+  - §8a "Daylight map palette (base map)" — `DaylightPaletteContrastTest`, `StylesheetHexColorCaseTest`
+  - §10 "Internationalisation / Localisation" — `GermanTranslationCompletenessTest`
+  - §11 "Phone overlay layering (the band stack)" — `MapLayerBandsTest`

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case labels#closeNamesTheSettledTransition (on HEAD, with the close verdict's flag removed)" tests="1" failures="1" errors="0" timestamp="2026-10-29T08:26:49Z">
+  <testcase name="labels#closeNamesTheSettledTransition" classname="labels" time="0">
+    <failure message="a closure over the other settled state was refused">FAIL labels#closeNamesTheSettledTransition
+  a closure over the other settled state was refused: status-settled: #21 carries status/retired, a settled state of the project profile — pass --displace-settled to name the transition</failure>
+  </testcase>
+  <system-out>One run, on HEAD's write path (the fix's own line removed, everything else this change adds in place), 2026-10-29T08:26:49Z: `tools/loop-selftest.sh --case labels#closeNamesTheSettledTransition` printed the FAIL line above and `loop-selftest: 1 of 1 cases failed`, exit 1. The item carries `status/retired` (fixture `tools/loop/fixtures/scenarios/retired/issues.json`), so the first of the closure's two writes — `tools/loop/labels.sh`'s `update.sh --status status/fixed-by` — is refused by `issues_status_settled_guard` with exit 3 `status-settled`, and `labels.sh` exits there, leaving the closure half attempted. `tests`/`failures` are counted from the FAIL line, the way `tools/loop/gate.sh` derives its per-suite tally. The run's own log is `evidence/red-on-head.log`.</system-out>
+</testsuite>

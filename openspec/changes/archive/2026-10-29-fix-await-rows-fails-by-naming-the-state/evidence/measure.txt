@@ -1,0 +1,12 @@
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=276 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-await-rows-fails-by-naming-the-state scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 0 fixtures, 1 helper + 1 call site —

@@ -1,0 +1,4 @@
+GREEN  42.2  run#aMergedBranchIsRemoved   <-- the case did not notice the mutation
+restore 42.2 run#aMergedBranchIsRemoved green again
+
+red-when-mutated: 0 · not-noticed: 1 · restore-failures: 0

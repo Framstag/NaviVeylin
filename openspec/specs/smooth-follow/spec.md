@@ -406,7 +406,7 @@ around the raw preset on this path.
 #### Scenario: The screen takes the offset from the seam
 
 - **WHEN** the phone map screen's follow display block needs the display offset for the frame in hand
-- **THEN** it calls `FollowBlitRules.offsetFor` exactly once, calls `FollowPrediction.displayOffsetPx`
+- **THEN** it calls `FollowBlitRules.offsetFor` exactly once, calls `OverrunWindow.shiftPx`
   nowhere and does not reconstruct the state with `activeFollowAnchor`, so the screen cannot choose the
   anchor — exercised by
   `FollowBlitCallSiteTest.the follow blit offset is computed by the seam and not inline in the frame loop`

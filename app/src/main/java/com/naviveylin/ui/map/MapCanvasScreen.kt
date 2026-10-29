@@ -123,6 +123,7 @@ import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.CarSessionPresence
 import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.FollowRefreshPolicy
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.LocationGrant
@@ -633,7 +634,7 @@ var showAddressBookRationale by showAddressBookRationaleState
      * clamp decision and the applied offset agree (spec: canvas-overrun — Offset and
      * frame stay consistent).
      */
-    fun panWindowOffset(): FollowPrediction.Companion.DisplayOffset? {
+    fun panWindowOffset(): OverrunWindow.DisplayOffset? {
         val frame = panFrame() ?: return null
         return PanWindowRules.offsetFor(
             panDisplayLat, panDisplayLon, frame,

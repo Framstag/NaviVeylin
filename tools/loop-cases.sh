@@ -78,6 +78,7 @@ LOOP_SHELL_CASES=(
   'evidence#scansWhatTheProfileNames'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
   'worktree#checksOutTheNewPinWhenItReusesTheWorktree'
+  'worktree#placesAPinOnlyTheRootCheckoutHolds'
   'worktree#oneBranchPerItemOffTheBase'
   'worktree#refusesWhenMainAdvanced'
   'worktree#keepsByDefaultAndRemovesOnRequest'
@@ -100,6 +101,7 @@ LOOP_SHELL_CASES=(
   'labels#neverWritesReservedLabel'
   'labels#writesOnlyBetweenChildren'
   'labels#closeRemovesTheDecisionLabel'
+  'labels#closeNamesTheSettledTransition'
   'prompt#workerNamesEveryPhaseAndSkill'
   'prompt#workerCarriesTheFeaturePath'
   'prompt#workerNamesTheDecisionField'
@@ -199,6 +201,8 @@ LOOP_SHELL_CASES=(
   'run#resetWorktreeNamesTheDirtItCannotDiscard'
   'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds'
   'run#aRefusedStartKeepsTheLeftoversItFound'
+  'run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin'
+  'run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen'
   'run#theStartAfterTheRunsOwnEndedChildIsNotRefused'
   'run#aRetriedStartStopsWithItsOwnReason'
   'run#aSkipClearsTheInProgressMark'
@@ -401,6 +405,7 @@ loop_run_shell_case() {
     'evidence#scansWhatTheProfileNames') fn=case_evidence_scansWhatTheProfileNames ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
     'worktree#checksOutTheNewPinWhenItReusesTheWorktree') fn=case_worktree_checksOutTheNewPinWhenItReusesTheWorktree ;;
+    'worktree#placesAPinOnlyTheRootCheckoutHolds') fn=case_worktree_placesAPinOnlyTheRootCheckoutHolds ;;
     'worktree#oneBranchPerItemOffTheBase') fn=case_worktree_oneBranchPerItemOffTheBase ;;
     'worktree#refusesWhenMainAdvanced') fn=case_worktree_refusesWhenMainAdvanced ;;
     'worktree#keepsByDefaultAndRemovesOnRequest') fn=case_worktree_keepsByDefaultAndRemovesOnRequest ;;
@@ -423,6 +428,7 @@ loop_run_shell_case() {
     'labels#neverWritesReservedLabel') fn=case_labels_neverWritesReservedLabel ;;
     'labels#writesOnlyBetweenChildren') fn=case_labels_writesOnlyBetweenChildren ;;
     'labels#closeRemovesTheDecisionLabel') fn=case_labels_closeRemovesTheDecisionLabel ;;
+    'labels#closeNamesTheSettledTransition') fn=case_labels_closeNamesTheSettledTransition ;;
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
     'prompt#workerCarriesTheFeaturePath') fn=case_prompt_workerCarriesTheFeaturePath ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
@@ -522,6 +528,8 @@ loop_run_shell_case() {
     'run#resetWorktreeNamesTheDirtItCannotDiscard') fn=case_run_resetWorktreeNamesTheDirtItCannotDiscard ;;
     'run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds') fn=case_run_aDirtyStartNamesTheItemWhoseWorkTheTreeHolds ;;
     'run#aRefusedStartKeepsTheLeftoversItFound') fn=case_run_aRefusedStartKeepsTheLeftoversItFound ;;
+    'run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin') fn=case_run_placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin ;;
+    'run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen') fn=case_run_aPinNoCloneHoldsIsRefusedBeforeThePrescreen ;;
     'run#theStartAfterTheRunsOwnEndedChildIsNotRefused') fn=case_run_theStartAfterTheRunsOwnEndedChildIsNotRefused ;;
     'run#aRetriedStartStopsWithItsOwnReason') fn=case_run_aRetriedStartStopsWithItsOwnReason ;;
     'run#aSkipClearsTheInProgressMark') fn=case_run_aSkipClearsTheInProgressMark ;;
@@ -2141,6 +2149,34 @@ case_worktree_checksOutTheNewPinWhenItReusesTheWorktree() {
   out=$(run_worktree "$p" start-item 21 demo 2>&1) || fail "no item can start on the reused worktree: $out"
 }
 
+# The pin a base records may be a commit only the root tree's module holds — a bump landed before its submodule
+# branch was pushed. The module inside a worktree is a clone of its own, with the project's URL, so the update ends
+# in `upload-pack: not our ref`, the module stays on its old pin and the superproject reports that as dirt under no
+# item: the whole run ends on it (measured 2026-10-28 — a run with 600 minutes of budget stopped after 69 seconds
+# on `M app/src/main/cpp/libosmscout`). The placement fetches the pin from the root tree's module, which is a clone
+# the worktree can read (measured 2026-10-28).
+case_worktree_placesAPinOnlyTheRootCheckoutHolds() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p wt pin out
+  d=$(scratch); p=$(new_project); wt="$p/.pi/worktrees/loop"
+  submodule_fixture "$p" "$d"
+  export GIT_ALLOW_PROTOCOL=file
+  # A commit made in the root tree's module and never pushed: the module's origin is the fixture's own repository,
+  # which does not carry it — the state a bump leaves behind when the parent commit lands first.
+  printf 'a pin no remote carries\n' >> "$p/app/src/main/cpp/libosmscout/CMakeLists.txt"
+  git -C "$p/app/src/main/cpp/libosmscout" -c user.email=selftest@example.invalid -c user.name=selftest \
+    commit -qam 'the unpublished pin' >/dev/null 2>&1 || fail "could not commit the unpublished pin"
+  pin=$(git -C "$p/app/src/main/cpp/libosmscout" rev-parse HEAD)
+  git -C "$p" commit -qam 'the pin only this clone holds' >/dev/null 2>&1 || fail "could not record the pin"
+  git -C "$d/sub" cat-file -e "$pin" 2>/dev/null && fail "the fixture's pin is on the module's origin after all"
+  init_state "$p" 1 90
+  out=$(run_worktree "$p" create --branch loop-test 2>&1) || fail "worktree create failed: $out"
+  assert_contains "$out" "placed from the root checkout" "the placement says where the pin came from"
+  assert_eq "" "$(git -C "$wt" status --porcelain)" "the worktree is clean after the placement"
+  assert_eq "$pin" "$(git -C "$wt/app/src/main/cpp/libosmscout" rev-parse HEAD)" "on the pin the base records"
+  return 0
+}
+
 case_worktree_oneBranchPerItemOffTheBase() {
   # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p w base out status
@@ -2958,6 +2994,29 @@ case_labels_closeRemovesTheDecisionLabel() {
   assert_contains "$(cat "$log")" "--remove-label agent/needs-decision" \
     "a closure takes the decision label off, so the item leaves the queue"
   assert_contains "$(cat "$log")" "--add-label status/fixed-by" "and marks the item as fixed"
+}
+
+# A closure records one settled state and may displace the *other* one: an item a person retired that a run's
+# fix closes, or a fixed item closed as not to be done. Recording a settled state is the `close` verdict's own
+# purpose, exactly as it is `close.sh`'s (`tools/issues/close.sh` passes `--displace-settled` for that reason),
+# so the verdict names the transition to the guard every routine writer meets (#684). Without it the first of
+# the closure's two writes is refused with exit 3 `status-settled` and the item is left half attempted (#699).
+case_labels_closeNamesTheSettledTransition() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
+  local d p log out status
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario retired)
+  log="$d/gh-close-retired.log"; : > "$log"; export GH_STUB_RECORD="$log"
+
+  out=$(run_labels "$p" close 21 --reason "the fixture cause" --evidence "the fixture evidence" 2>&1); status=$?
+  [ "$status" -eq 0 ] || fail "a closure over the other settled state was refused: $out"
+  assert_contains "$(cat "$log")" "--add-label status/fixed-by" \
+    "the closure records the settled state it means"
+  assert_contains "$(cat "$log")" "--remove-label status/retired" \
+    "and displaces the one it replaces, so the item carries one state"
+  assert_contains "$out" "status/retired" \
+    "the settled value the closure displaced is said out loud, so a reader of the call sees the claim that moved"
+  assert_eq "1" "$(grep -c 'issue close' "$log")" "the item is closed, not left half attempted"
 }
 
 # A block whose cause is the run's own child is not a question the item asked. Rather than escalate a reason
@@ -5736,6 +5795,58 @@ case_run_resetWorktreeDiscardsWhatItNames() {
     fail "the repair discarded the work the previous run did"
 }
 
+# A kept worktree whose only dirt is the module on another pin is not work: nothing inside the module was written,
+# and placing the pin the base records loses nothing. The run repairs it and goes on where it used to refuse — and
+# `--reset-worktree`, the only repair the refusal named, ran the same update that had already failed (measured 2026-10-28).
+case_run_placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/worktree.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  local d p wt out status
+  d=$(scratch); p=$(new_project); wt="$p/.pi/worktrees/loop"
+  submodule_fixture "$p" "$d"
+  export GIT_ALLOW_PROTOCOL=file
+  run_one_item "$p" "$d" >/dev/null || fail "the first run failed"
+  # The module left on the base's other pin: the dirt neither `reset --hard` nor `clean -fd` reaches (issue #310),
+  # and the state `create` itself used to leave on a bumped base when the placement could not fetch the pin.
+  submodule_in_worktree "$wt" "$SUB_FIRST"
+  assert_eq " M app/src/main/cpp/libosmscout" "$(git -C "$wt" status --porcelain)" \
+    "the fixture leaves the module's pin as the tree's only dirt"
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario none)
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  assert_eq "0" "$status" "the run is not refused on dirt that is no item's work: $out"
+  assert_contains "$out" "only the module on another pin" "the repair says what it found"
+  assert_contains "$out" "nothing eligible" "and the run then answers to the backlog, as a clean start does"
+  assert_eq "" "$(git -C "$wt" status --porcelain)" "the tree is clean after the repair"
+  assert_eq "$SUB_SECOND" "$(git -C "$wt/app/src/main/cpp/libosmscout" rev-parse HEAD)" \
+    "and the module is on the pin the base records"
+  return 0
+}
+
+# A pin no clone this host can read is refused before the pre-screen is paid for, not after the queue is built: the
+# run used to spend its whole start-up and then stop under no item, naming no pin and no repair (the second half of
+# the measurement above).
+case_run_aPinNoCloneHoldsIsRefusedBeforeThePrescreen() {
+  # files: tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/loop/fixtures/scenarios/ tools/tooling.json
+  local d p out status bogus
+  d=$(scratch); p=$(new_project)
+  submodule_fixture "$p" "$d"
+  export GIT_ALLOW_PROTOCOL=file
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  bogus=1234567890123456789012345678901234567890
+  git -C "$p" update-index --cacheinfo 160000,"$bogus",app/src/main/cpp/libosmscout >/dev/null 2>&1 ||
+    fail "could not record the pin"
+  git -C "$p" commit -qm 'a pin no clone holds' >/dev/null 2>&1 || fail "could not commit the pin"
+  : > "${PI_STUB_LOG:-/dev/null}"
+  out=$(run_loop "$p" --items 1 --minutes 90 2>&1); status=$?
+  assert_eq "5" "$status" "a base pinning a commit no clone holds refuses the run"
+  assert_not_contains "$out" "pre-screen:" "the refusal is reached before the pre-screen is paid for"
+  assert_contains "$out" "1234567890" "the refusal names the pin"
+  assert_contains "$out" "push origin" "and the repair that publishes it"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "submodule pin" \
+    "the stop reason records it"
+  assert_eq "" "$(cat "${PI_STUB_LOG:-/dev/null}" 2>/dev/null || true)" "no agent process was started"
+  return 0
+}
+
 # A fixture project whose configured submodule path is a real module of two commits, the second of which the
 # superproject records (issue #310). The module's checkout can then be left on `$SUB_FIRST`, which is the dirt neither
 # `reset --hard` nor `clean -fd` reaches. Its URL is a local path, so the checkout the engine's fresh-worktree step
@@ -7111,12 +7222,22 @@ case_run_awaitingDecisionIsNotEscalatedAgain() {
 # itself is the run's own leftover. Measured 2026-10-22: 43 of the 53 local branches were already merged
 # into the base, and nothing removed them — the run creates a branch per item and never took one away.
 case_run_aMergedBranchIsRemoved() {
-  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p w branch head
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p w branch head out report_branches
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
-  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  out=$(run_one_item "$p" "$d" 2>&1) || fail "the run failed"
   branch=$(git -C "$p" branch --list 'fix/issue-*' --format='%(refname:short)')
   [ -z "$branch" ] || fail "the run left the branch of the item it closed behind: $branch"
+  # The run deletes this branch by two paths — the item's own release after its merge (`worktree.sh
+  # release-branch`, called from run.sh) and the end-of-run sweep of what landed (`prune-landed --apply`, issue
+  # #239) — so the assertion above is downstream of both, and disabling one of them alone leaves it true while
+  # the other answers for it (issue #698, mutation 42.2). The run's report is printed *between* the two: it reads
+  # git before the sweep runs, so it answers what the merge left behind, and nothing the sweep does can make this
+  # second assertion true.
+  report_branches=$(printf '%s\n' "$out" | sed -n 's/^branches: //p' | tail -1)
+  [ -n "$report_branches" ] || fail "the run printed no report line to read — the line this case reads was reworded"
+  assert_not_contains "$report_branches" "fix/issue-" \
+    "the branch was removed where the run merged it, not by the end sweep that runs after the report"
   # The work is in the base — the branch is gone, the fix is not.
   git -C "$p" ls-tree -r --name-only main | grep -q 'openspec/changes/archive/2026-01-01-fix-demo/proposal.md' ||
     fail "the item's change is not in the base"

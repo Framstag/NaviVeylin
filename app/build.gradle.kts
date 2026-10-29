@@ -417,13 +417,32 @@ tasks.named("preBuild") { dependsOn(checkHardcodedStrings) }
 // its logic and fixtures live in buildSrc
 // (`com.naviveylin.build.diagnostics`). A message that only mentions a coordinate
 // word in prose must be reworded — the gate has no allowlist on purpose.
+//
+// Native sources are gated too (issue #125, change `fix-native-coordinate-log-gate`):
+// `osmscout::log` is a stream, so a position reaches a native line through an
+// accessor (`coord.GetDisplayText()`, `fix.GetLat()`), and `NativeCoordinateLogScanner`
+// reads those statements up to their `;`. The native roots are named rather than
+// walked from `src/main/cpp`, because the libosmscout submodule lives there: a
+// recursive walk would hand upstream library logging (1 100 files, its own habit
+// of printing boxes and tiles) to a policy this project does not own. Gated are the
+// app's own C++ beside that directory and the JNI translation unit — the files this
+// project writes.
 val checkNoCoordinatesInLogs = tasks.register("checkNoCoordinatesInLogs") {
     val sourceDirs = listOf(
         file("src/main/java"),
         rootProject.file("auto/src/main/java"),
         rootProject.file("core/src/main/java")
     )
+    val nativeRoot = file("src/main/cpp")
+    val nativeFiles =
+        (nativeRoot.listFiles { candidate -> candidate.isFile && candidate.extension in setOf("cpp", "h") }
+            ?: emptyArray()) +
+            file("src/main/cpp/libosmscout/libosmscout-client-java/src")
+                .walkTopDown()
+                .filter { it.isFile && it.extension in setOf("cpp", "h") }
+                .toList()
     inputs.files(sourceDirs)
+    inputs.files(nativeFiles)
     doLast {
         val findings = sourceDirs.flatMap { dir ->
             dir.walkTopDown()
@@ -439,6 +458,17 @@ val checkNoCoordinatesInLogs = tasks.register("checkNoCoordinatesInLogs") {
         if (findings.isNotEmpty()) {
             throw GradleException(
                 com.naviveylin.build.diagnostics.CoordinateLogScanner.report(findings)
+            )
+        }
+        val nativeFindings = nativeFiles.flatMap { file ->
+            com.naviveylin.build.diagnostics.NativeCoordinateLogScanner.scan(
+                file.relativeTo(rootProject.projectDir).path,
+                file.readText()
+            )
+        }
+        if (nativeFindings.isNotEmpty()) {
+            throw GradleException(
+                com.naviveylin.build.diagnostics.NativeCoordinateLogScanner.report(nativeFindings)
             )
         }
     }

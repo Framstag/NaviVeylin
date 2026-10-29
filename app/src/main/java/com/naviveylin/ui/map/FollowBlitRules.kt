@@ -1,6 +1,6 @@
 package com.naviveylin.ui.map
 
-import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 
 /**
  * The phone follow display's blit offset, extracted from the map screen's frame loop so the anchor it
@@ -35,9 +35,9 @@ internal object FollowBlitRules {
         canvasW: Int,
         canvasH: Int,
         dpi: Double
-    ): FollowPrediction.Companion.DisplayOffset {
+    ): OverrunWindow.DisplayOffset {
         val anchor = ui.resolvedAnchor
-        return FollowPrediction.displayOffsetPx(
+        return OverrunWindow.shiftPx(
             displayedLat, displayedLon,
             frame.lat, frame.lon, frame.mag, frame.angle,
             frame.width, frame.height,

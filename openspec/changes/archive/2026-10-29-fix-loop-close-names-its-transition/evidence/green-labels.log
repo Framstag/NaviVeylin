@@ -1,0 +1,21 @@
+PASS labels#holdCarriesItsReason
+labels#writesOnlyBetweenChildren| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261029-082656')
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei c90a5bd init
+PASS labels#neverWritesReservedLabel
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+PASS labels#closeRemovesTheDecisionLabel
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (8b7a083)
+labels#writesOnlyBetweenChildren| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5864101)
+labels#writesOnlyBetweenChildren| HEAD ist jetzt bei 5864101 review: 2026-01-01-fix-demo round 1 passed (#21)
+labels#writesOnlyBetweenChildren| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5864101).
+labels#writesOnlyBetweenChildren| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS labels#closeNamesTheSettledTransition
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren| stub gh: recorded `gh issue edit`
+labels#writesOnlyBetweenChildren| closed #21 (completed)
+PASS labels#trapRemovesInProgressOnSignal
+labels#writesOnlyBetweenChildren| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+labels#writesOnlyBetweenChildren|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS labels#verdictToLabelMatrix
+PASS labels#writesOnlyBetweenChildren
+loop-selftest: all 7 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group labels

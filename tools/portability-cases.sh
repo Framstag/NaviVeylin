@@ -591,6 +591,20 @@ case_foreign_toolchainRunsEndToEnd() {
   out=$(engine_script "$p" tools/issues/reopen.sh 11 --status open --json \
     --measurement "the condition returned") || fail "reopen.sh failed in the foreign project: $out"
   assert_eq "2" "$(jq -r '.occurrence' <<< "$out")" "the recurrence count is incremented"
+  # The reopen reverses a completed closure, so it displaces the settled state that closure recorded: the call
+  # names it instead of removing it silently (#684). Both report branches are asserted, because each is code of
+  # its own — the document a caller pipes and the line a person reads.
+  assert_eq "status/fixed-by" "$(jq -r '.removed | join(",")' <<< "$out")" \
+    "the report names the settled state the reopen removed"
+  foreign_issues "$p" "$(jq -n '[{number: 12, title: "a second foreign sensor issue", state: "CLOSED",
+       stateReason: "COMPLETED", body: "<!-- occurrence: 1 -->\n<!-- fingerprint: cafebabe -->",
+       author: {login: "ada"},
+       labels: [{name: "class/bug"}, {name: "category/core"}, {name: "status/fixed-by"},
+                {name: "sensor/foreign-row"}],
+       comments: []}]')"
+  out=$(engine_script "$p" tools/issues/reopen.sh 12 --status open \
+    --measurement "the condition returned again") || fail "reopen.sh (text mode) failed in the foreign project: $out"
+  assert_contains "$out" "removed status/fixed-by" "the text report names the settled state it removed"
 
   # one sensor row: the registry's command indirection, in the foreign vocabulary
   foreign_issues "$p" "$(foreign_issue 7 OPEN "" "" '[]')"

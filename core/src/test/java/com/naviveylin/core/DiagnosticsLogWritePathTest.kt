@@ -247,6 +247,23 @@ class DiagnosticsLogWritePathTest {
     }
 
     @Test
+    fun aMissedDrainIsRecordedAndRetriedOnce() {
+        // The worker is parked on a 60 s deadline, so the read's own bounded wait expires with the entry
+        // still buffered — the state a loaded device reaches when the worker is late (issue #701).
+        DiagnosticsLog.flushIntervalMs = 60_000
+        DiagnosticsLog.log("TEST", "warm-up")
+        assertTrue(DiagnosticsLog.flushNow(2_000))
+        assertTrue("the worker must be parked before the read", DiagnosticsLog.awaitParked(2_000))
+
+        DiagnosticsLog.log("TEST", "late-line")
+
+        val entries = DiagnosticsLog.readEntries()
+
+        assertTrue("the missed drain is recorded: $entries", entries.any { it.contains("read drain expired") })
+        assertTrue("the retry delivers the buffered entry: $entries", entries.any { it.contains("late-line") })
+    }
+
+    @Test
     fun backgroundReadsMatchTheSynchronousOnes() {
         DiagnosticsLog.log("TEST", "async-line")
 

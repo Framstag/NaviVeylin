@@ -1,0 +1,7 @@
+# probe on the fixed working tree, captured 2026-10-29T12:26:40Z
+STATED  §40.38  guidelines/Build.md:586-648  "flake"
+STATED  §40.46  guidelines/Build.md:104-174  "newermt"
+STATED  §40.55  guidelines/MapRendering.md:876-914  "style error"
+tests=3 failures=0
+PASS guardrail-tag#eachCarriedEntryCarriesItsRecordTag (exit 0)
+EXIT=0

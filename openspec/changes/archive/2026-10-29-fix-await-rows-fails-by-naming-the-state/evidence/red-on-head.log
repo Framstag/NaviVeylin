@@ -1,0 +1,21 @@
+./gradlew --offline :auto:testDebugUnitTest -PforceTests --no-build-cache --tests "com.naviveylin.auto.StartupScreensTest"
+# tree: HEAD c185e5b4 + the case and the helper's parameter list; the helper's body is still HEAD's
+# (withTimeoutOrNull<Boolean>(windowMs) { … } then `return titles` — no assertion).
+
+> Task :auto:compileDebugUnitTestKotlin
+> Task :auto:testDebugUnitTest
+
+StartupScreensTest > awaitRowsNamesTheStateThatNeverArrived FAILED
+    java.lang.AssertionError: awaitRows returned rows for a state that never arrived, so the case fails later on a count
+        at org.junit.Assert.fail(Assert.java:89)
+        at org.junit.Assert.assertTrue(Assert.java:42)
+        at org.junit.Assert.assertNotNull(Assert.java:713)
+        at com.naviveylin.auto.StartupScreensTest.awaitRowsNamesTheStateThatNeverArrived(StartupScreensTest.kt:160)
+
+7 tests completed, 1 failed
+
+> Task :auto:testDebugUnitTest FAILED
+BUILD FAILED in 12s
+60 actionable tasks: 6 executed, 54 up-to-date
+
+# red-on-head.xml: tests="7" failures="1" errors="0" timestamp="2026-10-29T08:09:13.343Z"

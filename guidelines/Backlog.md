@@ -134,6 +134,7 @@ carry preferences.
 | I15 | The mechanism can run somewhere else without a rewrite | one indirection for the agent command; the project's own gate and skills in configuration | a phase names a skill, a command or a path of its own |
 | I16 | A state transition replaces the item's state: one item carries exactly one value of the state namespace | the write path reads the item and removes every displaced value in the same edit; one shared scan (`tools/issues/lib.sh`), and the case `update#statusReplacesTheOldStatus` | an item carries two `status/*` labels, or a transition leaves the old value behind — the loop's own matrix case names the displaced label, so a verdict that only adds one fails there |
 | I17 | An unreachable tracker is not an answer: a transport failure yields no verdict about an item, its author or a decision | one seam (`tools/issues/lib.sh`, `issues_login`) every `gh` call goes through, and a status of its own — `75` — that no path reads as allow, as refuse or as cleared; the guard's identity step and `policy.sh preflight` both branch on it | an outage is recorded as `author-not-allowlisted`, as "nothing to do", or as a cleared condition |
+| I18 | A settled state is a claim about the item's premise, and a routine write does not remove it: a hold says something about a run's capacity, and the second claim SHALL NOT erase the first | the write path reads the profile's `roles.settledStatuses` and refuses a displacement that names no transition (exit 3, `status-settled`) — `update.sh --displace-settled` names it, and the three verbs whose purpose the transition is, a closure, a reopen and the loop's own `close` verdict (`tools/loop/labels.sh`), pass it; cases `update#refusesToDisplaceASettledState`, `labels#closeNamesTheSettledTransition` | a verdict's hold or a resolver's park removes `status/fixed-by` or `status/retired`, or a call that displaces a settled state and says so is refused instead of landing |
 
 ## 5. Who may write what
 
@@ -317,7 +318,13 @@ tree — its process group, or anything descended from it, however it left that 
 process whose working directory is inside the project and outside the worktree while the tree it came from works in
 the worktree. The child itself and the shells the run starts it through are excluded, because
 `run_child` starts them in the project and they stand there for the whole item: measured 2026-10-24 (issue #288),
-marking that chain turned a peer's write into `blocked` for an item whose work was never touched.
+marking that chain turned a peer's write into `blocked` for an item whose work was never touched. What the narrow
+rule therefore cannot place is recorded, and the item keeps the outcome its work earned: a shell **below** the
+child whose working directory never left the project — the worker's own shell, since `run_child` starts the child
+there — and a process that joined the child's group whose parent chain has since died, the ancestor walk ending at
+the dead parent (#704). The reading asks `pgrep` for that tree, the run's only procps dependency since
+`pid_in_child_tree`'s `ps` call went with the wide rule, and the **suite** is what refuses a host without it
+(#703): a run started by hand on such a host records every difference and places none, and says nothing.
 The child's own tree is read **before** the list of everyone else standing in the project, because that
 list is a `readlink` for every process on the host — 1.0 s for 731 of them when #288 measured it — and the writer
 the mark is about is gone by the time such a reading ends. Two sweeps were what the placement was built on, and

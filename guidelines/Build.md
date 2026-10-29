@@ -156,7 +156,7 @@ habit of running everything:
    window must abort rather than fall through into the run. Detection must be able to match the real
    process (`pgrep -af 'gradle-wrapper\.ja[r]'`, the liveness guard below), and the same probe covers an
    **edit** in flight: run `find <module> -newermt '-10 minutes'` beside the wrapper probe, and if a peer
-   is mid-edit, quote the evidence already collected and stop.
+   is mid-edit, quote the evidence already collected and stop (§40.46).
 5. **A reviewer is a reader, not a runner.** A review round is handed what it reads — the change's diff, the
    project's rules, the evidence by path — and it edits nothing, runs no gate and no suite, uses no network,
    and quotes a green result from the evidence instead of reproducing it. The text is
@@ -489,6 +489,12 @@ split.
   - **The `:auto` unit-test source set carries none of its three non-opt-in diagnostics** — a final-class type
     parameter, an always-true condition, an unchecked cast — swept by change `fix-auto-test-source-warnings`;
     `AutoTestSourceWarningBaselineTest` (an `:app` unit test) now holds that set to this bullet.
+  - **The `:app` unit-test source set names a nullable value's non-null assumption** — a `…resolve()` result
+    handed to a non-null Java parameter and a bare `…parentFile.` dereference were the two `String?`/`File?`
+    `w:` lines the four unit-test compiles carried until change
+    `fix-nullability-warnings-in-two-test-sources`: measured 2026-10-29, one line per family per `:app` flavor
+    compile, four lines over two call sites, and both compiles print `grep -c "^w: "` = 0 after the fix.
+    `UnitTestSourceNullabilityBaselineTest` (`:app` unit tests, 3 cases) holds the absence.
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
 
@@ -585,6 +591,12 @@ split.
   keeps no flake list`, which is the fact and not a verdict: whether a red case is a flake is the judgement
   below, never the script's. Reading the log by hand costs ~20 % of a heavy item's shell calls on suites plus
   ~18 % on the log afterwards, every round.
+
+- **A flake of unknown origin gets an entry with its rerun evidence, never a silent retry** (§40.38). This tree
+  keeps no flake list (`:591`), so the retry that leaves no record loses the only evidence there was: record the
+  red run and the green rerun together with the mechanism they ruled out, because the rerun alone does not say
+  what was wrong. `FavoritesSheetReorderComposeTest` is the worked example — the 5 s bound was never the problem
+  and the awaited state came from `Dispatchers.Default` (§6d).
 
 - **Sweep the suite for what the change moves, before the gate**: a behaviour change can move an
   expectation pinned verbatim in an unrelated class, and focused runs cannot see it (2026-10-03: the POI
@@ -752,6 +764,13 @@ split.
   asserting.
 - **Verify `md5` after any `git stash` cycle before rebuilding** (§40.36): a stash+pop silently reverted a
   submodule patch and the "patched" host library was unpatched.
+- **The search scope's extent derivation is a host unit** (`libosmscout-client-java/src/search_scope_extent.cpp`,
+  case `Tests/src/SearchScopeExtentTest.cpp`): it loads the scope region's object and touches no JNI, so it
+  compiles into the host suite — the JNI call site stays the only part no host case reaches. The case imports
+  `Tests/LocationTest.olt` at start-up instead of opening the committed `Tests/data/testregion`: that
+  database's location index is a 77-byte header carrying no region (measured 2026-10-29), so it holds no admin
+  region to derive an extent from. The full import writes a `coord.dat` of several hundred MB (764 MB here),
+  which the case deletes once the import is done — the same temporary `testregion-generate.sh` removes.
 
 ## 5. Release versioning
 

@@ -1645,6 +1645,14 @@ SHALL be left alone and named as work to land.
   branch behind, and the next item still starts its own branch from the base
 - **Case**: `run#aMergedBranchIsRemoved`
 
+#### Scenario: The merged branch is gone before the run's report, not by the run's end sweep
+
+- **WHEN** the run merges the branch it committed for an item and prints the report it ends with — the report
+  being printed before the run sweeps the branches it left behind
+- **THEN** that report names no branch of the item, because the branch is already removed at the merge, so the
+  end-of-run sweep is not what a reader is observing and the release's own deletion is falsifiable by itself
+- **Case**: `run#aMergedBranchIsRemoved`
+
 #### Scenario: A branch that still carries work is never removed
 
 - **WHEN** the sweep of what the loop left behind meets a branch whose patches the base does not have, or a
@@ -2632,3 +2640,18 @@ verdict of its own: what it can still write as a hold SHALL be a verdict that st
 - **WHEN** the label writer is passed `stale` as a verdict of its own
 - **THEN** it stops as a usage error naming the verdict unknown, and writes nothing on the item
 - **Case**: `labels#verdictToLabelMatrix`
+
+### Requirement: A closure names the settled-state transition it makes
+
+The write that records the loop's closure SHALL name the settled-state transition it makes: the item it closes
+may carry the other settled value of the profile, and the guard every routine writer meets refuses a write that
+displaces a settled value without naming the transition. The closure SHALL displace the settled value it
+replaces, SHALL report that value, and SHALL land as one act instead of being refused between its two writes.
+
+#### Scenario: A closure over the other settled value lands and names it
+
+- **WHEN** the loop closes an item that carries the other settled value of the profile's
+  `roles.settledStatuses`
+- **THEN** the write records the settled state the closure means, displaces the settled value it replaced, and
+  reports that value, so the item is closed rather than left half attempted
+- **Case**: `labels#closeNamesTheSettledTransition`

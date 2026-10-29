@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 202 records (labels: 70.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.DDSdGv
+RED    70.1  labels#closeNamesTheSettledTransition   (the closure naming the transition its own write makes, so the other settled value is displaced instead of refusing the write (issue #699))
+       2026-10-29T08:27:08Z — a closure over the other settled state was refused: status-settled: #21 carries status/retired, a settled state of the project profile — pass --displace-settled to name the transition
+restore 70.1 labels#closeNamesTheSettledTransition green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

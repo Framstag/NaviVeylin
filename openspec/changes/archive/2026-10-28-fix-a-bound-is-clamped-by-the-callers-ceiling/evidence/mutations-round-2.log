@@ -1,0 +1,22 @@
+loop-mutations: selected 6 of 208 records (labels: 71.1 71.2 71.3 71.4 71.5 71.6)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/finalize-692/.pi/tmp/loop-mutations.3gjVYT
+RED    71.1  driver#aSuiteEndsInsideTheCeilingItsCallerNamed   (the watcher that ends the suite at the ceiling its caller named (issue #692))
+       2026-10-29T18:53:18Z — a suite its caller's ceiling cut is a failure, never a green suite: PASS stub#slowOne
+restore 71.1 driver#aSuiteEndsInsideTheCeilingItsCallerNamed green again
+RED    71.2  driver#aCeilingTheSuiteFitsInsideChangesNothing   (the ceiling being a clock rather than an end for every suite that names one (issue #692))
+       2026-10-29T18:53:47Z — a ceiling the selection fits inside leaves the suite green: LOOP-SUITE-CEILING: the caller's ceiling of 600s was reached — 0 of 2 cases started, 2 never started; the suite ended itself and what did not run is covered by nothing
+restore 71.2 driver#aCeilingTheSuiteFitsInsideChangesNothing green again
+RED    71.3  gate#theStepBoundIsClampedByTheCeilingTheCallerNamed   (the clamp that holds a gate step to the ceiling the caller named (issue #692))
+       2026-10-29T18:54:42Z — the clock in force is the caller's ceiling, on the console before the first step: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/finalize-692/.pi/tmp/loop-selftest.0O0UUr/cases/0/tree/case.9eYNwS/gate.conf — pinned; not the 
+restore 71.3 gate#theStepBoundIsClampedByTheCeilingTheCallerNamed green again
+RED    71.4  driver#aCeilingTheSuiteFitsInsideChangesNothing   (the exit trap ending the ceiling watcher by its group, so a suite that ends inside its ceiling leaves that watcher sleep standing (issue #692))
+       2026-10-29T18:55:10Z — a suite that ends inside its ceiling leaves no process behind: 1501628 1501629 : expected '0', got '2'
+restore 71.4 driver#aCeilingTheSuiteFitsInsideChangesNothing green again
+RED    71.5  driver#aSuiteEndsInsideTheCeilingItsCallerNamed   (the exit trap ending a still-running case bound watcher by its group, so a suite the ceiling cut leaves that watcher sleep standing (issue #692))
+       2026-10-29T18:55:38Z — no process of a cut suite outlives it: 1523754 : expected '0', got '1'
+restore 71.5 driver#aSuiteEndsInsideTheCeilingItsCallerNamed green again
+RED    71.6  driver#aCeilingTheSuiteFitsInsideChangesNothing   (the case that ended normally swept with the watcher group, so every case of a green suite leaves one sleep standing (issue #692))
+       2026-10-29T18:56:02Z — a suite that ends inside its ceiling leaves no process behind: 1539077 1540632 : expected '0', got '2'
+restore 71.6 driver#aCeilingTheSuiteFitsInsideChangesNothing green again
+
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0

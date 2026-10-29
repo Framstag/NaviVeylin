@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git c29691865337325c0b293b57b72068d0468540da" tests="276" failures="2" errors="0" time="691">
+  <system-out>PASS run#childPastItsTurnBoundIsBlocked PASS run#theRecordedZeroKeepsTheTurnBoundOff loop-selftest: 2 of 276 cases failed</system-out>
+</testsuite>

@@ -136,6 +136,12 @@ workers=$(selftest_workers "${only_jobs:-${LOOP_SELFTEST_JOBS:-}}")
 # default is 60× the slowest case; a case that needs more raises the key.
 case_max="${LOOP_CASE_MAX_SECONDS:-900}"
 case "$case_max" in ''|*[!0-9]*|0) case_max=900 ;; esac
+# The ceiling of whatever started this invocation (issue #692), read once here: a caller whose own per-call ceiling
+# is smaller than this suite's bounds kills the call mid-run, and the item above it is left with its work
+# uncommitted — measured twice on 2026-10-28 at `900000ms`, the second time 1 383 s after the child was gone (the
+# tracker's own clock, issue #692). When it
+# is named the suite ends itself at it, below, instead of being ended by the caller. Empty is no ceiling.
+ceiling=$(loop_ceiling)
 loop_tmp_resolve
 mkdir -p "$LOOP_TMP_DIR" 2>/dev/null || true
 tmp=$(mktemp -d "$LOOP_TMP_DIR/$LOOP_SELFTEST_PREFIX"XXXXXX) || {
@@ -164,6 +170,10 @@ case_slot_watch=()
 # The repository's lock, set only on the way through `selftest_lock_take` that took it (issue #295). Empty
 # until then, and named here rather than beside the function because `on_exit` may run before that line.
 selftest_lock=""
+# The watcher that holds this invocation to the ceiling its caller named (issue #692), empty until the pool starts it
+# and again once `on_exit` has ended it: a job of *this* shell, so an `exit` that leaves it running would leave a
+# `sleep` behind to signal a pid the kernel has since handed to someone else.
+ceiling_watch=""
 on_exit() {
   local rc=$? slot
   trap - EXIT
@@ -178,12 +188,21 @@ on_exit() {
   fi
   # …and the bound watcher each case started, which is a job of *this* shell and not a member of the case's group
   # (issue #308): a suite that takes a signal must not leave a `sleep` behind that would later end a group it no
-  # longer owns.
+  # longer owns. The watcher is a group of its own (`start_case` puts it there with `set -m`), and the *group* is what
+  # has to be ended: `loop_end_pid` on the subshell left the `sleep` it had forked standing — one per case — which is
+  # what `driver#aCeilingTheSuiteFitsInsideChangesNothing` and its mutation count (issue #692).
   if [ "${#case_slot_watch[@]}" -gt 0 ]; then
     for slot in "${!case_slot_watch[@]}"; do
-      loop_end_pid "${case_slot_watch[$slot]:-}"
+      loop_end_group "${case_slot_watch[$slot]:-}"
     done
   fi
+  # …and the ceiling's watcher, which is this shell's job and not a member of any case's group (issue #692): it sleeps
+  # for the whole ceiling, and a suite that ended before it would otherwise leave a process whose one signal lands on
+  # whatever pid its own has become. Started under `set -m` for the same reason as a case's watcher, and ended by its
+  # group: ending only the subshell left the `sleep` for the whole ceiling behind, which is precisely the process the
+  # clause "every watcher it started" is about.
+  loop_end_group "${ceiling_watch:-}"
+  ceiling_watch=""
   # …and then anything else that is still standing in the suite's own scratch root. A case that ends *normally*
   # while the `run.sh` it started is still polling leaves that run behind: it was started by the case, whose own
   # exit only ends the group the harness still remembers, and hours of suite runs left dozens of them (issue
@@ -507,8 +526,10 @@ finish_case() { # <slot> → the case's own status
   local slot="$1" dir status
   dir="${case_slot_dir[$slot]}"
   # The bound's watcher first, while the slot directory is still the one it was started for (issue #308): a watcher
-  # that outlived its case would otherwise fire into the slot the pool hands to the next one.
-  loop_end_pid "${case_slot_watch[$slot]:-}"
+  # that outlived its case would otherwise fire into the slot the pool hands to the next one. Its group, not its
+  # subshell: the `sleep` that holds the bound is a child of the subshell, and ending the subshell alone left one
+  # per case standing for the rest of its bound (issue #692).
+  loop_end_group "${case_slot_watch[$slot]:-}"
   case_slot_watch[slot]=""
   wait "${case_slot_pid[$slot]}" 2>/dev/null
   case_slot_pid[slot]=""
@@ -631,6 +652,30 @@ fi
 
 total=0
 failed=0
+# The ceiling the caller named was reached: the pool cannot finish the selection inside it, so this invocation ends
+# itself and names what it covered, rather than being killed by its caller with the item's work uncommitted (issue
+# #692). It leaves by `exit`, so `on_exit` ends the cases still running, their watchers and this suite's scratch tree:
+# nothing of a cut suite outlives it, and a cut suite is never a green one.
+ceiling_end() {
+  printf "LOOP-SUITE-CEILING: the caller's ceiling of %ss was reached — %s of %s cases started, %s never started; the suite ended itself and what did not run is covered by nothing\n" \
+    "$ceiling" "$total" "$queued" "$((queued - total))"
+  printf 'loop-selftest: %s of %s cases ran before the ceiling the caller named (%ss)\n' \
+    "$total" "$queued" "$ceiling"
+  exit 1
+}
+# One watcher for the ceiling, started beside the per-case ones and ended by `on_exit` on every path (issue #692). It
+# signals rather than writes because the pool is inside `wait -n` for most of the suite's life, and a trapped signal is
+# what interrupts that wait: a case still running when the ceiling arrives is answered by this clock, not by its own
+# `LOOP_CASE_MAX_SECONDS`, which may be another 897 s away.
+if [ -n "$ceiling" ]; then
+  # Its own process group (`set -m`, as `start_case` starts a case's watcher), so `on_exit` can end the `sleep` in it
+  # with one signal rather than leaving the `sleep` behind the subshell it was forked from (issue #692).
+  set -m
+  ( sleep "$ceiling"; kill -USR1 $$ 2>/dev/null || true ) < /dev/null > /dev/null 2>&1 &
+  ceiling_watch=$!
+  set +m
+  trap 'ceiling_end' USR1
+fi
 # The selection, one case per element, and the pool that runs them: a case starts while fewer than `$workers` are
 # running, and the next one starts the moment one finishes — no barrier, because a batch waits for its slowest case
 # and the `run#*` cases are the suite's longest. `wait -n` is the reaper; which slot finished is read from the record

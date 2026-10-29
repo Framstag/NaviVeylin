@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-openspec-hygiene.sh" tests="0" failures="0" errors="0" time="1">
+  <system-out>Every capability spec states its Purpose. OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.</system-out>
+</testsuite>

@@ -290,6 +290,8 @@ LOOP_SHELL_CASES=(
   'driver#theSuiteRunsItsCasesInAPool'
   'driver#aCaseThatBlocksIsEndedByItsOwnBound'
   'driver#aCaseInsideItsBoundKeepsItsOwnVerdict'
+  'driver#aSuiteEndsInsideTheCeilingItsCallerNamed'
+  'driver#aCeilingTheSuiteFitsInsideChangesNothing'
   'driver#aRunningCasePrintsItsOwnLines'
   'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt'
   'driver#aSecondSuiteInOneRepositoryIsRefused'
@@ -299,6 +301,7 @@ LOOP_SHELL_CASES=(
   'gate#twoFailuresNameTheFirstAndCountTheRest'
   'gate#aStepThatNamesNoCaseIsAttributedByItsStep'
   'gate#theBlockStaysInsideTheRecordedBound'
+  'gate#theStepBoundIsClampedByTheCeilingTheCallerNamed'
   'phase#oneCallPrintsThePhaseState'
   'phase#aResultOverTheBoundIsCutAndNamed'
   'repeat#aRepeatReadIsNamedNotHandedOverAgain'
@@ -616,6 +619,8 @@ loop_run_shell_case() {
     'driver#theSuiteRunsItsCasesInAPool') fn=case_driver_theSuiteRunsItsCasesInAPool ;;
     'driver#aCaseThatBlocksIsEndedByItsOwnBound') fn=case_driver_aCaseThatBlocksIsEndedByItsOwnBound ;;
     'driver#aCaseInsideItsBoundKeepsItsOwnVerdict') fn=case_driver_aCaseInsideItsBoundKeepsItsOwnVerdict ;;
+    'driver#aSuiteEndsInsideTheCeilingItsCallerNamed') fn=case_driver_aSuiteEndsInsideTheCeilingItsCallerNamed ;;
+    'driver#aCeilingTheSuiteFitsInsideChangesNothing') fn=case_driver_aCeilingTheSuiteFitsInsideChangesNothing ;;
     'driver#aRunningCasePrintsItsOwnLines') fn=case_driver_aRunningCasePrintsItsOwnLines ;;
     'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt') fn=case_driver_aCaseThatLeavesAProcessBehindIsSweptWithIt ;;
     'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
@@ -625,6 +630,7 @@ loop_run_shell_case() {
     'gate#twoFailuresNameTheFirstAndCountTheRest') fn=case_gate_twoFailuresNameTheFirstAndCountTheRest ;;
     'gate#aStepThatNamesNoCaseIsAttributedByItsStep') fn=case_gate_aStepThatNamesNoCaseIsAttributedByItsStep ;;
     'gate#theBlockStaysInsideTheRecordedBound') fn=case_gate_theBlockStaysInsideTheRecordedBound ;;
+    'gate#theStepBoundIsClampedByTheCeilingTheCallerNamed') fn=case_gate_theStepBoundIsClampedByTheCeilingTheCallerNamed ;;
     'phase#oneCallPrintsThePhaseState') fn=case_phase_oneCallPrintsThePhaseState ;;
     'phase#aResultOverTheBoundIsCutAndNamed') fn=case_phase_aResultOverTheBoundIsCutAndNamed ;;
     'repeat#aRepeatReadIsNamedNotHandedOverAgain') fn=case_repeat_aRepeatReadIsNamedNotHandedOverAgain ;;
@@ -9059,6 +9065,82 @@ CASES
   return 0
 }
 
+# The harness a child runs under kills one tool call at a ceiling of its own — `Error: Tool 'ctx_shell' exceeded its
+# timeout of 900000ms.` — and no project file can see it (issue #692). Measured twice on 2026-10-28: a suite call the
+# project budgets at 500 s was killed mid-run with the child's work uncommitted, and the project's own bounds (900,
+# 1 800, 2 700, 3 900 s) were every one of them above that ceiling. So the caller names its ceiling at the call site
+# and the suite ends itself at it, naming what it covered, instead of being killed with the pool still running. This
+# case gives four cases of 6 s to a caller ceiling of 3 s: on the base the suite runs all 24 s of them and reads
+# green, because nothing read a ceiling.
+case_driver_aSuiteEndsInsideTheCeilingItsCallerNamed() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d out driver conf status started elapsed
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#slowOne' 'stub#slowTwo' 'stub#slowThree' 'stub#slowFour')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() { sleep 6; }
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  # One worker, so the suite's own length is the sum of its cases and the ceiling falls inside it.
+  printf 'LOOP_CASE_MAX_SECONDS=600\n' >> "$conf"
+  started=$(date +%s)
+  out=$(cd "$d" && LOOP_CONF="$conf" LOOP_CALL_CEILING_SECONDS=3 timeout 120 bash "$driver" --jobs 1 2>&1); status=$?
+  elapsed=$(( $(date +%s) - started ))
+  [ "$status" -ne 124 ] || fail "the suite was still running at the ceiling its caller named after 120 s: $out"
+  assert_eq "1" "$status" "a suite its caller's ceiling cut is a failure, never a green suite: $out"
+  assert_contains "$out" "LOOP-SUITE-CEILING: the caller's ceiling of 3s was reached — 1 of 4 cases started" \
+    "the suite ends itself at the ceiling and names how much of the selection it covered: $out"
+  assert_contains "$out" "3 never started" "and how many cases the ceiling left unrun: $out"
+  assert_not_contains "$out" "all 4 cases passed" "a cut suite reports no green summary"
+  [ "$elapsed" -lt 20 ] || fail "the suite outlived the ceiling its caller named: ${elapsed}s"
+  # …and the other half of that THEN: the case that was still running goes with the suite, together with what it
+  # started, and the suite's scratch tree goes too. The running case is a `sleep 6` in a process group of its own,
+  # standing at a working directory under this case's scratch root — `loop_pids_under` is the reader of exactly that
+  # (issue #213) — so a suite that ends only itself leaves one process and one tree behind, and both are counted here
+  # rather than inferred from `$elapsed`.
+  assert_eq "0" "$(loop_pids_under "$d" | grep -c . || true)" \
+    "no process of a cut suite outlives it: $(loop_pids_under "$d" | tr '\n' ' ')"
+  assert_eq "0" "$(find "$d/tmp" -mindepth 1 2>/dev/null | grep -c . || true)" \
+    "and the cut suite removed its own scratch tree: $(find "$d/tmp" -mindepth 1 2>/dev/null | tr '\n' ' ')"
+  return 0
+}
+
+# The ceiling is a bound only when it is the smaller one: a caller that names a ceiling the whole selection fits
+# inside gets exactly the suite it got before, green summary and all. This case is green against the unfixed driver by
+# construction — it is the guard that a ceiling cannot be turned into "everything ended early" — and the mutation
+# `70.2` is what makes it red.
+case_driver_aCeilingTheSuiteFitsInsideChangesNothing() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d out driver conf status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#quick' 'stub#alsoQuick')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() { sleep 1; }
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  printf 'LOOP_CASE_MAX_SECONDS=600\n' >> "$conf"
+  out=$(cd "$d" && LOOP_CONF="$conf" LOOP_CALL_CEILING_SECONDS=600 timeout 60 bash "$driver" --jobs 1 2>&1); status=$?
+  assert_eq "0" "$status" "a ceiling the selection fits inside leaves the suite green: $out"
+  assert_contains "$out" "PASS stub#quick" "every case keeps its own verdict"
+  assert_contains "$out" "loop-selftest: all 2 cases passed" "and the suite reports the summary it always reported: $out"
+  assert_eq "0" "$(printf '%s\n' "$out" | grep -c 'LOOP-SUITE-CEILING' || true)" "the ceiling answered nothing"
+  # The ceiling's watcher sleeps for the whole of it (`loop-selftest.sh`'s `ceiling_watch`), so a suite that ends
+  # inside its ceiling is the case where `on_exit` has something to end: without that one `loop_end_group` the guard
+  # leaves a `sleep 600` at this scratch root for ten minutes. So the THEN is counted, not assumed: no process, and
+  # no scratch tree (issue #692).
+  assert_eq "0" "$(loop_pids_under "$d" | grep -c . || true)" \
+    "a suite that ends inside its ceiling leaves no process behind: $(loop_pids_under "$d" | tr '\n' ' ')"
+  assert_eq "0" "$(find "$d/tmp" -mindepth 1 2>/dev/null | grep -c . || true)" \
+    "nor its scratch tree: $(find "$d/tmp" -mindepth 1 2>/dev/null | tr '\n' ' ')"
+  return 0
+}
+
 # A case's output was held in a file until the case ended (`loop-selftest.sh`'s `finish_case` cat-ed it), so the log of
 # the hung gate was 222 `PASS` lines and then fifty minutes of nothing, and the case that hung was named nowhere —
 # reconstructing which case it was took a session (issue #308). The line must reach the suite's own output as it
@@ -9519,6 +9601,50 @@ LOG
   n=$(printf '%s' "$out" | wc -c | tr -d ' ')
   [ "$n" -le 200 ] || fail "the block is $n characters under a bound of 200: $out"
   assert_eq "7" "$(printf '%s\n' "$out" | grep -c .)" "every fact keeps its own line at a smaller bound: $out"
+  return 0
+}
+
+# A gate step is the unit this project bounds (`LOOP_GATE_STEP_MAX_SECONDS`, 1 800 s), and the harness that started
+# the gate kills the call at a ceiling below it (issue #692). A step bound above the caller's ceiling is not a bound:
+# the caller dies first, mid-step, and the gate never says which step it was in. The caller names its ceiling and the
+# step's clock is the smaller of the two — on the console before the first step starts, and in the line the overrun
+# writes — so the gate ends the step itself and answers instead of being killed.
+case_gate_theStepBoundIsClampedByTheCeilingTheCallerNamed() {
+  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/loop.conf tools/loop-cases.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf base log out status started elapsed
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=600\n'
+    printf 'LOOP_GATE_SUITES="notes/*|bash %s/suite.sh"\n' "$d"
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+  } >> "$conf"
+  # A suite that would outlast the ceiling: on the base the gate waits its 30 s and reads green.
+  cat > "$d/suite.sh" <<'SUITE'
+sleep 30
+printf 'notes: all 1 cases passed\n'
+SUITE
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  log="$d/gate.log"
+  started=$(date +%s)
+  ( cd "$p" && LOOP_CONF="$conf" LOOP_CALL_CEILING_SECONDS=2 timeout 120 bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1
+  status=$?
+  elapsed=$(( $(date +%s) - started ))
+  out=$(cat "$log")
+  [ "$status" -ne 124 ] || fail "the gate was still inside a step after 120 s: $out"
+  assert_contains "$out" 'LOOP-GATE-STEP-BOUND: 2s per step' \
+    "the clock in force is the caller's ceiling, on the console before the first step: $out"
+  assert_contains "$out" 'the step overran its bound of 2s and was ended' "the overrun names the bound: $out"
+  assert_contains "$out" 'LOOP-GATE: tests=0 failures=0 errors=1' "and the step is the gate's error, not a green log: $out"
+  assert_eq "1" "$status" "a step the ceiling ended is a gate failure"
+  [ "$elapsed" -lt 20 ] || fail "the gate outlived the ceiling its caller named: ${elapsed}s"
   return 0
 }
 

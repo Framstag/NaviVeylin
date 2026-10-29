@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-selftest.sh --case gate#theStepBoundIsClampedByTheCeilingTheCallerNamed" tests="1" failures="1" errors="0" time="32">
+  <system-out>  the clock in force is the caller's ceiling, on the console before the first step: LOOP-GATE-STEP-BOUND: 600s per step — a step that reaches it is ended, named and counted as an error
+gate: bash …/suite.sh
+notes: all 1 cases passed
+gate: bash …/suite.sh — 30s
+LOOP-GATE: tests=1 failures=0 errors=0 (bash …/suite.sh 30s): 'LOOP-GATE-STEP-BOUND: 2s per step' not found in: LOOP-GATE-STEP-BOUND: 600s per step — a step that reaches it is ended, named and counted as an error
+FAIL gate#theStepBoundIsClampedByTheCeilingTheCallerNamed (2026-10-28T18:46:51Z)</system-out>
+</testsuite>

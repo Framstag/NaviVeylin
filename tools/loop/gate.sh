@@ -59,6 +59,13 @@ tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
 # value like the other two, it is read here, and `run_step` enforces it.
 step_max=$(loop_conf_value LOOP_GATE_STEP_MAX_SECONDS)
 case "$step_max" in ''|*[!0-9]*|0) step_max=1800 ;; esac
+# …and the bound is the smaller of that and the ceiling of whatever started this gate (issue #692): the harness a
+# child runs under ends one tool call at a ceiling of its own (900 s on the measured host, twice on 2026-10-28), and a
+# step bound above it is not a bound — the caller ends the gate first, mid-step, and neither the console line nor the
+# tally's `LOOP-GATE-STEP:` line that names the step is ever written. The clock in force is printed below, before the
+# first step starts, so a log that ends without a verdict still says which one it was under.
+step_recorded=$step_max
+step_max=$(loop_bound_under_ceiling "$step_max")
 
 say() { [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
 
@@ -107,8 +114,13 @@ if [ "$plan" -eq 0 ]; then
     say "LOOP-GATE-PROFILE: $LOOP_CONF_PATH — pinned; not the profile beside this engine ($here/loop.conf)"
   fi
   # The clock a step is held to is on the console before the first step starts, so a log that ends without a verdict
-  # still says which bound was in force (issue #311).
-  say "LOOP-GATE-STEP-BOUND: ${step_max}s per step — a step that reaches it is ended, named and counted as an error"
+  # still says which bound was in force (issue #311) — and when the caller's ceiling is the smaller of the two, the
+  # line names it as such rather than reading as a project value the profile never recorded (issue #692).
+  if [ "$step_max" -lt "$step_recorded" ]; then
+    say "LOOP-GATE-STEP-BOUND: ${step_max}s per step — a step that reaches it is ended, named and counted as an error; the ceiling the caller named is smaller than the recorded ${step_recorded}s"
+  else
+    say "LOOP-GATE-STEP-BOUND: ${step_max}s per step — a step that reaches it is ended, named and counted as an error"
+  fi
 fi
 
 # The paths the change touches: what it committed since the base, plus whatever is still uncommitted — a gate

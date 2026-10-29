@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="guardrail-tag" tests="3" failures="3" errors="0" skipped="0" timestamp="2026-10-29T12:23:21Z">
-  <testcase classname="guardrail-tag" name="entry38CarriesItsRecordTag"/>
+<testsuite name="guardrail-tag" tests="3" failures="3" errors="0" skipped="0" timestamp="2026-10-29T12:26:38Z">
+  <testcase classname="guardrail-tag" name="entry38CarriesItsRecordTag">
+    <failure message="guidelines/Build.md:586-642 carries no §40.38 tag">guidelines/Build.md:586-642 carries no §40.38 tag</failure>
+  </testcase>
   <testcase classname="guardrail-tag" name="entry46CarriesItsRecordTag">
     <failure message="guidelines/Build.md:104-174 carries no §40.46 tag">guidelines/Build.md:104-174 carries no §40.46 tag</failure>
   </testcase>

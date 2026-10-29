@@ -47,23 +47,23 @@ report() {
   names="$names entry${entry}CarriesItsRecordTag"
   if [ ! -f "$file" ]; then
     printf 'MISSING §40.%s  %s does not exist\n' "$entry" "$2"; missing=$((missing + 1))
-    states="$states fail"; messages="$messages|$2 does not exist"; return
+    states="${states:+$states }fail"; messages="${messages:+$messages|}$2 does not exist"; return
   fi
   start=$(grep -n -F -- "$marker" "$file" | head -1 | cut -d: -f1)
   if [ -z "$start" ]; then
     printf 'MISSING §40.%s  section "%s" not found in %s\n' "$entry" "$marker" "$2"; missing=$((missing + 1))
-    states="$states fail"; messages="$messages|section \"$marker\" not found in $2"; return
+    states="${states:+$states }fail"; messages="${messages:+$messages|}section \"$marker\" not found in $2"; return
   fi
   end=$(awk -v s="$start" 'NR > s && /^#{2,3} /{print NR; exit}' "$file")
   [ -z "$end" ] && end=$(wc -l < "$file")
   if sed -n "${start},${end}p" "$file" | grep -q -F -- "§40.$entry"; then
     printf 'STATED  §40.%s  %s:%s-%s  "%s"\n' "$entry" "$2" "$start" "$end" "$token"
-    states="$states pass"; messages="$messages|"
+    states="${states:+$states }pass"; messages="${messages:+$messages|}"
   else
     printf 'MISSING §40.%s  %s:%s-%s ("%s") carries no §40.%s tag\n' \
       "$entry" "$2" "$start" "$end" "$marker" "$entry"
-    missing=$((missing + 1)); states="$states fail"
-    messages="$messages|$2:$start-$end carries no §40.$entry tag"
+    missing=$((missing + 1)); states="${states:+$states }fail"
+    messages="${messages:+$messages|}$2:$start-$end carries no §40.$entry tag"
   fi
 }
 
@@ -80,7 +80,7 @@ if [ -n "$junit" ]; then
     for name in $names; do
       i=$((i + 1))
       state=$(echo "$states" | cut -d' ' -f"$i")
-      msg=$(echo "$messages" | cut -d'|' -f"$((i + 1))")
+      msg=$(echo "$messages" | cut -d'|' -f"$i")
       if [ "$state" = fail ]; then
         printf '  <testcase classname="guardrail-tag" name="%s">\n' "$name"
         printf '    <failure message="%s">%s</failure>\n' "$msg" "$msg"

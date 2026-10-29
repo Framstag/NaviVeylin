@@ -25,7 +25,7 @@ for those entries.
 
 **Red test** (`evidence/red-probe.sh`, its base-tree run captured in `evidence/red-HEAD.txt` and its JUnit XML
 `evidence/red-on-head.xml` — `tests="3" failures="3"` — at
-2026-10-29T11:57:13Z, reading the base commit's `guidelines/` through `git archive`): the probe requires the
+2026-10-29T12:26:38Z, reading the base commit's `guidelines/` through `git archive`): the probe requires the
 record tag inside the section that owns each rule, and on HEAD reports `tests=3 failures=3`:
 
 ```

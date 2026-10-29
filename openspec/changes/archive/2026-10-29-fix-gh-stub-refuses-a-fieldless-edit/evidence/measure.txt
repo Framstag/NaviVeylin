@@ -1,0 +1,16 @@
+The measuring command, run once from the change root before this change existed
+(2026-10-29T05:22Z, base 1abb81f). It measured the newest archived change, because no change was open at that
+moment; the numbers it carries are the tree's, not that change's:
+
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=1abb81f9aadb820f2432a5187b6e476ba6c2bd76 paths=0 insertions=0 deletions=0
+LOOP-MEASURE-CHECK LOOP-GATE: nothing owed — no path this profile gates changed since 1abb81f9aadb820f2432a5187b6e476ba6c2bd76
+LOOP-MEASURE-SUITE cases=276 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE 2026-10-28-route-steps-live-guidance scenarios=49 cases=22 unnamed=27
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END
+
+`LOOP-GATE seconds=-` is the honest answer here: this tree had never run the gate, so it had no timing to
+quote. The gate this change ran afterwards is `evidence/gate.log`, and its per-step tallies are the XMLs beside
+it.

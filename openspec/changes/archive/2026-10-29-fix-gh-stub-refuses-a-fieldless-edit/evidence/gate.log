@@ -1,0 +1,9 @@
+# The gate, run once, from the change root at base 1abb81f — 2026-10-29T05:24:34Z (start).
+#
+# `./tools/loop/gate.sh` writes one `<testsuite>` XML per step under
+# `app/build/test-results/loop-gate/` and prints this single summary line; there is no aggregate XML, which is
+# why the tallies the change cites are the per-step files copied beside this one.
+#
+# Verbatim, the line the run printed:
+
+LOOP-GATE: tests=155 failures=0 errors=0 (tools/issue-tooling-selftest.sh 69s, tools/issues/check-metadata.sh 0s, tools/issues/metadata-mutations.sh --list 1s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 25s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s)

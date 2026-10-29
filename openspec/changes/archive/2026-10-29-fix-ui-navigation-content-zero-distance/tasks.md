@@ -31,9 +31,15 @@ The change touches no compiled file, so no Gradle task exists here: the structur
 
 ## 3. Structural verification
 
-- [x] 3.1 Run the change's documentation suites once through the project's gate, `./tools/loop/gate.sh`, from
-      the change root. Verify: its summary line is quoted in `evidence/gate.log`, the JUnit tallies are copied
-      into `evidence/gate-tallies/`, and it reports no failure.
+- [x] 3.1 Run every suite the reviewed pathspec owes once through the project's gate, `./tools/loop/gate.sh`,
+      from the change root. Verify: its summary line is quoted in `evidence/gate.log` and names all seven suites
+      — `bash tools/gen-feature-list.sh --check-classification`, `tools/check-doc-routes.sh`,
+      `tools/check-doc-routes-selftest.sh`, `tools/mutate.sh --mutations tools/check-doc-routes-mutations.json
+      --list`, `tools/check-todo-references.sh`, `tools/check-openspec-hygiene.sh`,
+      `tools/check-openspec-hygiene-selftest.sh` — the JUnit tallies are copied into `evidence/gate-tallies/`, and
+      `LOOP-GATE: tests=6 failures=0 errors=0` reports no failure.
+      *(round 2: round 1 gated only the `*.md` pairs because the archive move was still uncommitted and
+      `openspec/changes/*/` is gitignored; the gate of 2026-10-29T07:36Z reads `paths=20` and runs all seven)*
 - [x] 3.2 Validate the change: `openspec validate fix-ui-navigation-content-zero-distance --strict`. Verify:
       the command exits 0 and reports the change valid; record its output in `evidence/openspec-validate.log`.
 - [x] 3.3 Re-run the red probe after the edit and copy its XML into `evidence/green-after-fix.xml`; confirm
@@ -44,9 +50,10 @@ The change touches no compiled file, so no Gradle task exists here: the structur
 
 - [x] 4.1 Copy every cited XML into the change's `evidence/` directory and the item's evidence directory
       `/home/tim/projects/NaviVeylin/.pi/issue-loop/items/702`, then run
-      `bash tools/loop/evidence-check.sh openspec/changes/fix-ui-navigation-content-zero-distance --root .`.
+      `bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance --root .`
+      after the archive (`.log` = pre-archive run, `-archived.log` = post-archive and post-correction run).
       Verify: every `file:line` and every quoted `tests=`/`failures=` resolves; record the PASS line in
-      `evidence/evidence-check.log`.
+      `evidence/evidence-check-archived.log`.
 - [x] 4.2 Archive the change, confirm the directory exists under `openspec/changes/archive/`, and confirm no
       capability spec changed (`.openspec.yaml` declares `skip_specs: true`). Verify: the archive directory
       carries `proposal.md`, `design.md`, `tasks.md`, `.openspec.yaml` and `evidence/`, and

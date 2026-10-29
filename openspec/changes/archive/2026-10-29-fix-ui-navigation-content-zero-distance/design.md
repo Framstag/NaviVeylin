@@ -30,8 +30,14 @@ normative home.
   changes, so `AGENTS.md` and `tools/check-doc-routes.sh` need no edit.
 - **The change's markdown and `openspec/**` paths pull the project's documentation suites** (`tools/loop/loop.conf`,
   `LOOP_GATE_SUITES`: `*.md` → `check-doc-routes.sh`, its self-test and mutation list, `check-todo-references.sh`;
-  `openspec/*` → `check-doc-routes.sh`, `check-openspec-hygiene.sh`, `gen-feature-list.sh
-  --check-classification`). No compiled path is touched, so no Gradle task is owed.
+  `openspec/*` → `check-doc-routes.sh`, `check-openspec-hygiene.sh`, `check-openspec-hygiene-selftest.sh`,
+  `gen-feature-list.sh --check-classification`). No compiled path is touched, so no Gradle task is owed.
+- **The gate reads the reviewed pathspec, the archived move included.** `./tools/loop/gate.sh` resolves its paths
+  from the base (`git diff --name-only 42d3e00` plus the working tree), so the archive move is in scope and the
+  run of 2026-10-29T07:36Z read `paths=20` — `guidelines/UI.md` plus the change's 19 archived paths — and ran all
+  seven owed suites, reporting `LOOP-GATE: tests=6 failures=0 errors=0`. Its transcript is `evidence/gate.log` and
+  its seven tallies are `evidence/gate-tallies/`; the tallies and the post-archive `evidence-check-archived.log`
+  are what later lift the re-read pathspec past the gate's `paths=20` (`LOOP-MEASURE … paths=24`).
 - **The shipped Gradle case and spec scenario are unchanged** — the change only makes the guideline restate the
   rule they already assert. The evidence probe is the red/green case for the documentation delta and lives under
   the change's `evidence/`, not in the module's test source.

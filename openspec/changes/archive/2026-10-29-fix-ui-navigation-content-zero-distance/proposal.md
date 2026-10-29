@@ -26,17 +26,16 @@ FAIL ui-navigation-content#zero-versus-unknown — the NAVIGATION content bullet
   [navigation-ongoing-notification]
 ```
 
-**Surface.** `tools/look.sh 'zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown|known zero distance|A known
-zero distance is not an unknown distance' --files` reports 19 matches in 10 files; of those, exactly one shipped
-Gradle case asserts the behaviour (`NavigationNotificationContentFormatterTest`
+**Surface.** On the base tree `42d3e00` (2026-10-29) the command
+`tools/look.sh 'zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown|known zero distance|A known zero distance is not an unknown distance' --files`
+reports `19 matches in 10 files`; read again on this change's own tree it reports `35 matches in 14 files`, the
+16 extra lines being this change's own proposal, design, tasks and the new guideline clause. Of the base
+matches, exactly one shipped Gradle case asserts the behaviour (`NavigationNotificationContentFormatterTest`
 "zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown") and exactly one shipped spec scenario names it (the
 requirement above). This change adds one evidence probe case and edits one guideline bullet; it adds no Gradle
 case, rewrites no case and realigns no fixture.
 
-surface: 1 guideline bullet edited, 1 evidence probe case added, 0 Gradle cases added, 0 cases rewritten,
-0 fixtures realigned — `tools/look.sh 'zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown|known zero
-distance|A known zero distance is not an unknown distance' --files` (19 matches in 10 files; the only shipped
-case is `NavigationNotificationContentFormatterTest` "zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown").
+surface: 1 guideline bullet edited, 1 evidence probe case added, 0 Gradle cases added, 0 cases rewritten, 0 fixtures realigned — `tools/look.sh 'zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown|known zero distance|A known zero distance is not an unknown distance' --files` (`19 matches in 10 files` on the base tree, `35 matches in 14 files` on this change's tree; the only shipped case is `NavigationNotificationContentFormatterTest` "zeroDistanceReadsZeroWhileAnUnknownDistanceStaysUnknown").
 
 **Owning capability and guideline section.** The behaviour is owned by
 `openspec/specs/navigation-ongoing-notification/spec.md` — *A known zero distance is not an unknown distance*.

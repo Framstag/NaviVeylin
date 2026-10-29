@@ -71,13 +71,20 @@
       in `evidence/gate.md`, whose step list carries `tools/check-openspec-hygiene.sh`,
       `tools/check-openspec-hygiene-selftest.sh` and `bash tools/gen-feature-list.sh --check-classification`.
 - [x] 7.2 The merged requirement stated the naming obligation for every call that names the transition, and a
-      reopen names it without reporting the value it removed. *Verify*: the requirement and its delta scope the
-      report to the write that passes `--displace-settled` (`openspec/specs/issue-backlog/spec.md`,
-      `<change>/specs/issue-backlog/spec.md`), `design.md`'s verification and reopen bullet say the same, and
-      each scenario's case is unchanged and green.
+      reopen names it without reporting the value it removed. *Verify*: the item's decision (2026-10-29, comment
+      on #684) took the **report** and not a narrower requirement — `tools/issues/reopen.sh` reports the settled
+      value the guard found, as a clause on the line a person reads (`reopened #N (occurrence X, status/open,
+      removed status/fixed-by)`) and as a `removed` list in the `--json` document; both branches are asserted by
+      the portability suite's foreign reopen case, whose fixture item 11 carries `status/fixed-by`, with a second
+      closed fixture for the text line. Green: `tools/check-portability-selftest.sh` (29 cases) and the gate
+      quoted in `evidence/gate.md`.
 - [x] 7.3 The revert-check quoted a summary line this tree's runner does not print, and its "other entries still
       pass" named a run that did not happen. *Verify*: the whole set run and its own counts quoted, the red's
       assertion message and timestamps recorded, the restore's byte-identity recorded, in
       `evidence/revert-checks.md`.
 - [x] 7.4 The pointers: `proposal.md` names `issues_status_settled_guard` and the re-measured file count (10,
-      not 8); `measure.txt` is re-taken on the archived tree.
+      not 8); `measure.txt` is re-taken on the final tree (`base=a86ff487`, `paths=34 insertions=829 deletions=7`).
+- [x] 7.5 `git rebase main` before the last gate: `main` had moved five commits (#680 and the module-pin repair),
+      the tail of `openspec/specs/issue-backlog/spec.md` conflicted with #680's requirement there and **both**
+      were kept, and the stub `tools/issues/fixtures/gh` #680 changed is the one the suite ran against — which is
+      why the issue tooling's suite counts 128 cases in this gate and 127 in the pre-rebase one.

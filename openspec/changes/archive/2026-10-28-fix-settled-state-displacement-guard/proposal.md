@@ -69,14 +69,17 @@ tools/issue-tooling-cases.sh`).
 - `tools/issues/update.sh` — `--displace-settled`; the refusal (`status-settled`, exit 3) before the write; the
   report of the settled value the write removes; the usage line and header comment.
 - `tools/issues/close.sh` — passes `--displace-settled` (its closure is the transition).
-- `tools/issues/reopen.sh` — passes the named transition to the guard on its own write path.
+- `tools/issues/reopen.sh` — passes the named transition to the guard on its own write path, and reports the
+  settled value the guard found: a clause on its line and a `removed` list in its `--json` document.
 - `tools/issue-tooling-cases.sh` — the red case and one regression case for the closure.
 - `openspec/specs/issue-backlog/spec.md` — the ADDED requirement (through this change's delta).
 - `guidelines/Backlog.md` §4 — invariant I18.
 
-Additive: no CLI change to `close.sh` or `reopen.sh`, and every call that displaces a *non-settled* state is
-unchanged. Rollback is the revert of one commit — the guard writes nothing and stores nothing, so a revert
-restores the old write path with no data to migrate.
+Additive: no CLI change to `close.sh` or `reopen.sh` — `reopen.sh` gains one clause on a line it already prints
+and one field in a document it already prints, which no reader of it parses positionally (`tools/sensors/run.sh`
+captures the text, `tools/sensor-cases.sh` matches a substring, `tools/portability-cases.sh` reads a field by
+name) — and every call that displaces a *non-settled* state is unchanged. Rollback is the revert of one commit —
+the guard writes nothing and stores nothing, so a revert restores the old write path with no data to migrate.
 
 ## Impact
 

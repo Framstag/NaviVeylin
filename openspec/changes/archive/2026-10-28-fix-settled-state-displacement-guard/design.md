@@ -32,8 +32,11 @@ The meaning the scan lacks is added where the scan lives, so both writers keep o
   verb itself is the named transition: it may only reverse a closure recorded `completed`
   (`reopen.sh:73-86`, `closure-not-reopenable`) and it carries the returning measurement, so the state it
   displaces is the completed fix, deliberately. It passes the guard's `named` argument rather than the flag,
-  and it reports the state it returns to (`reopened #N (occurrence X, status/open)`): naming the *removed*
-  settled value is the flag-bearing routine write's obligation, which is where the requirement scopes it.
+  and it reports what the guard found: the state it returns to and the settled value it removed, as a clause of
+  its line (`reopened #N (occurrence X, status/open, removed status/fixed-by)`) and as a `removed` list in its
+  `--json` document. Round 1 read the naming obligation as scoped to the flag-bearing write and this change had
+  narrowed the requirement to match; the item's decision (2026-10-29, on #684) took the other half of that
+  choice, because an item about *silent* displacement cannot leave the one verb that means the transition mute.
 
 Nothing else moves: the pre-screen's settled rule, the resolver's restore (#681), the one-state rule, the
 replacement report and every write that displaces a non-settled value are unchanged.
@@ -77,7 +80,9 @@ replacement report and every write that displaces a non-settled value are unchan
 ## Verification
 
 - The red case (`update#refusesToDisplaceASettledState`) is green, and the regression case for the closure
-  (`close#namesTheSettledStateItDisplaces`) proves the deliberate writers still land.
+  (`close#namesTheSettledStateItDisplaces`) proves the deliberate writers still land. The reopen's report is
+  asserted in `tools/portability-cases.sh` on the foreign project's item 11 (which carries `status/fixed-by`):
+  the `--json` document's `removed` list, and the text line, which a second closed fixture covers.
 - The suites and checks the pathspec owes, which the map states and `./tools/loop/measure.sh` prints before
   the run: `tools/issue-tooling-selftest.sh` (the whole issue tooling), `tools/check-portability.sh` + its
   self-test (the guard names no project value), `tools/issues/check-metadata.sh`, the mutation lists, and the

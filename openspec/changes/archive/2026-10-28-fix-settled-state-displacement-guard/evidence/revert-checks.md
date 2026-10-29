@@ -32,7 +32,8 @@ mutate: 6 mutation(s) run, 6 went red and restored green, 0 problem(s)
 mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
 ```
 
-Run at 2026-10-28T19:59:13Z, finished 2026-10-28T19:59:31Z; `git status --short` afterwards was empty.
+Run at 2026-10-29T06:23:07Z, finished 2026-10-29T06:23:45Z, on the final tree of this change (after the rebase
+onto `main`); `git status --short` afterwards listed only this change's own evidence files.
 Every entry of the set went red and came back green, so the guard did not disturb the replacement rules it
 sits beside — that is a run this record carries, not an inference from a subset.
 
@@ -79,14 +80,18 @@ file's.
 
 The reopen's half of the rule is asserted in the gate's own portability self-test: the foreign-project reopen
 in `tools/portability-cases.sh` opens an item carrying `status/fixed-by`, and an unnamed guard there would
-refuse it — `tools/check-portability-selftest.sh` is green in `gate.md`.
+refuse it. That case also asserts the report the reopen owes (#684, round 2): the `removed` list in its `--json`
+document and, on a second closed fixture, the `removed status/fixed-by` clause on the line a person reads —
+`tools/check-portability-selftest.sh` is green in `gate.md`.
 
 ## The suite the guard lives in
 
 ```
 $ bash tools/issue-tooling-selftest.sh
 …
-issue-tooling-selftest: all 127 cases passed (JDK 27, offline, no token, HEAD c2969186, tools 1c75ef89e054, 2026-10-28T19:48:33Z)
+issue-tooling-selftest: all 128 cases passed (JDK 27, offline, no token, HEAD 73223aaa, tools e3b0c44298fc, 2026-10-29T06:20:02Z)
 ```
 
-The gate's own re-run on the archived tree (`gate.md`) is the later green for the same 127 cases.
+The 128th case is #680's (`surface#theStubRefusesAnEditWithNoField`), which the rebase brought in; the tree this
+change's own 127-case run covered had 127. The gate's own re-run on the final tree (`gate.md`) is the later
+green for the same 128 cases.

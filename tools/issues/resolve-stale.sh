@@ -175,10 +175,11 @@ parked_by_tool() { # <labels-json> <comments-json>
 }
 
 # Whether the item keeps a settled state of its own: the record a tombstone carries, whose marker the profile
-# declares. A project that declares no marker has no tombstones, so no item is one.
+# declares. A project that declares no marker has no tombstones, so no item is one. The reading is the shared one
+# `lib.sh` also gives the metadata check, so the reversal and the check cannot disagree about which bodies keep a
+# settled state (#683).
 records_settled_state() { # <body>
-  [ -n "$settled_record" ] || return 1
-  printf '%s' "$1" | grep -qF -- "$settled_record"
+  issues_records_settled_state "${1:-}" "$settled_record"
 }
 
 # The reversal of a park this script wrote, in one write: the state the item returns to, the refusal label the

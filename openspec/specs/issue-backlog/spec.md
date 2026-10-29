@@ -245,6 +245,22 @@ displaced by the new state, so a caller can see the whole transition and not onl
 - **WHEN** a state write displaces an existing state and the caller asks for machine-readable output
 - **THEN** that output names the displaced state label among the removed labels
 
+### Requirement: A settled record in an item's body agrees with its state label
+
+An item whose body carries the profile's `settledRecordMarker` SHALL carry a `status/*` label whose value is one
+of `roles.settledStatuses`, and a check over the tracker's per-item invariants SHALL report every item that does
+not, naming the item, its state and the invariant it breaks. A project declaring no marker SHALL
+check nothing, and an item without the record SHALL never be a violation — a state label alone records an
+ordinary closure. The check SHALL report and SHALL NOT repair.
+
+#### Scenario: check#aDisplacedSettledStateIsReported
+
+- **WHEN** an item's body carries the profile's settled-record marker and its state label is a value outside
+  `roles.settledStatuses`
+- **THEN** the check fails, naming that item, the state it carries and the invariant it breaks, while the same
+  item carrying a settled state passes and an item with no record is no violation at all
+- **Case**: `check#aDisplacedSettledStateIsReported`
+
 ### Requirement: The suite's stub refuses what the real CLI refuses
 
 The suite SHALL run the issue tooling against a stub `gh` that refuses a shape the real CLI refuses, so a
@@ -265,6 +281,7 @@ one of those flags SHALL be recorded exactly as before.
 - **WHEN** the stub `gh` is asked for `gh issue edit <n> --add-label <label>`
 - **THEN** the call exits 0 and the invocation is recorded in the write log unchanged
 - **Case**: `surface#theStubRefusesAnEditWithNoField`
+
 ### Requirement: A settled state is displaced only by a call that names the transition
 
 A state write SHALL NOT displace a value of the profile's `roles.settledStatuses` unless the call names that

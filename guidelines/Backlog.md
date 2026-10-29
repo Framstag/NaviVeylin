@@ -914,12 +914,15 @@ something, a scheduled run that stopped happening — becomes a check's verdict 
 (`stale-citation-resolution`, D6). The repair itself is a pipeline step, not a row: a row files,
 comments on or closes *the issue it owns*, and a citation repair edits other items.
 
-One row re-reads the tracker's own **priority invariant**, because nothing scheduled did: `metadata-invariant`
+One row re-reads the tracker's own **per-item invariants**, because nothing scheduled did: `metadata-invariant`
 runs `tools/issues/check-metadata.sh --live --json` — the command that owns the per-item half, so the row and a
 person's hand run cannot disagree about what a drift is — and files one item per drifted item and per
 disagreement, under that item's number and the rule it breaks. An item whose band label and stored marker
 drifted apart therefore reaches the tracker as a verdict within a day, whoever wrote the edit (the pass,
-a skill, a hand edit on the web UI), instead of waiting for somebody to remember the live mode. It reports and
+a skill, a hand edit on the web UI), instead of waiting for somebody to remember the live mode; and so does an
+item whose body keeps a settled state of its own (`roles.settledRecordMarker`) while its `status/*` label is not
+one of `roles.settledStatuses` — the drift a citation park left behind, which made a tombstone read as work
+(#683). It reports and
 repairs nothing: which half of a drifted pair is the wrong one is a judgement, so dropping a stale label or
 rewriting both halves together stays a person's edit. The row is the answer the owner recorded on #292
 (2026-10-25, option 1 of three); the prevention it was weighed against — the refusal of a band label in

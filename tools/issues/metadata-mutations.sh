@@ -66,6 +66,7 @@ MUTATIONS=(
   'band-edge-leaves-a-hole'
   'classify-writes-the-opt-in'
   'the-writer-skips-the-marker'
+  'settled-record-not-checked'
 )
 
 mutation_invariant() {
@@ -77,6 +78,7 @@ mutation_invariant() {
     'band-edge-leaves-a-hole') echo "every score the model can produce falls in exactly one band (task 8.5, D2)" ;;
     'classify-writes-the-opt-in') echo "the pass cannot write the automation opt-in (task 8.6, D7)" ;;
     'the-writer-skips-the-marker') echo "no band label is written or removed without the body that leaves the pair intact (task 8.7, D1; the write gate of #671)" ;;
+    'settled-record-not-checked') echo "an item whose body keeps a settled state must carry a settled label, or the displaced state is invisible (#683)" ;;
     *) echo "" ;;
   esac
 }
@@ -216,6 +218,10 @@ apply_mutation() {
       # the label half standing on its own. Before #671 the drift came out of the pass itself for the same
       # reason; now the write path refuses it unless this gate is gone, which is what the probe measures.
       patch "$engine/lib.sh" sed 's@^  namespace=\$(issues_core Bands meta.*@  namespace=""@' ;;
+    'settled-record-not-checked')
+      # The settled pair is read in one place, so the mutation disables the reading there: the record a tombstone
+      # keeps no longer reaches the invariant, and the item whose state a park displaced is reported by nothing.
+      patch "$engine/check-metadata.sh" sed 's@^  if issues_records_settled_state "\$body" "\$settled_record"; then@  if false; then@' ;;
     *) return 1 ;;
   esac
 }
@@ -229,6 +235,7 @@ probe_mutation() {
     'band-edge-leaves-a-hole') probe_core_case 'Bands#coversTheWholeRange' ;;
     'classify-writes-the-opt-in') probe_opt_in_write ;;
     'the-writer-skips-the-marker') probe_case 'update#refusesABandLabelWithoutItsMarker' ;;
+    'settled-record-not-checked') probe_case 'check#aDisplacedSettledStateIsReported' ;;
     *) return 1 ;;
   esac
 }

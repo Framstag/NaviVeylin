@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-portability.sh" tests="0" failures="0" errors="0" time="1">
+  <system-out>check-portability: the documented exception — the label that authorises work is declared read-only, once:   tools/loop/lib.sh:64:LOOP_AUTHORISATION_LABEL="agent/eligible" check-portability: OK — 53 engines and 2 templates name no project value (111 value(s) read from the project)</system-out>
+</testsuite>

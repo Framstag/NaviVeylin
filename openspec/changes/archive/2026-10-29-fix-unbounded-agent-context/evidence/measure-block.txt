@@ -1,0 +1,302 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=42d3e0004206ebfee39e11942db0bef375e1909e paths=221 insertions=9167 deletions=31
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/build/UnitTestSourceNullabilityBaselineTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/data/StartMapResolverTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/featurelist/ShippedSpecClassificationTest.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/StartupScreensTest.kt
+LOOP-MEASURE-PATH core/src/main/java/com/naviveylin/core/DiagnosticsLog.kt
+LOOP-MEASURE-PATH core/src/test/java/com/naviveylin/core/DiagnosticsLogWritePathTest.kt
+LOOP-MEASURE-PATH .github/workflows/sensors.yml
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH guidelines/Build.md
+LOOP-MEASURE-PATH guidelines/UI.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/auto-suite.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/auto-suite-tally.py
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/auto-suite-tally.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/evidence-check-archived.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/green-after-fix.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/green-final.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/green-final.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/openspec-archive.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/revert-check-mutated.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/revert-check-restored.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/specs/unit-test-suite-runtime/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-await-rows-fails-by-naming-the-state/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/coordinates-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/evidence-check-archived.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/green-after-fix.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/module-suites.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/post-archive-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/revert-check-mutated.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/revert-check-restored.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/evidence/round-2-corrections.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/specs/auto-diagnostics/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-diagnostics-read-retries-a-missed-drain/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_42d3e0004206ebfee39e11942db0bef375e1909e.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/green-labels.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/revert-check-mutated.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-loop-close-names-its-transition/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/compile-after-fix.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_42d3e0004206ebfee39e11942db0bef375e1909e.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/green-guard.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/green-run.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/green-shipped-spec.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/green-start-map-resolver.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/revert-check-mutated.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/revert-check-restored.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/specs/build-test-gate/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-nullability-warnings-in-two-test-sources/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/case-green.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_42d3e0004206ebfee39e11942db0bef375e1909e.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/post-archive-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/probe-42.2-run-output.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-the-merged-branch-is-observed-before-the-sweep/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/evidence-check-archived.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/green-after-fix.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/green-after-fix.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/red-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-29-fix-ui-navigation-content-zero-distance/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/specs/auto-diagnostics/spec.md
+LOOP-MEASURE-PATH openspec/specs/build-test-gate/spec.md
+LOOP-MEASURE-PATH openspec/specs/unit-test-suite-runtime/spec.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/fixtures/scenarios/retired/issues.json
+LOOP-MEASURE-PATH tools/loop/labels.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/sensor-cases.sh
+LOOP-MEASURE-PATH tools/sensor-mutations.sh
+LOOP-MEASURE-PATH tools/sensors/metrics/doc-context.sh
+LOOP-MEASURE-PATH tools/sensors/sensors.json
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 42d3e0004206ebfee39e11942db0bef375e1909e
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-mutations.sh --list
+LOOP-MEASURE-CHECK tools/check-action-runtimes.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/build-inputs-selftest.sh
+LOOP-MEASURE-CHECK tools/build-inputs.sh --check
+LOOP-MEASURE-CHECK tools/build-inputs-mutations.sh --list
+LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
+LOOP-MEASURE-CHECK tools/issues/metadata-mutations.sh --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=277 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=202 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=332s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs-mutations.sh_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_build-inputs.sh_--check.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-action-runtimes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=30s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=128 failures=0 time=95s
+LOOP-MEASURE-TALLY-MORE 12 of 32 tally files not shown — at most 20 per directory (app/build/test-results/loop-gate)
+LOOP-MEASURE-GATE seconds=1548 suites=32
+LOOP-MEASURE-CHANGE 2026-10-29-fix-unbounded-agent-context scenarios=9 cases=7 unnamed=2
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=202 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=332s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_build-inputs-mutations.sh_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_build-inputs-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_build-inputs.sh_--check.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-action-runtimes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=30s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=128 failures=0 time=95s
+LOOP-MEASURE-TALLY-MORE 13 of 33 tally files not shown — at most 20 per directory (openspec/changes/2026-10-29-fix-unbounded-agent-context/evidence)
+LOOP-MEASURE-SURFACE surface: 3 cases added, 0 rewritten, 0 fixtures realigned, 2 rows added, 1 metric script, 1 guideline paragraph, 1 workflow list entry, 2 mutations, 1 MODIFIED requirement — 8 files touched, against 1 shipped file (3 lines in `openspec/specs/documentation-ownership/spec.md`) asserting the bound before and 0 cases naming it — `git grep -n '12 000 bytes' HEAD -- openspec/specs guidelines | wc -l` (3 lines, one file) and `git grep -c 'routed-section-size\|entry-document-size\|doc-context' HEAD -- tools .github guidelines openspec/specs | wc -l` (0 files).
+LOOP-MEASURE-END

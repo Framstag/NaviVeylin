@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-portability-selftest.sh" tests="29" failures="0" errors="0" time="30">
+  <system-out>PASS porting#namesTheAdaptationPoint PASS porting#statesTheCopyCost check-portability-selftest: all 29 cases passed (JDK 27, offline, no token, no Gradle)</system-out>
+</testsuite>

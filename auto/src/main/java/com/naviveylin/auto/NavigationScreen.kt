@@ -108,38 +108,43 @@ class NavigationScreen(
     }
 
     /**
-     * Stylesheet whose day/night flag was pushed last: a *changed* stylesheet means the
-     * native side reloaded the style variant, so the flag is re-pushed once. Written
-     * from the settings re-read (background dispatcher), hence volatile.
-     */
-    @Volatile
-    private var pushedForStyleSheet: String? = null
-
-    /**
      * (Re)push the resolved dark presentation to the native stylesheet and force a full
      * render when it actually changed (spec: car-host-fault-isolation — Bounded
      * periodic render work; design D5): the settings re-read runs every few seconds and
      * must not reload the style variant plus a full native render each time.
-     *
-     * @param force re-push a value the native side may have dropped (the stylesheet was
-     *   just (re)loaded, or the DB became ready after an earlier push)
      */
-    private fun pushDark(force: Boolean = false) {
+    private fun pushDark() {
         // Skip until the renderer exists: the native client may still be
         // building off the main thread, and applying the stylesheet flag must
         // never first-touch it here. Re-pushed from the readiness observer and
         // after surface arrival once the init coroutine built the client.
         if (rendererGate.rendererOrNull() == null) return
+        // Skip until a style load proved the databases are open: before that the native side drops
+        // the flag without a signal (see [databasesReady]).
+        if (!databasesReady) return
         val dark = resolvedDark.value
-        if (!daylightApplier.needsPush(dark, force)) return
+        if (!daylightApplier.needsPush(dark)) return
         // Publish, do not push: setStyleSheetFlag reloads the style variant on the DB
         // thread, and this runs from the host's surface callback (spec:
         // car-host-fault-isolation — Host callbacks answer promptly). The collector started
         // in init applies it on a background dispatcher.
-        rendererGate.requestDaylightPush(dark, force)
+        rendererGate.requestDaylightPush(dark)
     }
 
     private var surfaceWidth = 0
+
+    /**
+     * True once a style load has succeeded, which is the proof that every map database is open
+     * (`DBInstance::LoadStyle` refuses to load while one is closed, `DBInstance.cpp:35-37`). The
+     * native flag setter is a silent no-op before that (`DBThread::SetStyleFlag` returns false while
+     * the database set is not initialized, `DBThread.cpp:422-424`, and the JNI discards the result),
+     * so a `daylight` push from the warmup window would be lost with no way to retry it by value.
+     * The flag is therefore applied only from this point on — once, not after every later load
+     * (guideline `MapRendering.md` §15 "Startup race"). Written from the settings coroutine's
+     * background dispatcher, read from the host callbacks, hence volatile.
+     */
+    @Volatile
+    private var databasesReady = false
 
     /** Surface-refresh (invalidate) attempts left for this screen start. */
     private var surfaceRefreshAttempts = 0
@@ -439,7 +444,7 @@ class NavigationScreen(
             rendererGate.daylightPush.collect { request ->
                 if (request == null) return@collect
                 val applied = withContext(Dispatchers.Default) {
-                    runCatching { daylightApplier.apply(request.dark, request.force) }
+                    runCatching { daylightApplier.apply(request.dark) }
                         .onFailure { Log.w(TAG, "setStyleSheetFlag failed", it) }
                         .getOrDefault(false)
                 }
@@ -466,16 +471,15 @@ class NavigationScreen(
                     // native DB thread — run off the main thread; deduped).
                     val style = settings.styleSheet
                     scope.launch(Dispatchers.Default) {
-                        val styleChanged = style != pushedForStyleSheet
                         if (!styleApplier.apply(style)) {
                             Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
                         } else {
-                            pushedForStyleSheet = style
-                            // Force the push only when the stylesheet was (re)loaded: that is
-                            // the DB-ready re-push for the warmup race. An unchanged settings
-                            // re-read must not reload the variant nor force a full render
-                            // (spec: car-host-fault-isolation — Bounded periodic render work).
-                            pushDark(force = styleChanged)
+                            // The load succeeded, so every database is open and the day/night flag
+                            // can land: this is the one application the warmup window needs. A
+                            // later load carries the enabled flags itself (spec: map-styles — A
+                            // style switch loads the stylesheet set once).
+                            databasesReady = true
+                            pushDark()
                         }
                     }
                     rendererGate.requestRender()

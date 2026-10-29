@@ -12,10 +12,14 @@ import com.naviveylin.core.AutoClientProvider
 import com.naviveylin.core.AutoEntryPoint
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.AutoLocationProvider
+import com.naviveylin.core.AutoPosition
+import com.naviveylin.core.AutoSettings
+import com.naviveylin.core.AutoSettingsProvider
 import com.naviveylin.core.BasemapReloadNotifier
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.NavigationViewModel
 import dagger.hilt.EntryPoints
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -37,6 +41,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowSystemClock
+import java.time.Duration
 
 /**
  * Tests for [MapScreen]'s host-callback paths (spec: car-host-fault-isolation — Host callbacks
@@ -200,6 +206,125 @@ class MapScreenTest {
         assertTrue(
             "the car screen must leave the preference to the phone, got ${fake.preferSymbolIconsCalls}",
             fake.preferSymbolIconsCalls.isEmpty()
+        )
+
+        destroy(screen)
+    }
+
+    @Test
+    fun aStyleSwitchLoadsTheStylesheetSetOnce() = runTest(mainDispatcherRule.dispatcher) {
+        // A car style switch used to cost two stylesheet loads: the load that switches the style,
+        // then a forced `daylight` push because the app assumed the fresh variant might not carry
+        // the flag. The native load installs the currently enabled flags together with the new
+        // style (`OSMScoutClient.cpp` — `loadStyleSheet` passes `GetStyleFlags()` into the load), so
+        // the re-application is redundant (spec: `map-styles` — A style switch loads the stylesheet
+        // set once; guideline `MapRendering.md` §15).
+        val host = SessionCarSurfaceHost()
+        every { entryPoint.autoSurfaceHost() } returns host
+        val settings = mockk<AutoSettingsProvider>()
+        every { entryPoint.autoSettingsProvider() } returns settings
+        coEvery { settings.load() } returns AutoSettings(styleSheet = "standard")
+        val position = MutableStateFlow<AutoPosition?>(null)
+        every { entryPoint.autoLocationProvider() } returns mockk<AutoLocationProvider>().apply {
+            every { position() } returns position
+        }
+        val fake = client as FakeMapScreenClient
+        val screen = MapScreen(
+            carContext,
+            navigationViewModel,
+            resolvedDark = MutableStateFlow(false),
+            backgroundDispatcher = mainDispatcherRule.dispatcher
+        )
+        val lifecycle = screen.lifecycle as LifecycleRegistry
+        lifecycle.currentState = Lifecycle.State.CREATED
+        lifecycle.currentState = Lifecycle.State.STARTED
+
+        // The startup flag push and the persisted style's load are through before the switch.
+        advanceUntilIdle()
+        val flagPushesBeforeTheSwitch = fake.styleSheetFlags.count { it.first == "daylight" }
+        assertEquals(
+            "the startup applies the day variant exactly once, got ${fake.styleSheetFlags}",
+            1,
+            flagPushesBeforeTheSwitch
+        )
+
+        // The user switches the style on the settings screen; the periodic settings re-read (5 s
+        // throttle) picks it up on the next GPS fix.
+        coEvery { settings.load() } returns AutoSettings(styleSheet = "cycle")
+        ShadowSystemClock.advanceBy(Duration.ofSeconds(6))
+        position.value = AutoPosition(lat = 51.5, lon = 7.4, bearing = 90.0, speedKmH = 50.0)
+        advanceUntilIdle()
+
+        assertEquals(
+            "one load per style — the switch adds no second load",
+            listOf("standard", "cycle"),
+            fake.styleSheetLoads.toList()
+        )
+        assertEquals(
+            "the style load carries the daylight flag — the switch adds no flag application, " +
+                "got ${fake.styleSheetFlags}",
+            flagPushesBeforeTheSwitch,
+            fake.styleSheetFlags.count { it.first == "daylight" }
+        )
+
+        destroy(screen)
+    }
+
+    @Test
+    fun theFirstFlagPushWaitsForTheDatabasesAndLandsOnce() = runTest(mainDispatcherRule.dispatcher) {
+        // A `daylight` push from the warmup window is dropped by the native side without a signal
+        // (`DBThread::SetStyleFlag` returns false while the database set is not initialized and the JNI
+        // discards it), so an earlier car screen re-pushed the flag after every style load it performed —
+        // which made a style switch cost a second load of the whole stylesheet set. The push is deferred
+        // instead: a style load succeeds only once every database is open
+        // (`DBInstance::LoadStyle`), so the flag is applied exactly once, when that proof arrives, and a
+        // later load re-applies nothing (spec: `map-styles` — A style switch loads the stylesheet set
+        // once; guideline `MapRendering.md` §15 "Startup race").
+        val host = SessionCarSurfaceHost()
+        every { entryPoint.autoSurfaceHost() } returns host
+        val settings = mockk<AutoSettingsProvider>()
+        every { entryPoint.autoSettingsProvider() } returns settings
+        coEvery { settings.load() } returns AutoSettings(styleSheet = "standard")
+        val position = MutableStateFlow<AutoPosition?>(null)
+        every { entryPoint.autoLocationProvider() } returns mockk<AutoLocationProvider>().apply {
+            every { position() } returns position
+        }
+        val fake = client as FakeMapScreenClient
+        // The databases are still closed during warmup: the native load fails, which is what the
+        // stylesheet load reports until every database is open.
+        fake.styleSheetLoadResult = false
+        val screen = MapScreen(
+            carContext,
+            navigationViewModel,
+            resolvedDark = MutableStateFlow(false),
+            backgroundDispatcher = mainDispatcherRule.dispatcher
+        )
+        val lifecycle = screen.lifecycle as LifecycleRegistry
+        lifecycle.currentState = Lifecycle.State.CREATED
+        lifecycle.currentState = Lifecycle.State.STARTED
+        advanceUntilIdle()
+
+        assertTrue(
+            "the style load is attempted while the databases are closed, got ${fake.styleSheetLoads}",
+            fake.styleSheetLoads.isNotEmpty()
+        )
+        assertEquals(
+            "no flag is pushed while the native side would drop it silently, got ${fake.styleSheetFlags}",
+            0,
+            fake.styleSheetFlags.count { it.first == "daylight" }
+        )
+
+        // Warmup opened the databases: the next settings re-read loads the style, and that load is the
+        // proof the flag can land.
+        fake.styleSheetLoadResult = true
+        ShadowSystemClock.advanceBy(Duration.ofSeconds(6))
+        position.value = AutoPosition(lat = 51.5, lon = 7.4, bearing = 90.0, speedKmH = 50.0)
+        advanceUntilIdle()
+
+        assertEquals(
+            "the flag lands once the databases are open — and only then, got ${fake.styleSheetFlags}",
+            1,
+            fake.styleSheetFlags.count { it.first == "daylight" && it.second }
         )
 
         destroy(screen)

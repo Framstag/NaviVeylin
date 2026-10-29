@@ -840,21 +840,21 @@ car Surface:
   dedupes the push **by value**; `invalidateStyle()` (blit bypass + full render) re-renders
   so the stale-variant overrun buffer is never blitted. Templates are host-rendered and
   follow the host automatically — only the app-drawn surface needs this.
-- **Startup race (both variants)**: `SetStyleFlag` is a silent no-op until every database is
-  open — `DBThread::SetStyleFlag` returns false while the set is not initialized
-  (`DBThread.cpp:422-424`) and the JNI discards that result, so the app never learns that its
-  push was dropped. The flag MUST therefore be applied once the DB is ready, and each variant
-  has its own proof of readiness: the phone re-pushes on the first rendered frame
-  (`stylePushedToNative` in `MapCanvasViewModel`); on AA a style load is the proof — a load
-  succeeds only once every database is open (`DBInstance::LoadStyle` refuses a closed one,
-  `DBInstance.cpp:35-37`), so `MapScreen`/`NavigationScreen` hold the flag back
-  (`databasesReady`) until a load succeeded and apply it then, once. A push from before that
-  moment is not attempted at all, which is why no re-application follows a later load.
-  Deferring is not the same as re-applying on every pass: forbidding the latter is what change
-  `fix-aaos-host-crash` (design D5) established — a bare `reset()` on each settings re-read
-  pushed a flag, reloaded the variant and forced a full render every few seconds for nothing.
-  `FreeDrivingScreen` applies no style of its own and so has no such proof: it pushes without
-  one, and a warmup-dropped push is not retried there (unchanged by this change; issue #705).
+- **Startup race (both variants)**: a flag push made before any database is open is **not** lost, so no variant
+  needs a retry. `DBThread::SetStyleFlag` stores the value in `stylesheetFlags` whenever the database set is
+  initialized, and `isInitializedInternal()` is an `all_of` over that set — vacuously true while it is empty
+  (`DBThread.cpp:91-95`, `:422-427`) — while a load over an empty set reports success
+  (`DBThread.cpp:455-467`, `:492`). The open path is where the stored flag reaches the maps: each database is
+  pushed only after `Open` succeeded and gets its style config from `makeStyleConfig`, which applies
+  `stylesheetFlags` (`DBThread.cpp:290-323`, `:360-369`), so the first render after warmup already carries the
+  value. The one state that would drop a push — a database in the list that is not open — is not reachable from
+  the app: a list change closes and clears the set before rebuilding it under the same write lock
+  (`DBThread.cpp:183-188`). Consequence for the appliers: the flag is keyed on the value alone on both variants
+  (phone `stylePushedToNative` re-pushes on the first rendered frame, car `CarDaylightApplier` as soon as a
+  renderer exists) and **no** application follows a style load (change `fix-car-style-switch-costs-one-load`).
+  Forbidding an application on every settings re-read is what change `fix-aaos-host-crash` (design D5)
+  established: a bare `reset()` there pushed a flag, reloaded the variant and forced a full render every few
+  seconds for nothing.
 - **Periodic work bound (Android Auto)**: the same change bounds the follow-mode
   full-render request — no request while a full render is in flight, and the interval is
   `max(200 ms, the last measured render duration)`. On the automotive AVD a full render
@@ -878,9 +878,7 @@ car Surface:
   and `DBThread::LoadStyleInternal` stores them for the new style and its basemap
   (`.../libosmscout-client/src/osmscoutclient/DBThread.cpp:455-460`) and installs them before the parse
   (`DBThread.cpp:366-369`). That is the native check `TODO.md` §120 asked for, which is why the car's
-  re-application after a switch is gone (change `fix-car-style-switch-costs-one-load`); the one
-  application it still makes is the first one after the DB-open proof (the `daylight` bullet above), not a
-  repeat after a load. The dedupe is
+  re-application after a switch is gone (change `fix-car-style-switch-costs-one-load`). The dedupe is
   app-side only: no native accessor exposes the installed pair, and the app is its only writer
   (`getActiveStyleSheet()` / `wasLastStyleLoadSuccessful()` report the outcome).
 

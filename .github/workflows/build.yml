@@ -145,6 +145,11 @@ jobs:
       # self-test runs here because a check nothing runs is the same silence one level down. The mutation
       # set is listed for the same reason as the others: a set that no longer parses fails this step
       # instead of rotting.
+      # A row that routes a lettered sub-section of a document states what those sections cost
+      # (`documentation-ownership`, "The route names the sub-section", issue #197): the check reports a row
+      # that names sub-sections and prices nothing, and its `--sizes` report prints every section of every
+      # routed document with the byte count the requirement's ruler gives it, so a restated figure can be
+      # compared with the measurement instead of with a memory.
       # Text files only: no build, no device, seconds of run time.
       - name: Check documentation routes
         run: |

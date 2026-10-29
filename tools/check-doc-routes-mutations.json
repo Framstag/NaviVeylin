@@ -1,6 +1,6 @@
 {
-  "comment": "The revert-check of `documentation-ownership`'s skill-path requirement (issue #13): one mutation, the resolution of a named skill path removed, so the documentation may again route a reader to a skill that does not exist. Run it with `bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the documentation routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. The case command runs the whole self-test because three of its cases assert the same guard from three sides (a path that no longer exists, a directory left without its `SKILL.md`, and a name that only prefixes an existing skill); the search is a single line and unique in its file, because the runner's replacement is literal and line-based.",
-  "case-cmd": "bash tools/check-doc-routes-selftest.sh",
+  "comment": "The revert-check of `documentation-ownership`'s route requirements (issues #13, #197): one mutation per invariant — the resolution of a named skill path, the cost a row that routes a lettered sub-section must state, and the ruler a section's cost is counted with. Run it with `bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the documentation routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite; the skill-path record names the case whose assertion it lands on, and that case asserts the same guard from three sides in its siblings (a path that no longer exists, a directory left without its `SKILL.md`, and a name that only prefixes an existing skill). The search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards.",
+  "case-cmd": "bash tools/check-doc-routes-selftest.sh --case {case}",
   "mutations": [
     {
       "label": "skill-path",
@@ -9,6 +9,22 @@
       "search": "    if ! printf '%s\\n' $skills | grep -qx -- \"$name\"; then",
       "replace": "    if false; then",
       "why": "a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it"
+    },
+    {
+      "label": "route-states-its-cost",
+      "case": "routed-read#route",
+      "file": "tools/check-doc-routes.sh",
+      "search": "  printf '%s' \"$row\" | grep -qE '§[0-9]+[a-z]' || continue",
+      "replace": "  continue",
+      "why": "a row that routes a lettered sub-section states what those sections cost, so a row naming sub-sections and pricing nothing is reported instead of passing as routed"
+    },
+    {
+      "label": "section-cost-ruler",
+      "case": "routed-read#bound",
+      "file": "tools/check-doc-routes.sh",
+      "search": "        bytes = length($0) + 1; lines = 1; have = 1; next",
+      "replace": "        bytes = 0; lines = 1; have = 1; next",
+      "why": "a section's cost is the byte count of its lines from the `## ` heading through the line before the next one, so a printed cost that is not that count fails the case"
     }
   ]
 }

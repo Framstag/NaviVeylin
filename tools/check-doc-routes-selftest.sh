@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Self-test for tools/check-doc-routes.sh: every case runs against a throwaway fixture under a temp
-# directory, so no project document is read and nothing in the repository is written.
+# directory, so the project's own documents are not read and nothing in the repository is written — except the
+# two `routed-read#*` cases, which read this repository's `AGENTS.md` and `guidelines/*.md` because their claim
+# is about this tree's route and not about a fixture's, and which write nothing either.
 #
 # Cases: a map that resolves (including a duplicate section number resolved by its heading text), a
 # dangling number, a bare number that is ambiguous, a heading text that matches nothing, a document the
@@ -9,14 +11,18 @@
 # but whose section does not exist, the same three reference forms written in a guideline *body* rather than
 # in the table — a bare duplicated number, a heading text that resolves it, and a section the document does
 # not have — a reference inside a fenced code block (an example) and one inside a change artifact (history),
-# and four skill-path cases: a named skill that exists, one that no longer exists (renamed or deleted), one
-# whose directory carries no `SKILL.md`, and one whose name is only a prefix of a skill that does exist.
+# four skill-path cases: a named skill that exists, one that no longer exists (renamed or deleted), one
+# whose directory carries no `SKILL.md`, and one whose name is only a prefix of a skill that does exist — and
+# two cases over the project's own tree: `routed-read#route` (a row that routes a lettered sub-section of *any*
+# document states its cost, so a row naming sub-sections and pricing nothing fails) and `routed-read#bound`
+# (the cost of every section of every routed document, printed with the requirement's ruler and the routed
+# pair marked, so the number a row restates is the number the measurement takes).
 #
 # The check derives its documents from the fixture's own `guidelines/` directory, so a fixture carries the
 # four base documents plus whichever extra one a case adds — and its table must name every document present.
 #
-# Every case carries an id (`routes#<name>`), so a task item or a mutation set can quote one instead of a
-# sentence; `--case <id>` runs one of them.
+# Every case carries an id (`routes#<name>`, `routed-read#<name>`), so a task item or a mutation set can quote
+# one instead of a sentence; `--case <id>` runs one of them.
 #
 # Usage: check-doc-routes-selftest.sh [--case <id>]
 set -uo pipefail
@@ -130,6 +136,7 @@ expect_all() { # $1 case id, $2 expected exit, $3 fixture dir, $4 description, $
 }
 
 agents_before=$(md5sum "$root/AGENTS.md" | awk '{print $1}')
+guidelines_before=$(cat "$root"/guidelines/*.md | md5sum | awk '{print $1}')
 
 for d in good dangling ambiguous mismatch missing noregion extra-unrouted extra-routed extra-dangling \
          skill-ok skill-dangling skill-nofile skill-prefix \
@@ -233,14 +240,171 @@ done
 write_agents "$tmp/artifacts" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
 expect routes#aReferenceInAChangeArtifactIsNotChecked 0 "$tmp/artifacts" "all 5 section references resolve" "a reference in a change artifact is not checked"
 
+# ── this project's own tree ────────────────────────────────────────────────────────────────────────────────
+# The two cases `documentation-ownership` names for the cost of a routed read — "A section carrying more than one
+# question is split" (`routed-read#bound`) and "The route names the sub-section" (`routed-read#route`). Their
+# claim is about every routed section of this repository, so they read its `AGENTS.md` and `guidelines/*.md`
+# instead of a fixture, and they write nothing.
+
+# The routed pairs the table makes, derived here independently of the check: a `Doc.md` mention in backticks names
+# the document, and every `§<number>` after it on the same row is one of its sections.
+table_pairs() { # $1 = the Documentation Map region
+  awk '
+    {
+      n = split($0, tok, "`"); doc = ""
+      for (i = 1; i <= n; i++) {
+        t = tok[i]
+        if (t ~ /^[A-Za-z0-9_-]+\.md$/) { doc = t; sub(/\.md$/, "", doc); continue }
+        while (match(t, /§[0-9]+[a-z]?/)) {
+          if (doc != "") { ref = substr(t, RSTART, RLENGTH); sub(/^§/, "", ref); print doc "\t" ref }
+          t = substr(t, RSTART + RLENGTH)
+        }
+      }
+    }' "$1" | sort -u
+}
+
+# Every section of a document as `document<TAB>number<TAB>first line<TAB>last line`: from its `## ` heading
+# through the line before the next one, a heading inside a fenced block being an example.
+section_spans() { # $1 = document path, $2 = document name
+  LC_ALL=C awk -v name="$2" '
+    /^```/ { fence = !fence }
+    !fence && /^## / {
+      if (have) print name "\t" num "\t" first "\t" NR - 1
+      h = substr($0, 4); num = ""
+      if (h ~ /^[0-9]+[a-z]?\./) { p = index(h, "."); num = substr(h, 1, p - 1) }
+      first = NR; have = 1; next
+    }
+    END { if (have) print name "\t" num "\t" first "\t" NR }' "$1"
+}
+
+tree_region="$tmp/tree-region"
+awk '/^## Documentation Map$/{f=1;next} f && /^## /{exit} f{print}' "$root/AGENTS.md" > "$tree_region"
+: > "$tmp/tree-spans.txt"
+for f in "$root"/guidelines/*.md; do
+  [ -f "$f" ] || continue
+  section_spans "$f" "$(basename "$f" .md)" >> "$tmp/tree-spans.txt"
+done
+table_pairs "$tree_region" > "$tmp/tree-pairs.txt"
+
+echo_case() { # $1 id, $2 body-function, $3 description — runs one case under the filter
+  [ -z "$case_filter" ] || [ "$case_filter" = "$1" ] || return 0
+  if "$2"; then
+    echo "PASS  $1 — $3"
+    pass=$((pass + 1))
+  else
+    echo "FAIL  $1 — $3"
+    printf '        %s\n' "${CASE_WHY:-no reason recorded}"
+    failures=$((failures + 1))
+  fi
+}
+
+case_routed_read_bound() {
+  local sizes_out rc reported first_bad doc first last f
+  sizes_out=$("$check" --root "$root" --sizes 2>&1); rc=$?
+  printf '%s\n' "$sizes_out" | grep '^check-doc-routes: section-cost ' \
+    | sed 's/^check-doc-routes: section-cost //' > "$tmp/tree-costs.txt"
+  if [ ! -s "$tmp/tree-costs.txt" ]; then
+    CASE_WHY="the size report is empty — the check exited $rc: $(printf '%s' "$sizes_out" | head -3)"
+    return 1
+  fi
+  # the report is the tree's: one cost line per section of every document, and the ruler's own count for each
+  reported=$(wc -l < "$tmp/tree-costs.txt" | tr -d ' ')
+  if [ "$reported" != "$(wc -l < "$tmp/tree-spans.txt" | tr -d ' ')" ]; then
+    CASE_WHY="the report carries $reported section(s), the documents carry $(wc -l < "$tmp/tree-spans.txt" | tr -d ' ')"
+    return 1
+  fi
+  # every reported cost is the ruler's own count, compared per document as a list so a document that numbers
+  # two headings alike (`MapRendering.md` carries two `## 14.`) is compared as the two sections it has, and an
+  # unnumbered heading (`## Known Pitfalls`) keeps its bytes in the list although no pair can route it
+  awk '{ d = $1; sub(/\.md$/, "", d); b = $3; s = $7; n = $2
+         sub(/^§/, "", n)
+         if (n == $2) next
+         print d "\t" n "\t" b "\t" s }' "$tmp/tree-costs.txt" > "$tmp/tree-costs.tsv"
+  local doc first last f first_bad=""
+  for f in "$root"/guidelines/*.md; do
+    [ -f "$f" ] || continue
+    doc=$(basename "$f" .md)
+    : > "$tmp/expected-bytes.txt"
+    while IFS=$'\t' read -r first last; do
+      sed -n "${first},${last}p" "$f" | LC_ALL=C wc -c | tr -d ' ' >> "$tmp/expected-bytes.txt"
+    done < <(awk -F'\t' -v d="$doc" '$1 == d { print $3 "\t" $4 }' "$tmp/tree-spans.txt")
+    awk -v d="$doc.md" '$1 == d { print $3 }' "$tmp/tree-costs.txt" | sort -n > "$tmp/reported-bytes.txt"
+    if [ -z "$first_bad" ] && \
+       [ "$(sort -n "$tmp/expected-bytes.txt" | paste -sd' ' -)" != "$(paste -sd' ' - < "$tmp/reported-bytes.txt")" ]; then
+      first_bad="$doc.md — reported [$(paste -sd' ' - < "$tmp/reported-bytes.txt")] against the ruler's [$(sort -n "$tmp/expected-bytes.txt" | paste -sd' ' -)]"
+    fi
+  done
+  if [ -n "$first_bad" ]; then
+    CASE_WHY="a printed cost is not the requirement's ruler count: $first_bad"
+    return 1
+  fi
+  # and it marks exactly the pairs the table routes
+  awk -F'\t' '$4 == "routed" { print $1 "\t" $2 }' "$tmp/tree-costs.tsv" | sort -u > "$tmp/tree-routed.txt"
+  if [ -n "$(comm -23 "$tmp/tree-pairs.txt" "$tmp/tree-routed.txt")" ]; then
+    CASE_WHY="the table routes a pair the report does not mark as routed: $(comm -23 "$tmp/tree-pairs.txt" "$tmp/tree-routed.txt" | head -3 | paste -sd' ' -)"
+    return 1
+  fi
+  if [ -n "$(comm -13 "$tmp/tree-pairs.txt" "$tmp/tree-routed.txt")" ]; then
+    CASE_WHY="the report marks a pair as routed that the table does not name: $(comm -13 "$tmp/tree-pairs.txt" "$tmp/tree-routed.txt" | head -3 | paste -sd' ' -)"
+    return 1
+  fi
+  ROUTED_READ_NOTE="$reported section(s) printed, $(wc -l < "$tmp/tree-routed.txt" | tr -d ' ') routed pair(s), each equal to the ruler's own sed count"
+  echo "        $ROUTED_READ_NOTE" >&2
+  return 0
+}
+
+case_routed_read_route() {
+  local out rc d fit fit_rc
+  out=$("$check" --root "$root" 2>&1); rc=$?
+  if [ "$rc" != 0 ]; then
+    CASE_WHY="the project's own table does not pass the clause: $out"
+    return 1
+  fi
+  # the claim is per row and per document, so a lettered sub-section of a document that is not `Build.md` is
+  # priced as well — and a row that names one and prices nothing is the failure the case is for
+  d="$tmp/route-costless"; mk_fixture "$d"
+  cat > "$d/guidelines/UI.md" <<'FIXTURE'
+# UI Specification
+
+## 1. Cross-variant UI parity (general rule)
+
+## 1a. Parity, measured
+
+A sub-section a split created.
+FIXTURE
+  write_agents "$d" '| phone UI | `UI.md` §1a "Parity, measured" |'
+  fit=$("$check" --root "$d" 2>&1); fit_rc=$?
+  if [ "$fit_rc" != 1 ] || ! printf '%s' "$fit" | grep -qF 'states no cost'; then
+    CASE_WHY="a fixture row naming a lettered sub-section and pricing nothing was not reported: exit $fit_rc: $fit"
+    return 1
+  fi
+  write_agents "$d" '| phone UI | `UI.md` §1a "Parity, measured" — 1.2 kB |'
+  fit=$("$check" --root "$d" 2>&1); fit_rc=$?
+  if [ "$fit_rc" != 0 ]; then
+    CASE_WHY="a fixture row naming a lettered sub-section and pricing it did not pass: exit $fit_rc: $fit"
+    return 1
+  fi
+  return 0
+}
+
+echo_case routed-read#bound case_routed_read_bound \
+  "every section of every routed document is printed with its cost, each equal to the requirement's ruler, and the pairs the table routes are the pairs marked routed"
+echo_case routed-read#route case_routed_read_route \
+  "a row that routes a lettered sub-section of any document states its cost, here and over the project's own table"
+
+# The two cases above read the tree, so "the repository's documents are untouched" is asserted after them too: a
+# case that measured a document by editing it would pass and leave the tree changed.
 agents_after=$(md5sum "$root/AGENTS.md" | awk '{print $1}')
+
+guidelines_after=$(cat "$root"/guidelines/*.md | md5sum | awk '{print $1}')
+
 if [ -n "$case_filter" ]; then
   : # the tree-untouched check is not one of the selectable cases
-elif [ "$agents_before" = "$agents_after" ]; then
-  echo "PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md is untouched by every case"
+elif [ "$agents_before" = "$agents_after" ] && [ "$guidelines_before" = "$guidelines_after" ]; then
+  echo "PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case"
   pass=$((pass + 1))
 else
-  echo "FAIL  routes#theRepositorysAgentsFileIsUntouched: AGENTS.md changed: $agents_before -> $agents_after"
+  echo "FAIL  routes#theRepositorysAgentsFileIsUntouched: a document a case reads changed (AGENTS.md $agents_before -> $agents_after, guidelines ${guidelines_before:-?} -> ${guidelines_after:-?})"
   failures=$((failures + 1))
 fi
 
@@ -249,5 +413,9 @@ if [ -n "$case_filter" ] && [ "$pass" = 0 ] && [ "$failures" = 0 ]; then
   exit 2
 fi
 
-echo "check-doc-routes-selftest: $pass passed, $failures failed"
-[ "$failures" = 0 ] || exit 1
+if [ "$failures" -ne 0 ]; then
+  echo "check-doc-routes-selftest: $failures of $((pass + failures)) cases failed"
+  exit 1
+fi
+echo "check-doc-routes-selftest: all $pass cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)"
+exit 0

@@ -12,7 +12,10 @@ This file states **facts** — what exists, where it lives, and how to run it. R
 that owns them, next to the measurement that proved them. **Read the section that owns the topic, never the
 whole document** (`openspec/config.yaml` states what a whole-document read costs). Sections are named here as
 `§<number> "<heading text>"`; the complete section list of any file is `grep -n '^## ' guidelines/<file>.md`,
-which also lists the sections this table does not route.
+which also lists the sections this table does not route. A row that names a lettered sub-section (`§15a`, a
+section a split broke up) states what those sections cost — the rule is `openspec/specs/documentation-ownership/spec.md`,
+"The route names the sub-section" — and `tools/check-doc-routes.sh` reports a row that names sub-sections and
+prices nothing.
 
 | what you are changing | read |
 |---|---|
@@ -20,14 +23,14 @@ which also lists the sections this table does not route.
 | a new screen, sheet or composable structure, or a new dependency | `Design.md` §2 — its "Adding to the stack" subsection holds the recipes for a dependency, a screen, a full-screen sheet, a details sheet and a native function |
 | how the map is drawn — pipeline, bitmaps, throttling, epochs, front buffer, overrun | `MapRendering.md` §1, §2, §4, §5, §12, §13 |
 | follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapRendering.md` §3, §6, §7, §8, §9, §10, §11 |
-| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapRendering.md` §15, §15a, §16, §16a, §16b, §17 |
+| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapRendering.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.1 kB, §16a 2.4 kB, §16b 0.8 kB (measured 2026-10-29) |
 | label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapRendering.md` §20 "Label wrapping" |
-| phone UI — modes, overlays, layering, controls, dark mode, text | `UI.md` §7, §7a, §8, §8a, §9, §10, §11 |
-| car screens — templates, wait notices, car search and details | `UI.md` §2, §3, §3b, §3c, §4, §6b |
+| phone UI — modes, overlays, layering, controls, dark mode, text | `UI.md` §7, §7a, §8, §8a, §9, §10, §11 — sub-sections §7a 13.1 kB, §8a 2.5 kB (measured 2026-10-29) |
+| car screens — templates, wait notices, car search and details | `UI.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 1.8 kB, §3c 2.8 kB, §6b 4.9 kB (measured 2026-10-29) |
 | parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6 |
-| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `Design.md` §8 "Android Auto & cross-variant", `MapRendering.md` §14 "Android Auto renderer", `UI.md` §3a; specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
-| a surface that must live while a phone and a car session are both active | `MapRendering.md` §18 "The phone canvas while a car session is active", `UI.md` §10a "Phone surface while a car session is active" |
-| search, favourites, settings, persistence | `Design.md` §9 "Data, persistence & search", `UI.md` §6a "Phone search surface" |
+| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `Design.md` §8 "Android Auto & cross-variant", `MapRendering.md` §14 "Android Auto renderer", `UI.md` §3a 4.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
+| a surface that must live while a phone and a car session are both active | `MapRendering.md` §18 "The phone canvas while a car session is active", `UI.md` §10a "Phone surface while a car session is active" 2.2 kB (measured 2026-10-29) |
+| search, favourites, settings, persistence | `Design.md` §9 "Data, persistence & search", `UI.md` §6a "Phone search surface" 6.0 kB (measured 2026-10-29) |
 | logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `Build.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
 | route data and the numbers derived from it | `MapRendering.md` §19 |
 | build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §2 and §4 are indexes of their sub-sections; read the one that owns the question: §2a "Agent iteration protocol" (the iteration loop), §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" (a `uses:` pin and the check that gates one), §3 "Commands reference", §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover", §4d "Attributing a red run", §4f "Artifacts, evidence rules and native verification" — 1.7–5.3 kB per section (bytes/1000, one decimal), against 23.2 kB and 23.4 kB for §2 and §4 before the split (measured 2026-10-22); §4c and §4e are reached through the §4 index — |

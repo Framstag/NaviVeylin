@@ -14,8 +14,8 @@ breaks rather than by a rule the row restates.
 
 #### Scenario: A drifted item is one condition, per item and disagreement
 
-- **WHEN** the scheduled re-read reports an item whose band label and stored marker disagree, an item whose
-  settled record and state label disagree, and another item whose halves agree
+- **WHEN** the scheduled re-read reports an item whose band label and stored marker disagree, and another item
+  whose two halves agree
 - **THEN** the row reports one violation per drifted item, whose fingerprint is that item and the disagreement it
   carries, and the agreeing item is no condition at all
 - **Case**: `sensors#metadataDriftRow`

@@ -42,8 +42,9 @@ One predicate and one invariant:
   that a person closes as not-planned carries the same settled family, and the pre-screen's own settled test is
   membership in `settledStatuses`; a stricter rule would report items nothing reads as work.
 - **Anchor the record to a line start** (the shape `issues_prio_marker_line` uses after issue #293). Rejected on
-  measurement: on the live tracker the marker matches exactly the 21 items the migration created as tombstones
-  (`tombstones=21`, the command in `proposal.md`) and no other body, so an anchor buys nothing today; the reading
+  measurement: on the live tracker (2026-10-28) the marker occurs in 21 bodies and no others — the 20 tombstones
+  that carry a settled state and #148, the displaced one this change's check reports — so an anchor buys nothing
+  today; the reading
   is also the one `resolve-stale.sh` already makes, and two different readings of the same marker is the defect
   this change is about.
 - **Leave `backlog-sensors` alone.** The row's claims are literal strings ("the priority pair has drifted apart")

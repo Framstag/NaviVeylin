@@ -1,22 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/loop/gate.sh (18 suites, one run)" tests="222" failures="0" errors="0" time="166" timestamp="2026-10-28T20:26:00Z">
-  <testcase name="tools/issue-tooling-selftest.sh" classname="gate" time="69"/>
+<testsuite name="tools/loop/gate.sh (21 suites, one run)" tests="231" failures="0" errors="0" time="294" timestamp="2026-10-29T19:11:39Z">
+  <testcase name="tools/issue-tooling-selftest.sh" classname="gate" time="118"/>
   <testcase name="tools/issues/check-metadata.sh" classname="gate" time="0"/>
-  <testcase name="tools/issues/metadata-mutations.sh --list" classname="gate" time="1"/>
-  <testcase name="tools/sensor-selftest.sh" classname="gate" time="67"/>
+  <testcase name="tools/issues/metadata-mutations.sh --list" classname="gate" time="2"/>
+  <testcase name="tools/sensor-selftest.sh" classname="gate" time="118"/>
   <testcase name="tools/sensor-mutations.sh --list" classname="gate" time="0"/>
+  <testcase name="bash tools/gen-feature-list.sh --check-classification" classname="gate" time="9"/>
   <testcase name="tools/check-doc-routes.sh" classname="gate" time="0"/>
-  <testcase name="tools/check-doc-routes-selftest.sh" classname="gate" time="2"/>
+  <testcase name="tools/check-doc-routes-selftest.sh" classname="gate" time="3"/>
   <testcase name="tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list" classname="gate" time="0"/>
-  <testcase name="tools/check-todo-references.sh" classname="gate" time="1"/>
+  <testcase name="tools/check-todo-references.sh" classname="gate" time="2"/>
+  <testcase name="tools/check-openspec-hygiene.sh" classname="gate" time="0"/>
+  <testcase name="tools/check-openspec-hygiene-selftest.sh" classname="gate" time="1"/>
   <testcase name="tools/check-portability.sh" classname="gate" time="1"/>
-  <testcase name="tools/check-portability-selftest.sh" classname="gate" time="24"/>
-  <testcase name="tools/mutate-selftest.sh" classname="gate" time="0"/>
+  <testcase name="tools/check-portability-selftest.sh" classname="gate" time="38"/>
+  <testcase name="tools/mutate-selftest.sh" classname="gate" time="1"/>
   <testcase name="tools/mutate.sh --mutations tools/portability-mutations.json --list" classname="gate" time="0"/>
-  <testcase name="tools/mutate.sh --mutations tools/status-mutations.json --list" classname="gate" time="1"/>
+  <testcase name="tools/mutate.sh --mutations tools/status-mutations.json --list" classname="gate" time="0"/>
   <testcase name="tools/mutate.sh --mutations tools/create-mutations.json --list" classname="gate" time="0"/>
-  <testcase name="tools/mutate.sh --mutations tools/close-mutations.json --list" classname="gate" time="0"/>
+  <testcase name="tools/mutate.sh --mutations tools/close-mutations.json --list" classname="gate" time="1"/>
   <testcase name="tools/mutate.sh --mutations tools/duplicates-mutations.json --list" classname="gate" time="0"/>
   <testcase name="tools/mutate.sh --mutations tools/decision-question-mutations.json --list" classname="gate" time="0"/>
-  <system-out>The one gate run of fix-nothing-compares-a-tombstone-s-own-retir, derived from the per-suite tallies under evidence/gate-tallies/: 126 cases from tools/issue-tooling-selftest.sh, 67 from tools/sensor-selftest.sh and 29 from tools/check-portability-selftest.sh carry cases, every other step lists what it holds and runs no case. tests is their sum, failures and errors are the gate's own LOOP-GATE line, and the wall clock is the LOOP-MEASURE-GATE seconds= of evidence/measure.txt. No compiled path changed, so no build step was owed.</system-out>
+  <system-out>The one gate run of fix-nothing-compares-a-tombstone-s-own-retir on the tree that carries round 1's corrections, derived from the per-suite tallies under evidence/gate-tallies/: 129 cases from tools/issue-tooling-selftest.sh, 67 from tools/sensor-selftest.sh, 29 from tools/check-portability-selftest.sh and 6 from tools/check-openspec-hygiene-selftest.sh carry cases, every other step lists what it holds and runs no case. tests is their sum, failures and errors are the gate's own LOOP-GATE line, and the wall clock is both the LOOP-GATE line's own seconds and the LOOP-MEASURE-GATE seconds= of evidence/measure.txt. No compiled path changed, so no build step was owed. The timestamp is the last tally's mtime, because a tally carries no timestamp of its own.</system-out>
 </testsuite>

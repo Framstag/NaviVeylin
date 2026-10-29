@@ -31,7 +31,9 @@ tombstones=21 settled=20 displaced=148/OPEN
 
 21 items carry the migration's record; 20 carry a settled state; **#148 (§85, OPEN) carries `status/open`** — the
 residue of the reversal #681 fixed, readable as work by the pre-screen until a person looks. The two tombstones
-the item names as never queued (#140, #143) are among the 20.
+the item names as never queued (#140, #143) are among the 20: the same query, asked for the settled numbers,
+printed `settled_numbers=138,139,140,141,142,143,…,158` on 2026-10-29 (the output is in
+`evidence/tracker-read.txt`).
 
 **The red test on HEAD** — `check#aDisplacedSettledStateIsReported`
 (`tools/issues/check-metadata-selftest.sh`, registered in `tools/issue-tooling-cases.sh` as

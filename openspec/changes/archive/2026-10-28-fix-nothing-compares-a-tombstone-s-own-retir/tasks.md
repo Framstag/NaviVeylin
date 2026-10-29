@@ -51,7 +51,11 @@
 - [x] 6.1 Copy every cited XML into `<change>/evidence/` and into the item's evidence directory; write
       `evidence/measure.txt` from the one measurement of this change's own delta.
 - [x] 6.2 `bash tools/loop/evidence-check.sh openspec/changes/fix-nothing-compares-a-tombstone-s-own-retir --root .`
-      reports no dangling pointer.
+      reports no dangling pointer; re-run on the archived directory, its transcript is
+      `evidence/evidence-check-archived.log` (`evidence-check: PASS`).
 - [x] 6.3 `openspec archive` the change; confirm the directory exists under `openspec/changes/archive/` and both
       deltas merged into their capability specs (`issue-backlog`, `backlog-sensors`).
-- [x] 6.4 Every scenario in both deltas names one case, and each of those cases is green in the recorded run.
+- [x] 6.4 Every scenario in both deltas names one case, and each of those cases is green in the recorded run
+      (`LOOP-MEASURE-CHANGE … scenarios=5 cases=5 unnamed=0`); round 1 found the `backlog-sensors` scenario widened
+      past the input its case supplies, and that scenario was narrowed back to the pair —
+      `evidence/review-round-1-corrections.md`.

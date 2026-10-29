@@ -318,7 +318,13 @@ tree — its process group, or anything descended from it, however it left that 
 process whose working directory is inside the project and outside the worktree while the tree it came from works in
 the worktree. The child itself and the shells the run starts it through are excluded, because
 `run_child` starts them in the project and they stand there for the whole item: measured 2026-10-24 (issue #288),
-marking that chain turned a peer's write into `blocked` for an item whose work was never touched.
+marking that chain turned a peer's write into `blocked` for an item whose work was never touched. What the narrow
+rule therefore cannot place is recorded, and the item keeps the outcome its work earned: a shell **below** the
+child whose working directory never left the project — the worker's own shell, since `run_child` starts the child
+there — and a process that joined the child's group whose parent chain has since died, the ancestor walk ending at
+the dead parent (#704). The reading asks `pgrep` for that tree, the run's only procps dependency since
+`pid_in_child_tree`'s `ps` call went with the wide rule, and the **suite** is what refuses a host without it
+(#703): a run started by hand on such a host records every difference and places none, and says nothing.
 The child's own tree is read **before** the list of everyone else standing in the project, because that
 list is a `readlink` for every process on the host — 1.0 s for 731 of them when #288 measured it — and the writer
 the mark is about is gone by the time such a reading ends. Two sweeps were what the placement was built on, and
@@ -908,12 +914,15 @@ something, a scheduled run that stopped happening — becomes a check's verdict 
 (`stale-citation-resolution`, D6). The repair itself is a pipeline step, not a row: a row files,
 comments on or closes *the issue it owns*, and a citation repair edits other items.
 
-One row re-reads the tracker's own **priority invariant**, because nothing scheduled did: `metadata-invariant`
+One row re-reads the tracker's own **per-item invariants**, because nothing scheduled did: `metadata-invariant`
 runs `tools/issues/check-metadata.sh --live --json` — the command that owns the per-item half, so the row and a
 person's hand run cannot disagree about what a drift is — and files one item per drifted item and per
 disagreement, under that item's number and the rule it breaks. An item whose band label and stored marker
 drifted apart therefore reaches the tracker as a verdict within a day, whoever wrote the edit (the pass,
-a skill, a hand edit on the web UI), instead of waiting for somebody to remember the live mode. It reports and
+a skill, a hand edit on the web UI), instead of waiting for somebody to remember the live mode; and so does an
+item whose body keeps a settled state of its own (`roles.settledRecordMarker`) while its `status/*` label is not
+one of `roles.settledStatuses` — the drift a citation park left behind, which made a tombstone read as work
+(#683). It reports and
 repairs nothing: which half of a drifted pair is the wrong one is a judgement, so dropping a stale label or
 rewriting both halves together stays a person's edit. The row is the answer the owner recorded on #292
 (2026-10-25, option 1 of three); the prevention it was weighed against — the refusal of a band label in

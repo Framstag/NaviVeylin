@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-selftest.sh" tests="67" failures="0" errors="0" time="118">
+  <system-out>PASS sensors#loopSpendRow PASS sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing sensor-selftest: all 67 cases passed (JDK 27, offline, no token)</system-out>
+</testsuite>

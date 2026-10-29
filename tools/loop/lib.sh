@@ -206,6 +206,33 @@ loop_conf_value() { # print one configuration key's value by name
 # reachable through the environment alone, which a ported project can neither commit nor audit).
 loop_base_ref() { printf '%s\n' "${LOOP_BASE_REF:-main}"; }
 
+# The ceiling of whatever started this invocation, in seconds (issue #692): `LOOP_CALL_CEILING_SECONDS` in the
+# configuration, which a caller sets at the call site. Every bound this project applies is a recorded value — 900 s
+# for a case, 1 800 s for a gate step, 2 700 s for a child — and the harness a child runs under ends one tool call at
+# a ceiling of its own that no project file can see (measured twice on 2026-10-28, `900000ms`, both mid-suite with the
+# child's work uncommitted). A bound larger than that ceiling is not a bound: the caller ends the call first and the
+# invocation never writes the line that says what it was doing. One reader of the key, for both invocations that
+# apply a bound, because a second copy of the rule is a second rule (D16).
+#
+# Empty, non-numeric or `0` prints nothing, which is no ceiling named: every bound keeps its recorded value and the
+# invocation starts no watcher — the shape this project ran in before the key existed. The key's own record, and why
+# the value is the last second an invocation may run rather than the caller's hard kill, is in `loop.conf`.
+loop_ceiling() { # → the caller's ceiling in whole seconds, empty when none was named
+  local c="${LOOP_CALL_CEILING_SECONDS:-}"
+  case "$c" in ''|*[!0-9]*|0) return 0 ;; esac
+  printf '%s' "$c"
+}
+
+loop_bound_under_ceiling() { # <bound> → that bound, or the ceiling when the ceiling is the smaller
+  local bound="$1" ceiling
+  ceiling=$(loop_ceiling)
+  if [ -n "$ceiling" ] && [ "$ceiling" -lt "$bound" ]; then
+    printf '%s' "$ceiling"
+  else
+    printf '%s' "$bound"
+  fi
+}
+
 # ── the build output a kept worktree does not need ────────────────────────────────────────────────
 # A worktree that has been built carries a full module build tree, which the next run's build regenerates
 # and no item ever reads: measured 2026-10-20 (issue #210), the kept worktree was 3.2 GB, of which one

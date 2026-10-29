@@ -218,6 +218,15 @@ Where both are available they SHALL agree, since one route has one length of roa
   start-to-target estimate
 - **AND** a client that falls back to that total SHALL obtain a route length
 
+#### Scenario: A snapped start does not split one route into two lengths
+
+- **WHEN** a route whose start was snapped from a requested position is read
+- **THEN** the published total, the sum of the per-step distances and the drawn polyline's length SHALL
+  all include the approach from the requested start to the snapped node
+- **AND** the total and the sum of the per-step distances SHALL still agree within rounding
+- **AND** the total SHALL NOT be published without the approach while the drawn polyline carries it
+  (case: `RouteStartPositionDeviceTest.snappedStartKeepsOneRouteLength`)
+
 ### Requirement: The start/target estimate is not exposed as a route length
 
 The router's air-line estimate MAY remain available where the router itself needs it — the cost limit and
@@ -269,7 +278,6 @@ publish no per-step values, so a client never reads a value that belongs to no m
 
 - **WHEN** the route's first step is the start step
 - **THEN** its distance SHALL be zero and it SHALL carry no duration
-
 
 ### Requirement: A next instruction's time is the remaining time of its leg
 
@@ -670,3 +678,49 @@ no guidance text.
 - **THEN** a later publication SHALL begin with the next manoeuvre
 - **AND** the passed manoeuvre SHALL no longer be published as the next step
 - **Case**: `app: NavigationEngineStepIndexTest` "the published step advances with the position"
+
+### Requirement: The published route starts at the requested start position
+
+A calculated route SHALL publish the caller's requested start as its first polyline point and as its
+first instruction's position, not the node the router snapped that start to. The routed geometry from the
+snapped node onward SHALL be unchanged.
+
+#### Scenario: An off-network start is published as the requested position
+
+- **WHEN** a route is calculated from a start position that lies off the routable network, so the router
+  snaps it to a node
+- **THEN** the published polyline's first point SHALL be the requested start position
+- **AND** the position published for the first instruction line SHALL be that same requested start
+  position
+- **AND** the second and later polyline points SHALL be the routed geometry, unchanged
+  (case: `RouteStartPositionDeviceTest.publishedStartIsTheRequestedStartPosition`)
+
+#### Scenario: A start on the network is published unchanged
+
+- **WHEN** a route is calculated from a start position that lies on the routable network within the snap
+  tolerance
+- **THEN** the published polyline's first point SHALL be the routed first vertex
+- **AND** the polyline SHALL NOT carry an additional first point and SHALL NOT carry a zero-length
+  leading segment
+  (case: `RouteStartPositionDeviceTest.routeWithAnOnNetworkStartIsPublishedUnchanged`)
+
+#### Scenario: A start given as an object is published as that object's position
+
+- **WHEN** a route is calculated from an object reference whose position is off the routable network
+- **THEN** the published polyline's first point and the first instruction's position SHALL both be that
+  object's position
+  (case: `RouteStartPositionDeviceTest.startFromAnObjectOffsetIsPublished`)
+
+#### Scenario: The first instruction position lies on the published polyline
+
+- **WHEN** a route with a snapped start is calculated
+- **THEN** the position published for the first instruction line SHALL lie on the drawn polyline within
+  the polyline-match tolerance
+  (case: `RouteStartPositionDeviceTest.firstStepPositionLiesOnThePolyline`)
+
+#### Scenario: The start is published without a coordinate in the diagnostics
+
+- **WHEN** the bridge publishes a route whose start was snapped
+- **THEN** the diagnostic line it emits SHALL report the approach in metres and SHALL NOT contain any
+  coordinate
+  (case: `checkNoCoordinatesInLogs` build gate over `OSMScoutClient.cpp`)

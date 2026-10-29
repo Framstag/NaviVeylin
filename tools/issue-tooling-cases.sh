@@ -119,6 +119,7 @@ ISSUES_SHELL_CASES=(
   'check#labelWithoutMarkerFails'
   'check#aQuotationIsNotAMarker'
   'check#aMarkerLineBesideAQuotationIsTheRecord'
+  'check#aDisplacedSettledStateIsReported'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
 )
@@ -233,6 +234,7 @@ issues_run_shell_case() {
     'check#markerLabelMismatchFails'|'check#outOfRangeBandFails'|'check#neverWritesEligibility'|\
       'check#incompleteMarkerFails'|'check#labelWithoutMarkerFails'|\
       'check#aQuotationIsNotAMarker'|'check#aMarkerLineBesideAQuotationIsTheRecord'|\
+      'check#aDisplacedSettledStateIsReported'|\
       'check#unrankedIsNotAViolation'|'check#selfCheckIsGreen') case_check_delegated "$1" ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac

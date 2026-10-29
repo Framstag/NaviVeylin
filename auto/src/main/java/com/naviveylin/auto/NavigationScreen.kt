@@ -108,35 +108,24 @@ class NavigationScreen(
     }
 
     /**
-     * Stylesheet whose day/night flag was pushed last: a *changed* stylesheet means the
-     * native side reloaded the style variant, so the flag is re-pushed once. Written
-     * from the settings re-read (background dispatcher), hence volatile.
-     */
-    @Volatile
-    private var pushedForStyleSheet: String? = null
-
-    /**
      * (Re)push the resolved dark presentation to the native stylesheet and force a full
      * render when it actually changed (spec: car-host-fault-isolation — Bounded
      * periodic render work; design D5): the settings re-read runs every few seconds and
      * must not reload the style variant plus a full native render each time.
-     *
-     * @param force re-push a value the native side may have dropped (the stylesheet was
-     *   just (re)loaded, or the DB became ready after an earlier push)
      */
-    private fun pushDark(force: Boolean = false) {
+    private fun pushDark() {
         // Skip until the renderer exists: the native client may still be
         // building off the main thread, and applying the stylesheet flag must
         // never first-touch it here. Re-pushed from the readiness observer and
         // after surface arrival once the init coroutine built the client.
         if (rendererGate.rendererOrNull() == null) return
         val dark = resolvedDark.value
-        if (!daylightApplier.needsPush(dark, force)) return
+        if (!daylightApplier.needsPush(dark)) return
         // Publish, do not push: setStyleSheetFlag reloads the style variant on the DB
         // thread, and this runs from the host's surface callback (spec:
         // car-host-fault-isolation — Host callbacks answer promptly). The collector started
         // in init applies it on a background dispatcher.
-        rendererGate.requestDaylightPush(dark, force)
+        rendererGate.requestDaylightPush(dark)
     }
 
     private var surfaceWidth = 0
@@ -439,7 +428,7 @@ class NavigationScreen(
             rendererGate.daylightPush.collect { request ->
                 if (request == null) return@collect
                 val applied = withContext(Dispatchers.Default) {
-                    runCatching { daylightApplier.apply(request.dark, request.force) }
+                    runCatching { daylightApplier.apply(request.dark) }
                         .onFailure { Log.w(TAG, "setStyleSheetFlag failed", it) }
                         .getOrDefault(false)
                 }
@@ -463,19 +452,14 @@ class NavigationScreen(
                     autoZoomEnabled = settings.autoZoomEnabled
                     overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh
                     // Apply the shared map style (loadStyleSheet blocks on the
-                    // native DB thread — run off the main thread; deduped).
+                    // native DB thread — run off the main thread; deduped). No
+                    // day/night flag follows: the load installs the enabled flags
+                    // with the new style (spec: map-styles — A style switch loads the
+                    // stylesheet set once).
                     val style = settings.styleSheet
                     scope.launch(Dispatchers.Default) {
-                        val styleChanged = style != pushedForStyleSheet
                         if (!styleApplier.apply(style)) {
                             Log.w(TAG, "loadStyleSheet '$style' failed — previous style kept")
-                        } else {
-                            pushedForStyleSheet = style
-                            // Force the push only when the stylesheet was (re)loaded: that is
-                            // the DB-ready re-push for the warmup race. An unchanged settings
-                            // re-read must not reload the variant nor force a full render
-                            // (spec: car-host-fault-isolation — Bounded periodic render work).
-                            pushDark(force = styleChanged)
                         }
                     }
                     rendererGate.requestRender()

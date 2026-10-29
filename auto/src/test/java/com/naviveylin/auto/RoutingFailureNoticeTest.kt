@@ -55,6 +55,7 @@ class RoutingFailureNoticeTest {
     fun theCarLabelEqualsThePhoneLabelForEveryReason() {
         val reasons = listOf(
             FailureReason.ROUTING_DATA_UNAVAILABLE,
+            FailureReason.DATABASE_NOT_LOADED,
             FailureReason.START_UNROUTABLE,
             FailureReason.TARGET_UNROUTABLE,
             FailureReason.NO_ROUTE_FOUND,

@@ -2,7 +2,7 @@ package com.naviveylin.auto
 
 import android.graphics.Canvas
 import android.view.Surface
-import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.anchorCenter
@@ -238,7 +238,7 @@ class AutoMapRendererBlitTest : AutoMapRendererTestSupport() {
         // The AA frame is committed anchor-centered on the RESOLVED fraction.
         val (fLat, fLon) = anchorCenter(lat, lon, resolved.fx, resolved.fy, mag, canvasW, canvasH, dpi)
 
-        val offResolved = FollowPrediction.displayOffsetPx(
+        val offResolved = OverrunWindow.shiftPx(
             dispLat, dispLon, fLat, fLon, mag, 0.0,
             bitmapW, bitmapH, canvasW, canvasH, dpi,
             resolved.fx, resolved.fy
@@ -246,7 +246,7 @@ class AutoMapRendererBlitTest : AutoMapRendererTestSupport() {
 
         // The buggy blit: the raw preset while the frame is rendered at the resolved
         // fraction (what AutoMapRenderer did before the fix).
-        val offRaw = FollowPrediction.displayOffsetPx(
+        val offRaw = OverrunWindow.shiftPx(
             dispLat, dispLon, fLat, fLon, mag, 0.0,
             bitmapW, bitmapH, canvasW, canvasH, dpi,
             VehicleAnchorPosition.TOP_FAR_LEFT.fx, VehicleAnchorPosition.TOP_FAR_LEFT.fy
@@ -286,7 +286,7 @@ class AutoMapRendererBlitTest : AutoMapRendererTestSupport() {
         val dpi = 240.0
         val lat = 52.0
         val lon = 13.4
-        val aligned = FollowPrediction.displayOffsetPx(
+        val aligned = OverrunWindow.shiftPx(
             lat, lon, lat, lon, mag, 0.0,
             120, 120, 100, 100, dpi,
             0.5, 0.5

@@ -22,6 +22,16 @@ one bridge) plus a route here.
 - No local changes accepted in the libosmscout `Android/` dir; its `android/log.h` usage is upstream-owned
   and never compiled by the app build.
 - Debug output is gated — enable with `osmscout::log.Debug(true)` if needed.
+- **Never log a position here either**, and that rule is gated, not just stated: `checkNoCoordinatesInLogs`
+  (buildSrc `NativeCoordinateLogScanner`) reads the native sources this project writes — the NDK bridge
+  `app/src/main/cpp/*.cpp|h` and the JNI translation unit `OSMScoutClient.cpp` — and fails on an
+  `osmscout::log` statement that streams a position accessor (`coord.GetDisplayText()`,
+  `fix.GetLat()`, `GetLon()`), naming the file and line. Log identity instead: map database path, route
+  end, search radius, magnification, pixel, accuracy, bearing. `GetDisplayText()` on a `TileId`, `Tiling`
+  or `Pixel` is a tile/pixel identity, not a position — the gate is accessor-shaped, so that one line is
+  reworded, never allowlisted. Upstream libosmscout (the fork's `naviveylin-local` patch layer aside) is
+  not scanned: its own logging habits are not this project's policy (issue #125, change
+  `fix-native-coordinate-log-gate`).
 
 ## 2. Native log integration (NaviVeylin side)
 

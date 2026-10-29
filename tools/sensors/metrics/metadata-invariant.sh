@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# metadata-invariant.sh — the priority invariant as a scheduled check: an item whose band label and the marker
-# the metadata pass wrote disagree.
+# metadata-invariant.sh — the tracker's per-item invariants as a scheduled check: an item whose band label and
+# the marker the metadata pass wrote disagree, or whose body keeps a settled state of its own while its state
+# label says otherwise.
 #
-# It does not re-implement the invariant. It runs `tools/issues/check-metadata.sh --live` — the command that
-# owns the rule, the per-item half included — and reports that command's own violations, so the row that watches
-# the pair and a person's hand run can never disagree about what a drift is (issue #292; the same reason
-# `stale-citations.sh` measures through the resolver).
+# It does not re-implement the invariants. It runs `tools/issues/check-metadata.sh --live` — the command that
+# owns the rules, the per-item half included — and reports that command's own violations, so the row that watches
+# them and a person's hand run can never disagree about what a drift is (issue #292; the same reason
+# `stale-citations.sh` measures through the resolver). Because it reports the command's report whole, a condition
+# is named by the invariant the command's own code names, never by a rule the row restates here (#683).
 #
 # The row exists because the per-item half had no unattended caller: CI runs only the token-free self-check,
 # which reads the profile and the scripts and never the tracker, so a marker a hand edit removed on the web UI
@@ -65,8 +67,8 @@ while IFS=$'\t' read -r issue code detail; do
   fingerprint=$(sensors_fingerprint "$fields" "issue code")
   present="$present $fingerprint"
   sensors_emit "$fingerprint" "drifted" violation "$fields" "" \
-    "an item's band label and its stored marker disagree" \
-    "issue #${issue}: ${code} (${detail}), so the priority pair has drifted apart"
+    "an item's own record and its label disagree" \
+    "issue #${issue}: ${code} (${detail}), so a per-item invariant of the tracker has drifted"
   findings=$((findings + 1))
 done <<< "$(jq -r '.violations[]? | [.issue, .code, .detail // ""] | @tsv' <<< "$report")"
 
@@ -78,19 +80,19 @@ while IFS=$'\t' read -r issue code; do
   fingerprint=$(sensors_fingerprint "$fields" "issue code")
   case " $present " in *" $fingerprint "*) continue ;; esac
   sensors_emit "$fingerprint" "settled" clear "$fields" "" \
-    "the item's band label and its stored marker agree again" \
+    "the item's record and its label agree again" \
     "issue #${issue} no longer carries ${code}"
   findings=$((findings + 1))
 done < <(jq -r '.[]? | select(.state == "OPEN") | [.condition.issue // "", .condition.code // ""] | @tsv' \
   <<< "${SENSORS_CONDITIONS:-[]}")
 
 # A row that found nothing must say so: the runner reads a row that printed nothing as a failed check, and
-# "every item's pair agrees" is a verdict, not silence. The identity is the row's own, so the finding lands on
+# "every item's halves agree" is a verdict, not silence. The identity is the row's own, so the finding lands on
 # no issue and closes nothing.
 if [ "$findings" -eq 0 ]; then
   fields='{"issue":"none","code":"none"}'
   fingerprint=$(sensors_fingerprint "$fields" "issue code")
   sensors_emit "$fingerprint" "none" clear "$fields" "" \
-    "every item's band label and its stored marker agree" \
-    "the tracker reports no priority drift, and no drift condition is recorded"
+    "every item's record and its label agree" \
+    "the tracker reports no drift in the per-item invariants, and no drift condition is recorded"
 fi

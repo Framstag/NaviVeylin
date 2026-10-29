@@ -12,8 +12,8 @@ import android.view.Surface
 import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.FollowDisplayState
-import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.MapRenderUtil
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.RenderBitmapPool
 import com.naviveylin.core.VehicleAnchorPosition
@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
  * (spec: auto-diagnostics — Diagnostics carry no coordinates): the identity is
  * magnification, angle deltas, clamped pixels and counters.
  */
-internal fun AutoMapRenderer.followDiagnosticLine(nowMs: Long, offset: FollowPrediction.Companion.DisplayOffset): String {
+internal fun AutoMapRenderer.followDiagnosticLine(nowMs: Long, offset: OverrunWindow.DisplayOffset): String {
     val dbg = followPrediction.debugState(nowMs)
     fun f(format: String, value: Double): String = String.format(Locale.ROOT, format, value)
     return "follow" +

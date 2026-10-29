@@ -1,0 +1,25 @@
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed|   the clock in force is the caller's ceiling, on the console before the first step: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| LOOP-GATE-STEP-BOUND: 600s per step — a step that reaches it is ended, named and counted as an error
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| notes: all 1 cases passed
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh — 30s
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh 30s): 'LOOP-GATE-STEP-BOUND: 2s per step' not found in: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| LOOP-GATE-STEP-BOUND: 600s per step — a step that reaches it is ended, named and counted as an error
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| notes: all 1 cases passed
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh — 30s
+gate#theStepBoundIsClampedByTheCeilingTheCallerNamed| LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh 30s)
+--- gate#theStepBoundIsClampedByTheCeilingTheCallerNamed[0] (exit 1)
+  the clock in force is the caller's ceiling, on the console before the first step: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 600s per step — a step that reaches it is ended, named and counted as an error
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh
+notes: all 1 cases passed
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh — 30s
+LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh 30s): 'LOOP-GATE-STEP-BOUND: 2s per step' not found in: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/gate.conf — pinned; not the profile beside this engine (/home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf)
+LOOP-GATE-STEP-BOUND: 600s per step — a step that reaches it is ended, named and counted as an error
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh
+notes: all 1 cases passed
+gate: bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh — 30s
+LOOP-GATE: tests=1 failures=0 errors=0 (bash /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6XHhZD/cases/0/tree/case.qLAbM5/suite.sh 30s)
+FAIL gate#theStepBoundIsClampedByTheCeilingTheCallerNamed
+loop-selftest: 1 of 1 cases failed

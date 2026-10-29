@@ -656,6 +656,21 @@ MUTATIONS=(
   # attempted between its two writes (#699). The mutation takes the flag off the closure's own write and leaves
   # the routine writers as they were, so the case's refusal is the guard's and not something else.
   '70.1@-@tools/loop/labels.sh@labels#closeNamesTheSettledTransition@the closure naming the transition its own write makes, so the other settled value is displaced instead of refusing the write (issue #699)@s|^  \[ "\$close_issue" -eq 0 \] \|\| args+=(--displace-settled)$|  : # the closure names no transition|'
+
+  # 71.x — a bound is not larger than the ceiling of the process that started the call (issue #692). Measured twice on
+  # 2026-10-28 at `Error: Tool 'ctx_shell' exceeded its timeout of 900000ms.`: the project's own bounds were every one
+  # of them above the ceiling, nothing read one, and the children died mid-suite with their work uncommitted. The first
+  # mutation removes the suite's clock; the second makes it fire at once, so a ceiling the selection fits inside ends
+  # the suite as well; the third removes the gate's clamp, which leaves the step's bound above the caller's ceiling.
+  # The last three are the review's own correction (round 1): ending a watcher's *subshell* left the `sleep` it forked
+  # standing — one per case and one for the ceiling — so each line that now ends a whole group has a mutation putting it
+  # back to the single pid, and the two `driver#` cases count what is left behind (2026-10-29: 1 and 2 processes).
+  '71.1@-@../loop-selftest.sh@driver#aSuiteEndsInsideTheCeilingItsCallerNamed@the watcher that ends the suite at the ceiling its caller named (issue #692)@s#^if \[ -n "\$ceiling" \]; then$#if false; then#'
+  '71.2@-@../loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the ceiling being a clock rather than an end for every suite that names one (issue #692)@s#^  ( sleep "\$ceiling";#  ( sleep 0;#'
+  '71.3@-@gate.sh@gate#theStepBoundIsClampedByTheCeilingTheCallerNamed@the clamp that holds a gate step to the ceiling the caller named (issue #692)@s#^step_max=\$(loop_bound_under_ceiling "\$step_max")$#step_max=$step_max#'
+  '71.4@-@../loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the exit trap ending the ceiling watcher by its group, so a suite that ends inside its ceiling leaves that watcher sleep standing (issue #692)@s#^  loop_end_group "\${ceiling_watch:-}"$#  :#'
+  '71.5@-@../loop-selftest.sh@driver#aSuiteEndsInsideTheCeilingItsCallerNamed@the exit trap ending a still-running case bound watcher by its group, so a suite the ceiling cut leaves that watcher sleep standing (issue #692)@s#^      loop_end_group "\${case_slot_watch\[\$slot\]:-}"$#      loop_end_pid "${case_slot_watch[$slot]:-}"#'
+  '71.6@-@../loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the case that ended normally swept with the watcher group, so every case of a green suite leaves one sleep standing (issue #692)@s#^  loop_end_group "\${case_slot_watch\[\$slot\]:-}"$#  loop_end_pid "${case_slot_watch[$slot]:-}"#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

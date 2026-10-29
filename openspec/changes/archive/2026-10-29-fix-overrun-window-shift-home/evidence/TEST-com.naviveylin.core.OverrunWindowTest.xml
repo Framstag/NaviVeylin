@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.OverrunWindowTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-29T17:04:32.200Z" hostname="dingens" time="0.026">
+  <properties/>
+  <testcase name="explicit center anchor matches the default behavior" classname="com.naviveylin.core.OverrunWindowTest" time="0.013"/>
+  <testcase name="shift clamps to the overrun margin" classname="com.naviveylin.core.OverrunWindowTest" time="0.001"/>
+  <testcase name="off center anchor clamps only after drifting the margin" classname="com.naviveylin.core.OverrunWindowTest" time="0.007"/>
+  <testcase name="shift rotates with the viewport angle" classname="com.naviveylin.core.OverrunWindowTest" time="0.0"/>
+  <testcase name="shift equals the geo delta within the margin" classname="com.naviveylin.core.OverrunWindowTest" time="0.0"/>
+  <testcase name="off center anchor is zero drift and unclamped when aligned" classname="com.naviveylin.core.OverrunWindowTest" time="0.001"/>
+  <testcase name="a frame with an overrun margin keeps the existing clamp" classname="com.naviveylin.core.OverrunWindowTest" time="0.0"/>
+  <testcase name="shift is zero when displayed position equals frame center" classname="com.naviveylin.core.OverrunWindowTest" time="0.001"/>
+  <testcase name="portrait frame against a landscape canvas yields a zero offset on the margin-less axis" classname="com.naviveylin.core.OverrunWindowTest" time="0.0"/>
+  <testcase name="landscape frame against a portrait canvas yields a zero offset on the margin-less axis" classname="com.naviveylin.core.OverrunWindowTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

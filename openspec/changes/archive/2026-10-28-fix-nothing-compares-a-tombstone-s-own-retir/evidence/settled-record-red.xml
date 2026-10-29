@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issues/check-metadata-selftest.sh --case check#aDisplacedSettledStateIsReported (on HEAD, before the fix)" tests="1" failures="1" errors="0" timestamp="2026-10-28T20:17:31Z">
+  <testcase name="check#aDisplacedSettledStateIsReported" classname="check" time="2">
+    <failure message="a tombstone whose state is not settled exits non-zero">FAIL check#aDisplacedSettledStateIsReported
+  a tombstone whose state is not settled exits non-zero: expected [1] got [0]
+  and names the item: [#41] not found in: check-metadata: 2 issue(s) checked · 0 violation(s)
+  and the invariant it breaks: [settled-record-displaced] not found in: check-metadata: 2 issue(s) checked · 0 violation(s)
+  and the state the item carries: [status/on-hold] not found in: check-metadata: 2 issue(s) checked · 0 violation(s)</failure>
+  </testcase>
+  <system-out>The case drives `tools/issues/check-metadata.sh --issues tools/issues/fixtures/metadata/tombstone-displaced.json`, whose first item is a tombstone — a body carrying the profile's `roles.settledRecordMarker` line — labelled `status/on-hold`, and whose second item carries no record and `status/open`. On HEAD the check reads only the band label, the band marker and the opt-in write log, so 2 issues are checked and 0 violations reported: the displaced settled state is invisible to every command in the tree (issue #683; the live tracker still carries one such item, #148). The benign half (the same body with `status/retired`) passes on HEAD too, which is why only the red direction is quoted here. tools/failures are counted from the FAIL lines, the way tools/loop/gate.sh derives its per-suite tally. Run 2026-10-28T20:17:31Z from the change root.</system-out>
+</testsuite>

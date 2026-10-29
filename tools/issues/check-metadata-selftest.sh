@@ -42,6 +42,7 @@ CASES=(
   'check#labelWithoutMarkerFails'
   'check#aQuotationIsNotAMarker'
   'check#aMarkerLineBesideAQuotationIsTheRecord'
+  'check#aDisplacedSettledStateIsReported'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
 )
@@ -185,6 +186,35 @@ case_aMarkerLineBesideAQuotationIsTheRecord() {
   expect "the reader takes the marker's own line" "p2" "$read_band"
 }
 
+# An item's settled state is stated twice: by the label that makes it settled for the pre-screen
+# (`roles.settledStatuses`) and by the record a tombstone keeps in its own body (`roles.settledRecordMarker`).
+# A park wrote `holdStatus` over the label while the record stayed, and nothing joined the two halves — so the
+# item read as work from then on (issue #683; the live tracker still carries one such item, measured 2026-10-28).
+# The check reads the pair, both directions asserted, so neither a blind check nor an over-eager one passes.
+case_aDisplacedSettledStateIsReported() {
+  local record
+  record=$(jq -r '.roles.settledRecordMarker' "$root/tools/tooling.json")
+  if [ -z "$record" ] || [ "$record" = "null" ]; then
+    echo "  FAIL the committed profile declares no settled-record marker to check against"
+    fail_done=1
+    return 0
+  fi
+
+  run_check --issues "$fixtures/tombstone-displaced.json"
+  expect "a tombstone whose state is not settled exits non-zero" "1" "$CHECK_STATUS"
+  expect_contains "and names the item" "#41" "$CHECK_OUT"
+  expect_contains "and the invariant it breaks" "settled-record-displaced" "$CHECK_OUT"
+  expect_contains "and the state the item carries" "status/on-hold" "$CHECK_OUT"
+  expect_not_contains "an item without the record is no violation" "#42" "$CHECK_OUT"
+
+  # the same tracker, benigned: the tombstone carries the settled state its own record keeps
+  jq '.[0].labels = [{"name": "class/improvement"}, {"name": "status/retired"}]' \
+    "$fixtures/tombstone-displaced.json" > "$tmp/benign.json"
+  run_check --issues "$tmp/benign.json"
+  expect "the settled state exits 0" "0" "$CHECK_STATUS"
+  expect_contains "and nothing is reported" "0 violation(s)" "$CHECK_OUT"
+}
+
 case_unrankedIsNotAViolation() {
   # An issue with no band and no marker is *unranked*, not broken: the check must not fire on the state the
   # whole backlog starts in, or the pass could never be run incrementally.
@@ -213,6 +243,7 @@ if [ -n "$only_case" ]; then
     'check#labelWithoutMarkerFails') case_labelWithoutMarkerFails ;;
     'check#aQuotationIsNotAMarker') case_aQuotationIsNotAMarker ;;
     'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
+    'check#aDisplacedSettledStateIsReported') case_aDisplacedSettledStateIsReported ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
     *) echo "check-metadata-selftest: no such case: $only_case" >&2; exit 2 ;;
@@ -232,6 +263,7 @@ for name in "${CASES[@]}"; do
     'check#labelWithoutMarkerFails') case_labelWithoutMarkerFails ;;
     'check#aQuotationIsNotAMarker') case_aQuotationIsNotAMarker ;;
     'check#aMarkerLineBesideAQuotationIsTheRecord') case_aMarkerLineBesideAQuotationIsTheRecord ;;
+    'check#aDisplacedSettledStateIsReported') case_aDisplacedSettledStateIsReported ;;
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
   esac

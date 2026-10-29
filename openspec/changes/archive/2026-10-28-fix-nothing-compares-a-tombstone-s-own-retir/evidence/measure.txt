@@ -1,0 +1,118 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/tools/loop/loop.conf
+LOOP-MEASURE base=ccbc309994e4ccd9585974ce7b67d3642ce09eb6 paths=48 insertions=866 deletions=30
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/evidence-check-archived.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-summary.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_issues_check-metadata.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_issues_metadata-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_sensor-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_sensor-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/resolve-stale-selftest.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/revert-checks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/review-round-1-corrections.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/settled-record-red.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/tracker-read.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/specs/backlog-sensors/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/specs/issue-backlog/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/tasks.md
+LOOP-MEASURE-PATH openspec/specs/backlog-sensors/spec.md
+LOOP-MEASURE-PATH openspec/specs/issue-backlog/spec.md
+LOOP-MEASURE-PATH tools/issues/check-metadata-selftest.sh
+LOOP-MEASURE-PATH tools/issues/check-metadata.sh
+LOOP-MEASURE-PATH tools/issues/fixtures/metadata/tombstone-displaced.json
+LOOP-MEASURE-PATH tools/issues/lib.sh
+LOOP-MEASURE-PATH tools/issues/metadata-mutations.sh
+LOOP-MEASURE-PATH tools/issues/resolve-stale.sh
+LOOP-MEASURE-PATH tools/issue-tooling-cases.sh
+LOOP-MEASURE-PATH tools/sensors/metrics/metadata-invariant.sh
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
+LOOP-MEASURE-CHECK tools/issues/metadata-mutations.sh --list
+LOOP-MEASURE-CHECK tools/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-mutations.sh --list
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=277 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=9s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=38s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=129 failures=0 time=118s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_sensor-mutations.sh_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 1 of 21 tally files not shown — at most 20 per directory (app/build/test-results/loop-gate)
+LOOP-MEASURE-GATE seconds=294 suites=21
+LOOP-MEASURE-CHANGE 2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir scenarios=5 cases=5 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-summary.xml tests=231 failures=0 time=294s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=9s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=38s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=129 failures=0 time=118s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY-MORE 3 of 23 tally files not shown — at most 20 per directory (openspec/changes/archive/2026-10-28-fix-nothing-compares-a-tombstone-s-own-retir/evidence)
+LOOP-MEASURE-SURFACE surface: 1 case added, 1 fixture added, 1 mutation added, 2 files rewritten, 1 row's claims generalised, 2 documents and 2 capability specs corrected — `grep -rln 'settledRecordMarker\|settledStatuses\|records_settled_state' tools/ guidelines/ openspec/specs/ .github/workflows/` prints 17 files (2026-10-29), the check the change adds (`tools/issues/check-metadata.sh`) and its selftest among them.
+LOOP-MEASURE-END

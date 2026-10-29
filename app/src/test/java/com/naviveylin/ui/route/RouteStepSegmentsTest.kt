@@ -1,5 +1,6 @@
 package com.naviveylin.ui.route
 
+import com.framstag.libosmscout.client.TurnType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -119,5 +120,41 @@ class RouteStepSegmentsTest {
     @Test
     fun `no steps yields no ranges`() {
         assertTrue(stepSegments(straightLats, straightLons, 0, emptyList()).isEmpty())
+    }
+
+    /**
+     * The shape the bridge publishes for a snapped start (change `publish-requested-route-start`): the
+     * polyline's first vertex is the **requested** start and the second is the snapped node, so the start
+     * line's own row is anchored on vertex 0 and the first turn's leg begins there too.
+     *
+     * The anchors come from the real row pipeline ([routeRows] → [rowAnchors]) rather than from a hand-made
+     * list, because the row that has to line up with vertex 0 is the one that pipeline produces.
+     */
+    @Test
+    fun `aPrependedStartAnchorsStepZeroAndOwnsNoLeg`() {
+        // Vertex 0 is the prepended requested start, vertex 1 the snapped node the router chose, then the
+        // routed geometry to the manoeuvre and the arrival.
+        val lats = doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0)
+        val lons = doubleArrayOf(0.0, 0.0002, 0.001, 0.002, 0.003)
+
+        val steps = listOf(
+            startStep(lat = 0.0, lon = 0.0),
+            turnStep(TurnType.RIGHT, lat = 0.0, lon = 0.002, legDistance = 200.0),
+            targetStep(lat = 0.0, lon = 0.003, legDistance = 100.0)
+        )
+        val anchors = rowAnchors(routeRows(steps))
+
+        // The derived rows are the start line, the turn and the arrival — index-aligned with the anchors,
+        // and the first anchor is the published start (vertex 0), not the snapped node.
+        assertEquals(3, anchors.size)
+        assertEquals(0.0, anchors[0].lat, 0.0)
+        assertEquals(0.0, anchors[0].lon, 0.0)
+
+        // Step 0 owns no leg; the first turn's leg starts at the prepended start, so its segment covers
+        // the approach together with the routed run to its own manoeuvre.
+        assertEquals(
+            listOf(IntRange.EMPTY, 0..3, 3..4),
+            stepSegments(lats, lons, anchors.size, anchors)
+        )
     }
 }

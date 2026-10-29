@@ -14,6 +14,7 @@ import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.MapRenderUtil
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.RenderBitmapPool
 import com.naviveylin.core.VehicleAnchorPosition
@@ -189,7 +190,7 @@ internal fun AutoMapRenderer.extrapolationTick(nowMs: Long, dtSec: Double) {
         // through the draw serializes against fullRender's swap.
         val current = overrunBitmap ?: return
         val resolved = resolvedFollowAnchor()
-        val offset = FollowPrediction.displayOffsetPx(
+        val offset = OverrunWindow.shiftPx(
             displayLat, displayLon,
             overrunLat, overrunLon, overrunMag, overrunAngle,
             current.width, current.height, w, h, projectionDpi,

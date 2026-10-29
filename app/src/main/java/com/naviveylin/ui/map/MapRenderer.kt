@@ -6,7 +6,7 @@ import android.graphics.RectF
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.framstag.libosmscout.client.OSMScoutClient
-import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.core.RenderBitmapPool
@@ -1058,7 +1058,7 @@ class MapRenderer(
      * a covered request leaves the displayed frame exactly as it is.
      *
      * The margin/slack contract is shared with the display through
-     * [FollowPrediction.displayOffsetPx] (canvas inflated by the slack), so the
+     * [OverrunWindow.shiftPx] (canvas inflated by the slack), so the
      * coverage test and the applied clamp can never disagree — the display's clamp
      * is the same computation with the real canvas size.
      *
@@ -1093,7 +1093,7 @@ class MapRenderer(
         val marginY = (frame.height - sh) / 2.0
         if (marginX <= BLIT_COVER_SLACK_PX || marginY <= BLIT_COVER_SLACK_PX) return false
 
-        val offset = FollowPrediction.displayOffsetPx(
+        val offset = OverrunWindow.shiftPx(
             newLat, newLon,
             frame.viewport.lat, frame.viewport.lon,
             frame.viewport.mag, frame.viewport.angle,

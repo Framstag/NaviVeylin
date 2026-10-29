@@ -71,6 +71,7 @@
          the failure's reason, and the phone adds the action where the cause has one. "The nearest
          road" carries a distance the surface formats with the device locale. -->
     <string name="navigation_failure_routing_data_unavailable">Routing data is not available for one of the installed maps.</string>
+    <string name="navigation_failure_database_not_loaded">The map data is still loading. Try again in a moment.</string>
     <string name="navigation_failure_start_unroutable">Your position has no connection to the road network here. Move onto a road and try again.</string>
     <string name="navigation_failure_start_unroutable_near">Your position has no connection to the road network here. The nearest road is about %1$s away.</string>
     <string name="navigation_failure_target_unroutable">The destination has no connection to the road network here.</string>

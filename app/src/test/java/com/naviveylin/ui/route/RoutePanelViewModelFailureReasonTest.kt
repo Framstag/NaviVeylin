@@ -148,6 +148,20 @@ class RoutePanelViewModelFailureReasonTest {
     }
 
     @Test
+    fun aCalculationThatOutrunsTheDatabaseOpenOffersNoAction() = runTest(mainDispatcherRule.dispatcher) {
+        // The list was empty because the open had not been registered yet; a retry clears it, so the
+        // panel must not send the user to the map manager for it (issue #131).
+        failWith(RouteCallback.KIND_DATABASE_NOT_LOADED, "No databases loaded yet")
+
+        val failure = viewModel.uiState.value.routeFailure!!
+        assertEquals(FailureReason.DATABASE_NOT_LOADED, failure.reason)
+        org.junit.Assert.assertFalse(
+            "a still-loading list is not a map-manager fix",
+            failure.hasMapManagerAction()
+        )
+    }
+
+    @Test
     fun theNearestRoadDistanceReachesThePanel() = runTest(mainDispatcherRule.dispatcher) {
         failWith(
             RouteCallback.KIND_TARGET_UNROUTABLE,

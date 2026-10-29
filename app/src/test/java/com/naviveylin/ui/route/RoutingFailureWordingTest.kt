@@ -40,6 +40,7 @@ class RoutingFailureWordingTest {
     /** The route-calculation causes — the ones this change introduced a reason for. */
     private val routeReasons = listOf(
         FailureReason.ROUTING_DATA_UNAVAILABLE,
+        FailureReason.DATABASE_NOT_LOADED,
         FailureReason.START_UNROUTABLE,
         FailureReason.TARGET_UNROUTABLE,
         FailureReason.NO_ROUTE_FOUND,
@@ -185,6 +186,34 @@ class RoutingFailureWordingTest {
                     nearestRoadDistanceMeters = unknown).nearestRoadDistanceMeters
             )
         }
+    }
+
+    @Test
+    fun notYetLoadedRoutingDataIsNotUnusableRoutingData() {
+        // The database open is queued and the router's instance list is empty until it runs, so a
+        // calculation issued in between is clearable by trying again (issue #131, measured on a
+        // 416-point sweep of Dortmund: the first two points, none after them). The two cases must not
+        // share a reason: one is a fact about timing, the other about the map data.
+        val notLoaded = navigationFailureOf(
+            kind = RouteCallback.KIND_DATABASE_NOT_LOADED,
+            detail = "No databases loaded yet"
+        )
+
+        assertEquals(FailureReason.DATABASE_NOT_LOADED, notLoaded.reason)
+        assertEquals(
+            com.naviveylin.core.R.string.navigation_failure_database_not_loaded,
+            navigationFailureWordingRes(notLoaded)
+        )
+        assertNotEquals(
+            "a list that is still filling does not read as missing routing data",
+            navigationFailureWordingRes(failureOf(FailureReason.ROUTING_DATA_UNAVAILABLE)),
+            navigationFailureWordingRes(notLoaded)
+        )
+        assertFalse(
+            "a retry is the whole fix, so no action belongs to it",
+            notLoaded.hasMapManagerAction()
+        )
+        assertTrue("it still says something", textOf(notLoaded).isNotBlank())
     }
 
     @Test

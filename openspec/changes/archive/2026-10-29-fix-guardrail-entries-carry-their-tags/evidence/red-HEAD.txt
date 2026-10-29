@@ -1,0 +1,7 @@
+# red probe on the BASE tree read from git (commit 7e1f8ee9, guidelines/ only), captured 2026-10-29T12:26:38Z
+MISSING §40.38  guidelines/Build.md:586-642 ("## 4d. Attributing a red run") carries no §40.38 tag
+MISSING §40.46  guidelines/Build.md:104-174 ("## 2a. Agent iteration protocol") carries no §40.46 tag
+MISSING §40.55  guidelines/MapRendering.md:876-914 ("## 15a. Stylesheet load failure") carries no §40.55 tag
+tests=3 failures=3
+FAIL guardrail-tag#eachCarriedEntryCarriesItsRecordTag — 3 of 3 entries carry no §40.N tag (exit 1)
+EXIT=1

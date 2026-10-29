@@ -12,6 +12,7 @@ import io.mockk.mockk
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -114,7 +115,7 @@ class StartupScreensTest {
             try {
                 // The log is read on a background dispatcher (spec: auto-diagnostics —
                 // Reading diagnostics does not block the UI), so wait for the load.
-                val titles = awaitRows(screen) { it.count { title -> ENTRY_NAME.containsMatchIn(title) } == 3 }
+                val titles = awaitRows(screen, "3 log rows") { it.count { title -> ENTRY_NAME.containsMatchIn(title) } == 3 }
 
                 // The entries this case wrote, in row order: the log holds 3 entries plus the screen's own
                 // measurement line, and the entries follow newest first, inside the host's row capacity
@@ -142,29 +143,73 @@ class StartupScreensTest {
     }
 
     /**
-     * Template row titles, driving the main looper until the screen's background load is published
-     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline: no wall-clock window, no sleep).
+     * An awaited state that never arrives fails the case by naming the state, not with a row count that the
+     * missing load happens to produce (spec `unit-test-suite-runtime` — A helper that awaits a state fails by
+     * naming it). The window is forced to zero so the expiry path is taken without waiting for it.
+     */
+    @Test
+    fun awaitRowsNamesTheStateThatNeverArrived() {
+        val screen = DiagnosticsScreen(carContext)
+        try {
+            val failure = try {
+                awaitRows(screen, what = "three log rows", windowMs = 0L) { false }
+                null
+            } catch (e: AssertionError) {
+                e
+            }
+            assertNotNull(
+                "awaitRows returned rows for a state that never arrived, so the case fails later on a count",
+                failure
+            )
+            assertTrue(
+                "the failure names the state that did not arrive: ${failure!!.message}",
+                (failure.message ?: "").contains("three log rows")
+            )
+        } finally {
+            // Release the screen the way the host ends one (spec: unit-test-suite-runtime —
+            // Test-created components release their background work).
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_CREATE)
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_START)
+            screen.dispatchLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        }
+    }
+
+    /**
+     * Template row titles, awaiting the observable state: the main looper is driven until [ready] holds of the
+     * rows the screen publishes, so no sleep and no deadline decides the outcome
+     * (spec `unit-test-suite-runtime` — Awaiting state, not a deadline).
+     *
+     * [windowMs] only ends a genuine hang: when it expires the case fails naming [what] and the rows it saw,
+     * rather than returning a list its call site compares as if the load had arrived
+     * (spec `unit-test-suite-runtime` — A helper that awaits a state fails by naming it).
      */
     private fun awaitRows(
         screen: DiagnosticsScreen,
+        what: String,
+        windowMs: Long = 5_000,
         ready: (List<String>) -> Boolean
     ): List<String> {
-        var titles: List<String> = emptyList()
-        runBlocking {
-            withTimeoutOrNull<Boolean>(5_000) {
-                var done = false
-                while (!done) {
+        var titles = rowTitles(screen)
+        val arrived = runBlocking {
+            withTimeoutOrNull<Boolean>(windowMs) {
+                while (!ready(titles)) {
                     shadowOf(Looper.getMainLooper()).idle()
-                    titles = (screen.onGetTemplate() as ListTemplate).singleList!!.items
-                        .filterIsInstance<Row>().map { it.title.toString() }
-                    done = ready(titles)
-                    if (!done) yield()
+                    titles = rowTitles(screen)
+                    if (!ready(titles)) yield()
                 }
                 true
             }
         }
+        shadowOf(Looper.getMainLooper()).idle()
+        titles = rowTitles(screen)
+        assertNotNull("the startup screen never published $what: $titles", arrived)
         return titles
     }
+
+    /** The screen's row titles as the host would read them. */
+    private fun rowTitles(screen: DiagnosticsScreen): List<String> =
+        (screen.onGetTemplate() as ListTemplate).singleList!!.items
+            .filterIsInstance<Row>().map { it.title.toString() }
 
     private companion object {
         /** One window entry's tag and message in a row title (`A first`, `B second`, `C third`). */

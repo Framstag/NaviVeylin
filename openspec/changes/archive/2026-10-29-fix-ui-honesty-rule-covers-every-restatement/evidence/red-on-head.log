@@ -1,0 +1,4 @@
+FAIL ui-honesty#a-restatement-names-its-guard — the honesty section does not state: [restates] [name the case that holds] leaves these guarded restatements undeclared: CompassNeedleStrokeTest DaylightPaletteContrastTest FavoritesScreenTest FavoritesViewModelTest GermanTranslationCompletenessTest MapLayerBandsTest NavigationStateOverlayComposeTest ReroutePolicyGuidelineParityTest RoutePanelActionBandScaleTest StylesheetHexColorCaseTest 
+PASS ui-honesty#a-listed-guard-is-a-case-in-the-tree — every guard the honesty section names resolves to a test source
+PASS ui-honesty#a-listed-section-resolves — every section the honesty section names resolves by number and heading text
+red-probe: 1 of 3 cases failed

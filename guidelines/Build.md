@@ -764,6 +764,13 @@ split.
   asserting.
 - **Verify `md5` after any `git stash` cycle before rebuilding** (§40.36): a stash+pop silently reverted a
   submodule patch and the "patched" host library was unpatched.
+- **The search scope's extent derivation is a host unit** (`libosmscout-client-java/src/search_scope_extent.cpp`,
+  case `Tests/src/SearchScopeExtentTest.cpp`): it loads the scope region's object and touches no JNI, so it
+  compiles into the host suite — the JNI call site stays the only part no host case reaches. The case imports
+  `Tests/LocationTest.olt` at start-up instead of opening the committed `Tests/data/testregion`: that
+  database's location index is a 77-byte header carrying no region (measured 2026-10-29), so it holds no admin
+  region to derive an extent from. The full import writes a `coord.dat` of several hundred MB (764 MB here),
+  which the case deletes once the import is done — the same temporary `testregion-generate.sh` removes.
 
 ## 5. Release versioning
 

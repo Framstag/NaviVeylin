@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-selftest.sh --case driver#aSuiteEndsInsideTheCeilingItsCallerNamed" tests="1" failures="0" errors="0" time="5">
+  <system-out>PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed (2026-10-28T19:09:10Z)</system-out>
+</testsuite>

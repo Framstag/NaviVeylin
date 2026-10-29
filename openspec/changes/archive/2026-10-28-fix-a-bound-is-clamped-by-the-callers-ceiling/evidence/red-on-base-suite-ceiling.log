@@ -1,0 +1,13 @@
+driver#aSuiteEndsInsideTheCeilingItsCallerNamed|   a suite its caller's ceiling cut is a failure, never a green suite: PASS stub#slowOne
+driver#aSuiteEndsInsideTheCeilingItsCallerNamed| PASS stub#slowTwo
+driver#aSuiteEndsInsideTheCeilingItsCallerNamed| PASS stub#slowThree
+driver#aSuiteEndsInsideTheCeilingItsCallerNamed| PASS stub#slowFour
+driver#aSuiteEndsInsideTheCeilingItsCallerNamed| loop-selftest: all 4 cases passed (JDK 27, offline, no token, no sandbox): expected '1', got '0'
+--- driver#aSuiteEndsInsideTheCeilingItsCallerNamed[0] (exit 1)
+  a suite its caller's ceiling cut is a failure, never a green suite: PASS stub#slowOne
+PASS stub#slowTwo
+PASS stub#slowThree
+PASS stub#slowFour
+loop-selftest: all 4 cases passed (JDK 27, offline, no token, no sandbox): expected '1', got '0'
+FAIL driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+loop-selftest: 1 of 1 cases failed

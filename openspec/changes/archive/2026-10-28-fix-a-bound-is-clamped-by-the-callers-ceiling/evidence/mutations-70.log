@@ -1,0 +1,13 @@
+loop-mutations: selected 3 of 201 records (labels: 70.1 70.2 70.3)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.OHvtBY
+RED    70.1  driver#aSuiteEndsInsideTheCeilingItsCallerNamed   (the watcher that ends the suite at the ceiling its caller named (issue #692))
+       2026-10-28T19:08:04Z — a suite its caller's ceiling cut is a failure, never a green suite: PASS stub#slowOne
+restore 70.1 driver#aSuiteEndsInsideTheCeilingItsCallerNamed green again
+RED    70.2  driver#aCeilingTheSuiteFitsInsideChangesNothing   (the ceiling being a clock rather than an end for every suite that names one (issue #692))
+       2026-10-28T19:08:17Z — a ceiling the selection fits inside leaves the suite green: LOOP-SUITE-CEILING: the caller's ceiling of 600s was reached — 0 of 2 cases started, 2 never started; the suite ended itself and what did not run is covered by nothing
+restore 70.2 driver#aCeilingTheSuiteFitsInsideChangesNothing green again
+RED    70.3  gate#theStepBoundIsClampedByTheCeilingTheCallerNamed   (the clamp that holds a gate step to the ceiling the caller named (issue #692))
+       2026-10-28T19:08:58Z — the clock in force is the caller's ceiling, on the console before the first step: LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.4ekjM2/cases/0/tree/case.A48PhM/gate.conf — pinned; not the profile 
+restore 70.3 gate#theStepBoundIsClampedByTheCeilingTheCallerNamed green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

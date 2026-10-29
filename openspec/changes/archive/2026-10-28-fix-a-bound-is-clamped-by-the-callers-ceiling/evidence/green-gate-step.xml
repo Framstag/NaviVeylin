@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/loop-selftest.sh --case gate#theStepBoundIsClampedByTheCeilingTheCallerNamed" tests="1" failures="0" errors="0" time="4">
+  <system-out>PASS gate#theStepBoundIsClampedByTheCeilingTheCallerNamed (2026-10-28T19:09:27Z)</system-out>
+</testsuite>

@@ -1,0 +1,69 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=c29691865337325c0b293b57b72068d0468540da paths=7 insertions=215 deletions=3
+LOOP-MEASURE-PATH guidelines/Build.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/gate.sh
+LOOP-MEASURE-PATH tools/loop/lib.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop-selftest.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git c29691865337325c0b293b57b72068d0468540da
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=276 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=201 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=25s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=125 failures=0 time=71s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=462s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_c29691865337325c0b293b57b72068d0468540da.xml tests=276 failures=2 time=691s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=1256 suites=17
+LOOP-MEASURE-CHANGE 2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling scenarios=3 cases=3 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml tests=201 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=25s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=125 failures=0 time=71s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=462s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_c29691865337325c0b293b57b72068d0468540da.xml tests=276 failures=2 time=691s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/green-gate-step.xml tests=1 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/green-suite-ceiling-guard.xml tests=1 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence/green-suite-ceiling.xml tests=1 failures=0 time=5s
+LOOP-MEASURE-TALLY-MORE 2 of 22 tally files not shown — at most 20 per directory (openspec/changes/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling/evidence)
+LOOP-MEASURE-SURFACE surface: 2 cases added, 1 guard case added, 3 files changed in the engine, 1 guideline section touched —
+LOOP-MEASURE-END

@@ -146,7 +146,9 @@ habit of running everything:
    `tools/*-cases.sh` selects nearly the whole suite (256 of 256 measured, 405–507 s alone) and is run
    **once**, as the gate, never per edit — a caller's per-call ceiling can sit below this project's own case
    and child bounds (§6c, `LOOP_CASE_MAX_SECONDS`), and a suite call that outlives it is killed with the
-   child's work uncommitted (measured twice on 2026-10-28, 900 s; issue #692).
+   child's work uncommitted (measured twice on 2026-10-28, 900 s; issue #692). **State that ceiling when you start
+   one** — `LOOP_CALL_CEILING_SECONDS=<n> …` (`tools/loop/loop.conf`) — and the call ends itself inside it with a
+   line naming what it covered, instead of being killed mid-call with nothing said.
 3. **Batch independent questions.** Ask the owner two to four independent questions in one call rather
    than one question per round, and ask for the observation (where, when) before proposing a cause.
 4. **One builder per working tree.** Two Gradle invocations in one tree corrupt each other's outputs: a

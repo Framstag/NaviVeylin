@@ -1,0 +1,82 @@
+agent-issue-loop: items=1 minutes=90 review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 item-turns-max=250 min-free-mib=1024 free-mib=4198 dry-run=0 reset-worktree=0
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/issue-loop
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/issue-loop/lock (owner 3212107)
+state: budget 1 items / 90 min · review on · may-close yes · max-decisions 10 · max-review-rounds 2 · base 8fff4184834a
+state: deadline 2026-10-29T10:27:17Z
+loop: pre-screen · 0s · started — its own output follows as it is written, its text is kept in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/issue-loop/prescreen.log
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+loop: pre-screen · 1s · finished (exit 0) — the run decides on it next
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261029-085718')
+HEAD ist jetzt bei 8fff418 init
+worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/worktrees/loop on branch loop-20261029-085718 from 8fff4184834a (1 local.prop* copied)
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/worktrees/loop on loop-20261029-085718 from 8fff4184834a
+loop: worktree · 1s · ready — loop on loop-20261029-085718 from 8fff4184834a
+stub gh: recorded `gh issue edit`
+pick #21
+loop: item · 2s · picked #21 — its report is written to /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/issue-loop/items/21/worker-report.md
+loop: worker-prompt started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/issue-loop/items/21/worker-report.md)
+loop: worker-prompt finished in 0s (exit 0, log 223 B)
+loop: commit · 2s · end-item returned — HEAD c5b6e63a7565 (base 8fff4184834a)
+loop: gate · 2s · read — 1 test-results XML in the tree
+recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (fe0b023)
+loop: reviewer-prompt-1 started (log /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/issue-loop/items/21/reviewer-report-1.md)
+loop: reviewer-prompt-1 finished in 1s (exit 0, log 14 B)
+recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (50bbeca)
+Aktualisiere 8fff418..50bbeca
+Fast-forward
+ demo-fix.txt                                                         | 1 +
+ openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml  | 1 +
+ .../archive/2026-01-01-fix-demo/evidence/review-round-1-passed.md    | 4 ++++
+ .../archive/2026-01-01-fix-demo/evidence/review-round-1-requested.md | 5 +++++
+ openspec/changes/archive/2026-01-01-fix-demo/proposal.md             | 1 +
+ 5 files changed, 12 insertions(+)
+ create mode 100644 demo-fix.txt
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-1-passed.md
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/evidence/review-round-1-requested.md
+ create mode 100644 openspec/changes/archive/2026-01-01-fix-demo/proposal.md
+merged: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e -> 50bbeca · commits 833ec04898db30ef305d9c47ce033f8b8410210b,c5b6e63a756554411b141ba6685ff06a19c218be,fe0b0239c0f40bb4d8ac69781d4edc9cfe63efbb,50bbeca69ec895b0506c209681860d4ab42f559a
+HEAD ist jetzt bei 50bbeca review: 2026-01-01-fix-demo round 1 passed (#21)
+branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e was not removed — it carries work the base does not have
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+close #21
+item #21: closed (2026-01-01-fix-demo) · 1.127s · 1 review round(s)
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+stop: item cap reached (1/1)
+**agent-issue-loop — 2026-10-29T08:57:22Z** (budget 1 items / 90 min · review on · review rounds 2 · may-close yes · max-decisions 10 · base 50bbeca69ec8)
+
+closed 1 · mis-diagnosed 0 · skipped 0 · blocked 0 · budget left 0 items / 90 min · spent 0 min
+
+stop: item cap reached (1/1)
+
+over the item token bound (16858818 tokens): none
+closed 1 · mis-diagnosed 0 · skipped 0 · blocked 0 of 1 items · budget 90 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #21 | bug | closed | 2026-01-01-fix-demo | the fixture has exactly one cause | Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z) | tests=1 failures=0 (fixture) | 1 | 1s | - | - | - | done | - | - | - |
+
+merged finished attempts: #21 fix/issue-21-an-eligible-bug-whose-cited-path-still-e · commits 833ec04898db30ef305d9c47ce033f8b8410210b,c5b6e63a756554411b141ba6685ff06a19c218be,fe0b0239c0f40bb4d8ac69781d4edc9cfe63efbb,50bbeca69ec895b0506c209681860d4ab42f559a · evidence 
+no exclusions
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: none
+decisions the owner owes: none
+branches: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261029-085718
+landed, removable: fix/issue-21-an-eligible-bug-whose-cited-path-still-e loop-20261029-085718
+worktree: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/worktrees/loop (kept for the next run)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/issue-loop/run.json
+
+actions the caller owes:
+  1. keep or remove the worktree /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/worktrees/loop — the next run reuses its warm build; --clean-worktree removes it at the end of a run
+worktree: removed app/build (16384 B)
+worktree: 1 build path(s) removed from the kept worktree: 16384 B — its sources and its git state stay
+worktree kept for the next run: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.OqiolP/cases/0/tree/case.2c7duK/repo/.pi/worktrees/loop
+removed fix/issue-21-an-eligible-bug-whose-cited-path-still-e (its patches are in the base)
+removed loop-20261029-085718 (its patches are in the base)
+worktree: 2 landed branch(es) removed · 0 kept (carries work the base does not) · 0 kept (checked out) · 0 kept (the reviewer refused it)

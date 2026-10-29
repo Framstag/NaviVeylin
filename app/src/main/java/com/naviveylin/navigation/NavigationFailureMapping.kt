@@ -43,6 +43,7 @@ fun navigationFailureOf(
 ): NavigationFailure {
     val reason = when (kind) {
         RouteCallback.KIND_ROUTING_DATA_UNAVAILABLE -> FailureReason.ROUTING_DATA_UNAVAILABLE
+        RouteCallback.KIND_DATABASE_NOT_LOADED -> FailureReason.DATABASE_NOT_LOADED
         RouteCallback.KIND_START_UNROUTABLE -> FailureReason.START_UNROUTABLE
         RouteCallback.KIND_TARGET_UNROUTABLE -> FailureReason.TARGET_UNROUTABLE
         RouteCallback.KIND_NO_ROUTE_FOUND -> FailureReason.NO_ROUTE_FOUND

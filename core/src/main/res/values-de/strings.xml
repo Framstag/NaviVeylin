@@ -61,6 +61,7 @@
          benennen; die Oberfläche wählt das Ressourcen-Textstück über die Ursache. "Die nächste
          Straße" wird mit gerätelokaler Zahlenschreibweise eingesetzt. -->
     <string name="navigation_failure_routing_data_unavailable">Für eine der installierten Karten sind die Routingdaten nicht verfügbar.</string>
+    <string name="navigation_failure_database_not_loaded">Die Kartendaten werden noch geladen. Versuchen Sie es gleich noch einmal.</string>
     <string name="navigation_failure_start_unroutable">Ihre Position hat hier keine Verbindung zum Straßennetz. Fahren Sie auf eine Straße und versuchen Sie es erneut.</string>
     <string name="navigation_failure_start_unroutable_near">Ihre Position hat hier keine Verbindung zum Straßennetz. Die nächste Straße ist etwa %1$s entfernt.</string>
     <string name="navigation_failure_target_unroutable">Das Ziel hat hier keine Verbindung zum Straßennetz.</string>

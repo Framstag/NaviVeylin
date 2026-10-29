@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.FollowDisplayOffsetTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T17:11:16.239Z" hostname="dingens" time="0.018">
+  <properties/>
+  <testcase name="a session that holds the camera draws with no offset at all" classname="com.naviveylin.ui.map.FollowDisplayOffsetTest" time="0.017"/>
+  <testcase name="follow drift moves the frame while follow mode owns the viewport" classname="com.naviveylin.ui.map.FollowDisplayOffsetTest" time="0.0"/>
+  <testcase name="a pan window moves the frame while follow is off" classname="com.naviveylin.ui.map.FollowDisplayOffsetTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

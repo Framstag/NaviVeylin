@@ -67,7 +67,7 @@ travel while the map itself rotates at its own pace.
 - **Rule: the vehicle anchor is applied in exactly one place — the follow render target.** The
   frame is rendered with its center at `anchorCenter(vehicle, resolveAnchorFraction(activeAnchor, insets))`
   (`core/VehicleAnchor.kt`), so the vehicle sits at the anchor *inside the bitmap*. The blit/
-  display offset then carries the prediction drift only (`FollowPrediction.displayOffsetPx` with the
+  display offset then carries the prediction drift only (`OverrunWindow.shiftPx` with the
   anchor parameters). Subtracting the anchor a second time from the drawn offset pushes the frame
   outside the overrun margin and paints an uncovered strip of `surfaceColor`.
 - **The anchor fraction is relative to the map canvas, and the resolved value is published once.**
@@ -83,7 +83,7 @@ travel while the map itself rotates at its own pace.
   the offset outside the overrun margin (500 ms re-render churn). The blit offset has **one** computing
   place, `FollowBlitRules.offsetFor`, which takes the whole `MapCanvasUiState` and reads `resolvedAnchor`
   itself: the anchor is not a parameter, because the screen's previous inline
-  `FollowPrediction.displayOffsetPx(…, activeFollowAnchor.fx, activeFollowAnchor.fy)` call site was
+  `OverrunWindow.shiftPx(…, activeFollowAnchor.fx, activeFollowAnchor.fy)` call site was
   invisible to every case and needed two fixes in one day (issue #18, 2026-09-27). A caller that rebuilds
   the state around the preset is refused too: the guard reads the code around the seam call, so
   `offsetFor(ui.copy(resolvedAnchor = ResolvedAnchor(ui.activeFollowAnchor.fx,
@@ -102,7 +102,7 @@ travel while the map itself rotates at its own pace.
   width on the leading edge (`PANE_FRACTION`, side from `isHostPaneOnRight`), treated as a forbidden
   band — `clampAnchorOutOfPane` moves only the presets that fall inside it and never the default
   (`AutoMapRenderer.anchorCenterFor`). The AA follow blit offset uses that same resolved value
-  (`resolvedFollowAnchor()` at both `displayOffsetPx` call sites) — passing the raw preset there keeps
+  (`resolvedFollowAnchor()` at both `shiftPx` call sites) — passing the raw preset there keeps
   the offset outside the overrun margin for pane-band presets, turning every tick into a full render.
   A remap of the whole grid into the remaining strip was tried and
   rejected: it moves the default preset to 0.7 and changes the specified default framing.
@@ -121,7 +121,7 @@ travel while the map itself rotates at its own pace.
   (`(1.2 − 1)/2 = 0.1` of the surface), so the visible window always lies inside the rendered frame.
   A new preset outside that range would require a larger `canvasOverrun`, and
   `resolveAnchorFraction` clamps into the band for the same reason.
-- The drawn offset MUST stay inside `(bitmap − canvas)/2`; `FollowPrediction.displayOffsetPx`
+- The drawn offset MUST stay inside `(bitmap − canvas)/2`; `OverrunWindow.shiftPx`
   returns the clamped value and a `clamped` flag, and the follow display loop requests a full render
   at the displayed position when the flag is set (the map keeps scrolling instead of sticking at the
   buffer edge). That clamp is the LAST resort, not the trigger: `FollowRefreshPolicy` requests the
@@ -162,7 +162,7 @@ travel while the map itself rotates at its own pace.
   when no frame is already scheduled, so the pending description always has a frame behind it.
 - **The follow blit offset is measured on the displayed vehicle position**, not on the frame center:
   `renderFrame` passes the displayed position (`markerPosition()`) to
-  `FollowPrediction.displayOffsetPx`, with `overrunLat/Lon` as the frame. A frame *center* is not a
+  `OverrunWindow.shiftPx`, with `overrunLat/Lon` as the frame. A frame *center* is not a
   point of the rendered bitmap, so passing it charges the offset with the anchor displacement
   (`(fy − 0.5) × h` — 240 px for a bottom-row preset on a 600 px surface) against a 60 px margin: the
   offset is permanently clamped and every follow viewport change (i.e. every fix while heading-up)
@@ -556,7 +556,7 @@ browse pans with no visual tracking at all (fixed by `fix-phone-gesture-pan-trac
 displayedCenter   follow: anchorCenter(displayPos, resolvedAnchor)  |  pan: live panned center
       │
       ▼
-FollowPrediction.displayOffsetPx(displayedCenter, frameViewport, …, anchor = center)
+OverrunWindow.shiftPx(displayedCenter, frameViewport, …, anchor = center)
       │  rotated delta (dx*cos − dy*sin, dx*sin + dy*cos), clamped to the overrun margin
       ├── drawFrontFrame draws the frame at baseCenter − displayOffset
       └── map-anchored overlays translate by (follow ? 0 : −displayOffset)
@@ -567,7 +567,7 @@ FollowPrediction.displayOffsetPx(displayedCenter, frameViewport, …, anchor = c
 - **The overrun margin is never negative.** A frame that offers no overrun margin on an axis — for
   example a frame that still carries the previous orientation right after a rotation while the canvas
   already has the new one — yields a ZERO offset on that axis, reported as clamped
-  (`FollowPrediction.displayOffsetPx` coerces its margin with `coerceAtLeast(0.0)`), so the surface
+  (`OverrunWindow.shiftPx` coerces its margin with `coerceAtLeast(0.0)`), so the surface
   requests a frame in the current orientation instead of constructing an empty coercion range and
   killing the process (`TODO.md` §153).
 - Exactly ONE displayed center: derive the offset from the frame in hand, never from the render
@@ -585,7 +585,7 @@ FollowPrediction.displayOffsetPx(displayedCenter, frameViewport, …, anchor = c
   viewport published with it, one immutable object, one volatile write per emission) — never the
   renderer's private front-buffer fields, and it reports an UNSERVABLE window (no emitted frame yet, a
   frame without an overrun margin, another magnification or rotation) as **not covered**. Sharing only
-  the math (`FollowPrediction.displayOffsetPx` + `BLIT_COVER_SLACK_PX`) was not enough: the two sides
+  the math (`OverrunWindow.shiftPx` + `BLIT_COVER_SLACK_PX`) was not enough: the two sides
   could still read different frames — the class of bug that froze the pan on device (`fix-phone-
   gesture-pan-tracking` follow-up). The pan hold is the other half of the contract: it may only be
   released for a frame that already carries the DISPLAYED center and never while the gesture is live,
@@ -743,7 +743,7 @@ car Surface:
   bounds, the density or the dark presentation changes.
 - **Sub-region blit**: a viewport change within the overrun region is served by
   `lockCanvas → drawBitmap(overrun, dx, dy) → unlockCanvasAndPost` — no native render. The blit
-  offset comes from `FollowPrediction.displayOffsetPx` (rotated-frame clamp, same rotation rule as
+  offset comes from `OverrunWindow.shiftPx` (rotated-frame clamp, same rotation rule as
   the phone blit). Beyond the margin → full render at the new center.
 - **Extrapolation loop**: a gated ~30 fps coroutine eases the displayed position toward
   `FollowPrediction.predictedPosition` and blits the delta; the GPS/destination markers are drawn

@@ -1,6 +1,7 @@
 package com.naviveylin.ui.map
 
 import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.core.anchorCenter
@@ -19,7 +20,7 @@ import org.junit.Test
  *  - the FRAME is rendered anchor-centered on its own position (render target
  *    = `anchorCenter(vehicle)`), so the vehicle sits at the anchor *inside* the
  *    bitmap and `viewport.center` stays the geo position at the screen center;
- *  - the DRAW offset is the prediction drift only (`displayOffsetPx`), which is
+ *  - the DRAW offset is the prediction drift only (`OverrunWindow.shiftPx`), which is
  *    therefore always inside the overrun margin — no uncovered strip and no
  *    content pushed off-screen (the pre-fix code subtracted the anchor a second
  *    time and saturated the clamp for every non-center preset);
@@ -67,7 +68,7 @@ class FollowAnchorFramingTest {
         frameLat: Double, frameLon: Double,
         fx: Double, fy: Double,
         angle: Double = 0.0
-    ) = FollowPrediction.displayOffsetPx(
+    ) = OverrunWindow.shiftPx(
         displayLat, displayLon, frameLat, frameLon, mag, angle,
         bitmapW, bitmapH, screenW, screenH, dpi, fx, fy
     )
@@ -268,7 +269,7 @@ class FollowAnchorFramingTest {
     @Test
     fun `blit against the raw preset while frame and marker use the resolved anchor leaves the marker off the content`() {
         // Regression: the production call site previously passed the RAW preset to
-        // displayOffsetPx while the render target (followRenderTarget) and the marker
+        // the shift helper while the render target (followRenderTarget) and the marker
         // projection used the RESOLVED fraction (spec: smooth-follow — Single
         // resolved anchor across render, blit and marker). The frame is rendered
         // anchor-centered on the resolved fraction, so the raw-anchor blit places the
@@ -334,7 +335,7 @@ class FollowAnchorFramingTest {
         val dLon = 500.0 / FollowPrediction.METERS_PER_DEG_LON
         // Portrait frame (1296x2880) against the landscape canvas (2400x1080):
         // the x margin is negative and coerces to zero.
-        val off = FollowPrediction.displayOffsetPx(
+        val off = OverrunWindow.shiftPx(
             lat, lon + dLon, lat, lon, mag, 0.0, 1296, 2880, 2400, 1080, dpi
         )
         assertTrue(off.clampedX.isFinite())

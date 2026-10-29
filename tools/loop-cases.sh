@@ -9100,7 +9100,8 @@ CASES
   # started, and the suite's scratch tree goes too. The running case is a `sleep 6` in a process group of its own,
   # standing at a working directory under this case's scratch root — `loop_pids_under` is the reader of exactly that
   # (issue #213) — so a suite that ends only itself leaves one process and one tree behind, and both are counted here
-  # rather than inferred from `$elapsed`.
+  # rather than inferred from `$elapsed`. `loop_pids_under` reads `/proc`, so these two counts are a Linux bound: on a
+  # platform without it the reader reports nothing and the pair says nothing either way.
   assert_eq "0" "$(loop_pids_under "$d" | grep -c . || true)" \
     "no process of a cut suite outlives it: $(loop_pids_under "$d" | tr '\n' ' ')"
   assert_eq "0" "$(find "$d/tmp" -mindepth 1 2>/dev/null | grep -c . || true)" \

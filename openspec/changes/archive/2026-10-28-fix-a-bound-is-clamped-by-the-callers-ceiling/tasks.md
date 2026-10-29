@@ -35,8 +35,8 @@
       `LOOP-GATE-STEP-BOUND:` line. Verify: `gate#theStepBoundIsClampedByTheCeilingTheCallerNamed` passes, and
       `gate#theBlockStaysInsideTheRecordedBound`, `gate#theSuitesOutputReachesTheConsoleWhileItRuns` and
       `gate#aStepThatNamesNoCaseIsAttributedByItsStep` still pass.
-- [x] 3.3 `tools/loop-mutations.sh`: three records (the suite's ceiling watcher, the gate's clamp, and the reader)
-      pointed at the new cases. Verify: `bash tools/loop-mutations.sh --check` applies all three, and each record
+- [x] 3.3 `tools/loop-mutations.sh`: three records (the suite's ceiling watcher, the ceiling being a clock rather
+      than an end for every suite that names one, and the gate's clamp) pointed at the new cases. Verify: `bash tools/loop-mutations.sh --check` applies all three, and each record
       turns its case red and its restore green.
 
 ## 4. The guideline (`guidelines/Build.md` §2a rule 2)
@@ -65,11 +65,12 @@
       standing, which is the process the clause "every watcher it started" is about. Verified by 6.1's three
       mutations.
 - [x] 6.3 Record the two checks 4.1 and 5.1 name: `tools/check-openspec-hygiene.sh` and its selftest ran in this
-      round's gate (21 suites, `evidence/gate-round-2.log`), and `bash tools/loop/evidence-check.sh
-      openspec/changes/archive/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling --root .` passes on the
-      final tree.
+      round's gate (20 suites, `evidence/gate-round-2.log`), and
+      `bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-28-fix-a-bound-is-clamped-by-the-callers-ceiling --root .`
+      passes on the final tree — `evidence/evidence-check-round-2.log`, `evidence-check: PASS`.
 - [x] 6.4 Re-measure the gate over the final tree, with the openspec paths in its pathspec:
-      `LOOP-GATE: tests=685 failures=0 errors=0` over 21 suites (`evidence/gate-round-2.log`,
-      `evidence/gate-tallies-round-2/`), against round 1's `tests=665 failures=2`. The one failure this change
+      `LOOP-GATE: tests=685 failures=0 errors=0` over 20 suites (`evidence/gate-round-2.log`,
+      `evidence/gate-tallies-round-2/`, `evidence/gate-summary-round-2.xml`), against round 1's
+      `tests=665 failures=2`. The one failure this change
       had caused (`driver#everyCaseDeclaresTheFilesItCanReach`) is green here, and the two `postfix-*` logs its
       attribution cited are now in this evidence directory.

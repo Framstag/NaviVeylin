@@ -89,12 +89,10 @@ internal class RendererGate {
     /**
      * A stylesheet day/night flag the owning screen wants pushed to the native client.
      *
-     * [force] re-pushes a value the native side may have dropped (a stylesheet was just
-     * reloaded, or the database became ready after an earlier push). [token] makes two
-     * requests with the same value distinct: a state flow suppresses an equal value, and
-     * a dropped push must stay retryable.
+     * [token] makes two requests with the same value distinct: a state flow suppresses an
+     * equal value, and a dropped push must stay retryable.
      */
-    data class DaylightPush(val dark: Boolean, val force: Boolean, val token: Long)
+    data class DaylightPush(val dark: Boolean, val token: Long)
 
     private val _daylightPush = MutableStateFlow<DaylightPush?>(null)
 
@@ -109,8 +107,8 @@ internal class RendererGate {
     private var daylightToken = 0L
 
     /** Publish a stylesheet-flag request; the screen's collector applies it off the main thread. */
-    fun requestDaylightPush(dark: Boolean, force: Boolean = false) {
-        _daylightPush.value = DaylightPush(dark, force, ++daylightToken)
+    fun requestDaylightPush(dark: Boolean) {
+        _daylightPush.value = DaylightPush(dark, ++daylightToken)
     }
 
     /** Read-only handle; non-null once [publish] delivered the renderer. */

@@ -841,13 +841,15 @@ car Surface:
   so the stale-variant overrun buffer is never blitted. Templates are host-rendered and
   follow the host automatically — only the app-drawn surface needs this.
 - **Startup race (both variants)**: `SetStyleFlag` is a silent no-op until a DB is
-  open, so the initial flag push can be dropped while the DB is still initializing
-  (warmup). The flag MUST be re-pushed once the DB is ready: phone re-pushes on the
-  first rendered frame (`stylePushedToNative` in `MapCanvasViewModel`); AA passes
-  `force = true` to `CarDaylightApplier.apply` **only when the stylesheet was (re)loaded**
-  (`style != pushedForStyleSheet`) — a bare `reset()` on every settings re-read (the
-  earlier shape) pushed a flag, reloaded the variant and forced a full render every few
-  seconds for nothing (change `fix-aaos-host-crash`, design D5).
+  open, so a flag push attempted while the DB is still initializing (warmup) is lost.
+  The flag MUST be re-pushed once the DB is ready: phone re-pushes on the first rendered
+  frame (`stylePushedToNative` in `MapCanvasViewModel`); on AA the pre-ready push never
+  reaches the native side at all — `pushDark` returns while there is no renderer — so
+  the first push after the renderer is published is the flag's first application, and no
+  forced re-push is needed for it. Forbidding a re-application on every settings re-read
+  is what change `fix-aaos-host-crash` (design D5) established: a bare `reset()` there
+  pushed a flag, reloaded the variant and forced a full render every few seconds for
+  nothing.
 - **Periodic work bound (Android Auto)**: the same change bounds the follow-mode
   full-render request — no request while a full render is in flight, and the interval is
   `max(200 ms, the last measured render duration)`. On the automotive AVD a full render
@@ -865,9 +867,13 @@ car Surface:
   **once**, plus one load per legitimate trigger: a style switch, a real presentation change, a **map
   database open** (a freshly opened database carries no style config, so `STARTUP_DB_READY` forces
   it), the bundled-asset refresh after an update (it runs before the start's load), and the basemap's
-  own stylesheet per basemap open. A platform-driven surface (Android Auto) may apply the flag once
-  more after a **style load it performed**, because the fresh variant may not carry the platform's
-  flag — `TODO.md` §120 is the native check that would let that re-application go. The dedupe is
+  own stylesheet per basemap open. A style load carries the flag, so a platform-driven surface (Android Auto)
+  does **not** re-apply it: `loadStyleSheet` hands the load the enabled flags
+  (`app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:2226-2235`, `GetStyleFlags()`),
+  and `DBThread::LoadStyleInternal` stores them for the new style and its basemap
+  (`.../libosmscout-client/src/osmscoutclient/DBThread.cpp:455-460`) and installs them before the parse
+  (`DBThread.cpp:366-369`). That is the native check `TODO.md` §120 asked for, which is why the car's
+  re-application after a switch is gone (change `fix-car-style-switch-costs-one-load`). The dedupe is
   app-side only: no native accessor exposes the installed pair, and the app is its only writer
   (`getActiveStyleSheet()` / `wasLastStyleLoadSuccessful()` report the outcome).
 

@@ -35,3 +35,10 @@ displaces no settled value SHALL be unchanged.
 - **THEN** the closure is not refused: one issue write adds the state it records and removes the settled value
   it displaces
 - **Case**: `close#namesTheSettledStateItDisplaces`
+
+#### Scenario: A reopen reports the settled state it removes
+
+- **WHEN** a reopen reverses a completed closure on an item that carries a settled state
+- **THEN** its report names that settled value, as a clause of the line it prints and as a field of the document
+  it prints with `--json`
+- **Case**: `foreign#toolchainRunsEndToEnd`

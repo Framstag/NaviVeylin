@@ -1,17 +1,18 @@
 # The gate, quoted
 
-Run once from the change root, 2026-10-29T06:24:13Z–06:27:18Z, on the tree this change ships (`HEAD 641a5016`):
-the delta lives under `openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/` and is merged
-into `openspec/specs/issue-backlog/spec.md`, so the map's `openspec/*` rows are part of this diff and the checks
-they owe are part of this run. The only paths written after it are this file, its tallies and `measure.txt` —
-the record of the run, no code and no requirement.
+Run once from the change root, 2026-10-29T06:36:32Z–06:38:26Z, on the tree this change ships (`HEAD 35b870a6`,
+the reviewed tree plus round 2's corrections-only notes): the delta lives under
+`openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/` and is merged into
+`openspec/specs/issue-backlog/spec.md`, so the map's `openspec/*` rows are part of this diff and the checks they
+owe are part of this run. The only paths written after it are this file, its tallies, `measure.txt` and the
+branch's record of the review round — the record of the run, no code and no requirement.
 
 ```
 $ ./tools/loop/gate.sh
 LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
 …
-LOOP-GATE: tests=163 failures=0 errors=0 (tools/issue-tooling-selftest.sh 132s, tools/issues/check-metadata.sh 1s, tools/issues/metadata-mutations.sh --list 2s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 34s, tools/mutate.sh --mutations tools/portability-mutations.json --list 1s, bash tools/gen-feature-list.sh --check-classification 5s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 4s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 3s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/mutate-selftest.sh 1s)
+LOOP-GATE: tests=163 failures=0 errors=0 (tools/issue-tooling-selftest.sh 75s, tools/issues/check-metadata.sh 0s, tools/issues/metadata-mutations.sh --list 1s, tools/mutate.sh --mutations tools/status-mutations.json --list 1s, tools/check-portability.sh 0s, tools/check-portability-selftest.sh 28s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 1s, tools/mutate-selftest.sh 0s)
 ```
 
 Exit status 0, fifteen steps. The three `openspec/` rows are in it, which is what round 1 found missing:
@@ -24,21 +25,21 @@ Every step that ran, read from its own tally under `gate-tallies/` (`gate.sh` wr
 number is the gate's, and the file's own clock would be a synthetic execution time):
 
 ```
-bash tools/gen-feature-list.sh --check-classification                    tests=0    failures=0  errors=0  time=5s
-tools/check-doc-routes-selftest.sh                                       tests=0    failures=0  errors=0  time=4s
-tools/check-doc-routes.sh                                                tests=0    failures=0  errors=0  time=0s
-tools/check-openspec-hygiene-selftest.sh                                 tests=6    failures=0  errors=0  time=0s
+bash tools/gen-feature-list.sh --check-classification                    tests=0    failures=0  errors=0  time=4s
+tools/check-doc-routes-selftest.sh                                       tests=0    failures=0  errors=0  time=1s
+tools/check-doc-routes.sh                                                tests=0    failures=0  errors=0  time=1s
+tools/check-openspec-hygiene-selftest.sh                                 tests=6    failures=0  errors=0  time=1s
 tools/check-openspec-hygiene.sh                                          tests=0    failures=0  errors=0  time=0s
-tools/check-portability-selftest.sh                                      tests=29   failures=0  errors=0  time=34s
-tools/check-portability.sh                                               tests=0    failures=0  errors=0  time=1s
-tools/check-todo-references.sh                                           tests=0    failures=0  errors=0  time=3s
-tools/issues/check-metadata.sh                                           tests=0    failures=0  errors=0  time=1s
-tools/issues/metadata-mutations.sh --list                                tests=0    failures=0  errors=0  time=2s
-tools/issue-tooling-selftest.sh                                          tests=128  failures=0  errors=0  time=132s
-tools/mutate-selftest.sh                                                 tests=0    failures=0  errors=0  time=1s
+tools/check-portability-selftest.sh                                      tests=29   failures=0  errors=0  time=28s
+tools/check-portability.sh                                               tests=0    failures=0  errors=0  time=0s
+tools/check-todo-references.sh                                           tests=0    failures=0  errors=0  time=1s
+tools/issues/check-metadata.sh                                           tests=0    failures=0  errors=0  time=0s
+tools/issues/metadata-mutations.sh --list                                tests=0    failures=0  errors=0  time=1s
+tools/issue-tooling-selftest.sh                                          tests=128  failures=0  errors=0  time=75s
+tools/mutate-selftest.sh                                                 tests=0    failures=0  errors=0  time=0s
 tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list tests=0    failures=0  errors=0  time=0s
-tools/mutate.sh --mutations tools/portability-mutations.json --list      tests=0    failures=0  errors=0  time=1s
-tools/mutate.sh --mutations tools/status-mutations.json --list           tests=0    failures=0  errors=0  time=0s
+tools/mutate.sh --mutations tools/portability-mutations.json --list      tests=0    failures=0  errors=0  time=0s
+tools/mutate.sh --mutations tools/status-mutations.json --list           tests=0    failures=0  errors=0  time=1s
 ```
 
 The two cases this change owns, from that run's own log:
@@ -46,22 +47,23 @@ The two cases this change owns, from that run's own log:
 ```
 PASS update#refusesToDisplaceASettledState
 PASS close#namesTheSettledStateItDisplaces
-issue-tooling-selftest: all 128 cases passed (JDK 27, offline, no token, HEAD 641a5016, tools e3b0c44298fc, 2026-10-29T06:26:25Z)
+issue-tooling-selftest: all 128 cases passed (JDK 27, offline, no token, HEAD 35b870a6, tools e3b0c44298fc, 2026-10-29T06:37:47Z)
 ```
 
-No compiled file is touched (`tools/**`, `guidelines/**`, `openspec/**` — `guidelines/Build.md` §2, the scope
-block), so `./gradlew test` is not owed and the gate's own path map selected the fifteen steps above: the issue
-tooling's whole suite, the two checks that read the profile, the mutation lists that pin the sets this change
-edits, and the checks that read `guidelines/Backlog.md`, the delta and the archive it moved to.
+No compiled file is touched (`tools/**`, `guidelines/**`, `openspec/**`, `.pi/**` — `guidelines/Build.md` §2, the
+scope block), so `./gradlew test` is not owed and the gate's own path map selected the fifteen steps above: the
+issue tooling's whole suite, the two checks that read the profile, the mutation lists that pin the sets this
+change edits, and the checks that read `guidelines/Backlog.md`, the delta, the archive it moved to and the
+skill this change's round 2 corrected.
 
 The two suites the pathspec does not owe, and that this change touches indirectly, were run beside the gate on
 the same tree, after it (`tools/loop/loop.conf` maps them to `tools/resolve-stale*` and `tools/sensors/*`, not to
 the files this change edits):
 
 ```
-$ bash tools/resolve-stale-selftest.sh                                     # 06:27:24Z–06:28:26Z
+$ bash tools/resolve-stale-selftest.sh                                     # 06:38:38Z–06:38:56Z
 resolve-stale-selftest: all 36 cases passed (JDK 27, offline, no token, no Gradle)
-$ bash tools/sensor-selftest.sh                                            # 06:28:26Z–06:29:45Z
+$ bash tools/sensor-selftest.sh                                            # 06:38:56Z–06:40:21Z
 sensor-selftest: all 67 cases passed (JDK 27, offline, no token)
 ```
 

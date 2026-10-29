@@ -48,7 +48,11 @@ tools/issues/update.sh 42 --status open-device                  # set the status
 tools/issues/update.sh 42 --body finding.md                     # replace the body from a file
 tools/issues/update.sh 42 --label class/bug --label source/ci    # several labels at once
 tools/issues/update.sh 42 --status open-device --json            # one JSON document
+tools/issues/update.sh 42 --status on-hold --displace-settled    # name a transition off a settled state
 ```
+
+`--displace-settled` is not optional politeness: without it, a `--status` write over an item that carries
+`status/fixed-by` or `status/retired` is refused (exit 3, `status-settled`) — see below.
 
 At least one of `--label`, `--status`, `--body` is required. `--status` is a **value** (`open`,
 `open-device`, `unverified`, …), not a label; the script composes the namespaced label from the profile.
@@ -61,6 +65,13 @@ the displaced values under `removedLabels` beside the ones the caller named. Nam
 a `status/*` `--label` beside `--status`, or a `--remove-label` cancelling the value it sets — is refused with
 exit 2 before anything is read or written, because which state the item would carry is a decision.
 (`fix-status-label-replacement`; the invariant is I16 in `guidelines/Backlog.md` §4.)
+
+A value the profile declares **settled** (`roles.settledStatuses` — `fixed-by`, `retired`) is not removed by a
+routine write at all: such a write is refused with exit 3 and the reason `status-settled`, naming the value it
+would have removed, unless the call passes `--displace-settled` — which says "I mean to take this item off the
+settled state" and has the call report the value it removed. A closure (`close.sh`) and a reopen (`reopen.sh`)
+are the two verbs whose own purpose is that transition, and they name it themselves.
+(`fix-settled-state-displacement-guard`; the invariants are I16 and I18 in `guidelines/Backlog.md` §4.)
 
 ## The closed vocabulary
 

@@ -4,7 +4,7 @@
 
 One mechanism. `tools/issues/update.sh` completes a state write by removing every other value of the status
 namespace in the same edit — `issues_status_displaced` (`tools/issues/lib.sh:331-336`) is read into
-`implied_removals` (`tools/issues/update.sh:172-175`) and handed to `gh` beside the add (`:184-186`) — and the
+`implied_removals` (`tools/issues/update.sh:188-190`) and handed to `gh` beside the add (`:203-205`) — and the
 scan is a pure namespace filter: it knows the prefix, not what the values *mean*. The profile already says
 which values mean "the item's premise is settled" (`roles.settledStatuses`, `tools/tooling.json:53`, read by
 the pre-screen at `tools/loop/prescreen.sh:258`), so a park, a verdict's hold or a resolver's reopen removes
@@ -57,7 +57,8 @@ replacement report and every write that displaces a non-settled value are unchan
   the one-state rule the write path exists to hold (`issue-backlog`, "A state transition replaces the item's
   state label") and every status query would have to learn two spellings.
 - **Stop the routine writer from writing a state at all** (the hold becomes a label of the agent namespace).
-  That is a change to what the loop's verdicts *mean* (`tools/loop/labels.sh:95-101`, `holdStatus`), far wider
+  That is a change to what the loop's verdicts *mean* (`tools/loop/labels.sh:91`, `:107`, `:111`, `:119`,
+  `holdStatus`), far wider
   than this defect, and it would break the pre-screen's reads of `holdStatus` — a second capability delta for
   one write.
 
@@ -74,7 +75,12 @@ replacement report and every write that displaces a non-settled value are unchan
   way; its tombstone branch writes `retiredStatus` (a settled *target*), which displaces a hold and is
   unaffected.
 - Risk: a call that used to land now refuses. The refusal names the flag, and the two verbs that mean the
-  transition pass it, so the only call that newly refuses is one no path in the tooling issues.
+  transition pass it, so the only call that newly refuses is one no path the queue issues. One write outside
+  the queue does land in that shape — `tools/loop/labels.sh:146` writes the `close` verdict's `closeStatus`
+  through `update.sh` without `--displace-settled`, so a hand closure of an item carrying the *other* settled
+  value would be refused where `close.sh` beside it (`:152`) would land. It is unreachable from a run (`the
+  pre-screen refuses a settled item`), and its refusal is loud; the loop's own write naming its transition is
+  filed as a follow-up rather than widened into this change.
 - Rollback: revert the commit. The guard stores nothing and writes nothing, so there is no state to migrate.
 
 ## Verification

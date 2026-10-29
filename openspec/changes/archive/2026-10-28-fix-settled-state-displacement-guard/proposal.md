@@ -4,7 +4,7 @@
 
 **Root cause** — one mechanism. `tools/issues/update.sh` replaces the item's state by removing every other
 value of the namespace — the scan is `issues_status_displaced` (`tools/issues/lib.sh:331-336`), called at
-`tools/issues/update.sh:172-175` — and it has no notion of a *settled* state. A caller that means "take this
+`tools/issues/update.sh:188-190` — and it has no notion of a *settled* state. A caller that means "take this
 item off the settled state" and a caller that merely means "park this candidate" therefore issue the same
 write, and the second erases the first without refusing and without reporting it. The profile already declares
 which values are settled — `roles.settledStatuses` = `fixed-by`, `retired` (`tools/tooling.json:53`) — and the
@@ -13,8 +13,8 @@ pre-screen reads it to drop a settled item from the queue (`tools/loop/prescreen
 
 The item's own evidence, re-verified against the tree rather than the tracker: on #146 one write removed
 `status/retired` and added `status/on-hold` (tracker timeline, 2026-10-20T23:46:54Z), and the same write shape
-is what a `stale`/`needs-decision`/`needs-device` verdict makes (`tools/loop/labels.sh:95-101`, its
-`holdStatus` writes) and what the resolver's park made before #281. #681 fixed the *read* half — a reversal now
+is what a `stale`/`needs-decision`/`needs-device` verdict makes (`tools/loop/labels.sh:91`, `:107`, `:111`,
+`:119`, its `holdStatus` writes) and what the resolver's park made before #281. #681 fixed the *read* half — a reversal now
 restores the state the item's record keeps (`openspec/changes/archive/2026-10-27-fix-parked-tombstone-keeps-its-settled-state/proposal.md`)
 — but the write that made the drift possible is unchanged on HEAD: it neither refuses nor says what it removed.
 

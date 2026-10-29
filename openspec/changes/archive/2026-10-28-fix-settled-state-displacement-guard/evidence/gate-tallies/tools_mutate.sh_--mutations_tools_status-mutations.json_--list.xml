@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/mutate.sh --mutations tools/status-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+<testsuite name="tools/mutate.sh --mutations tools/status-mutations.json --list" tests="0" failures="0" errors="0" time="1">
   <system-out>5.4	update#statusReportNamesImpliedRemoval	the report carrying the displaced labels the caller never named 7.1	update#stateNamedAsALabelReplacesTheOldState	a state named as the namespaced label being the same act as one named through the state flag 8.1	update#refusesToDisplaceASettledState	the guard refusing a routine write that would displace a settled state instead of letting every caller throug</system-out>
 </testsuite>

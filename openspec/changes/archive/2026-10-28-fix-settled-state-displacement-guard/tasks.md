@@ -41,8 +41,9 @@
 - [x] 4.1 `tools/status-mutations.json` mutation `8.1`: the guard's `named` branch forced open, so every call
       passes; `update#refusesToDisplaceASettledState` must go red. *Verify*: the whole set,
       `bash tools/mutate.sh --mutations tools/status-mutations.json`, reports
-      `mutate: 6 mutation(s) run, 6 went red and restored green, 0 problem(s)` (2026-10-28T19:59:13Z–19:59:31Z);
-      the red's own message and the restored tree's `PASS` are quoted in `evidence/revert-checks.md`.
+      `mutate: 6 mutation(s) run, 6 went red and restored green, 0 problem(s)` (2026-10-29T06:23:07Z–06:23:45Z,
+      re-run on the final tree); the red's own message and the restored tree's `PASS` are quoted in
+      `evidence/revert-checks.md`.
 
 ## 5. The gate, once
 
@@ -83,8 +84,18 @@
       assertion message and timestamps recorded, the restore's byte-identity recorded, in
       `evidence/revert-checks.md`.
 - [x] 7.4 The pointers: `proposal.md` names `issues_status_settled_guard` and the re-measured file count (10,
-      not 8); `measure.txt` is re-taken on the final tree (`base=a86ff487`, `paths=34 insertions=829 deletions=7`).
+      not 8); the line references moved with the diff and name the tree at HEAD now (`update.sh:188-190` for the
+      scan, `:203-205` for the write it feeds, the hold writes at `tools/loop/labels.sh:91`, `:107`, `:111`,
+      `:119`);
+      `measure.txt` is re-taken on the final tree with
+      `tools/loop/measure.sh --change <this change> --base a86ff487`, and its own `LOOP-MEASURE base=` line names
+      the tree it measured rather than this file quoting a count that every later edit moves.
 - [x] 7.5 `git rebase main` before the last gate: `main` had moved five commits (#680 and the module-pin repair),
       the tail of `openspec/specs/issue-backlog/spec.md` conflicted with #680's requirement there and **both**
       were kept, and the stub `tools/issues/fixtures/gh` #680 changed is the one the suite ran against — which is
       why the issue tooling's suite counts 128 cases in this gate and 127 in the pre-rebase one.
+- [x] 7.6 The scenario for the reopen's report, added to the delta and to the shipped requirement
+      (`openspec/specs/issue-backlog/spec.md`): *A reopen reports the settled state it removes*, case
+      `foreign#toolchainRunsEndToEnd` — the case that asserts both report branches. *Verify*:
+      `bash tools/check-portability-selftest.sh` green (29 cases) and
+      `openspec validate issue-backlog --type spec` unchanged in its verdict for this requirement.

@@ -101,6 +101,7 @@ LOOP_SHELL_CASES=(
   'labels#neverWritesReservedLabel'
   'labels#writesOnlyBetweenChildren'
   'labels#closeRemovesTheDecisionLabel'
+  'labels#closeNamesTheSettledTransition'
   'prompt#workerNamesEveryPhaseAndSkill'
   'prompt#workerCarriesTheFeaturePath'
   'prompt#workerNamesTheDecisionField'
@@ -427,6 +428,7 @@ loop_run_shell_case() {
     'labels#neverWritesReservedLabel') fn=case_labels_neverWritesReservedLabel ;;
     'labels#writesOnlyBetweenChildren') fn=case_labels_writesOnlyBetweenChildren ;;
     'labels#closeRemovesTheDecisionLabel') fn=case_labels_closeRemovesTheDecisionLabel ;;
+    'labels#closeNamesTheSettledTransition') fn=case_labels_closeNamesTheSettledTransition ;;
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
     'prompt#workerCarriesTheFeaturePath') fn=case_prompt_workerCarriesTheFeaturePath ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
@@ -2992,6 +2994,29 @@ case_labels_closeRemovesTheDecisionLabel() {
   assert_contains "$(cat "$log")" "--remove-label agent/needs-decision" \
     "a closure takes the decision label off, so the item leaves the queue"
   assert_contains "$(cat "$log")" "--add-label status/fixed-by" "and marks the item as fixed"
+}
+
+# A closure records one settled state and may displace the *other* one: an item a person retired that a run's
+# fix closes, or a fixed item closed as not to be done. Recording a settled state is the `close` verdict's own
+# purpose, exactly as it is `close.sh`'s (`tools/issues/close.sh` passes `--displace-settled` for that reason),
+# so the verdict names the transition to the guard every routine writer meets (#684). Without it the first of
+# the closure's two writes is refused with exit 3 `status-settled` and the item is left half attempted (#699).
+case_labels_closeNamesTheSettledTransition() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
+  local d p log out status
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario retired)
+  log="$d/gh-close-retired.log"; : > "$log"; export GH_STUB_RECORD="$log"
+
+  out=$(run_labels "$p" close 21 --reason "the fixture cause" --evidence "the fixture evidence" 2>&1); status=$?
+  [ "$status" -eq 0 ] || fail "a closure over the other settled state was refused: $out"
+  assert_contains "$(cat "$log")" "--add-label status/fixed-by" \
+    "the closure records the settled state it means"
+  assert_contains "$(cat "$log")" "--remove-label status/retired" \
+    "and displaces the one it replaces, so the item carries one state"
+  assert_contains "$out" "status/retired" \
+    "the settled value the closure displaced is said out loud, so a reader of the call sees the claim that moved"
+  assert_eq "1" "$(grep -c 'issue close' "$log")" "the item is closed, not left half attempted"
 }
 
 # A block whose cause is the run's own child is not a question the item asked. Rather than escalate a reason

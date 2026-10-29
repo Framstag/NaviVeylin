@@ -648,6 +648,14 @@ MUTATIONS=(
   # as submodule patches. The mutation drops the line anchor and matches the phrase anywhere, which is precisely
   # what makes a body that quotes the marker indistinguishable from one that states it.
   '69.1@-@tools/loop/prescreen.sh@prescreen#aQuotedSubmodulePathIsEvidenceNotAClaim@the line anchor that separates the author'"'"'s stated claim from a quoted mention of it (issue #314)@s|grep -q "^\$marker"|grep -qF "$marker"|'
+
+  # 70.x — the loop's `close` verdict records a settled state, and the item it closes may carry the *other*
+  # settled value of the profile (a retired entry a fix closes, a fixed item a person retires). Recording a
+  # settled state is that verdict's own purpose, exactly as it is `close.sh`'s, so the write names the
+  # transition (#684) instead of being refused with exit 3 `status-settled` and leaving the closure half
+  # attempted between its two writes (#699). The mutation takes the flag off the closure's own write and leaves
+  # the routine writers as they were, so the case's refusal is the guard's and not something else.
+  '70.1@-@tools/loop/labels.sh@labels#closeNamesTheSettledTransition@the closure naming the transition its own write makes, so the other settled value is displaced instead of refusing the write (issue #699)@s|^  \[ "\$close_issue" -eq 0 \] \|\| args+=(--displace-settled)$|  : # the closure names no transition|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

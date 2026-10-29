@@ -23,7 +23,8 @@
 #   needs-decision · needs-diagnosis        + agent/needs-decision + status/on-hold
 #   exclude-feature · exclude-settled       + agent/<verdict>, status and the opt-in untouched — the
 #                                           pre-screen's own refusal, which a person clears
-#   close                                   − agent/in-progress, + status/fixed-by, then the closure
+#   close                                   − agent/in-progress, + status/fixed-by naming the transition, then the
+#                                           closure
 #   escalate                                + agent/needs-decision + status/on-hold, and a comment that
 #                                           names the root cause, the failing case and the branch
 #
@@ -132,7 +133,16 @@ esac
 args=("$issue")
 if [ "${#add_labels[@]}" -gt 0 ]; then args+=(--label "${add_labels[@]}"); fi
 if [ "${#remove_labels[@]}" -gt 0 ]; then args+=(--remove-label "${remove_labels[@]}"); fi
-if [ -n "$status_value" ]; then args+=(--status "$status_value"); fi
+if [ -n "$status_value" ]; then
+  args+=(--status "$status_value")
+  # The `close` verdict's write IS the closure's transition, exactly as `close.sh`'s own is
+  # (`tools/issues/close.sh`): the item it closes may carry the *other* settled value of the profile — a fixed
+  # item a person retires, a retired entry a fix closes — and a write that records a settled state without
+  # naming the transition is refused by the guard every routine writer meets (exit 3, `status-settled`, #684).
+  # Naming it here is what lets the closure land and report the value it displaced instead of leaving the
+  # item half attempted between the two writes (#699).
+  [ "$close_issue" -eq 0 ] || args+=(--displace-settled)
+fi
 
 # Both arguments are required *before* anything is written: a call that forgets them used to leave the state
 # written and the reason missing, which is the half-written item the closure path already refuses to risk

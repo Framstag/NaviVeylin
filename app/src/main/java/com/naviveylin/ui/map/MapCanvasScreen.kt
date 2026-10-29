@@ -484,8 +484,8 @@ var showAddressBookRationale by showAddressBookRationaleState
     var followLogCount by followLogCountState
 
     // smooth-zoom (spec: smooth-zoom): eased front-buffer zoom animation for
-    // discrete zoom input (buttons, scroll wheel, keyboard — no double-tap
-    // zoom exists). The animation scales the currently rendered bitmap around
+    // discrete zoom input (buttons, scroll wheel, keyboard, double tap on the map
+    // canvas). The animation scales the currently rendered bitmap around
     // the zoom anchor while the debounced native render at the target
     // magnification runs. Render completion hands over in the frame loop
     // below: immediate swap when the animation already holds the target

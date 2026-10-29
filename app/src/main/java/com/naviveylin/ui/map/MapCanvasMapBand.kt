@@ -354,6 +354,18 @@ internal fun BoxScope.MapCanvasMapBandContent(
                                 fireLongPress(viewModel, context, position, canvasSizeState.value)
                             }
 
+                            override fun onDoubleTap(position: Offset) {
+                                attributionInteractionTickState.value++
+                                // spec: smooth-zoom — A double tap steps one level at its own
+                                // point. The step is committed at once (the viewport records
+                                // the target level) and the display eases toward it around the
+                                // tap point, through the same animation the zoom buttons and
+                                // the scroll wheel use.
+                                fireDoubleTap(
+                                    viewModel, context, position, canvasSizeState.value
+                                ) { anchor -> animateDiscreteZoom(anchor) }
+                            }
+
                             override fun onRenderRequested() {
                                 attributionInteractionTickState.value++
                                 // Gesture end: commit the accumulated multi-touch

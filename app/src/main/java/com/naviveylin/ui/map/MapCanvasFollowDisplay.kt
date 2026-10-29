@@ -178,7 +178,15 @@ internal fun MapCanvasFollowDisplayLoop(
                 if (committedMag != lastZoomAnimTargetState.value) {
                     lastZoomAnimTargetState.value = committedMag
                     if (!gestureActiveState.value && gestureBaseScaleState.value == 1f) {
-                        animateDiscreteZoom(zoomAnimationAnchor(), zoomAnim.activeDurationMs)
+                        // The retrack keeps the anchor of the input that started the animation
+                        // (a double tap or scroll-wheel point, or the follow anchor): retracking
+                        // on the screen center would move the pivot of a discrete input away from
+                        // the point that input keeps fixed (spec: smooth-zoom — Geographic anchor
+                        // stays fixed during zoom animation).
+                        animateDiscreteZoom(
+                            zoomAnchorState.value.takeIf { it != Offset.Zero } ?: zoomAnimationAnchor(),
+                            zoomAnim.activeDurationMs
+                        )
                     }
                 }
                 // Rotation render-land (design D1): when the front buffer swaps to

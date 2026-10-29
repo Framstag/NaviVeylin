@@ -122,7 +122,11 @@ class StartMapResolverTest {
         val deleted = File(mapsRoot(), "deleted-map").absolutePath
         record(deleted)
 
-        val first = resolver().resolve()
+        // The deleted path is not a candidate and two databases are installed, so the fallback is one of
+        // them: name that assumption instead of handing `String?` to a non-null collection parameter.
+        val first = requireNotNull(resolver().resolve()) {
+            "two databases are installed, so the fallback must resolve to one of them"
+        }
         val second = resolver().resolve()
 
         assertEquals(nested.absolutePath, first)

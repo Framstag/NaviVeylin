@@ -48,7 +48,14 @@ class ShippedSpecClassificationTest {
     private fun shippedSpecIds(): List<String> =
         specsDir.walkTopDown()
             .filter { it.isFile && it.name == "spec.md" }
-            .map { it.parentFile.relativeTo(specsDir).path }
+            .map { spec ->
+                // `walkTopDown()` yielded a file, so its parent exists; say so here instead of letting the
+                // nullable receiver reach `relativeTo`.
+                val parent = requireNotNull(spec.parentFile) {
+                    "a walked spec.md must sit in a directory: $spec"
+                }
+                parent.relativeTo(specsDir).path
+            }
             .sorted()
             .toList()
 

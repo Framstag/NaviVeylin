@@ -489,6 +489,12 @@ split.
   - **The `:auto` unit-test source set carries none of its three non-opt-in diagnostics** — a final-class type
     parameter, an always-true condition, an unchecked cast — swept by change `fix-auto-test-source-warnings`;
     `AutoTestSourceWarningBaselineTest` (an `:app` unit test) now holds that set to this bullet.
+  - **The `:app` unit-test source set names a nullable value's non-null assumption** — a `…resolve()` result
+    handed to a non-null Java parameter and a bare `…parentFile.` dereference were the two `String?`/`File?`
+    `w:` lines the four unit-test compiles carried until change
+    `fix-nullability-warnings-in-two-test-sources`: measured 2026-10-29, one line per family per `:app` flavor
+    compile, four lines over two call sites, and both compiles print `grep -c "^w: "` = 0 after the fix.
+    `UnitTestSourceNullabilityBaselineTest` (`:app` unit tests, 3 cases) holds the absence.
 - **Test failures**: extract `FAILED` lines (test class + method), rerun a
   single test with `--tests "<FQCN>"` to isolate, then report.
 

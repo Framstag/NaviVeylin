@@ -1,6 +1,6 @@
 # The gate, quoted
 
-Run once from the change root, 2026-10-29T06:36:32Z–06:38:26Z, on the tree this change ships (`HEAD 35b870a6`,
+Run once from the change root, 2026-10-29T06:41:09Z–06:43:13Z, on the tree this change ships (`HEAD f7fc6c0a`,
 the reviewed tree plus round 2's corrections-only notes): the delta lives under
 `openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/` and is merged into
 `openspec/specs/issue-backlog/spec.md`, so the map's `openspec/*` rows are part of this diff and the checks they
@@ -12,7 +12,7 @@ $ ./tools/loop/gate.sh
 LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
 …
-LOOP-GATE: tests=163 failures=0 errors=0 (tools/issue-tooling-selftest.sh 75s, tools/issues/check-metadata.sh 0s, tools/issues/metadata-mutations.sh --list 1s, tools/mutate.sh --mutations tools/status-mutations.json --list 1s, tools/check-portability.sh 0s, tools/check-portability-selftest.sh 28s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 1s, tools/mutate-selftest.sh 0s)
+LOOP-GATE: tests=163 failures=0 errors=0 (tools/issue-tooling-selftest.sh 80s, tools/issues/check-metadata.sh 1s, tools/issues/metadata-mutations.sh --list 1s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 32s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 2s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/mutate-selftest.sh 1s)
 ```
 
 Exit status 0, fifteen steps. The three `openspec/` rows are in it, which is what round 1 found missing:
@@ -28,18 +28,18 @@ number is the gate's, and the file's own clock would be a synthetic execution ti
 bash tools/gen-feature-list.sh --check-classification                    tests=0    failures=0  errors=0  time=4s
 tools/check-doc-routes-selftest.sh                                       tests=0    failures=0  errors=0  time=1s
 tools/check-doc-routes.sh                                                tests=0    failures=0  errors=0  time=1s
-tools/check-openspec-hygiene-selftest.sh                                 tests=6    failures=0  errors=0  time=1s
+tools/check-openspec-hygiene-selftest.sh                                 tests=6    failures=0  errors=0  time=0s
 tools/check-openspec-hygiene.sh                                          tests=0    failures=0  errors=0  time=0s
-tools/check-portability-selftest.sh                                      tests=29   failures=0  errors=0  time=28s
-tools/check-portability.sh                                               tests=0    failures=0  errors=0  time=0s
-tools/check-todo-references.sh                                           tests=0    failures=0  errors=0  time=1s
-tools/issues/check-metadata.sh                                           tests=0    failures=0  errors=0  time=0s
+tools/check-portability-selftest.sh                                      tests=29   failures=0  errors=0  time=32s
+tools/check-portability.sh                                               tests=0    failures=0  errors=0  time=1s
+tools/check-todo-references.sh                                           tests=0    failures=0  errors=0  time=2s
+tools/issues/check-metadata.sh                                           tests=0    failures=0  errors=0  time=1s
 tools/issues/metadata-mutations.sh --list                                tests=0    failures=0  errors=0  time=1s
-tools/issue-tooling-selftest.sh                                          tests=128  failures=0  errors=0  time=75s
-tools/mutate-selftest.sh                                                 tests=0    failures=0  errors=0  time=0s
+tools/issue-tooling-selftest.sh                                          tests=128  failures=0  errors=0  time=80s
+tools/mutate-selftest.sh                                                 tests=0    failures=0  errors=0  time=1s
 tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list tests=0    failures=0  errors=0  time=0s
 tools/mutate.sh --mutations tools/portability-mutations.json --list      tests=0    failures=0  errors=0  time=0s
-tools/mutate.sh --mutations tools/status-mutations.json --list           tests=0    failures=0  errors=0  time=1s
+tools/mutate.sh --mutations tools/status-mutations.json --list           tests=0    failures=0  errors=0  time=0s
 ```
 
 The two cases this change owns, from that run's own log:
@@ -47,7 +47,7 @@ The two cases this change owns, from that run's own log:
 ```
 PASS update#refusesToDisplaceASettledState
 PASS close#namesTheSettledStateItDisplaces
-issue-tooling-selftest: all 128 cases passed (JDK 27, offline, no token, HEAD 35b870a6, tools e3b0c44298fc, 2026-10-29T06:37:47Z)
+issue-tooling-selftest: all 128 cases passed (JDK 27, offline, no token, HEAD f7fc6c0a, tools e3b0c44298fc, 2026-10-29T06:42:29Z)
 ```
 
 No compiled file is touched (`tools/**`, `guidelines/**`, `openspec/**`, `.pi/**` — `guidelines/Build.md` §2, the
@@ -61,9 +61,9 @@ the same tree, after it (`tools/loop/loop.conf` maps them to `tools/resolve-stal
 the files this change edits):
 
 ```
-$ bash tools/resolve-stale-selftest.sh                                     # 06:38:38Z–06:38:56Z
+$ bash tools/resolve-stale-selftest.sh                                     # 06:43:22Z–06:43:47Z
 resolve-stale-selftest: all 36 cases passed (JDK 27, offline, no token, no Gradle)
-$ bash tools/sensor-selftest.sh                                            # 06:38:56Z–06:40:21Z
+$ bash tools/sensor-selftest.sh                                            # 06:43:47Z–06:45:21Z
 sensor-selftest: all 67 cases passed (JDK 27, offline, no token)
 ```
 

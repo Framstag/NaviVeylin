@@ -1,5 +1,5 @@
 LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
-LOOP-MEASURE base=a86ff487dfedba86c3c6616d840665a71f96df87 paths=36 insertions=898 deletions=7
+LOOP-MEASURE base=a86ff487dfedba86c3c6616d840665a71f96df87 paths=36 insertions=901 deletions=7
 LOOP-MEASURE-PATH guidelines/Backlog.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/design.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate.md
@@ -55,36 +55,36 @@ LOOP-MEASURE-SUITE cases=276 cmd=tools/loop-selftest.sh --list
 LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
 LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
 LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
-LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
 LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
-LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=28s
-LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=0s
-LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
-LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=32s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=1s
 LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0 time=1s
-LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=128 failures=0 time=75s
-LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=128 failures=0 time=80s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
 LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
 LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
-LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=1s
-LOOP-MEASURE-GATE seconds=113 suites=15
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=124 suites=15
 LOOP-MEASURE-CHANGE 2026-10-28-fix-settled-state-displacement-guard scenarios=4 cases=4 unnamed=0
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-summary.xml tests=163 failures=0
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=0 failures=0 time=1s
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
-LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
-LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=28s
-LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=0s
-LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
-LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=32s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_issues_check-metadata.sh.xml tests=0 failures=0 time=1s
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_issues_metadata-mutations.sh_--list.xml tests=0 failures=0 time=1s
-LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=128 failures=0 time=75s
-LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_mutate-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml tests=128 failures=0 time=80s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_mutate-selftest.sh.xml tests=0 failures=0 time=1s
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
-LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
 LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-28-fix-settled-state-displacement-guard/evidence/settled-displacement-red.xml tests=1 failures=1
 LOOP-MEASURE-SURFACE surface: 2 cases added, 0 rewritten, 1 case file realigned, 3 writers and 1 profile reader edited, 1 guideline
 LOOP-MEASURE-END

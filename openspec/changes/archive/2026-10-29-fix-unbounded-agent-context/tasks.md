@@ -93,11 +93,13 @@ routed section and carry their run. `evidence/round-2.md` is the note, its logs 
   the mutation `section-cost-ruler`.
 - [x] 7.3 Add the two mutation records to `tools/check-doc-routes-mutations.json` and narrow `case-cmd` to the
   named case, then carry the round's run beside this file. Verify: `mutate: 3 mutation(s) run, 3 went red and
-  restored green, 0 problem(s)` (`evidence/round-2-mutations.log`) and `LOOP-GATE: tests=37 failures=0 errors=0`
-  over the nine suites this pathspec owes (`evidence/round-2-gate.log`).
+  restored green, 0 problem(s)` (`evidence/round-2-mutations.log`) and the gate's summary — `LOOP-GATE: tests=37
+  failures=0 errors=0` over the nine suites the pathspec owed before the merge (`evidence/round-2-gate-sum.xml`,
+  tallies in `evidence/gate-tallies-round-2/`), and `LOOP-GATE: tests=265 failures=0 errors=0` over the 26 the
+  merged tree owes (`evidence/merge-gate.log`, `evidence/merge-gate-sum.xml`).
 - [x] 7.4 Correct the numbers round 1 could not resolve and write the check's clause where its authors read:
-  §9's stated size — 15 142 bytes, the value `bash tools/check-doc-routes.sh --sizes` prints for it on this tree,
-  carried in `evidence/round-2-sizes.log` — in `Backlog.md` §9 and in `design.md`'s two restatements, whose
+  §9's stated size — 15 389 bytes, the value `bash tools/check-doc-routes.sh --sizes` prints for it on the merged
+  tree, carried in `evidence/round-2-sizes.log` — in `Backlog.md` §9 and in `design.md`'s two restatements, whose
   attribution moves from `measure-the-tree.txt` (the first run's numbers) to this round's log; the
   routing-table clause itself in §9 and in `AGENTS.md`'s map introduction, naming the spec that owns it; and the
   archive's own `openspec validate` state. Verify: `evidence/round-2.md` carries each with the command behind

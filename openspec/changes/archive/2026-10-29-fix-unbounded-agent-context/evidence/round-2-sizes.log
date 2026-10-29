@@ -1,18 +1,18 @@
-THE SIZES THIS ROUND STATES — the requirement's ruler on this tree, 2026-10-29T20:11:55Z
+THE SIZES THIS ROUND STATES — the requirement's ruler on the merged tree, 2026-10-29T20:28:04Z
 
 $ bash tools/check-doc-routes.sh --sizes | awk '$2=="section-cost" && $9=="routed" && $5+0 > 12000'   # the eight conditions
-check-doc-routes: section-cost Backlog.md §9 15142 bytes 164 lines routed
+check-doc-routes: section-cost Backlog.md §9 15389 bytes 167 lines routed
 check-doc-routes: section-cost Build.md §7 12052 bytes 161 lines routed
 check-doc-routes: section-cost Design.md §5 12781 bytes 146 lines routed
 check-doc-routes: section-cost Design.md §8 12058 bytes 156 lines routed
-check-doc-routes: section-cost MapRendering.md §1 22644 bytes 249 lines routed
+check-doc-routes: section-cost MapRendering.md §1 22592 bytes 249 lines routed
 check-doc-routes: section-cost UI.md §1 25206 bytes 257 lines routed
 check-doc-routes: section-cost UI.md §7a 13102 bytes 158 lines routed
 check-doc-routes: section-cost UI.md §8 19681 bytes 245 lines routed
 
 # the sub-sections of the six rows the cost clause convicted, which those rows now price
 $ bash tools/check-doc-routes.sh --sizes | grep -E 'section-cost (MapRendering.md §15a|MapRendering.md §16a|MapRendering.md §16b|UI.md §3a|UI.md §3b|UI.md §3c|UI.md §6a|UI.md §6b|UI.md §7a|UI.md §8a|UI.md §10a) '
-check-doc-routes: section-cost MapRendering.md §15a 3139 bytes 38 lines routed
+check-doc-routes: section-cost MapRendering.md §15a 3149 bytes 38 lines routed
 check-doc-routes: section-cost MapRendering.md §16a 2432 bytes 31 lines routed
 check-doc-routes: section-cost MapRendering.md §16b 790 bytes 13 lines routed
 check-doc-routes: section-cost UI.md §3a 4411 bytes 65 lines routed

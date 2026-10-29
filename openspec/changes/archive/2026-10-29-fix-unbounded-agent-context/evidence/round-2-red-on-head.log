@@ -1,5 +1,5 @@
 RED ON HEAD — the two cases documentation-ownership names for the cost of a routed read, run against HEAD's
-check (tools/check-doc-routes.sh at 7b5893fa) with this round's self-test. Recorded 2026-10-29T20:12:52Z.
+check (tools/check-doc-routes.sh at 7b5893fa) with this round's self-test. Recorded 2026-10-29T20:28:23Z.
 
 --- bash tools/check-doc-routes-selftest.sh --case 'routed-read#bound'
 FAIL  routed-read#bound — every section of every routed document is printed with its cost, each equal to the requirement's ruler, and the pairs the table routes are the pairs marked routed

@@ -64,21 +64,27 @@ table (six rows, `exit=1`).
   `route-states-its-cost` (`routed-read#route`) and `section-cost-ruler` (`routed-read#bound`) — plus the
   existing `skill-path` record; `case-cmd` now runs one named case (`--case {case}`) instead of the whole
   suite. `mutate: 3 mutation(s) run, 3 went red and restored green, 0 problem(s)`.
-- **Gate** (`round-2-gate.log`, its nine tallies in `gate-tallies-round-2/`): `LOOP-GATE: tests=37 failures=0
-  errors=0` over the suites this pathspec owes — the action runtimes' pair, the feature list's classification
-  check, the route check and its self-test and mutation listing, the TODO references' check and the openspec
-  hygiene's pair. No compiled path, so no Gradle run is owed (`guidelines/Build.md` §2, scope block). The route
-  self-test's 21 cases are in the 37 because its summary line now reads `all N cases passed`, which is the
-  shape the gate's tally parses. The gate writes one tally per suite and no combined file, so the summary the
-  notes quote is carried by `round-2-gate-sum.xml`, which `round-2-gate-sum.sh` derives from those nine — the
-  sum, never a new number.
+- **Gate** (`round-2-gate-sum.xml`, its nine tallies in `gate-tallies-round-2/`): `LOOP-GATE: tests=37
+  failures=0 errors=0` over the suites this pathspec owed before the merge — the action runtimes' pair, the
+  feature list's classification check, the route check and its self-test and mutation listing, the TODO
+  references' check and the openspec hygiene's pair. No compiled path, so no Gradle run was owed
+  (`guidelines/Build.md` §2, scope block). The route self-test's 21 cases are in the 37 because its summary line
+  now reads `all N cases passed`, which is the shape the gate's tally parses. The gate writes one tally per suite
+  and no combined file, so a summary a note quotes is carried by a carrier XML that `round-2-gate-sum.sh` derives
+  from those tallies — the sum, never a new number.
+- **The merge** (`merge-gate.log`, `merge-gate-sum.xml`, tallies in `merge-gate-tallies/`): `origin/main` was 37
+  commits ahead, merged without a conflict, and the gate over the merged tree ran **26 suites**, `LOOP-GATE:
+  tests=265 failures=0 errors=0`, because the merge's own pathspec now reaches the sensor, portability, issue and
+  mutation suites. Everything this note measures was re-measured on that tree: §9 15 389 bytes, `MapRendering.md`
+  §1 22 592, `AGENTS.md` 26 521, 146 sections and 116 routed pairs (`round-2-sizes.log`), the red run, the green
+  run and the three mutations re-taken after it.
 
 ## The two numbers round 1 could not resolve
 
 - `Backlog.md` §9 said "12 894 bytes before this paragraph was added", a value no command in the record
   produced (`evidence/measure-the-tree.txt` carries `Backlog.md §9 bytes=14634`, taken *with* the paragraph).
-  It now reads `15 142`, which is the number `bash tools/check-doc-routes.sh --sizes` prints for that section on
-  this tree (`round-2-sizes.log`), after the routing-table clause and its one-sentence reference — and
+  It now reads `15 389`, which is the number `bash tools/check-doc-routes.sh --sizes` prints for that section on
+  the merged tree (`round-2-sizes.log`), after the routing-table clause and its one-sentence reference — and
   `design.md`'s two restatements are corrected to the same value, with their attribution moved from
   `measure-the-tree.txt` (which carries the *first* run's numbers) to this round's log.
 - Task 3.2's Verify named `openspec validate 2026-10-29-fix-unbounded-agent-context --type change`, and no

@@ -1,4 +1,4 @@
-GREEN — the documentation-route self-test on the corrected tree, 2026-10-29T20:12:57Z
+GREEN — the documentation-route self-test on the merged tree, 2026-10-29T20:28:09Z
 
 PASS  routes#everyReferenceResolves — a map where every reference resolves (exit 0)
 PASS  routes#aDanglingSectionNumberIsReported — a dangling section number fails naming the reference (exit 1)

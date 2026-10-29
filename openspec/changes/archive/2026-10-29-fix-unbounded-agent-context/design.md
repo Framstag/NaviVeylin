@@ -51,7 +51,8 @@ while the verdict stays on the measured bytes so no bound rests on an estimate. 
   one paragraph in `guidelines/Backlog.md` §9; three cases and two mutations; and one MODIFIED requirement with
   three added scenarios in `documentation-ownership`. Eight files.
 - Nothing compiled: no Kotlin, Java, C++, Gradle, manifest or resource. No `:app` behaviour changes.
-- **The self-referential risk, named:** §9 is 15 142 bytes with this change's paragraph and the routing-table
+- **The self-referential risk, named:** §9 is 15 389 bytes on the merged tree with this change's paragraph and
+  the routing-table
   clause it now states (`evidence/round-2-sizes.log`), so it is already one of the eight conditions the bound
   convicts, and the paragraph that documents the check is part of that count. The
   alternative — documenting the rows somewhere other than the section that owns the checks' doctrine — would
@@ -61,7 +62,7 @@ while the verdict stays on the measured bytes so no bound rests on an estimate. 
 - The first run of the two rows files eight section conditions on today's tree and nothing for the entry
   document — re-measured with `bash tools/check-doc-routes.sh --sizes` in `evidence/round-2-sizes.log` (the first
   run's own numbers are in `evidence/measure-the-tree.txt`): `UI.md` §1 (25 206 bytes), `MapRendering.md` §1
-  (22 644), `UI.md` §8 (19 681), `UI.md`'s "Phone map re-center button" section (13 102), `Backlog.md` §9 (15 142
+  (22 592), `UI.md` §8 (19 681), `UI.md`'s "Phone map re-center button" section (13 102), `Backlog.md` §9 (15 389
   bytes), `Design.md` §5 (12 781), `Design.md` §8 (12 058), and `Build.md`'s "Code coverage" section
   (12 052). Filing is not authorising: they carry no `agent/eligible`, and each closes when its own section
   shrinks.
@@ -98,7 +99,7 @@ before the change.
 - **Characters as the unit.** Eliminated by the recorded decision (its option 2, rejected): it is deterministic
   but is a second unit beside the bytes the requirement's ruler is stated in. The numbers the item quotes for
   `UI.md` §1 and `MapRendering.md` §1 (24 750 and 22 510) are character counts; as bytes they are 25 206 and
-  22 644 today, and the byte count is what the row reports.
+  22 592 on the merged tree (`evidence/round-2-sizes.log`), and the byte count is what the row reports.
 - **Bound only the sections.** Eliminated by the decision, which names the 32 000-byte bound for the entry
   document, and by the cost model: the entry document is the one every session reads before it reads anything
   else, so it is the first place the budget erodes.

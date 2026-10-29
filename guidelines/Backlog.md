@@ -963,8 +963,8 @@ closes when that section shrinks; a recorded condition whose pair the table no l
 identity and carries no byte count. The unit, the two bounds (12 000 bytes per routed section, 32 000 bytes for
 the entry document) and the exclusion are the owner's recorded decision (2026-10-27), and each bound is its own
 row's, so retuning one is one edit in `sensors.json`. Measured on the tree this landed on, the bound convicts
-eight sections — `UI.md` §1 (25 206 bytes) and §8 (19 681), `MapRendering.md` §1 (22 644), `UI.md` §7a (13 102),
-this §9 (15 142 bytes), `Design.md` §5 (12 781) and §8 (12 058), and `Build.md`
+eight sections — `UI.md` §1 (25 206 bytes) and §8 (19 681), `MapRendering.md` §1 (22 592), `UI.md` §7a (13 102),
+this §9 (15 389 bytes), `Design.md` §5 (12 781) and §8 (12 058), and `Build.md`
 §7 (12 052) — which is exactly the silent erosion the row exists to make visible.
 
 The routing table has one condition of its own, and it is not a row because it files nothing:

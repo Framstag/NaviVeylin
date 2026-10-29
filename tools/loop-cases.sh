@@ -7222,12 +7222,22 @@ case_run_awaitingDecisionIsNotEscalatedAgain() {
 # itself is the run's own leftover. Measured 2026-10-22: 43 of the 53 local branches were already merged
 # into the base, and nothing removed them — the run creates a branch per item and never took one away.
 case_run_aMergedBranchIsRemoved() {
-  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p w branch head
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p w branch head out report_branches
   d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
-  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  out=$(run_one_item "$p" "$d" 2>&1) || fail "the run failed"
   branch=$(git -C "$p" branch --list 'fix/issue-*' --format='%(refname:short)')
   [ -z "$branch" ] || fail "the run left the branch of the item it closed behind: $branch"
+  # The run deletes this branch by two paths — the item's own release after its merge (`worktree.sh
+  # release-branch`, called from run.sh) and the end-of-run sweep of what landed (`prune-landed --apply`, issue
+  # #239) — so the assertion above is downstream of both, and disabling one of them alone leaves it true while
+  # the other answers for it (issue #698, mutation 42.2). The run's report is printed *between* the two: it reads
+  # git before the sweep runs, so it answers what the merge left behind, and nothing the sweep does can make this
+  # second assertion true.
+  report_branches=$(printf '%s\n' "$out" | sed -n 's/^branches: //p' | tail -1)
+  [ -n "$report_branches" ] || fail "the run printed no report line to read — the line this case reads was reworded"
+  assert_not_contains "$report_branches" "fix/issue-" \
+    "the branch was removed where the run merged it, not by the end sweep that runs after the report"
   # The work is in the base — the branch is gone, the fix is not.
   git -C "$p" ls-tree -r --name-only main | grep -q 'openspec/changes/archive/2026-01-01-fix-demo/proposal.md' ||
     fail "the item's change is not in the base"

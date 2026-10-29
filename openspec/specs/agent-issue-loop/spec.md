@@ -1645,6 +1645,14 @@ SHALL be left alone and named as work to land.
   branch behind, and the next item still starts its own branch from the base
 - **Case**: `run#aMergedBranchIsRemoved`
 
+#### Scenario: The merged branch is gone before the run's report, not by the run's end sweep
+
+- **WHEN** the run merges the branch it committed for an item and prints the report it ends with — the report
+  being printed before the run sweeps the branches it left behind
+- **THEN** that report names no branch of the item, because the branch is already removed at the merge, so the
+  end-of-run sweep is not what a reader is observing and the release's own deletion is falsifiable by itself
+- **Case**: `run#aMergedBranchIsRemoved`
+
 #### Scenario: A branch that still carries work is never removed
 
 - **WHEN** the sweep of what the loop left behind meets a branch whose patches the base does not have, or a

@@ -106,6 +106,11 @@
     <string name="auto_zoom">Auto zoom</string>
     <string name="keep_screen_on">Keep screen on</string>
     <string name="lane_instructions">Lane instructions</string>
+    <!-- Spoken guidance switches (spec: voice-guidance — The phone offers both switches in its
+         settings sheet). "Voice guidance" is the phone's own switch; "GPS announcements" is the one
+         value both surfaces share and is off by default. -->
+    <string name="voice_guidance_switch">Voice guidance</string>
+    <string name="gps_announcements_switch">GPS announcements</string>
     <string name="overspeed_warning_delta">Overspeed warning</string>
     <string name="vehicle_position">Vehicle position</string>
     <string name="vehicle_position_routing">Vehicle position (navigation)</string>

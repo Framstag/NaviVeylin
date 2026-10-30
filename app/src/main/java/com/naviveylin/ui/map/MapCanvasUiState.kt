@@ -183,6 +183,16 @@ data class MapCanvasUiState(
     val isDarkPresentation: Boolean = false,
     val gpsFixQuality: GpsFixQuality = GpsFixQuality.NONE,
     val laneHintsEnabled: Boolean = true,
+    /**
+     * The phone's own spoken-guidance switch (spec: `voice-guidance` — The voice switch is per
+     * surface, persisted and on by default); default on is the behaviour before the switch existed.
+     */
+    val voiceGuidanceEnabled: Boolean = true,
+    /**
+     * The shared GPS-announcement switch (spec: `voice-guidance` — GPS announcements are one shared
+     * switch, off by default); the same value the car preferences show.
+     */
+    val announceGpsState: Boolean = false,
     val renderMode: RenderMode = RenderMode.TILES,
     /**
      * Overspeed warning delta (km/h, 0-30, default 5): the speed badge

@@ -24,6 +24,18 @@ data class AutoSettings(
      */
     val overspeedWarningDeltaKmh: Int = 5,
     /**
+     * Speak turn-by-turn guidance for navigation **on Android Auto** (spec: `voice-guidance` — The voice
+     * switch is per surface, persisted and on by default). The car's own value: the phone's switch is a
+     * separate field, so a driver who silences the phone keeps the car speaking.
+     */
+    val voiceGuidanceEnabled: Boolean = true,
+    /**
+     * Announce a lost or restored GPS signal (spec: `voice-guidance` — GPS announcements are one shared
+     * switch, off by default). One value shared by both surfaces, so a change in the car is the value the
+     * phone reads.
+     */
+    val announceGpsState: Boolean = false,
+    /**
      * Vehicle anchor preset for routing **on Android Auto** (spec:
      * auto/navigation-view — Vehicle anchor during navigation), resolved for this
      * read: the car's own value when it has one, else the phone's value it inherits

@@ -191,6 +191,28 @@ class NavigationEngine @Inject constructor(
     /** Collector that forwards leased location fixes into the native controller. */
     private var locationJob: Job? = null
 
+    /**
+     * The surface that started the running navigation session (spec: `voice-guidance` — The voice
+     * switch is per surface, persisted and on by default). Phone by default: every caller that does
+     * not name a surface starts a phone session, which is the behaviour before the switches existed.
+     * Reset in [stopNavigation].
+     */
+    private var sessionOrigin: SurfaceOrigin = SurfaceOrigin.PHONE
+
+    /**
+     * The GPS sample ordinal currently held, or the last one announced (spec: `voice-guidance` —
+     * A GPS announcement is spoken only after the state held). A repeated sample of the same state
+     * neither restarts the hold nor adds an utterance; the opposite state replaces it.
+     */
+    private var gpsStateInFlight: Int? = null
+
+    /**
+     * The hold job of a pending GPS announcement: cancelled by the opposite state, by the session end,
+     * and by nothing else. Lives in the engine scope, so it dies with the engine
+     * (`guidelines/Design.md` §4).
+     */
+    private var gpsHoldJob: Job? = null
+
     /** Timestamp of the last fix forwarded to the native controller (feed dedupe). */
     private var lastFedFixTime = 0L
 
@@ -612,7 +634,20 @@ class NavigationEngine @Inject constructor(
      * car favourites, `AutoEntryPoint`). Records the destination identity in the
      * state and acquires the route itself.
      */
-    override fun navigateTo(destLat: Double, destLon: Double, destinationName: String?) {
+    /**
+     * Navigate a destination from the current GPS position (car deep link, car favourites,
+     * `AutoEntryPoint`). Records the destination identity in the state and acquires the route itself.
+     *
+     * [origin] is the surface that starts the session: speech follows that surface's own switch
+     * (spec: `voice-guidance` — The voice switch is per surface, persisted and on by default).
+     */
+    override fun navigateTo(
+        destLat: Double,
+        destLon: Double,
+        destinationName: String?,
+        origin: SurfaceOrigin
+    ) {
+        sessionOrigin = origin
         _state.update { it.copy(
             destLat = destLat,
             destLon = destLon,
@@ -781,6 +816,10 @@ class NavigationEngine @Inject constructor(
         // End the current utterance with the session it belongs to (spec: `voice-guidance` —
         // A voice instruction after navigation stops is silent).
         voiceGuidance.stop()
+        cancelGpsHold()
+        // The next session names its own surface; until one does, speech follows the phone's
+        // switch (spec: `voice-guidance` — The voice switch is per surface).
+        sessionOrigin = SurfaceOrigin.PHONE
         releaseNavLease()
         stopLocationFeed()
         // The fresh state carries the default, so the arrival fact of the ended session goes
@@ -824,6 +863,73 @@ class NavigationEngine @Inject constructor(
         copy(failure = failure)
 
     /** Acquire the navigation-scoped location lease (idempotent). */
+    /**
+     * Hold a GPS state for [FLAP_WINDOW_MILLIS] before announcing it (spec: `voice-guidance` — A GPS
+     * announcement is spoken only after the state held). The opposite state replaces the hold, so a
+     * flap speaks only the state that survived; a repeat of the same state changes nothing.
+     */
+    private fun holdGpsState(state: Int, samples: IntArray) {
+        if (gpsStateInFlight == state) return
+        if (gpsStateInFlight != null) {
+            // The state it replaces never survived the window (spec: `voice-guidance` — A GPS
+            // announcement is spoken only after the state held).
+            DiagnosticsLog.log(
+                VOICE_TAG,
+                voiceAnnouncementLine(
+                    VoiceAnnouncementKind.GPS,
+                    sessionOrigin,
+                    VoiceAnnouncementOutcome.SUPPRESSED,
+                    VoiceAnnouncementReason.FLAP_REPLACED
+                )
+            )
+        }
+        gpsHoldJob?.cancel()
+        gpsStateInFlight = state
+        DiagnosticsLog.log(
+            VOICE_TAG,
+            voiceAnnouncementLine(
+                VoiceAnnouncementKind.GPS,
+                sessionOrigin,
+                VoiceAnnouncementOutcome.HELD
+            )
+        )
+        gpsHoldJob = scope.launch(Dispatchers.Main) {
+            delay(FLAP_WINDOW_MILLIS)
+            // The session may have ended during the hold; the stop hook cancels this job, and this
+            // guard keeps a sample that raced it silent (spec: `voice-guidance` — Stopping
+            // navigation cancels a pending announcement).
+            if (!_state.value.isNavigating) return@launch
+            voiceGuidance.announce(samples)
+            DiagnosticsLog.log(
+                VOICE_TAG,
+                voiceAnnouncementLine(
+                    VoiceAnnouncementKind.GPS,
+                    sessionOrigin,
+                    VoiceAnnouncementOutcome.SPOKEN
+                )
+            )
+            gpsHoldJob = null
+        }
+    }
+
+    /** Drop a pending GPS announcement: the session that would have spoken it is over. */
+    private fun cancelGpsHold() {
+        if (gpsHoldJob != null) {
+            DiagnosticsLog.log(
+                VOICE_TAG,
+                voiceAnnouncementLine(
+                    VoiceAnnouncementKind.GPS,
+                    sessionOrigin,
+                    VoiceAnnouncementOutcome.SUPPRESSED,
+                    VoiceAnnouncementReason.SESSION_ENDED
+                )
+            )
+        }
+        gpsHoldJob?.cancel()
+        gpsHoldJob = null
+        gpsStateInFlight = null
+    }
+
     private fun acquireNavLease() {
         if (navLease == null) {
             navLease = locationService.acquire(LocationConsumers.NAV_ENGINE)
@@ -1000,7 +1106,54 @@ class NavigationEngine @Inject constructor(
                     // A sample that races the end of a session must not speak after the stop hook
                     // (spec: `voice-guidance` — A voice instruction after navigation stops is silent).
                     if (!_state.value.isNavigating) return@launch
-                    voiceGuidance.announce(samples)
+                    val settings = settingsStorage.load()
+                    val gpsState = voiceGuidance.gpsStateOf(samples)
+                    if (gpsState != null) {
+                        // GPS announcements are one shared switch, off by default, independent of the
+                        // surface's voice switch (spec: `voice-guidance` — GPS announcements are one
+                        // shared switch; The spoken GPS wording follows the same rule on both surfaces).
+                        if (!settings.announceGpsState) {
+                            DiagnosticsLog.log(
+                                VOICE_TAG,
+                                voiceAnnouncementLine(
+                                    VoiceAnnouncementKind.GPS,
+                                    sessionOrigin,
+                                    VoiceAnnouncementOutcome.SUPPRESSED,
+                                    VoiceAnnouncementReason.GPS_SWITCH_OFF
+                                )
+                            )
+                            return@launch
+                        }
+                        holdGpsState(gpsState, samples)
+                    } else {
+                        // Turns follow the switch of the surface that started this session
+                        // (spec: `voice-guidance` — The voice switch is per surface).
+                        val enabled = when (sessionOrigin) {
+                            SurfaceOrigin.CAR -> settings.autoVoiceGuidanceEnabled
+                            else -> settings.voiceGuidanceEnabled
+                        }
+                        if (!enabled) {
+                            DiagnosticsLog.log(
+                                VOICE_TAG,
+                                voiceAnnouncementLine(
+                                    VoiceAnnouncementKind.TURN,
+                                    sessionOrigin,
+                                    VoiceAnnouncementOutcome.SUPPRESSED,
+                                    VoiceAnnouncementReason.VOICE_SWITCH_OFF
+                                )
+                            )
+                            return@launch
+                        }
+                        voiceGuidance.announce(samples)
+                        DiagnosticsLog.log(
+                            VOICE_TAG,
+                            voiceAnnouncementLine(
+                                VoiceAnnouncementKind.TURN,
+                                sessionOrigin,
+                                VoiceAnnouncementOutcome.SPOKEN
+                            )
+                        )
+                    }
                 }
             }
 
@@ -1173,6 +1326,21 @@ class NavigationEngine @Inject constructor(
 
     companion object {
         private const val TAG = "NavigationEngine"
+
+        /**
+         * How long a GPS state must hold before it is announced (spec: `voice-guidance` — A GPS
+         * announcement is spoken only after the state held). Shorter than the native agent's own 10 s
+         * hold on `GpsLost` (`libosmscout/.../VoiceInstructionAgent.cpp:401`), so the window shifts an
+         * announcement later without swallowing the loss; the state that a flap leaves behind is the
+         * one that ends up spoken.
+         */
+        internal const val FLAP_WINDOW_MILLIS = 5_000L
+
+        /**
+         * Diagnostics tag of the spoken-guidance measurement entries (spec: `voice-guidance`).
+         * Coordinate-free, like every other diagnostics line (`guidelines/Logging.md`).
+         */
+        internal const val VOICE_TAG = "VOICE"
 
         /**
          * Diagnostics tag of the route-calculation measurement entries (spec:

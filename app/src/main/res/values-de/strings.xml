@@ -97,6 +97,8 @@
     <string name="auto_zoom">Auto-Zoom</string>
     <string name="keep_screen_on">Bildschirm an lassen</string>
     <string name="lane_instructions">Spurhinweise</string>
+    <string name="voice_guidance_switch">Sprachführung</string>
+    <string name="gps_announcements_switch">GPS-Ansagen</string>
     <string name="overspeed_warning_delta">Geschwindigkeitswarnung</string>
     <string name="vehicle_position">Fahrzeugposition</string>
     <string name="vehicle_position_routing">Fahrzeugposition (Navigation)</string>

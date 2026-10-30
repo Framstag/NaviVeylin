@@ -993,6 +993,12 @@ Source: specs `map-speed-widget`, `compass-button`, `next-turn-overlay`.
   platform's own) is configurable in the location-options sheet, which is its only editor — no
   car surface has a long-press gesture, so none reads it (specs `map-long-press-timeout`,
   `location-options-ui`, change `add-configurable-long-press-timeout`).
+- Spoken announcements are two switches on the phone (the location-options sheet) and two rows in the
+  car's preferences: the **voice** switch is per surface — the phone edits the phone's, the car the
+  car's, both default **on** — while the **GPS announcements** switch is **one shared value** edited
+  from either surface and default **off**, and a GPS state is spoken only after it has held 5 s, so a
+  flapping fix announces the state it settles on rather than every edge (specs `voice-guidance`,
+  `auto/preferences`, `settings-persistence`, change `voice-announcement-toggles`).
 - Phone-only: Android Auto sizes text via the host template; parity applies to
   labels and hierarchy, not pixel sizes.
 - Free-driving street label (phone, spec `current-road-info`): bottom-center

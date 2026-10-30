@@ -33,6 +33,15 @@ class VoiceGuidance @Inject constructor(
         output.stop()
     }
 
+    /**
+     * The GPS state a sequence announces, or `null` when it carries none (spec: `voice-guidance` —
+     * GPS announcements are one shared switch, off by default). The engine holds a GPS state before
+     * speaking it and gates it on the shared switch, so it has to tell the two kinds apart without
+     * parsing the sample sequence a second time.
+     */
+    internal fun gpsStateOf(samples: IntArray): Int? =
+        samples.firstOrNull { it == GPS_FOUND || it == GPS_LOST }
+
     internal fun sentenceFor(samples: IntArray): String {
         val parts = mutableListOf<String>()
         var index = 0

@@ -81,7 +81,14 @@ class LocationOptionsOverlayComposeTest {
         // is what the slider shows and that a move is reported back (spec: location-options-ui —
         // Long-press timeout control).
         longPressTimeoutMs: Int = 500,
-        onSetLongPressTimeoutMs: (Int) -> Unit = {}
+        onSetLongPressTimeoutMs: (Int) -> Unit = {},
+        // Spoken-announcement switches (spec: `voice-guidance` — The phone offers both switches in its
+        // settings sheet): overridable so a case can assert the stored value is what the switch shows
+        // and that a toggle is reported back.
+        voiceGuidanceEnabled: Boolean = true,
+        onToggleVoiceGuidance: (Boolean) -> Unit = {},
+        announceGpsState: Boolean = false,
+        onToggleAnnounceGpsState: (Boolean) -> Unit = {}
     ) {
         composeRule.setContent {
             LocationOptionsOverlay(
@@ -108,7 +115,11 @@ class LocationOptionsOverlayComposeTest {
                 styleSheet = "standard",
                 onSetStyleSheet = onSetStyleSheet,
                 preferSymbolPoiIcons = preferSymbolPoiIcons,
-                onSetPreferSymbolPoiIcons = onSetPreferSymbolPoiIcons
+                onSetPreferSymbolPoiIcons = onSetPreferSymbolPoiIcons,
+                voiceGuidanceEnabled = voiceGuidanceEnabled,
+                onToggleVoiceGuidance = onToggleVoiceGuidance,
+                announceGpsState = announceGpsState,
+                onToggleAnnounceGpsState = onToggleAnnounceGpsState
             )
         }
         composeRule.onNodeWithContentDescription("Location options").performClick()
@@ -565,6 +576,49 @@ class LocationOptionsOverlayComposeTest {
         openSheet()
 
         assertMaxSpeedSlidersVisible()
+    }
+
+    /**
+     * Spec: `voice-guidance` — The phone offers both switches in its settings sheet. The two rows
+     * render at their stored values and a gesture is reported back to the surface.
+     */
+    @Test
+    fun theVoiceAndGpsSwitchesAreShownAndReportAGesture() {
+        var voice: Boolean? = null
+        var gps: Boolean? = null
+
+        openSheet(
+            voiceGuidanceEnabled = false,
+            onToggleVoiceGuidance = { voice = it },
+            announceGpsState = false,
+            onToggleAnnounceGpsState = { gps = it }
+        )
+
+        for (tag in listOf("voiceGuidanceSwitch", "announceGpsSwitch")) {
+            composeRule.onNodeWithTag(tag).performScrollTo().assertIsDisplayed()
+        }
+
+        // The stored values are what the switches show.
+        composeRule.onNodeWithTag("voiceGuidanceSwitch")
+            .onChildren()
+            .filterToOne(isToggleable())
+            .assertIsOff()
+        composeRule.onNodeWithTag("announceGpsSwitch")
+            .onChildren()
+            .filterToOne(isToggleable())
+            .assertIsOff()
+
+        composeRule.onNodeWithTag("voiceGuidanceSwitch")
+            .onChildren()
+            .filterToOne(isToggleable())
+            .performClick()
+        composeRule.onNodeWithTag("announceGpsSwitch")
+            .onChildren()
+            .filterToOne(isToggleable())
+            .performClick()
+
+        assertEquals(true, voice)
+        assertEquals(true, gps)
     }
 
     /** Spec: `routing-avoidance` — the sheet shows the switches, reflecting the stored values. */

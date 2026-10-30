@@ -33,8 +33,18 @@ interface NavigationViewModel {
      * @param destinationName optional display name/address of the destination,
      * retained in [NavigationState] for the car screen; null falls back to
      * coordinates.
+     * @param origin the surface that starts the session. Speech is gated by that
+     * surface's own switch (spec: `voice-guidance` — The voice switch is per
+     * surface), so a phone-initiated session keeps speaking while the car's switch
+     * is off, and the other way round. Defaults to [SurfaceOrigin.PHONE], the only
+     * behaviour before this parameter existed.
      */
-    fun navigateTo(destLat: Double, destLon: Double, destinationName: String? = null)
+    fun navigateTo(
+        destLat: Double,
+        destLon: Double,
+        destinationName: String? = null,
+        origin: SurfaceOrigin = SurfaceOrigin.PHONE
+    )
 
     /** Clear any displayed error message. */
     fun clearError()

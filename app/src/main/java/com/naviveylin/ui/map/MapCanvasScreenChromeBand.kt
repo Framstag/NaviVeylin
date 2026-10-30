@@ -178,6 +178,14 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             onToggleLaneHints = { enabled ->
                                 viewModel.onToggleLaneHints(enabled)
                             },
+                            voiceGuidanceEnabled = state.voiceGuidanceEnabled,
+                            onToggleVoiceGuidance = { enabled ->
+                                viewModel.onToggleVoiceGuidance(enabled)
+                            },
+                            announceGpsState = state.announceGpsState,
+                            onToggleAnnounceGpsState = { enabled ->
+                                viewModel.onToggleAnnounceGpsState(enabled)
+                            },
                             overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                             onSetOverspeedWarningDelta = { delta ->
                                 viewModel.onSetOverspeedWarningDelta(delta)
@@ -349,6 +357,14 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             laneHintsEnabled = state.laneHintsEnabled,
                             onToggleLaneHints = { enabled ->
                                 viewModel.onToggleLaneHints(enabled)
+                            },
+                            voiceGuidanceEnabled = state.voiceGuidanceEnabled,
+                            onToggleVoiceGuidance = { enabled ->
+                                viewModel.onToggleVoiceGuidance(enabled)
+                            },
+                            announceGpsState = state.announceGpsState,
+                            onToggleAnnounceGpsState = { enabled ->
+                                viewModel.onToggleAnnounceGpsState(enabled)
                             },
                             overspeedWarningDeltaKmh = state.overspeedWarningDeltaKmh,
                             onSetOverspeedWarningDelta = { delta ->
@@ -555,6 +571,14 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                                 laneHintsEnabled = state.laneHintsEnabled,
                                 onToggleLaneHints = { enabled ->
                                     viewModel.onToggleLaneHints(enabled)
+                                },
+                                voiceGuidanceEnabled = state.voiceGuidanceEnabled,
+                                onToggleVoiceGuidance = { enabled ->
+                                    viewModel.onToggleVoiceGuidance(enabled)
+                                },
+                                announceGpsState = state.announceGpsState,
+                                onToggleAnnounceGpsState = { enabled ->
+                                    viewModel.onToggleAnnounceGpsState(enabled)
                                 },
                                 // Long-press timeout: required by the sheet like the max-speed
                                 // rows below, because the control renders in every mode — the

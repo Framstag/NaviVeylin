@@ -11,7 +11,7 @@ class PreferencesScreenMapperTest {
     fun rows_containsAllCarRelevantSettings() {
         val rows = PreferencesScreenMapper.rows(AutoSettings())
 
-        assertEquals(11, rows.size)
+        assertEquals(13, rows.size)
         assertEquals(
             listOf(
                 "followMode",
@@ -20,6 +20,8 @@ class PreferencesScreenMapperTest {
                 "navNorthUp",
                 "darkMode",
                 "laneHintsEnabled",
+                "voiceGuidanceEnabled",
+                "announceGpsState",
                 "renderMode",
                 "overspeedWarningDeltaKmh",
                 "routingAnchor",
@@ -27,6 +29,74 @@ class PreferencesScreenMapperTest {
                 "styleSheet"
             ),
             rows.map { it.key }
+        )
+    }
+
+    // --- The announcement switches (spec: auto/preferences — The car offers the announcement switches) ---
+
+    /**
+     * Spec case: Both rows are shown with their values.
+     */
+    @Test
+    fun announcementRowsCarryTheirValues() {
+        val rows = PreferencesScreenMapper.rows(
+            AutoSettings(voiceGuidanceEnabled = true, announceGpsState = false)
+        ).associateBy { it.key }
+
+        assertEquals("Voice guidance", rows.getValue(PreferencesScreenMapper.KEY_VOICE_GUIDANCE).title)
+        assertEquals("On", rows.getValue(PreferencesScreenMapper.KEY_VOICE_GUIDANCE).valueText)
+        assertEquals("GPS announcements", rows.getValue(PreferencesScreenMapper.KEY_GPS_ANNOUNCEMENTS).title)
+        assertEquals("Off", rows.getValue(PreferencesScreenMapper.KEY_GPS_ANNOUNCEMENTS).valueText)
+
+        val flipped = PreferencesScreenMapper.rows(
+            AutoSettings(voiceGuidanceEnabled = false, announceGpsState = true)
+        ).associateBy { it.key }
+        assertEquals("Off", flipped.getValue(PreferencesScreenMapper.KEY_VOICE_GUIDANCE).valueText)
+        assertEquals("On", flipped.getValue(PreferencesScreenMapper.KEY_GPS_ANNOUNCEMENTS).valueText)
+    }
+
+    /**
+     * Spec case: The car voice row flips only the car's value.
+     */
+    @Test
+    fun theVoiceRowFlipsOnlyTheCarValue() {
+        val before = AutoSettings(voiceGuidanceEnabled = true, announceGpsState = false)
+
+        val after = PreferencesScreenMapper.toggle(before, PreferencesScreenMapper.KEY_VOICE_GUIDANCE)
+
+        assertEquals(false, after.voiceGuidanceEnabled)
+        assertEquals("the shared GPS value is untouched", false, after.announceGpsState)
+        assertEquals("and so is every other preference", before.followMode, after.followMode)
+    }
+
+    /**
+     * Spec case: The GPS row flips the shared value.
+     */
+    @Test
+    fun theGpsRowFlipsTheSharedValue() {
+        val before = AutoSettings(voiceGuidanceEnabled = true, announceGpsState = false)
+
+        val after = PreferencesScreenMapper.toggle(before, PreferencesScreenMapper.KEY_GPS_ANNOUNCEMENTS)
+
+        assertEquals(true, after.announceGpsState)
+        assertEquals("the car's voice value is untouched", true, after.voiceGuidanceEnabled)
+    }
+
+    /**
+     * Spec case: The phone's own switch is not editable from the car.
+     */
+    @Test
+    fun thePhoneVoiceValueHasNoCarRow() {
+        // Every row either edits the car's own view or a shared value; the phone's own switch is not
+        // this surface's to edit, and the app-side write-back is proven where the mapping lives
+        // (`SettingsStorageVoiceSwitchTest#aCarWriteLeavesThePhoneVoiceValueAlone`).
+        val keys = PreferencesScreenMapper.rows(AutoSettings()).map { it.key }
+        assertEquals(true, keys.contains(PreferencesScreenMapper.KEY_VOICE_GUIDANCE))
+        assertEquals(false, keys.contains("autoVoiceGuidanceEnabled"))
+        assertEquals(
+            "no row names the phone's voice field",
+            false,
+            keys.any { it == "voiceGuidanceEnabled" && it != PreferencesScreenMapper.KEY_VOICE_GUIDANCE }
         )
     }
 

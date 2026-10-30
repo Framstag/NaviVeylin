@@ -68,7 +68,7 @@ class PreferencesScreenTest {
 
         // All eleven car-relevant preferences on the single list (nine base +
         // the two vehicle-position anchors).
-        assertEquals(11, template.singleList!!.items.size)
+        assertEquals(13, template.singleList!!.items.size)
     }
 
     @Test
@@ -83,7 +83,7 @@ class PreferencesScreenTest {
 
         advanceTimeBy(400)
         advanceUntilIdle()
-        assertEquals(11, screen.onGetTemplate().singleList!!.items.size)
+        assertEquals(13, screen.onGetTemplate().singleList!!.items.size)
     }
 
     @Test
@@ -113,7 +113,7 @@ class PreferencesScreenTest {
         screen.onRetry()
         advanceUntilIdle()
 
-        assertEquals(11, screen.onGetTemplate().singleList!!.items.size)
+        assertEquals(13, screen.onGetTemplate().singleList!!.items.size)
     }
 
     @Test
@@ -138,7 +138,7 @@ class PreferencesScreenTest {
 
         // The load finally completes (t=10000): content comes back, error clears.
         advanceUntilIdle()
-        assertEquals(11, screen.onGetTemplate().singleList!!.items.size)
+        assertEquals(13, screen.onGetTemplate().singleList!!.items.size)
     }
 
     @Test

@@ -95,6 +95,12 @@ fun LocationOptionsOverlay(
     onSetAmbientLightSensitivity: (AmbientLightSensitivity) -> Unit = {},
     laneHintsEnabled: Boolean = true,
     onToggleLaneHints: (Boolean) -> Unit = {},
+    // The phone's spoken-guidance switch and the shared GPS-announcement switch
+    // (spec: `voice-guidance` — The phone offers both switches in its settings sheet).
+    voiceGuidanceEnabled: Boolean = true,
+    onToggleVoiceGuidance: (Boolean) -> Unit = {},
+    announceGpsState: Boolean = false,
+    onToggleAnnounceGpsState: (Boolean) -> Unit = {},
     overspeedWarningDeltaKmh: Int = 5,
     onSetOverspeedWarningDelta: (Int) -> Unit = {},
     // Long-press timeout: REQUIRED (no defaults), for the same reason as the max-speed and anchor
@@ -192,6 +198,10 @@ fun LocationOptionsOverlay(
                 onSetAmbientLightSensitivity = onSetAmbientLightSensitivity,
                 laneHintsEnabled = laneHintsEnabled,
                 onToggleLaneHints = onToggleLaneHints,
+                voiceGuidanceEnabled = voiceGuidanceEnabled,
+                onToggleVoiceGuidance = onToggleVoiceGuidance,
+                announceGpsState = announceGpsState,
+                onToggleAnnounceGpsState = onToggleAnnounceGpsState,
                 overspeedWarningDeltaKmh = overspeedWarningDeltaKmh,
                 onSetOverspeedWarningDelta = onSetOverspeedWarningDelta,
                 longPressTimeoutMs = longPressTimeoutMs,
@@ -242,6 +252,10 @@ private fun LocationOptionsSheetContent(
     onSetAmbientLightSensitivity: (AmbientLightSensitivity) -> Unit,
     laneHintsEnabled: Boolean,
     onToggleLaneHints: (Boolean) -> Unit,
+    voiceGuidanceEnabled: Boolean,
+    onToggleVoiceGuidance: (Boolean) -> Unit,
+    announceGpsState: Boolean,
+    onToggleAnnounceGpsState: (Boolean) -> Unit,
     overspeedWarningDeltaKmh: Int,
     onSetOverspeedWarningDelta: (Int) -> Unit,
     longPressTimeoutMs: Int,
@@ -412,6 +426,25 @@ private fun LocationOptionsSheetContent(
                 }
             )
         }
+
+        // Spoken guidance: the phone's own voice switch and the GPS-announcement switch both
+        // surfaces share (spec: `voice-guidance` — The phone offers both switches in its settings
+        // sheet). Always visible, like the lane-hint switch above them.
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+        AnnouncementSwitchRow(
+            label = stringResource(R.string.voice_guidance_switch),
+            checked = voiceGuidanceEnabled,
+            testTag = "voiceGuidanceSwitch",
+            onToggle = onToggleVoiceGuidance
+        )
+
+        AnnouncementSwitchRow(
+            label = stringResource(R.string.gps_announcements_switch),
+            checked = announceGpsState,
+            testTag = "announceGpsSwitch",
+            onToggle = onToggleAnnounceGpsState
+        )
 
         // Overspeed warning delta — always visible, 0-30 km/h, 1 km/h
         // precision (spec: location-options-ui — Overspeed warning delta
@@ -999,10 +1032,68 @@ private fun AvoidanceSwitch(
 }
 
 /**
- * The three usual-maximum-speed sliders with their default values, as the sheet shows them on a
- * fresh install.
+ * One spoken-announcement switch row: a label and its switch, 56 dp tall, tagged so a Compose case
+ * can find it (spec: `voice-guidance` — The phone offers both switches in its settings sheet).
+ */
+@Composable
+private fun AnnouncementSwitchRow(
+    label: String,
+    checked: Boolean,
+    testTag: String,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .testTag(testTag)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = { enabled ->
+                onToggle(enabled)
+            }
+        )
+    }
+}
+
+/**
+ * The two spoken-announcement rows at their defaults: the phone's voice switch on, the shared GPS
+ * switch off (spec: `voice-guidance` — The voice switch is per surface, persisted and on by default;
+ * GPS announcements are one shared switch, off by default).
  */
 @Preview(showBackground = true)
+@Composable
+private fun AnnouncementSwitchRowsPreview() {
+    MaterialTheme {
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            AnnouncementSwitchRow(
+                label = stringResource(R.string.voice_guidance_switch),
+                checked = true,
+                testTag = "previewVoiceGuidanceSwitch",
+                onToggle = {}
+            )
+            AnnouncementSwitchRow(
+                label = stringResource(R.string.gps_announcements_switch),
+                checked = false,
+                testTag = "previewAnnounceGpsSwitch",
+                onToggle = {}
+            )
+        }
+    }
+}
+
+/**
+ * The three usual-maximum-speed sliders with their default values, as the sheet shows them on a
+ * fresh install.
+ */@Preview(showBackground = true)
 @Composable
 private fun MaxSpeedSlidersPreview() {
     MaterialTheme {

@@ -35,6 +35,28 @@ fun MapCanvasViewModel.onToggleLaneHints(enabled: Boolean) {
 }
 
 /**
+ * Toggle the phone's spoken guidance (spec: `voice-guidance` — The phone offers both switches in its
+ * settings sheet). Persisted per surface, so the car's own switch keeps its value.
+ */
+fun MapCanvasViewModel.onToggleVoiceGuidance(enabled: Boolean) {
+    _uiState.value = _uiState.value.copy(voiceGuidanceEnabled = enabled)
+    viewModelScope.launch {
+        settingsStorage.update { it.copy(voiceGuidanceEnabled = enabled) }
+    }
+}
+
+/**
+ * Toggle GPS announcements (spec: `voice-guidance` — GPS announcements are one shared switch, off by
+ * default). One value for both surfaces, so the car preferences read what this writes.
+ */
+fun MapCanvasViewModel.onToggleAnnounceGpsState(enabled: Boolean) {
+    _uiState.value = _uiState.value.copy(announceGpsState = enabled)
+    viewModelScope.launch {
+        settingsStorage.update { it.copy(announceGpsState = enabled) }
+    }
+}
+
+/**
  * Set the overspeed warning delta (km/h, 0-30). Applies to the speed
  * widget immediately and persists; the same global value drives the
  * Android Auto badge (spec: map-speed-widget — Overspeed warning color;
@@ -448,6 +470,8 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
             darkModePreference = darkModePreference,
             ambientLightSensitivity = ambientLightSensitivity,
             laneHintsEnabled = settings.laneHintsEnabled,
+            voiceGuidanceEnabled = settings.voiceGuidanceEnabled,
+            announceGpsState = settings.announceGpsState,
             renderMode = settings.renderMode,
             overspeedWarningDeltaKmh = settings.overspeedWarningDeltaKmh,
             longPressTimeoutMs = settings.effectiveLongPressTimeoutMs,

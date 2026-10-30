@@ -678,7 +678,11 @@ class NavigationSession : Session() {
             val first = results.firstOrNull()
             if (first != null) {
                 Log.d(TAG, "Deep link geocoded '${query}' → ${first.label}")
-                navigationViewModel.navigateTo(first.lat, first.lon)
+                navigationViewModel.navigateTo(
+                    first.lat,
+                    first.lon,
+                    origin = SurfaceOrigin.CAR
+                )
             } else {
                 Log.w(TAG, "Deep link geocoding found no match for '$query'")
                 navigationViewModel.reportError(

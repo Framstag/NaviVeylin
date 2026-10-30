@@ -117,6 +117,25 @@ data class AppSettings(
      */
     val avoidUnpaved: Boolean = false,
     /**
+     * Speak turn-by-turn guidance for navigation **on the phone** (spec: `voice-guidance` — The voice
+     * switch is per surface, persisted and on by default). `true` is the behaviour before the switch
+     * existed, so a settings file written earlier decodes to today's speech. The car speaks by its own
+     * [autoVoiceGuidanceEnabled], so silencing one surface never silences the other.
+     */
+    val voiceGuidanceEnabled: Boolean = true,
+    /**
+     * Speak turn-by-turn guidance for navigation **on Android Auto** (spec: `voice-guidance` — The voice
+     * switch is per surface). The car's own value from its first start; unlike the vehicle anchors it
+     * inherits nothing, because its default is already the behaviour before the switch existed.
+     */
+    val autoVoiceGuidanceEnabled: Boolean = true,
+    /**
+     * Announce a lost or restored GPS signal (spec: `voice-guidance` — GPS announcements are one shared
+     * switch, off by default). One value for both surfaces, edited from either. `false` is the behaviour
+     * before the switch existed: navigation speaks turns only.
+     */
+    val announceGpsState: Boolean = false,
+    /**
      * Vehicle anchor preset for navigation **on the phone** (spec: smooth-follow —
      * Vehicle position anchor in follow mode). Persisted as the preset's stable id
      * (see `VehicleAnchorPosition` in `:core`); default `"center"`. The anchors are

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/red-probe.sh" tests="1" failures="0" errors="0" timestamp="2026-10-30T07:24:18Z">
+  <system-out>red-probe: 1 of 1 cases passed (documentation-ownership "The routing cost is measured")</system-out>
+</testsuite>

@@ -1,0 +1,1 @@
+FAIL routed-read#the-two-case-lines-resolve — the two Case lines do not resolve: [declared: routed-read#numbers] [run: routed-read#numbers: check-doc-routes-selftest: no case with the id 'routed-read#numbers'] [verbatim: names evidence/red-probe.sh] [verbatim: says no harness asserts it] (2026-10-30T07:22:14Z)

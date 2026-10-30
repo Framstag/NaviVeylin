@@ -1,0 +1,3 @@
+base fixture installed from 27cf61cb1e4a4864276190957e60b0bfa28192c2; the tree's own copy is restored on exit
+FAIL run#theWorkersOwnShellWriteIsRecordedAndNotPlaced — the difference is recorded, with the path that changed: 'demo-owned.txt' not found in:
+tests=1 failures=1

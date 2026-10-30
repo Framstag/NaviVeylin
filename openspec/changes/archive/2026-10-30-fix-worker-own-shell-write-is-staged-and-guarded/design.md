@@ -20,10 +20,13 @@ One opt-in hook in the fixture and one case that uses it:
   in the directory the child was started in. It forks no new tree of its own: it is the shell of the child's own
   tree that stands in the project, which is the shape #704 names. Unset or pointing at no file, the fixture's
   behaviour is byte-for-byte what it was, so every existing case is untouched.
-- `run#theWorkersOwnShellWriteIsRecordedAndNotPlaced` stages that shape through the hook, and asserts four things:
-  the difference is recorded with its path, the item is `done`, the item is `closed`, and the transcript's own
-  reading carries `attributed=none` — the line that separates "found by the walk and placed by nothing" from
-  "never found at all", which is what a later reader needs to believe the narrow rule does not cover this shape.
+- `run#theWorkersOwnShellWriteIsRecordedAndNotPlaced` stages that shape through the hook, and asserts five things:
+  the difference is recorded with its path, the item is `done`, the item is `closed`, the reading names the shell
+  that wrote among the processes standing in the project, and the reading's `attributed` field is `none`. The fourth
+  is the found half, and it is what a reader needs to believe the narrow rule does not cover this shape: the
+  reading's `attributed=none` alone is printed identically by a run whose walk of the child's tree returned
+  nothing, so the shell records its own pid and the reading has to name it. The fifth states the half the rule is
+  about — found, and placed by nothing.
 - The spec delta adds the scenario *A shell the child forks in the project is found and not placed*, naming
   exactly that case; `guidelines/Backlog.md`'s "The loop" section's sentence at `:322`–`:325` gains the case that pins the shape it
   names, next to the sentence itself, because the record half of the item landed with `db37a3a8` and only the
@@ -55,8 +58,8 @@ it asks for instead.
 - `tools/loop/fixtures/pi`: one inert block plus two lines in its env header. Every case that runs a child reads
   it; none sets the new variable, so none sees a difference. `tools/portability-cases.sh` copies the fixture into
   a synthetic project, and copies a hook nobody set.
-- `tools/loop-cases.sh`: one case added, and its 16th `demo-owned.txt` write. The suite's declared count goes from
-  287 to 288, and `--list` is what states it.
+- `tools/loop-cases.sh`: one case added (three `demo-owned.txt` occurrences; the file carries 16, the base 13).
+  The suite's declared count goes from 287 to 288, and `--list` is what states it.
 - `guidelines/Backlog.md`'s "The loop" section: one clause naming the case. `tools/check-doc-routes.sh` resolves section references,
   and the sentence adds none.
 - The spec: one scenario added to a requirement whose other scenarios are restated verbatim, which is what

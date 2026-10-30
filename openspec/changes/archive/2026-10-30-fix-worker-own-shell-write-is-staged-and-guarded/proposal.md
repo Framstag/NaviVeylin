@@ -35,17 +35,20 @@ action, so the self-test cannot stage a shell of the child's own tree that stand
 same review pass that raised this item. What is owed there is only the pointer from that sentence to the case
 that now pins one of them; the case itself is missing.
 
-**The red case, measured on HEAD's content** (`evidence/red-on-head.sh`, which runs the case the delta names):
+**The red case, measured on the base tree** (`evidence/red-on-head.sh`, which installs the base commit's
+`tools/loop/fixtures/pi`, runs the one case the delta names, and restores the tree's own copy on exit):
 
 ```
-$ bash evidence/red-on-head.sh
+$ bash evidence/red-on-head.sh --base
 FAIL run#theWorkersOwnShellWriteIsRecordedAndNotPlaced — the difference is recorded, with the path that changed: 'demo-owned.txt' not found in:
 tests=1 failures=1
 ```
 
-`evidence/red-on-head.xml` (2026-10-30T08:34:26Z): `tests="1" failures="1" errors="0"`. On HEAD the fixture has no
-hook that forks a shell while the child still stands in the project, so the case's write never happens and the
-difference it must record is never recorded — the tree cannot stage the shape, which is the defect.
+`evidence/red-on-head-round2.xml` (2026-10-30T09:04:21Z): `tests="1" failures="1" errors="0"`. On the base the
+fixture has no hook that forks a shell while the child still stands in the project, so the case's write never
+happens and the difference it must record is never recorded — the tree cannot stage the shape, which is the defect.
+Round 1's red (`evidence/red-on-head.xml`, 2026-10-30T08:51:41Z) is the same case before the correction round added
+its last assertion.
 
 **Owning capability and guideline section.** The capability is `agent-issue-loop`; the rule is its scenario *The
 run's own child chain is not a writer* (`openspec/specs/agent-issue-loop/spec.md:442`–`:450`), whose `Case` line
@@ -79,10 +82,15 @@ the case that pins it, 0 cases rewritten, 0 mutations renamed, 0 compiled files 
   project the child is started in, forking a shell of the child's own tree that never leaves it — the shape
   `pid_left_the_worktree` cannot place. Absent or unset, the fixture behaves exactly as before.
 - `tools/loop-cases.sh`: `run#theWorkersOwnShellWriteIsRecordedAndNotPlaced`, which stages that shape, and asserts
-  the difference is recorded with its path, the item is `done` and `closed`, and the transcript's own reading says
-  `attributed=none` — found by the walk and placed by nothing.
-- The spec delta adds the scenario *A shell the child forks in the project is recorded and not placed*, naming
-  exactly that case; the shipped scenario's `Case` line keeps its own case.
+  the difference is recorded with its path, the item is `done` and `closed`, the reading names the shell that wrote
+  among the processes standing in the project (the found half), and it places no process of that tree
+  (`attributed=none`).
+- The spec delta restates the modified requirement whole and adds the scenario *A shell the child forks in the
+  project is found and not placed*, naming exactly that case. The restatements also give four shipped scenarios the
+  `Case` line they had none — *The item arrives as a prepared package*, *A process runs where the project's own
+  policy applies*, *A difference the run cannot attribute does not decide the item* (two cases), and *The reviewer is
+  not the writer*, which declares `Case: none` with the structural reason — because `openspec/config.yaml` requires
+  every scenario to name the one case that exercises it.
 - `guidelines/Backlog.md`'s "The loop" section: the sentence that names the two unplaceable shapes gains the case that pins the
   worker's-own-shell one, so a reader of the rule is routed to the test of it.
 

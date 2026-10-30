@@ -65,10 +65,10 @@ change.
 - **WHEN** a shell the child forked stands in the project — the tree `run_child` starts every child in — and never
   `cd`s into the worktree, so no ancestor of it worked there, and it writes the project's own tree while the child
   is alive
-- **THEN** the difference is recorded with the path that changed, the transcript's own reading names the shape as
-  one nothing could place rather than one it never found, and the item keeps the outcome its own work earned,
-  because the narrow rule is the deliberate trade that keeps a peer's write from deciding an item whose work was
-  never touched
+- **THEN** the difference is recorded with the path that changed, the reading taken while the child was alive names
+  that shell among the processes standing in the project and places no process of that tree, and the item keeps the
+  outcome its own work earned, because the narrow rule is the deliberate trade that keeps a peer's write from
+  deciding an item whose work was never touched
 - **Case**: `run#theWorkersOwnShellWriteIsRecordedAndNotPlaced`
 
 #### Scenario: `--strict-outside-write yes` makes the difference decide the item

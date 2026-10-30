@@ -16,7 +16,11 @@
 # two cases over the project's own tree: `routed-read#route` (a row that routes a lettered sub-section of *any*
 # document states its cost, so a row naming sub-sections and pricing nothing fails) and `routed-read#bound`
 # (the cost of every section of every routed document, printed with the requirement's ruler and the routed
-# pair marked, so the number a row restates is the number the measurement takes).
+# pair marked, so the number a row restates is the number the measurement takes) — and two more that read the
+# same tree and the same ruler: `routed-read#figure` (a figure a row writes after a lettered reference is that
+# section's measurement, so `0.1 kB` for a kilobyte section fails, and the project's own eleven figures must be
+# their sections') and `routed-read#range` (a range is the span of the lettered sections the row names, while a
+# figure the row writes as a past measurement is not compared).
 #
 # The check derives its documents from the fixture's own `guidelines/` directory, so a fixture carries the
 # four base documents plus whichever extra one a case adds — and its table must name every document present.
@@ -354,7 +358,7 @@ case_routed_read_bound() {
 }
 
 case_routed_read_route() {
-  local out rc d fit fit_rc
+  local out rc d fit fit_rc priced
   out=$("$check" --root "$root" 2>&1); rc=$?
   if [ "$rc" != 0 ]; then
     CASE_WHY="the project's own table does not pass the clause: $out"
@@ -378,7 +382,10 @@ FIXTURE
     CASE_WHY="a fixture row naming a lettered sub-section and pricing nothing was not reported: exit $fit_rc: $fit"
     return 1
   fi
-  write_agents "$d" '| phone UI | `UI.md` §1a "Parity, measured" — 1.2 kB |'
+  # the price it states is the measurement, because the accuracy clause convicts a figure that is not one: this
+  # case's claim is that a row states *a* cost, and the figure it states must still be the section's own
+  priced=$(cost_kb "$(section_bytes "$d/guidelines/UI.md" 1a '')")
+  write_agents "$d" "| phone UI | \`UI.md\` §1a \"Parity, measured\" — $priced kB |"
   fit=$("$check" --root "$d" 2>&1); fit_rc=$?
   if [ "$fit_rc" != 0 ]; then
     CASE_WHY="a fixture row naming a lettered sub-section and pricing it did not pass: exit $fit_rc: $fit"
@@ -387,10 +394,107 @@ FIXTURE
   return 0
 }
 
+# A fixture section's cost under the requirement's ruler — the byte count of its lines from the `## ` heading
+# through the line before the next one — and the figure a row states for it, both taken here independently of
+# the check. A fixture with no section after the measured one is measured to the end of the document.
+section_bytes() { # $1 = document, $2 = section number, $3 = the number of the section after it (empty for the last)
+  if [ -n "$3" ]; then
+    sed -n "/^## $2\\./,/^## $3\\./p" "$1" | sed '$d' | LC_ALL=C wc -c | tr -d ' '
+  else
+    sed -n "/^## $2\\./,\$p" "$1" | LC_ALL=C wc -c | tr -d ' '
+  fi
+}
+
+cost_kb() { # $1 = bytes
+  LC_ALL=C awk -v b="$1" 'BEGIN { printf "%.1f", b / 1000 }'
+}
+
+filler() { # $1 = how many 78-byte lines to write, so a fixture section costs what a case states it costs
+  local i=0
+  while [ "$i" -lt "$1" ]; do
+    printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n'
+    i=$((i + 1))
+  done
+}
+
+write_lettered() { # $1 = directory, $2 = what the priced row states after `§1a "Parity, measured"`
+  mk_fixture "$1"
+  {
+    printf '# UI Specification\n\n## 1. Cross-variant UI parity (general rule)\n\n'
+    printf '## 1a. Parity, measured\n\nThe measured half of the parity rule: '
+    filler 12
+    printf '\n## 1b. Parity, unmeasured\n\nThe half with no case behind it: '
+    filler 38
+  } > "$1/guidelines/UI.md"
+  write_agents "$1" "| phone UI | \`UI.md\` §1a \"Parity, measured\"$2 |"
+}
+
+# `routed-read#figure` and `routed-read#range`: a figure and a range a row states are the measurement the ruler
+# takes, and a row that writes a figure as a past measurement is not compared (issue #712).
+case_routed_read_figure() {
+  local d bytes kb out rc
+  d="$tmp/figure"
+  write_lettered "$d" ' — 0.1 kB'
+  bytes=$(section_bytes "$d/guidelines/UI.md" 1a 1b); kb=$(cost_kb "$bytes")
+  out=$("$check" --root "$d" 2>&1); rc=$?
+  if [ "$rc" != 1 ] || ! printf '%s' "$out" | grep -qF '0.1 kB for UI.md §1a'; then
+    CASE_WHY="a row stating 0.1 kB for a $bytes-byte section was not reported: exit $rc: $out"
+    return 1
+  fi
+  if ! printf '%s' "$out" | grep -qF "measures $kb kB"; then
+    CASE_WHY="the report does not name the measured $kb kB beside the stated 0.1 kB: $out"
+    return 1
+  fi
+  write_lettered "$d" " — $kb kB"
+  out=$("$check" --root "$d" 2>&1); rc=$?
+  if [ "$rc" != 0 ]; then
+    CASE_WHY="a row stating the section's own $kb kB ($bytes bytes) did not pass: exit $rc: $out"
+    return 1
+  fi
+  out=$("$check" --root "$root" 2>&1); rc=$?
+  if [ "$rc" != 0 ]; then
+    CASE_WHY="the project's own table states a figure a section does not measure: exit $rc: $out"
+    return 1
+  fi
+  printf '        a row stating 0.1 kB for a %s-byte (%s kB) section is reported with both numbers, the same row stating %s kB passes, and the project\342\200\231s own figures are the measurements\n' \
+    "$bytes" "$kb" "$kb" >&2
+  return 0
+}
+
+case_routed_read_range() {
+  local d a b out rc
+  d="$tmp/range"
+  write_lettered "$d" ', §1b "Parity, unmeasured" — 1.2–2.0 kB each'
+  a=$(cost_kb "$(section_bytes "$d/guidelines/UI.md" 1a 1b)")
+  b=$(cost_kb "$(section_bytes "$d/guidelines/UI.md" 1b '')")
+  out=$("$check" --root "$d" 2>&1); rc=$?
+  if [ "$rc" != 1 ] || ! printf '%s' "$out" | grep -qF 'states the range'; then
+    CASE_WHY="a row stating the range 1.2–2.0 kB for sections measuring $a–$b kB was not reported: exit $rc: $out"
+    return 1
+  fi
+  if ! printf '%s' "$out" | grep -qF "measure $a-$b kB"; then
+    CASE_WHY="the report does not name the measured span $a-$b kB: $out"
+    return 1
+  fi
+  write_lettered "$d" ", §1b \"Parity, unmeasured\" — $a–$b kB each, against 23.2 kB for §1 before the split"
+  out=$("$check" --root "$d" 2>&1); rc=$?
+  if [ "$rc" != 0 ]; then
+    CASE_WHY="a row stating its sections' span $a–$b kB did not pass, or its past measurement was compared: exit $rc: $out"
+    return 1
+  fi
+  printf '        a row stating 1.2–2.0 kB for sections measuring %s–%s kB is reported, the same row stating %s–%s kB passes, and the 23.2 kB it writes as a past measurement is not compared\n' \
+    "$a" "$b" "$a" "$b" >&2
+  return 0
+}
+
 echo_case routed-read#bound case_routed_read_bound \
   "every section of every routed document is printed with its cost, each equal to the requirement's ruler, and the pairs the table routes are the pairs marked routed"
 echo_case routed-read#route case_routed_read_route \
   "a row that routes a lettered sub-section of any document states its cost, here and over the project's own table"
+echo_case routed-read#figure case_routed_read_figure \
+  "a figure a row writes after a lettered reference is that section's measurement, here and over the project's own table"
+echo_case routed-read#range case_routed_read_range \
+  "a range a row states is the span of the lettered sections it names, and a past measurement in the same row is not compared"
 
 # The two cases above read the tree, so "the repository's documents are untouched" is asserted after them too: a
 # case that measured a document by editing it would pass and leave the tree changed.

@@ -38,7 +38,20 @@ Loop: `.pi/skills/bugfix-loop` (§138, one bug / one capability / one `fix-*` ch
 
 ## 5. Device follow-up (no device in this run — pending, never implied done)
 
-- [ ] 5.1 On `emulator-5554` (1080x2400, `nordrhein-westfalen` data): the `Bürgermeister-Smidt-Straße` → Hauptbahnhof flow at font scales 1.0 / 1.3 / 2.0, dumping the labelled End action's bounds and asserting they are inside the card `[0, 1320][1080, 2400]` — the containment claim `TODO.md` §138 recorded, which the host harness cannot make (its text metrics never wrap a label, so the host shows the band's shortfall as lost action height instead). The same run owns the one seam the host cannot host (3.3): the screen's wiring of the report into the map — the card's height in the fit's visible band and the compass/zoom bounds against the card's top edge, at both anchors (what `MapLayerStackComposeTest#the right-side control column sits fully above the session card` asserts host-side with the screen's wiring reproduced, not executed).
+- [x] 5.1 On `emulator-5554` (1080x2400, `nordrhein-westfalen` data): the `Bürgermeister-Smidt-Straße` → Hauptbahnhof flow at font scales 1.0 / 1.3 / 2.0, dumping the labelled End action's bounds and asserting they are inside the card `[0, 1320][1080, 2400]` — the containment claim `TODO.md` §138 recorded, which the host harness cannot make (its text metrics never wrap a label, so the host shows the band's shortfall as lost action height instead). The same run owns the one seam the host cannot host (3.3): the screen's wiring of the report into the map — the card's height in the fit's visible band and the compass/zoom bounds against the card's top edge, at both anchors (what `MapLayerStackComposeTest#the right-side control column sits fully above the session card` asserts host-side with the screen's wiring reproduced, not executed).
+  — **Run 2026-10-30** (device `emulator-5554`, `Pixel_8` AVD, 1080x2400 at 420 dpi, Andorra database, app built from
+this tree and installed with `adb install -r -t`): the region differs from the text above (Andorra, 650 m route
+`Current Location → Carrer de la Llacuna`), everything else as asked. The card's container node is
+`[0,1320][1080,2400]` in all three dumps; the labelled End action is `[42,2128][1038,2254]` = **48.00 dp** at font
+scale 1.0 and 1.3, and `[42,2113][1038,2253]` = **53.33 dp** at 2.0 — inside the card, and present in the dump.
+53.33 dp is the number the host case measures after the fix, so the device and the harness agree. The join is
+measured in one session at font 1.0 in both anchors: the card goes `[0,1320]…` (1080 px) → `[0,2175]…` (225 px)
+and the chrome column's bottom moves `2001 − 1146 = 855 px` for the card's `1080 − 225 = 855 px`, keeping the
+same 174 px gap — the reported height drives the inset one-for-one. Numbers, dumps and the measuring script:
+`evidence/2026-10-30-band-font-scale.md`, `evidence/dump-max-fs1.0.xml`, `dump-max-fs1.3.xml`,
+`dump-max-fs2.0.xml`, `dump-min-fs1.0.xml`, `evidence/band-measure.py`. At font scale 1.3 and 2.0 the chrome
+column is not a witness (only `Zoom in` / `Zoom out` are in the tree, and the zoom-in box is clipped to
+36.19 dp); that is a separate finding on the tracker, not a weakening of the card's containment.
 
 ## 6. Bookkeeping
 

@@ -207,6 +207,16 @@ data class MapCanvasUiState(
     val bicycleMaxSpeedKmh: Int = 15,
     /** The pedestrian's usual maximum speed in km/h, 2-15, default 5 (spec: `routing-max-speed`). */
     val footMaxSpeedKmh: Int = 5,
+    /**
+     * Avoid toll roads (spec: `routing-avoidance` — Avoidance is a persisted per-vehicle-independent
+     * setting). One shared value: the sheet writes it and every routing calculation reads it. On a map
+     * database that records no toll information the switch changes nothing.
+     */
+    val avoidTolls: Boolean = false,
+    /** Avoid ferry routes (spec: `routing-avoidance`). */
+    val avoidFerries: Boolean = false,
+    /** Avoid unpaved roads (spec: `routing-avoidance`). */
+    val avoidUnpaved: Boolean = false,
     /** Selected map stylesheet (name without the .oss postfix), e.g. "standard". */
     val styleSheet: String = DEFAULT_STYLE_NAME,
     /**

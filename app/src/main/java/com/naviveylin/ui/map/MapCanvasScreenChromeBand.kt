@@ -198,6 +198,18 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             onSetFootMaxSpeed = { kmh ->
                                 viewModel.onSetFootMaxSpeed(kmh)
                             },
+                            avoidTolls = state.avoidTolls,
+                            onSetAvoidTolls = { avoid ->
+                                viewModel.onSetAvoidTolls(avoid)
+                            },
+                            avoidFerries = state.avoidFerries,
+                            onSetAvoidFerries = { avoid ->
+                                viewModel.onSetAvoidFerries(avoid)
+                            },
+                            avoidUnpaved = state.avoidUnpaved,
+                            onSetAvoidUnpaved = { avoid ->
+                                viewModel.onSetAvoidUnpaved(avoid)
+                            },
                             routingAnchor = state.routingAnchor,
                             onSetRoutingAnchor = { anchor ->
                                 viewModel.setRoutingAnchor(anchor)
@@ -357,6 +369,18 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                             footMaxSpeedKmh = state.footMaxSpeedKmh,
                             onSetFootMaxSpeed = { kmh ->
                                 viewModel.onSetFootMaxSpeed(kmh)
+                            },
+                            avoidTolls = state.avoidTolls,
+                            onSetAvoidTolls = { avoid ->
+                                viewModel.onSetAvoidTolls(avoid)
+                            },
+                            avoidFerries = state.avoidFerries,
+                            onSetAvoidFerries = { avoid ->
+                                viewModel.onSetAvoidFerries(avoid)
+                            },
+                            avoidUnpaved = state.avoidUnpaved,
+                            onSetAvoidUnpaved = { avoid ->
+                                viewModel.onSetAvoidUnpaved(avoid)
                             },
                             routingAnchor = state.routingAnchor,
                             onSetRoutingAnchor = { anchor ->
@@ -554,6 +578,18 @@ internal fun BoxScope.MapCanvasChromeBandContent(
                                 footMaxSpeedKmh = state.footMaxSpeedKmh,
                                 onSetFootMaxSpeed = { kmh ->
                                     viewModel.onSetFootMaxSpeed(kmh)
+                                },
+                                avoidTolls = state.avoidTolls,
+                                onSetAvoidTolls = { avoid ->
+                                    viewModel.onSetAvoidTolls(avoid)
+                                },
+                                avoidFerries = state.avoidFerries,
+                                onSetAvoidFerries = { avoid ->
+                                    viewModel.onSetAvoidFerries(avoid)
+                                },
+                                avoidUnpaved = state.avoidUnpaved,
+                                onSetAvoidUnpaved = { avoid ->
+                                    viewModel.onSetAvoidUnpaved(avoid)
                                 },
                                 renderMode = state.renderMode,
                                 onSetRenderMode = { mode ->

@@ -157,6 +157,7 @@
     "route-summary-dialog": { "area": "routing", "userVisible": true, "surfaces": ["phone"] },
     "routing-failure-reporting": { "area": "routing", "userVisible": true, "surfaces": ["phone", "car"] },
     "routing-max-speed": { "area": "routing", "userVisible": true, "surfaces": ["phone", "car"] },
+    "routing-avoidance": { "area": "routing", "userVisible": true, "surfaces": ["phone", "car"] },
     "routing-summary": { "area": "routing", "userVisible": false, "surfaces": ["phone"] },
     "search-dialog": { "area": "search", "userVisible": true, "surfaces": ["phone"] },
     "search-free-text": { "area": "search", "userVisible": true, "surfaces": ["phone", "car"] },

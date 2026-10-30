@@ -113,6 +113,16 @@ fun LocationOptionsOverlay(
     onSetBicycleMaxSpeed: (Int) -> Unit,
     footMaxSpeedKmh: Int,
     onSetFootMaxSpeed: (Int) -> Unit,
+    // Routing avoidance: REQUIRED (no defaults), for the same reason as the max-speed rows. The
+    // switches render in EVERY mode, so an optional callback would let a call site compile into a
+    // switch whose change is silently dropped (spec: `routing-avoidance` — The phone edits the
+    // choices and the car reads them).
+    avoidTolls: Boolean,
+    onSetAvoidTolls: (Boolean) -> Unit,
+    avoidFerries: Boolean,
+    onSetAvoidFerries: (Boolean) -> Unit,
+    avoidUnpaved: Boolean,
+    onSetAvoidUnpaved: (Boolean) -> Unit,
     // Vehicle anchor rows: REQUIRED (no defaults). The rows render in EVERY mode,
     // so an optional callback would let a call site (e.g. the routing view) compile
     // into a picker that silently ignores the selection and keeps showing "Center"
@@ -192,6 +202,12 @@ fun LocationOptionsOverlay(
                 onSetBicycleMaxSpeed = onSetBicycleMaxSpeed,
                 footMaxSpeedKmh = footMaxSpeedKmh,
                 onSetFootMaxSpeed = onSetFootMaxSpeed,
+                avoidTolls = avoidTolls,
+                onSetAvoidTolls = onSetAvoidTolls,
+                avoidFerries = avoidFerries,
+                onSetAvoidFerries = onSetAvoidFerries,
+                avoidUnpaved = avoidUnpaved,
+                onSetAvoidUnpaved = onSetAvoidUnpaved,
                 routingAnchor = routingAnchor,
                 onSetRoutingAnchor = onSetRoutingAnchor,
                 freeDrivingAnchor = freeDrivingAnchor,
@@ -236,6 +252,12 @@ private fun LocationOptionsSheetContent(
     onSetBicycleMaxSpeed: (Int) -> Unit,
     footMaxSpeedKmh: Int,
     onSetFootMaxSpeed: (Int) -> Unit,
+    avoidTolls: Boolean,
+    onSetAvoidTolls: (Boolean) -> Unit,
+    avoidFerries: Boolean,
+    onSetAvoidFerries: (Boolean) -> Unit,
+    avoidUnpaved: Boolean,
+    onSetAvoidUnpaved: (Boolean) -> Unit,
     routingAnchor: VehicleAnchorPosition,
     onSetRoutingAnchor: (VehicleAnchorPosition) -> Unit,
     freeDrivingAnchor: VehicleAnchorPosition,
@@ -498,6 +520,34 @@ private fun LocationOptionsSheetContent(
             range = MaxSpeedRange.FOOT,
             testTag = "footMaxSpeedSlider",
             onSetValue = onSetFootMaxSpeed
+        )
+
+        // Routing avoidance (spec: `routing-avoidance` — The phone edits the choices and the car reads
+        // them). Beside the vehicle speeds because they are the same kind of choice: how the next route
+        // should be calculated. The car has no such control; it uses the values stored here.
+        Text(
+            text = stringResource(R.string.avoidance_section),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        )
+        AvoidanceSwitch(
+            label = stringResource(R.string.avoid_tolls),
+            checked = avoidTolls,
+            testTag = "avoidTollsSwitch",
+            onSetChecked = onSetAvoidTolls
+        )
+        AvoidanceSwitch(
+            label = stringResource(R.string.avoid_ferries),
+            checked = avoidFerries,
+            testTag = "avoidFerriesSwitch",
+            onSetChecked = onSetAvoidFerries
+        )
+        AvoidanceSwitch(
+            label = stringResource(R.string.avoid_unpaved),
+            checked = avoidUnpaved,
+            testTag = "avoidUnpavedSwitch",
+            onSetChecked = onSetAvoidUnpaved
         )
 
         // Vehicle anchor presets (spec: location-options-ui — Vehicle anchor
@@ -914,6 +964,38 @@ private fun MaxSpeedSlider(
             .fillMaxWidth()
             .testTag(testTag)
     )
+}
+
+/**
+ * One routing-avoidance row: the choice's label and the switch that sets it (spec: `routing-avoidance`
+ * — The phone edits the choices and the car reads them). The label carries the test tag, so a test
+ * names the row and reads the switch inside it.
+ */
+@Composable
+private fun AvoidanceSwitch(
+    label: String,
+    checked: Boolean,
+    testTag: String,
+    onSetChecked: (Boolean) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .testTag(testTag)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = { enabled -> onSetChecked(enabled) }
+        )
+    }
 }
 
 /**

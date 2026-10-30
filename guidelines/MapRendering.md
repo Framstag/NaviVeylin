@@ -809,6 +809,22 @@ car Surface:
   freeze). `CancellationException` is rethrown by the guard — a cancelled scope must end the loop.
   `frameIteration()` additionally returns early for `isShutdown`/`paused`/`surfaceFailed`, so a
   stopped screen neither draws nor counts a fault (it cannot drive the ladder).
+- **A requested frame that never lands is re-requested** (change `car-frame-wait-bound`, spec
+  `auto-map-renderer` — A requested car frame that never lands is re-requested; issue #25 is what the
+  old silence looked like to a driver: a black surface with host chrome and no message).
+  `requestRender()` arms a one-shot wait; when it expires with no draw since it was armed
+  (`fullRenderCount + blitCount` unchanged, a surface still held, not paused), the renderer requests
+  the frame again. Bound `FRAME_WAIT_BOUND_MS` = 4 s, budget `FRAME_WAIT_MAX_RETRIES` = 2 for ONE
+  stalled wait, and the budget re-arms as soon as a frame lands — so one stall does not disarm a long
+  session. The numbers come from the AAOS AVD (2026-10-30): a free-driving push draws its first frame
+  in 0.63–0.79 s, a surface replacement in 0.87 s, a full native render takes 25–300 ms, so 4 s is ~5x
+  the worst measured transition. A `frameIteration()` that drew nothing keeps `pendingRender` set
+  instead of consuming the request, and `pause()`, `detachSurface()` and `shutdown()` disarm the wait,
+  so a stopped screen still performs no surface work. A healthy session logs **nothing** —
+  `adb logcat -s Diag/MAP | grep 'frame wait expired'` was empty over a 60 s free-driving run (measured
+  2026-10-30); when a wait does expire, one line per retry is recorded, identity-only:
+  `frame wait expired: no frame in 4000 ms (retry 1/2)` and, at the end of the budget,
+  `frame wait expired: no frame in 4000 ms after 2 retries`.
 - **Diagnosing a frozen or degraded car map** (same change): one `adb logcat -s Diag/MAP` line per
   fault streak, per re-creation and at the degrade transition, all identity-only:
   - `renderer frame fault #1: IllegalStateException (recoveries=0)` — `<loop>` is `frame`,

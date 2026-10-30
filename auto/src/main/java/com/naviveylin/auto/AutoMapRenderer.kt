@@ -319,6 +319,50 @@ class AutoMapRenderer internal constructor(
     internal val renderSignal = MutableStateFlow(0L)
     internal var pendingRender = false
 
+    /**
+     * Arm time of the current frame wait (ms since boot — `SystemClock.elapsedRealtime`, so a wall
+     * clock step cannot make an expired wait look fresh). Read by [frameWaitIteration], which the
+     * tests drive with an explicit clock.
+     */
+    @Volatile
+    internal var frameWaitArmedAtMs = 0L
+
+    /**
+     * The bound this renderer waits (ms). The production value is [FRAME_WAIT_BOUND_MS]; a case may
+     * lower it so it can await the armed job instead of only calling the seam.
+     */
+    internal var frameWaitBoundMs = FRAME_WAIT_BOUND_MS
+
+    /**
+     * The monotonic clock the frame wait reads. Injectable so a case can advance time without
+     * sleeping (`guidelines/Build.md` §6e); the production default cannot step backwards.
+     */
+    internal var frameWaitClock: () -> Long = { android.os.SystemClock.elapsedRealtime() }
+
+    /** Draws (`fullRenderCount + blitCount`) counted when the wait was armed. */
+    @Volatile
+    internal var frameWaitDrawsAtArm = 0
+
+    /** Retries already spent on the current stalled wait (design D3). */
+    @Volatile
+    internal var frameWaitRetries = 0
+
+    /** True once the current stalled wait spent its budget: reported once, no further retry. */
+    @Volatile
+    internal var frameWaitExhausted = false
+
+    /** The one-shot watchdog of the current frame wait; cancelled by pause, detach and shutdown. */
+    @Volatile
+    internal var frameWaitJob: Job? = null
+
+    /**
+     * Diagnostic sink for an expired frame wait. Injectable so a case can count the records without
+     * reading the diagnostics file (the shape `RenderLoopSupervisor.record` uses).
+     */
+    internal var frameWaitReport: (String) -> Unit = { message ->
+        com.naviveylin.core.DiagnosticsLog.log(FRAME_WAIT_DIAG_TAG, message)
+    }
+
     // Throttle for surface-failure diagnostics (a dead surface fails every
     // frame; logging each one floods logcat).
     internal var lastSurfaceFailureLogMs = 0L
@@ -419,6 +463,9 @@ class AutoMapRenderer internal constructor(
             surfaceFailed = false
             clearOverrunBuffer()
         }
+        // Same rule as detachSurface: a wait that could not draw anything on this surface must not
+        // expire into a retry that has no surface (the delivery arms the next wait).
+        disarmFrameWaitWatchdog()
     }
 
     /**
@@ -601,6 +648,7 @@ class AutoMapRenderer internal constructor(
         android.util.Log.d(TAG, "renderer#$rendererId pause")
         paused = true
         pendingRender = false
+        disarmFrameWaitWatchdog()
     }
 
     /**
@@ -625,6 +673,7 @@ class AutoMapRenderer internal constructor(
             surfaceFailed = false
             clearOverrunBuffer()
         }
+        disarmFrameWaitWatchdog()
     }
 
     /** Resume rendering (screen started again). */
@@ -773,6 +822,7 @@ class AutoMapRenderer internal constructor(
         renderJob?.cancel()
         extrapolationJob?.cancel()
         zoomWalkJob?.cancel()
+        disarmFrameWaitWatchdog()
         scope.cancel()
         synchronized(surfaceLock) {
             // No release: the session owns the surface (spec: car-host-fault-isolation).
@@ -793,6 +843,10 @@ class AutoMapRenderer internal constructor(
         pendingRender = true
         renderRequestCount++
         renderSignal.value = System.nanoTime()
+        // A request is the only thing that can produce a frame: arm the wait that notices one that
+        // never lands (spec: auto-map-renderer — A requested car frame that never lands is
+        // re-requested).
+        armFrameWaitWatchdog()
     }
 
     /**
@@ -904,7 +958,7 @@ class AutoMapRenderer internal constructor(
      * assertion needs no waiting or retry.
      */
     internal fun activeBackgroundJobCount(): Int =
-        listOfNotNull(renderJob, extrapolationJob, zoomWalkJob).count { it.isActive }
+        listOfNotNull(renderJob, extrapolationJob, zoomWalkJob, frameWaitJob).count { it.isActive }
 
     @Volatile
     internal var markerDrawObjects: MarkerDrawObjects? = null
@@ -915,6 +969,26 @@ class AutoMapRenderer internal constructor(
     companion object {
         internal const val TAG = "AutoMapRenderer"
         internal const val RENDER_DEBOUNCE_MS = 100L
+
+        /**
+         * How long a requested car frame may stay undrawn before the renderer asks for it again
+         * (spec: auto-map-renderer — A requested car frame that never lands is re-requested;
+         * design D3). Measured on the AAOS AVD 2026-10-30: a free-driving push draws its first
+         * frame in 0.63 s, a surface replacement in 0.87 s, a full native render takes 25-300 ms —
+         * so 4 s is ~5x the worst measured transition and still short enough that a driver sees
+         * the retry rather than a hang.
+         */
+        internal const val FRAME_WAIT_BOUND_MS = 4_000L
+
+        /**
+         * Retries a single stalled wait may spend (design D3) — the same budget the screens give
+         * their surface refresh (`MAX_SURFACE_REFRESH_ATTEMPTS`). A frame that lands re-arms it, so
+         * one stall does not disarm a long session.
+         */
+        internal const val FRAME_WAIT_MAX_RETRIES = 2
+
+        /** Diagnostics tag of an expired frame wait — the map tag, no new tag (`Logging.md` §2). */
+        internal const val FRAME_WAIT_DIAG_TAG = "MAP"
         private const val DEFAULT_LATITUDE = 51.5142273
         private const val DEFAULT_LONGITUDE = 7.4652789
         private const val DEFAULT_ZOOM = 12

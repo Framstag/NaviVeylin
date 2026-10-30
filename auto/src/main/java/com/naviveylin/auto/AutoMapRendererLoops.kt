@@ -37,6 +37,9 @@ import kotlinx.coroutines.launch
 import com.naviveylin.auto.AutoMapRenderer.Companion.RENDER_DEBOUNCE_MS
 import com.naviveylin.auto.AutoMapRenderer.Companion.EXTRAPOLATION_FRAME_MS
 import com.naviveylin.auto.AutoMapRenderer.Companion.ZOOM_WALK_FRAME_MS
+import com.naviveylin.auto.AutoMapRenderer.Companion.FRAME_WAIT_BOUND_MS
+import com.naviveylin.auto.AutoMapRenderer.Companion.FRAME_WAIT_MAX_RETRIES
+import com.naviveylin.auto.AutoMapRenderer.Companion.TAG
 
 
 // The three loops this renderer starts and the iteration hooks their supervisor
@@ -79,10 +82,84 @@ internal fun AutoMapRenderer.frameIteration() {
     if (isShutdown || paused || surfaceFailed) return
     if (!pendingRender) return
     pendingRender = false
+    val drawsBefore = fullRenderCount + blitCount
     loops.runIteration(RenderLoop.FRAME) {
         maybeFailForTest(RenderLoop.FRAME)
         renderFrame()
     }
+    if (fullRenderCount + blitCount == drawsBefore) {
+        // Nothing was drawn: no surface, no extent, or a fault confined to this iteration. The
+        // request is NOT consumed — it stays outstanding and the frame wait is armed, so the
+        // surface cannot sit on its last frame for as long as nothing else happens (spec:
+        // auto-map-renderer — A requested car frame that never lands is re-requested; issue #25 is
+        // what the old behaviour looks like to a driver).
+        pendingRender = true
+        armFrameWaitWatchdog()
+    } else {
+        frameWaitRetries = 0
+        frameWaitExhausted = false
+    }
+}
+
+/**
+ * Arm the one-shot watchdog of the outstanding frame request (spec: auto-map-renderer — A requested
+ * car frame that never lands is re-requested; design D1/D3).
+ *
+ * One deadline per request rather than a periodic fourth loop: the healthy path pays a single job
+ * that is cancelled when the next request arrives, and a stopped renderer pays nothing (arming is
+ * refused while paused, shut down, or without a surface — `pause`/`detachSurface`/`shutdown` also
+ * disarm explicitly).
+ */
+internal fun AutoMapRenderer.armFrameWaitWatchdog(nowMs: Long? = null) {
+    if (isShutdown || paused || surface == null) return
+    frameWaitArmedAtMs = nowMs ?: frameWaitClock()
+    frameWaitDrawsAtArm = fullRenderCount + blitCount
+    frameWaitJob?.cancel()
+    frameWaitJob = scope.launch {
+        delay(frameWaitBoundMs)
+        runCatching { frameWaitIteration(frameWaitClock()) }
+            .onFailure { android.util.Log.w(TAG, "renderer#$rendererId frame wait check failed", it) }
+    }
+}
+
+/** Cancel the frame wait (screen stop, surface detach, shutdown, or a frame that landed). */
+internal fun AutoMapRenderer.disarmFrameWaitWatchdog() {
+    frameWaitJob?.cancel()
+    frameWaitJob = null
+}
+
+/**
+ * The frame wait expired (or a case is driving it with an explicit clock): retry the outstanding
+ * request, bounded, and report each expired wait once (spec: auto-map-renderer — A requested car
+ * frame that never lands is re-requested; `Logging.md` §3 — identity only, never a position).
+ */
+internal fun AutoMapRenderer.frameWaitIteration(nowMs: Long) {
+    if (isShutdown || paused || surfaceFailed) return
+    if (fullRenderCount + blitCount != frameWaitDrawsAtArm) {
+        // A frame landed since the wait was armed. The budget re-arms with it, so one stall does not
+        // disarm every later wait of this renderer (design D3).
+        frameWaitRetries = 0
+        frameWaitExhausted = false
+        return
+    }
+    if (surface == null) return
+    if (nowMs - frameWaitArmedAtMs < frameWaitBoundMs) return
+    if (frameWaitExhausted) return
+    if (frameWaitRetries >= FRAME_WAIT_MAX_RETRIES) {
+        frameWaitExhausted = true
+        frameWaitReport(
+            "frame wait expired: no frame in $frameWaitBoundMs ms after " +
+                "$frameWaitRetries retries"
+        )
+        return
+    }
+    frameWaitRetries++
+    frameWaitReport(
+        "frame wait expired: no frame in $frameWaitBoundMs ms " +
+            "(retry $frameWaitRetries/$FRAME_WAIT_MAX_RETRIES)"
+    )
+    // Requests again through the normal path, which re-arms this wait from the retry instant.
+    requestRender()
 }
 
 /** Consecutive confined faults of the current streak — exposed for tests. */

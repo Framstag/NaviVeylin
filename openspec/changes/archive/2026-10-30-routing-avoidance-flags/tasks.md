@@ -38,10 +38,13 @@
   (2 151 cases) after the German strings were added.
 - [x] 4.2 `revert-check`: the builder's `avoidUnpaved` argument was replaced with `false`; the named case
   `eachStoredChoiceReachesTheProfile` failed; restored, the suite is green.
-- [ ] 4.3 A device check that a stored choice survives a restart and appears in the sheet. Both halves are
-  covered over the real storage class by `MapCanvasViewModelAvoidanceTest`, and the sheet case shows the
-  stored value; the on-device run is the remaining evidence and is owed with the next on-device pass
-  (`Build.md` §10 device recipes, skill `device-check`).
+- [x] 4.3 A device check that a stored choice survives a restart and appears in the sheet:
+  `evidence/device-restart-2026-10-30.md`. On the `Pixel_8(AVD) - 17` emulator, toll and unpaved were
+  switched on in the sheet, `files/maps/settings.json` then read
+  `{"avoidTolls":true,"avoidUnpaved":true,…}`, and after a force-stop and relaunch the reopened sheet showed
+  both on and the untouched ferry switch off. The same run notes what it does not prove: the installed
+  extract carries no toll information, so no route changes on the device — that effect is measured in the
+  submodule change.
 - [x] 4.4 The data limitation is stated where a reader meets it: the proposal's honest expectation, the
   design's "What the user must not be promised", and the spec requirement "A choice the data cannot express
   changes nothing".

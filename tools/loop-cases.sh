@@ -181,6 +181,7 @@ LOOP_SHELL_CASES=(
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
   'run#hostWithoutTheReadingPasses'
+  'run#aHostWithoutThePlacementReadingIsRefused'
   'run#childWriteOutsideTheWorktreeIsNoted'
   'run#aWriterTheRunCanPlaceBlocksTheItem'
   'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem'
@@ -519,6 +520,7 @@ loop_run_shell_case() {
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
     'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
+    'run#aHostWithoutThePlacementReadingIsRefused') fn=case_run_aHostWithoutThePlacementReadingIsRefused ;;
     'run#childWriteOutsideTheWorktreeIsNoted') fn=case_run_childWriteOutsideTheWorktreeIsNoted ;;
     'run#aWriterTheRunCanPlaceBlocksTheItem') fn=case_run_aWriterTheRunCanPlaceBlocksTheItem ;;
     'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem') fn=case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem ;;
@@ -5225,6 +5227,45 @@ case_run_hostWithoutTheReadingPasses() {
   assert_contains "$out" "free-mib=unknown" "the header says the reading is unavailable instead of inventing one"
   assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a host without the reading is not refused"
   assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "and the item closes as usual"
+}
+
+# The placement reading belongs to the run, not to the suite (issue #703). `loop_tree_pids` asks `pgrep` for the
+# child's process group and for every level below it, and both calls swallow their stderr: on a host without procps
+# the walk names only the child, `outside_write_seen`'s two filters drop that pid, and every difference is recorded
+# and none is ever placed with no line saying so. `--strict-outside-write yes` still blocks, but the placement half
+# of the rule never fires — and a run started by hand never consults the suite that refuses such a host. So the run
+# refuses at its header, before a worktree, a branch or a child exists.
+#
+# The host is simulated with a PATH of symlinks: every executable the current PATH reaches is linked into one
+# directory except `pgrep`, so what is missing is exactly the one tool the suite requires and the run now does too.
+case_run_aHostWithoutThePlacementReadingIsRefused() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p farm dir entry name out status
+  local -a dirs
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  farm="$d/path"; mkdir -p "$farm"
+  IFS=: read -r -a dirs <<< "$PATH"
+  for dir in "${dirs[@]}"; do
+    [ -d "$dir" ] || continue
+    for entry in "$dir"/*; do
+      name=${entry##*/}
+      [ "$name" = pgrep ] && continue
+      [ -x "$entry" ] || continue
+      if [ -e "$farm/$name" ] || [ -L "$farm/$name" ]; then continue; fi
+      ln -s "$entry" "$farm/$name" 2>/dev/null || true
+    done
+  done
+  if PATH="$farm" command -v pgrep >/dev/null 2>&1; then
+    fail "this case could not take pgrep off the host it simulates"
+  fi
+  out=$( ( PATH="$farm" run_loop "$p" --items 0 --minutes 90 ) 2>&1 ); status=$?
+  assert_eq "2" "$status" "a host without the placement reading is a usage refusal: $out"
+  assert_contains "$out" "pgrep" "the refusal names the command the reading is missing"
+  assert_contains "$out" "and place none" "and the outcome it would cause, not a bare tool name"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was prepared on a host that cannot place a write"
+  assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
 }
 
 # The project's own tree is not the child's: the run's own landings fast-forward the base there

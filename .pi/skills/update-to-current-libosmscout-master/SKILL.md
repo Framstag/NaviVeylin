@@ -189,6 +189,23 @@ awk 'NR>=3600 && NR<=3830 {if (/^#ifdef OSMSCOUT_HAVE_LIB_MARISA/) g++; if (/^#e
 7. Pushing the **parent** commit is a separate decision — the script leaves it unpushed. Ask the user or follow repo convention.
 8. Residual burn-down: `git -C app/src/main/cpp/libosmscout diff --shortstat origin/master HEAD` —
    compare with the previous update and note what shrank (see *Burn-down*).
+9. **A bump that moves the data format version invalidates every installed database on every device.**
+   `FILE_FORMAT_VERSION` (`libosmscout/include/osmscout/TypeConfig.h`, see the submodule's
+   `guidelines/FileFormatVersion.md`) is the whole compatibility contract: a database written by the previous
+   build cannot be opened by this one. After such a bump, re-download the basemap *and* the regions on each
+   phone, head unit and AVD that carries installed maps (through the app's map manager), and re-take the
+   device evidence you keep — a render or footprint number measured against the old data is not comparable.
+   The app now refuses such a basemap instead of handing it to the native reader, so the diagnosis reads:
+
+   ```
+   D Diag/WARMUP: Basemap not registered: <dir>/types.dat names data format 26, this build reads 27
+                  — download the basemap again
+   ```
+
+   Read that line as **stale data, not an app defect** (issue #23): the map manager's basemap section names the
+   same two versions and the remedy. A region in the same state is not refused by the app — it is refused by the
+   native open, with `does not have the expected format version! Actual N, expected: M` — and is repaired the
+   same way, by re-downloading it.
 
 ## Pitfalls
 

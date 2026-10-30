@@ -10,13 +10,15 @@ import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.OSMScoutClientBuilder
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.data.AssetCopier
+import com.naviveylin.data.BasemapAdmission
+import com.naviveylin.data.BasemapDataFormat
 import com.naviveylin.data.MapStorageManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import java.nio.file.Files
+import java.nio.file.Path
 import javax.inject.Singleton
 
 @Module
@@ -63,12 +65,9 @@ object MapDownloadModule {
         val builder = OSMScoutClientBuilder()
         DiagnosticsLog.log(DiagnosticsLog.WARMUP_TAG, "Native library loaded, builder created")
 
-        val basemapDir = storageManager.mapsRootDir.resolve("basemap")
-        val basemapLookupDir = if (Files.isDirectory(basemapDir)) {
-            Log.d("MapDownloadModule", "basemap found at $basemapDir")
-            basemapDir.toString()
-        } else {
-            null
+        val basemapLookupDir = admittedBasemapLookupDirectory(storageManager.mapsRootDir.resolve("basemap"))
+        if (basemapLookupDir != null) {
+            Log.d("MapDownloadModule", "basemap found at $basemapLookupDir")
         }
 
         configureClient(
@@ -108,6 +107,30 @@ object MapDownloadModule {
     fun provideDefaultMapProvider(): MapProvider =
         MapProvider(DEFAULT_PROVIDER_NAME, DEFAULT_PROVIDER_URI, DEFAULT_PROVIDER_LIST_URI)
 }
+
+/**
+ * The basemap lookup directory the client may be built with, or null when there is nothing it could open.
+ *
+ * A basemap whose `types.dat` names another data format version is refused here rather than handed to the
+ * native builder, which would fail its open at every start with the only trace in a native error line — the
+ * directory still looks installed while borders, coastlines and country names silently vanish (issue #23,
+ * [BasemapDataFormat]). The refusal is recorded once, as a diagnostics line naming both versions.
+ *
+ * @param basemapDirectory the basemap lookup directory (`{mapsDir}/basemap`)
+ * @param expectedVersion the data format version this build reads
+ */
+internal fun admittedBasemapLookupDirectory(
+    basemapDirectory: Path,
+    expectedVersion: Int = MapDownloadManager.DATABASE_FORMAT_VERSION
+): String? =
+    when (val admission = BasemapDataFormat.admit(basemapDirectory, expectedVersion)) {
+        BasemapAdmission.Absent -> null
+        is BasemapAdmission.Rejected -> {
+            BasemapDataFormat.logRejection(admission)
+            null
+        }
+        is BasemapAdmission.Admitted -> admission.directory.toString()
+    }
 
 /** Map font size in millimetres (libosmscout's stylesheet unit). */
 private const val FONT_SIZE_MM = 2.5

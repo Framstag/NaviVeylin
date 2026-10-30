@@ -56,15 +56,23 @@ class BasemapViewModelTest {
     private class Fixture(
         val viewModel: BasemapViewModel,
         val client: FakeOSMScoutClient,
-        val notifier: BasemapReloadNotifier
+        val notifier: BasemapReloadNotifier,
+        val mapsDir: java.nio.file.Path
     )
 
-    private fun fixture(server: HttpServer, withInstalledBasemap: Boolean = false): Fixture {
+    private fun fixture(
+        server: HttpServer,
+        withInstalledBasemap: Boolean = false,
+        typesVersion: Int? = null
+    ): Fixture {
         val mapsDir = Files.createTempDirectory("basemap-vm-test")
         if (withInstalledBasemap) {
             val basemapDir = mapsDir.resolve("basemap")
             Files.createDirectories(basemapDir)
             Files.write(basemapDir.resolve("water.idx"), "data".toByteArray())
+            if (typesVersion != null) {
+                writeTypesVersion(basemapDir, typesVersion)
+            }
         }
         val manager = BasemapManager(
             MapProvider("test", "http://127.0.0.1:${server.address.port}", ""),
@@ -83,8 +91,57 @@ class BasemapViewModelTest {
                 HttpUrlFetcher()
             )
         )
-        return Fixture(vm, client, notifier)
+        return Fixture(vm, client, notifier, mapsDir)
     }
+
+    /** Write `types.dat` with [version] as its little-endian header, the database's own version field. */
+    private fun writeTypesVersion(basemapDir: java.nio.file.Path, version: Int) {
+        Files.write(
+            basemapDir.resolve("types.dat"),
+            java.nio.ByteBuffer.allocate(4)
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                .putInt(version)
+                .array()
+        )
+    }
+
+    @Test
+    fun theSectionStateCarriesTheInstalledDataFormatWhenThisBuildCannotReadIt() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val server = startServer()
+            try {
+                val f = fixture(server, withInstalledBasemap = true, typesVersion = 26)
+
+                // The probe suspends on real IO (settings, then the listing), so the state is awaited the way
+                // this class' delete case awaits the notifier: a published state, not a drained scheduler.
+                val stale = withContext(Dispatchers.Default) {
+                    f.viewModel.uiState.first {
+                        it.availability != BasemapAvailability.Unknown && it.outdatedFormat != null
+                    }
+                }
+                assertEquals(
+                    "the section must be told the installed version and the one this build reads",
+                    26,
+                    stale.outdatedFormat?.installedVersion
+                )
+                assertEquals(27, stale.outdatedFormat?.expectedVersion)
+
+                writeTypesVersion(f.mapsDir.resolve("basemap"), version = 27)
+                f.viewModel.refresh()
+
+                val readable = withContext(Dispatchers.Default) {
+                    f.viewModel.uiState.first { it.outdatedFormat == null && it.installedInfo != null }
+                }
+                assertEquals(
+                    "a readable basemap clears the notice (spec `basemap-ui` — Notice clears once a " +
+                        "readable basemap is installed)",
+                    null,
+                    readable.outdatedFormat
+                )
+            } finally {
+                server.stop(0)
+            }
+        }
 
     @Test
     fun applyBasemapChangeRegistersReloadsAndNotifies() = runTest(mainDispatcherRule.dispatcher) {

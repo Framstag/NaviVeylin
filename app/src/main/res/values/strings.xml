@@ -248,6 +248,7 @@
     <string name="basemap_unavailable">Basemap unavailable</string>
     <string name="basemap_delete_failed">Failed to delete basemap</string>
     <string name="basemap_repository_version">Basemap version %1$d on this repository</string>
+    <string name="basemap_outdated_format">Installed data format %1$d, this build reads %2$d — delete the basemap and download it again</string>
     <string name="installed_from_source">from %1$s</string>
     <string name="source_repository_label">Repository</string>
     <string name="repository_url_label">Repository URL</string>

@@ -1900,7 +1900,9 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   `routerOverPoly` / `descriptionOverPoly` / `descriptionOverRouter`. `routeLengthsAreMeasuredForALongAndAShortRoute`
   fails when the published length leaves `publishedOverPoly 0.95…1.05` or differs from the description's total
   by more than 2 % (the app's own divergence threshold), so a regression is a red case. The map data must carry
-  the candidate chain (NRW); on the AAOS AVD the basemap can be a format version behind (`TODO.md` §99).
+  the candidate chain (NRW); on the AAOS AVD the basemap can be a format version behind, which the app now refuses with a
+  `Basemap not registered: … names data format N, this build reads M` line (issue #23) — re-download it before
+  comparing basemap-dependent numbers (`TODO.md` §99).
 - **Install the freshly built **test** APK, not the one under `outputs/`** (measured 2026-10-07): with
   `-Pandroid.injected.build.abi=…` AGP writes the variant APKs to `app/build/intermediates/apk/<flavor>/<type>/`,
   while `app/build/outputs/apk/androidTest/…/app-…-androidTest.apk` can still be the previous build's file.

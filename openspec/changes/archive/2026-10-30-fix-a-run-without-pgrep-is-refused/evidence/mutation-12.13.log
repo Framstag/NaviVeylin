@@ -1,0 +1,5 @@
+RED    12.13  run#aHostWithoutThePlacementReadingIsRefused   (the run refusing a host whose placement reading cannot answer)
+       2026-10-30T09:12:36Z — a host without the placement reading is a usage refusal: agent-issue-loop: items=0 minutes=90 review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900 item-turns
+restore 12.13 run#aHostWithoutThePlacementReadingIsRefused green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

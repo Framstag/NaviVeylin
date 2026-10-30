@@ -1,0 +1,2 @@
+FAIL run#aHostWithoutThePlacementReadingIsRefused — stop: the identity this run acts as is not authorised — nothing was created: expected '2', got '3'
+tests=1 failures=1

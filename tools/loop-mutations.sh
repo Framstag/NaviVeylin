@@ -128,6 +128,10 @@ MUTATIONS=(
   # record a case cannot notice is not evidence (the rule this file's `13.x` records follow). The ordering stays in
   # `run.sh` and its reason stays in `guidelines/Backlog.md` §7; what it lost is a case, not the behaviour.
   '12.11@-@tools/loop/run.sh@run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem@the child chain the run itself started in the project not being a writer@s|^    pid_left_the_worktree "$pid" "$LOOP_WORKTREE" \|\| continue$|    : # the mutation marks every process of the tree that stands in the project|'
+  # 12.13 is the run's own prerequisite (issue #703): without it a host whose `pgrep` is absent records every
+  # difference in the project's own tree and places none, and the item keeps the outcome its work earned while the
+  # deciding half of the rule was never enforced — the suite refuses such a host, a hand-started run does not.
+  '12.13@-@tools/loop/run.sh@run#aHostWithoutThePlacementReadingIsRefused@the run refusing a host whose placement reading cannot answer@s|^if ! command -v pgrep >/dev/null 2>&1; then$|if false; then|'
   '12.5@-@tools/loop/worktree.sh@worktree#reusesABranchThatCarriesNoWorkOfItsOwn@the reuse of a branch that carries nothing of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if false; then|'
   '12.6@-@tools/loop/worktree.sh@worktree#refusesABranchCarryingAPreviousAttempt@the refusal of a branch that carries an archived change of its own@s|^    if \[ -z "\$carried" \] \|\| \[ "\$state" = "landed" \]; then$|    if true; then|'
   '12.7@-@tools/loop/worktree.sh@worktree#setsAsideABlockedAttemptAndStartsFresh@the blocked attempt branch renamed aside so the item is worked@s|^    elif \[ "\$state" = "unfinished" \]; then$|    elif false; then|'

@@ -439,6 +439,14 @@ change.
   time the child's transcript is written, and a difference nobody can place is not evidence about the child
 - **Case**: `run#aWriterTheRunCanPlaceBlocksTheItem`
 
+#### Scenario: A host that cannot read the child's tree refuses the run
+
+- **WHEN** the run starts on a host where the command the placement reading calls (`pgrep`) is not on `PATH`
+- **THEN** it refuses with a usage error that names the missing command and the reading it serves, before any
+  worktree, branch or child exists, because the reading's calls swallow their stderr and a failure to read would
+  otherwise record every difference and place none while the run reported success
+- **Case**: `run#aHostWithoutThePlacementReadingIsRefused`
+
 #### Scenario: The run's own child chain is not a writer
 
 - **WHEN** a difference in the project's own tree is read while the child is alive and only the child's own shells —

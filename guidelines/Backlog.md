@@ -323,8 +323,11 @@ rule therefore cannot place is recorded, and the item keeps the outcome its work
 child whose working directory never left the project — the worker's own shell, since `run_child` starts the child
 there — and a process that joined the child's group whose parent chain has since died, the ancestor walk ending at
 the dead parent (#704). The reading asks `pgrep` for that tree, the run's only procps dependency since
-`pid_in_child_tree`'s `ps` call went with the wide rule, and the **suite** is what refuses a host without it
-(#703): a run started by hand on such a host records every difference and places none, and says nothing.
+`pid_in_child_tree`'s `ps` call went with the wide rule, and both of its calls swallow their stderr: a host without
+procps answers nothing, so the walk would name only the child, every difference would be recorded and none placed,
+and no line would say so. The run therefore refuses such a host at its own header, before a worktree, a branch or a
+child exists, and the **suite** refuses it too — a run started by hand on such a host would otherwise record every
+difference and place none, and say nothing (#703).
 The child's own tree is read **before** the list of everyone else standing in the project, because that
 list is a `readlink` for every process on the host — 1.0 s for 731 of them when #288 measured it — and the writer
 the mark is about is gone by the time such a reading ends. Two sweeps were what the placement was built on, and

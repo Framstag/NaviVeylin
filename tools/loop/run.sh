@@ -110,6 +110,18 @@ if [ -z "$(printf '%s' "${LOOP_AGENT_CMD:-}" | tr -d '[:space:]')" ]; then
   loop_die "run: LOOP_AGENT_CMD is empty in $LOOP_CONF_PATH — the run has no way to start an agent process"
 fi
 
+# The placement reading asks the kernel for the child's own process tree with `pgrep` (issue #288), which is the
+# engine's only procps dependency since `pid_in_child_tree`'s `ps` call went with the wide rule. Both calls in
+# `loop_tree_pids` swallow their stderr, so a host without procps answers nothing and the walk names only the
+# child; `outside_write_seen`'s filters drop that pid and every difference is then recorded and none placed, with
+# no line saying so — the deciding half of the rule never fires while `--strict-outside-write no`, the default,
+# still lets the item land. The suite refuses such a host, but a run started by hand never consults the suite
+# (issue #703), so the run refuses here, beside the agent-command check and before a worktree, a pre-screen, a
+# branch or a child exists.
+if ! command -v pgrep >/dev/null 2>&1; then
+  loop_die "run: pgrep is required — the placement reading asks the kernel for the child's own process tree; a host without procps would record every difference and place none"
+fi
+
 # What one child may run (issue #663). Two recorded numbers decide it: the floor a child may run even when the
 # profile records no gate cost (`LOOP_CHILD_MAX_SECONDS`, 45 min), and what one item's gate owes
 # (`LOOP_ITEM_GATE_SECONDS`) — an item owes a red gate round and a green one, and the phases the gate is not. The

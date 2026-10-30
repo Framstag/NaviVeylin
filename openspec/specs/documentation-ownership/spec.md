@@ -141,8 +141,15 @@ count of its lines from the `## ` heading through the line before the next `## `
 - **WHEN** a section that the routing table names costs more than 12 000 bytes, or answers more than one question
 - **THEN** the document splits it into lettered sub-sections under its unchanged number, the section's own
   body becomes an index of them, and every resulting sub-section is at most 12 000 bytes
-- **Case**: `routed-read#bound` — the cost of a section is the byte count of its lines from the `## ` heading
-  through the line before the next `## ` heading, and the case prints it for every section of the document
+- **AND** the split is a check's condition, not a case's failure: a routed section still past the bound is the
+  condition `sensors#routedSectionSizeRow` files under the identity of its document and section, and
+  `routed-read#bound` is the ruler and the print the cost is read with — while the second trigger, a section
+  that answers more than one question, is a judgement no case asserts
+- **Case**: `routed-read#bound` — the ruler and the print: the cost of a section is the byte count of its lines
+  from the `## ` heading through the line before the next `## ` heading, printed for every section of the
+  document, and the case fails when a printed cost is not that count; `sensors#routedSectionSizeRow` — the
+  filing: a routed section past the bound is that row's condition, carrying the document and the section, and it
+  closes when the section shrinks under the bound
 
 #### Scenario: A split section keeps its number and its citations
 

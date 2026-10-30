@@ -20,13 +20,13 @@
 - [x] 2.1 Pair the taps in the existing gesture state machine: `pendingTapUpMs`/`pendingTapPos` in the
       `pointerInput` scope, the platform's `doubleTapTimeoutMillis` and `touchSlop` as the window, a pending
       tap cleared by a drag, a pinch and a long press. Verify: the red case passes and every pan, pinch,
-      rotation and long-press case of `MapGestureComposeTest` stays green — `tests="15" failures="0"`
+      rotation and long-press case of `MapGestureComposeTest` stays green — `tests="16" failures="0"` (round 2 added one: `evidence/round2/green-gesture.xml`)
       (`evidence/green-after-fix-gesture.xml`, 2026-10-29T13:13:45.554Z).
       *(spec: `smooth-zoom` — Two taps inside the platform's window are one double tap)*
 - [x] 2.2 Add the seam `doubleTapZoomMagnification` (one level, clamped at `MAX_MAG`) and `fireDoubleTap`
       (disengage follow, `zoomAtCursor` centre, commit the level, animate around the tap point) in
       `MapCanvasScreenParts.kt`, beside `fireLongPress`, and wire the map band's `onDoubleTap` to it. Verify:
-      `MapCanvasDoubleTapZoomTest` reports `tests="2" failures="0"`
+      `MapCanvasDoubleTapZoomTest` reports `tests="4" failures="0"` (round 2 added two: `evidence/round2/green-gesture-and-doubletap-zoom.xml`)
       (`evidence/green-after-fix-doubletapzoom.xml`).
       *(spec: `smooth-zoom` — A double tap steps one level around the tap point; A double tap at the maximum
       magnification changes nothing)*
@@ -82,3 +82,19 @@
 - [x] 6.5 The notes that are new scope are recorded, not silently dropped: the `Offset.Zero` anchor sentinel
       (a double tap at the canvas origin) and the two unproven claims (a non-centre retrack; follow
       disengagement after a double tap). Verify: `evidence/evidence.md`, "Review round 1", last three bullets.
+
+## 7. Review round 2, answered (2026-10-30)
+
+- [x] 7.1 The corrections' proof is citable: the two red runs are kept as artifacts — `evidence/round2/red-1-no-render.xml`
+      (`tests="4" failures="1"`, "got mag=5.0 unchanged") and `evidence/round2/red-2-up-to-up.xml`
+      (`tests="16" failures="1"`, "got [] expected:<[Offset(160.0, 235.0)]>") — together with their console logs,
+      the green re-runs (`round2/green-gesture.xml` `tests="16" failures="0"`,
+      `round2/green-gesture-and-doubletap-zoom.xml` `tests="4" failures="0"`) and the whole gate on the
+      corrected tree (`round2/gate.log`, `BUILD SUCCESSFUL in 5m 40s`).
+- [x] 7.2 The guideline sentence says what the code does — "the last anchor the display was given" — because
+      `MapCanvasMapBand.kt` writes a gesture centroid even when that gesture neither zoomed nor rotated.
+- [x] 7.3 `fireDoubleTap`'s comment names the scroll wheel as the recorded exception instead of claiming every
+      discrete commit requests its frame.
+- [x] 7.4 The requirement and its scenario say "the next whole level" and name the fractional band, and the case
+      "double tap from a level past the half steps to the next whole level" pins `10.6 → 12.0`.
+- [x] 7.5 The two wall-clock readings in "The measurement" are gone; the gate log is the record.

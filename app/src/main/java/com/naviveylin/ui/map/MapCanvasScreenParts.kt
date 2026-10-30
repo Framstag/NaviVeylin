@@ -174,11 +174,12 @@ internal fun fireDoubleTap(
     viewModel.updateMagnification(target)
     // The committed level is only a request: a magnification that must appear on the map goes
     // through the renderer, which is where the walk's first step is asked for and where the
-    // frame that carries the new level comes from. Every other discrete zoom commit does the
-    // same in the same order (zoom buttons `MapCanvasScreenChromeBand.kt`, keyboard
-    // `MapCanvasMapBand.kt`, pinch end), and without it the display would ease toward a level no
-    // frame carries (spec: smooth-zoom — the displayed map eases from the currently rendered scale
-    // to the new level around that pixel; review round 1, finding 1).
+    // frame that carries the new level comes from. The zoom buttons and the keyboard do the same
+    // in the same order (`MapCanvasScreenChromeBand.kt`, `MapCanvasMapBand.kt`); the scroll wheel
+    // is the recorded exception - it commits and animates without a request, which is a gap of
+    // its own (review round 2, note 2). Without the request the display would ease toward a level
+    // no frame carries (spec: smooth-zoom — the displayed map eases from the currently rendered
+    // scale to the new level around that pixel; review round 1, finding 1).
     viewModel.renderMap()
     animateZoom(pos)
 }

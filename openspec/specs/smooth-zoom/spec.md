@@ -216,16 +216,18 @@ double tap.
 
 ### Requirement: A double tap steps one level at its own point
 
-A double tap SHALL commit the next magnification level above the level the viewport records, never above the
-maximum magnification, and at the maximum it SHALL change neither the viewport nor the display. The geographic
-point under the tap point SHALL stay at the same screen pixel for every frame of the eased transition, which
-SHALL retrack from the currently displayed scale. The step SHALL go through the viewport commit a
-zoom-button press uses, so it is a manual zoom (spec: `map-modes`).
+A double tap SHALL commit the next whole magnification level above the level the viewport records — the snapped
+step the zoom-in button takes, so a fractional level a pinch left behind commits the next integer one — never
+above the maximum magnification, and at the maximum it SHALL change neither the viewport nor the display. The
+geographic point under the tap point SHALL stay at the same screen pixel for every frame of the eased
+transition, which SHALL retrack from the currently displayed scale. The step SHALL go through the viewport
+commit a zoom-button press uses, so it is a manual zoom (spec: `map-modes`).
 
 #### Scenario: A double tap steps one level around the tap point
 
 - **WHEN** the user double-taps the map canvas at a point, below the maximum magnification
-- **THEN** the recorded magnification SHALL be one level above the recorded level
+- **THEN** the recorded magnification SHALL be the next whole level above the recorded level (a recorded `10.4`
+  commits `11`, a recorded `10.6` commits `12`, as the zoom-in button does)
 - **AND** the geographic point under the tap point SHALL be at the same screen pixel after the commit
 - **AND** the displayed map SHALL ease from the currently rendered scale to the new level around that pixel
 - **Case**: `app: MapCanvasDoubleTapZoomTest` "double tap steps one level and keeps the tap point fixed"

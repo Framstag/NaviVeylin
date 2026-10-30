@@ -516,8 +516,9 @@ Provider-aware inside `LocationService` only:
   (`zoomAnimationAnchor`: the anchor fraction times the canvas, for every preset), and on the screen
   center otherwise for the inputs that keep the center (zoom buttons, keyboard), on the cursor for the
   scroll wheel, and on the point it landed on for a double tap (spec `smooth-zoom` - A double tap steps one
-  level at its own point). A retracked step keeps the pivot of the input that started the animation - which is
-  the screen center for the inputs that keep the center (zoom buttons, keyboard). The marker overlay receives
+  level at its own point). A retracked step keeps the last anchor the display was given by an input - which is
+  the screen center for the inputs that keep the center (zoom buttons, keyboard) - rather than recomputing one
+  from the center. The marker overlay receives
   the same pivot,
   so the vehicle cannot drift off its anchor slot while the animation plays. The applied display
   scale goes through `ZoomWalk.displayScale`, which clamps to the window - a guard so a change that

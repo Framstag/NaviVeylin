@@ -144,6 +144,23 @@ class MapCanvasDoubleTapZoomTest {
         }
 
     @Test
+    fun `double tap from a level past the half steps to the next whole level`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // The step is the zoom-in button's: it rounds the recorded level and adds one, so a
+            // pinch that left 10.6 behind commits 12, not 11.6 and not 11 (spec: smooth-zoom —
+            // A double tap steps one level at its own point; review round 2, note 3).
+            viewModel.updateCenter(centerLat, centerLon)
+            viewModel.updateMagnification(10.6)
+
+            fireDoubleTap(viewModel, context, tap, IntSize(screenW, screenH)) { }
+
+            assertEquals(
+                "the step is the zoom button's snapped one",
+                12.0, viewModel.uiState.value.viewport.magnification, 1e-9
+            )
+        }
+
+    @Test
     fun `double tap at the maximum magnification leaves the viewport alone`() =
         runTest(mainDispatcherRule.dispatcher) {
             viewModel.updateCenter(centerLat, centerLon)

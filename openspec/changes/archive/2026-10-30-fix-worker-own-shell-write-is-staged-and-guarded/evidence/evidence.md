@@ -160,3 +160,12 @@ The round's five notes were corrected with it:
 | `tools/loop/evidence-check.sh` on the archived change | `evidence-check: PASS` (C1–C5, 540 `file:line` resolved) | `evidence-check-round2.log` |
 | structural checks this round owes (it touches spec text and one test source) | `openspec validate --archived` → `✓ change/2026-10-30-fix-worker-own-shell-write-is-staged-and-guarded`; `check-openspec-hygiene.sh` exit 0; `check-doc-routes.sh` exit 0 (169 section references resolve) | quoted here; `measure-round2.log` carries the measure block |
 | the change's own scenario count | `scenarios=13 cases=13 unnamed=0` | `measure-round2.log` (`LOOP-MEASURE-CHANGE`) |
+
+## Landed by hand, because the round-2 reviewer was cut
+
+The run announced review round 2 and ended its reviewer at the item's turn bound, so no reviewer graded this change
+and there is no `review-round-2-passed.md` — only the announcement, on purpose. The change was reviewed and merged by
+hand, which is the path `tools/loop/worktree.sh:444` names for an unanswered announcement, and
+`evidence/review-round-2-verified-by-operator.md` is that pass: round 1's findings read against this tree, the red
+and green halves re-run, the affected group and the whole suite re-run on the tree with `main` merged in (289 of
+289), the structural checks, and the one conflict the merge carried.

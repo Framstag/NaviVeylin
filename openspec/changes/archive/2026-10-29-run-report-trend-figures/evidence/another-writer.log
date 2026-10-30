@@ -1,0 +1,9 @@
+$ git diff HEAD --stat -- app/ build.gradle.kts | tail -2
+ build.gradle.kts                                   |  4 +-
+ 11 files changed, 263 insertions(+), 20 deletions(-)
+
+$ git status --porcelain | grep -c "^ M app/"
+10
+
+$ git -C app/src/main/cpp/libosmscout status --porcelain | wc -l
+0

@@ -168,6 +168,7 @@ LOOP_SHELL_CASES=(
   'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes'
   'run#childIsEndedAtTheRunsDeadline'
   'run#reviewerEndedAtTheRunsDeadlineIsNotADecision'
+  'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
   'run#treeOfAChildTheCapEndedIsNotCommitted'
   'run#treeOfACapEndedChildIsKeptAsAPatch'
@@ -266,6 +267,9 @@ LOOP_SHELL_CASES=(
   'report#landedBranchesAreNamedAsRemovable'
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
+  'report#trendFiguresFromState'
+  'report#noRoundOrWallPrintsDashNotZero'
+  'report#landingsNamedNotInvented'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#sweepsOnlyWhatIsInTheBase'
@@ -498,6 +502,7 @@ loop_run_shell_case() {
     'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes') fn=case_state_theItemFloorIsOnlyBelowWhatOneItemsGateOwes ;;
     'run#childIsEndedAtTheRunsDeadline') fn=case_run_childIsEndedAtTheRunsDeadline ;;
     'run#reviewerEndedAtTheRunsDeadlineIsNotADecision') fn=case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision ;;
+    'run#aReviewerEndedAtItsTurnBoundIsNotARefusal') fn=case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
     'run#treeOfAChildTheCapEndedIsNotCommitted') fn=case_run_treeOfAChildTheCapEndedIsNotCommitted ;;
     'run#treeOfACapEndedChildIsKeptAsAPatch') fn=case_run_treeOfACapEndedChildIsKeptAsAPatch ;;
@@ -599,6 +604,9 @@ loop_run_shell_case() {
     'report#landedBranchesAreNamedAsRemovable') fn=case_report_landedBranchesAreNamedAsRemovable ;;
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
+    'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
+    'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
+    'report#landingsNamedNotInvented') fn=case_report_landingsNamedNotInvented ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#sweepsOnlyWhatIsInTheBase') fn=case_clean_sweepsOnlyWhatIsInTheBase ;;
@@ -4602,7 +4610,77 @@ case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision() {
     "the run records the deadline as its stop reason"
 }
 
-# The cap ends the child's *process group*, and a descendant that gave itself its own session is not a member of
+# A round the item's own turn bound ended has no answer to read: its transcript carries `LOOP-TIMEOUT` and no
+# `VERDICT:` line, and reading that silence as a refusal named a reviewer that refused nothing and bought a rework
+# worker for it — measured on item #51, whose round 1 ended at the 250-turn bound while the record said
+# `blocked`/`reviewRounds 1` (issue #247, review round 2). The round is cut: the item is blocked, no worker is
+# started for it, and the state records the verdict a rate counts as undecided rather than as a refused round.
+case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal() {
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out state review_report retry rework
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  # The wall clock is an hour, so only the item's turns can end the reviewer, and three turns is that bound.
+  sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' \
+      -e 's/^LOOP_ITEM_TURNS_MAX=.*/LOOP_ITEM_TURNS_MAX=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record the two bounds in loop.conf"
+  grep -qx 'LOOP_ITEM_TURNS_MAX=3' "$conf" || fail "this case could not shorten the turn bound in loop.conf"
+  # The reviewer takes three turns and then waits. The stream has to exist while the child runs, so its own action
+  # writes it — the stub prints `PI_STUB_EVENTS` only after it has been released.
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  fifo="$d/review.fifo"; mkfifo "$fifo"
+  action="$d/turn-reviewer.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  reviewer*)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$fixture" >> "\$ev"
+    : > "$fifo.ready"
+    read -r _ < "$fifo" || true
+    ;;
+esac
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review on > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
+  exec 8> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s on a reviewer that had taken 3 turns past a recorded bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose reviewer the turn bound ended is not a failed run"
+  review_report="$p/.pi/issue-loop/items/21/reviewer-report-1.md"
+  [ -f "$review_report" ] || fail "the round the turn bound ended kept no transcript"
+  assert_contains "$(cat "$review_report")" "LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns" \
+    "the reviewer's transcript names the bound that ended it"
+  retry="$p/.pi/issue-loop/items/21/reviewer-report-1-retry.md"
+  [ ! -f "$retry" ] || fail "a round the run's own bound ended was retried as if the transport had cut it"
+  rework="$p/.pi/issue-loop/items/21/worker-prompt-round2.md"
+  [ ! -f "$rework" ] || fail "the cut round was read as a refusal and bought a rework worker"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is recorded blocked"
+  assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
+    "and its record carries the cut, not a refusal no reviewer made"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "turn bound" "the reason on the item names the bound"
+  assert_contains "$out" "review: - · no round of this run ended in a verdict · 1 undecided · 0 never reviewed" \
+    "the run's own rate counts the cut round as undecided, never as a refused round"
+}
 # it: the run recorded the child as ended at 23:48 and the mutation harness the child had started kept mutating
 # and restoring the worktree until 23:55, its last restore being what left that tree dirty, so the next run
 # refused to start (measured 2026-10-22, issue #272). A survivor still names the tree it is working in as its
@@ -7797,6 +7875,114 @@ JSONL
   assert_contains "$out" "over the item token bound: off" "a bound of 0 is off, and the report says so"
   row_over=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
   assert_eq "-" "$(table_cell "$row_over" 16)" "and no row is flagged by a bound that is off"
+}
+
+# Whether the loop is getting more often right is not a question one run's rows answer: a run that cost what the
+# last one cost prints the same shapes as one that is improving, so the figures the state records per item are
+# totalled here (issue #247). The pass rate is counted from the round's **verdict**, not from `reviewRounds`:
+# `run.sh:1680` sets the count before the reviewer runs, so an item whose round 1 refused and then blocked records
+# `1` exactly as one whose round 1 passed — measured on the tree's own state, #16 and #197 are blocked that way
+# against `VERDICT: FAIL` reports, and #51 carries the same count for a round 1 that was cut at the turn bound, with
+# no `VERDICT:` line at all (review rounds 1 and 2, blocking). The state therefore records the verdict
+# (`done --review-verdict`), and the buckets are told apart: a round 1 that passed, a round 1 that refused and whose
+# round 2 passed, a round that ended without a verdict, and an item no round ran for.
+case_report_trendFiguresFromState() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out trend
+  p=$(new_project)
+  init_state "$p" 8 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3},{"issue":24,"class":"bug","verdict":"eligible","rank":4},{"issue":25,"class":"bug","verdict":"eligible","rank":5},{"issue":26,"class":"bug","verdict":"eligible","rank":6},{"issue":27,"class":"bug","verdict":"eligible","rank":7},{"issue":28,"class":"bug","verdict":"eligible","rank":8}]' |
+    run_state "$p" queue >/dev/null
+  # Two round-1 passes, one item that passed on round 2, two round 1s that were REFUSED (one of them the last
+  # round it got), one round that ended without a verdict, one item with review off and one never reviewed.
+  run_state "$p" done 21 --result done --verdict closed --wall 41 --rounds 1 --review-verdict PASS >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 200 --rounds 1 --review-verdict NOTES >/dev/null
+  run_state "$p" done 23 --result done --verdict closed --wall 403 --rounds 2 --review-verdict PASS >/dev/null
+  run_state "$p" done 24 --result blocked --verdict blocked --wall 900 --rounds 1 --review-verdict FAIL >/dev/null
+  run_state "$p" done 25 --result blocked --verdict blocked --wall 1644 --rounds 1 --review-verdict round2-ended >/dev/null
+  run_state "$p" done 26 --result blocked --verdict blocked --rounds 1 --review-verdict cut-short >/dev/null
+  run_state "$p" done 27 --result done --verdict closed --rounds 0 --review-verdict off >/dev/null
+  run_state "$p" done 28 --result blocked --verdict blocked --rounds 0 >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "review: 2/5 first rounds passed · 1 undecided · 2 never reviewed" \
+    "the rate counts the verdicts a round ended on: two passes of five decided rounds, one round without a verdict, two items no round ran for"
+  assert_not_contains "$trend" "5/5" \
+    "a round 1 that refused and then blocked, and a round that was cut, are not passes — the count-based numerator prints 5/5"
+  assert_contains "$trend" "wall:   median 403 s (min 41, max 1644) · 5 items" \
+    "the wall figures are the recorded walls, with the count printed beside them"
+  assert_not_contains "$trend" "0/0" "the rate is never printed as a zero over a zero"
+  # A state with an even number of walls takes the mean of the two middle values: 150.5 s prints as 151 s, because
+  # the state records fractional seconds and a report that repeated them would imply a precision the loop has not.
+  init_state "$p" 2 90
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1},{"issue":32,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result done --verdict closed --wall 100.25 --rounds 1 --review-verdict PASS >/dev/null
+  run_state "$p" done 32 --result done --verdict closed --wall 200.75 --rounds 1 --review-verdict PASS >/dev/null
+  out=$(run_report "$p") || fail "the report failed for the even count"
+  assert_contains "$out" "wall:   median 151 s (min 100, max 201) · 2 items" \
+    "an even count takes the mean of the two middle walls, rounded to whole seconds"
+}
+
+# A figure nobody measured prints `-` with its reason, never a zero that reads as a measurement — the rule the
+# spend columns keep (`report#zeroUsagePrintsDashNotZero`), applied twice: a run whose item was blocked before a
+# review round ran and recorded no wall time, and a state written before the state recorded the round's verdict,
+# whose round count alone cannot tell a pass from a refusal.
+case_report_noRoundOrWallPrintsDashNotZero() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out trend
+  p=$(new_project)
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked >/dev/null
+  # #22 is a state written before the verdict was recorded: a round ran, and nothing says how it ended.
+  run_state "$p" done 22 --result blocked --verdict blocked --rounds 1 >/dev/null
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "review: - · this state records no review verdict" \
+    "a state whose items carry no verdict prints a dash and the reason, not a rate over a count that cannot tell a pass from a refusal"
+  assert_contains "$trend" "wall:   - · no item recorded a wall time" "no wall and no median: the same"
+  assert_not_contains "$trend" "median 0" "a median nobody measured is not printed as a zero"
+  assert_not_contains "$trend" "0/0" "nor is a rate"
+  # The same figures once the verdicts are recorded — a fresh state, because a second account of one item joins
+  # its note and never rewrites its metrics (#284): no round ended in a verdict, and the buckets the report does
+  # hold are named rather than folded into a zero.
+  init_state "$p" 2 90
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1},{"issue":32,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result blocked --verdict blocked --review-verdict off >/dev/null
+  run_state "$p" done 32 --result blocked --verdict blocked --rounds 1 --review-verdict deadline >/dev/null
+  out=$(run_report "$p") || fail "the report failed with a verdict recorded"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "review: - · no round of this run ended in a verdict · 1 undecided · 1 never reviewed" \
+    "a round the run's clock ended is undecided, named apart from the item no round ran for"
+  assert_not_contains "$trend" "0/0" "and still no zero over a zero"
+}
+
+# The third figure the item asks for — the landings that reddened `main` — is in neither source the report reads:
+# the state keeps a landing's branch, its commit count and its evidence and no commit, and the `broken-main`
+# sensor's identity is a job and a case. The report is read instead of the tracker, so it names where the figure
+# is read and makes no tracker call of its own (issue #247).
+case_report_landingsNamedNotInvented() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p d out landings
+  p=$(new_project); d=$(scratch)
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --rounds 1 >/dev/null
+  # Every `gh` invocation from here on lands in the record file, so a report that read the tracker leaves a trace.
+  mkdir -p "$d/bin"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\nexit 1\n' "$d/gh-calls.log" > "$d/bin/gh"
+  chmod +x "$d/bin/gh"
+  export PATH="$d/bin:$PATH"
+  out=$(run_report "$p") || fail "the report failed with a gh on PATH"
+  landings=$(printf '%s\n' "$out" | sed -n '/^  landings:/p')
+  [ -n "$landings" ] || fail "the report printed no landings line"
+  assert_contains "$landings" "gh issue list --label broken-main" "the line names where the figure is read"
+  assert_contains "$landings" "not in the run's state" "and says why it is not a number here"
+  assert_not_contains "$landings" "#21" "it invents no id it never read"
+  [ ! -e "$d/gh-calls.log" ] || fail "the report called the tracker: $(cat "$d/gh-calls.log")"
 }
 
 # ----------------------------------------------------------------------------- cases: the leftovers

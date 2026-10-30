@@ -11,6 +11,11 @@
 # child's own event stream, `-` where nothing was reported — and the run-level `spent`), and what the caller
 # must now do — the named action list at the end, built from the state and from git, never from a count.
 #
+# Beside those three, and about the loop rather than about one run, it says whether the loop is getting better
+# (#247): the review round-1 pass rate and the item wall median, minimum and maximum, totalled from the same
+# state, and the one figure that state does not hold — the landings that reddened `main` — named where it lives
+# rather than fetched, because the report reads the state and git and never the tracker.
+#
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is
 # the run in place, exactly as before.
@@ -190,6 +195,59 @@ else
   printf 'worktree: not present at run end (%s)\n' "$LOOP_WORKTREE"
 fi
 printf 'state: %s\n' "$state_file"
+
+# ── whether the loop is getting better ───────────────────────────────────────────────────────────
+# The report answers three questions about *one run* (#208) and none of them about the loop: a run that cost what
+# the last one cost prints the same shapes as a run that is improving, so a person judged the loop's speed by hand
+# from `run.json` and `items/*/reviewer-report-1.md` (issue #247). Two of the three figures are already in the
+# state this report reads — `metrics.wallSeconds` and `metrics.reviewRounds`, recorded at `state.sh:494` and
+# printed only per item — and this line is the run-level answer to them.
+#
+# The third, the landings that reddened `main`, is in neither source: `state.sh done` keeps a landing's branch, its
+# commit *count* and its evidence and no commit, so nothing here can name which landing broke the base, and the
+# `broken-main` sensor identifies its condition by job and case rather than by commit. The report is read instead
+# of the tracker, so it names where that figure is read rather than reading it: a network read in every report
+# would be a second source of truth for a number it still could not attribute, and recording the attribution at
+# landing time is its own change (§D4 of `run-report-trend-figures`).
+#
+# A rate is not settled by one run, and the lines say the run they describe. A figure nobody measured prints `-`
+# with its reason, never a zero — the rule the spend columns already keep.
+#
+# The pass rate is counted from the **verdict** a round ended on, never from `reviewRounds` alone (issue #247,
+# review round 1): `reviewRounds` is the round the loop *attempted* — `run.sh:1680` sets it before the reviewer
+# runs — so an item whose round 1 refused and then blocked records `1` exactly as one whose round 1 passed. The
+# state records the verdict beside the count (`done --review-verdict`), and the three buckets below are the three
+# things a reader has to tell apart: a round 1 that passed, a round that ended without a verdict (the reviewer's
+# answer was cut, the run's clock ended it, it wrote, or the state predates the field), and an item no round ran
+# for. A round that ended without a verdict is neither a refusal nor a pass, so it is named apart and is in no
+# rate; a refused round 1 is a refusal even when it is also the last round the item got.
+trend=$(jq -r '
+  def median:
+    if length == 0 then null
+    elif (length % 2) == 1 then .[(length / 2) | floor]
+    else ((.[(length / 2) - 1] + .[length / 2]) / 2)
+    end;
+  def decided: . == "PASS" or . == "NOTES" or . == "FAIL" or . == "round2-ended";
+  ([.items[] | {v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0)}]) as $it
+  | ([.items[] | .metrics.wallSeconds | select(. != null)] | sort) as $walls
+  | [$it[] | select(.v | decided)] as $decided
+  | [$it[] | select((.v == "PASS" or .v == "NOTES") and .r == 1)] as $first
+  | [$it[] | select((.r >= 1) and ((.v | decided) | not))] as $undecided
+  | [$it[] | select(.r == 0)] as $never
+  | ([$it[] | select(.v != "")] | length) as $withVerdict
+  | ( if $withVerdict == 0 and ([$it[] | select(.r >= 1)] | length) > 0
+        then "- · this state records no review verdict — it was written before the report read one"
+      elif ($decided | length) == 0
+        then "- · no round of this run ended in a verdict · \($undecided | length) undecided · \($never | length) never reviewed"
+      else "\($first | length)/\($decided | length) first rounds passed · \($undecided | length) undecided · \($never | length) never reviewed" end ) as $review
+  | ( if ($walls | length) == 0 then "- · no item recorded a wall time"
+      else "median \(($walls | median) | round) s (min \(($walls[0]) | round), max \(($walls[-1]) | round)) · \($walls | length) items" end ) as $wall
+  | "  review: \($review)\n  wall:   \($wall)"
+' "$state_file")
+printf '\n'
+printf "trend — this run's own items; no rate is green or red in one run:\n"
+printf '%s\n' "$trend"
+printf "  landings: not in the run's state — no record says which commit a landing merged, so a main it reddened is the tracker's answer: gh issue list --label broken-main\n"
 
 # ── the actions the caller owes ───────────────────────────────────────────────────────────────────
 # The report's third answer (#208). A count is not an answer: the caller has to know *which* decision is

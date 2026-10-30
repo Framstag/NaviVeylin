@@ -671,6 +671,39 @@ MUTATIONS=(
   '71.4@-@../loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the exit trap ending the ceiling watcher by its group, so a suite that ends inside its ceiling leaves that watcher sleep standing (issue #692)@s#^  loop_end_group "\${ceiling_watch:-}"$#  :#'
   '71.5@-@../loop-selftest.sh@driver#aSuiteEndsInsideTheCeilingItsCallerNamed@the exit trap ending a still-running case bound watcher by its group, so a suite the ceiling cut leaves that watcher sleep standing (issue #692)@s#^      loop_end_group "\${case_slot_watch\[\$slot\]:-}"$#      loop_end_pid "${case_slot_watch[$slot]:-}"#'
   '71.6@-@../loop-selftest.sh@driver#aCeilingTheSuiteFitsInsideChangesNothing@the case that ended normally swept with the watcher group, so every case of a green suite leaves one sleep standing (issue #692)@s#^  loop_end_group "\${case_slot_watch\[\$slot\]:-}"$#  loop_end_pid "${case_slot_watch[$slot]:-}"#'
+
+  # 72.x — a run's report also says whether the loop is getting better (issue #247): the review round-1 pass rate
+  # and the item wall median, minimum and maximum, totalled from the state the report already reads, with the third
+  # figure — the landings that reddened `main` — named where it lives rather than read from the tracker. Measured
+  # 2026-10-21: a person computed all three by hand from `run.json` and `items/*/reviewer-report-1.md` because no
+  # report printed one.
+  #
+  # Review round 1 refused the first cut of this block, and the finding is why the rate is read from a round's
+  # **verdict** and not from its count: `run.sh:1680` sets `review_rounds=$round` before the reviewer runs, so
+  # `reviewRounds == 1` covers a passed round 1 and a refused one that then blocked alike — measured on the tree's
+  # own state, #16 and #197 are blocked with `reviewRounds: 1` against `VERDICT: FAIL` reports, and #51 carries the
+  # same count for a round 1 that was cut at its turn bound. `72.1` is that
+  # defect stated as a mutation, so the case that reads the rate notices a numerator taken from the count.
+  #
+  # One record per invariant: the verdict the numerator is read from (`72.1`, the review's own finding), the middle
+  # index a median sits at (`72.2`), the denominator (`72.3`), the two dashes a figure nobody measured prints
+  # (`72.4`, `72.5`), the report's own offline-ness (`72.6`), the round that ended without a verdict being named
+  # apart (`72.7`), and a state written before the verdict was recorded (`72.8`).
+  '72.1@-@tools/loop/report.sh@report#trendFiguresFromState@the numerator read from the round count instead of the round verdict, so a round 1 that refused and then blocked is totalled as a pass — the review round 1 finding of this change (issue #247)@s#select((.v == "PASS" or .v == "NOTES") and .r == 1)#select(.r == 1)#'
+  '72.2@-@tools/loop/report.sh@report#trendFiguresFromState@the middle index a median is taken at, so the smallest wall of the run is printed as its median (issue #247)@s#then .\[(length / 2) | floor\]#then .[0]#'
+  '72.3@-@tools/loop/report.sh@report#trendFiguresFromState@the denominator of the pass rate, so a round that ended without a verdict is counted as a decided round (issue #247)@s#\[\$it\[\] | select(\(\.v | decided\))\]#[$it[] | select((.v | decided) or (.r >= 1))]#'
+  '72.4@-@tools/loop/report.sh@report#noRoundOrWallPrintsDashNotZero@the dash a wall nobody measured prints, replaced by the zero that reads as a measurement (issue #247)@s#if (\$walls | length) == 0 then "- · no item recorded a wall time"#if (\$walls | length) == 0 then "median 0 s (min 0, max 0) · 0 items"#'
+  '72.5@-@tools/loop/report.sh@report#noRoundOrWallPrintsDashNotZero@the dash a review rate nobody measured prints, replaced by a `0/0` (issue #247)@s#- · no round of this run ended in a verdict#0/0 first rounds passed#'
+  '72.6@-@tools/loop/report.sh@report#landingsNamedNotInvented@the report making no tracker read of its own, so the figure it says it only points at is fetched (issue #247)@s#^loop_resolve$#loop_resolve\ngh issue list --label broken-main >/dev/null 2>\&1 || true#'
+  '72.7@-@tools/loop/report.sh@report#trendFiguresFromState@the bucket a round that ended without a verdict is counted in, so it is silently absent from every figure the line prints (issue #247)@s#\[\$it\[\] | select((.r >= 1) and ((.v | decided) | not))\]#[$it[] | select(false)]#'
+  '72.8@-@tools/loop/report.sh@report#noRoundOrWallPrintsDashNotZero@the rule that a state written before the verdict was recorded prints a dash instead of a rate over a count that cannot tell a pass from a refusal (issue #247)@s#\$withVerdict == 0 and#false and#'
+
+  # 73.1 — a round the item turn bound ended has no answer to read (issue #247, review round 2). Measured on item
+  # #51: its round 1 ended at the 250-turn bound, its transcript carries `LOOP-TIMEOUT` and no `VERDICT:`, and the
+  # run read that silence as a refusal, so the record was `blocked` with `reviewRounds 1` and a rate counted it as
+  # a refused round. The branch below records the cut instead, and the case that notices its absence asks what the
+  # run own rate says about the item it just cut.
+  '73.1@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the branch recording a round the item turn bound ended as cut, so the silence of a reviewer that never answered is read as a refusal and buys a rework worker (issue #247)@s#^      if \[ -n "\$(report_field "\$reviewer_report" LOOP-TIMEOUT)" \]; then$#      if false; then#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

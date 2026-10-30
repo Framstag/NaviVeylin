@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git 357a4670a0d0494e1b6b5b77679bc98e95432faa" tests="284" failures="0" errors="0" time="442">
+  <system-out>PASS phase#aResultOverTheBoundIsCutAndNamed PASS repeat#aRepeatReadIsNamedNotHandedOverAgain loop-selftest: all 284 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git 357a4670a0d0494e1b6b5b77679bc98e95432faa</system-out>
+</testsuite>

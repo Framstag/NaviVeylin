@@ -9,6 +9,7 @@ import com.naviveylin.core.NativeTileDataCache
 import com.naviveylin.core.StartMapSelection
 import com.naviveylin.core.TileCacheConfig
 import com.naviveylin.data.ViewportState
+import com.naviveylin.data.ViewportStorage
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CoroutineScope
@@ -174,10 +175,10 @@ internal class MapInitResult(
 /** Initialise with a map database path. Call once from the screen. */
 fun MapCanvasViewModel.initMap(mapPath: String) {
     Log.d(MapCanvasViewModel.TAG, "initMap: initialising with path=$mapPath")
-    currentMapKey = mapPath.substringAfterLast('/')
-    // Captured synchronously: the off-main section (initializeOffMain) restores the viewport for
-    // THIS initialization's map even if a re-entry overwrites currentMapKey before it runs.
-    val mapKey = currentMapKey ?: mapPath
+    // One derivation for the display key and the viewport storage key, so a load and a save cannot
+    // key different files (spec: viewport-persist — Save viewport state).
+    val mapKey = ViewportStorage.keyFor(mapPath)
+    currentMapKey = mapKey
     // Re-arm the save guard: until the persisted viewport restore is
     // applied below, a lifecycle save must not write the default viewport.
     viewportRestored = false
@@ -277,8 +278,11 @@ fun MapCanvasViewModel.initMap(mapPath: String) {
                     // A walked step is never persisted (spec: smooth-zoom - Viewport
                     // records final magnification): while a walk is pending, persist
                     // the magnification it is heading for.
+                    // The listener persists under the key this initialization captured, not the
+                    // mutable currentMapKey: a re-entry must not retarget a renderer that is still
+                    // shutting down.
                     viewportStorage.save(
-                        currentMapKey ?: mapPath,
+                        mapKey,
                         ViewportState(lat, lon, zoomWalk.persistMag(mag))
                     )
                 }

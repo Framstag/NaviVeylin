@@ -33,6 +33,53 @@ class ViewportStorageTest {
     }
 
     @Test
+    fun `save writes the file named by the map key`() = runTest {
+        storage.save("germany", ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = 12.0))
+        assertTrue(
+            "the map key must name the per-map file (spec: viewport-persist — Save viewport state)",
+            java.io.File(context.filesDir, "maps/viewport-germany.json").isFile
+        )
+    }
+
+    @Test
+    fun `characters outside the safe set are escaped in the file name`() = runTest {
+        storage.save("Europe map.osm", ViewportState(centerLat = 48.2, centerLon = 16.4, magnification = 12.0))
+        assertTrue(
+            "a space in the key must become `_` (spec: viewport-persist — Save viewport state)",
+            java.io.File(context.filesDir, "maps/viewport-Europe_map.osm.json").isFile
+        )
+        assertTrue(
+            "the unsafe name must not be written verbatim",
+            !java.io.File(context.filesDir, "maps/viewport-Europe map.osm.json").exists()
+        )
+    }
+
+    @Test
+    fun `the key is the map path's last segment`() {
+        assertEquals(
+            "the viewport key must be the map's file name (spec: viewport-persist)",
+            "germany.osm",
+            ViewportStorage.keyFor("/data/maps/germany.osm")
+        )
+    }
+
+    @Test
+    fun `every character outside the safe set is escaped`() {
+        // A narrower production character class would otherwise survive: the space above exercises one
+        // member only. Every ASCII character is checked against the contract's own set.
+        val allowed = (('A'..'Z') + ('a'..'z') + ('0'..'9') + listOf('.', '_', '-')).toSet()
+        for (code in 0..127) {
+            val c = code.toChar()
+            val expected = if (c in allowed) c.toString() else "_"
+            assertEquals(
+                "character U+%04X must map to %s".format(code, expected),
+                "viewport-a${expected}b.json",
+                ViewportStorage.fileNameFor("a${c}b")
+            )
+        }
+    }
+
+    @Test
     fun loadMissingFileReturnsNull() = runTest {
         val loaded = storage.load("missing")
         assertNull(loaded)

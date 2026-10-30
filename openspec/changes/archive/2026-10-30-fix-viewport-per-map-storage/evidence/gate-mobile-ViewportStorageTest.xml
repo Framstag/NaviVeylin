@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.data.ViewportStorageTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:51:32.913Z" hostname="dingens" time="0.417">
+  <properties/>
+  <testcase name="saveRejectedStateDoesNotClobberExistingFile" classname="com.naviveylin.data.ViewportStorageTest" time="0.029"/>
+  <testcase name="characters outside the safe set are escaped in the file name" classname="com.naviveylin.data.ViewportStorageTest" time="0.025"/>
+  <testcase name="loadMissingFileReturnsNull" classname="com.naviveylin.data.ViewportStorageTest" time="0.023"/>
+  <testcase name="saveRejectsOutOfRangeCoordinates" classname="com.naviveylin.data.ViewportStorageTest" time="0.024"/>
+  <testcase name="saveAndLoad" classname="com.naviveylin.data.ViewportStorageTest" time="0.024"/>
+  <testcase name="the key is the map path's last segment" classname="com.naviveylin.data.ViewportStorageTest" time="0.018"/>
+  <testcase name="isValidRejectsUninitializedState" classname="com.naviveylin.data.ViewportStorageTest" time="0.022"/>
+  <testcase name="loadLegacyIntegerMagnificationFile" classname="com.naviveylin.data.ViewportStorageTest" time="0.041"/>
+  <testcase name="save writes the file named by the map key" classname="com.naviveylin.data.ViewportStorageTest" time="0.039"/>
+  <testcase name="every character outside the safe set is escaped" classname="com.naviveylin.data.ViewportStorageTest" time="0.028"/>
+  <testcase name="loadCorruptedFileReturnsNull" classname="com.naviveylin.data.ViewportStorageTest" time="0.023"/>
+  <testcase name="saveAndLoadFractionalMagnification" classname="com.naviveylin.data.ViewportStorageTest" time="0.019"/>
+  <testcase name="saveRejectsInvalidMagnification" classname="com.naviveylin.data.ViewportStorageTest" time="0.018"/>
+  <testcase name="saveOverwritesPreviousState" classname="com.naviveylin.data.ViewportStorageTest" time="0.02"/>
+  <testcase name="saveRejectsNaNCoordinates" classname="com.naviveylin.data.ViewportStorageTest" time="0.027"/>
+  <testcase name="mapsAreIsolatedPerKey" classname="com.naviveylin.data.ViewportStorageTest" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

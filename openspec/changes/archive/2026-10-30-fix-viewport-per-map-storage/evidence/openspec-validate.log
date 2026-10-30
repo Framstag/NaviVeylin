@@ -1,0 +1,17 @@
+$ openspec validate fix-viewport-per-map-storage --strict
+Change 'fix-viewport-per-map-storage' is valid
+
+$ openspec validate viewport-persist --type spec
+Specification 'viewport-persist' is valid
+⚠ [WARNING] requirements[0]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+⚠ [WARNING] requirements[1]: Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+
+$ openspec doctor
+Doctor
+
+Root
+  Location: /home/tim/projects/NaviVeylin
+  OpenSpec root: ok
+
+References
+  (none declared)

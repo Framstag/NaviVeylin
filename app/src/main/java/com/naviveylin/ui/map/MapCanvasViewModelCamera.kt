@@ -352,8 +352,13 @@ fun MapCanvasViewModel.saveViewport() {
         Log.d(MapCanvasViewModel.TAG, "saveViewport: skipped, viewport restore not yet applied")
         return
     }
+    val mapKey = viewportStorageKey()
+    if (mapKey == null) {
+        Log.d(MapCanvasViewModel.TAG, "saveViewport: skipped, no map key yet")
+        return
+    }
     viewModelScope.launch {
-        viewportStorage.save(currentMapKey ?: "default", _uiState.value.viewport)
+        viewportStorage.save(mapKey, _uiState.value.viewport)
     }
 }
 

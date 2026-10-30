@@ -80,10 +80,12 @@ fun MapCanvasViewModel.setNavigationViewModel(vm: com.naviveylin.navigation.Navi
                         magnification = endMagnification
                     )
                 )
-                viewportStorage.save(
-                    currentMapKey ?: "default",
-                    ViewportState(endCenterLat, endCenterLon, endMagnification)
-                )
+                viewportStorageKey()?.let { mapKey ->
+                    viewportStorage.save(
+                        mapKey,
+                        ViewportState(endCenterLat, endCenterLon, endMagnification)
+                    )
+                }
                 Log.d(MapCanvasViewModel.TAG, "setNavigationViewModel: navigation ended, " +
                         "mode restored follow=${_uiState.value.followMode} suspended=${_uiState.value.driveSuspended}, " +
                         "mag=$endMagnification")

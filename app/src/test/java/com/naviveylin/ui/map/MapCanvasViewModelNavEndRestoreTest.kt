@@ -33,6 +33,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 import com.naviveylin.test.engineUnderTest
 
 /**
@@ -102,6 +103,33 @@ class MapCanvasViewModelNavEndRestoreTest {
         )
     }
 
+    @Test
+    fun navEndWithoutMapKeyWritesNoViewportFile() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val navVm = buildNavigationViewModel()
+            // No map key: the navigation-end save has no restore guard, and its removed `"default"`
+            // fallback used to write a file no load path reads (spec: viewport-persist — Save
+            // viewport state, scenario "Save without a map key is skipped").
+            viewModel.setNavigationViewModel(NavigationViewModel(navVm))
+            advanceUntilIdle()
+            startNavigating(navVm)
+
+            navVm.stopNavigation()
+            advanceUntilIdle()
+
+            val files = File(context.filesDir, "maps").listFiles()?.map { it.name }.orEmpty()
+            println("navEndNoKey files=[$files]")
+            assertFalse(
+                "a navigation-end save with no map key must not write viewport-default.json",
+                File(context.filesDir, "maps/viewport-default.json").exists()
+            )
+            assertEquals(
+                "a navigation-end save with no map key must leave filesDir/maps empty",
+                0,
+                files.size
+            )
+        }
+
     /** Start a route via the engine's acquisition and await the active state. */
     private suspend fun TestScope.startNavigating(navVm: NavigationEngine) {
         navVm.acquire(52.5200, 13.4050, 52.5300, 13.4100, Vehicle.CAR)
@@ -117,6 +145,9 @@ class MapCanvasViewModelNavEndRestoreTest {
     fun browseBeforeNavAppliesBrowseRepresentationKeepingViewport() =
         runTest(mainDispatcherRule.dispatcher) {
             val navVm = buildNavigationViewModel()
+            // Name the map this simulation runs on: the navigation-end save keys by the current map
+            // (spec: viewport-persist — Save viewport state), and a save with no key is skipped.
+            viewModel.currentMapKey = "testmap"
             viewModel.setNavigationViewModel(NavigationViewModel(navVm))
             advanceUntilIdle()
             assertFalse("start in BROWSE", viewModel.uiState.value.followMode)
@@ -150,7 +181,7 @@ class MapCanvasViewModelNavEndRestoreTest {
             // later map restore (app restart, screen recreation) resumes where
             // routing ended instead of jumping back to the app-start position
             // (fix: "ending routing resets location and zoom to app-start state").
-            val saved = viewportStorage.load("default")
+            val saved = viewportStorage.load("testmap")
             assertEquals("persisted zoom is the routing-end zoom", 13.0, saved?.magnification ?: -1.0, 1e-9)
             assertEquals("persisted center lat is the routing-end lat",
                 routedViewport.centerLat, saved?.centerLat ?: Double.NaN, 1e-9)

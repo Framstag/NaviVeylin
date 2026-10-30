@@ -200,6 +200,13 @@ class MapCanvasViewModel @Inject constructor(
     internal var currentMapKey: String? = null
 
     /**
+     * The key the viewport is persisted under: the current map's file name, or null before [initMap]
+     * has set one. The save paths skip while it is null, so no viewport file is written that no load
+     * path can read (spec: viewport-persist — Save viewport state).
+     */
+    internal fun viewportStorageKey(): String? = currentMapKey
+
+    /**
      * True once [initMap] has applied the persisted viewport restore to
      * [_uiState]. [saveViewport] no-ops until then, so a lifecycle save
      * during the restore window (initMap suspended at the viewport load)

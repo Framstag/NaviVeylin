@@ -1,0 +1,7 @@
+$ for d in app/build/test-results/testMobileDebugUnitTest app/build/test-results/testAutomotiveDebugUnitTest core/build/test-results/testDebugUnitTest auto/build/test-results/testDebugUnitTest osmscout-client-java/build/test-results/test; do [ -d "$d" ] || continue; printf "%s " "$d"; grep -ho 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$d"/*.xml | awk -F'"' '{t+=$2;s+=$4;f+=$6;e+=$8;n++} END{printf "classes=%d tests=%d skipped=%d failures=%d errors=%d
+",n,t,s,f,e}'; done
+app/build/test-results/testMobileDebugUnitTest classes=303 tests=2171 skipped=0 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest classes=303 tests=2171 skipped=0 failures=0 errors=0
+core/build/test-results/testDebugUnitTest classes=65 tests=645 skipped=0 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest classes=92 tests=887 skipped=0 failures=0 errors=0
+osmscout-client-java/build/test-results/test classes=23 tests=112 skipped=0 failures=0 errors=0

@@ -131,6 +131,59 @@ internal fun fireLongPress(
     viewModel.onLongPress(lat, lon, pos.x.toInt(), pos.y.toInt())
 }
 
+/**
+ * The magnification one double tap commits: one level above the level the viewport records,
+ * never past [maxMag] (spec: smooth-zoom — A double tap steps one level at its own point).
+ * Level-based like the zoom buttons, so a double tap after a pinch lands on a whole level
+ * rather than on a fractional remainder.
+ */
+internal fun doubleTapZoomMagnification(current: Double, maxMag: Double): Double =
+    (kotlin.math.round(current) + 1.0).coerceAtMost(maxMag)
+
+/**
+ * One double-tap zoom step at the tap point (spec: smooth-zoom — A double tap steps one level
+ * at its own point). Commits the next level immediately — the viewport records the target — and
+ * moves the center so the geographic point under the tap stays under the tap, exactly as a
+ * scroll-wheel tick keeps the point under the cursor. [animateZoom] starts the eased transition
+ * anchored on the tap point: the display never snaps, and the frame in hand is scaled around
+ * that pixel while the native render at the new level runs. At the maximum magnification there
+ * is no step to take, and the viewport, the center and the display stay untouched.
+ */
+internal fun fireDoubleTap(
+    viewModel: MapCanvasViewModel,
+    context: android.content.Context,
+    pos: androidx.compose.ui.geometry.Offset,
+    size: androidx.compose.ui.unit.IntSize,
+    animateZoom: (androidx.compose.ui.geometry.Offset) -> Unit
+) {
+    val s = viewModel.uiState.value
+    val mag = s.viewport.magnification
+    val target = doubleTapZoomMagnification(mag, MapCanvasViewModel.MAX_MAG)
+    if (target == mag) return
+    // A double tap is a manual zoom: it leaves follow mode and suspends the drive preset
+    // (spec: map-modes — drive suspension), like every other manual zoom input.
+    viewModel.disengageFollowMode()
+    val dpi = context.resources.displayMetrics.densityDpi.toDouble()
+    val (lat, lon) = ProjectionUtils.zoomAtCursor(
+        pos.x.toDouble(), pos.y.toDouble(),
+        mag, target,
+        size.width.toDouble(), size.height.toDouble(),
+        s.viewport.centerLat, s.viewport.centerLon, dpi
+    )
+    viewModel.updateCenter(lat, lon)
+    viewModel.updateMagnification(target)
+    // The committed level is only a request: a magnification that must appear on the map goes
+    // through the renderer, which is where the walk's first step is asked for and where the
+    // frame that carries the new level comes from. The zoom buttons and the keyboard do the same
+    // in the same order (`MapCanvasScreenChromeBand.kt`, `MapCanvasMapBand.kt`); the scroll wheel
+    // is the recorded exception - it commits and animates without a request, which is a gap of
+    // its own (review round 2, note 2). Without the request the display would ease toward a level
+    // no frame carries (spec: smooth-zoom — the displayed map eases from the currently rendered
+    // scale to the new level around that pixel; review round 1, finding 1).
+    viewModel.renderMap()
+    animateZoom(pos)
+}
+
 /** Minimum/maximum visual zoom factor during a multi-touch gesture (±2 mag levels). */
 internal const val MIN_GESTURE_ZOOM = 1f / 16f
 internal const val MAX_GESTURE_ZOOM = 16.0f
@@ -171,7 +224,9 @@ internal const val AUTO_ZOOM_ANIMATION_MS = 650L
  * the vehicle sits at its resolved follow anchor, so the animation pivots on that pixel
  * (the marker overlay is given the same pivot) and the vehicle cannot drift off its
  * slot while the animation plays. Without a follow mode the screen center is the pivot
- * - discrete zoom input keeps anchoring the center, and the scroll wheel the cursor.
+ * - the zoom buttons and the keyboard keep anchoring the center, the scroll wheel the
+ * cursor, and a double tap the point it landed on (spec: smooth-zoom - Double tap zooms
+ * one level at the tap point).
  * Extracted pure for unit testing.
  */
 internal fun zoomAnimationAnchor(

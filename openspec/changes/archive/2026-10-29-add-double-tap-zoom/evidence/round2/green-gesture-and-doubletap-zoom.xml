@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasDoubleTapZoomTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-30T13:12:47.567Z" hostname="dingens" time="0.122">
+  <properties/>
+  <testcase name="double tap at the maximum magnification leaves the viewport alone" classname="com.naviveylin.ui.map.MapCanvasDoubleTapZoomTest" time="0.032"/>
+  <testcase name="double tap requests the frame its committed level needs" classname="com.naviveylin.ui.map.MapCanvasDoubleTapZoomTest" time="0.03"/>
+  <testcase name="double tap from a level past the half steps to the next whole level" classname="com.naviveylin.ui.map.MapCanvasDoubleTapZoomTest" time="0.028"/>
+  <testcase name="double tap steps one level and keeps the tap point fixed" classname="com.naviveylin.ui.map.MapCanvasDoubleTapZoomTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

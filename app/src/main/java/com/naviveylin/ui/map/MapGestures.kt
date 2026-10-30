@@ -56,13 +56,16 @@ interface MapGestureCallbacks {
     /** Long press at the given position. */
     fun onLongPress(position: Offset)
 
+    /** Two taps inside the platform's double-tap window and slop, at the given position. */
+    fun onDoubleTap(position: Offset) {}
+
     /** Request a re-render (gesture ended or viewport changed). */
     fun onRenderRequested()
 }
 
 /**
  * Attaches the map canvas gesture handler: single-finger pan, two-finger
- * pan/rotate/zoom, and long press. A single pointerInput block handles all
+ * pan/rotate/zoom, long press, and double tap. A single pointerInput block handles all
  * gestures to avoid conflicts between competing detectors.
  *
  * The handler only reports raw gesture deltas; projection math (converting
@@ -81,6 +84,13 @@ fun Modifier.mapGestureHandler(
     val resolvedLongPressTimeoutMs = longPressTimeoutMs
         ?: LocalViewConfiguration.current.longPressTimeoutMillis
     pointerInput(resolvedLongPressTimeoutMs) {
+        // The double-tap pair (spec: smooth-zoom — Double tap zooms one level at the tap
+        // point): the up event time of the last completed single tap, and the down point it
+        // started at — the two references the platform's own window and slop are measured
+        // from. It lives in the pointerInput scope, not in the gesture, because the second tap
+        // is the next gesture this block sees. 0 = no tap waiting for a partner.
+        var pendingTapUpMs = 0L
+        var pendingTapPos = Offset.Zero
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
             val downPos = down.position
@@ -140,8 +150,34 @@ fun Modifier.mapGestureHandler(
             }
 
             if (upOrNull == null && !dragActive) {
-                // Timeout expired without drag — long press
+                // Timeout expired without drag — long press. A long press consumes the
+                // tap it started on, so it never pairs with an earlier tap.
+                pendingTapUpMs = 0L
                 currentCallbacks.onLongPress(downPos)
+            } else if (dragActive) {
+                // A drag or a pinch is not a tap: it cannot complete a pending pair.
+                pendingTapUpMs = 0L
+            } else if (upOrNull != null) {
+                // A completed single tap. Two taps inside the platform's double-tap window
+                // and touch slop are one double tap, reported at the point the second one
+                // lifted (spec: smooth-zoom — Double tap is the map's second discrete zoom-in input).
+                // Both numbers are the platform's, never literals (same rule as the long-press
+                // timeout above), and both intervals are the platform's own: the timeout is
+                // measured from the first tap's **up** to the second tap's **down**
+                // (`ViewConfiguration.getDoubleTapTimeout`), so the second press's own duration
+                // cannot eat the window; the slop is measured between the two taps' **down**
+                // points, because the first tap may drift up to the slop and still be a tap
+                // (review round 1, finding 2).
+                val withinWindow = pendingTapUpMs != 0L &&
+                    down.uptimeMillis - pendingTapUpMs <= viewConfiguration.doubleTapTimeoutMillis
+                val withinSlop = (downPos - pendingTapPos).getDistance() <= viewConfiguration.touchSlop
+                if (withinWindow && withinSlop) {
+                    pendingTapUpMs = 0L
+                    currentCallbacks.onDoubleTap(upOrNull.position)
+                } else {
+                    pendingTapUpMs = upOrNull.uptimeMillis
+                    pendingTapPos = downPos
+                }
             }
 
             // Phase 2: If drag started, continue tracking for pan/zoom/rotate

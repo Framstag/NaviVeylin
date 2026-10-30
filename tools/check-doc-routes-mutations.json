@@ -19,6 +19,14 @@
       "why": "a row that routes a lettered sub-section states what those sections cost, so a row naming sub-sections and pricing nothing is reported instead of passing as routed"
     },
     {
+      "label": "guideline-body-reference",
+      "case": "routed-read#numbers",
+      "file": "tools/check-doc-routes.sh",
+      "search": "  extract_refs \"$gdir/$f.md\" \"guidelines/$f.md\" 1 >> \"$tmp/refs\"",
+      "replace": "  : >> \"$tmp/refs\"",
+      "why": "a citation a guideline body writes is resolved beside the routing table's, so a split's parent number that stops being a heading fails the case when a body still cites it"
+    },
+    {
       "label": "section-cost-ruler",
       "case": "routed-read#bound",
       "file": "tools/check-doc-routes.sh",

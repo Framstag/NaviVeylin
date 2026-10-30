@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Self-test for tools/check-doc-routes.sh: every case runs against a throwaway fixture under a temp
 # directory, so the project's own documents are not read and nothing in the repository is written — except the
-# two `routed-read#*` cases, which read this repository's `AGENTS.md` and `guidelines/*.md` because their claim
-# is about this tree's route and not about a fixture's, and which write nothing either.
+# `routed-read#*` cases: `#bound` and `#route` read this repository's `AGENTS.md` and `guidelines/*.md` because
+# their claim is about this tree's route and not about a fixture's, and `#numbers` reads a fixture whose split
+# keeps its parent number and its citations. None of them writes anything.
 #
 # Cases: a map that resolves (including a duplicate section number resolved by its heading text), a
 # dangling number, a bare number that is ambiguous, a heading text that matches nothing, a document the
@@ -16,7 +17,8 @@
 # two cases over the project's own tree: `routed-read#route` (a row that routes a lettered sub-section of *any*
 # document states its cost, so a row naming sub-sections and pricing nothing fails) and `routed-read#bound`
 # (the cost of every section of every routed document, printed with the requirement's ruler and the routed
-# pair marked, so the number a row restates is the number the measurement takes).
+# pair marked, so the number a row restates is the number the measurement takes) — and `routed-read#numbers`,
+# a fixture whose split keeps its parent number, its citations and a passing route check.
 #
 # The check derives its documents from the fixture's own `guidelines/` directory, so a fixture carries the
 # four base documents plus whichever extra one a case adds — and its table must name every document present.
@@ -241,10 +243,11 @@ write_agents "$tmp/artifacts" '| phone UI | `UI.md` §1 "Cross-variant UI parity
 expect routes#aReferenceInAChangeArtifactIsNotChecked 0 "$tmp/artifacts" "all 5 section references resolve" "a reference in a change artifact is not checked"
 
 # ── this project's own tree ────────────────────────────────────────────────────────────────────────────────
-# The two cases `documentation-ownership` names for the cost of a routed read — "A section carrying more than one
-# question is split" (`routed-read#bound`) and "The route names the sub-section" (`routed-read#route`). Their
-# claim is about every routed section of this repository, so they read its `AGENTS.md` and `guidelines/*.md`
-# instead of a fixture, and they write nothing.
+# The three cases `documentation-ownership` names for the cost of a routed read — "A section carrying more than
+# one question is split" (`routed-read#bound`), "The route names the sub-section" (`routed-read#route`) and
+# "A split section keeps its number and its citations" (`routed-read#numbers`). The first two claim something
+# about every routed section of this repository, so they read its `AGENTS.md` and `guidelines/*.md` instead of a
+# fixture; `#numbers` reads a fixture. None of them writes anything.
 
 # The routed pairs the table makes, derived here independently of the check: a `Doc.md` mention in backticks names
 # the document, and every `§<number>` after it on the same row is one of its sections.
@@ -387,6 +390,57 @@ FIXTURE
   return 0
 }
 
+case_routed_read_numbers() {
+  local d out rc
+  d="$tmp/numbers"; mk_fixture "$d"
+  write_numbers_fixture() {
+    cat > "$d/guidelines/UI.md" <<'FIXTURE'
+# UI Specification
+
+## 1. Cross-variant UI parity (general rule)
+
+The split's index: `UI.md` §1a "Parity, measured" and `UI.md` §1b "Handoff, measured"; this section stays
+`UI.md` §1 "Cross-variant UI parity".
+
+## 1a. Parity, measured
+
+A sub-section a split created.
+
+## 1b. Handoff, measured
+
+A second sub-section the split created.
+FIXTURE
+  }
+  write_numbers_fixture
+  write_agents "$d" '| parity, measured | `UI.md` §1a "Parity, measured" — 0.1 kB |
+| handoff, measured | `UI.md` §1b "Handoff, measured" — 0.1 kB |'
+  out=$("$check" --root "$d" 2>&1); rc=$?
+  if [ "$rc" != 0 ]; then
+    CASE_WHY="a split that keeps its number and its citations did not pass the route check: exit $rc: $out"
+    return 1
+  fi
+  # the parent number is what the split keeps: without its heading the same citations no longer resolve
+  grep -vF '## 1. Cross-variant UI parity (general rule)' "$d/guidelines/UI.md" > "$d/UI.md.next"
+  mv "$d/UI.md.next" "$d/guidelines/UI.md"
+  out=$("$check" --root "$d" 2>&1); rc=$?
+  if [ "$rc" != 1 ] || ! printf '%s' "$out" | grep -qF 'UI.md §1'; then
+    CASE_WHY="a split whose parent number is no longer a heading was not reported: exit $rc: $out"
+    return 1
+  fi
+  # and a citation of a sub-section resolves only while that sub-section is still a heading
+  write_numbers_fixture
+  grep -vF '## 1a. Parity, measured' "$d/guidelines/UI.md" > "$d/UI.md.next"
+  mv "$d/UI.md.next" "$d/guidelines/UI.md"
+  out=$("$check" --root "$d" 2>&1); rc=$?
+  if [ "$rc" != 1 ] || ! printf '%s' "$out" | grep -qF 'UI.md §1a'; then
+    CASE_WHY="a citation of a sub-section that is no longer a heading was not reported: exit $rc: $out"
+    return 1
+  fi
+  return 0
+}
+
+echo_case routed-read#numbers case_routed_read_numbers \
+  "a split keeps its parent number, every citation resolves, and the route check accepts the document set"
 echo_case routed-read#bound case_routed_read_bound \
   "every section of every routed document is printed with its cost, each equal to the requirement's ruler, and the pairs the table routes are the pairs marked routed"
 echo_case routed-read#route case_routed_read_route \

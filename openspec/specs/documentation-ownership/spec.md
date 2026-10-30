@@ -156,7 +156,9 @@ count of its lines from the `## ` heading through the line before the next `## `
 - **WHEN** a section is split into lettered sub-sections
 - **THEN** the section's own number is still a heading of its document, every citation of that number still
   resolves, and the route check accepts the document set
-- **Case**: `routed-read#numbers`
+- **Case**: `routed-read#numbers` — a fixture document keeps `## 1.` beside `## 1a.` and `## 1b.`, its body and
+  the routing table cite all three, and the route check accepts the set; removing either the parent heading or a
+  sub-section heading makes the citation that names it fail
 
 #### Scenario: The route names the sub-section
 
@@ -171,8 +173,9 @@ count of its lines from the `## ` heading through the line before the next `## `
 - **WHEN** a section is split
 - **THEN** every line the split stops carrying is either a promoted heading or a line whose only change is a
   retargeted section reference, so no statement is dropped or reworded
-- **Case**: `routed-read#verbatim` — `evidence/red-probe.sh` compares the diff's removed and added lines with
-  the heading level and the section numbers normalised, and names the first five it cannot pair
+- **Case**: none — the split's diff is a one-off judgement made when the split lands, recorded by the change that
+  made it; no harness in the tree can assert it over a later tree, so this scenario names no case rather than a
+  file in an archived change
 
 #### Scenario: A routed section past the bound is a check's condition
 

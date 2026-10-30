@@ -1,0 +1,7 @@
+$ cp tools/loop/report.sh ... ; # the jq block, as shipped, over the fixture of report#trendFiguresFromState
+  review: 2/5 first rounds passed · 1 undecided · 2 never reviewed
+  wall:   median 403 s (min 41, max 1644) · 5 items
+
+$ ... with mutation 72.1 applied (numerator from the round count)
+  review: 5/5 first rounds passed · 1 undecided · 2 never reviewed
+  wall:   median 403 s (min 41, max 1644) · 5 items

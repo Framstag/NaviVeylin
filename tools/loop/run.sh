@@ -250,6 +250,7 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
   loop_state done "$issue" --result done --verdict closed --change "$merged_change" \
     --closed "$closure" --note "$out" \
     --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-evidence "$merged_evidence" \
+    --review-verdict off \
     >/dev/null
   # The branch is merged, so the work is in the base and the branch itself is a leftover: the run removes
   # the branch it merged (a cherry-picked adoption is not an ancestor of the base, so git's safe delete
@@ -1752,6 +1753,18 @@ while true; do
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
         break
       fi
+      # The item's own turn bound ends a child the same way (`LOOP_ITEM_TURNS_MAX`, issue #686), and a round it ended
+      # has no answer to read: the transcript carries `LOOP-TIMEOUT` and no `VERDICT:` line. Reading that silence as
+      # a refusal named a reviewer that refused nothing and bought a rework worker for it — measured on item #51,
+      # whose round 1 ended at the 250-turn bound and whose record the report would otherwise count as a refusal
+      # (issue #247, review round 2). The round is cut, as the twice-cut path below records it, so the item waits
+      # for the next run and a rate counts it as undecided.
+      if [ -n "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ]; then
+        review_verdict="cut-short"
+        outcome="blocked"
+        blocked_reason="the run ended the reviewer of round $round at the item's turn bound — the round was cut, not refused, so the change is left for the next run"
+        break
+      fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
       # with a non-zero count contradicts itself and is read as a refusal, and a refusal with a zero count is
       # a pass whose notes are recorded — the findings are wording, pointers and naming, which cost the change
@@ -1913,7 +1926,7 @@ $review_notes_text"
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --gate "$gate_field" \
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
         --merged-branch "$merged_branch" --merged-commits "$merged_commits" \
-        --events "$events_file" --note "$note_field" >/dev/null
+        --events "$events_file" --note "$note_field" --review-verdict "$review_verdict" >/dev/null
       ;;
     falsified)
       # The run holds the evidence that settles the item: what it blames was measured and does not hold. That is a
@@ -1937,7 +1950,7 @@ $review_notes_text"
       loop_state done "$issue" --result falsified --verdict falsified \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --closed "$closure" \
         --root-cause "$falsified_mechanism" --red-test "$falsified_measurement" \
-        --events "$events_file" --note "the premise does not hold" >/dev/null
+        --events "$events_file" --note "the premise does not hold" --review-verdict "$review_verdict" >/dev/null
       ;;
     skipped)
       # The in-progress mark comes off on every exit path (labels.sh, header): an item a run skipped is no
@@ -1981,7 +1994,7 @@ $review_notes_text"
       loop_state done "$issue" --result skipped --verdict "${skip_verdict:-unspecified}" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --root-cause "$root_cause" --red-test "$red_test" --note "skipped by the worker" \
-        --events "$events_file" --decision-label "$escalated_label" >/dev/null
+        --events "$events_file" --decision-label "$escalated_label" --review-verdict "$review_verdict" >/dev/null
       ;;
     *)
       # A label write the tracker refuses is a fact of the run, not a swallow (issue #279): measured
@@ -2042,7 +2055,8 @@ question the item asked; a retry costs another attempt, and an abandonment remov
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
         --root-cause "$root_cause" --red-test "$red_test" --note "$blocked_note" \
         --events "$events_file" --decision-label "$escalated_label" --leftover "$leftover_patch" \
-        --label-failures "$label_failures" --stop-reason "$stop_reason" >/dev/null
+        --label-failures "$label_failures" --stop-reason "$stop_reason" \
+        --review-verdict "$review_verdict" >/dev/null
       ;;
   esac
   detail="${change:-$blocked_reason}"

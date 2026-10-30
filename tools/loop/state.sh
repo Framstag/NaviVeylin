@@ -38,6 +38,7 @@
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL] [--leftover PATH] [--label-failures <transition>…]
 #                         [--stop-reason refused|unmergeable]
+#                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -408,7 +409,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events="" stop_reason=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events="" stop_reason="" review_verdict=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -418,6 +419,7 @@ cmd_done() {
       --wall) need_value "$@"; wall="${2:-}"; shift 2 ;;
       --pi-exit) need_value "$@"; pi_exit="${2:-}"; shift 2 ;;
       --rounds) need_value "$@"; rounds="${2:-}"; shift 2 ;;
+      --review-verdict) need_value "$@"; review_verdict="${2:-}"; shift 2 ;;
       --gate) need_value "$@"; gate="${2:-}"; shift 2 ;;
       --events) need_value "$@"; events="${2:-}"; shift 2 ;;
       --closed) need_value "$@"; closed="${2:-}"; shift 2 ;;
@@ -446,6 +448,15 @@ cmd_done() {
   esac
   [ -z "$stop_reason" ] || [ "$result" = blocked ] ||
     loop_die "done: --stop-reason belongs to a blocked item, and this one is recorded $result"
+  # The verdict of the round the item's review loop ended on — the fact the round *count* cannot express (issue #247):
+  # `reviewRounds` is the round **attempted** (`run.sh:1680` sets it before the reviewer runs), so an item whose
+  # round 1 refused and then blocked records `1` exactly as one whose round 1 passed. `run.sh` already decides these
+  # values; recording them here is what lets a report tell a pass from a refusal from a round that ended without a
+  # verdict. The vocabulary is that script's, so a value this list does not hold is a programming fault, not data.
+  case "$review_verdict" in
+    ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write) ;;
+    *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write" ;;
+  esac
   [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading
   # the tracker; an item with no queue entry (a resumed run) falls back to the empty string.
@@ -479,7 +490,9 @@ cmd_done() {
                   stopReason:(if $sr == "" then null else $sr end),
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
                   merged:{branch:$mb, commits:$mc, evidence:$me},
-                  metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds, gate:$gate,
+                  metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds,
+                           reviewVerdict:(if $rv == "" then null else $rv end),
+                           gate:$gate,
                            closed:$closed, rootCause:$rc, redTest:$rt,
                            tools:$usage.tools, tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context}}]
@@ -498,6 +511,7 @@ cmd_done() {
     --arg note "$note" --arg at "$(iso_utc "$(now_epoch)")" --arg dl "$decision_label" \
     --arg lo "$leftover" --arg lf "$label_failures" --arg sr "$stop_reason" \
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
+    --arg rv "$review_verdict" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
     --argjson usage "$usage" \
     --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence"

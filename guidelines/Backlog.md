@@ -755,6 +755,26 @@ the tracker refused with the item it left stale. A count is not
 an answer, so `none` is printed only when all five sources were
 read and empty — it never hides a branch that carries work.
 
+Beside those three, and about the loop rather than about one run, the report says whether the loop is getting
+faster and more often right (#247): the review round-1 pass rate and the item wall median, minimum and maximum,
+both totalled from the state the report already reads, with `-` and its reason where nobody measured one. The
+rate is counted from the **verdict** a round ended on (`done --review-verdict`), never from the round count: the
+count is the round the loop *attempted* — `run.sh` writes it before the reviewer runs — so a round 1 that refused
+and then blocked carries the same `1` as one that passed, and review round 1 of #247 measured exactly that on
+`#16` and `#197` (both `blocked`, count 1, `VERDICT: FAIL`). The same count also could not tell a refusal from a
+round nobody answered: `#51` carries count 1 as well, and its round 1 was **cut** at the 250-turn bound — its
+transcript holds `LOOP-TIMEOUT` and no `VERDICT:` at all — which the run read as a refusal until review round 2.
+So the state records the round's verdict (`done --review-verdict`) and four things are told apart and printed: a
+round 1 that passed; a round 1 that refused and whose round 2 passed (in the rate's denominator, in no
+numerator); a round that ended without a verdict (the answer was cut, the run's clock or the item's turn bound
+ended it, it wrote, or the state predates the field — neither a pass nor a refusal, so in no rate); and an item no
+round ran for (`reviewRounds` 0, which is `never reviewed` and not a refused round). The third figure the issue asked for,
+the landings that reddened `main`, is in neither source the report reads: `state.sh done` keeps a landing's
+branch, its commit count and its evidence and no commit, and the `broken-main` sensor identifies its condition by
+job and case, so no `gh` read could attribute a red base to the landing that caused it. The report therefore
+names the command that answers it (`gh issue list --label broken-main`) instead of reading the tracker from
+itself; recording the attribution at landing time is its own item (#709).
+
 What a branch carries is asked by **patch identity**, never by ancestry — `git cherry`, the same question the
 item's start and the pre-screen ask. The run lands an item's work as a commit of its own (`fix: … (#N)`), so a
 branch whose work was landed, or re-landed, is not an ancestor of the base while its patch is on it: ancestry read

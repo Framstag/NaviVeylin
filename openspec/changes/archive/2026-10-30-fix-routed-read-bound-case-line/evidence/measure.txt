@@ -1,0 +1,9 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=2f954a04b3f75e138c529fffe7985ca011375866 paths=0 insertions=0 deletions=0
+LOOP-MEASURE-CHECK LOOP-GATE: nothing owed — no path this profile gates changed since 2f954a04b3f75e138c529fffe7985ca011375866
+LOOP-MEASURE-SUITE cases=284 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-routed-read-bound-case-line scenarios=9 cases=7 unnamed=2
+LOOP-MEASURE-TALLY openspec/changes/fix-routed-read-bound-case-line/evidence/red-on-head.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 1 spec scenario restated (Case line and body), 1 evidence probe case added, 0 cases rewritten, 0 fixtures realigned, 0 compiled files — `grep -rn "routed-read#bound" --include=*.md --include=*.sh --include=*.json . | grep -v openspec/changes/archive` (`5 lines in 4 files` on the base tree: `openspec/specs/documentation-ownership/spec.md:144`, `tools/check-doc-routes-selftest.sh:17,245,390`, `tools/check-doc-routes-mutations.json:23`) and `grep -rn "A section carrying more than one question is split" --include=*.md --include=*.sh . | grep -v openspec/changes/archive` (`1 line`, the spec heading at `:139`).
+LOOP-MEASURE-END

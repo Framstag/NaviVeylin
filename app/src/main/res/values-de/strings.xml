@@ -106,6 +106,10 @@
     <string name="long_press_timeout_value">%1$d ms</string>
     <string name="max_speed_section">Routentempo</string>
     <string name="max_speed_value">%1$d km/h</string>
+    <string name="avoidance_section">Routenvermeidung</string>
+    <string name="avoid_tolls">Mautstraßen vermeiden</string>
+    <string name="avoid_ferries">Fährverbindungen vermeiden</string>
+    <string name="avoid_unpaved">Unbefestigte Straßen vermeiden</string>
     <string name="dark_mode">Dunkelmodus</string>
     <string name="ambient_light_dark_mode">Adaptiv nach Umgebungslicht</string>
     <string name="on">Ein</string>

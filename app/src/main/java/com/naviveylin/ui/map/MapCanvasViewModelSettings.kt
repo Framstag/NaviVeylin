@@ -91,6 +91,34 @@ fun MapCanvasViewModel.onSetFootMaxSpeed(kmh: Int) {
 }
 
 /**
+ * Set whether routes avoid toll roads and persist it (spec: `routing-avoidance` — The phone edits the
+ * choices and the car reads them). The value reaches routing at the next calculation; it never restarts
+ * one in flight, for the same reason a speed change does not (spec: `routing-max-speed`).
+ */
+fun MapCanvasViewModel.onSetAvoidTolls(avoid: Boolean) {
+    _uiState.value = _uiState.value.copy(avoidTolls = avoid)
+    viewModelScope.launch {
+        settingsStorage.update { it.copy(avoidTolls = avoid) }
+    }
+}
+
+/** Set whether routes avoid ferry routes and persist it (spec: `routing-avoidance`). */
+fun MapCanvasViewModel.onSetAvoidFerries(avoid: Boolean) {
+    _uiState.value = _uiState.value.copy(avoidFerries = avoid)
+    viewModelScope.launch {
+        settingsStorage.update { it.copy(avoidFerries = avoid) }
+    }
+}
+
+/** Set whether routes avoid unpaved roads and persist it (spec: `routing-avoidance`). */
+fun MapCanvasViewModel.onSetAvoidUnpaved(avoid: Boolean) {
+    _uiState.value = _uiState.value.copy(avoidUnpaved = avoid)
+    viewModelScope.launch {
+        settingsStorage.update { it.copy(avoidUnpaved = avoid) }
+    }
+}
+
+/**
  * Set the map rendering mode (tile-cached vs direct). Persists the
  * selection and applies it immediately: the renderer is switched and a
  * forced full re-render clears any tiles/buffers from the other mode.
@@ -426,6 +454,9 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
             carMaxSpeedKmh = settings.carMaxSpeedKmh,
             bicycleMaxSpeedKmh = settings.bicycleMaxSpeedKmh,
             footMaxSpeedKmh = settings.footMaxSpeedKmh,
+            avoidTolls = settings.avoidTolls,
+            avoidFerries = settings.avoidFerries,
+            avoidUnpaved = settings.avoidUnpaved,
             styleSheet = settings.styleSheet,
             preferSymbolPoiIcons = preferSymbolPoiIcons
         )

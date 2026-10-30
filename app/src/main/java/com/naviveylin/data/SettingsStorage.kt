@@ -102,6 +102,21 @@ data class AppSettings(
      */
     val footMaxSpeedKmh: Int = 5,
     /**
+     * Avoid toll roads (spec: `routing-avoidance` — Avoidance is a persisted per-vehicle-independent
+     * setting). Not per vehicle: a user who avoids tolls avoids them in every profile. `false` keeps
+     * the route the app calculated before the field existed, so an older settings file decodes to
+     * today's behaviour. Phone-edited, read by both surfaces. On a map database whose import recorded
+     * no toll information the switch changes nothing, by design.
+     */
+    val avoidTolls: Boolean = false,
+    /** Avoid ferry routes (spec: `routing-avoidance`). `false` is the pre-setting behaviour. */
+    val avoidFerries: Boolean = false,
+    /**
+     * Avoid unpaved roads (spec: `routing-avoidance`). `false` is the pre-setting behaviour. The native
+     * profile acts on graded roads, so this changes a route only where the map data records a grade.
+     */
+    val avoidUnpaved: Boolean = false,
+    /**
      * Vehicle anchor preset for navigation **on the phone** (spec: smooth-follow —
      * Vehicle position anchor in follow mode). Persisted as the preset's stable id
      * (see `VehicleAnchorPosition` in `:core`); default `"center"`. The anchors are

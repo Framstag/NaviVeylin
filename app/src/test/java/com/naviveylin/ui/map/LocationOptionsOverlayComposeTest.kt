@@ -6,10 +6,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isToggleable
+import androidx.compose.ui.test.onChildren
 import com.naviveylin.core.BundledMapStyles
 import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AmbientLightSensitivity
@@ -65,6 +68,15 @@ class LocationOptionsOverlayComposeTest {
         onSetBicycleMaxSpeed: (Int) -> Unit = {},
         footMaxSpeedKmh: Int = 5,
         onSetFootMaxSpeed: (Int) -> Unit = {},
+        // Routing avoidance: overridable so a case can assert that a stored choice is what the
+        // switches show and that a toggle is reported back (spec: `routing-avoidance` — The phone
+        // edits the choices and the car reads them).
+        avoidTolls: Boolean = false,
+        onSetAvoidTolls: (Boolean) -> Unit = {},
+        avoidFerries: Boolean = false,
+        onSetAvoidFerries: (Boolean) -> Unit = {},
+        avoidUnpaved: Boolean = false,
+        onSetAvoidUnpaved: (Boolean) -> Unit = {},
         // The long-press timeout row: overridable so a case can assert that the configured value
         // is what the slider shows and that a move is reported back (spec: location-options-ui —
         // Long-press timeout control).
@@ -85,6 +97,12 @@ class LocationOptionsOverlayComposeTest {
                 onSetBicycleMaxSpeed = onSetBicycleMaxSpeed,
                 footMaxSpeedKmh = footMaxSpeedKmh,
                 onSetFootMaxSpeed = onSetFootMaxSpeed,
+                avoidTolls = avoidTolls,
+                onSetAvoidTolls = onSetAvoidTolls,
+                avoidFerries = avoidFerries,
+                onSetAvoidFerries = onSetAvoidFerries,
+                avoidUnpaved = avoidUnpaved,
+                onSetAvoidUnpaved = onSetAvoidUnpaved,
                 mode = mode,
                 availableStyles = styles,
                 styleSheet = "standard",
@@ -148,6 +166,12 @@ class LocationOptionsOverlayComposeTest {
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
                 onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 ambientLightSensitivity = AmbientLightSensitivity.OFF,
                 onSetAmbientLightSensitivity = { reported = it }
@@ -183,6 +207,12 @@ class LocationOptionsOverlayComposeTest {
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
                 onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 ambientLightSensitivity = AmbientLightSensitivity.MEDIUM,
                 onSetAmbientLightSensitivity = {}
@@ -288,6 +318,12 @@ class LocationOptionsOverlayComposeTest {
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
                 onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 overspeedWarningDeltaKmh = 10,
                 onSetOverspeedWarningDelta = {}
@@ -318,6 +354,12 @@ class LocationOptionsOverlayComposeTest {
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
                 onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 overspeedWarningDeltaKmh = 0,
                 onSetOverspeedWarningDelta = { reported.add(it) }
@@ -361,6 +403,12 @@ class LocationOptionsOverlayComposeTest {
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
                 onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 overspeedWarningDeltaKmh = 20,
                 onSetOverspeedWarningDelta = { reported = it }
@@ -396,7 +444,13 @@ class LocationOptionsOverlayComposeTest {
                 bicycleMaxSpeedKmh = 15,
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {}
+                onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
             )
         }
         composeRule.onNodeWithContentDescription("Location options").performClick()
@@ -425,7 +479,13 @@ class LocationOptionsOverlayComposeTest {
                 bicycleMaxSpeedKmh = 15,
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {}
+                onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
             )
         }
         composeRule.onNodeWithContentDescription("Location options").performClick()
@@ -470,7 +530,13 @@ class LocationOptionsOverlayComposeTest {
                 bicycleMaxSpeedKmh = 15,
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
-                onSetFootMaxSpeed = {}
+                onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
             )
         }
         composeRule.onNodeWithContentDescription("Location options").performClick()
@@ -499,6 +565,38 @@ class LocationOptionsOverlayComposeTest {
         openSheet()
 
         assertMaxSpeedSlidersVisible()
+    }
+
+    /** Spec: `routing-avoidance` — the sheet shows the switches, reflecting the stored values. */
+    @Test
+    fun theAvoidanceSwitchesAreShownAndReportAGesture() {
+        var ferries: Boolean? = null
+
+        openSheet(
+            avoidTolls = true,
+            onSetAvoidFerries = { ferries = it }
+        )
+
+        for (tag in listOf("avoidTollsSwitch", "avoidFerriesSwitch", "avoidUnpavedSwitch")) {
+            composeRule.onNodeWithTag(tag).performScrollTo().assertIsDisplayed()
+        }
+
+        // A stored value is what the switch shows: a row that rendered its default would fail here.
+        composeRule.onNodeWithTag("avoidTollsSwitch")
+            .onChildren()
+            .filterToOne(isToggleable())
+            .assertIsOn()
+        composeRule.onNodeWithTag("avoidUnpavedSwitch")
+            .onChildren()
+            .filterToOne(isToggleable())
+            .assertIsOff()
+
+        composeRule.onNodeWithTag("avoidFerriesSwitch")
+            .onChildren()
+            .filterToOne(isToggleable())
+            .performClick()
+
+        assertEquals(true, ferries)
     }
 
     @Test
@@ -565,6 +663,12 @@ class LocationOptionsOverlayComposeTest {
                 onSetBicycleMaxSpeed = { reported.getOrPut("bicycle") { mutableListOf() }.add(it) },
                 footMaxSpeedKmh = MaxSpeedRange.FOOT.midKmh,
                 onSetFootMaxSpeed = { reported.getOrPut("foot") { mutableListOf() }.add(it) },
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE
             )
         }
@@ -673,6 +777,12 @@ class LocationOptionsOverlayComposeTest {
                 onSetBicycleMaxSpeed = {},
                 footMaxSpeedKmh = 5,
                 onSetFootMaxSpeed = {},
+                avoidTolls = false,
+                onSetAvoidTolls = {},
+                avoidFerries = false,
+                onSetAvoidFerries = {},
+                avoidUnpaved = false,
+                onSetAvoidUnpaved = {},
                 mode = MapMode.BROWSE,
                 availableStyles = listOf("standard"),
                 styleSheet = "standard",

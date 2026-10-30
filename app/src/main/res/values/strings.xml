@@ -115,6 +115,10 @@
     <string name="long_press_timeout_value">%1$d ms</string>
     <string name="max_speed_section">Routing speed</string>
     <string name="max_speed_value">%1$d km/h</string>
+    <string name="avoidance_section">Routing avoidance</string>
+    <string name="avoid_tolls">Avoid toll roads</string>
+    <string name="avoid_ferries">Avoid ferry routes</string>
+    <string name="avoid_unpaved">Avoid unpaved roads</string>
     <string name="dark_mode">Dark mode</string>
     <string name="ambient_light_dark_mode">Adaptive by ambient light</string>
     <string name="on">On</string>

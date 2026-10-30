@@ -11,7 +11,6 @@ import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RouteStep
-import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.EngineDispatchers
@@ -25,7 +24,7 @@ import com.naviveylin.core.RouteCalculation
 import com.naviveylin.core.SpeedStaleness
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.data.SettingsStorage
-import com.naviveylin.data.maxSpeedKmhFor
+import com.naviveylin.data.routingProfileFor
 import com.naviveylin.location.LocationConsumers
 import com.naviveylin.location.LocationLease
 import com.naviveylin.location.LocationService
@@ -509,14 +508,12 @@ class NavigationEngine @Inject constructor(
         val token = beginCalculation(destLat, destLon, if (fromReroute) "reroute" else "acquisition")
         scope.launch(dispatchers.compute) {
             try {
-                // The calculation vehicle's own stored maximum speed, read here so the reroute of a
-                // running session and a fresh acquisition both use it (spec: `routing-max-speed` —
-                // Every calculation path carries the vehicle's maximum speed), and so a slider change
-                // cannot alter a route already calculated.
-                val profile = RoutingProfile(
-                    vehicle,
-                    settingsStorage.loadOnCallerDispatcher().maxSpeedKmhFor(vehicle)
-                )
+                // The profile every calculation uses: the calculation vehicle's own stored maximum speed
+                // and the stored avoidance choices, read here so the reroute of a running session and a
+                // fresh acquisition both use them (spec: `routing-max-speed`; spec: `routing-avoidance` —
+                // One builder produces the profile every calculation uses), and so a slider change cannot
+                // alter a route already calculated.
+                val profile = settingsStorage.loadOnCallerDispatcher().routingProfileFor(vehicle)
                 client.get().calculateRouteWithProfile(
                     startLat, startLon, destLat, destLon, profile,
                     object : RouteCallback {

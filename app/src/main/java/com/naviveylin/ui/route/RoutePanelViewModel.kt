@@ -8,13 +8,12 @@ import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
-import com.framstag.libosmscout.client.RoutingProfile
 import com.framstag.libosmscout.client.Vehicle
 import com.naviveylin.R
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
-import com.naviveylin.data.maxSpeedKmhFor
+import com.naviveylin.data.routingProfileFor
 import com.naviveylin.location.LocationService
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.FailureReason
@@ -543,14 +542,12 @@ class RoutePanelViewModel @Inject constructor(
 
         viewModelScope.launch {
             withContext(defaultDispatcher) {
-                // The selected vehicle's own stored maximum speed: the settings file is the single
-                // source of truth, so a change the user just made is what this calculation uses
-                // (spec: `routing-max-speed` — Every calculation path carries the vehicle's maximum
-                // speed).
-                val profile = RoutingProfile(
-                    s.vehicle,
-                    settingsStorage.loadOnCallerDispatcher().maxSpeedKmhFor(s.vehicle)
-                )
+                // The profile every calculation uses: the selected vehicle's own stored maximum speed
+                // and the stored avoidance choices, built in one place so no path can carry one and drop
+                // the other (spec: `routing-max-speed` — Every calculation path carries the vehicle's
+                // maximum speed; spec: `routing-avoidance` — One builder produces the profile every
+                // calculation uses).
+                val profile = settingsStorage.loadOnCallerDispatcher().routingProfileFor(s.vehicle)
                 client.calculateRouteWithProfile(
                     start.lat, start.lon, dest.lat, dest.lon, profile,
                     object : RouteCallback {

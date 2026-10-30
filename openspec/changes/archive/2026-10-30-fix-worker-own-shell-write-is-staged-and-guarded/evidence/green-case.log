@@ -1,0 +1,2 @@
+PASS run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+tests=1 failures=0

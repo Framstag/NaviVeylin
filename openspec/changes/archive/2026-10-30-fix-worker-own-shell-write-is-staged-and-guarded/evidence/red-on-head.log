@@ -1,0 +1,2 @@
+FAIL run#theWorkersOwnShellWriteIsRecordedAndNotPlaced — the difference is recorded, with the path that changed: 'demo-owned.txt' not found in:
+tests=1 failures=1

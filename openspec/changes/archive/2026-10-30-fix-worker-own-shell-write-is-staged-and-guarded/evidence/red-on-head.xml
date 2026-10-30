@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/red-on-head.sh" tests="1" failures="1" errors="0" timestamp="2026-10-30T08:51:41Z">
+<failure message="the difference is recorded, with the path that changed: 'demo-owned.txt' not found in:">run#theWorkersOwnShellWriteIsRecordedAndNotPlaced: the difference is recorded, with the path that changed: 'demo-owned.txt' not found in:</failure>
+</testsuite>

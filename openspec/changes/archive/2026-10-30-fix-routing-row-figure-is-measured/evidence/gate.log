@@ -1,18 +1,44 @@
-# The gate, run once from the change root on 2026-10-30 (base 2f954a04b3f75e138c529fffe7985ca011375866).
+# The gate, run once from the change root on 2026-10-30 over the tree that carries the archived change
+# (base 2f954a04b3f75e138c529fffe7985ca011375866).
 #
 # The change touches no compiled file (`guidelines/Build.md` §2's scope block names `*.md` and `tools/**` as no
-# compiled file), so the build's own gate is not owed, and the four suites below are the ones the pathspec asks for
-# (`tools/loop/measure.sh`'s LOOP-MEASURE-CHECK lines, `evidence/measure.txt`).
+# compiled file), so the build's own gate is not owed. The archived delta's paths owe the seven commands the
+# round-2 `tools/loop/measure.sh` block names — `LOOP-MEASURE-CHECK`, one per line, in `evidence/measure-round-2.txt`:
+# the route check and its self-test, the mutation set's `--list` and the todo references for `*.md` and `tools/**`;
+# `check-openspec-hygiene.sh`, its self-test and `gen-feature-list.sh --check-classification` for `openspec/**`
+# (`openspec/specs/documentation-ownership/spec.md` and this change's archived artifacts). All seven ran, and the
+# summary line below names all seven.
 #
-# This file keeps the run's own summary line verbatim; the per-step lines are not retained, and the record of what
-# each step printed is the gate's own tally beside this file (`gate-tallies/`), one per suite, with the seconds it
+# This is the item's second gate. The first (`items/712/evidence/gate.log`, 2026-10-30T07:02:11Z) ran four suites
+# while its own `measure.txt` named the same seven `LOOP-MEASURE-CHECK` lines, so the three `openspec/**` checks —
+# the ones that read the ADDED requirement and the archive — had not run; round 1's review refused the change on
+# exactly that (`evidence/review-round-1-requested.md`). This run is the whole pathspec.
+#
+# The run's own summary line is kept verbatim; the per-step lines are not retained, and the record of what each
+# step printed is the gate's own tally beside this file (`gate-tallies/`), one per suite, with the seconds it
 # measured in its `time` attribute.
 
 $ ./tools/loop/gate.sh
-LOOP-GATE: tests=23 failures=0 errors=0 (tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 3s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s)
+LOOP-GATE: tests=29 failures=0 errors=0 (bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 3s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)
 
-# the tally each suite wrote:
-#   tools/check-doc-routes.sh            time=1 tests=0  failures=0 errors=0 — all 169 section references resolve, all 4 skill references resolve
-#   tools/check-doc-routes-selftest.sh   time=3 tests=23 failures=0 errors=0 — all 23 cases passed
-#   tools/mutate.sh … --list             time=0 tests=0  failures=0 errors=0 — 5 mutations, the set prints
-#   tools/check-todo-references.sh       time=1 tests=0  failures=0 errors=0 — 64 citations resolve through the recorded table
+# the tally each suite wrote (`gate-tallies/`), seven files, seconds summed 4+0+3+0+1+0+0 = 8:
+#   bash tools/gen-feature-list.sh --check-classification  time=4 tests=0 failures=0 errors=0 — stale: 3, car-only areas: 1, highlights: 19 (the check's own summary line)
+#   tools/check-doc-routes.sh                             time=0 tests=0 failures=0 errors=0 — all 169 section references resolve, all 4 skill references resolve
+#   tools/check-doc-routes-selftest.sh                    time=3 tests=23 failures=0 errors=0 — all 23 cases passed
+#   tools/mutate.sh … --list                              time=0 tests=0  failures=0 errors=0 — 5 mutations, the set prints
+#   tools/check-todo-references.sh                        time=1 tests=0  failures=0 errors=0 — 199 lines scanned, 64 citations resolve through the recorded table
+#   tools/check-openspec-hygiene.sh                       time=0 tests=0  failures=0 errors=0 — every capability spec states its Purpose; 15 open change(s) carry task markers
+#   tools/check-openspec-hygiene-selftest.sh              time=0 tests=6  failures=0 errors=0 — all 6 cases passed
+#
+# `tests=29` is the two suites that count cases: 23 (`check-doc-routes-selftest.sh`) + 6 (`check-openspec-hygiene-selftest.sh`);
+# the other five report `tests=0` because they assert a whole-tree property rather than named cases.
+#
+# The three `stale classification entry` lines `gen-feature-list` prints are the tree's pre-existing ones
+# (`search-name-matching`, `search-result-row-icon`, `start-map-selection` are in `tools/feature-list/specs.json`
+# and none is a spec the tree carries); an earlier green gate prints the same lines —
+# `openspec/changes/archive/2026-10-29-fix-unbounded-agent-context/evidence/gate.log`. The check exits 0 and the
+# gate counts no failure for them.
+
+# The two checks round 1's review named as never run against the archived delta are the last two of the seven:
+# `check-openspec-hygiene.sh` exits 0 over the archived tree (every capability spec states its Purpose; 15 open
+# change(s) carry task markers, the operation guidance is quoted) and its self-test passes all 6 cases.

@@ -1,0 +1,65 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/tools/loop/loop.conf
+LOOP-MEASURE base=2f954a04b3f75e138c529fffe7985ca011375866 paths=36 insertions=1241 deletions=37
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/evidence-check-archived.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/evidence-check-round-2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/green-after-fix.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/measure-round-2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/measure-the-rows.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/measure-the-rows.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/mutations.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/openspec-validate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/red-on-head.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/red-on-head.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/red-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/round-2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/suite-green.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/tasks.md
+LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH tools/check-doc-routes-mutations.json
+LOOP-MEASURE-PATH tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-PATH tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=284 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=23 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=8 suites=7
+LOOP-MEASURE-CHANGE 2026-10-30-fix-routing-row-figure-is-measured scenarios=2 cases=2 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml tests=23 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-doc-routes.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml tests=6 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-10-30-fix-routing-row-figure-is-measured/evidence/red-on-head.xml tests=2 failures=2
+LOOP-MEASURE-SURFACE surface: 2 cases added, 1 case realigned (`routed-read#route`'s fixture priced its section at a made-up 1.2 kB
+LOOP-MEASURE-END

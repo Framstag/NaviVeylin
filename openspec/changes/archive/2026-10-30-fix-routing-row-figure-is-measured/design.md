@@ -51,14 +51,17 @@ Nothing else moves: the reference resolution, the ambiguity rule, the skill-path
   `openspec/specs/documentation-ownership/spec.md`. Six files, plus this change's artifacts.
 - Nothing compiled: no Kotlin, Java, C++, Gradle, manifest, resource or device. The gate's build half is not owed
   (`guidelines/Build.md` §2's scope block names `*.md` and `tools/**` as no compiled file).
-- **The self-referential risk, named:** `Backlog.md` §9 is 15 389 bytes and already one of the eight sections the
+- **The self-referential risk, named:** `Backlog.md` §9 measured 15 389 bytes when the row landed and measures
+  15 785 bytes after this change's paragraph (`bash tools/check-doc-routes.sh --sizes`, the `Backlog.md §9` line of
+  `evidence/round-2.log`), and §9 is already one of the eight sections the
   `routed-section-size` row convicts, and this change makes its paragraph longer, not shorter. The alternative —
   stating the rule somewhere other than the section that owns the routing table's doctrine — would split one
   doctrine across two homes to keep a number under a bound, which is the erosion the row exists to make visible.
   §9's split is a change of its own and the row will file it.
 - **The check gets stricter on a tree that is already checked**: everything that resolved before still resolves,
   and the only new failures are figures that disagree. The self-test asserts the project's own table passes, so a
-  future stale figure is a red suite rather than a red pipeline.
+  future stale figure is refused before a reader acts on it — a red case in the suite and a red step in the
+  pipeline, which runs that same check (`evidence/suite-green.log`, `evidence/gate.log`).
 
 ## Rollback
 
@@ -83,9 +86,9 @@ keeps the two stale ranges it carried before.
   refuse — the same reason `routed-read#route` lives in the check and not in `sensors.json`. A row for "a row
   states a figure that disagrees" would also need the check's parser, which would then live in two homes.
 - **Have the clause run `--sizes` as a subprocess and diff its report.** Eliminated by measurement: the report is
-  text for a reader (146 lines on this tree), so the check would parse its own output back into numbers, and a
-  change to the report's wording would silently disable the clause. Computing the costs once and giving both
-  readers the same array is one code path and cannot drift.
+  text for a reader (146 section lines on this tree, `evidence/round-2.log`), so the check would parse its own
+  output back into numbers, and a change to the report's wording would silently disable the clause. Computing the
+  costs once and giving both readers the same array is one code path and cannot drift.
 - **Compare figures by truncation** (`bytes / 1000` cut at the first decimal, as some documents read). Eliminated
   by the tree: `UI.md` §3c is 2 763 bytes and its row states `2.8 kB`, and §6a is 6 043 bytes with `6.0 kB` — the
   rows round, they do not truncate, so a truncating comparison would convict rows that are correct.

@@ -1,0 +1,16 @@
+$ bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  change-readiness
+  search-name-matching
+  search-result-row-icon
+  shaping-inbox
+  start-map-selection
+specs read: 180
+classified: 185
+unclassified: 0
+delta spec ids: 29
+stale: 5
+car-only areas: 1
+highlights: 19
+exit=0
+# captured 2026-10-30T15:19:01Z at HEAD ead55b39 plus this change's working tree

@@ -85,9 +85,10 @@ fun Modifier.mapGestureHandler(
         ?: LocalViewConfiguration.current.longPressTimeoutMillis
     pointerInput(resolvedLongPressTimeoutMs) {
         // The double-tap pair (spec: smooth-zoom — Double tap zooms one level at the tap
-        // point): the up event time and the point of the last completed single tap. It lives
-        // in the pointerInput scope, not in the gesture, because the second tap is the next
-        // gesture this block sees. 0 = no tap waiting for a partner.
+        // point): the up event time of the last completed single tap, and the down point it
+        // started at — the two references the platform's own window and slop are measured
+        // from. It lives in the pointerInput scope, not in the gesture, because the second tap
+        // is the next gesture this block sees. 0 = no tap waiting for a partner.
         var pendingTapUpMs = 0L
         var pendingTapPos = Offset.Zero
         awaitEachGesture {
@@ -160,17 +161,22 @@ fun Modifier.mapGestureHandler(
                 // A completed single tap. Two taps inside the platform's double-tap window
                 // and touch slop are one double tap, reported at the point the second one
                 // lifted (spec: smooth-zoom — Double tap is the map's second discrete zoom-in input).
-                // The window is the platform's configuration, never a literal (same rule as
-                // the long-press timeout above).
+                // Both numbers are the platform's, never literals (same rule as the long-press
+                // timeout above), and both intervals are the platform's own: the timeout is
+                // measured from the first tap's **up** to the second tap's **down**
+                // (`ViewConfiguration.getDoubleTapTimeout`), so the second press's own duration
+                // cannot eat the window; the slop is measured between the two taps' **down**
+                // points, because the first tap may drift up to the slop and still be a tap
+                // (review round 1, finding 2).
                 val withinWindow = pendingTapUpMs != 0L &&
-                    upOrNull.uptimeMillis - pendingTapUpMs <= viewConfiguration.doubleTapTimeoutMillis
+                    down.uptimeMillis - pendingTapUpMs <= viewConfiguration.doubleTapTimeoutMillis
                 val withinSlop = (downPos - pendingTapPos).getDistance() <= viewConfiguration.touchSlop
                 if (withinWindow && withinSlop) {
                     pendingTapUpMs = 0L
                     currentCallbacks.onDoubleTap(upOrNull.position)
                 } else {
                     pendingTapUpMs = upOrNull.uptimeMillis
-                    pendingTapPos = upOrNull.position
+                    pendingTapPos = downPos
                 }
             }
 

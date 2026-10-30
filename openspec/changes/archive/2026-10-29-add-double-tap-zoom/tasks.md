@@ -11,7 +11,7 @@
       its guard "twoTapsBeyondTheDoubleTapWindowReportNoDoubleTap". Verify on the tree without the pairing:
       `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MapGestureComposeTest"
       -PforceTests --no-build-cache` reports `tests="15" failures="1"`, the failing case named
-      (`evidence/red-on-head.xml`, 2026-10-29T12:37:29Z).
+      (`evidence/red-on-head.xml`, 2026-10-29T12:37:15.857Z).
       *(spec: `smooth-zoom` — Two taps inside the platform's window are one double tap; Taps beyond the
       platform's window are two single taps)*
 
@@ -21,7 +21,7 @@
       `pointerInput` scope, the platform's `doubleTapTimeoutMillis` and `touchSlop` as the window, a pending
       tap cleared by a drag, a pinch and a long press. Verify: the red case passes and every pan, pinch,
       rotation and long-press case of `MapGestureComposeTest` stays green — `tests="15" failures="0"`
-      (`evidence/green-after-fix-gesture.xml`, 2026-10-29T12:43:35Z).
+      (`evidence/green-after-fix-gesture.xml`, 2026-10-29T13:13:45.554Z).
       *(spec: `smooth-zoom` — Two taps inside the platform's window are one double tap)*
 - [x] 2.2 Add the seam `doubleTapZoomMagnification` (one level, clamped at `MAX_MAG`) and `fireDoubleTap`
       (disengage follow, `zoomAtCursor` centre, commit the level, animate around the tap point) in
@@ -31,8 +31,9 @@
       *(spec: `smooth-zoom` — A double tap steps one level around the tap point; A double tap at the maximum
       magnification changes nothing)*
 - [x] 2.3 Keep the input's anchor across a walked-step retrack in `MapCanvasFollowDisplay.kt` (the follow
-      anchor stays the fallback). Verify: the zoom-walk cases still pass in the gate, and the tap point stays
-      the animation's pivot for every frame (design D3).
+      anchor stays the fallback). Verify: the zoom-walk cases still pass in the gate. **Not proven**: no case
+      retracks a running animation with a non-centre input anchor, so "the tap point stays the pivot for every
+      frame" is the design's claim, not a measured one (review round 1, note 7).
       *(spec: `smooth-zoom` — Geographic anchor stays fixed during zoom animation)*
 - [x] 2.4 Realign the two comments that state the input set — `MapCanvasScreen.kt:487` ("no double-tap zoom
       exists") and the `zoomAnimationAnchor` doc in `MapCanvasScreenParts.kt`. Verify:
@@ -52,7 +53,6 @@
       *(spec: `documentation-ownership` — A rule has one normative home)*
 
 ## 4. Gate and evidence
-
 - [x] 4.1 Run the project's gate once from the change root — `./tools/loop/gate.sh` — because a compiled path
       changed. Verify: its summary is quoted in `evidence/gate.log`, the JUnit tallies are copied into
       `evidence/gate-tallies/`, and no suite reports a failure.
@@ -62,3 +62,23 @@
       `openspec archive add-double-tap-zoom --yes` (`evidence/openspec-archive.log`, "archived as
       '2026-10-29-add-double-tap-zoom'") and confirm the delta merged into
       `openspec/specs/smooth-zoom/spec.md` (+2 added, `openspec/specs/smooth-zoom/spec.md:196`, `:218`).
+
+## 6. Review round 1, answered (2026-10-30)
+
+- [x] 6.1 The commit requests its frame: `viewModel.renderMap()` after `updateMagnification` in
+      `fireDoubleTap`, as the zoom buttons and the keyboard do, plus one case —
+      `MapCanvasDoubleTapZoomTest` "double tap requests the frame its committed level needs" — that is red
+      with the line commented out. Verify: `evidence/evidence.md`, "Review round 1".
+- [x] 6.2 The pair is measured with the platform's own intervals: the timeout first-up→second-**down**, the
+      slop between the two **down** points, plus one case —
+      `MapGestureComposeTest` "aSlowSecondTapInsideTheWindowIsStillOneDoubleTap" (100 ms gap, 250 ms second
+      press) — that is red with the old comparison restored. Verify: `evidence/evidence.md`, same section.
+- [x] 6.3 The unasserted statement is gone from both copies of the scenario: "AND the viewport magnification
+      SHALL NOT change" is replaced by "THEN no double tap SHALL be reported, so no zoom step is committed",
+      which `twoTapsBeyondTheDoubleTapWindowReportNoDoubleTap` asserts.
+- [x] 6.4 The stale readings are corrected: the four wall-clock stamps now quote each XML's own `testsuite`
+      timestamp, `evidence-check`'s counts are quoted as its log prints them, and `MapRendering.md`'s pivot
+      sentence no longer contradicts itself.
+- [x] 6.5 The notes that are new scope are recorded, not silently dropped: the `Offset.Zero` anchor sentinel
+      (a double tap at the canvas origin) and the two unproven claims (a non-centre retrack; follow
+      disengagement after a double tap). Verify: `evidence/evidence.md`, "Review round 1", last three bullets.

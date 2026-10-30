@@ -211,8 +211,7 @@ double tap.
 #### Scenario: Taps beyond the platform's window are two single taps
 
 - **WHEN** two taps on the same point are separated by more than the platform's double-tap window
-- **THEN** no double tap SHALL be reported
-- **AND** the viewport magnification SHALL NOT change
+- **THEN** no double tap SHALL be reported, so no zoom step is committed
 - **Case**: `app: MapGestureComposeTest` "twoTapsBeyondTheDoubleTapWindowReportNoDoubleTap"
 
 ### Requirement: A double tap steps one level at its own point

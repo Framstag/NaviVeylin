@@ -21,6 +21,8 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -45,6 +47,7 @@ class MapCanvasDoubleTapZoomTest {
 
     private lateinit var context: Context
     private lateinit var viewModel: MapCanvasViewModel
+    private lateinit var client: FakeOSMScoutClient
 
     private val screenW = 1080
     private val screenH = 1920
@@ -58,7 +61,7 @@ class MapCanvasDoubleTapZoomTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        val client = FakeOSMScoutClient()
+        client = FakeOSMScoutClient()
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
             settingsStorage = SettingsStorage(context),
@@ -112,6 +115,32 @@ class MapCanvasDoubleTapZoomTest {
             assertEquals("the latitude under the tap stays under the tap", before.first, after.first, 1e-6)
             assertEquals("the longitude under the tap stays under the tap", before.second, after.second, 1e-6)
             assertEquals("the display eases around the tap point", listOf(tap), animatedAnchors)
+        }
+
+    @Test
+    fun `double tap requests the frame its committed level needs`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            // A committed magnification is a request, not a frame: the renderer is where the
+            // walk's step is asked for and where the frame carrying the new level comes from.
+            // Without the request the display eases toward a level no frame carries, which is
+            // what review round 1, finding 1, measured. `currentMag` is what the renderer is
+            // asked for, set synchronously by both request paths, so the reading is not a race
+            // with the native render.
+            val renderer = MapRenderer(client, dpi = dpi(), scope = backgroundScope)
+            renderer.screenWidth = screenW
+            renderer.screenHeight = screenH
+            viewModel.setScreenSize(screenW, screenH)
+            viewModel.setMapRendererForTest(renderer)
+            viewModel.updateCenter(centerLat, centerLon)
+            viewModel.updateMagnification(10.4)
+            val before = renderer.currentMag
+
+            fireDoubleTap(viewModel, context, tap, IntSize(screenW, screenH)) { }
+
+            assertTrue(
+                "the double tap asks the renderer for a frame, got mag=$before unchanged",
+                renderer.currentMag != before
+            )
         }
 
     @Test

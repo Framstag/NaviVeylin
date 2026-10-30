@@ -359,6 +359,29 @@ class MapGestureComposeTest {
         assertTrue("a double tap must not zoom like a pinch", zooms.isEmpty())
     }
 
+    @Test
+    fun aSlowSecondTapInsideTheWindowIsStillOneDoubleTap() {
+        // The platform's double-tap timeout runs from the first tap's up to the second tap's
+        // down (ViewConfiguration.getDoubleTapTimeout), so a second press that lasts a while
+        // does not eat the window: 100 ms between the taps and a 250 ms second press are one
+        // double tap, though first-up to second-up is 350 ms (review round 1, finding 2).
+        launchMap()
+        val tap = composeRule.onRoot().fetchSemanticsNode().boundsInRoot.center
+        composeRule.onRoot().performTouchInput {
+            click()
+            advanceEventTime(100)
+            down(0, tap)
+            advanceEventTime(250)
+            up(0)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(
+            "the window is measured up→down, not up→up, got $doubleTaps",
+            listOf(tap), doubleTaps
+        )
+    }
+
     /**
      * The double-tap window is the platform's, not "any two taps": taps separated by more
      * than it are two single taps and request no zoom (spec: smooth-zoom — Double tap zooms

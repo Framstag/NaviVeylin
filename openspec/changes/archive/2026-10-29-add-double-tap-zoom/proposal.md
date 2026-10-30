@@ -31,10 +31,10 @@ double-tap-to-zoom gesture, which the recording of item #51 asks for, is absent.
 **The acceptance scenario, as the red case.** Two taps inside the platform's double-tap window and touch
 slop, on the same point, are one double tap and commit one magnification level anchored on that point.
 `MapGestureComposeTest` "twoTapsInsideTheDoubleTapWindowReportOneDoubleTap" fails on HEAD:
-`tests="15" failures="1"` (`evidence/red-on-head.xml`, 2026-10-29T12:37:29Z — HEAD plus the declared callback,
+`tests="15" failures="1"` (`evidence/red-on-head.xml`, 2026-10-29T12:37:15.857Z — HEAD plus the declared callback,
 body absent); with the pairing removed from the finished code the same case fails again
-(`evidence/revert-check.xml`, `revert-check.log`, 2026-10-29T12:42:51Z), and with it present it passes
-(`evidence/green-after-fix-gesture.xml`, 2026-10-29T12:43:35Z).
+(`evidence/revert-check.xml`, `revert-check.log`, 2026-10-29T12:42:37.361Z), and with it present it passes
+(`evidence/green-after-fix-gesture.xml`, 2026-10-29T13:13:45.554Z).
 
 **Owner decision, from item #51 (`<<<ITEM_DECISION`).** `Option 3` — split the item and take the two
 capabilities in sequence: the double-tap zoom (option 2, "the smaller and cheaper of the two") first, the

@@ -5308,7 +5308,7 @@ case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem() {
 
 case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced() {
   # files: tools/loop/fixtures/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p note transcript
+  local d p note transcript alive shell_pid
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # The narrow rule marks a process only when an ancestor of it worked in the worktree (`pid_left_the_worktree`), so
@@ -5322,7 +5322,14 @@ case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced() {
   # worktree ancestor and the mark places it. The shell below is forked while the stub still stands in the project,
   # as the child a person starts does, and it stands long enough for the heartbeat's one-second reading to find the
   # difference, then takes it back before the item lands.
+  #
+  # The shell records its own pid, because the *found* half of the reading is what the case has to pin and
+  # `attributed=none` alone cannot: a run whose walk of the child's tree returned nothing prints the same
+  # `attributed=none`. The `LOOP-OUTSIDE-WRITE-ALIVE:` field is the reading's other half — the processes that stood
+  # in the project at the moment the difference was read — so naming this shell there is what separates "found and
+  # placed by nothing" from "never found at all" (issue #704's review, round 1).
   cat > "$d/project-shell.sh" <<'EOF'
+printf '%s' "$$" > "${0%/*}/project-shell.pid"
 printf 'own\n' >> "$LOOP_CHILD_ROOT/demo-owned.txt"
 sleep 8
 rm -f "$LOOP_CHILD_ROOT/demo-owned.txt"
@@ -5337,8 +5344,13 @@ EOF
   note=$(jq -r '[.steps[] | select(.name | startswith("outside-write")) | .note] | join(" | ")' "$(state_file "$p")")
   assert_contains "$note" "demo-owned.txt" "the difference is recorded, with the path that changed"
   transcript=$(find "$p/.pi/issue-loop/items" -name 'worker-report.md.outside-write' | head -1)
+  alive=$(grep -m1 '^LOOP-OUTSIDE-WRITE-ALIVE:' "$transcript" || true)
+  shell_pid=$(cat "$d/project-shell.pid" 2>/dev/null || true)
+  [ -n "$shell_pid" ] || fail "the staged shell recorded no pid, so the found half cannot be read"
+  assert_contains "$alive" " $shell_pid " \
+    "the reading names the shell that wrote among the processes standing in the project — the shape was found"
   assert_contains "$(cat "$transcript")" "attributed=none" \
-    "the reading names the shape as one nothing could place, not as a difference it never found"
+    "and places no process of the child's own tree, so the difference does not decide the item"
 }
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {

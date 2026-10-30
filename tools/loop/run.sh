@@ -250,8 +250,10 @@ adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not ad
   loop_state done "$issue" --result done --verdict closed --change "$merged_change" \
     --closed "$closure" --note "$out" \
     --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-evidence "$merged_evidence" \
+    --merged-sha "$base" \
     --review-verdict off \
     >/dev/null
+  score_landings
   # The branch is merged, so the work is in the base and the branch itself is a leftover: the run removes
   # the branch it merged (a cherry-picked adoption is not an ancestor of the base, so git's safe delete
   # refuses it and the branch stays for the sweep — which asks the same question by patch identity).
@@ -296,6 +298,18 @@ merge_committed_branch() { # <issue> <branch> → 0 merged and the line printed,
   # else does once the run's state is replaced by the next run's.
   merged_branch=$(printf '%s\n' "$out" | sed -n 's/^merged: branch \([^ ]*\) .*/\1/p')
   merged_commits=$(printf '%s\n' "$out" | sed -n 's/.* · commits \([^ ·]*\)$/\1/p')
+  # The commit the landing made is the base this function has just re-read (`base` above), not the abbreviated one
+  # the merge line prints: `gh run list --commit` matches a commit, and the score of the pipeline it caused is what
+  # the report's `landings:` line prints (issue #709).
+  merged_sha="$base"
+}
+
+# The third trend figure is read here, once per landing, by the state's writer (issue #709): the run has just landed
+# the item and the record carries the commit, so one `gh run list --commit` answers the pipeline that commit caused.
+# It is best-effort on purpose — a landing the tracker does not answer for yet is recorded unscored and named by the
+# report, and a network fault may never decide an item the run has already closed on its work.
+score_landings() {
+  loop_state score-landings 2>&1 | sed 's/^/  /' >&2 || true
 }
 
 # The pre-screen asks git for a previous attempt's branch and records it as a decision (#175), and the start's
@@ -1885,6 +1899,7 @@ while true; do
   # before the outcome is written, so a refusal takes the same blocked path every other refusal takes.
   merged_branch=""
   merged_commits=""
+  merged_sha=""
   if [ "$outcome" = "closed" ]; then
     merge_committed_branch "$issue" "fix/issue-$issue-$slug" || {
       outcome="blocked"
@@ -1925,8 +1940,9 @@ $review_notes_text"
       loop_state done "$issue" --result done --verdict closed --change "$change" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --gate "$gate_field" \
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
-        --merged-branch "$merged_branch" --merged-commits "$merged_commits" \
+        --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-sha "$merged_sha" \
         --events "$events_file" --note "$note_field" --review-verdict "$review_verdict" >/dev/null
+      score_landings
       ;;
     falsified)
       # The run holds the evidence that settles the item: what it blames was measured and does not hold. That is a

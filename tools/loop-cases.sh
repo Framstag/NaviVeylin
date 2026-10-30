@@ -47,6 +47,9 @@ LOOP_SHELL_CASES=(
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
   'state#agentCommandRefusesAnEmptyValue'
+  'state#doneRecordsTheCommitItLanded'
+  'state#theLandingScoreIsReadOnceAndStored'
+  'state#aLandingWithNoRunIsUnscored'
   'prescreen#ranksBugsFirstAndKeepsFeatures'
   'prescreen#oneHarnessImprovementPerFourAppItems'
   'prescreen#aRefusedClassStillStopsTheScreen'
@@ -269,7 +272,7 @@ LOOP_SHELL_CASES=(
   'report#anItemOverTheTokenBoundIsFlagged'
   'report#trendFiguresFromState'
   'report#noRoundOrWallPrintsDashNotZero'
-  'report#landingsNamedNotInvented'
+  'report#landingsAreTheStoredNumber'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
   'clean#sweepsOnlyWhatIsInTheBase'
@@ -380,6 +383,9 @@ loop_run_shell_case() {
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
     'state#agentCommandRefusesAnEmptyValue') fn=case_state_agentCommandRefusesAnEmptyValue ;;
+    'state#doneRecordsTheCommitItLanded') fn=case_state_doneRecordsTheCommitItLanded ;;
+    'state#theLandingScoreIsReadOnceAndStored') fn=case_state_theLandingScoreIsReadOnceAndStored ;;
+    'state#aLandingWithNoRunIsUnscored') fn=case_state_aLandingWithNoRunIsUnscored ;;
     'state#inheritedStatePathOutsideTheTreeIsIgnored') fn=case_state_inheritedStatePathOutsideTheTreeIsIgnored ;;
     'prescreen#ranksBugsFirstAndKeepsFeatures') fn=case_prescreen_ranksBugsFirstAndKeepsFeatures ;;
     'prescreen#oneHarnessImprovementPerFourAppItems') fn=case_prescreen_oneHarnessImprovementPerFourAppItems ;;
@@ -606,7 +612,7 @@ loop_run_shell_case() {
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
-    'report#landingsNamedNotInvented') fn=case_report_landingsNamedNotInvented ;;
+    'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
     'clean#sweepsOnlyWhatIsInTheBase') fn=case_clean_sweepsOnlyWhatIsInTheBase ;;
@@ -1401,6 +1407,114 @@ case_state_inheritedStatePathOutsideTheTreeIsIgnored() {
   [ -f "$(state_file "$p")" ] || fail "the tree resolved no state file of its own"
   assert_eq "1" "$(jq -r '.run.items' "$(state_file "$p")")" "the tree's own state carries the budget"
   return 0
+}
+
+# A landing's own commit is what attaches it to the pipeline run it caused, and the record has no field for one
+# until `done` is handed one (issue #709). Two facts: the commit is stored beside the branch, the count and the
+# evidence, and a value that is not a commit is refused rather than stored — a wrong commit would score a run that
+# belongs to nobody.
+case_state_doneRecordsTheCommitItLanded() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p sf sha out status
+  p=$(new_project)
+  sha="a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  sf=$(state_file "$p")
+  run_state "$p" done 21 --result done --verdict closed --change fix-demo \
+    --merged-branch fix/issue-21-demo --merged-commits 0bc31dc --merged-evidence "$p/item, $p/change" \
+    --merged-sha "$sha" >/dev/null || fail "the landing's commit was refused"
+  assert_eq "$sha" "$(jq -r '.items[0].merged.sha' "$sf")" "the record carries the commit the landing made"
+  assert_eq "fix/issue-21-demo" "$(jq -r '.items[0].merged.branch' "$sf")" \
+    "and the branch it already carried is still there beside it"
+  assert_eq "null" "$(jq -r '.items[0].landedReddenedMain' "$sf")" \
+    "a landing is unscored until a run reads the pipeline its commit caused"
+  # A value that is not a commit is refused before the record is written, and the item stays in the queue.
+  init_state "$p" 1 90
+  printf '[{"issue":22,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  out=$(run_state "$p" done 22 --result done --verdict closed --merged-branch fix/issue-22-demo \
+    --merged-sha 'not-a-commit' 2>&1); status=$?
+  assert_eq "2" "$status" "a value that is not a commit is a usage error"
+  assert_contains "$out" "--merged-sha" "and the refusal names the flag it refused"
+  assert_eq "0" "$(jq -r '.items | length' "$sf")" "the refused landing wrote no record"
+  assert_eq "1" "$(jq -r '.queue | length' "$sf")" "and the item is still queued"
+}
+
+# The score is read once per landing and stored, so the report prints a number without a network read of its own
+# (issue #709). The fixture carries both facts a naive read gets wrong: the commit's push run failed while a
+# scheduled run of the *same* commit succeeded and is newer, so a scorer that takes the newest run calls this
+# landing green.
+case_state_theLandingScoreIsReadOnceAndStored() {
+  # files: tools/loop/state.sh tools/loop/fixtures/scenarios/ tools/issues/fixtures/ tools/pi-child-events.sh tools/tooling.json
+  local p d sf red green out
+  p=$(new_project); d=$(scratch)
+  red="a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
+  green="b1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  sf=$(state_file "$p")
+  run_state "$p" done 21 --result done --verdict closed --change fix-a \
+    --merged-branch fix/issue-21-a --merged-commits 1111111 --merged-sha "$red" >/dev/null ||
+    fail "the first landing was refused"
+  run_state "$p" done 22 --result done --verdict closed --change fix-b \
+    --merged-branch fix/issue-22-b --merged-commits 2222222 --merged-sha "$green" >/dev/null ||
+    fail "the second landing was refused"
+  # Every `gh` invocation from here lands in a log and is then answered by the project's stub, so a second read is
+  # counted rather than argued about.
+  mkdir -p "$d/bin"
+  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\nexec %s "$@"\n' \
+    "$d/gh-calls.log" "$LOOP_ISSUE_FIXTURES/gh" > "$d/bin/gh"
+  chmod +x "$d/bin/gh"
+  out=$( cd "$p" && GH_STUB_DIR="$(scenario landed)" PATH="$d/bin:$PATH" \
+    bash "$LOOP_ENGINE/state.sh" score-landings 2>&1 ) || fail "the score failed: $out"
+  assert_eq "true" "$(jq -r '.items[] | select(.issue == 21) | .landedReddenedMain' "$sf")" \
+    "the push run of that commit failed, so the landing reddened main — the newer scheduled run of the same commit succeeded"
+  assert_eq "false" "$(jq -r '.items[] | select(.issue == 22) | .landedReddenedMain' "$sf")" \
+    "the push run of the second landing succeeded"
+  assert_contains "$out" "#21 $red: reddened main" "the read says which landing it scored and how"
+  assert_eq "2" "$(grep -c 'run list' "$d/gh-calls.log")" "one read per landing, and none for a landing it did not score"
+  : > "$d/gh-calls.log"
+  ( cd "$p" && GH_STUB_DIR="$(scenario landed)" PATH="$d/bin:$PATH" \
+    bash "$LOOP_ENGINE/state.sh" score-landings >/dev/null 2>&1 ) || fail "the second score pass failed"
+  assert_eq "0" "$(grep -c 'run list' "$d/gh-calls.log" || true)" \
+    "a scored landing is not read again: the network read happens once per landing, not once per pass"
+}
+
+# "No run" is not "the build was fine". A landing whose commit the tracker answers no finished push run for stays
+# unscored and names its reason, so the report counts it apart instead of as a landing that did not redden `main`
+# (issue #709, and the rule `report#noRoundOrWallPrintsDashNotZero` keeps for every other figure).
+case_state_aLandingWithNoRunIsUnscored() {
+  # files: tools/loop/state.sh tools/loop/fixtures/scenarios/ tools/issues/fixtures/ tools/pi-child-events.sh tools/tooling.json
+  local p sf absent running out
+  p=$(new_project)
+  absent="c1c2c3d4e5f60718293a4b5c6d7e8f9012345678"
+  running="d1d2c3d4e5f60718293a4b5c6d7e8f9012345678"
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  sf=$(state_file "$p")
+  run_state "$p" done 21 --result done --verdict closed --change fix-a \
+    --merged-branch fix/issue-21-a --merged-commits 1111111 --merged-sha "$absent" >/dev/null ||
+    fail "the first landing was refused"
+  run_state "$p" done 22 --result done --verdict closed --change fix-b \
+    --merged-branch fix/issue-22-b --merged-commits 2222222 --merged-sha "$running" >/dev/null ||
+    fail "the second landing was refused"
+  out=$( cd "$p" && GH_STUB_DIR="$(scenario landed)" bash "$LOOP_ENGINE/state.sh" score-landings 2>&1 ) ||
+    fail "the score refused a landing it could not read: $out"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 21) | .landedReddenedMain' "$sf")" \
+    "no push run names that commit yet, so nothing is written"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 22) | .landedReddenedMain' "$sf")" \
+    "the push run of that commit has not finished, so nothing is written either"
+  assert_contains "$out" "#21 $absent: unscored — no push run names this commit yet" "the first reason is named"
+  assert_contains "$out" "#22 $running: unscored — the push run of this commit has not finished" "and the second"
+  # A tracker that does not answer at all is the same outcome, not a failure of the item: this scenario's fixture
+  # carries no `runs.json`, so the stub refuses the read the way a socket does.
+  out=$( cd "$p" && GH_STUB_DIR="$(scenario none)" bash "$LOOP_ENGINE/state.sh" score-landings 2>&1 ) ||
+    fail "a read it could not take failed the caller"
+  assert_contains "$out" "#21 $absent: unscored — the pipeline runs of this commit could not be read" \
+    "and an unreadable tracker is unscored with its reason, not green"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 21) | .landedReddenedMain' "$sf")" "nothing was written by the failed read"
 }
 
 # ----------------------------------------------------------------------------- cases: prescreen
@@ -5669,6 +5783,13 @@ case_run_mergesItsCommittedBranchBeforeClosing() {
   done
   assert_eq "$(git -C "$p" rev-parse main)" "$(run_state "$p" get run.base)" \
     "and the base the run recorded is the merge, so the next item builds on it"
+  # The landing's own commit, which is what the pipeline it caused is scored for (issue #709): the record carries the
+  # commit the merge made — the base the run advanced to — and this tree's tracker fixture answers no run of it, so
+  # the landing is recorded unscored rather than as one that did not redden `main`.
+  assert_eq "$(git -C "$p" rev-parse main)" "$(jq -r '.items[0].merged.sha' "$(state_file "$p")")" \
+    "the record carries the commit the landing made"
+  assert_eq "null" "$(jq -r '.items[0].landedReddenedMain' "$(state_file "$p")")" \
+    "and its score is unscored, because no run of that commit is answered for here"
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "merged $recorded (commits $commits) onto the base" \
     "the closure's evidence names the merge, so the tracker's fixed-by claim carries what backs it"
@@ -7960,17 +8081,39 @@ case_report_noRoundOrWallPrintsDashNotZero() {
   assert_not_contains "$trend" "0/0" "and still no zero over a zero"
 }
 
-# The third figure the item asks for — the landings that reddened `main` — is in neither source the report reads:
-# the state keeps a landing's branch, its commit count and its evidence and no commit, and the `broken-main`
-# sensor's identity is a job and a case. The report is read instead of the tracker, so it names where the figure
-# is read and makes no tracker call of its own (issue #247).
-case_report_landingsNamedNotInvented() {
-  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
-  local p d out landings
+# The third figure the item asks for — the landings that reddened `main` — is the number the state now holds:
+# each landing records the commit its merge made and the score of the push run that commit caused, read once by the
+# state's writer (issue #709, which is the item `run-report-trend-figures` deferred it to). The report still reads
+# the state and never the tracker — a `gh` on PATH that logs and fails is never called, which is the rule issue
+# #247 set and this line keeps.
+case_report_landingsAreTheStoredNumber() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/loop/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  local p d sf out landings red green absent
   p=$(new_project); d=$(scratch)
-  init_state "$p" 1 90
-  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
-  run_state "$p" done 21 --result done --verdict closed --wall 42 --rounds 1 >/dev/null
+  red="a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
+  green="b1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
+  absent="c1c2c3d4e5f60718293a4b5c6d7e8f9012345678"
+  init_state "$p" 4 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3},{"issue":24,"class":"bug","verdict":"eligible","rank":4}]' |
+    run_state "$p" queue >/dev/null
+  sf=$(state_file "$p")
+  run_state "$p" done 21 --result done --verdict closed --wall 41 --rounds 1 \
+    --merged-branch fix/issue-21-a --merged-commits 1111111 --merged-sha "$red" >/dev/null ||
+    fail "the first landing was refused"
+  run_state "$p" done 22 --result done --verdict closed --wall 42 --rounds 1 \
+    --merged-branch fix/issue-22-b --merged-commits 2222222 --merged-sha "$green" >/dev/null ||
+    fail "the second landing was refused"
+  run_state "$p" done 23 --result done --verdict closed --wall 43 --rounds 1 \
+    --merged-branch fix/issue-23-c --merged-commits 3333333 --merged-sha "$absent" >/dev/null ||
+    fail "the third landing was refused"
+  # #24 is a landing a state written before the commit was kept records: a branch, its commits and no commit.
+  run_state "$p" done 24 --result done --verdict closed --wall 44 --rounds 1 \
+    --merged-branch fix/issue-24-d --merged-commits 4444444 >/dev/null || fail "the fourth landing was refused"
+  ( cd "$p" && GH_STUB_DIR="$(scenario landed)" bash "$LOOP_ENGINE/state.sh" score-landings >/dev/null 2>&1 ) ||
+    fail "the score failed"
+  assert_eq "true" "$(jq -r '.items[] | select(.issue == 21) | .landedReddenedMain' "$sf")" "the first landing is scored red"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 23) | .landedReddenedMain' "$sf")" \
+    "the third has no run to read, so it stays unscored"
   # Every `gh` invocation from here on lands in the record file, so a report that read the tracker leaves a trace.
   mkdir -p "$d/bin"
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\nexit 1\n' "$d/gh-calls.log" > "$d/bin/gh"
@@ -7979,8 +8122,11 @@ case_report_landingsNamedNotInvented() {
   out=$(run_report "$p") || fail "the report failed with a gh on PATH"
   landings=$(printf '%s\n' "$out" | sed -n '/^  landings:/p')
   [ -n "$landings" ] || fail "the report printed no landings line"
-  assert_contains "$landings" "gh issue list --label broken-main" "the line names where the figure is read"
-  assert_contains "$landings" "not in the run's state" "and says why it is not a number here"
+  assert_contains "$landings" "1 of 2 reddened main" \
+    "the number is the score the state stores: one of the two landings a run has read reddened the base"
+  assert_contains "$landings" "1 unscored" "a landing whose run nobody has read is named apart, not counted green"
+  assert_contains "$landings" "1 records no commit" "and so is a landing recorded before the commit was kept"
+  assert_not_contains "$landings" "gh issue list" "the line points at no tracker read"
   assert_not_contains "$landings" "#21" "it invents no id it never read"
   [ ! -e "$d/gh-calls.log" ] || fail "the report called the tracker: $(cat "$d/gh-calls.log")"
 }

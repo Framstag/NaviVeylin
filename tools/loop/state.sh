@@ -38,7 +38,9 @@
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL] [--leftover PATH] [--label-failures <transition>…]
 #                         [--stop-reason refused|unmergeable]
+#                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
 #                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
+#   state.sh score-landings             # read the pipeline run each landing's own commit caused, once per landing
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -409,7 +411,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" events="" stop_reason="" review_verdict=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -432,6 +434,7 @@ cmd_done() {
       --merged-branch) need_value "$@"; merged_branch="${2:-}"; shift 2 ;;
       --merged-commits) need_value "$@"; merged_commits="${2:-}"; shift 2 ;;
       --merged-evidence) need_value "$@"; merged_evidence="${2:-}"; shift 2 ;;
+      --merged-sha) need_value "$@"; merged_sha="${2:-}"; shift 2 ;;
       --*) loop_die "done: unknown argument $1" ;;
       *) [ -z "$issue" ] || loop_die "done: issue given twice"; issue="$1"; shift ;;
     esac
@@ -448,6 +451,18 @@ cmd_done() {
   esac
   [ -z "$stop_reason" ] || [ "$result" = blocked ] ||
     loop_die "done: --stop-reason belongs to a blocked item, and this one is recorded $result"
+  # A landing's own commit is what attaches it to the pipeline run it caused (issue #709): the field is a commit or
+  # nothing, so a value that is not one is refused here rather than stored — the score would otherwise read the
+  # runs of a commit nobody landed, and the report would print that as the landing's verdict. 7 is git's shortest
+  # abbreviation and 40 the length of a SHA-1, and both are accepted because a state written by hand is still
+  # readable; what the run passes is the full commit its merge made.
+  if [ -n "$merged_sha" ]; then
+    case "$merged_sha" in
+      *[!0-9a-f]*) loop_die "done: --merged-sha must be a commit (7-40 lowercase hex characters)" ;;
+    esac
+    [ "${#merged_sha}" -ge 7 ] && [ "${#merged_sha}" -le 40 ] ||
+      loop_die "done: --merged-sha must be a commit (7-40 lowercase hex characters)"
+  fi
   # The verdict of the round the item's review loop ended on — the fact the round *count* cannot express (issue #247):
   # `reviewRounds` is the round **attempted** (`run.sh:1680` sets it before the reviewer runs), so an item whose
   # round 1 refused and then blocked records `1` exactly as one whose round 1 passed. `run.sh` already decides these
@@ -489,7 +504,8 @@ cmd_done() {
                   note:$note, leftover:(if $lo == "" then null else $lo end), at:$at,
                   stopReason:(if $sr == "" then null else $sr end),
                   escalatedLabel:$dl, labelFailures:($lf | split(" ") | map(select(length > 0))),
-                  merged:{branch:$mb, commits:$mc, evidence:$me},
+                  merged:{branch:$mb, commits:$mc, evidence:$me,
+                          sha:(if $ms == "" then null else $ms end)},
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds,
                            reviewVerdict:(if $rv == "" then null else $rv end),
                            gate:$gate,
@@ -514,8 +530,73 @@ cmd_done() {
     --arg rv "$review_verdict" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
     --argjson usage "$usage" \
-    --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence"
+    --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence" \
+    --arg ms "$merged_sha"
   printf 'recorded %s (#%s %s)\n' "$result" "$issue" "$verdict"
+}
+
+# What a landing's own commit caused is the one fact the state cannot derive and the report may not read from the
+# tracker (issue #709): `gh run list --commit <sha>` answers the runs whose head is that commit, and the *push* run
+# among them is the pipeline the landing triggered. Measured 2026-10-30 on this project's own landings
+# (`openspec/changes/archive/2026-10-30-fix-landing-commit-is-scored/evidence/probe-gh-run-list.log`): a landing
+# commit answers with its one `push` run, and one headSha carries a scheduled run beside it — so the newest run of a
+# commit is not always the landing's, and the event filter is what makes the answer the landing's own.
+#
+# Three rules keep a stored number honest, the same three `report.sh` keeps:
+#   * **one read per landing**, not per report and not per pass: an item that carries a score is not read again;
+#   * **no run is not a green run**: no run yet, an unfinished run, or a tracker that cannot be read leaves the item
+#     unscored and prints the reason, because a `false` written from an absent answer reads as a measurement;
+#   * **the read cannot fail the item**: this runs on an item the run has already landed, so a network fault is
+#     recorded, never raised, and the command's own status is 0 whether it read a run or not.
+cmd_score_landings() {
+  require_state
+  local issue sha runs verdict reddened
+  while IFS=$'\t' read -r issue sha; do
+    [ -n "$issue" ] || continue
+    if ! command -v gh >/dev/null 2>&1; then
+      printf 'landing #%s %s: unscored — there is no gh on PATH to read the pipeline it caused\n' "$issue" "$sha"
+      continue
+    fi
+    if ! runs=$(gh run list --commit "$sha" --limit 20 \
+        --json databaseId,headSha,event,status,conclusion 2>/dev/null); then
+      printf 'landing #%s %s: unscored — the pipeline runs of this commit could not be read\n' "$issue" "$sha"
+      continue
+    fi
+    verdict=$(printf '%s' "$runs" | jq -r --arg sha "$sha" '
+      [ .[] | select((.headSha // "") == $sha) | select((.event // "push") == "push") ] as $push
+      | if ($push | length) == 0 then "none"
+        elif ([$push[] | select((.status // "") == "completed")] | length) == 0 then "running"
+        else (([$push[] | select((.status // "") == "completed")] | .[0].conclusion) // "")
+        end' 2>/dev/null) || verdict="unreadable"
+    case "$verdict" in
+      none)
+        printf 'landing #%s %s: unscored — no push run names this commit yet\n' "$issue" "$sha"
+        continue ;;
+      running)
+        printf 'landing #%s %s: unscored — the push run of this commit has not finished\n' "$issue" "$sha"
+        continue ;;
+      unreadable|"")
+        printf 'landing #%s %s: unscored — the pipeline runs of this commit could not be read\n' "$issue" "$sha"
+        continue ;;
+    esac
+    # A run that ended in one of these three did not break the base; every other conclusion is a red pipeline (the
+    # vocabulary `broken-main` files on: failure, cancelled, timed_out, startup_failure, error).
+    case "$verdict" in
+      success|skipped|neutral) reddened=false ;;
+      *) reddened=true ;;
+    esac
+    patch_state '.items = [ .items[]
+        | if .issue == $i and ((.merged.sha // "") != "") and .landedReddenedMain == null
+          then .landedReddenedMain = $v else . end ]' \
+      --argjson i "$issue" --argjson v "$reddened"
+    if [ "$reddened" = true ]; then
+      printf 'landing #%s %s: reddened main — its push run ended %s\n' "$issue" "$sha" "$verdict"
+    else
+      printf 'landing #%s %s: did not redden main — its push run ended %s\n' "$issue" "$sha" "$verdict"
+    fi
+  done < <(jq -r '.items[]
+    | select((.merged.sha // "") != "") | select(.landedReddenedMain == null)
+    | [(.issue | tostring), .merged.sha] | @tsv' "$STATE_FILE")
 }
 
 num_or_null() {
@@ -712,6 +793,7 @@ case "$cmd" in
   start) cmd_start "$@" ;;
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
+  score-landings) cmd_score_landings ;;
   set-base) cmd_set_base "$@" ;;
   stop) cmd_stop "$@" ;;
   report) cmd_report "$@" ;;

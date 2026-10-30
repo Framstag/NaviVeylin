@@ -203,12 +203,11 @@ printf 'state: %s\n' "$state_file"
 # state this report reads — `metrics.wallSeconds` and `metrics.reviewRounds`, recorded at `state.sh:494` and
 # printed only per item — and this line is the run-level answer to them.
 #
-# The third, the landings that reddened `main`, is in neither source: `state.sh done` keeps a landing's branch, its
-# commit *count* and its evidence and no commit, so nothing here can name which landing broke the base, and the
-# `broken-main` sensor identifies its condition by job and case rather than by commit. The report is read instead
-# of the tracker, so it names where that figure is read rather than reading it: a network read in every report
-# would be a second source of truth for a number it still could not attribute, and recording the attribution at
-# landing time is its own change (§D4 of `run-report-trend-figures`).
+# The third, the landings that reddened `main`, is a number the state now holds (issue #709 — the change §D4 of
+# `run-report-trend-figures` deferred it to): a landing records the commit its merge made, and `state.sh
+# score-landings` reads the push run that commit caused once per landing and stores `landedReddenedMain`. This report
+# still reads nothing but the state file and git: the network read happens at the landing rather than in every
+# report, and a landing nobody has read yet prints as unscored rather than as a landing that did not break the base.
 #
 # A rate is not settled by one run, and the lines say the run they describe. A figure nobody measured prints `-`
 # with its reason, never a zero — the rule the spend columns already keep.
@@ -247,7 +246,19 @@ trend=$(jq -r '
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"
 printf '%s\n' "$trend"
-printf "  landings: not in the run's state — no record says which commit a landing merged, so a main it reddened is the tracker's answer: gh issue list --label broken-main\n"
+landings=$(jq -r '
+  [ .items[] | select((.merged.branch // "") != "") ] as $l
+  | ([ $l[] | select(.landedReddenedMain != null) ]) as $scored
+  | ([ $l[] | select(.landedReddenedMain == true) ] | length) as $red
+  | ([ $l[] | select((.merged.sha // "") != "" and .landedReddenedMain == null) ] | length) as $unscored
+  | ([ $l[] | select((.merged.sha // "") == "" and .landedReddenedMain == null) ] | length) as $noCommit
+  | ( if $unscored > 0 then " · \($unscored) unscored" else "" end ) as $u
+  | ( if $noCommit > 0 then " · \($noCommit) records no commit" else "" end ) as $n
+  | if ($l | length) == 0 then "- · no item of this run landed"
+    elif ($scored | length) == 0 then "- · no landing is scored yet\($u)\($n)"
+    else "\($red) of \($scored | length) reddened main\($u)\($n)" end
+' "$state_file")
+printf '  landings: %s\n' "$landings"
 
 # ── the actions the caller owes ───────────────────────────────────────────────────────────────────
 # The report's third answer (#208). A count is not an answer: the caller has to know *which* decision is

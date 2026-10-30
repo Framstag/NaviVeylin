@@ -1,0 +1,67 @@
+THE FIGURES THE SIX PRICED ROWS STATE — the row's figure, the section, and the measurement, 2026-10-30T07:02:05Z
+$ bash tools/check-doc-routes.sh --sizes | grep -E 'section-cost (MapRendering\.md §(15a|16a|16b)|UI\.md §(3a|3b|3c|6a|6b|7a|8a|10a)) '
+check-doc-routes: section-cost MapRendering.md §15a 3149 bytes 38 lines routed
+check-doc-routes: section-cost MapRendering.md §16a 2432 bytes 31 lines routed
+check-doc-routes: section-cost MapRendering.md §16b 790 bytes 13 lines routed
+check-doc-routes: section-cost UI.md §3a 4411 bytes 65 lines routed
+check-doc-routes: section-cost UI.md §3b 1823 bytes 31 lines routed
+check-doc-routes: section-cost UI.md §3c 2763 bytes 36 lines routed
+check-doc-routes: section-cost UI.md §6a 6043 bytes 80 lines routed
+check-doc-routes: section-cost UI.md §6b 4873 bytes 67 lines routed
+check-doc-routes: section-cost UI.md §7a 13102 bytes 158 lines routed
+check-doc-routes: section-cost UI.md §8a 2528 bytes 40 lines routed
+check-doc-routes: section-cost UI.md §10a 2218 bytes 35 lines routed
+
+# the eleven figures the six rows state, in the rows' own order (bytes/1000, one decimal):
+#   MapRendering §15a 3.1  §16a 2.4  §16b 0.8 | UI §7a 13.1  §8a 2.5 | UI §3b 1.8  §3c 2.8  §6b 4.9
+#   UI §3a 4.4 | UI §10a 2.2 | UI §6a 6.0   — all eleven equal the measurement above
+
+THE RANGES THE THREE ROWS STATE, AND THE SPAN THEY MEASURE — the cheapest and the costliest of the row's lettered sections
+
+$ bash tools/check-doc-routes.sh --sizes | grep -E 'section-cost Build\.md §(2a|2b|2c|2d|2e|3|4a|4b|4d|4f) '
+check-doc-routes: section-cost Build.md §2e 1904 bytes 25 lines routed
+check-doc-routes: section-cost Build.md §4a 4261 bytes 47 lines routed
+check-doc-routes: section-cost Build.md §4b 4623 bytes 52 lines routed
+check-doc-routes: section-cost Build.md §4d 4674 bytes 62 lines routed
+check-doc-routes: section-cost Build.md §3 4744 bytes 50 lines routed
+check-doc-routes: section-cost Build.md §2b 4824 bytes 52 lines routed
+check-doc-routes: section-cost Build.md §2c 5238 bytes 70 lines routed
+check-doc-routes: section-cost Build.md §2d 6424 bytes 75 lines routed
+check-doc-routes: section-cost Build.md §2a 6583 bytes 72 lines routed
+check-doc-routes: section-cost Build.md §4f 7016 bytes 83 lines routed
+   the row states "1.7–5.3 kB per section"; the sections the row names measure 1.9 kB (§2e) to 7.0 kB (§4f)
+
+$ bash tools/check-doc-routes.sh --sizes | grep -E 'section-cost Build\.md §(6a|6b|6c|6d|6e|6f|6g|6h) '
+check-doc-routes: section-cost Build.md §6g 1336 bytes 17 lines routed
+check-doc-routes: section-cost Build.md §6h 1448 bytes 17 lines routed
+check-doc-routes: section-cost Build.md §6a 1626 bytes 24 lines routed
+check-doc-routes: section-cost Build.md §6d 2531 bytes 30 lines routed
+check-doc-routes: section-cost Build.md §6e 2798 bytes 36 lines routed
+check-doc-routes: section-cost Build.md §6c 3701 bytes 44 lines routed
+check-doc-routes: section-cost Build.md §6f 4375 bytes 47 lines routed
+check-doc-routes: section-cost Build.md §6b 5271 bytes 66 lines routed
+   the row states "1.1–5.3 kB each"; the sections the row names measure 1.3 kB (§6g) to 5.3 kB (§6b)
+
+$ bash tools/check-doc-routes.sh --sizes | grep -E 'section-cost Build\.md §(10a|10b|10c|10d|10e|10f|10g|10h|10i|10j|10k) '
+check-doc-routes: section-cost Build.md §10f 913 bytes 14 lines routed
+check-doc-routes: section-cost Build.md §10h 1645 bytes 28 lines routed
+check-doc-routes: section-cost Build.md §10g 1677 bytes 26 lines routed
+check-doc-routes: section-cost Build.md §10k 1970 bytes 28 lines routed
+check-doc-routes: section-cost Build.md §10c 2430 bytes 40 lines routed
+check-doc-routes: section-cost Build.md §10b 2629 bytes 45 lines routed
+check-doc-routes: section-cost Build.md §10j 3110 bytes 31 lines routed
+check-doc-routes: section-cost Build.md §10a 3600 bytes 61 lines routed
+check-doc-routes: section-cost Build.md §10e 4267 bytes 65 lines routed
+check-doc-routes: section-cost Build.md §10d 4456 bytes 68 lines routed
+check-doc-routes: section-cost Build.md §10i 6841 bytes 74 lines routed
+   the row states "0.9–6.8 kB each"; the sections the row names measure 0.9 kB (§10f) to 6.8 kB (§10i) — this one is true
+
+THE FIFTH PICTURE — a routing row that prices a kilobyte of section at 0.1 kB, on a throwaway fixture
+
+$ <fixture root>/AGENTS.md: | phone UI | `UI.md` §1a "Parity, measured" — 0.1 kB |
+$ bash tools/check-doc-routes.sh --root <fixture>
+$ sed -n '/^## 1a\./,/^## 1b\./p' <fixture>/guidelines/UI.md | sed '$d' | wc -c   # the ruler's own count
+1012
+::error file=AGENTS.md::the routing row "phone UI" states 0.1 kB for UI.md §1a, but the section measures 1.0 kB (1012 bytes at bytes/1000, one decimal) — state the measurement
+check-doc-routes: 0 of 1 references do not resolve, 1 stated figure(s) do not equal the section measurement
+   exit 1 — 1 is the conviction this clause adds; before it the same row passed with exit 0, because the figure was read as presence

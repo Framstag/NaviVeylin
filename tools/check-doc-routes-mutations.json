@@ -1,5 +1,5 @@
 {
-  "comment": "The revert-check of `documentation-ownership`'s route requirements (issues #13, #197): one mutation per invariant — the resolution of a named skill path, the cost a row that routes a lettered sub-section must state, and the ruler a section's cost is counted with. Run it with `bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the documentation routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite; the skill-path record names the case whose assertion it lands on, and that case asserts the same guard from three sides in its siblings (a path that no longer exists, a directory left without its `SKILL.md`, and a name that only prefixes an existing skill). The search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards.",
+  "comment": "The revert-check of `documentation-ownership`'s route requirements (issues #13, #197, #712): one mutation per invariant — the resolution of a named skill path, the cost a row that routes a lettered sub-section must state, the ruler a section's cost is counted with, and the two forms a stated cost is compared in (a figure after a reference, and the range a row states as the span of the sections it names). Run it with `bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the documentation routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite; the skill-path record names the case whose assertion it lands on, and that case asserts the same guard from three sides in its siblings (a path that no longer exists, a directory left without its `SKILL.md`, and a name that only prefixes an existing skill). The search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards.",
   "case-cmd": "bash tools/check-doc-routes-selftest.sh --case {case}",
   "mutations": [
     {
@@ -30,9 +30,25 @@
       "label": "section-cost-ruler",
       "case": "routed-read#bound",
       "file": "tools/check-doc-routes.sh",
-      "search": "        bytes = length($0) + 1; lines = 1; have = 1; next",
-      "replace": "        bytes = 0; lines = 1; have = 1; next",
+      "search": "      bytes = length($0) + 1; lines = 1; have = 1; next",
+      "replace": "      bytes = 0; lines = 1; have = 1; next",
       "why": "a section's cost is the byte count of its lines from the `## ` heading through the line before the next one, so a printed cost that is not that count fails the case"
+    },
+    {
+      "label": "route-figure-is-measured",
+      "case": "routed-read#figure",
+      "file": "tools/check-doc-routes.sh",
+      "search": "        if ((stated + 0) != (measured + 0))",
+      "replace": "        if (0)",
+      "why": "a figure a row writes after a lettered reference is that section's cost, so a row pricing a kilobyte of section at 0.1 kB is reported instead of passing as priced"
+    },
+    {
+      "label": "route-range-is-the-span",
+      "case": "routed-read#range",
+      "file": "tools/check-doc-routes.sh",
+      "search": "    if ((ends[1] + 0) != (lo + 0) || (ends[2] + 0) != (hi + 0))",
+      "replace": "    if (0)",
+      "why": "a range a row states is the cheapest and the costliest of the lettered sections it names, so a range the measurement does not give is reported instead of passing as a span"
     }
   ]
 }

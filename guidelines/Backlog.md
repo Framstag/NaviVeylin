@@ -995,8 +995,12 @@ this §9 (15 389 bytes), `Design.md` §5 (12 781) and §8 (12 058), and `Build.m
 The routing table has one condition of its own, and it is not a row because it files nothing:
 `tools/check-doc-routes.sh` reports a row that names a lettered sub-section of a document and states no cost, and
 `tools/check-doc-routes.sh --sizes` prints the cost of every section of every document the table names, routed or
-not, so the figure a row restates has a measurement it can be compared with. The figure is read as presence and
-not as accuracy: a restated number goes stale by hand, and the number that bounds anything is the row's.
+not, so the figure a row restates has a measurement it can be compared with. That measurement is a comparison and
+not a presence (issue #712): a figure written after a lettered reference must equal that section's cost in kB of
+bytes/1000 rounded to one decimal, a range must state the cheapest and the costliest of the lettered sections the
+row names, and a figure a row writes as a past measurement (`against 23.2 kB for §2 before the split`) is not
+compared at all — a disagreement is reported with the row, the reference and both numbers. The bound a cost is
+held to is still the row's, never this check's.
 
 One row watches **what the loop's own children cost**, because nothing did: `loop-spend` runs
 `tools/loop-spend.py --quiet` over `.pi/issue-loop/items` and measures the **duplicate-read share** of the reads

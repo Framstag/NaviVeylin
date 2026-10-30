@@ -184,6 +184,7 @@ LOOP_SHELL_CASES=(
   'run#childWriteOutsideTheWorktreeIsNoted'
   'run#aWriterTheRunCanPlaceBlocksTheItem'
   'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem'
+  'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced'
   'run#dirtyBaseRefusesTheMergeAndNamesThePath'
   'run#strictOutsideWriteBlocksTheItem'
   'run#strictOutsideWriteDiscardsTheReviewRound'
@@ -521,6 +522,7 @@ loop_run_shell_case() {
     'run#childWriteOutsideTheWorktreeIsNoted') fn=case_run_childWriteOutsideTheWorktreeIsNoted ;;
     'run#aWriterTheRunCanPlaceBlocksTheItem') fn=case_run_aWriterTheRunCanPlaceBlocksTheItem ;;
     'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem') fn=case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem ;;
+    'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced') fn=case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced ;;
     'run#dirtyBaseRefusesTheMergeAndNamesThePath') fn=case_run_dirtyBaseRefusesTheMergeAndNamesThePath ;;
     'run#strictOutsideWriteBlocksTheItem') fn=case_run_strictOutsideWriteBlocksTheItem ;;
     'run#strictOutsideWriteDiscardsTheReviewRound') fn=case_run_strictOutsideWriteDiscardsTheReviewRound ;;
@@ -5302,6 +5304,41 @@ case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem() {
   assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the item closes on its own work"
   note=$(jq -r '[.steps[] | select(.name | startswith("outside-write")) | .note] | join(" | ")' "$(state_file "$p")")
   assert_contains "$note" "demo-owned.txt" "the difference is recorded, with the path that changed"
+}
+
+case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced() {
+  # files: tools/loop/fixtures/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p note transcript
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The narrow rule marks a process only when an ancestor of it worked in the worktree (`pid_left_the_worktree`), so
+  # a shell the child forks in the project and never `cd`s out of is found by the walk and placed by nothing — and
+  # `run_child` starts every child in the project (`tools/loop/run.sh:1140`), which makes that shell the worker's
+  # own. The difference is recorded and the item keeps the outcome its work earned (#704); what this case guards is
+  # that it stays so, because the sentence in `guidelines/Backlog.md` §7 that names the shape is not a test of it.
+  #
+  # The shape is staged by the fixture's `PI_STUB_PROJECT_SHELL` and not by the action: the action is run after a
+  # `cd "$LOOP_WORKTREE"` (`tools/loop/fixtures/pi`), a cwd no real child has, so a writer forked from it carries a
+  # worktree ancestor and the mark places it. The shell below is forked while the stub still stands in the project,
+  # as the child a person starts does, and it stands long enough for the heartbeat's one-second reading to find the
+  # difference, then takes it back before the item lands.
+  cat > "$d/project-shell.sh" <<'EOF'
+printf 'own\n' >> "$LOOP_CHILD_ROOT/demo-owned.txt"
+sleep 8
+rm -f "$LOOP_CHILD_ROOT/demo-owned.txt"
+EOF
+  export PI_STUB_PROJECT_SHELL="$d/project-shell.sh"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  run_loop "$p" --items 1 --minutes 90 --review off >/dev/null 2>&1 || fail "the run itself failed"
+  unset PI_STUB_PROJECT_SHELL
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a difference the mark cannot place is recorded and does not decide the item"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the item closes on its own work"
+  note=$(jq -r '[.steps[] | select(.name | startswith("outside-write")) | .note] | join(" | ")' "$(state_file "$p")")
+  assert_contains "$note" "demo-owned.txt" "the difference is recorded, with the path that changed"
+  transcript=$(find "$p/.pi/issue-loop/items" -name 'worker-report.md.outside-write' | head -1)
+  assert_contains "$(cat "$transcript")" "attributed=none" \
+    "the reading names the shape as one nothing could place, not as a difference it never found"
 }
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {

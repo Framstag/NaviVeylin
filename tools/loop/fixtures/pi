@@ -20,6 +20,9 @@
 #   PI_STUB_ACTION     a shell script run first (with the prompt's basename as $1), to stand in for a
 #                      worker's edits — the stub runs it in the tree the wrapper exported as
 #                      LOOP_WORKTREE, which is the tree the prompt names as its change root
+#   PI_STUB_PROJECT_SHELL  a shell script run first as well, but *before* the stub moves into LOOP_WORKTREE, so
+#                      in the project the child was started in: it stands for the shell a real child forks in
+#                      the project and never `cd`s out of, the shape the run's mark cannot place (issue #704)
 #   PI_STUB_WAIT       a fifo: the stub blocks until one line is written to it (signal cases)
 #   PI_STUB_SAY        a file whose text the stub prints on stdout as its own words, before any report — the
 #                      line a child that never started leaves behind, which is what an adapter that refused
@@ -69,6 +72,14 @@ fi
 # The directory the wrapper started this child in: the project, whose tree a child may not write.
 LOOP_CHILD_ROOT="$PWD"
 export LOOP_CHILD_ROOT
+
+# The shell a real child forks in the project: it stands where the child was started (`run_child` starts every
+# child in LOOP_ROOT), it never `cd`s into the worktree, and the run's mark therefore cannot place it — the walk
+# reads an ancestor's working directory, and none of this shell's ancestors worked in the worktree (issue #704).
+# A case that stages that shape uses this hook; every case that does not is unchanged.
+if [ -n "${PI_STUB_PROJECT_SHELL:-}" ] && [ -f "$PI_STUB_PROJECT_SHELL" ]; then
+  bash "$PI_STUB_PROJECT_SHELL" "${prompt##*/}" >&2 || true
+fi
 
 if [ -n "${PI_STUB_ACTION:-}" ] && [ -f "$PI_STUB_ACTION" ]; then
   # The child's own work inside its tree: real files, so the wrapper's commit and verification run for

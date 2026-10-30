@@ -405,6 +405,7 @@ change.
 - **WHEN** an agent process is started for an item
 - **THEN** it receives a prepared package — the item's claim and evidence, the specification passage and
   the acceptance condition — and the item's own text is passed only inside a delimited data field
+- **Case**: `prompt#inlineInjectionCannotReachTheInstructionPosition`
 
 #### Scenario: A process runs where the project's own policy applies
 
@@ -412,6 +413,7 @@ change.
 - **THEN** it is started in the project and told by path which tree it changes, so the project's own
   policy governs the process, and the package it is handed, the evidence directory it writes and the tree
   it changes all lie inside the boundary the process may reach
+- **Case**: `run#childStartsInTheProjectRoot`
 
 #### Scenario: A process that writes outside its tree is caught
 
@@ -429,6 +431,7 @@ change.
   that is still not clean when the item lands is refused by the landing rule, with the path named; a difference
   the run *can* place in the child's own tree does decide, and that placement is the attribution this requirement
   states
+- **Case**: `run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem`, `run#dirtyBaseRefusesTheMergeAndNamesThePath`
 
 #### Scenario: A difference is attributed while the writer is alive
 
@@ -449,6 +452,17 @@ change.
   that tree supports
 - **Case**: `run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem`
 
+#### Scenario: A shell the child forks in the project is found and not placed
+
+- **WHEN** a shell the child forked stands in the project — the tree `run_child` starts every child in — and never
+  `cd`s into the worktree, so no ancestor of it worked there, and it writes the project's own tree while the child
+  is alive
+- **THEN** the difference is recorded with the path that changed, the transcript's own reading names the shape as
+  one nothing could place rather than one it never found, and the item keeps the outcome its own work earned,
+  because the narrow rule is the deliberate trade that keeps a peer's write from deciding an item whose work was
+  never touched
+- **Case**: `run#theWorkersOwnShellWriteIsRecordedAndNotPlaced`
+
 #### Scenario: `--strict-outside-write yes` makes the difference decide the item
 
 - **WHEN** a worker's difference is recorded and the run was started with `--strict-outside-write yes`
@@ -460,6 +474,9 @@ change.
 
 - **WHEN** a review is run
 - **THEN** it is a separate process from the one that produced the work
+- **Case**: none — the separation is structural: `run_child` is invoked once for the worker and once for the
+  reviewer (`tools/loop/run.sh:1543`, `:1710`), and no harness can tell a second process from a stub that claims
+  to be one; what a case can pin, `run#announcesAndRecordsTheReviewRound` pins
 
 #### Scenario: A reviewer that writes is discarded
 

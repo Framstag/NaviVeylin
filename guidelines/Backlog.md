@@ -322,7 +322,9 @@ marking that chain turned a peer's write into `blocked` for an item whose work w
 rule therefore cannot place is recorded, and the item keeps the outcome its work earned: a shell **below** the
 child whose working directory never left the project — the worker's own shell, since `run_child` starts the child
 there — and a process that joined the child's group whose parent chain has since died, the ancestor walk ending at
-the dead parent (#704). The reading asks `pgrep` for that tree, the run's only procps dependency since
+the dead parent (#704). The first shape is pinned by `run#theWorkersOwnShellWriteIsRecordedAndNotPlaced`, which
+stages it through the fixture's own hook and not through the action shell, whose `cd` into the worktree is a cwd no
+real child has. The reading asks `pgrep` for that tree, the run's only procps dependency since
 `pid_in_child_tree`'s `ps` call went with the wide rule, and the **suite** is what refuses a host without it
 (#703): a run started by hand on such a host records every difference and places none, and says nothing.
 The child's own tree is read **before** the list of everyone else standing in the project, because that

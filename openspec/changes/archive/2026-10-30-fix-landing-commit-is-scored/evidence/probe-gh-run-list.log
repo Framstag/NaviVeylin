@@ -1,0 +1,12 @@
+# probe — does 'gh run list --commit <sha>' name the pipeline run a landing caused? (issue #709, the item's open question)
+# taken 2026-10-30T07:32:35Z from /home/tim/projects/NaviVeylin/.pi/worktrees/loop
+
+$ gh run list --commit 2f954a04b3f75e138c529fffe7985ca011375866 --limit 10 --json databaseId,headSha,headBranch,event,workflowName,status,conclusion
+[{"conclusion":"success","databaseId":41012101266,"event":"push","headBranch":"main","headSha":"2f954a04b3f75e138c529fffe7985ca011375866","status":"completed","workflowName":"Build Debug APK"}]
+
+$ gh run list --commit 0bc31dc7ac29c056c8cc2f15cbdf17c33528a4b2 --limit 10 --json databaseId,headSha,headBranch,event,workflowName,status,conclusion
+[]
+
+# why the score reads the push run: one headSha carries more than one workflow — a schedule run shares the landing commit, so the newest run for a sha is not always the pipeline the landing caused
+$ gh run list --limit 40 --json headSha,event,workflowName --jq ...
+[[{"event":"schedule","sha":"357a4670a0d0494e1b6b5b77679bc98e95432faa","workflow":"Sensors"},{"event":"schedule","sha":"357a4670a0d0494e1b6b5b77679bc98e95432faa","workflow":"Sensors"},{"event":"push","sha":"357a4670a0d0494e1b6b5b77679bc98e95432faa","workflow":"Build Debug APK"}],[{"event":"schedule","sha":"42d3e0004206ebfee39e11942db0bef375e1909e","workflow":"Sensors"},{"event":"push","sha":"42d3e0004206ebfee39e11942db0bef375e1909e","workflow":"Build Debug APK"}],[{"event":"schedule","sha":"53021e88394765372e6bfefa044ea2c5e5df247a","workflow":"Sensors"},{"event":"push","sha":"53021e88394765372e6bfefa044ea2c5e5df247a","workflow":"Build Debug APK"}]]

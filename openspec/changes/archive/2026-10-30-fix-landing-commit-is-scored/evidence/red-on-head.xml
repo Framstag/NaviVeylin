@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evidence/red-on-head.sh" tests="4" failures="4" errors="0" timestamp="2026-10-30T07:35:39Z">
+<failure message="loop: done: unknown argument --merged-sha">state#doneRecordsTheCommitItLanded: loop: done: unknown argument --merged-sha</failure>
+<failure message="loop: done: unknown argument --merged-sha">state#theLandingScoreIsReadOnceAndStored: loop: done: unknown argument --merged-sha</failure>
+<failure message="loop: done: unknown argument --merged-sha">state#aLandingWithNoRunIsUnscored: loop: done: unknown argument --merged-sha</failure>
+<failure message="loop: done: unknown argument --merged-sha">report#landingsAreTheStoredNumber: loop: done: unknown argument --merged-sha</failure>
+</testsuite>

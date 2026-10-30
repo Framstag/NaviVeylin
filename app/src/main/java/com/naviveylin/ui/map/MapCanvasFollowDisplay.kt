@@ -326,17 +326,15 @@ internal fun MapCanvasFollowDisplayLoop(
                         // (fix vs predicted vs displayed vs offset).
                         if (fix.time == lastFixTime && followLogCountState.value++ % 30 == 0) {
                             val dbg = followPrediction.debugState(nowMs)
-                            Log.d(TAG, "follow t=" + fix.time +
-                                " spd=" + (if (fix.speedKmH.isNaN()) "-" else "%.1f".format(fix.speedKmH)) +
-                                " brg=" + (if (fix.smoothedBearing.isNaN()) "-" else "%.0f".format(fix.smoothedBearing)) +
-                                " avg=" + "%.1f".format(dbg.avgSpeedMs * 3.6) +
-                                " gps=" + (if (dbg.gpsSpeedMs.isNaN()) "-" else "%.1f".format(dbg.gpsSpeedMs * 3.6)) +
-                                " eff=" + "%.1f".format(dbg.effectiveSpeedMs * 3.6) +
-                                " savg=" + "%.1f".format(dbg.smoothAvgMs * 3.6) +
-                                " dec=" + dbg.decelerating +
-                                " stp=" + dbg.stopped +
-                                " off=" + "%.1f".format(offset.clampedX) + "," + "%.1f".format(offset.clampedY) +
-                                " clamped=" + offset.clamped)
+                            // Numbers are evidence, not display text — the builder fixes their locale
+                            // so a German install prints the same line (spec: i18n-l10n — Log and
+                            // diagnostic numbers are locale-independent, issue #44).
+                            Log.d(
+                                TAG,
+                                followDiagnosticLine(
+                                    fix.time, fix.speedKmH, fix.smoothedBearing, dbg, offset
+                                )
+                            )
                         }
                     }
                 } else if (ui.followMode && fix != null) {

@@ -623,12 +623,12 @@ internal fun MapCanvasViewModel.refreshBrowseReCenter(state: MapCanvasUiState) {
  * this never touches the file on the caller's thread.
  */
 internal fun MapCanvasViewModel.logBrowseReCenter(offsetPx: Double, visible: Boolean) {
-    val offset = if (offsetPx.isNaN()) "-" else "%.1f".format(offsetPx)
+    val offset = if (offsetPx.isNaN()) "-" else diagnosticNumber("%.1f", offsetPx)
     Log.d(MapCanvasViewModel.TAG, "browse re-center off=" + offset + "px vis=" + visible)
     com.naviveylin.core.DiagnosticsLog.log(
         "RECENTER",
         "off=" + offset + "px vis=" + visible +
-            " mag=%.2f".format(_uiState.value.viewport.magnification)
+            " mag=" + diagnosticNumber("%.2f", _uiState.value.viewport.magnification)
     )
 }
 
@@ -941,9 +941,9 @@ internal fun MapCanvasViewModel.wireFollowMode() {
             lastSpeedFixTime = fix.time
 
             if (logCount++ % 30 == 0) {
-                Log.d(MapCanvasViewModel.TAG, "GPS fix acc=${"%.1f".format(fix.accuracy)} " +
-                        "bearing=${if (!fix.markerBearing.isNaN()) "%.1f".format(fix.markerBearing) else "-"} " +
-                        "speed=${if (!fix.speedKmH.isNaN()) "%.1f".format(fix.speedKmH) else "-"} " +
+                Log.d(MapCanvasViewModel.TAG, "GPS fix acc=${diagnosticNumber("%.1f", fix.accuracy)} " +
+                        "bearing=${if (!fix.markerBearing.isNaN()) diagnosticNumber("%.1f", fix.markerBearing) else "-"} " +
+                        "speed=${if (!fix.speedKmH.isNaN()) diagnosticNumber("%.1f", fix.speedKmH) else "-"} " +
                         "follow=${_uiState.value.followMode}")
             }
 
@@ -1189,10 +1189,10 @@ internal fun MapCanvasViewModel.wireFollowMode() {
                         // must not land the whole difference in one frame: start (or
                         // extend) the bounded walk from the displayed frame.
                         beginZoomWalk(stepped)
-                        Log.d(MapCanvasViewModel.TAG, "autoZoom commit speed=" + "%.1f".format(filteredSpeed) +
+                        Log.d(MapCanvasViewModel.TAG, "autoZoom commit speed=" + diagnosticNumber("%.1f", filteredSpeed) +
                                 "target=$target mag=$stepped")
                     } else if (logCount++ % 30 == 0) {
-                        Log.d(MapCanvasViewModel.TAG, "autoZoom hold speed=" + "%.1f".format(filteredSpeed) +
+                        Log.d(MapCanvasViewModel.TAG, "autoZoom hold speed=" + diagnosticNumber("%.1f", filteredSpeed) +
                                 "target=$target current=$newMag")
                     }
                     lastSpeedBandIndex = currentBand

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-10-24T17:04:25.093Z" hostname="dingens" time="32.506">
+  <properties/>
+  <testcase name="noGpsFixHidesTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="8.747"/>
+  <testcase name="reCenterIgnoresANonCenterAnchorPreset" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.222"/>
+  <testcase name="reCenterCentersTheVehicleAndHidesTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.047"/>
+  <testcase name="agedOutFixSuppressesThePendingDwell" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="5.052"/>
+  <testcase name="hysteresisHoldsTheButtonUntilTheHideThreshold" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.046"/>
+  <testcase name="noisyPositionAroundTheCenterDoesNotToggleTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.049"/>
+  <testcase name="rotatingTheMapDoesNotChangeVisibility" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.055"/>
+  <testcase name="pressingReCenterDiscardsThePendingDwell" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="3.059"/>
+  <testcase name="panningAwayFromTheVehicleShowsTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.038"/>
+  <testcase name="offsetHelperReportsUnknownInputsAsNaN" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.03"/>
+  <testcase name="offsetHelperMeasuresTheDistanceFromTheCanvasCenter" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.033"/>
+  <testcase name="anAgingFixDoesNotLetTheClockRevealTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="3.033"/>
+  <testcase name="freeDriveSuspensionStillDrivesTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.045"/>
+  <testcase name="vehicleMovingAwayFromTheCenterShowsTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.042"/>
+  <testcase name="theDwellBoundaryIsDecidedByInjectedTimeNotByElapsedRealTime" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.056"/>
+  <testcase name="offCenterViewportShowsTheButtonWithoutAnyMapInteraction" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.041"/>
+  <testcase name="noDwellEvaluationWhileTheViewportIsCentered" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="2.029"/>
+  <testcase name="theReCenterEvidenceLineKeepsItsNumbersOnADecimalCommaLocale" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="1.027"/>
+  <testcase name="zoomingAboutAPointOtherThanTheCenterShowsTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.028"/>
+  <testcase name="aSingleFlickPanRevealsTheButtonWithoutAFollowUpEvent" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="1.024"/>
+  <testcase name="centeredVehicleHidesTheButton" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="0.033"/>
+  <testcase name="leavingBrowseDiscardsTheDwellAndReturningReArmsIt" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="3.026"/>
+  <testcase name="offCenterStartAtStandstillShowsTheButtonWithoutAnyFurtherEvent" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="1.028"/>
+  <testcase name="theDwellBoundaryIsDecidedByElapsedTime" classname="com.naviveylin.ui.map.MapCanvasViewModelBrowseReCenterTest" time="3.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

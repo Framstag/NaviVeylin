@@ -1,0 +1,18 @@
+# The gate, run once from the change root on 2026-10-30 (base 2f954a04b3f75e138c529fffe7985ca011375866).
+#
+# The change touches no compiled file (`guidelines/Build.md` §2's scope block names `*.md` and `tools/**` as no
+# compiled file), so the build's own gate is not owed, and the four suites below are the ones the pathspec asks for
+# (`tools/loop/measure.sh`'s LOOP-MEASURE-CHECK lines, `evidence/measure.txt`).
+#
+# This file keeps the run's own summary line verbatim; the per-step lines are not retained, and the record of what
+# each step printed is the gate's own tally beside this file (`gate-tallies/`), one per suite, with the seconds it
+# measured in its `time` attribute.
+
+$ ./tools/loop/gate.sh
+LOOP-GATE: tests=23 failures=0 errors=0 (tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 3s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s)
+
+# the tally each suite wrote:
+#   tools/check-doc-routes.sh            time=1 tests=0  failures=0 errors=0 — all 169 section references resolve, all 4 skill references resolve
+#   tools/check-doc-routes-selftest.sh   time=3 tests=23 failures=0 errors=0 — all 23 cases passed
+#   tools/mutate.sh … --list             time=0 tests=0  failures=0 errors=0 — 5 mutations, the set prints
+#   tools/check-todo-references.sh       time=1 tests=0  failures=0 errors=0 — 64 citations resolve through the recorded table

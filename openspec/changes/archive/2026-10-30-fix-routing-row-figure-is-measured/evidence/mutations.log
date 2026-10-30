@@ -1,0 +1,19 @@
+$ bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json   # 2026-10-30T07:02:11Z
+skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+route-states-its-cost	routed-read#route	a row that routes a lettered sub-section states what those sections cost, so a row naming sub-sections and pricing nothing is reported instead of passing as routed
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+section-cost-ruler	routed-read#bound	a section's cost is the byte count of its lines from the `## ` heading through the line before the next one, so a printed cost that is not that count fails the case
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+route-figure-is-measured	routed-read#figure	a figure a row writes after a lettered reference is that section's cost, so a row pricing a kilobyte of section at 0.1 kB is reported instead of passing as priced
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+route-range-is-the-span	routed-read#range	a range a row states is the cheapest and the costliest of the lettered sections it names, so a range the measurement does not give is reported instead of passing as a span
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 5 mutation(s) run, 5 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore

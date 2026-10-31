@@ -83,6 +83,11 @@ The three consumers are deliberately separate. The loop is a **budgeted batch**;
 **interrupt-driven**; a reader's query is neither. They share the tracker and nothing else, which is why a
 decision the loop cannot take does not block the loop — it becomes an item in the lane.
 
+The metadata pass runs on a **daily schedule of its own** (`.github/workflows/metadata.yml`), through the
+deterministic stand-in `helper/backlog-pass.sh`. The heuristic tables need no provider key, so the schedule
+keeps the stored priority and classification from going stale without putting a model credential in a
+pipeline. The model-reading half of the pass stays an agent-session job when judgement matters.
+
 ## 3. What the tracker holds
 
 One item is one issue. Everything a reader selects on is a label, so selection is a query and never a read:
@@ -1126,6 +1131,7 @@ is in the change's `design.md`; this is the map, so a reader can find it and so 
 | a synthetic project as the proof | only a project that differs tests the profile | 6 |
 | a recipe whose commands the self-test executes | a recipe that is never run drifts away from the tooling it describes; the copy itself stays prose because it runs in the source project | 6 |
 | one indirection for the agent command | running agents elsewhere must be configuration | 3 |
+| a scheduled metadata pass, deterministic rather than model-reading | the stored facts go stale when only an agent runs the pass; the heuristic stand-in needs no provider key, so a schedule can keep them fresh without a credential in a pipeline | 5 |
 
 ## 13. Deferred, and why
 
@@ -1135,7 +1141,7 @@ Named so a reader can tell a decision from an omission:
 |---|---|
 | the human lane's queue and answer path (change 7) | **landed 2026-10-20** — see the change table above; what remains deferred is a *prepared-options* format richer than the escalation comment, which needs more real escalations than the twelve the drain produced |
 | a shared home for the engines, or a published tool | premature with one consumer; the profile boundary keeps it cheap, and the copy's own cost is stated in `PORTING.md` |
-| scheduled unattended runs, budgets read from a file | it would put a model provider's key in a pipeline, which is the one place a credential is hardest to bound |
+| scheduled **model-reading** unattended runs, budgets read from a file | it would put a model provider's key in a pipeline, which is the one place a credential is hardest to bound. The deterministic metadata pass is scheduled (`.github/workflows/metadata.yml`); a run whose judgement needs a model stays an agent-session job |
 | parallel runs and a landing queue | serialising runs is the one-writer rule at run scale; parallelism needs a merge queue |
 | the size/frequency loop and a ratified threshold in CI | the measurement and its row have landed (`sensor-registry-and-metric-issues`); what is still deferred is *ratifying* the bound from recorded baselines, which needs the check to have run for a while first |
 | periodic spec-drift auditing | it needs a history of checked pairs; the cheap drift forms are worth doing first |

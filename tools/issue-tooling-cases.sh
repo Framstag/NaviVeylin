@@ -122,6 +122,7 @@ ISSUES_SHELL_CASES=(
   'check#aDisplacedSettledStateIsReported'
   'check#unrankedIsNotAViolation'
   'check#selfCheckIsGreen'
+  'prioritise#recordsOutgrowOneArgument'
 )
 
 issues_shell_cases() {
@@ -222,6 +223,7 @@ issues_run_shell_case() {
     'prioritise#writesNoGateLabel') case_prioritise_writesNoGateLabel ;;
     'prioritise#reportsEveryCounter') case_prioritise_reportsEveryCounter ;;
     'prioritise#bodiesAreDelimitedData') case_prioritise_bodiesAreDelimitedData ;;
+    'prioritise#recordsOutgrowOneArgument') case_prioritise_recordsOutgrowOneArgument ;;
     'prioritise#refusesABodyThatClosesTheFence') case_prioritise_refusesABodyThatClosesTheFence ;;
     'classify#selectsOnlyUnclassified') case_classify_selectsOnlyUnclassified ;;
     'classify#refusesAnOutOfVocabularyProposal') case_classify_refusesAnOutOfVocabularyProposal ;;
@@ -2277,6 +2279,30 @@ case_prioritise_reportsEveryCounter() {
   done
   assert_contains "$out" "waiting=0" "and the queue a bounded run leaves behind"
   assert_contains "$out" "unclassified=0" "and the issues that carry no kind"
+  return 0
+}
+
+# The records leave `prioritise.sh` as one JSON document, and on a tracker of this project's size that document
+# is larger than a single command-line argument may be: the report then died with "Argument list too long",
+# the tool exited 0 anyway (no `set -e` around the subshell), and the helper read an empty plan and reported a
+# bare "integer expected" instead of the reason the pass had stopped (#291). The tracker is generated rather
+# than checked in — a fixture this large is a file nobody reads — and the case asserts the size it reached, so
+# a generator that shrank below the limit fails loudly instead of passing without exercising it.
+case_prioritise_recordsOutgrowOneArgument() {
+  local dir out status size
+  dir=$(scratch)
+  # 400 issues carrying a title of ~330 characters: each title travels base64-encoded inside the record, so the
+  # document this builds is ~200 kB against the 131072 bytes Linux allows one argument.
+  metadata_issues 400 | jq 'map(.title = (.title + " — " + ("a title long enough that the records outgrow a single argument " * 4)))' \
+    > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(bash "$ISSUES_ENGINE/prioritise.sh" --json --dry-run --max-rescore 400 2>&1); status=$?
+  assert_eq "0" "$status" "the plan is built and reported: $out"
+  assert_eq "400" "$(jq -r '.records | length' <<< "$out")" "every issue read is in the report"
+  size=$(jq -c '.records' <<< "$out" | wc -c | tr -d ' ')
+  [ "$size" -gt 131072 ] ||
+    fail "the records are $size bytes, which one argument may carry — this case is not exercising the limit"
   return 0
 }
 

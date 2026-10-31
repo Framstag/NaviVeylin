@@ -130,7 +130,13 @@ while :; do
     report "$out"
   fi
 
-  plan=$(bash tools/issues/prioritise.sh --json --max-rescore 1000000 2>/dev/null) || exit 1
+  # The plan is the whole due set, read in one call. A tool that dies on the tracker's size must fail this
+  # run with its own message rather than leave an empty plan behind (#291): the empty string used to reach
+  # the integer test below and report a bare "integer expected" instead of the reason the pass stopped.
+  plan=$(bash tools/issues/prioritise.sh --json --max-rescore 1000000) || exit 1
+  [ -n "$plan" ] || { echo "backlog-pass: prioritise.sh --json returned nothing" >&2; exit 1; }
+  printf '%s' "$plan" | jq -e . >/dev/null 2>&1 ||
+    { echo "backlog-pass: prioritise.sh --json returned invalid JSON" >&2; exit 1; }
   [ "$(jq '[.records[] | select(.due)] | length' <<<"$plan")" -gt 0 ] || break
   priority_scores <<<"$plan" > "$tmp/scores.json"
   out=$(bash tools/issues/prioritise.sh --scores "$tmp/scores.json" --write \

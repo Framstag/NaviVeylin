@@ -1519,6 +1519,30 @@ adb -s emulator-5556 shell input keyevent KEYCODE_HOME       # background the ca
 Start the bare URI form without `-n` only if you want the system chooser; with several
 `geo:` handlers it opens the resolver dialog instead of the app.
 
+**Four device prerequisites that each cost a round** (measured 2026-10-30, `fix-car-rail-widget-tap`
+tasks 4.2/4.3, AAOS `emulator-5556` and phone `emulator-5554`):
+
+- **The notification permission is granted per user.** A plain `pm grant com.framstag.naviveylin
+  android.permission.POST_NOTIFICATIONS` grants user 0 while the driving user on the automotive AVD is
+  10; the app then enqueues and is refused — `AggregatedStats key='com.framstag.naviveylin'
+  numEnqueuedByApp=9 numPostedByApp=0 numBlocked=9` with `AppSettings … importance=NONE` — and no
+  `NotificationRecord` exists at all, which reads like "the app never posts". Use `pm grant --user 10 …`
+  and require a `NotificationRecord(… id=1002 …)` before judging how a notification is displayed.
+- **The deep link is single-shot.** `am start -n …/DeepLinkActivity` works once; afterwards am answers
+  `Warning: Activity not started, intent has been delivered to currently running top-most instance` and
+  nothing reaches the app, because `DeepLinkActivity` has no `onNewIntent`. `am force-stop` first, then
+  either that activity or `am start -n …/MainActivity -a android.intent.action.VIEW -d geo:…` (which the
+  car build forwards) — it appears as `Diag/SESSION: onNewIntent … scheme=geo` and starts navigation.
+- **`logcat -G` is unsupported on these images and `CarPropertyService` writes ~5 lines/s**, so the
+  `Diag/*` lines carrying the evidence are gone within a minute. Read them within seconds of the action,
+  never after a long wait.
+- **On the phone UI a `geo:` link does not start navigation** — it queues a candidate
+  (`MainActivity: Shared location parsed: shape=coordinates`); there navigation starts through the UI
+  (search → POI sheet → `Calculate route` → `Start Navigation`). And `uiautomator dump` answers
+  `ERROR: could not get idle state` while the shade animates and then leaves the **previous** file in
+  place, so a stale hierarchy reads as the current state: use a unique dump path per call and require the
+  `dumped to` line.
+
 ## 10b. Judging the car surface and the render loop
 
 **Judge the car surface and the render loop.** `lockCanvas` succeeds only for a live

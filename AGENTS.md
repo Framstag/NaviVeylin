@@ -26,7 +26,7 @@ give.
 | follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapRendering.md` §3, §6, §7, §8, §9, §10, §11 |
 | stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapRendering.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.1 kB, §16a 2.4 kB, §16b 0.8 kB (measured 2026-10-29) |
 | label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapRendering.md` §20 "Label wrapping" |
-| phone UI — modes, overlays, layering, controls, dark mode, text | `UI.md` §7, §7a, §8, §8a, §9, §10, §11 — sub-sections §7a 13.1 kB, §8a 2.5 kB (measured 2026-10-29) |
+| phone UI — modes, overlays, layering, controls, dark mode, text | `UI.md` §7, §7a, §8, §8a, §9, §10, §11 — sub-sections §7a 13.9 kB (measured 2026-10-30), §8a 2.5 kB (measured 2026-10-29) |
 | car screens — templates, wait notices, car search and details | `UI.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 1.8 kB, §3c 2.8 kB, §6b 4.9 kB (measured 2026-10-29) |
 | parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6 |
 | the car Surface, renderer startup, host-thread safety, cross-variant wiring | `Design.md` §8 "Android Auto & cross-variant", `MapRendering.md` §14 "Android Auto renderer", `UI.md` §3a 4.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |

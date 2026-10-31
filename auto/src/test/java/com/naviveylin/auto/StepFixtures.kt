@@ -93,6 +93,22 @@ internal fun stepOf(
     return step
 }
 
+internal fun streetNameOf(step: RouteStep?): String? = step?.let {
+    com.naviveylin.core.manoeuvreFromStep(it).displayName
+}
+
+/**
+ * A facts-only step of the published route list: a route node that carries a name and a way type but no
+ * manoeuvre, which is what `RouteStepCollector` emits for almost every node of a route (route census on
+ * device: `steps=501 rows=34 info=466`).
+ */
+internal fun informativeNode(distanceFromStart: Double, streetName: String = ""): RouteStep =
+    RouteStep().apply {
+        kind = RouteStep.Kind.INFORMATIVE
+        this.distanceFromStart = distanceFromStart
+        if (streetName.isNotBlank()) name = RouteStep.Name(streetName, "")
+    }
+
 /**
  * [stepOf] for the compact shape a case usually writes: "a left turn 300 m ahead onto Main St". The
  * retired constructor's description strings are not taken at all — no surface reads native text now.
@@ -123,11 +139,6 @@ internal fun stepOf(
     turnType = turnType,
     streetName = streetName.orEmpty()
 )
-
-/** The street name a step names, as its manoeuvre publishes it. */
-internal fun streetNameOf(step: RouteStep?): String? = step?.let {
-    com.naviveylin.core.manoeuvreFromStep(it).displayName
-}
 
 /** The step kind a manoeuvre is drawn from, for a fixture that names the manoeuvre only. */
 internal fun kindOf(turnType: TurnType): RouteStep.Kind = when (turnType) {

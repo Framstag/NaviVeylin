@@ -794,12 +794,20 @@ Source: spec `route-planning-session`.
   more.
 - **Live guidance uses the same step model and the same wording (change `route-steps-live-guidance`,
   specs `next-turn-overlay`, `turn-instruction-localization`).** The engine publishes `RouteStep[]` and
-  a step ahead with `remainingMeters`/`remainingSeconds` and a nested `nextNext` hint, so the next-turn
+  a step ahead; the surface announces the manoeuvre with `core/guidanceStep`, and the overlay's second row
+  is the following manoeuvre of that list when it lies within `core/HINT_WINDOW_METERS` (200 m) of the
+  announced one (change `fix-following-manoeuvre-hint`). The published step's own `nextNext` is **not**
+  read by a guidance surface: live guidance fills it with the next described route node, and the list
+  carries one step per described node (census of one route: `steps=501 rows=34 info=466`), so a node hint
+  would say "then in 10 m, some street" and would carry no roundabout exit. With that, the next-turn
   overlay, the notification, the HUD, the car instruction panel and the car trip all word their
   manoeuvre from `core/ManoeuvreLabels` and draw their glyph from `turnTypeFor(step)` — there is no
-  native text to fall back to, and none is published. The overlay's second row is the nested step
-  (icon and wording of *that* manoeuvre, distance = the gap between the two), and a motorway change is
-  drawn as a keep, never as a plain turn. The car route-description rows keep the *distance from the
+  native text to fall back to, and none is published. The second row is that following manoeuvre
+  (icon and wording of *that* manoeuvre, distance = the gap between the two), so a roundabout's exit
+  ordinal is read before the ring is entered; a motorway change is
+  drawn as a keep, never as a plain turn. The car's host next-step row is the same following manoeuvre
+  with no distance window (`core/nextManoeuvreFrom`), because that row exists whenever a turn follows the
+  current one. The car route-description rows keep the *distance from the
   route start* (`distanceFromStart`); every live surface shows the *remaining* distance.
 - The analysis is the **session's, not the route's**: the analysed step, the camera anchor that moves onto it
   and the highlighted segment live exactly as long as the session, so every exit ends all three — Start

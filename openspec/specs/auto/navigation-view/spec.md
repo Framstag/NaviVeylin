@@ -53,7 +53,7 @@ The system SHALL render the next turn instruction in the host-rendered navigatio
 
 ### Requirement: Current and next step in host instruction panel
 
-The system SHALL render the next-turn instruction (current step) and the following turn (next step) in the host-rendered navigation instruction panel of the `NavigationTemplate`, showing a turn-type icon, the distance to the turn and the target street name, and SHALL update them as navigation progresses. The current-step distance SHALL NOT freeze at 0 m while the step is still ahead, including after a reroute. Each step's icon SHALL identify its own exit when that step is a roundabout exit carrying an ordinal.
+The system SHALL render the next-turn instruction (current step) and the following turn (next step) in the host-rendered navigation instruction panel of the `NavigationTemplate`, showing a turn-type icon, the distance to the turn and the target street name, and SHALL update them as navigation progresses. The current-step distance SHALL NOT freeze at 0 m while the step is still ahead, including after a reroute. Each step's icon SHALL identify its own exit when that step is a roundabout exit carrying an ordinal. The next step SHALL be the following manoeuvre of the route's step list, never the next route node.
 
 #### Scenario: Current step shown during navigation
 
@@ -64,6 +64,7 @@ The system SHALL render the next-turn instruction (current step) and the followi
 
 - **WHEN** the route has at least one turn after the current step
 - **THEN** the host instruction panel shows the next step (next-next turn) with its own turn type and target street
+- **Case**: `auto: NavigationTemplateMapperTest` "the next step is the following manoeuvre, not the next route node"
 
 #### Scenario: Steps update on approach
 
@@ -93,6 +94,12 @@ The system SHALL render the next-turn instruction (current step) and the followi
 - **AND** neither SHALL show the other step's ordinal
 - **Case**: `auto: NavigationTemplateMapperTest` "current and next steps carry different exit numbers"
 
+#### Scenario: The roundabout exit is the next step before the ring is entered
+
+- **WHEN** the current step is a roundabout entry and the route leaves that roundabout at the following manoeuvre
+- **THEN** the panel's next step SHALL be that leave, carrying the exit ordinal the route takes
+- **Case**: `auto: NavigationTemplateMapperTest` "the exit ordinal of the following manoeuvre is on the next step"
+
 ### Requirement: Route line on navigation map
 
 The system SHALL draw the calculated route on the navigation map, styled by the map stylesheet's route style, and SHALL update it when the route changes.
@@ -114,7 +121,7 @@ The system SHALL draw the calculated route on the navigation map, styled by the 
 
 ### Requirement: Route description screen
 
-The system SHALL provide a route description screen reachable from the navigation view that lists every remaining route instruction from the current step to the destination, with the current step marked. A listed roundabout exit SHALL identify its exit ordinal in the row's image.
+The system SHALL provide a route description screen reachable from the navigation view that lists the route's remaining driving decisions — the rows the shared row policy derives from the remaining steps — from the current decision to the destination, with the current decision marked. Each row SHALL state the distance of its own leg. A listed roundabout exit SHALL identify its exit ordinal in the row's image.
 
 #### Scenario: Route description opened from navigation view
 
@@ -142,6 +149,27 @@ The system SHALL provide a route description screen reachable from the navigatio
 - **THEN** that row's image SHALL carry that exit's number
 - **AND** it SHALL NOT carry another row's number
 - **Case**: `auto: RouteDescriptionScreenTest` "a roundabout exit row shows its exit number"
+
+#### Scenario: The list is the derived decisions, not the steps
+
+- **WHEN** the remaining route carries more published steps than driving decisions
+- **THEN** the screen SHALL list one row per derived decision, the same rows the phone route list derives
+- **AND** it SHALL NOT list one row per published step
+- **Case**: `auto: RouteDescriptionScreenTest` "the car list has one row per derived decision"
+
+#### Scenario: A row states its own leg
+
+- **WHEN** a row is listed
+- **THEN** its distance SHALL be that row's own leg — the run into its manoeuvre
+- **AND** it SHALL NOT be the distance from the route's start
+- **Case**: `auto: RouteDescriptionScreenTest` "a row's distance is its own leg"
+
+#### Scenario: A facts-only step earns no car row
+
+- **WHEN** a remaining step carries only informational values — a maximum speed, lanes, a way type, crossing ways, a junction or a destination
+- **THEN** no row SHALL describe that step
+- **AND** its leg SHALL be part of the row above it
+- **Case**: `auto: RouteDescriptionScreenTest` "an informational step earns no car row"
 
 ### Requirement: Host-rendered lane guidance
 

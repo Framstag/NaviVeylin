@@ -266,12 +266,13 @@ class NavigationTemplateMapperTest {
     private fun roundaboutLeave(
         exit: Int,
         clockwise: Boolean = true,
-        street: String = "Bahnhofstraße"
+        street: String = "Bahnhofstraße",
+        distanceFromStart: Double = 350.0
     ) = stepOf(
         350.0, 12.0, 350.0, TurnType.ROUNDABOUT_LEAVE, street,
         "Take exit $exit onto $street", "Exit $exit",
         0.0, TurnType.STRAIGHT_ON, "", "",
-        exit, clockwise, 0
+        exit, clockwise, 0, distanceFromStart
     )
 
     @Test
@@ -336,7 +337,7 @@ class NavigationTemplateMapperTest {
             currentStepIndex = 0,
             steps = listOf(
                 roundaboutLeave(exit = 3),
-                roundaboutLeave(exit = 1, street = "Marktplatz")
+                roundaboutLeave(exit = 1, street = "Marktplatz", distanceFromStart = 700.0)
             )
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
@@ -374,9 +375,9 @@ class NavigationTemplateMapperTest {
             isNavigating = true,
             currentStepIndex = 1,
             steps = listOf(
-                instr(1000.0, TurnType.START, "Start St"),
+                instr(0.0, TurnType.START, "Start St"),
                 instr(800.0, TurnType.LEFT, "Main St"),
-                instr(200.0, TurnType.RIGHT, "Elm St")
+                instr(900.0, TurnType.RIGHT, "Elm St")
             )
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
@@ -389,6 +390,58 @@ class NavigationTemplateMapperTest {
     }
 
     @Test
+    fun `the next step is the following manoeuvre, not the next route node`() {
+        // The step list carries one entry per described route node (route census on device:
+        // steps=501, rows=34), so the entry after the current step is a name/way-type node far more
+        // often than it is a turn. The host's next-step row is the following *manoeuvre*.
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            steps = listOf(
+                instr(1000.0, TurnType.LEFT, "Main St"),
+                informativeNode(1050.0, "Hauptstraße"),
+                instr(1100.0, TurnType.RIGHT, "Elm St")
+            )
+        )
+
+        val info = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false, resolver = resolver
+        )!!
+
+        assertEquals("Main St", info.currentStep!!.road.toString())
+        assertEquals("Elm St", info.nextStep!!.road.toString())
+        assertEquals(Maneuver.TYPE_TURN_NORMAL_RIGHT, info.nextStep!!.maneuver!!.type)
+    }
+
+    @Test
+    fun `the exit ordinal of the following manoeuvre is on the next step`() {
+        // Before the ring is entered the driver must already read which exit the route takes.
+        val state = NavigationState(
+            isNavigating = true,
+            currentStepIndex = 0,
+            steps = listOf(
+                stepOf(
+                    distanceTo = 400.0, turnType = TurnType.ROUNDABOUT_ENTER,
+                    streetName = "Kreisverkehr", distanceFromStart = 1000.0
+                ),
+                informativeNode(1010.0, "Ringstraße"),
+                stepOf(
+                    distanceTo = 300.0, turnType = TurnType.ROUNDABOUT_LEAVE,
+                    streetName = "Bahnhofstraße", roundaboutExitNumber = 2,
+                    distanceFromStart = 1035.0
+                )
+            )
+        )
+
+        val info = NavigationTemplateMapper.routingInfoFromState(
+            state, { testIcon }, includeLanes = false, resolver = resolver
+        )!!
+
+        assertEquals(2, info.nextStep!!.maneuver!!.roundaboutExitNumber)
+        assertEquals("Bahnhofstraße", info.nextStep!!.road.toString())
+    }
+
+    @Test
     fun routingInfoFromState_prefersLiveNextInstructionDistance() {
         // The native engine re-emits the current instruction with an updated
         // distance on every position update; the instructions list is frozen
@@ -398,10 +451,13 @@ class NavigationTemplateMapperTest {
             isNavigating = true,
             currentStepIndex = 0,
             steps = listOf(
-                instr(1000.0, TurnType.START, "Start St"),
+                instr(0.0, TurnType.START, "Start St"),
                 instr(800.0, TurnType.LEFT, "Main St")
             ),
-            nextStep = instr(350.0, TurnType.LEFT, "Main St")
+            nextStep = stepOf(
+                distanceTo = 350.0, turnType = TurnType.LEFT,
+                streetName = "Main St", distanceFromStart = 800.0
+            )
         )
         val info = NavigationTemplateMapper.routingInfoFromState(
             state, { testIcon }, includeLanes = false, resolver = resolver
@@ -422,7 +478,7 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            steps = listOf(instr(500.0, TurnType.LEFT, "Home St"), arrive),
+            steps = listOf(instr(100.0, TurnType.LEFT, "Home St"), arrive),
             nextStep = arrive
         )
         val info = NavigationTemplateMapper.routingInfoFromState(

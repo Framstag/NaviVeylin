@@ -22,6 +22,7 @@ import com.naviveylin.core.StringResolver
 import com.naviveylin.core.exitOrdinal
 import com.naviveylin.core.formatDistanceNumber
 import com.naviveylin.core.manoeuvreFromStep
+import com.naviveylin.core.nextManoeuvreFrom
 import com.naviveylin.core.remainingMeters
 import com.naviveylin.core.remainingSeconds
 import com.naviveylin.core.roundDistanceMeters
@@ -207,7 +208,12 @@ object NavigationTemplateMapper {
         val current = state.nextStep
             ?: state.steps.getOrNull(state.currentStepIndex)
             ?: return null
-        val next = state.steps.getOrNull(state.currentStepIndex + 1)
+        // The following MANOEUVRE, not the next list entry: the route's step list carries one step per
+        // described route node (route census on device: steps=501, rows=34), so the entry after the current
+        // step is normally a name/way-type node. The host's next-step row would otherwise name a street a
+        // few metres ahead instead of the turn after it, and a roundabout exit lost its ordinal
+        // (spec: auto/navigation-view — Current and next step in host instruction panel).
+        val next = nextManoeuvreFrom(state.steps, current)
 
         val recommended = if (state.laneSuggested) {
             state.laneSuggestedFrom..state.laneSuggestedTo

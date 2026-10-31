@@ -64,6 +64,7 @@ class MiniMapComposeTest {
                 lon = lon,
                 initialMag = mag,
                 modifier = Modifier.size(200.dp),
+                isDarkPresentation = false,
                 onViewportChanged = onViewportChanged
             )
         }

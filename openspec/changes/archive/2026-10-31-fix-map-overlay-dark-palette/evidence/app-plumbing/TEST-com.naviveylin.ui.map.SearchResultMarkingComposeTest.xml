@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.SearchResultMarkingComposeTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:46:33.884Z" hostname="dingens" time="0.54">
+  <properties/>
+  <testcase name="perfectMatchIsMarkedAndExposesTheFactToAccessibility" classname="com.naviveylin.ui.map.SearchResultMarkingComposeTest" time="0.102"/>
+  <testcase name="closeMatchIsNotMarkedAsPerfect" classname="com.naviveylin.ui.map.SearchResultMarkingComposeTest" time="0.097"/>
+  <testcase name="favoriteAndPerfectRowShowsBothFacts" classname="com.naviveylin.ui.map.SearchResultMarkingComposeTest" time="0.118"/>
+  <testcase name="perfectMatchRowIsListedAboveCloseMatches" classname="com.naviveylin.ui.map.SearchResultMarkingComposeTest" time="0.126"/>
+  <testcase name="favoriteOnlyRowKeepsTheFavoriteMarking" classname="com.naviveylin.ui.map.SearchResultMarkingComposeTest" time="0.086"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

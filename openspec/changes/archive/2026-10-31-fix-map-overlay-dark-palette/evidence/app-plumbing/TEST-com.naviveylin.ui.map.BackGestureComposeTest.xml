@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.BackGestureComposeTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:45:51.061Z" hostname="dingens" time="27.148">
+  <properties/>
+  <testcase name="backClosesSearchDialog" classname="com.naviveylin.ui.map.BackGestureComposeTest" time="24.101"/>
+  <testcase name="backFromGroupDetailReturnsToMainGrid" classname="com.naviveylin.ui.map.BackGestureComposeTest" time="0.932"/>
+  <testcase name="backClosesFavoritesSheetOnMainGrid" classname="com.naviveylin.ui.map.BackGestureComposeTest" time="0.443"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

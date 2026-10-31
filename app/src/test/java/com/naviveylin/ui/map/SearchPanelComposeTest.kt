@@ -76,6 +76,7 @@ class SearchPanelComposeTest {
                 addressBookAvailable = false,
                 contactsQuery = "",
                 onContactsQueryChanged = {},
+                isDarkPresentation = false,
                 contactsContent = {}
             )
         }
@@ -145,6 +146,7 @@ class SearchPanelComposeTest {
                 onPoiEntryClick = {},
                 addressBookAvailable = false,
                 contactsQuery = "",
+                isDarkPresentation = false,
                 onContactsQueryChanged = {},
                 contactsContent = {}
             )
@@ -208,6 +210,7 @@ class SearchPanelComposeTest {
                 onPoiSearch = {},
                 onPoiEntryClick = {},
                 addressBookAvailable = false,
+                isDarkPresentation = false,
                 contactsQuery = "",
                 onContactsQueryChanged = {},
                 contactsContent = {}

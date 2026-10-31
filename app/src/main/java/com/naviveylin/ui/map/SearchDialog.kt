@@ -88,6 +88,10 @@ import kotlin.math.roundToInt
  * sources in Places mode, and per-mode content. The search field is shared:
  * it drives the location query in Places mode, filters the category chips in
  * POIs mode, and filters contacts in Contacts mode.
+ *
+ * Its embedded mini map takes the app's resolved dark presentation
+ * ([isDarkPresentation]) — the dialog must not read `isSystemInDarkTheme()`
+ * (see [CompassButton]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,6 +134,7 @@ fun SearchDialog(
     onPoiCategorySelected: (String?) -> Unit,
     onPoiRadiusChanged: (Double) -> Unit,
     onPoiSearch: () -> Unit,
+    isDarkPresentation: Boolean,
     onPoiEntryClick: (PoiEntry) -> Unit,
     // Contacts mode
     addressBookAvailable: Boolean,
@@ -224,6 +229,7 @@ fun SearchDialog(
                 poiCenterLon = poiCenterLon,
                 currentPosition = currentPosition,
                 selectedPoi = selectedPoi,
+                isDarkPresentation = isDarkPresentation,
                 onPoiCategorySelected = onPoiCategorySelected,
                 onPoiRadiusChanged = onPoiRadiusChanged,
                 onPoiSearch = onPoiSearch,
@@ -595,6 +601,7 @@ private fun PoiContent(
     onPoiCategorySelected: (String?) -> Unit,
     onPoiRadiusChanged: (Double) -> Unit,
     onPoiSearch: () -> Unit,
+    isDarkPresentation: Boolean,
     onPoiEntryClick: (PoiEntry) -> Unit
 ) {
     Column(
@@ -673,6 +680,7 @@ private fun PoiContent(
                     radiusMeters = poiRadiusMeters,
                     currentPosition = currentPosition,
                     selectedPoi = selectedPoi,
+                    isDarkPresentation = isDarkPresentation,
                     onEntryClick = onPoiEntryClick,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -804,6 +812,7 @@ internal fun PoiResultsWithMap(
     radiusMeters: Double,
     currentPosition: Pair<Double, Double>?,
     selectedPoi: Pair<Double, Double>?,
+    isDarkPresentation: Boolean,
     onEntryClick: (PoiEntry) -> Unit,
     modifier: Modifier = Modifier,
     /** Test hook: force the landscape branch; null uses the real maxWidth > maxHeight check. */
@@ -829,6 +838,7 @@ internal fun PoiResultsWithMap(
                     lat = centerLat,
                     lon = centerLon,
                     initialMag = fitMag,
+                    isDarkPresentation = isDarkPresentation,
                     additionalMarkers = results.map { it.lat to it.lon },
                     selectedMarker = selectedPoi,
                     currentPosition = currentPosition,
@@ -849,6 +859,7 @@ internal fun PoiResultsWithMap(
                     lat = centerLat,
                     lon = centerLon,
                     initialMag = fitMag,
+                    isDarkPresentation = isDarkPresentation,
                     additionalMarkers = results.map { it.lat to it.lon },
                     selectedMarker = selectedPoi,
                     currentPosition = currentPosition,

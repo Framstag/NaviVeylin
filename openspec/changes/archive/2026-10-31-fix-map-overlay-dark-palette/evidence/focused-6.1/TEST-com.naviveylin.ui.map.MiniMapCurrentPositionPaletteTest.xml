@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MiniMapCurrentPositionPaletteTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:23.038Z" hostname="dingens" time="1.122">
+  <properties/>
+  <testcase name="theDrawnDotChangesWithThePresentation" classname="com.naviveylin.ui.map.MiniMapCurrentPositionPaletteTest" time="0.861"/>
+  <testcase name="theDrawnDotIsNotTheObjectMarkerPrimary" classname="com.naviveylin.ui.map.MiniMapCurrentPositionPaletteTest" time="0.227"/>
+  <system-out><![CDATA[MiniMap dot: light frame has 70 px of the light dot and 0 px of the dark dot; dark frame has 70 px of the dark dot and 0 px of the light dot
+MiniMap dot: the light frame has 70 px of the palette dot (0xff0b57d0) and 0 px of the object marker's primary (0xff1a73e8)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

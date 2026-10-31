@@ -65,6 +65,9 @@ import kotlinx.coroutines.withContext
  * @param client shared OSMScoutClient for the embedded [MiniMap]
  * @param initialMag magnification the mini map starts at (main map's, clamped)
  * @param objectDescription structured native description, null when unavailable
+ * @param isDarkPresentation the app's resolved dark presentation (preference resolved with its
+ *   environment signal, never `isSystemInDarkTheme()` — see [CompassButton]): the mini map's
+ *   current-position marker palette branches on it (spec: mini-map)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +80,7 @@ fun LocationDetailsDialog(
     groupNames: List<String>,
     /** Current position for the mini map (blue dot); null when no GPS fix. */
     currentPosition: Pair<Double, Double>? = null,
+    isDarkPresentation: Boolean,
     onAddToFavorites: (groupName: String, favName: String, isNewGroup: Boolean) -> Unit,
     onRemoveFromFavorites: () -> Unit,
     onRouteToLocation: (() -> Unit)? = null,
@@ -158,6 +162,7 @@ fun LocationDetailsDialog(
                 lat = entry.lat,
                 lon = entry.lon,
                 initialMag = initialMag,
+                isDarkPresentation = isDarkPresentation,
                 currentPosition = currentPosition,
                 modifier = Modifier
                     .fillMaxWidth()

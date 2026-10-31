@@ -150,6 +150,7 @@ internal fun MapCanvasModalBandContent(
             poiCenterLon = state.poiSearchCenterLon,
             currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
             selectedPoi = if (state.poiSelectedLat.isNaN()) null else state.poiSelectedLat to state.poiSelectedLon,
+            isDarkPresentation = state.isDarkPresentation,
             onPoiCategorySelected = { viewModel.onPoiCategorySelected(it) },
             onPoiRadiusChanged = { viewModel.onPoiRadiusChanged(it) },
             onPoiSearch = { viewModel.performPoiSearch() },
@@ -192,6 +193,7 @@ internal fun MapCanvasModalBandContent(
             isFavorite = viewModel.isSelectedLocationFavorite(),
             groupNames = viewModel.getFavoriteGroupNames(),
             currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
+            isDarkPresentation = state.isDarkPresentation,
             onAddToFavorites = { groupName, favName, isNewGroup ->
                 viewModel.addSelectedToFavorites(groupName, favName, isNewGroup)
             },

@@ -13,6 +13,7 @@ import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
+import com.naviveylin.core.GpsMarkerPalette
 import com.naviveylin.core.MapRenderUtil
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.RenderBitmapPool
@@ -209,14 +210,18 @@ internal class MarkerDrawObjects(
         transform(scale)
     }
 
+    // The accuracy ring's colours come from the shared overlay palette, one value per presentation: the
+    // car used to carry its own `#2196F3` pair against the phone's `#4A90D9`, a divergence no platform
+    // constraint forced (spec: gps-location-marker "Accuracy circle follows the resolved presentation";
+    // spec: cross-variant-ui-parity). Its stroke width stays this surface's own geometry.
     val accuracyFillPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = 0x1A2196F3.toInt()
+        color = GpsMarkerPalette.accuracyFill(dark).toInt()
     }
 
     val accuracyBorderPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0x662196F3.toInt()
+        color = GpsMarkerPalette.accuracyBorder(dark).toInt()
         strokeWidth = 1.5f * density
     }
 

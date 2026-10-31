@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.GpsMarkerPaletteTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:00.206Z" hostname="dingens" time="0.731">
+  <properties/>
+  <testcase name="theDarkRingIsADarkerToneOfTheSameHueFamily" classname="com.naviveylin.core.GpsMarkerPaletteTest" time="0.686"/>
+  <testcase name="theLightDotIsNotAnObjectMarkerColour" classname="com.naviveylin.core.GpsMarkerPaletteTest" time="0.013"/>
+  <testcase name="theDotIsBrighterThanItsHaloInDarkPresentation" classname="com.naviveylin.core.GpsMarkerPaletteTest" time="0.004"/>
+  <testcase name="everyOverlayColourBranchesOnThePresentation" classname="com.naviveylin.core.GpsMarkerPaletteTest" time="0.005"/>
+  <system-out><![CDATA[accuracy fill light=0x1A4A90D9 hue=210.6293706293706 lum=0.2641 dark=0x1A2E6DA4 hue=207.96610169491527 lum=0.1420
+accuracy border light=0x664A90D9 hue=210.6293706293706 lum=0.2641 dark=0x662E6DA4 hue=207.96610169491527 lum=0.1420
+dark presentation dot lum=0.3499216610099098 halo-over-land lum=0.021044116576990166
+light presentation dot lum=0.11441603888206271 halo-over-land lum=0.648034937120575
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

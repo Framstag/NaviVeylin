@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.CompassPaletteTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:22.917Z" hostname="dingens" time="0.057">
+  <properties/>
+  <testcase name="everyQualityUsesADifferentTonePerPresentation" classname="com.naviveylin.ui.map.CompassPaletteTest" time="0.045"/>
+  <testcase name="needleColorDependsOnPresentationOnly" classname="com.naviveylin.ui.map.CompassPaletteTest" time="0.002"/>
+  <testcase name="hueFamiliesMatchTheFixQuality" classname="com.naviveylin.ui.map.CompassPaletteTest" time="0.002"/>
+  <testcase name="lightSymbolColorOnLightFillsIsTheDefectThisChangeFixes" classname="com.naviveylin.ui.map.CompassPaletteTest" time="0.001"/>
+  <testcase name="needleHasAtLeast4Point5ToOneContrastOnEveryFill" classname="com.naviveylin.ui.map.CompassPaletteTest" time="0.002"/>
+  <testcase name="hueFamilyIsPreservedAcrossPresentations" classname="com.naviveylin.ui.map.CompassPaletteTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

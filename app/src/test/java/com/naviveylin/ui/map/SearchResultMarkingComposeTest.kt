@@ -76,6 +76,7 @@ class SearchResultMarkingComposeTest {
                 addressBookAvailable = false,
                 contactsQuery = "",
                 onContactsQueryChanged = {},
+                isDarkPresentation = false,
                 contactsContent = {}
             )
         }

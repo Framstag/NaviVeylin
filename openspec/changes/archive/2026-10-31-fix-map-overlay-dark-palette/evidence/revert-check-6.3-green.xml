@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:51:19.860Z" hostname="dingens" time="11.673">
+  <properties/>
+  <testcase name="aDarkPresentationChangeRebuildsThePalette" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="11.086"/>
+  <testcase name="theRingPaintsTakeTheSharedPaletteValues" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.147"/>
+  <testcase name="aSurfaceBoundsChangeRebuildsTheDrawObjects" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.114"/>
+  <testcase name="aDensityChangeRebuildsTheGeometryAtTheNewDensity" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.113"/>
+  <testcase name="consecutiveFramesReuseTheSameDrawObjects" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.121"/>
+  <testcase name="theAccuracyRingBranchesOnTheDarkPresentation" classname="com.naviveylin.auto.AutoMapRendererMarkerDrawCacheTest" time="0.085"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/home/tim/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.6/46e2545d7a97b6ccb195621650c5957279eb4812/byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

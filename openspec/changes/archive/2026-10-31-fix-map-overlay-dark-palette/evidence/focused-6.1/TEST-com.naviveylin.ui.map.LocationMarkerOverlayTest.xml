@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.LocationMarkerOverlayTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:22.981Z" hostname="dingens" time="0.024">
+  <properties/>
+  <testcase name="anchorScaleIdentityAtScaleOne" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.016"/>
+  <testcase name="markerAtCenterProjectsToScreenCenter" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.006"/>
+  <testcase name="markerRotatesWithMapRotation" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.0"/>
+  <testcase name="markerHiddenAtNaNPosition" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.0"/>
+  <testcase name="anchorScaleKeepsAnchorPointFixed" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.0"/>
+  <testcase name="anchorScaleScalesDistanceFromAnchor" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.0"/>
+  <testcase name="markerFollowsViewportCenterPan" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.001"/>
+  <testcase name="markerCulledWhenOffScreen" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.0"/>
+  <testcase name="bearingSignConventionMatchesNative" classname="com.naviveylin.ui.map.LocationMarkerOverlayTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

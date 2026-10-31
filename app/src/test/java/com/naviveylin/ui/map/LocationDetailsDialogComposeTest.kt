@@ -72,6 +72,7 @@ class LocationDetailsDialogComposeTest {
                 onRemoveFromFavorites = {},
                 onRouteToLocation = onRouteToLocation,
                 onShowOnMap = onShowOnMap,
+                isDarkPresentation = false,
                 onDismiss = onDismiss
             )
         }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.CompassNeedleTargetTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:23.926Z" hostname="dingens" time="0.051">
+  <properties/>
+  <testcase name="heading-up southbound puts north behind the vehicle" classname="com.naviveylin.ui.map.CompassNeedleTargetTest" time="0.045"/>
+  <testcase name="manually rotated map keeps the north needle on the map north" classname="com.naviveylin.ui.map.CompassNeedleTargetTest" time="0.0"/>
+  <testcase name="heading-up eastbound puts north on the driver's left" classname="com.naviveylin.ui.map.CompassNeedleTargetTest" time="0.0"/>
+  <testcase name="normalization table matches compassRotationDegrees" classname="com.naviveylin.ui.map.CompassNeedleTargetTest" time="0.003"/>
+  <testcase name="needle points at north for the current map rotation" classname="com.naviveylin.ui.map.CompassNeedleTargetTest" time="0.001"/>
+  <testcase name="needle is independent of the vehicle bearing" classname="com.naviveylin.ui.map.CompassNeedleTargetTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

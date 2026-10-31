@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.LocationMarkerOverlayPaletteTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:50:24.009Z" hostname="dingens" time="9.909">
+  <properties/>
+  <testcase name="theDrawnAccuracyRingUsesADarkerToneOfTheSameHueFamily" classname="com.naviveylin.ui.map.LocationMarkerOverlayPaletteTest" time="9.35"/>
+  <testcase name="theRingRadiusAndStrokeWidthAreIdenticalInBothPresentations" classname="com.naviveylin.ui.map.LocationMarkerOverlayPaletteTest" time="0.143"/>
+  <testcase name="theDrawnAccuracyRingChangesWithThePresentation" classname="com.naviveylin.ui.map.LocationMarkerOverlayPaletteTest" time="0.146"/>
+  <testcase name="theLightRingKeepsItsShippedTone" classname="com.naviveylin.ui.map.LocationMarkerOverlayPaletteTest" time="0.13"/>
+  <system-out><![CDATA[Frame raster=320x470 lightCentre=(75, 75) darkCentre=(225, 75)
+AccuracyRing drawn tone: light=(64, 92, 121) lum=0.10124757159426372 hue=210.5263157894737 dark=(52, 78, 100) lum=0.07098942829041095 hue=207.5 hueDelta=3.026315789473699
+Frame raster=320x470 lightCentre=(75, 75) darkCentre=(225, 75)
+AccuracyRing geometry: light radius=60.0px thickness=2px dark radius=60.0px thickness=2px profiles light=[27, 27, 27, 27, 27, 27, 121, 103, 0, 0, 0, 0, 0] dark=[17, 17, 17, 17, 17, 17, 78, 68, 0, 0, 0, 0, 0]
+Frame raster=320x470 lightCentre=(75, 75) darkCentre=(225, 75)
+AccuracyRing presentation samples: 24/24 differ, light=(64, 91, 120) dark=(52, 78, 99)
+Frame raster=320x470 lightCentre=(75, 75) darkCentre=(225, 75)
+AccuracyRing light tone: land=(58, 58, 58) fillOnly=(60, 67, 74) overLand=(64, 92, 122) overFill=(66, 98, 131) mean=(64, 92, 121) samples=24
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

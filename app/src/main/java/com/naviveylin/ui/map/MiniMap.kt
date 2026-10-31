@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.R
+import com.naviveylin.core.GpsMarkerPalette
 import com.naviveylin.core.ProjectionUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,10 @@ import kotlinx.coroutines.SupervisorJob
  * @param lat object latitude (marker + initial center)
  * @param lon object longitude (marker + initial center)
  * @param initialMag initial magnification, clamped to the app range [MIN_MAG, MAX_MAG]
+ * @param isDarkPresentation resolved dark presentation (the dark-mode preference resolved with its
+ *   environment signal — never `isSystemInDarkTheme()`, see [CompassButton]): the current-position
+ *   marker's palette branches on it (spec: mini-map — "Current-position marker palette and
+ *   distinctness"), and the widget's map bitmap must follow the same value
  * @param additionalMarkers extra object locations drawn as secondary pins
  *   (spec: mini-map Multiple object markers)
  * @param selectedMarker an additional marker to highlight distinctly (e.g.
@@ -77,6 +82,7 @@ fun MiniMap(
     lat: Double,
     lon: Double,
     initialMag: Double,
+    isDarkPresentation: Boolean,
     modifier: Modifier = Modifier,
     additionalMarkers: List<Pair<Double, Double>> = emptyList(),
     selectedMarker: Pair<Double, Double>? = null,
@@ -88,7 +94,6 @@ fun MiniMap(
     val markerColor = MaterialTheme.colorScheme.primary
     val additionalMarkerColor = MaterialTheme.colorScheme.secondary
     val selectedMarkerColor = MaterialTheme.colorScheme.tertiary
-    val gpsMarkerColor = Color(0xFF1A73E8)
 
     // Own renderer + scope; never touches the main map's renderer/viewport.
     val renderer = remember(client) {
@@ -230,6 +235,7 @@ fun MiniMap(
             }
 
             // Current-position marker: blue dot with a soft accuracy halo.
+            val markerColors = miniMapMarkerColors(isDarkPresentation)
             currentPosition?.let { (clat, clon) ->
                 val (gx, gy) = ProjectionUtils.geoToScreen(
                     clat, clon,
@@ -238,15 +244,11 @@ fun MiniMap(
                     densityDpi
                 )
                 if (inView(gx, gy)) {
-                    val center = Offset(gx.toFloat(), gy.toFloat())
-                    drawCircle(
-                        color = gpsMarkerColor.copy(alpha = 0.2f),
-                        radius = markerRadiusPx * 2f,
-                        center = center
+                    drawCurrentPositionMarker(
+                        center = Offset(gx.toFloat(), gy.toFloat()),
+                        markerRadiusPx = markerRadiusPx,
+                        colors = markerColors
                     )
-                    drawCircle(color = Color.White, radius = markerRadiusPx * 0.9f, center = center)
-                    drawCircle(color = gpsMarkerColor, radius = markerRadiusPx * 0.7f, center = center)
-                    drawCircle(color = Color.White, radius = markerRadiusPx * 0.3f, center = center)
                 }
             }
         }
@@ -295,4 +297,46 @@ fun MiniMap(
             }
         }
     }
+}
+
+/**
+ * The current-position marker's four colours for one presentation (spec: `mini-map` —
+ * "Current-position marker palette and distinctness"): the dot and its inner highlight, the soft halo
+ * and the casing ring, all read from the `:core` [GpsMarkerPalette].
+ */
+internal data class MiniMapMarkerColors(
+    val dot: Color,
+    val core: Color,
+    val halo: Color,
+    val casing: Color
+)
+
+/**
+ * Resolves the current-position marker's palette for the app's resolved dark presentation — the
+ * widget's only colour decision, so a test can pin the mapping without a renderer (the widget itself
+ * cannot be composed in a test that pins a graphics mode: it loads the JNI stub, see
+ * `guidelines/Build.md` §6 and `JniStubSandboxRuleTest`).
+ */
+internal fun miniMapMarkerColors(isDarkPresentation: Boolean): MiniMapMarkerColors =
+    MiniMapMarkerColors(
+        dot = Color(GpsMarkerPalette.positionDot(isDarkPresentation)),
+        core = Color(GpsMarkerPalette.positionDotCore(isDarkPresentation)),
+        halo = Color(GpsMarkerPalette.positionDotHalo(isDarkPresentation)),
+        casing = Color(GpsMarkerPalette.positionDotCasing(isDarkPresentation))
+    )
+
+/**
+ * Draws the current-position marker: the soft halo, the casing ring, the dot and its inner highlight,
+ * outer to inner so the dot stays the marker's brightest part. Extracted from the widget's `Canvas` so
+ * the drawn colours are measurable in a test that needs no [OSMScoutClient] and no JNI stub.
+ */
+internal fun DrawScope.drawCurrentPositionMarker(
+    center: Offset,
+    markerRadiusPx: Float,
+    colors: MiniMapMarkerColors
+) {
+    drawCircle(color = colors.halo, radius = markerRadiusPx * 2f, center = center)
+    drawCircle(color = colors.casing, radius = markerRadiusPx * 0.9f, center = center)
+    drawCircle(color = colors.dot, radius = markerRadiusPx * 0.7f, center = center)
+    drawCircle(color = colors.core, radius = markerRadiusPx * 0.3f, center = center)
 }

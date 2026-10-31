@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-31T09:45:51.117Z" hostname="dingens" time="29.314">
+  <properties/>
+  <testcase name="coordinatesStayLocaleStableOnACommaDecimalDevice" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="22.457"/>
+  <testcase name="streetFallsBackToSearchLabelWhenDescriptionHasNoStreet" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.372"/>
+  <testcase name="navigateToButtonVisibleAndFires" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.976"/>
+  <testcase name="titleShowsObjectNameWhenPresent" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.364"/>
+  <testcase name="fullAddressShownWhenDescriptionHasStreetAndHouseNumber" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.299"/>
+  <testcase name="fullScreenDialogShowsNameMiniMapCoordinatesAndArea" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.359"/>
+  <testcase name="noAreaEntryWhenHierarchyAndIsInMissing" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.309"/>
+  <testcase name="backGestureClosesTheDialog" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.34"/>
+  <testcase name="titleFallsBackToAddressWhenNoName" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.219"/>
+  <testcase name="areaFallsBackToDescriptionIsIn" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.272"/>
+  <testcase name="emptyDescriptionShowsNoSectionHeaders" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.179"/>
+  <testcase name="addressIncludesCityWhenOnlyHouseNumberPresent" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.188"/>
+  <testcase name="streetFromReverseLookupWhenDescriptionHasNoStreet" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.199"/>
+  <testcase name="coordinateLabelTitleRendersInTheDeviceLanguage" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.511"/>
+  <testcase name="noAddressEntryWithoutHouseNumber" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.22"/>
+  <testcase name="coordinateLabelTitleShowsGenericLocation" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.179"/>
+  <testcase name="showOnMapButtonVisibleFromLongPress" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.2"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

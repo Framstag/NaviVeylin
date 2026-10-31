@@ -72,6 +72,7 @@ class SearchDialogModeSwitchComposeTest {
                 addressBookAvailable = addressBookAvailable,
                 contactsQuery = "",
                 onContactsQueryChanged = {},
+                isDarkPresentation = false,
                 contactsContent = {}
             )
         }

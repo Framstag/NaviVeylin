@@ -2961,9 +2961,11 @@ case_prompt_reviewerIsBoundedToReading() {
 # The same bound reaches a session that spawns its own reviewer (issue #236): the loop's prompt is the one
 # skeleton, and the iteration protocol is where a session is told to hand it over. Two surfaces, one rule.
 case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton() {
-  # files: tools/loop/prompts/reviewer.md
+  # files: guidelines/BuildGate.md tools/loop/prompts/reviewer.md
   local doc
-  doc=$(cat "$LOOP_PROJECT_ROOT/guidelines/Build.md")
+  # The protocol's text lives in `guidelines/BuildGate.md` §2a; `guidelines/Build.md` §2a is only the pointer a
+  # routed reader follows, so the assertion reads the document that owns the sentence.
+  doc=$(cat "$LOOP_PROJECT_ROOT/guidelines/BuildGate.md")
   # the document is quoted whole, so a `case` is used instead of `assert_contains`: the failure names the rule
   # that is missing rather than dumping 131 KB, and a `printf | grep -q` would fail on its own SIGPIPE under the
   # suite's `pipefail`.
@@ -2996,12 +2998,13 @@ case_prompt_workerNamesTheChangeSurfaceBeforeThePlan() {
   assert_contains "$text" 'surface:' "and the record its proposal carries"
 }
 
-# The rule has one home for its text (`guidelines/Build.md` §2, the iteration protocol) and one for the act (the
-# worker prompt above). A session that plans a change outside the loop reads the first, so both are asserted.
+# The rule has one home for its text (`guidelines/BuildGate.md` §2a, the iteration protocol) and one for the act
+# (the worker prompt above). A session that plans a change outside the loop reads the first, so both are asserted.
 case_prompt_iterationProtocolNamesTheChangeSurface() {
-  # files: *
+  # files: guidelines/BuildGate.md
   local doc
-  doc=$(cat "$LOOP_PROJECT_ROOT/guidelines/Build.md")
+  # §2a moved to `BuildGate.md` when the corpus was split into three layers; `Build.md` §2a is its pointer.
+  doc=$(cat "$LOOP_PROJECT_ROOT/guidelines/BuildGate.md")
   # quoted whole, so a `case` is used instead of `assert_contains`: the failure names the rule that is missing
   # rather than dumping 131 KB.
   case "$doc" in

@@ -1,0 +1,30 @@
+# The referring set, measured — not assumed
+
+## Command 1 (the brief's pattern — tolerates the backtick form the tree writes):
+
+```
+$ grep -rln 'MapRendering\.md.*§' guidelines/ AGENTS.md .pi/skills/
+guidelines/Backlog.recipes.md
+AGENTS.md
+```
+
+## Command 2 (the wider pattern, to catch a citation whose number precedes the document name):
+
+```
+$ grep -rn 'MapRendering\.md' guidelines/ AGENTS.md .pi/skills/ --include='*.md'
+guidelines/MapCar.md:5:pipeline they share is `guidelines/MapRendering.md`; the history is in `guidelines/MapCar.why.md`.
+guidelines/MapRendering.why.md:3:This is the rationale layer of `guidelines/MapRendering.md`: the history, the derivation, the dated
+guidelines/Backlog.recipes.md:749:eight sections — `UI.md` §1 (25 206 bytes) and `UIPhone.md` §8 (19 681), `MapRendering.md` §1 (22 592), `UIPhone.md` §7a (13 102),
+guidelines/MapRendering.recipes.md:3:This is the procedure layer of `guidelines/MapRendering.md`: the number tables and the measurement
+guidelines/DesignCrossVariant.md:37:- Pipeline details and pitfalls: `guidelines/MapRendering.md`.
+guidelines/DesignCrossVariant.md:60:- Details: `guidelines/MapRendering.md`.
+guidelines/DesignStack.md:53:  markers — see `guidelines/MapRendering.md` (analysed-route-segment overlay).
+guidelines/Backlog.md:47:| conventions of the app itself | `Design.md`, `UI.md`, `MapRendering.md`, `Build.md` — this document routes to them, it does not restate them |
+guidelines/Backlog.md:391:  reason a `§14` of `MapRendering.md` is written with its heading text.
+guidelines/MapFollow.md:5:`guidelines/MapRendering.md`; the rationale and the measurements behind these rules are in
+AGENTS.md:25:| how the map is drawn — pipeline, bitmaps, throttling, epochs, front buffer, overrun | `MapRendering.md` §1 (the index) — §1a 6.0 kB, §1b 3.1 kB, §1c 1.3 kB, §1d 10.3 kB, §1e 2.3 kB; also §2, §4, §5, §12, §13 |
+AGENTS.md:28:| label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapRendering.md` §20 "Label wrapping" |
+AGENTS.md:38:| route data and the numbers derived from it | `MapRendering.md` §19 |
+.pi/skills/process-failure-log/SKILL.md:26:| `guidelines/Build.md`, `guidelines/Design.md`, `guidelines/MapRendering.md`, `guidelines/UI.md`, `AGENTS.md`, `.pi/skills/*` | the artifacts the extracted actions *name* as their home (this skill records the target, it does not edit them unless the user asks) |
+.pi/skills/process-failure-log/SKILL.md:54:| Design / scope (verify premise, log both sides of a seam, decide pacing first) | `guidelines/Design.md`, `guidelines/MapRendering.md` |
+```

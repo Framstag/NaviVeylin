@@ -1,0 +1,5 @@
+=== rule names in the four ===
+guidelines/Regulatory.md:0
+guidelines/FeatureList.md:0
+guidelines/Metrics.md:0
+guidelines/Logging.md:0

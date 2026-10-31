@@ -7,9 +7,10 @@ have been the reviewer.
 
 ## Your inputs, and what you may run
 
-Your inputs are these four things, and you obtain them by reading, not by running anything: the change's
-diff, the project's rules (`AGENTS.md` and the guideline section the change names), the evidence the change
-cites, and this task.
+Your inputs are these four things, and you obtain them by reading, not by running anything bar the one
+read-only derivation item 7 names: the change's diff, the project's rules (`AGENTS.md`, and the guideline
+sections and named rules the review's reading set derives — item 7, not the sections the change's own
+artifacts name), the evidence the change cites, and this task.
 
 Your system prompt carries **no project context**: this child is started without the project's context files, so
 `AGENTS.md` is a file in the project and not a section of your prompt. Read it the way the project's own map is
@@ -28,7 +29,9 @@ guideline's own list names (`grep -n '^## '` over the document prints it). `guid
 {{CORRECTION_SCOPE}}
 
 **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
-the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The gate's
+the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The one
+command this task asks you to run is the reading-set derivation in item 7 (`tools/check-rule-routes.sh
+--diff`); it reads text and version control and writes nothing. The gate's
 result is an input, not something you reproduce: `tests=<n> failures=0` is **quoted from the evidence** the
 change carries, and a round that ran a suite answered a question nobody asked — the item records one reviewer
 that held a suite open for 4 min 1 s of a 4 h 40 m change (issue #236). A review is a reading round and it is
@@ -59,6 +62,13 @@ first in practice.
    diff; quote the line that depends on it. A copy that exists only in a build directory is fragile, so say so.
 7. **Spec and guideline honesty** — is the delta the right kind (ADDED vs MODIFIED), does it state a
    contract rather than an implementation, and did the guideline get a rule rather than a restatement?
+   Grade it against the reading set the diff derives, not against the sections the change's own artifacts
+   name. **Your reading set is what `bash tools/check-rule-routes.sh --diff {{DIFF_RANGE}}`, run inside
+   `{{CHANGE_ROOT}}`, derives for the paths the diff touched** — the guideline sections and the named rules
+   that own those paths. Read each, and grade the change per rule name. A section the change's artifacts name
+   beyond that set is an **addition** to the reading set: record it as an addition, never as a substitution
+   for a derived section. A derived section the change does not mention is graded anyway, because the map,
+   not the change, is what the review reads.
 8. **New overreach** — every claim no evidence supports, verbatim as `UNPROVEN: …`.
 
 ## Grade every finding

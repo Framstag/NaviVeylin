@@ -1,0 +1,9 @@
+relocation counts (blocks removed = statements found in the companion)
+
+Metrics.md -> Metrics.recipes.md        §1 invocations, §2 sample output, §7 ordering/empty-file notes  = 3 blocks
+Logging.md -> Logging.recipes.md        §1 logcat recipe, §2 NDK bridge build detail, §3 coordinate recipe = 3 blocks
+FeatureList.md -> FeatureList.recipes.md §4 generator invocations, §6 gate commands, §8 release invocation = 3 blocks
+Regulatory.md -> Regulatory.why.md      §9 inventory, §9 diagnostics history, §9 owner-side items, §10 watch list, §2/§6 why = 5 blocks
+Regulatory.md -> Regulatory.recipes.md  §10 source list, §2 licence checklist, §6 platform checklist, §9 verification recipe = 4 blocks
+
+every removed block appears in exactly one companion (no block moved twice, none dropped).

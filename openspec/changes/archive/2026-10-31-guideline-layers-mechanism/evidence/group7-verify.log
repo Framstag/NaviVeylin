@@ -1,0 +1,21 @@
+# Group 7 — 7.2 no-section-number-moves, 7.4 validate, 7.5 no document migration
+# date: 2026-10-31T09:42:28Z
+
+## 7.2 layers#noSectionNumberMoves
+$ diff <(pre-change ## heading-number sets) <(the same recomputed now)
+IDENTICAL — every document's ## heading-number set is what evidence/pre-change-section-numbers.txt recorded
+
+## 7.4 openspec validate
+$ openspec validate guideline-layers-mechanism --strict -> Change 'guideline-layers-mechanism' is valid
+$ openspec validate --changes --strict -> ✓ change/guideline-layers-mechanism (8 pre-existing failures in other changes, none mine)
+$ bash tools/check-openspec-hygiene.sh -> OpenSpec artifacts are consistent: 28 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+
+## 7.5 no document migration is a prerequisite
+$ git diff --name-only -- guidelines/
+(empty — no guideline document was touched)
+$ git status --short -- guidelines/
+(empty)
+AGENTS.md is at the repository root, not under guidelines/: its diet is the only entry-document edit.
+$ git diff --stat -- AGENTS.md
+ AGENTS.md | 119 +++++++++++++++-----------------------------------------------
+ 1 file changed, 29 insertions(+), 90 deletions(-)

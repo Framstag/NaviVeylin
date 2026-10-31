@@ -1,0 +1,44 @@
+# Relocation from the entry document — the `Backlog maintenance` block (task 6.1, verification only)
+
+`guideline-layers-mechanism` dieted `AGENTS.md`'s `## Backlog maintenance` block (it was 1 777 B) to one sentence
+plus its route. This task is verification-only: confirm the statements the diet removed are stated in
+`guidelines/Backlog.md`, and record the finding. No `AGENTS.md` edit was made for this task.
+
+## What the diet removed from `AGENTS.md`
+
+From `git show HEAD:AGENTS.md`, `## Backlog maintenance`, two statements were removed:
+
+1. the sentence **"The tracker is the live backlog: one GitHub issue per item in `Framstag/NaviVeylin`, carrying
+   exactly one `class/*`, one `category/*`, one `status/*` and one `source/*` label, and `agent/eligible` only when
+   a human authorised automated work."**
+2. the **nine-skill table** ("Nine skills own the tracker:", one row per skill and its job).
+
+## Where each removed statement is now stated
+
+1. **One issue per item, so many labels** — stated in `guidelines/Backlog.md` §3 "What the tracker holds":
+
+   ```
+   $ sed -n '/^## 3\./,/^## 4\./p' guidelines/Backlog.md | grep -n 'one issue\|class/\|category/\|status/\|source/\|agent/'
+   ```
+   §3 opens "**Rule: one item is one issue, and everything a reader selects on is a label.** Selection is a query
+   and never a read", and its namespace table names `class/` (kind), `category/` (area), `status/` (state),
+   `source/` (provenance), `prio/`, `sensor/` and `agent/`.
+
+   **`agent/eligible` only on a person's authorisation** — stated in `guidelines/Backlog.md` §5 "Who may write
+   what": "**Rule: the authorisation label is the only key to unattended work.** Everything else about an item may
+   be machine-set; that one may not. Filing is not authorising."
+
+2. **The nine skills and their jobs** — the block reduced them to a route; the job of each skill is the skill's
+   own contract, `.pi/skills/<name>/SKILL.md`, which `guidelines/Backlog.md` §1 routes to ("the operational recipe
+   — how to run a thing | `.pi/skills/*`"), and `Backlog.recipes.md` carries the loop procedure that names the
+   same skills. The nine skill paths resolve (`bash tools/check-doc-routes.sh` exits 0, "all 4 skill references
+   resolve"). No skill statement was orphaned: each lives in the `.pi/skills/*` directory the block's table
+   already pointed at.
+
+## Verification
+
+- `bash tools/check-doc-routes.sh` → exit 0.
+- Every skill path named by the documentation resolves (the block's own table named nine skills; those paths
+  resolve through the skill directories that carry a `SKILL.md`).
+- The removed sentence's normative content (one issue per item, the label namespaces, authorisation by a person
+  only) is found in `guidelines/Backlog.md` §3 and §5 above.

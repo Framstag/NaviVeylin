@@ -60,6 +60,8 @@ MUTATIONS=(
   '8.31@tools/sensors/sensors.json@s/"threshold": 1000000,/"threshold": 5000,/@hotspot#theBoundIsAboveOneChangedFile@a churn row bound is above the largest file it watches, so one change of a path it merely contains is not a condition (issue #665)'
   '8.32@tools/sensors/metrics/doc-context.sh@s/sensors_compare "$bytes" "$threshold" greater-than/sensors_compare "$bytes" "$threshold" below-floor/@sensors#routedSectionSizeRow@a routed section past the row bound is a violation (issue #197)'
   '8.33@tools/sensors/metrics/doc-context.sh@s/sensors_compare "$size" "$threshold" greater-than/sensors_compare "$size" "$threshold" below-floor/@sensors#entryDocumentSizeRow@an entry document past its own row bound is a violation (issue #197)'
+  '3.1@tools/sensors/metrics/doc-context.sh@s#sensors_compare "$size" "$threshold" greater-than || continue#sensors_compare "$size" "$threshold" below-floor || continue#@sensors#documentSizeRow@a normative document past the row bound is a violation (design D4)'
+  '3.2@tools/sensors/metrics/doc-context.sh@s#if \[ "$scope" = "normative-purity" \]; then#if false; then#@layers#aFigureInANormativeDocumentIsACondition@a measured figure inside a normative document is a condition (documentation-ownership, "A normative document carries no rationale and no procedure")'
 )
 
 if [ "$mode" = "list" ]; then

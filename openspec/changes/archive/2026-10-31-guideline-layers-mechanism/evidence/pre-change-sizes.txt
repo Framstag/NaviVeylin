@@ -1,0 +1,38 @@
+# Pre-change sizes — guideline-layers-mechanism, task 1.1
+# ruler: tools/check-doc-routes.sh --sizes (a section's cost = bytes from its ## heading
+#        through the line before the next ## heading)
+# date: 2026-10-31T08:59:31Z
+# format of a --sizes line: 'check-doc-routes: section-cost <doc> §<n> <bytes> bytes <lines> lines routed|not-routed'
+
+## routed sections past 12000 B (expect 8)
+check-doc-routes: section-cost Backlog.md §9 15785 bytes 171 lines routed
+check-doc-routes: section-cost Build.md §7 12052 bytes 161 lines routed
+check-doc-routes: section-cost Design.md §5 12781 bytes 146 lines routed
+check-doc-routes: section-cost Design.md §8 12058 bytes 156 lines routed
+check-doc-routes: section-cost MapRendering.md §1 22592 bytes 249 lines routed
+check-doc-routes: section-cost UI.md §1 26015 bytes 258 lines routed
+check-doc-routes: section-cost UI.md §7a 13867 bytes 166 lines routed
+check-doc-routes: section-cost UI.md §8 20271 bytes 251 lines routed
+
+count: 8
+
+## documents past 48000 B (expect 5: Build, Backlog, UI, MapRendering, Design)
+112888 guidelines/Backlog.md
+166383 guidelines/Build.md
+ 74205 guidelines/Design.md
+ 96482 guidelines/MapRendering.md
+111485 guidelines/UI.md
+count: 5
+
+## wc -c guidelines/*.md AGENTS.md
+112888 guidelines/Backlog.md
+166383 guidelines/Build.md
+ 74205 guidelines/Design.md
+ 17221 guidelines/FeatureList.md
+  7033 guidelines/Logging.md
+ 96482 guidelines/MapRendering.md
+  9551 guidelines/Metrics.md
+ 24942 guidelines/Regulatory.md
+111485 guidelines/UI.md
+ 26646 AGENTS.md
+646836 insgesamt

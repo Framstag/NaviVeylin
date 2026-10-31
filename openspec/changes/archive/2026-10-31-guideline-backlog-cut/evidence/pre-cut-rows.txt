@@ -1,0 +1,15 @@
+AGENTS.md rows naming guidelines/Backlog.md before the cut, verbatim (measured 2026-10-31).
+
+command: grep -n 'Backlog\.md' AGENTS.md
+
+:58 | the backlog itself, or the automation over it — where an item comes from, what the tracker holds, who may write what, how an item becomes work, the loop and its refusals, the checks, or using this tooling in another project | `Backlog.md` §1 "Status, and what this document owns", §4 "The invariants", §5 "Who may write what", §9 "Checks", §10 "Portability" |
+      -> ONE row carrying TWO subjects. Split in this change into the concept row
+         (`Backlog.md` §1, §4, §5) and the tooling row (`BacklogTooling.md` §9, §10, §11).
+
+:62 | copying the tooling into another project — what to copy, the three files to edit, the adapter to delete, the assumptions, and what an update costs | `PORTING.md`; the concept it lands is `Backlog.md` §10 "Portability", and the leak check is `tools/check-portability.sh`. ...
+      -> MIXED row: it routes PORTING.md and cites §10 by name as the concept PORTING.md lands.
+         Its §10 citation retargets to `BacklogTooling.md` §10; the row itself stays.
+
+No other row names the document. The split gives the tooling row a subject of its own, which is what makes
+`BacklogTooling.md` routed at all — `documentation-ownership` fails an unrouted document, so the row had to
+land in the same change as the new file.

@@ -14,7 +14,7 @@
 #                        pass a reserved label. No network, no token, no tracker.
 #   --live               read the tracker through `gh issue list --state all` (needs a token) and check the
 #                        per-issue invariants on every issue. Its unattended caller is the sensors pipeline's
-#                        `metadata-invariant` row (`guidelines/Backlog.md` §9, issue #292); run by hand it is
+#                        `metadata-invariant` row (`guidelines/BacklogTooling.md` §9, issue #292); run by hand it is
 #                        `helper/backlog-pass.sh`.
 #   --issues <file>      the same per-issue checks over a JSON array — what the offline cases and this
 #                        script's own selftest drive.

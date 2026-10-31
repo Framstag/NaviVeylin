@@ -1336,7 +1336,7 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
 render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope]
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
     "CORRECTION_SCOPE=${2:-}" \
-    "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "EVIDENCE_DIR=$item_dir" \
+    "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "DIFF_RANGE=$diff_base" "EVIDENCE_DIR=$item_dir" \
     "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
 }
 

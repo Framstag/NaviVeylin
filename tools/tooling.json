@@ -2,6 +2,7 @@
   "profile": 1,
   "comment": "THE PROJECT PROFILE — the one file a second project adapts. Every project-specific fact the issue tooling needs lives here: the repository, who may authorise work, the label vocabulary, the source renames and the input bounds. Nothing under tools/issues/*.sh, tools/issues/import.sh or tools/issues/core/*.java names a project value; those files read this profile at run time (design D11).",
   "repo": "Framstag/NaviVeylin",
+  "docRoutes": "tools/doc-routes.json",
   "allowedAuthors": ["Framstag"],
   "requiredLabels": ["agent/eligible"],
   "reservedLabels": ["agent/eligible"],

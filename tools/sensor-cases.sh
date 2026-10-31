@@ -69,6 +69,11 @@ SENSOR_CASES=(
   'sensors#routedSectionSizeRow'
   'sensors#routedSectionSizeSkipsUnrouted'
   'sensors#entryDocumentSizeRow'
+  'sensors#documentSizeRow'
+  'sensors#normativePurityRow'
+  'layers#aFigureInANormativeDocumentIsACondition'
+  'layers#aWhyHeadingInANormativeDocumentIsACondition'
+  'layers#aCommandThatIsTheRuleIsNotACondition'
   'sensors#metadataDriftRow'
   'sensors#metadataDriftClearsUnderItsOwnIdentity'
   'sensors#brokenMainFingerprintDistinguishesCauses'
@@ -147,6 +152,11 @@ sensor_run_case() {
     'sensors#routedSectionSizeRow') case_sensors_routedSectionSizeRow ;;
     'sensors#routedSectionSizeSkipsUnrouted') case_sensors_routedSectionSizeSkipsUnrouted ;;
     'sensors#entryDocumentSizeRow') case_sensors_entryDocumentSizeRow ;;
+    'sensors#documentSizeRow') case_sensors_documentSizeRow ;;
+    'sensors#normativePurityRow') case_sensors_normativePurityRow ;;
+    'layers#aFigureInANormativeDocumentIsACondition') case_layers_aFigureInANormativeDocumentIsACondition ;;
+    'layers#aWhyHeadingInANormativeDocumentIsACondition') case_layers_aWhyHeadingInANormativeDocumentIsACondition ;;
+    'layers#aCommandThatIsTheRuleIsNotACondition') case_layers_aCommandThatIsTheRuleIsNotACondition ;;
     'sensors#metadataDriftRow') case_sensors_metadataDriftRow ;;
     'sensors#metadataDriftClearsUnderItsOwnIdentity') case_sensors_metadataDriftClearsUnderItsOwnIdentity ;;
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
@@ -2072,6 +2082,132 @@ case_sensors_entryDocumentSizeRow() {
   assert_not_contains "$findings" '"path":"none"' "a cleared condition is not the row-level clear: $out"
 }
 
+# The document bound (design D4): a normative `guidelines/<Concern>.md` is bounded by its own row — a 166 383-byte
+# file is a condition even while every section of it is under the section bound. A companion (`.why.md`,
+# `.recipes.md`) is not a normative document and is measured by no such row.
+case_sensors_documentSizeRow() {
+  local dir row out findings status expected
+
+  row=$(jq -c '.rows[] | select(.id == "document-size")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no document-size row"
+  assert_eq "32000" "$(jq -r '.threshold' <<< "$row")" "the row's bound is the 32 000 bytes the decision recorded"
+  assert_eq "greater-than" "$(jq -r '.comparison' <<< "$row")" "the row fires above its bound"
+  assert_eq '["document"]' "$(jq -c '.fingerprint.fields' <<< "$row")" \
+    "the condition's identity is the document"
+  assert_eq "improvement" "$(jq -r '.class' <<< "$row")" "the row files an improvement"
+  assert_eq "normative-document" "$(jq -r '.scope' <<< "$row")" "the row measures the normative documents"
+
+  dir=$(scratch)
+  mkdir -p "$dir/guidelines"
+  printf '# a fixture project\n' > "$dir/AGENTS.md"
+  {
+    printf '## 1. A large normative document\n'
+    seq 1 1700 | sed 's/^/a line of prose that fills the document up/'
+    printf '\n'
+  } > "$dir/guidelines/Doc.md"
+  printf '## 1. Small\n' > "$dir/guidelines/Other.md"
+  {
+    printf '## §1 A companion is not a document\n'
+    seq 1 1700 | sed 's/^/a line of rationale for the rule above/'
+    printf '\n'
+  } > "$dir/guidelines/Doc.why.md"
+  git -C "$dir" init -q -b main >/dev/null 2>&1 || fail "could not create the fixture repository"
+  git_commit "$dir" one
+
+  out=$(cd "$dir" && SENSORS_ID=document-size SENSORS_ROOT="$dir" SENSORS_THRESHOLD=32000 \
+    SENSORS_ROW="$row" SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the measurement runs: $out"
+  findings=$(printf '%s\n' "$out" | grep '^{' || true)
+  expected=$(wc -c < "$dir/guidelines/Doc.md" | tr -d ' ')
+  assert_contains "$findings" '"document":"Doc"' "a normative document past the bound is its own condition: $out"
+  assert_contains "$findings" '"measurement":"'"$expected"'"' \
+    "the measurement is the document's byte count ($expected): $out"
+  assert_contains "$findings" '"verdict":"violation"' "past the bound is a violation: $out"
+  assert_not_contains "$findings" '"document":"Other"' "a document inside the bound is no condition: $findings"
+  assert_not_contains "$findings" 'Doc.why' "a companion is not a normative document: $findings"
+
+  # The bound is the registry's, not the script's.
+  assert_empty "$(grep -nE 'threshold=[0-9]|threshold="?[0-9]' "$SENSORS_ENGINE/metrics/doc-context.sh" || true)" \
+    "the script holds no threshold constant"
+}
+
+# One line, token and file of text the normative layer must not hold, one condition per (document, token).
+write_purity_fixture() { # $1 dir, $2 the body appended under the rule
+  mkdir -p "$1/guidelines"
+  printf '# a fixture project\n' > "$1/AGENTS.md"
+  {
+    printf '# Doc Specification\n\n## 1. A rule\n\n- **Rule: a rule.** The refusal path.\n\n'
+    printf '%s\n' "$2"
+  } > "$1/guidelines/Doc.md"
+  git -C "$1" init -q -b main >/dev/null 2>&1 || fail "could not create the fixture repository"
+  git_commit "$1" one
+}
+
+purity_findings() { # $1 dir, $2 row
+  ( cd "$1" && SENSORS_ID=normative-purity SENSORS_ROOT="$1" SENSORS_THRESHOLD=1 \
+    SENSORS_ROW="$2" SENSORS_CONDITIONS='[]' SENSORS_PROFILE="$SENSORS_REPO_ROOT/tools/tooling.json" \
+    bash "$SENSORS_ENGINE/metrics/doc-context.sh" 2>&1 ) | grep '^{' || true
+}
+
+case_sensors_normativePurityRow() {
+  local row dir findings
+  row=$(jq -c '.rows[] | select(.id == "normative-purity")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no normative-purity row"
+  assert_eq '["document","token"]' "$(jq -c '.fingerprint.fields' <<< "$row")" \
+    "the condition's identity is the document and the token"
+  assert_eq "normative-purity" "$(jq -r '.scope' <<< "$row")" "the row measures the purity of the normative documents"
+  assert_eq "improvement" "$(jq -r '.class' <<< "$row")" "the row files an improvement"
+
+  dir=$(scratch)
+  write_purity_fixture "$dir" 'Measured (measured 2026-10-31): the rule was added.'
+  findings=$(purity_findings "$dir" "$row")
+  assert_contains "$findings" '"document":"Doc"' "a measured figure in a normative document is a condition: $findings"
+  assert_contains "$findings" '"token":"measured"' "the condition names the token: $findings"
+  assert_contains "$findings" '"verdict":"violation"' "it is a violation: $findings"
+}
+
+# A `(measured YYYY-…)` figure in a normative document is a condition with the file, the line and the token.
+case_layers_aFigureInANormativeDocumentIsACondition() {
+  local row dir findings
+  row=$(jq -c '.rows[] | select(.id == "normative-purity")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no normative-purity row"
+  dir=$(scratch)
+  write_purity_fixture "$dir" 'Measured (measured 2026-10-31): the rule was added.'
+  findings=$(purity_findings "$dir" "$row")
+  assert_contains "$findings" '"document":"Doc"' "the figure is reported with its file: $findings"
+  assert_contains "$findings" '"token":"measured"' "the figure is reported with its token: $findings"
+  assert_contains "$findings" '"measurement":"7"' "the figure is reported with the line that carries it: $findings"
+}
+
+# A `### Why …` heading in a normative document is a condition, so rationale cannot re-enter the layer it left.
+case_layers_aWhyHeadingInANormativeDocumentIsACondition() {
+  local row dir findings
+  row=$(jq -c '.rows[] | select(.id == "normative-purity")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no normative-purity row"
+  dir=$(scratch)
+  write_purity_fixture "$dir" '### Why the rule exists
+
+Because the measurement said so.'
+  findings=$(purity_findings "$dir" "$row")
+  assert_contains "$findings" '"token":"why"' "the rationale heading is a condition: $findings"
+  assert_contains "$findings" '"measurement":"7"' "the heading is reported with its line: $findings"
+}
+
+# A fenced block that is just a command — the rule's own statement, with no output — is not a condition.
+case_layers_aCommandThatIsTheRuleIsNotACondition() {
+  local row dir findings
+  row=$(jq -c '.rows[] | select(.id == "normative-purity")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no normative-purity row"
+  dir=$(scratch)
+  write_purity_fixture "$dir" $'```\n./gradlew :app:assembleDebug\n```'
+  findings=$(purity_findings "$dir" "$row")
+  assert_not_contains "$findings" '"verdict":"violation"' \
+    "a fenced block holding only a command is not a condition: $findings"
+  assert_contains "$findings" '"verdict":"clear"' "the row still reaches a verdict: $findings"
+}
+
 # The priority invariant as a scheduled check (issue #292): an item whose band label and the marker the pass
 # wrote disagree was reported only when a person ran `check-metadata.sh --live` by hand, so drift from any
 # writer — a hand edit on the tracker included — stayed invisible and every check stayed green. The row
@@ -2604,7 +2740,7 @@ case_sensors_theDocumentedCredentialCoversEveryDeclaredRow() {
   # §9 owns the checks' doctrine, so the scope its credential is created with is stated there: Issues is
   # what files, annotates and closes an issue, Pull requests is what a row that lists pull requests needs.
   scope=$(awk '/^## 9\./ { inside = 1 } /^## 10\./ { inside = 0 } inside' "$doc")
-  [ -n "$scope" ] || fail "guidelines/Backlog.md §9 could not be read"
+  [ -n "$scope" ] || fail "guidelines/BacklogTooling.md §9 could not be read"
   assert_contains "$scope" "Issues: Read and write" "the doctrine does not name the tracker's write scope"
   assert_contains "$scope" "Pull requests: Read" "the doctrine does not name the scope the pull-request row needs"
 

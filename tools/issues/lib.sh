@@ -451,7 +451,7 @@ issues_prio_field() {
 # written only with the body that carries its marker"). The rule lives here because a writer is not one script:
 # `prioritise.sh` writes through `update.sh`, and a person or a skill writes through the same one — a rule kept
 # in the pass alone would leave the other writer free to make the drift the `metadata-invariant` row only
-# reports (issue #671; `guidelines/Backlog.md` §9).
+# reports (issue #671; `guidelines/BacklogTooling.md` §9).
 
 # issues_band_label_values <profile> <label>… → the band values among them, one per line
 #
@@ -483,7 +483,7 @@ issues_band_label_values() { # <profile> <label>…
 #                         with a marker and no label
 #
 # The two shapes are the two the call decides by itself. Which half is wrong when the tracker is already
-# drifted stays a judgement (`guidelines/Backlog.md` §9), and a body-only write is not gated: seeing that the
+# drifted stays a judgement (`guidelines/BacklogTooling.md` §9), and a body-only write is not gated: seeing that the
 # marker it carries disagrees with the item's stored label needs a read of the item, which this gate does not
 # buy (`design.md`, "Alternatives the evidence eliminated").
 #

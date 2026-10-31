@@ -14,7 +14,7 @@ import androidx.car.app.model.Row
 /**
  * About screen: app name, description, installed version, and the
  * OpenStreetMap data licence (spec: osm-attribution — "Licence info
- * reachable in car app"). PaneTemplate rows are not actionable (UI.md §3),
+ * reachable in car app"). PaneTemplate rows are not actionable (UICar.md §3),
  * so the licence link is a pane-level action.
  */
 class AboutScreen(carContext: CarContext) : Screen(carContext) {

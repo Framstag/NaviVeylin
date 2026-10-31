@@ -1,0 +1,71 @@
+# The self-test's ruler excluded companions — a gap the first companion surfaced
+
+`guidelines/Backlog.why.md` and `guidelines/Backlog.recipes.md` (landed by `guideline-backlog-layers`) are the
+first companion pair the tree holds. They surfaced a gap in this change's `tools/check-doc-routes-selftest.sh`:
+its `section_spans` (`L416`) iterates `guidelines/*.md`, companions included, so it counted the companions' 14
+`## §N` anchor headings as sections of the tree, while `tools/check-doc-routes.sh --sizes` — the ruler it is a
+self-test for — excludes companions by design ("a companion is not a document a route names"). The case
+`routed-read#bound` compared the two counts and failed.
+
+## Measured before / after
+
+With the two companions present, before the fix (case `routed-read#bound`):
+
+```
+$ bash tools/check-doc-routes-selftest.sh --case 'routed-read#bound'
+FAIL  routed-read#bound — every section of every routed document is printed with its cost, ...
+        the report carries 151 section(s), the documents carry 165
+```
+
+165 − 151 = **14** = the anchors in the companions: `Backlog.recipes.md` 9 (`§2`, `§7a`–`§7e`, `§8`, `§9`,
+`§10`) + `Backlog.why.md` 5 (`§12`, `§13`, `§5`, `§6`, `§9`) = 14.
+
+Causation confirmed by moving the companions aside (nothing else changed): the case passed with `151 section(s)`
+printed and no extra document to count.
+
+After the fix, the whole suite is green:
+
+```
+$ bash tools/check-doc-routes-selftest.sh
+check-doc-routes-selftest: all 32 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+```
+
+## The fix
+
+Chosen: the one-line guard, not the reuse of `--sizes`. `section_spans` produces each section's first and last
+line (`first`/`last`), which the case compares against the ruler's own `sed` count per document; `--sizes` prints
+only byte counts, not line spans, so taking the count from it would have left a second, differently-shaped
+implementation of the same exclusion rather than removing one. The guard gives the exclusion one form, and it is
+the same `case … *.why|*.recipes) continue ;; esac` shape `check-doc-routes.sh` and
+`tools/sensors/metrics/doc-context.sh` already use to derive their document sets.
+
+`git diff tools/check-doc-routes-selftest.sh` (this change's hunk is the last one, in `section_spans`):
+
+```diff
+@@ -274,4 +415,7 @@ table_pairs() { # $1 = the Documentation Map region
+ # through the line before the next one, a heading inside a fenced block being an example.
+ section_spans() { # $1 = document path, $2 = document name
++  # a companion (`*.why.md`, `*.recipes.md`) is read, not a document a route names, so this ruler's count
++  # must not carry its `## §N` anchors either: skip it, matching `check-doc-routes.sh`'s document set
++  case "$(basename "$1" .md)" in *.why|*.recipes) return 0 ;; esac
+   LC_ALL=C awk -v name="$2" '
+     /^```/ { fence = !fence }
+```
+
+## The sibling check, `normative-purity`
+
+Asked of this same change: does the metric's `normative-purity` scope exclude companions? It does —
+`tools/sensors/metrics/doc-context.sh`'s `normative_documents()` skips `*.why`/`*.recipes` — so the total is
+**lower** than the pre-cut total, not higher: the pre-cut tree carried 101 conditions (41 of them
+`guidelines/Backlog.md`'s own `issue #N` references), and the post-cut tree carries **60**, none for
+`guidelines/Backlog.md`:
+
+```
+$ SENSORS_THRESHOLD=1 SENSORS_ROW='{"scope":"normative-purity"}' bash tools/sensors/metrics/doc-context.sh | grep -c violation
+60
+$ ... | grep -c '"document":"Backlog"'
+0
+```
+
+The companions legitimately carry dated figures and `issue #N` references; that scope does not scan them, so this
+gap is the self-test's ruler alone.

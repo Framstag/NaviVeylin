@@ -3,10 +3,13 @@
 #
 # The start-of-session cost is the entry document a session is handed plus the guideline sections it is then
 # sent to. Nothing measured either, so a section that doubled broke nothing and announced nothing (issue #197).
-# Two rows share this measurement, and the registry's `scope` field says which half each one bounds:
+# Four rows share this measurement, and the registry's `scope` field says which half each one bounds:
 #
-#   routed-section  every section the routing table names, one condition per (document, section)
-#   entry-document  the always-read entry document the table lives in, one condition for it
+#   routed-section     every section the routing table names, one condition per (document, section)
+#   entry-document     the always-read entry document the table lives in, one condition for it
+#   normative-document every normative `guidelines/<Concern>.md` (companions excluded), one condition per document
+#   normative-purity   a measured figure, a tally, a dated provenance or a `### Why …` heading inside a
+#                      normative document, one condition per (document, token), reported with its line
 #
 # The routing table is the *entry document's own* `## Documentation Map` region, so the pairs are derived where a
 # reader reads them, never from a list here: a section the table stops naming stops being a condition without an
@@ -44,6 +47,8 @@ line_bytes=80
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/doc-context.XXXXXX") || {
   case "$scope" in
     entry-document) sensors_emit_error '{"path":"unknown"}' "no-scratch-directory" ;;
+    normative-document) sensors_emit_error '{"document":"unknown"}' "no-scratch-directory" ;;
+    normative-purity) sensors_emit_error '{"document":"unknown","token":"unknown"}' "no-scratch-directory" ;;
     *) sensors_emit_error '{"document":"unknown","section":"unknown"}' "no-scratch-directory" ;;
   esac
   exit 0
@@ -56,16 +61,57 @@ trap 'rm -rf "$tmp"' EXIT
 fail_check() { # <reason-token>
   case "$scope" in
     entry-document) sensors_emit_error '{"path":"unknown"}' "$1" ;;
+    normative-document) sensors_emit_error '{"document":"unknown"}' "$1" ;;
+    normative-purity) sensors_emit_error '{"document":"unknown","token":"unknown"}' "$1" ;;
     *) sensors_emit_error '{"document":"unknown","section":"unknown"}' "$1" ;;
   esac
 }
 
-[ -n "$entry" ] || { fail_check "no-entry-document-declared"; exit 0; }
-entry_path="$root/$entry"
-[ -f "$entry_path" ] || { fail_check "no-entry-document"; exit 0; }
+# The entry document is required by the two scopes that read it (the entry document itself, and the routing
+# table its pairs are derived from); the normative-document and normative-purity scopes read `guidelines/`
+# alone and declare no entry.
+case "$scope" in
+  entry-document|routed-section)
+    [ -n "$entry" ] || { fail_check "no-entry-document-declared"; exit 0; }
+    entry_path="$root/$entry"
+    [ -f "$entry_path" ] || { fail_check "no-entry-document"; exit 0; }
+    ;;
+esac
 
 bytes_of() { wc -c < "$1" | tr -d ' '; }
 lines_of() { wc -l < "$1" | tr -d ' '; }
+
+# A normative document is a `guidelines/<Concern>.md` that is not a companion: a `.why.md` (rationale) or a
+# `.recipes.md` (procedure) is the same concern's other layer, read against its base document and bounded by
+# none of these rows.
+normative_documents() {
+  for path in "$root"/guidelines/*.md; do
+    [ -f "$path" ] || continue
+    case "$(basename "$path" .md)" in *.why|*.recipes) continue ;; esac
+    printf '%s\n' "$path"
+  done
+}
+
+# One line per occurrence of text the normative layer must not hold: a `(measured YYYY-…)` figure, a `### Why …`
+# heading, an `issue #N` reference, or a fenced block that carries a command's output — a `tests=`/`failures=`
+# tally or a dated line. A fenced block that is just a command (no output) is the rule's own statement and is
+# not reported (`documentation-ownership`, "A normative document carries no rationale and no procedure").
+purity_scan() { # $1 path → lines "<line><TAB><token>"
+  LC_ALL=C awk '
+    /^```/ {
+      if (fence) { fence = 0; if (ftally) print fstart "\toutput" } else { fence = 1; fstart = NR; ftally = 0 }
+      next
+    }
+    fence {
+      if ($0 ~ /tests=|failures=/ || $0 ~ /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/) ftally = 1
+      next
+    }
+    {
+      if ($0 ~ /\(measured [0-9][0-9][0-9][0-9]-/) print NR "\tmeasured"
+      if ($0 ~ /^### Why /) print NR "\twhy"
+      if ($0 ~ /issue #[0-9]/) print NR "\tissue"
+    }' "$1"
+}
 
 # -------------------------------------------------------------------------------------------- the entry document
 
@@ -100,6 +146,94 @@ if [ "$scope" = "entry-document" ]; then
     sensors_emit "$fingerprint" "none" clear "$fields" "" \
       "the entry document is inside its size bound" \
       "$entry is ${size} bytes in ${entry_lines} lines, inside the row's bound of ${threshold} bytes, and no size condition is recorded"
+  fi
+  exit 0
+fi
+
+# --------------------------------------------------------------------------------- the normative documents
+
+# `document-size`: every normative document (`guidelines/<Concern>.md`, companions excluded) is bounded by the
+# row's own threshold, one condition per document, identified by its path. The row is what retires the status
+# quo where a 166 383-byte file was legal merely because no section of it was routed past its own bound.
+if [ "$scope" = "normative-document" ]; then
+  findings=0
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    doc=$(basename "$path" .md)
+    size=$(bytes_of "$path"); doc_lines=$(lines_of "$path")
+    fields=$(jq -nc --arg d "$doc" '{document: $d}')
+    fingerprint=$(sensors_fingerprint "$fields" "document")
+    printf 'doc-context: %s.md bytes=%s lines=%s (bound %s bytes)\n' "$doc" "$size" "$doc_lines" "$threshold" >&2
+    sensors_compare "$size" "$threshold" greater-than || continue
+    sensors_emit "$fingerprint" "$size" violation "$fields" "" \
+      "the normative document is past its size bound" \
+      "guidelines/${doc}.md is ${size} bytes in ${doc_lines} lines, past the row's bound of ${threshold} bytes (~$((threshold / line_bytes)) lines at ${line_bytes} bytes/line)"
+    findings=$((findings + 1))
+  done < <(normative_documents)
+  while IFS= read -r condition; do
+    [ -n "$condition" ] || continue
+    doc=$(jq -r '.condition.document // empty' <<< "$condition")
+    [ -n "$doc" ] || continue
+    path="$root/guidelines/$doc.md"
+    [ -f "$path" ] || continue
+    size=$(bytes_of "$path")
+    sensors_compare "$size" "$threshold" greater-than && continue
+    fields=$(jq -nc --arg d "$doc" '{document: $d}')
+    fingerprint=$(sensors_fingerprint "$fields" "document")
+    sensors_emit "$fingerprint" "$size" clear "$fields" "" \
+      "the normative document is inside its size bound" \
+      "guidelines/${doc}.md is ${size} bytes, inside the row's bound of ${threshold} bytes"
+    findings=$((findings + 1))
+  done < <(jq -c '.[]? | select(.state == "OPEN")' <<< "${SENSORS_CONDITIONS:-[]}")
+  if [ "$findings" -eq 0 ]; then
+    fields='{"document":"none"}'
+    fingerprint=$(sensors_fingerprint "$fields" "document")
+    sensors_emit "$fingerprint" "none" clear "$fields" "" \
+      "no normative document is past its size bound" \
+      "every normative document under guidelines/ is inside the row's bound of ${threshold} bytes, and no size condition is recorded"
+  fi
+  exit 0
+fi
+
+# `normative-purity`: a normative document states rules and their refusal paths, and holds no measurement, no
+# command's output, no dated provenance and no `### Why …` heading — each occurrence is a condition with the
+# file and the line that carries it, so a rationale cannot re-enter the layer it left.
+if [ "$scope" = "normative-purity" ]; then
+  findings=0
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    doc=$(basename "$path" .md)
+    while IFS="$tab" read -r line token; do
+      [ -n "$token" ] || continue
+      fields=$(jq -nc --arg d "$doc" --arg t "$token" '{document: $d, token: $t}')
+      fingerprint=$(sensors_fingerprint "$fields" "document token")
+      sensors_emit "$fingerprint" "$line" violation "$fields" "" \
+        "the normative document carries rationale or procedure" \
+        "guidelines/${doc}.md line ${line} carries a ${token} the normative layer must not hold — move it into guidelines/${doc}.why.md or guidelines/${doc}.recipes.md"
+      findings=$((findings + 1))
+    done < <(purity_scan "$path")
+  done < <(normative_documents)
+  while IFS= read -r condition; do
+    [ -n "$condition" ] || continue
+    doc=$(jq -r '.condition.document // empty' <<< "$condition")
+    token=$(jq -r '.condition.token // empty' <<< "$condition")
+    [ -n "$doc" ] && [ -n "$token" ] || continue
+    path="$root/guidelines/$doc.md"
+    [ -f "$path" ] || continue
+    purity_scan "$path" | awk -F"$tab" -v t="$token" '$2 == t { found = 1 } END { exit found ? 0 : 1 }' && continue
+    fields=$(jq -nc --arg d "$doc" --arg tok "$token" '{document: $d, token: $tok}')
+    fingerprint=$(sensors_fingerprint "$fields" "document token")
+    sensors_emit "$fingerprint" "0" clear "$fields" "" \
+      "the normative document holds no such text" \
+      "guidelines/${doc}.md carries no ${token} any more"
+    findings=$((findings + 1))
+  done < <(jq -c '.[]? | select(.state == "OPEN")' <<< "${SENSORS_CONDITIONS:-[]}")
+  if [ "$findings" -eq 0 ]; then
+    fields='{"document":"none","token":"none"}'
+    fingerprint=$(sensors_fingerprint "$fields" "document token")
+    sensors_emit "$fingerprint" "none" clear "$fields" "" \
+      "no normative document carries rationale or procedure" \
+      "every normative document under guidelines/ is free of a measured figure, a tally, a dated provenance and a ### Why heading, and no condition is recorded"
   fi
   exit 0
 fi

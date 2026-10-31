@@ -1,0 +1,23 @@
+# Sensor conditions, before and after
+
+Before (recorded in pre-cut.md shop): document-size carried 3 (Design, MapRendering, UI);
+purity carried 20 (UI 8, MapRendering 5, Design 4, FeatureList 2, Logging 1).
+
+$ SENSORS_ROW={scope:normative-document} SENSORS_THRESHOLD=48000 bash tools/sensors/metrics/doc-context.sh | jq .document  (violations)
+Design MapRendering 
+document-size conditions AFTER = 2 (Design, MapRendering)
+
+$ SENSORS_ROW={scope:normative-purity} SENSORS_THRESHOLD=1 bash tools/sensors/metrics/doc-context.sh | jq .document  (violations)
+      1 Design 387
+      1 Design 398
+      1 Design 723
+      1 Design 789
+      1 FeatureList 113
+      1 FeatureList 191
+      1 Logging 33
+      1 MapRendering 1169
+      1 MapRendering 505
+      1 MapRendering 813
+      1 MapRendering 87
+      1 MapRendering 90
+purity conditions AFTER = 12; UI and UIPhone carry none (0 each)

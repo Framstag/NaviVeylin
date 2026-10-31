@@ -1,0 +1,16 @@
+# Sensor rows: revert-checks — tasks 3.5, 3.6
+# date: 2026-10-31T09:10:35Z
+
+## 3.5 — pad a fixture document past the bound: the metric must report its path and byte count
+   the guard is the row's comparison; the mutation weakens it and the named case fails
+$ bash tools/sensor-mutations.sh --only 3.1
+MUTATION 3.1: sensors#documentSizeRow red under the mutation, green after the restore — a normative document past the row bound is a violation (design D4)
+
+sensor-mutations: 1 behaved, 0 did not
+
+## 3.6 — a (measured 2026-10-31) figure inside a normative document: the metric must report it with its line
+   the guard is the normative-purity scan; the mutation disables it and the named case fails
+$ bash tools/sensor-mutations.sh --only 3.2
+MUTATION 3.2: layers#aFigureInANormativeDocumentIsACondition red under the mutation, green after the restore — a measured figure inside a normative document is a condition (documentation-ownership, "A normative document carries no rationale and no procedure")
+
+sensor-mutations: 1 behaved, 0 did not

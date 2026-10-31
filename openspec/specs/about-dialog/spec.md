@@ -153,7 +153,7 @@ from that list. The list SHALL be available without network access.
 ### Requirement: License list is not surfaced in the car app
 
 Because the car app host constrains non-actionable template rows
-(`guidelines/UI.md` §3), the in-car about screen SHALL NOT present the bundled
+(`guidelines/UICar.md` §3), the in-car about screen SHALL NOT present the bundled
 dependency license list; it SHALL continue to show the app identity and the map
 data attribution. This is a deliberate parity deviation between phone and car.
 

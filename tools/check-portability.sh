@@ -7,7 +7,7 @@
 # `tools/loop/loop.conf`). One leaked literal — a repository name, an allowlisted author, a value of the
 # vocabulary, a path the registry declares, the gate command — is the whole difference between "the tool
 # runs in someone else's repository" and "the second project discovers the leaks one at a time"
-# (`tooling-portability` D1, `guidelines/Backlog.md` §10).
+# (`tooling-portability` D1, `guidelines/BacklogTooling.md` §10).
 #
 # The rule is a check over a **declared value set**, not a hand-written ban list: the values it forbids
 # are read from the project's own profile and per-tool configs at run time, so a value added to the

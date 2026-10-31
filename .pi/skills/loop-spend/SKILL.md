@@ -17,7 +17,7 @@ bash tools/loop-spend-selftest.sh            # 23 cases on a fixture the test wr
 
 A registry row watches the same number without being asked: `loop-spend` in `tools/sensors/sensors.json`
 measures the **duplicate-read share** this report prints, files when it stays past 60 % for two consecutive
-days (`guidelines/Backlog.md` §9, issue #690), and records `no-archive` on its own record issue where the
+days (`guidelines/BacklogTooling.md` §9, issue #690), and records `no-archive` on its own record issue where the
 stream is absent — which is every CI run, because `.pi/` is machine-local. So a regression reaches the tracker
 by itself; what still needs this tool is the *why*, and every number below.
 

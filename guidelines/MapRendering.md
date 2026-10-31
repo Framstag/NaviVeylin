@@ -1,28 +1,107 @@
 # Map Rendering — Knowledge Base & Rules
 
-This document preserves the rules, constraints, and pitfalls of the map render pipeline
-(`MapRenderer`, `MapCanvasViewModel`, `LocationService`) that we worked out over several
-debugging rounds. Read before making changes to rendering/follow-mode/GPS processing!
-
-Target behavior: the map stays stable in follow mode (no jumps), the GPS marker sits exactly on
-the vehicle position, and after corners the marker arrow immediately points in the direction of
-travel while the map itself rotates at its own pace.
+This document owns the render pipeline and its data rules — the two render modes, the bitmap
+lifecycle, coalescing, the marker overlay's projection and the epochs. A frame's delivery is
+`guidelines/MapFrames.md`; a route's numbers are `guidelines/MapRoute.md`; the stylesheet, icon and
+label-wrapping contract is `guidelines/MapStyling.md`. The follow path is `guidelines/MapFollow.md`,
+the car renderer `guidelines/MapCar.md`. The history, the measurements and the rejected alternatives
+are in `guidelines/MapRendering.why.md`; the commands and number tables are in
+`guidelines/MapRendering.recipes.md`.
 
 ---
 
 ## 1. Render Pipeline Architecture
 
+This section is an index by question; the rules are stated under the sub-sections, and the history and the
+measurements behind them are in `guidelines/MapRendering.why.md` §1.
+
+- **§1a** — follow framing: the vehicle anchor is applied in exactly one place, the render target.
+- **§1b** — the two render modes (`TILES`, `DIRECT`) and how `executeRender` selects between them.
+- **§1c** — the overlay stage, the mode switch, the low-zoom risk and the removed helpers.
+- **§1d** — marker projection: which frame the Compose and car overlays project against.
+- **§1e** — the follow display contract shared by the phone and Android Auto.
+
+
+## 1a. Follow framing — the anchor applies to the RENDER TARGET (read before touching follow mode)
+
+
+- **Rule: the vehicle anchor is applied in exactly one place — the follow render target.** The
+  frame is rendered with its center at `anchorCenter(vehicle, resolveAnchorFraction(activeAnchor, insets))`
+  (`core/VehicleAnchor.kt`), so the vehicle sits at the anchor *inside the bitmap*. The blit/
+  display offset then carries the prediction drift only (`OverrunWindow.shiftPx` with the
+  anchor parameters). Subtracting the anchor a second time from the drawn offset pushes the frame
+  outside the overrun margin and paints an uncovered strip of `surfaceColor`.
+- **Rule: The anchor fraction is relative to the map canvas, and the resolved value is published once.**
+  `resolveAnchorFraction(preset, left/top/right/bottom insets, W, H)` keeps the preset fraction exact
+  unless the marker — its footprint plus padding — falls inside a covered region (phone: next-turn card,
+  routing-status card, widget column, street-name pill — measured via `onSizeChanged` and pushed with
+  `MapCanvasViewModel.setMapOverlayInsets`); a covered preset moves per axis to the nearest free position
+  (covered-region edge + the grid's 10% margin), and the result is clamped into `0.1..0.9`. The ViewModel
+  publishes it as `MapCanvasUiState.resolvedAnchor`; the follow render target, the Compose marker
+  overlay **and the follow blit offset** all consume that value —
+  never re-derive it and never pass the raw preset: a blit computed against the preset while the frame
+  renders on the resolved fraction leaves the marker ahead of the content by the anchor delta and keeps
+  the offset outside the overrun margin (500 ms re-render churn). The blit offset has **one** computing
+  place, `FollowBlitRules.offsetFor`, which takes the whole `MapCanvasUiState` and reads `resolvedAnchor`
+  itself: the anchor is not a parameter, because the screen's previous inline
+  `OverrunWindow.shiftPx(…, activeFollowAnchor.fx, activeFollowAnchor.fy)` call site was
+  invisible to every case and needed two fixes in one day (the dated record is `MapRendering.why.md` §1). A caller that rebuilds
+  the state around the preset is refused too: the guard reads the code around the seam call, so
+  `offsetFor(ui.copy(resolvedAnchor = ResolvedAnchor(ui.activeFollowAnchor.fx,
+  ui.activeFollowAnchor.fy)), …)` fails it (`MapRendering.why.md` §1 carries the measurement).
+  `FollowBlitCallSiteTest` holds the screen to the seam (one call, no inline offset computation, no raw
+  preset at the seam call site or in the seam) and `MapCanvasViewModelVehicleAnchorTest`
+  `followBlitOffsetTakesTheResolvedAnchorNotTheRawPreset` drives it with measured overlays and the
+  production `followRenderTarget(...)`: persisted preset
+  `fy = 0.9` resolves to `0.733`, the seam's blit is the prediction drift (0 px, unclamped), and the same
+  geometry with the preset is 320 px and clamped. With no measured overlay (browse mode, tests)
+  every preset resolves to its exact fraction; non-covered presets (including the default center/center)
+  do the same with overlays present, so the default framing is exactly the pre-feature framing in every
+  mode and orientation (a 2026-09-16 on-device report — vehicle left of center in portrait navigation —
+  showed the earlier visible-area *remap* moving the default; collision-remap replaced it).
+  **Android Auto uses the same collision rule** for its host panel: the panel is 40% of the surface
+  width on the leading edge (`PANE_FRACTION`, side from `isHostPaneOnRight`), treated as a forbidden
+  band — `clampAnchorOutOfPane` moves only the presets that fall inside it and never the default
+  (`AutoMapRenderer.anchorCenterFor`). The AA follow blit offset uses that same resolved value
+  (`resolvedFollowAnchor()` at both `shiftPx` call sites) — passing the raw preset there keeps
+  the offset outside the overrun margin for pane-band presets, turning every tick into a full render.
+  A remap of the whole grid into the remaining strip was tried and
+  rejected: it moves the default preset to 0.7 and changes the specified default framing.
+- **Rule: Every chrome branch that composes a control measures it, and the probe spans the whole band.** The
+  right-side widget column publishes its width through `LocalOverlayWidthProbe`, which the chrome band
+  provides **once around its content** (`MapCanvasScreenChromeBand.kt`, the content of the `MapLayer.CHROME`
+  box) — the band
+  composes one column from its browse branches and from its navigation branch, only one at a time, and
+  the two do not measure the same width: the navigation column reserves the speed-limit slot and
+  measured 64 px against the browsing column's 56 px in the 411 px window (2026-10-09). A provider
+  around one branch leaves a band that composes while navigation is already active with no right inset
+  at all — the car-session resume composes the band from scratch (`MapCar.md` §18), so the driver's phone framed the
+  followed map with a right-edge preset under the column for the rest of the session (change
+  `fix-nav-column-width-probe`, archived 2026-10-09).
+- The anchor presets are bounded to `0.1..0.9` on purpose: that is exactly the overrun margin
+  (`(1.2 − 1)/2 = 0.1` of the surface), so the visible window always lies inside the rendered frame.
+  A new preset outside that range would require a larger `canvasOverrun`, and
+  `resolveAnchorFraction` clamps into the band for the same reason.
+- The drawn offset MUST stay inside `(bitmap − canvas)/2`; `OverrunWindow.shiftPx`
+  returns the clamped value and a `clamped` flag, and the follow display loop requests a full render
+  at the displayed position when the flag is set (the map keeps scrolling instead of sticking at the
+  buffer edge). That clamp is the LAST resort, not the trigger: `FollowRefreshPolicy` requests the
+  frame while margin remains (§4), because a clamped offset freezes the drawn content until the new
+  frame lands.
+
+## 1b. The render modes and the path selection
+
 - Two user-selectable modes in `MapRenderer` (`renderMode`: `TILES` default, `DIRECT`):
-  - **TILES mode — tile path** (`renderMode == TILES && (angle == 0.0 || !forceFullRender)`):
+  - **Rule: TILES mode — tile path** (`renderMode == TILES && (angle == 0.0 || !forceFullRender)`):
     visible geo bounds are covered from geographic tiles in `TileCache`; missing tiles are
     rendered natively one per tile (`renderTilePixels`, 256px @ 96dpi scaled by the render DPI
     the request carries — the drawing surface's own DPI) and
     cached; the composed frame is screen-sized (e.g. 1080×2400). Rotated live previews compose
     tiles north-up and rotate the whole canvas about the viewport center — labels stay north-up.
-  - **DIRECT mode — full native path**: every render goes through `MapRenderUtil.renderToBitmap`
+  - **Rule: DIRECT mode — full native path**: every render goes through `MapRenderUtil.renderToBitmap`
     onto an overrun canvas (1296×2880 = 1.2× screen), then `extractCenterRegion` → 1080×2400.
     Labels render natively in the viewport direction. No tile cache is read or written.
-  - **The full render's pixel storage is caller-owned** (change `reduce-render-peak-memory`, spec
+  - **Rule: The full render's pixel storage is caller-owned** (change `reduce-render-peak-memory`, spec
     `render-performance` — A render writes into caller-owned pixel storage): a full render goes
     through `MapRenderUtil.renderInto`, which takes a DIRECT `ByteBuffer` from `RenderBufferPool`
     (`:core`), has the native side write the frame straight into it (JNI
@@ -44,108 +123,48 @@ travel while the map itself rotates at its own pace.
     grid wider than the 4×4 sanity guard.
 - The overrun buffer is what the display shows: the frame emitted to the UI is the OVERRUN-sized
   front buffer (`crop = false`), drawn at natural size and positioned by the **display offset**
-  described in §13. A screen-sized crop in the UI is the old (pre-overrun-window) contract —
+  described in `MapFrames.md` §13. A screen-sized crop in the UI is the old (pre-overrun-window) contract —
   do not reintroduce it: the follow scroll and the pan window both need the margin around the
   visible area.
-- **Overlay stage (final):** the GPS marker is NOT part of the native render. After a frame is
+
+## 1c. The overlay stage, the mode switch, the low-zoom risk and the removed helpers
+
+- **Rule: Overlay stage (final)** the GPS marker is NOT part of the native render. After a frame is
   emitted, `MapCanvasScreen` composes `LocationMarkerOverlay` on top of the displayed bitmap.
   Tiles, back buffer, and front buffer contain only static map content — never the marker.
-- **Mode switch:** `onSetRenderMode` in the ViewModel persists the choice and applies it via
+- **Rule: Mode switch** `onSetRenderMode` in the ViewModel persists the choice and applies it via
   `mapRenderer.invalidateStyle()` (epoch bump + tile cache clear + forced full re-render), so no
   tiles/buffers from the other mode survive. `renderMode` is a `@Volatile` field read at job
   execution — an in-flight job may finish in the old mode; its result is discarded by the epoch
   check.
-- **DIRECT mode low-zoom risk:** at mag < 4 a full native render covers huge world viewports
+- **Rule: DIRECT mode low-zoom risk** at mag < 4 a full native render covers huge world viewports
   (z=2 ~5s, z=1 hangs). The zoom floors (`MIN_MAG`/`GESTURE_MIN_MAG` = 4) prevent gesture-driven
   low zooms in both modes; DIRECT at mag 4 is still a full-world first draw — expect slowness
   before the frame lands.
-- **Removed:** the old screen-space tile-split helpers (`TileCache.storeTiles`/`compose`,
+- **Rule: Removed** the old screen-space tile-split helpers (`TileCache.storeTiles`/`compose`,
   `computeTileGrid`, `MapRenderer.blitSubRegion`) are gone; the tile cache is geographic-only.
 
-### 1.1 Follow framing — the anchor applies to the RENDER TARGET (read before touching follow mode)
+## 1d. Marker projection and the overlay viewport
 
-- **Rule: the vehicle anchor is applied in exactly one place — the follow render target.** The
-  frame is rendered with its center at `anchorCenter(vehicle, resolveAnchorFraction(activeAnchor, insets))`
-  (`core/VehicleAnchor.kt`), so the vehicle sits at the anchor *inside the bitmap*. The blit/
-  display offset then carries the prediction drift only (`OverrunWindow.shiftPx` with the
-  anchor parameters). Subtracting the anchor a second time from the drawn offset pushes the frame
-  outside the overrun margin and paints an uncovered strip of `surfaceColor`.
-- **The anchor fraction is relative to the map canvas, and the resolved value is published once.**
-  `resolveAnchorFraction(preset, left/top/right/bottom insets, W, H)` keeps the preset fraction exact
-  unless the marker — its footprint plus padding — falls inside a covered region (phone: next-turn card,
-  routing-status card, widget column, street-name pill — measured via `onSizeChanged` and pushed with
-  `MapCanvasViewModel.setMapOverlayInsets`); a covered preset moves per axis to the nearest free position
-  (covered-region edge + the grid's 10% margin), and the result is clamped into `0.1..0.9`. The ViewModel
-  publishes it as `MapCanvasUiState.resolvedAnchor`; the follow render target, the Compose marker
-  overlay **and the follow blit offset** all consume that value —
-  never re-derive it and never pass the raw preset: a blit computed against the preset while the frame
-  renders on the resolved fraction leaves the marker ahead of the content by the anchor delta and keeps
-  the offset outside the overrun margin (500 ms re-render churn). The blit offset has **one** computing
-  place, `FollowBlitRules.offsetFor`, which takes the whole `MapCanvasUiState` and reads `resolvedAnchor`
-  itself: the anchor is not a parameter, because the screen's previous inline
-  `OverrunWindow.shiftPx(…, activeFollowAnchor.fx, activeFollowAnchor.fy)` call site was
-  invisible to every case and needed two fixes in one day (issue #18, 2026-09-27). A caller that rebuilds
-  the state around the preset is refused too: the guard reads the code around the seam call, so
-  `offsetFor(ui.copy(resolvedAnchor = ResolvedAnchor(ui.activeFollowAnchor.fx,
-  ui.activeFollowAnchor.fy)), …)` fails it (measured 2026-10-21: `callSiteRawReads=2`, mutated run red).
-  `FollowBlitCallSiteTest` holds the screen to the seam (one call, no inline offset computation, no raw
-  preset at the seam call site or in the seam) and `MapCanvasViewModelVehicleAnchorTest`
-  `followBlitOffsetTakesTheResolvedAnchorNotTheRawPreset` drives it with measured overlays and the
-  production `followRenderTarget(...)`: persisted preset
-  `fy = 0.9` resolves to `0.733`, the seam's blit is the prediction drift (0 px, unclamped), and the same
-  geometry with the preset is 320 px and clamped. With no measured overlay (browse mode, tests)
-  every preset resolves to its exact fraction; non-covered presets (including the default center/center)
-  do the same with overlays present, so the default framing is exactly the pre-feature framing in every
-  mode and orientation (a 2026-09-16 on-device report — vehicle left of center in portrait navigation —
-  showed the earlier visible-area *remap* moving the default; collision-remap replaced it).
-  **Android Auto uses the same collision rule** for its host panel: the panel is 40% of the surface
-  width on the leading edge (`PANE_FRACTION`, side from `isHostPaneOnRight`), treated as a forbidden
-  band — `clampAnchorOutOfPane` moves only the presets that fall inside it and never the default
-  (`AutoMapRenderer.anchorCenterFor`). The AA follow blit offset uses that same resolved value
-  (`resolvedFollowAnchor()` at both `shiftPx` call sites) — passing the raw preset there keeps
-  the offset outside the overrun margin for pane-band presets, turning every tick into a full render.
-  A remap of the whole grid into the remaining strip was tried and
-  rejected: it moves the default preset to 0.7 and changes the specified default framing.
-- **Every chrome branch that composes a control measures it, and the probe spans the whole band.** The
-  right-side widget column publishes its width through `LocalOverlayWidthProbe`, which the chrome band
-  provides **once around its content** (`MapCanvasScreenChromeBand.kt`, the content of the `MapLayer.CHROME`
-  box) — the band
-  composes one column from its browse branches and from its navigation branch, only one at a time, and
-  the two do not measure the same width: the navigation column reserves the speed-limit slot and
-  measured 64 px against the browsing column's 56 px in the 411 px window (2026-10-09). A provider
-  around one branch leaves a band that composes while navigation is already active with no right inset
-  at all — the car-session resume composes the band from scratch (§18), so the driver's phone framed the
-  followed map with a right-edge preset under the column for the rest of the session (change
-  `fix-nav-column-width-probe`, archived 2026-10-09).
-- The anchor presets are bounded to `0.1..0.9` on purpose: that is exactly the overrun margin
-  (`(1.2 − 1)/2 = 0.1` of the surface), so the visible window always lies inside the rendered frame.
-  A new preset outside that range would require a larger `canvasOverrun`, and
-  `resolveAnchorFraction` clamps into the band for the same reason.
-- The drawn offset MUST stay inside `(bitmap − canvas)/2`; `OverrunWindow.shiftPx`
-  returns the clamped value and a `clamped` flag, and the follow display loop requests a full render
-  at the displayed position when the flag is set (the map keeps scrolling instead of sticking at the
-  buffer edge). That clamp is the LAST resort, not the trigger: `FollowRefreshPolicy` requests the
-  frame while margin remains (§4), because a clamped offset freezes the drawn content until the new
-  frame lands.
-- **Marker projection:** the GPS marker is drawn by a separate Compose overlay with no offset of
+- **Rule: Marker projection** the GPS marker is drawn by a separate Compose overlay with no offset of
   its own, so its viewport must absorb the blit offset: in follow mode the marker projects against
   the **anchor center of the displayed (eased predicted) position** — the viewport for which that
   position projects to the anchor. Projecting against the *frame's own* center leaves the marker
   ahead of the map content by exactly the blit offset (drifts, then snaps on the next commit).
   In browse (follow off) no offset is applied and the marker projects against `renderViewport`.
-- **Analysed-route-segment overlay (delta `route-planning-session`):** the analysed step's polyline
+- **Rule: Analysed-route-segment overlay (delta `route-planning-session`)** the analysed step's polyline
   range is drawn by a Compose overlay (`ui/map/RouteSegmentHighlightOverlay.kt`) on the layer **above
   the rendered frame and below the markers/pins** — the route itself stays in the native frame, so the
   highlight must not be baked into it (a cached tile would carry a stale highlight). It projects with
   `ProjectionUtils.viewport(...).geoToScreenRotated` against the **displayed frame's** viewport and takes
   the same pan display offset and zoom-anchor scale as `LocationMarkerOverlay`, so it rides the content
   on the tile path and the full-render path alike.
-- **Android Auto overlays are drawn INTO the surface** (`AutoMapRenderer.drawGpsMarker`,
+- **Rule: Android Auto overlays are drawn INTO the surface** (`AutoMapRenderer.drawGpsMarker`,
   `drawDestinationMarker`), so they cannot pick a different viewport per overlay: the renderer
   remembers the offset the displayed frame was blitted by (`blitOffsetX/Y` — set in `blitToSurface`,
   reset for a fresh render in `drawToSurface`) and every map-content overlay subtracts it. Same rule,
   different mechanism: an overlay that projects map content must carry the blit offset.
-- **Displayed frame, not the pending render target (delta `overlay-projects-against-displayed-frame`):**
+- **Rule: Displayed frame, not the pending render target (delta `overlay-projects-against-displayed-frame`)**
   `AutoMapRenderer` keeps TWO frame descriptions: the pending render target (`viewportLat/Lon`,
   `viewportZoomFraction`, `viewportAngle` — written by `setViewport`, `reCenter`, `reengageFollow` and
   the extrapolation clamp branch) and the DISPLAYED frame (`overrunLat/Lon`, `overrunMag`,
@@ -160,7 +179,7 @@ travel while the map itself rotates at its own pace.
   `renderedBitmap`); do not "simplify" either side into a single frame field. Each write requests its own
   frame (change `fix-car-follow-reengage-render`): `setViewport` unconditionally, `reengageFollow` only
   when no frame is already scheduled, so the pending description always has a frame behind it.
-- **The follow blit offset is measured on the displayed vehicle position**, not on the frame center:
+- **Rule: The follow blit offset is measured on the displayed vehicle position**, not on the frame center:
   `renderFrame` passes the displayed position (`markerPosition()`) to
   `OverrunWindow.shiftPx`, with `overrunLat/Lon` as the frame. A frame *center* is not a
   point of the rendered bitmap, so passing it charges the offset with the anchor displacement
@@ -168,13 +187,13 @@ travel while the map itself rotates at its own pace.
   offset is permanently clamped and every follow viewport change (i.e. every fix while heading-up)
   falls back to a full native render. Measured before the fix: **101 full renders for 105 fixes** in
   104 s; the blit path was reachable only for the exact center anchor.
-- **`viewport.center` vs render target:** `MapCanvasUiState.viewport.center*` always means "the geo
+- **Rule: `viewport.center` vs render target** `MapCanvasUiState.viewport.center*` always means "the geo
   position at the screen center" — in follow mode that IS the anchor center, and it is what gesture
   commits (`rotateZoomAtFocalPoint`), the mini-map and the route-fit helpers must use. The emitted
   `renderViewport` is the frame's geometry (center/mag/angle) for the marker and the display loop.
   Leaving the vehicle position in `viewport.center` would make it a lie of up to 0.4 screen and jump
   on the first pan after re-engage.
-- **A camera fit is verified, never just rounded (delta `fix-area-fit-zoom-rounding`):** every fit that
+- **Rule: A camera fit is verified, never just rounded (delta `fix-area-fit-zoom-rounding`)** every fit that
   parks the camera to fit an extent must route through `verifiedAreaFit`
   (`app/src/main/java/com/naviveylin/ui/map/FitVerification.kt`), which starts from
   `MapCanvasViewModel.Companion.computeAreaZoom` and steps one whole level out while the projected bbox
@@ -191,7 +210,7 @@ travel while the map itself rotates at its own pace.
   the area-favorite fit keeps the documented area-favorites floor — a fit that returns its floor has NOT
   been verified to fit, so callers must not read the floor as success. Adding a fit caller means calling
   this seam, not `computeAreaZoom` directly.
-- **Single follow center (delta fix-follow-vehicle-jumps):** the displayed (eased predicted)
+- **Rule: Single follow center (delta fix-follow-vehicle-jumps)** the displayed (eased predicted)
   position IS the follow center. The display loop (`MapCanvasScreen`) writes
   `MapCanvasViewModel.followDisplayLat/Lon` every frame; BOTH follow render paths (the per-fix
   zoom/rotation commit and the clamp re-anchor `renderFollowFrameAt`) anchor on it via
@@ -199,7 +218,7 @@ travel while the map itself rotates at its own pace.
   position scroll happens in the display loop within the overrun margin (the fix-arrival sawtooth
   was the per-fix re-centers alternating with the clamp re-centers). Fallback to the marker fix
   only before the first display frame.
-- **Frozen stop/go (same delta):** below `FOLLOW_MIN_SPEED_KMH` the displayed position and the
+- **Rule: Frozen stop/go (same delta)** below `FOLLOW_MIN_SPEED_KMH` the displayed position and the
   blit offset are FROZEN, never reset, and the marker keeps riding the frozen displayed position;
   the display is reset (offsets zeroed) only when follow mode disengages. The bounded-rate display
   lives in `core/FollowDisplayState`: the displayed position advances at the prediction's committed
@@ -214,7 +233,7 @@ travel while the map itself rotates at its own pace.
   one fix. The pre-2026-10-12 monotonic forward-only hold is GONE: measured on the emulator it
   stopped the map for up to 2.7 s (29 % of the driving time at a steady 50 km/h) and paid the gap
   back at up to 2.9x the vehicle speed.
-- **AA follow loop shares the same contract (delta fix-aa-follow-vehicle-jumps):**
+- **Rule: AA follow loop shares the same contract (delta fix-aa-follow-vehicle-jumps)**
   `AutoMapRenderer`'s extrapolation loop drives the displayed position through the SAME
   `FollowDisplayState` (phone and AA use one tested bounded-rate rule) — `extrapolationTick`
   re-syncs the state after any frozen gap and copies the advance back into the `@Volatile`
@@ -223,8 +242,7 @@ travel while the map itself rotates at its own pace.
   inert). The margin render request is throttled at `RENDER_REQUEST_INTERVAL_MS` = 200 ms (phone
   parity), shrinking the freeze-then-advance step at the overrun edge; the resolved-anchor blit
   call sites in the same function stay untouched (single resolved anchor rule above).
-- **AA follow render target = the DISPLAYED position; rotation commit deadband (delta
-  `aa-follow-framing-and-zoom-parity`):** on AA the follow render target is the anchor center of
+- **Rule: AA follow render target = the DISPLAYED position; rotation commit deadband (delta `aa-follow-framing-and-zoom-parity`)** on AA the follow render target is the anchor center of
   the displayed (eased predicted) position — the same point the extrapolation loop advances — never
   the raw fix (raw fix only before the first display frame), so a fix commits a centre-only change
   the overrun blit serves and no longer re-anchors/steps the whole map per fix. The heading commit
@@ -235,14 +253,17 @@ travel while the map itself rotates at its own pace.
   commit, blit-able); above it the rotation commits with the fix as before. A rotation cannot be
   blitted, so the deadband removes the ~1 forced full render per fix for the ~0.9°/s heading signal
   while a real turn still tracks (lag ≤ deadband).
-- **AA magnification changes are a transition, not a single-frame step (same delta):** a committed
+
+## 1e. The follow display contract on phone and Android Auto
+
+- **Rule: AA magnification changes are a transition, not a single-frame step (same delta)** a committed
   auto-zoom/turn-zoom magnification change is applied across display frames by scaling the overrun
   blit about the FOLLOW ANCHOR (not the surface center), easing the displayed magnification toward
   the committed value at the display rate; a step beyond the blit-able window (≈0.26 levels at
   `OVERRUN_FACTOR = 1.2`) falls back to a full native render at the committed magnification, and
   every transition ends on an exact native render at the committed value. This removes the measured
   7–12 % single-frame scale snap (20–40 px at the frame edges).
-- **A larger magnification request is WALKED, not landed (delta `aa-entry-zoom-animation`):** a
+- **Rule: A larger magnification request is WALKED, not landed (delta `aa-entry-zoom-animation`)** a
   transition-eligible zoom commit (`setViewport(..., walkZoom = true)` — the auto-zoom commit path
   of `FreeDrivingScreen`/`NavigationScreen`) farther than `ZOOM_BLIT_LIMIT` from the committed
   magnification becomes a WALK TARGET instead of being applied in one frame: `advanceZoomWalk`
@@ -258,7 +279,6 @@ travel while the map itself rotates at its own pace.
   walk, no extra render), a fix that re-commits the value it read back does NOT cancel a pending
   walk, and the newest request wins (monotonic per leg, never past the requested value). Gesture
   and zoom-button paths keep their immediate response by not passing `walkZoom`.
-
 ## 2. Bitmap Lifecycle (CRITICAL — caused "jumps" multiple times)
 
 - `Bitmap.createBitmap(src, x, y, w, h)` and `frontBuffer` SHARE pixel memory with `src`.
@@ -292,17 +312,6 @@ travel while the map itself rotates at its own pace.
   display the storage afterwards. `RenderBufferPoolTest` pins the bound, the refusal and the format.
   The "is this frame unchanged?" decision needs no second bitmap either: the frame flow's own value
   is the previous frame, and `frontBufferSeq`/`lastEmittedSeq` say whether it changed.
-
-## 3. GPS Deduplication
-
-- Fused + LocationManager deliver the same fix with the same `location.time` but possibly with
-  different `bearing`. Therefore:
-  - **`LocationService`**: dedupe by `location.time` (identical timestamp).
-  - **`MapCanvasViewModel`**: dedupe by timestamp difference (< `GPS_DEDUPE_MS`) + coarse
-    coordinate (`1e-6°`, ~11 cm). **Do NOT dedupe by bearing** — different providers attach
-    different bearings to the same fix.
-- Still forward duplicates to the navigation engine; only skip render work.
-
 ## 4. Render Coalescing / Throttling
 
 - Limit follow-mode renders to one per `GPS_FOLLOW_RENDER_INTERVAL_MS` (200 ms).
@@ -310,7 +319,7 @@ travel while the map itself rotates at its own pace.
   per time window is triggered. This keeps the native pipeline from overflowing.
 - `positionChanged` threshold: render only from > 5 m movement (or first fix). Otherwise
   jitter renders.
-- **The follow frame is requested BEFORE the overrun margin is exhausted** (`FollowRefreshPolicy`,
+- **Rule: The follow frame is requested BEFORE the overrun margin is exhausted** (`FollowRefreshPolicy`,
   spec `smooth-follow` — Follow frame refresh before the overrun margin is exhausted). In a
   steady-heading drive the clamp used to be the ONLY trigger (`shouldRender` is false while the
   display loop runs, and a constant heading never sets `angleChanged`), so the request was issued
@@ -321,882 +330,33 @@ travel while the map itself rotates at its own pace.
   `min(MAX_SHARE, max(MIN_SHARE, 1 − latency/margin − SAFETY_SHARE))` when it is known, one request
   outstanding at a time. The clamp remains the last resort for a render slower than the margin the
   threshold leaves (a latency above ~45 % of the margin, ~108 px or 2.4 s of travel at 50 km/h).
-
 ## 5. Epoch Rules
 
 - `epoch.incrementAndGet()` ONLY on zoom, overlay, style, marker visibility, and map-data-set
   changes.
-- **Map data set changes (basemap download/update/delete, and a *regional* database replaced by an
-  update, while the app runs) use the same invalidation contract as mode/style switches:**
+- **Rule: Map data set changes (basemap download/update/delete, and a *regional* database replaced by an update, while the app runs) use the same invalidation contract as mode/style switches**
   `MapRenderer.invalidateData()` = epoch bump + tile cache clear + forced full re-render (mirrors
   `invalidateStyle()`), because cached tiles were rendered without the new data. Driven by
   `BasemapReloadNotifier` (spec: basemap-loading), which the update path bumps after it has re-opened
   the installed database set (`MapDataRegistrar`, spec: map-updates — "An installed update is rendered
   without an app restart"). `AutoMapRenderer.invalidateData()` = blit-eligibility invalidation +
   re-render (overrun buffer may hold pre-change pixels).
-- **Pure GPS position updates must NOT increment the epoch** — otherwise the running native render
+- **Rule: Pure GPS position updates must NOT increment the epoch** — otherwise the running native render
   is discarded as stale and frame gaps occur ("map freezes / shows old image").
 - The conflated render queue guarantees that the next job picks up the latest position.
 
-## 6. Angle Handling
-
-- **Store all angles in radians**; normalize to `[-π, π]` at all storage points:
-  `_uiState.viewport.angle`, `MapRenderer.currentAngle`, `MapRenderer.frontBufferAngle`.
-- Unnormalized angles grow beyond 2π across renders and produce apparent rotation jumps (the log
-  then shows e.g. `angle=14.6` — note: the `prepareViewport` log converts to degrees for display;
-  values in the log are degrees, not radians).
-- Former native convention (C++): `screenBearing = gpsMarkerBearing + angle`. For follow-direction,
-  `angle = -bearing` (radians) so the marker arrow points up. **Do not flip the sign.**
-- Kotlin overlay convention (same sign): `ProjectionUtils.screenBearing(bearingDeg, angleRad)` =
-  `bearingDeg + toDegrees(angle)`. The marker is drawn by the Compose overlay, so the C++ side no
-  longer computes a screen bearing — keep both sides on the same formula.
-- **The orientation mode decides the fallback, never a stale angle.** In the follow collector the
-  angle is committed as: `isNorthUp -> 0.0`; else the deadband/rate-limited `smoothedAngle`; else
-  `lastUsedAngle` (or 0). "Always north" therefore commits 0 on EVERY update and the last-angle
-  fallback is a follow-direction rule only — a heading-up angle from before the toggle (or from a
-  previous drive) must never rotate the map once north-up is selected. `lastUsedAngle` is written
-  only from follow-direction angles, so a north-up period does not erase the last driving
-  direction. Regression tests: `MapCanvasViewModelFollowModeTest.northUpStaysAtZeroOverConsecutiveHeadingChanges`,
-  `togglingToNorthUpWhileDrivingStopsFurtherRotation` (both fail on the pre-fix branch).
-- At a standstill or after a course-history reset the "map does not spin / does not snap to north"
-  guarantee comes from the deadband path: the location layer keeps the previous bearing, so
-  `smoothedAngle` equals the rendered angle and the commit keeps it. The explicit
-  `lastUsedAngle` fallback is defensive (it is only reachable if no bearing was ever seen, in which
-  case it is NaN and yields 0).
-
-## 7. Bearing Smoothing (location layer)
-
-Bearing smoothing lives in `LocationService` (`BearingFilter`), NOT in the ViewModel. The location
-layer emits a uniform `GpsFix` with two bearings, provider-agnostic to consumers:
-
-- **`smoothedBearing`** — for map rotation. Stable, no render churn.
-- **`markerBearing`** — for the marker arrow. Freshest signal, no added lag.
-
-Provider-aware inside `LocationService` only:
-
-- **Fused path**: Fused already smooths its bearing (sensor fusion + Kalman). `markerBearing` =
-  `loc.bearing` as delivered (zero added lag); `smoothedBearing` = light EMA (alpha 0.5) on
-  `loc.bearing` — do NOT re-derive course from positions on the Fused path.
-- **LocationManager path** (GMS-less devices): fakes Fused quality — course-over-ground derived
-  from the recent position track:
-  - Ring buffer with 10 positions; course = bearing between the newest point and the oldest point
-    that is ≥ `MIN_COURSE_DISTANCE_M` (40 m) away.
-  - **Two-state logic:**
-    - `courseStable == false` (after start/teleport/turn reset): short base
-      (`MIN_COURSE_DISTANCE_FAST_M` = 10 m) + fast low-pass (`COURSE_LOW_PASS_ALPHA_FAST` = 0.7)
-      → new direction established quickly.
-    - `courseStable == true` (≥ 40 m track): 40-m base + slow low-pass (0.3) → stable straight ahead.
-  - **Turn reset:** if the last segment bearing (> `MIN_SEGMENT_FOR_TURN_M` = 8 m) deviates by more
-    than `COURSE_TURN_RESET_DEG` (45°) from the smoothed course → clear history, set
-    `courseStable=false`, `lastSmoothedBearing=NaN`. The previous 90° threshold was too high: a 90°
-    corner never triggered a reset, and the 40-m window mixed old/new direction over a long stretch.
-  - `markerBearing` = latest segment bearing (freshest stable signal), falling back to the window
-    course, then the last smoothed value.
-  - **Turn reset keeps the fresh segment:** the segment that triggers the reset IS the new
-    direction — it is preserved as `lastSegmentBearing` so the marker points the new way at the
-    turn fix itself instead of falling back to the old direction for a fix.
-- **No `-1.0` sentinel:** if no bearing is available, return `NaN`. `-1.0` is treated by
-  `!isNaN()` checks as a valid ~1° bearing → map drifts north after reset.
-- Course is derived from **raw provider positions** (not navigation-filtered positions) — the nav
-  engine filters marker *position*, the location layer owns *bearing*.
-
-`MapCanvasViewModel` keeps only render-side concerns:
-
-- Deadband vs the rendered angle (`MIN_BEARING_DELTA_DEG` = 2°): map rotation only moves when the
-  smoothed bearing exceeds this — prevents re-rendering on every small change.
-- Per-render rate clamp (`MAX_ANGLE_RATE_DEG_PER_RENDER` = 90°): a sharp turn completes in 1-2
-  frames instead of slowly crawling.
-- Fallback when no bearing: keep last used bearing (`lastUsedBearing`) / last angle
-  (`lastUsedAngle`) — NEVER jump back to north-up (0°), except at the very beginning.
-- Marker/map decoupling: marker arrow = `fix.markerBearing` (freshest), map rotation =
-  `fix.smoothedBearing` (smoothed).
-
-## 8. Marker Rules
-
-- **Render target:** the marker is a Compose overlay (`LocationMarkerOverlay`) drawn on top of the
-  rendered map bitmap in `MapCanvasScreen`. It is NEVER written into cached tiles, the back buffer,
-  or the front buffer — those hold only static map content. A marker-only move/hide triggers no
-  native render, no epoch bump, and no tile invalidation.
-- **Position updates on every fix:** the VM calls `updateMarkerState` (renderer snapshot + direct
-  `uiState.gpsMarker*` update) on every distinct fix — the overlay shows the latest fix
-  immediately, independent of the render cadence. The frame collector does NOT overwrite the
-  marker fields (it only sets bitmap/viewport), so a throttled or skipped render (no > 5 m
-  movement) never freezes the marker.
-- **Projection:** the overlay projects against `uiState.renderViewport` (from the emitted
-  `frameFlow`) — the viewport of the bitmap actually on screen. NEVER the live
-  `currentViewport`, which leads the rendered frame during gestures. A fresh fix projected on a
-  stale map is still anchored correctly (the marker sits at the vehicle's position on the
-  displayed bitmap).
-- **Position:** in follow mode ALWAYS the raw (or navigation-filtered) GPS position
-  (`followMarkerLat/Lon` → `uiState.gpsMarkerLat/Lon`), never the smoothed camera center. A smoothed
-  marker drifts off the road (at 20 m/s already ~9 m offset visible). Non-follow mode uses the raw fix.
-- **Arrow orientation (important):** the marker arrow uses the FRESHEST direction signal,
-  independent of map smoothing. Priority chain:
-  1. Window course (`courseBearing`) — reacts immediately after turn reset.
-  2. Last segment bearing (`lastSegmentBearing`, newest 2 points ≥ 2 m) — also applies when the
-     window course is still NaN (after reset < 10 m).
-  3. Last used bearing (`lastUsedBearing`).
-  The VM publishes this as `uiState.gpsMarkerBearing`; the overlay draws the arrow at
-  `screenBearing(bearing, frontBufferAngle)`. In north-up orientation the bearing is `-1` and the
-  arrow points north on the map.
-- Map rotation may lag after corners (low-pass + rate limit) — the arrow must still point along
-  the new road immediately.
-- **Do not** fall back to raw `Location.bearing` (noisy, provider-dependent) — except in
-  non-follow mode, which mirrors the old behavior.
-
-## 9. Map Rotation (Follow-Mode)
-
-- Target angle from smoothed course: `smoothedAngle = -radians(effectiveBearing)`.
-- Deadband: ignore angle changes < `MIN_BEARING_DELTA_DEG` (2°) relative to the rendered angle
-  → no jitter rendering.
-- Rate limit: max. `MAX_ANGLE_RATE_DEG_PER_RENDER` (90°) per render toward the target angle.
-  (30°/frame was too slow: a 92° corner took ~13 s at ~1 render/s.)
-- Reference for deadband/rate limit is `mapRenderer.renderedAngle` (front-buffer angle), not the
-  mutable `currentAngle`.
-- `angleChanged` comparison with tolerance (`isAngleSame`, 1e-4 rad) — no exact double comparison.
-
-## 10. Camera Center (Follow-Mode)
-
-- **No EMA smoothing of the center** (`centerSmoothAlpha = 1.0`): viewport center = raw GPS
-  position, so the marker stays on the road.
-- Only teleports > `centerSmoothMaxJumpM` (500 m) reset the center directly.
-
-## 11. Auto-Zoom
-
-- **The speed each surface feeds the table is its own** (`autoZoomSpeedKmH` in
-  `ui/map/AutoZoomSpeedSource.kt`, spec `auto-speed-zoom` — Auto-zoom speed source per surface): the
-  phone uses its GPS fix speed while free driving and the navigation engine's speed while route
-  guidance is active; the car uses the engine's speed (it has no other). Measured 2026-10-12: the
-  phone read the engine speed unconditionally, which is not fed outside navigation, and a
-  `lastValidSpeedKmH` seed of 20.0 stood in for it — a free drive at 90+ km/h kept the 20 km/h
-  target (16.0) instead of the highway one (13.0). The seed is gone; an unknown speed now reaches
-  the table as NaN and the table returns its stationary level (a NaN input otherwise fell through
-  every comparison to the LAST entry, the 130 km/h magnification).
-- Convergence is distance-proportional, not gated. `SpeedZoomTable.stepToward(current, target)`
-  (`core/src/main/java/com/naviveylin/core/SpeedZoomTable.kt`) moves a constant fraction of the
-  remaining gap (`ZOOM_CONVERGENCE_GAIN = 0.3`), capped at `MAX_ZOOM_STEP_PER_UPDATE = 0.5`
-  magnification levels per position update. The zoom moves quickly when far from the target and
-  slows down near it, so a large speed change converges over several seconds instead of snapping.
-- The old commit gate is REMOVED (`ZOOM_COOLDOWN_MS` + `ZOOM_COMMIT_SAMPLES` stable samples +
-  ≥ 1 full zoom level). Its ≥ 1-level rule was itself visible as full-level snap jumps; the
-  sub-level pumping it guarded against (`diff=0.0` from comparing rounded values at target 15.666
-  vs. current 16) is now prevented structurally by the deadband below.
-- Deadband replaces target hysteresis: when `abs(target - current) < ZOOM_EPSILON` (0.05 levels)
-  the step returns the current magnification unchanged, so the caller commits nothing and triggers
-  no re-render. Compare the RAW fractional values — never rounded integer magnifications.
-- Commit the fractional target: never round to a whole level at commit time (the `2^z` scale
-  conversion stays at the JNI boundary, sec 12). The displayed zoom then eases to the target over
-  ~650 ms through the front-buffer animation (spec `smooth-zoom`), not a single-frame jump.
-- **A change larger than the window the frame in hand can serve is WALKED (`core/ZoomWalk`).**
-  The overrun frame (`DEFAULT_CANVAS_OVERRUN = 1.2`) covers `log2(1.2) = 0.263` levels, kept at
-  `ZOOM_BLIT_WINDOW = 0.25` with margin; a commit farther than that from the frame in hand does not
-  land in one frame: the committed magnification advances one step per LANDED render
-  (`MapCanvasViewModel.advanceZoomWalk` on the frame collector), each step is requested through
-  `MapRenderer.requestRenderImmediate` (a walk step is paced by the landing of the previous step's
-  frame, so the pan/zoom debounce would only add `zoomDebounceMs` per step), and the last step lands
-  exactly on the recorded target. Without this, an entry from a browse viewport at mag 13 to a speed
-  target of 17 showed the old raster scaled across a 16x area change (the phone's reported
-  "wrong-scale picture", parity with `AutoMapRenderer.advanceZoomWalk` on the car).
-- **The walk's pin on the render magnification lives exactly as long as the walk.** `ZoomWalk.renderMag`
-  honours its `step` only while a walk is pending and falls back to the committed magnification
-  otherwise. A landed walk keeps its `step` deliberately — the display target and the landing check
-  read it — but it must not pin the pipeline: otherwise every magnification committed outside the walk
-  (`fitViewportToRoute`, the follow-engage preset, the mode presets, a re-center) is silently discarded
-  (measured 2026-10-13 on the phone: the route overview fit committed mag 10.0 and the frame was
-  rendered at the landed auto-zoom walk's 17.756, so the fitted route lay outside the frame until an
-  unrelated render put the camera back on the vehicle). The reader bounds the pin, not a `cancel()`
-  obligation at every magnification writer.
-- **The viewport keeps the FINAL magnification while the display walks.** `viewport.magnification`
-  is the recorded (and persisted) target; `MapCanvasUiState.zoomWalkStepMag` carries the step the
-  render pipeline and the display animation are on, and `zoomAnimationTargetMag` derives the value
-  the screen eases toward. Persistence routes through `ZoomWalk.persistMag`, so a walked step is
-  never written (spec `smooth-zoom` - Viewport records final magnification). A programmatic camera
-  fit (POI fit) passes `walk = false` and lands directly - it does not run the display animation.
-- **The display animation pivots on the resolved follow anchor while a follow mode is active**
-  (`zoomAnimationAnchor`: the anchor fraction times the canvas, for every preset), and on the screen
-  center otherwise for the inputs that keep the center (zoom buttons, keyboard), on the cursor for the
-  scroll wheel, and on the point it landed on for a double tap (spec `smooth-zoom` - A double tap steps one
-  level at its own point). A retracked step keeps the last anchor the display was given by an input - which is
-  the screen center for the inputs that keep the center (zoom buttons, keyboard) - rather than recomputing one
-  from the center. The marker overlay receives
-  the same pivot,
-  so the vehicle cannot drift off its anchor slot while the animation plays. The applied display
-  scale goes through `ZoomWalk.displayScale`, which clamps to the window - a guard so a change that
-  ever lands un-walked degrades to a bounded scale instead of an uncovered strip of surface color.
-- Phone and Android Auto share the convergence primitive (`SpeedZoomTable.stepToward`); Android
-  Auto commits the fractional magnification through the fractional viewport-render parameter.
-
-## 12. Front-Buffer Emission
-
-- Emit the finished frame as long as epoch AND magnification match the job.
-- **The emitted bitmap is the overrun front buffer; the emitted viewport is the frame's OWN
-  viewport** (center, mag, angle the pixels were rendered with). The display positions the frame
-  with the derived display offset (§13) and every overlay projects against that viewport — never
-  against `currentViewport` (the target of a render that has not landed).
-- **Unchanged-frame reuse** compares the front-buffer sequence AND the previously emitted bitmap's
-  own dimensions — a canvas-size change (rotation, fold, resize) must always produce a new
-  emission, otherwise a stale crop is re-emitted.
-- **Fractional magnification (continuous pinch)**: the committed viewport magnification is a
-  `Double` zoom level (z, fractional from continuous pinch commits). Kotlin-internal magnification
-  is always a *level-style* value; the JNI render/projection boundary converts to the libosmscout
-  *scale factor* `2^z` once (JNI `SetMagnification(double)`). Tile lookups snap to
-  `floor(log2(mag))` internally — never round fractional mags at commit time (only discrete
-  controls snap via `zoomIn/zoomOut`).
-- **No angle epsilon check against `currentAngle`**: during a slow render `prepareViewport`
-  changes the target angle; the finished frame would otherwise be discarded (old cause of "map
-  shows old image / jumps"). The next job picks up the new angle.
-- Render job snapshots the viewport AND the marker state at enqueue (`PendingRender`); the marker
-  snapshot is emitted with the frame (`frameFlow`) — the overlay reads that frame's snapshot per
-  frame, so there is no marker/center skew to worry about.
-
-## 13. Overrun Display Window (pan and follow)
-
-The overrun frame is positioned by ONE display offset, derived on the UI thread from the frame that
-is on screen. This replaced the per-event sub-region bitmap copy (`trySubRegionBlit` used to create a
-shifted crop per pan event) — the copy allocated two bitmaps per touch event, and after commit
-`c7e5bc1` it was dropped for a no-shift emission that only follow mode could offset, which left
-browse pans with no visual tracking at all (fixed by `fix-phone-gesture-pan-tracking`).
-
-```
-displayedCenter   follow: anchorCenter(displayPos, resolvedAnchor)  |  pan: live panned center
-      │
-      ▼
-OverrunWindow.shiftPx(displayedCenter, frameViewport, …, anchor = center)
-      │  rotated delta (dx*cos − dy*sin, dx*sin + dy*cos), clamped to the overrun margin
-      ├── drawFrontFrame draws the frame at baseCenter − displayOffset
-      └── map-anchored overlays translate by (follow ? 0 : −displayOffset)
-```
-
-- The offset MUST be rotated by the viewport angle. Without rotation, a shift at -40° map angle
-  moves the content horizontally by up to `sin(40°) × move` wrongly.
-- **The overrun margin is never negative.** A frame that offers no overrun margin on an axis — for
-  example a frame that still carries the previous orientation right after a rotation while the canvas
-  already has the new one — yields a ZERO offset on that axis, reported as clamped
-  (`OverrunWindow.shiftPx` coerces its margin with `coerceAtLeast(0.0)`), so the surface
-  requests a frame in the current orientation instead of constructing an empty coercion range and
-  killing the process (`TODO.md` §153).
-- Exactly ONE displayed center: derive the offset from the frame in hand, never from the render
-  target. The pan path keeps the displayed center as display-only screen state (`panDisplayLat/Lon`)
-  and holds it until a frame carrying THAT center lands (`PanWindowRules.holdReleased`, released only
-  after the gesture ended); the follow path uses its predicted display position.
-- **Pan inside the margin renders nothing.** The pan callback must not call `renderMap()` per event:
-  the display follows the finger for free. A render is requested only when the offset CLAMPS at the
-  margin (throttled), plus once at gesture end when the window is saturated or no frame exists.
-- The covered branch of `submitDebounced` is a PURE PREDICATE (`overrunWindowCovers`) that drops a
-  pending non-forced render and returns — no emission, no bitmap work, no pixel copies. It never
-  takes `bufferLock` and never enters the native render path.
-- **Coverage and display must describe ONE frame: the emitted one.** `overrunWindowCovers` reads the
-  frame snapshot the display holds — `MapRenderer.EmittedFrame` (emitted bitmap dimensions + the
-  viewport published with it, one immutable object, one volatile write per emission) — never the
-  renderer's private front-buffer fields, and it reports an UNSERVABLE window (no emitted frame yet, a
-  frame without an overrun margin, another magnification or rotation) as **not covered**. Sharing only
-  the math (`OverrunWindow.shiftPx` + `BLIT_COVER_SLACK_PX`) was not enough: the two sides
-  could still read different frames — the class of bug that froze the pan on device (`fix-phone-
-  gesture-pan-tracking` follow-up). The pan hold is the other half of the contract: it may only be
-  released for a frame that already carries the DISPLAYED center and never while the gesture is live,
-  or the display applies a zero offset for a moved center (the observed dead pan).
-- A zoom or an angle change is never covered by the frame in hand (wrong magnification/rotation).
-- **Diagnosing a stuck pan** (bounded output: at most one line per gesture, `MapCanvasScreen` tag
-  `pan end: window=served|clamped|unavailable offsetPx=… mag=…`, plus one `pan: no usable frame
-  window` per rejection): `window=unavailable` means the frame in hand cannot serve the window and a
-  render was requested — check the render path next; `window=served` with `offsetPx=0,0` while the
-  finger moved means the display released the hold (or drew the offset nowhere) — neither state is
-  reachable while the gesture is live, so the line plus the renderer's gated request/drop lines name
-  the stuck side. No per-event pan logging exists by design.
-- **The marker overlay must be shifted by the same offset the content is drawn with** — in follow
-  mode the anchor-center projection already carries it (translate there = double application).
-- A covered request is a TILE-PREVIEW-class optimization only: it MUST NOT discard a pending FORCED
-  render (`forceFullRender=true` — route set/clear, favorites, search selection, stylesheet switch,
-  epoch bump). Discarding it would leave the new overlay undrawn until a gesture triggers a full
-  render (observed symptom: stale route on the map after a reroute until the user pans). Keep the
-  pending render (`pendingRender?.forceFullRender != true` guard) so overlay changes render even when
-  the camera never moved.
-- Blit/window content is pure map content — the marker overlay is drawn by Compose on top afterwards,
-  so a shifted window can never carry stale marker pixels.
-- Tile-path rotated composition MUST rotate about the viewport center (tiles placed north-up,
-  `canvas.rotate(deg, W/2, H/2)`), NEVER about each tile's own corner — corner pivots shift
-  content by up to `d·θ` (d = tile distance from center, θ = rotation) and break marker-overlay
-  alignment.
-- **The renderer's target center (`currentLat/Lon`) only advances with render requests.** After a pan
-  that stayed inside the margin it lags the viewport until the next request — harmless: the display
-  offset is derived from the frame in hand and the viewport, so the content stays where the finger
-  left it, and the next request (any render, a forced overlay render included) re-targets the center.
-- **Pan hot path budget:** a pan event moves display-only state only — no UI-state copy, no
-  recomposition of the screen, no allocation, no logging; gesture-start side effects (follow
-  disengagement, attribution tick) run once per gesture, and render requests are throttled
-  (`PAN_RENDER_REQUEST_THROTTLE_MS`).
-
 ---
 
-## 14. Rotation Gesture Display-Layer Handoff
+## Sections that moved out of this document
 
-- The live rotation angle during a two-finger gesture lives in the graphicsLayer
-  (`rotationZ = gestureRotation`), NOT in the rendered bitmap (which stays at the committed
-  angle until gesture end).
-- The rotation AND zoom pivot at the FINGER MIDPOINT (the graphicsLayer `transformOrigin` =
-  `gesturePivot`): the geographic point under the midpoint at gesture start stays under the
-  midpoint for the whole gesture, and the gesture-end commit adjusts the viewport center so the
-  anchor holds in the rendered frame (`ProjectionUtils.rotateZoomAtFocalPoint` — the
-  generalized focal-point commit; Δ=0 reduces to `zoomAtCursor`).
-- Rotating around an off-center pivot can expose empty corners at large angles (accepted — the
-  overrun buffer margin covers moderate angles; standard map-app behavior).
-- At gesture end the committed angle is set and a full render is requested, but the render is
-  async (debounce + background job). The display MUST keep the final angle applied until the
-  front buffer swaps to the committed angle — otherwise the old bitmap (old angle) shows
-  unrotated for the render duration and the map temporarily jumps back to the pre-gesture
-  angle (observed symptom: rotate → map snaps back → restores).
-- The hold is a FLAG (`rotationHoldActive` in `MapCanvasScreen`); the held ANGLE is derived per draw as `committedAngle − frontBufferAngle` (`rotationDisplayTheta`) from the SAME collected state the draw reads — so it zeroes atomically with the committed bitmap swap and there is no one-frame window that draws the new bitmap with a stale rotation. A STORED hold value cleared by the frame loop is wrong: the clear (direct `uiState` read) and the draw (collected state) can straddle the render-land emission and show a double-rotation twist for one frame.
-- At render land the old rotated frame is crossfaded into the new native render (mirror of the zoom crossfade, `crossfadeAngle`), masking tile-vs-native rasterization differences; the old frame is drawn rotated about the gesture midpoint (`drawFrontFrame` `rotationDegrees`/`rotationPivot`), which equals the committed render's pivot.
-- The hold disarms when the front buffer reaches the committed angle or on the next gesture start. The derived gap composes independently with the zoom handoff: `rotationZ` and `scaleX/Y` are applied together in the graphicsLayer and each clears on its own condition.
+The numbers below are carried by the document named, and this document no longer states their rules:
 
----
+- §3, §6, §7, §8, §9, §10, §11 — `guidelines/MapFollow.md`.
+- §12, §13, §14 — `guidelines/MapFrames.md`.
+- §14 (the Android Auto renderer), §18 — `guidelines/MapCar.md`.
+- §15, §15a, §16, §16a, §16b, §17 — `guidelines/MapStyling.md`.
+- §19 — `guidelines/MapRoute.md`.
+- §20 — `guidelines/MapStyling.md`.
 
-## Known Pitfalls (Regression Checklist)
-
-When "map jumps" / "marker wrong" appears, check first:
-
-1. Does the emitted frame have the OVERRUN dimensions (screen × 1.2) and carry its own viewport? →
-   the display draws it at the derived display offset (§13); a screen-sized crop or a frame described
-   by another viewport shifts or scales the map wrongly.
-2. Does the emitted frame share memory with `frontBuffer`? → next `setPixels` corrupts the
-   displayed image (horizontal jumps without rotation).
-3. Angle unnormalized (> π)? → grows across frames, apparent rotation jumps.
-4. Is `epoch` incremented on pure GPS move? → running renders get discarded.
-5. Does `smoothCourseBearing` return `-1.0` instead of NaN? → drift north after reset.
-6. Turn-reset threshold too high (> 45°)? → course mixes old/new direction after corners.
-7. Marker uses smoothed instead of fresh course? → arrow points in old direction after corners.
-8. Blit delta without rotation matrix? → lateral offset on rotated map.
-9. Center smoothed? → marker drifts off the road.
-10. Rate limit < 90°/frame? → map rotates too slowly after corners.
-11. Marker baked into cached tiles / reused front buffer (ghost marker artifacts after it moves)?
-    → marker must be a Compose overlay; tiles/buffers must contain only map content.
-12. Overlay projecting against `currentViewport` instead of the displayed frame's viewport? → marker
-    misplaced during pan/zoom/rotate gestures; always use `uiState.renderViewport`.
-12a. Pan window applied to the map content but NOT to the map-anchored overlays (or applied twice in
-    follow mode)? → the marker rides off the content. The overlays translate by the SAME clamped
-    display offset the frame is drawn with (`markerDisplayShiftPx`), and not at all in follow mode
-    where the anchor-center projection already carries it.
-12b. Pan tracked by per-event renders instead of the display window? → content moves only when a
-    frame lands (50 ms debounce + render), pans inside the overrun margin never move at all, and the
-    committed viewport drifts away from the displayed content (a later render then jumps).
-12c. Pan frozen for the whole gesture, moving nothing at all? → the display window was released while
-    the finger was still down: the hold may only end for a frame that carries the DISPLAYED center
-    (`PanWindowRules.holdReleased`, never committed-vs-frame) and never while a gesture is live. The
-    companion failure is a coverage predicate reading the renderer's own frame instead of the emitted
-    one — it drops the request as covered for a window the display cannot shift, so nothing renders
-    and nothing moves (`MapRenderer.EmittedFrame`, spec `canvas-overrun` — Coverage and display never
-    disagree into a freeze). Confirm with the `pan end:` line (one per gesture) plus the renderer's
-    gated drop lines, not with per-event logging.
-13. `setGpsMarker`/`clearGpsMarker` or native `gpsMarker` state re-introduced? → forbidden: the
-    marker renders exclusively via `LocationMarkerOverlay`.
-14. Tile-path rotation pivots on each tile's own corner? → marker overlay (projected about the
-    viewport center) diverges from the map by up to `d·θ` — rotate about the viewport center.
-15. Overlay fed the LIVE GPS fix instead of the frame marker snapshot? → marker jumps ahead of the
-    road by up to one fix of travel while frames lag; always draw the snapshot that rode with the
-    displayed frame (`frameFlow`).
-
----
-
-- **Log BOTH sides of a seam in one grep-able line** (§40.57): pending vs displayed frame, both path
-  counters, the requested vs applied magnification. Five changes shipped while the AA follow defect was live
-  because no log line compared the two frames — if two layers can disagree about a number, one line must
-  carry both.
-- **Write down which coordinate frame each number lives in before comparing them** (§40.59) — pre-shift
-  projection vs post-shift visible band, frame pixels vs surface pixels, raw scale vs level. A comparison
-  across frames reads as a defect in the code under test and costs a review round to disprove.
-
-## 14. Android Auto renderer — smooth follow (overrun + blit + extrapolation)
-
-`AutoMapRenderer` (spec `auto-smooth-follow`) mirrors the phone's overrun/blit machinery on the
-car Surface:
-
-- **CRITICAL — the renderer never owns the surface**: the car Surface's lifetime belongs to
-  the session (`SessionCarSurfaceHost`, change `fix-aaos-host-crash`, spec
-  `car-host-fault-isolation`): one `SurfaceCallback` registration per session, one owner screen
-  at a time, released exactly once per **delivery** on the host's `onSurfaceDestroyed`, on
-  replacement, or at session end. A
-  renderer draws, stops drawing (`detachSurface`, `pause`) and clears its reference — it never
-  calls `Surface.release()`. Releasing it here (the earlier shape, on replace/stop/shutdown)
-  disconnected the buffer queue the host — or the screen that superseded this one — was still
-  using, which showed up as `lockCanvas` failures and an invalidate loop. A frame whose surface
-  was replaced or destroyed during the long native render is dropped (`isCurrentSurface`), and
-  a stale surface is never reported as a failure of the live one (that used to wedge the render
-  loop for the live surface until another delivery).
-- **CRITICAL — the stop path detaches**: a screen's `onStop` is `pause()` **plus**
-  `rendererGate.detachSurface()` (change `fix-car-surface-ownership-and-host-callbacks`). The host
-  starts the incoming screen before it stops the outgoing one, so a renderer that kept the surface
-  reference could lock the one session surface while the incoming screen drew through it; the
-  session also revokes the surface from the owner it supersedes
-  (`CarSurfaceOwner.onCarSurfaceRevoked`) at `attach`, so at most one renderer locks it. Detaching
-  drops the reference, clears `surfaceFailed` (a failure recorded while the screen was visible must
-  not gate the next start) and releases the overrun buffer — the buffer is per screen, and up to
-  four car screens can sit in the stack.
-- **Overrun buffer**: every full native render is at `OVERRUN_FACTOR` (1.2×) the surface size and
-  is KEPT as the overrun buffer for sub-region blits — until the screen stops, which releases it;
-  the first frame after the next start is therefore a full render, never a blit of a
-  frame that predates the stop. The visible region is drawn
-  centered: `dx = (surfaceW - bitmapW) / 2`.
-- **The overrun frame is a pooled target, held until replaced** (change `fix-render-buffer-reuse`,
-  spec `render-performance`): the renderer acquires its target from `RenderBitmapPool` and keeps it
-  as `overrunBitmap`, so a render that starts while a frame is displayed acquires a **second**
-  target — the displayed frame and the in-flight render never share one. Replacing the frame
-  **releases** the old target (it used to `recycle()`), `clearOverrunBuffer()` releases the held one
-  (surface change, stop, shutdown), a failed render releases the unused target, and `displayed*()`
-  stays correct because it derives from the reference that is held exactly as long as the frame is
-  displayed. The marker draw objects are cached the same way (spec `auto-map-renderer` — Marker
-  drawing allocates no per-frame objects): built on first use, rebuilt only when the surface
-  bounds, the density or the dark presentation changes.
-- **Sub-region blit**: a viewport change within the overrun region is served by
-  `lockCanvas → drawBitmap(overrun, dx, dy) → unlockCanvasAndPost` — no native render. The blit
-  offset comes from `OverrunWindow.shiftPx` (rotated-frame clamp, same rotation rule as
-  the phone blit). Beyond the margin → full render at the new center.
-- **Extrapolation loop**: a gated ~30 fps coroutine eases the displayed position toward
-  `FollowPrediction.predictedPosition` and blits the delta; the GPS/destination markers are drawn
-  at the displayed position so they glide with the map. Gate: resumed + follow mode + speed
-  > ~1 m/s + fresh fix + valid surface (battery/thermal on head units).
-- **Display-only prediction**: predicted positions never reach the navigation engine — the
-  prediction lives entirely inside the renderer.
-- **CRITICAL — overrun bitmap lifecycle**: the overrun bitmap is recycled when a new full render
-  swaps it in. The extrapolation loop and the render loop run on different coroutines, so the
-  read of the overrun bitmap AND the blit draw MUST happen under the shared `surfaceLock` —
-  otherwise a concurrent full render recycles the bitmap mid-draw ("trying to use a recycled
-  bitmap" crash). The full native render itself runs OUTSIDE the lock so the loop can keep
-  blitting the old frame while the render is in flight.
-- **CRITICAL — display ownership in follow mode**: in follow mode the extrapolation loop owns
-  `displayLat/Lon` (the eased predicted position). `fullRender` and the `renderFrame` blit path
-  MUST NOT reset the display to the render target when `followMode` is engaged — a render
-  triggered by a transient follow-off (heading-up `setViewport`) would otherwise yank the eased
-  display back every fix (visible "pumping"). Only set `display = viewport` when `!followMode`.
-- **reengageFollow must anchor the viewport and request the frame**: screens that do transient
-  `setViewport(...) → reengageFollow()` per fix (heading-up rotation) must make
-  `reengageFollow` set `viewport = fix` + emit — otherwise the next `setViewport` reads a stale
-  `viewportState` (initial center), the pending render targets it, and the display pumps between
-  the stale center and the fix. `reCenter` keeps the snap (user re-center button);
-  `reengageFollow` re-engages without snapping the display. It also MUST request the frame it
-  re-anchored when none is pending (`blitEligible = true; if (!pendingRender) requestRender()`) —
-  a pan release (`MapPanHandler`) and a screen start/resume re-engage with no commit behind them, so
-  relying on a preceding `setViewport` left the stale frame on the surface (change
-  `fix-car-follow-reengage-render`, spec `auto-smooth-follow` — A follow re-engage requests the frame
-  it re-anchored). The guard matters: the render loop draws one frame per `renderSignal` value, so an
-  unconditional request doubles the fix path's renders.
-- **A stale fix must not freeze the display**: a GPS gap does NOT gate the extrapolation loop off.
-  The feed-forward keeps the last committed speed, decaying to zero over `STALE_FEED_GRACE_SEC` +
-  `STALE_FEED_DECAY_SEC` = 3 + 7 s (`FollowPrediction`), and the correction and the snap are skipped
-  while the reference is older than `STALE_REFERENCE_SEC` — the display keeps advancing forward at
-  the decaying speed instead of stopping. Both alternatives were measured as wrong: freezing the
-  display at the last predicted position reads as a massive overshoot during gaps, and correcting
-  onto the stale fix dragged the map backwards off the road. The first fresh fix afterwards
-  re-applies the correction and, beyond `TELEPORT_SNAP_METERS`, the snap — that is the GPS-recovery
-  case.
-- **Blit eligibility**: only pure viewport/marker changes may blit. Favorites, route, a change of
-  the renderer's projection DPI, and
-  surface changes force a full render (`blitEligible = false`) — a blit would show stale
-  native-rendered content.
-- **The projection DPI travels with the render request** (spec: `render-projection-dpi`): each
-  renderer passes its own display's DPI (`MapRenderer.dpi`, `AutoMapRenderer.projectionDpi`) to
-  `MapRenderUtil.renderInto`/`renderPixels`, and the JNI render projects with it. The client
-  keeps no DPI of its own, so an AA session and the phone canvas sharing one process cannot
-  change each other's frame scale; `TileCache` keys a tile by the DPI it was rendered at,
-  because the pixels depend on it.
-- **Loop liveness — a fault costs one frame, never the pipeline** (change
-  `fix-car-render-loop-restart`, spec `car-host-fault-isolation` — "A fault in one frame keeps the
-  frames coming"; design D1/D2/D7): all three loops (the `renderSignal` consumer in
-  `startRenderLoop`, `startExtrapolationLoop`, `startZoomWalkLoop`) run their iteration body through
-  `RenderLoopSupervisor.runIteration(RenderLoop.X) { … }` — the extracted `frameIteration()`,
-  `displayTickIteration()`, `zoomWalkIteration()` are the testable form. The guard **must stay
-  inside the `renderSignal.collect` body**: a throw that escapes the collector ends it and every
-  later `requestRender()` is dropped while the surface stays on its last frame (the `TODO.md` §51
-  freeze). `CancellationException` is rethrown by the guard — a cancelled scope must end the loop.
-  `frameIteration()` additionally returns early for `isShutdown`/`paused`/`surfaceFailed`, so a
-  stopped screen neither draws nor counts a fault (it cannot drive the ladder).
-- **A requested frame that never lands is re-requested** (change `car-frame-wait-bound`, spec
-  `auto-map-renderer` — A requested car frame that never lands is re-requested; issue #25 is what the
-  old silence looked like to a driver: a black surface with host chrome and no message).
-  `requestRender()` arms a one-shot wait; when it expires with no draw since it was armed
-  (`fullRenderCount + blitCount` unchanged, a surface still held, not paused), the renderer requests
-  the frame again. Bound `FRAME_WAIT_BOUND_MS` = 4 s, budget `FRAME_WAIT_MAX_RETRIES` = 2 for ONE
-  stalled wait, and the budget re-arms as soon as a frame lands — so one stall does not disarm a long
-  session. The numbers come from the AAOS AVD (2026-10-30): a free-driving push draws its first frame
-  in 0.63–0.79 s, a surface replacement in 0.87 s, a full native render takes 25–300 ms, so 4 s is ~5x
-  the worst measured transition. A `frameIteration()` that drew nothing keeps `pendingRender` set
-  instead of consuming the request, and `pause()`, `detachSurface()` and `shutdown()` disarm the wait,
-  so a stopped screen still performs no surface work. A healthy session logs **nothing** —
-  `adb logcat -s Diag/MAP | grep 'frame wait expired'` was empty over a 60 s free-driving run (measured
-  2026-10-30); when a wait does expire, one line per retry is recorded, identity-only:
-  `frame wait expired: no frame in 4000 ms (retry 1/2)` and, at the end of the budget,
-  `frame wait expired: no frame in 4000 ms after 2 retries`.
-- **Diagnosing a frozen or degraded car map** (same change): one `adb logcat -s Diag/MAP` line per
-  fault streak, per re-creation and at the degrade transition, all identity-only:
-  - `renderer frame fault #1: IllegalStateException (recoveries=0)` — `<loop>` is `frame`,
-    `extrapolation` or `zoom-walk`; further skips in the same streak are throttled to one entry
-    per 5 s;
-  - `renderer frame: re-creating after 3 consecutive faults (attempt 1/2)` — the gate shuts the
-    old renderer down, publishes a new one (the state slots replay: viewport, follow anchor,
-    presentation, pane geometry, marker/favorites/route/destination, overlay drawer) and the screen
-    re-attaches the session's surface;
-  - `renderer frame: degraded after 2 re-creation(s), last fault IllegalStateException` — the
-    budget for this started screen period is spent; the screens log `map state -> DEGRADED`
-    (`MapScreen`/`NavigationScreen`/`FreeDrivingScreen`/`DetailsScreen`) and show `map_unavailable`
-    (a disabled content row on the map/details screens, a surface-drawn notice on the two
-    `NavigationTemplate` screens, which have no content slot). `onStart` re-arms the budget.
-  A fault here is **not** the dead-surface path: `surfaceFailed` (a surface that cannot be locked)
-  still stops the loop deliberately and asks the host for a fresh surface (`MAX_SURFACE_REFRESH_ATTEMPTS`).
-
----
-
-## 15. Day/Night (daylight flag) contract
-
-- The stylesheet `daylight` flag selects the map variant: set = daylight, unset = dark.
-  Native side: `setStyleSheetFlag("daylight", !dark)` → `DBThread.SetStyleFlag` →
-  `LoadStyleInternal(stylesheet, flags)` reloads the variant on the DB thread; the next
-  render uses it. No tile cache survives the reload (variant switch must not show
-  tiles from the other variant).
-- **Phone**: the environment source is `DarkModeController` (system night mode, or the
-  ambient light sensor when enabled — see `dark-mode` spec). `pushDarkPresentation`
-  dedupes and calls `invalidateStyle()` (epoch bump + full re-render).
-- **Android Auto**: the source is the HOST's day/night state, never the phone's system
-  mode — the car process runs on the phone but the head unit decides (its own light
-  sensor / time). `NavigationSession.hostDark` (init from `CarContext.isDarkMode()`,
-  updated in `onCarConfigurationChanged`) feeds both map screens; `CarDaylightApplier`
-  dedupes the push **by value**; `invalidateStyle()` (blit bypass + full render) re-renders
-  so the stale-variant overrun buffer is never blitted. Templates are host-rendered and
-  follow the host automatically — only the app-drawn surface needs this.
-- **Startup race (both variants)**: a flag push made before any database is open is **not** lost, so no variant
-  needs a retry. `DBThread::SetStyleFlag` stores the value in `stylesheetFlags` whenever the database set is
-  initialized, and `isInitializedInternal()` is an `all_of` over that set — vacuously true while it is empty
-  (`DBThread.cpp:91-95`, `:422-427`) — while a load over an empty set reports success
-  (`DBThread.cpp:455-467`, `:492`). The open path is where the stored flag reaches the maps: each database is
-  pushed only after `Open` succeeded and gets its style config from `makeStyleConfig`, which applies
-  `stylesheetFlags` (`DBThread.cpp:290-323`, `:360-369`), so the first render after warmup already carries the
-  value. The one state that would drop a push — a database in the list that is not open — is not reachable from
-  the app: a list change closes and clears the set before rebuilding it under the same write lock
-  (`DBThread.cpp:183-188`). Consequence for the appliers: the flag is keyed on the value alone on both variants
-  (phone `stylePushedToNative` re-pushes on the first rendered frame, car `CarDaylightApplier` as soon as a
-  renderer exists) and **no** application follows a style load (change `fix-car-style-switch-costs-one-load`).
-  Forbidding an application on every settings re-read is what change `fix-aaos-host-crash` (design D5)
-  established: a bare `reset()` there pushed a flag, reloaded the variant and forced a full render every few
-  seconds for nothing.
-- **Periodic work bound (Android Auto)**: the same change bounds the follow-mode
-  full-render request — no request while a full render is in flight, and the interval is
-  `max(200 ms, the last measured render duration)`. On the automotive AVD a full render
-  at 1080x600 takes 2-5 s, so the fixed 200 ms interval re-requested a frame the renderer
-  could not keep up with.
-- Initial `isDarkMode()` may be false until the host sends configuration
-  (`UI_MODE_UNKNOWN`); the first `onCarConfigurationChanged` corrects it (one extra
-  render at startup).
-- **Load budget and dedupe key (change `dedupe-stylesheet-loads`)**: the app-side state that decides
-  whether to touch the native side is the pair **(style name, `daylight`)**. Phone:
-  `MapCanvasViewModel.ensureMapStyle` is the single entry, with the reason
-  `RE_OBSERVED` / `STYLE_SWITCH` / `STARTUP_DB_READY` / `FIRST_RENDERED_FRAME`; car:
-  `CarStyleApplier` (style name) plus `CarDaylightApplier` (`daylight`). Both native calls
-  (`loadStyleSheet`, `setStyleSheetFlag`) reload the whole stylesheet set, so one startup loads it
-  **once**, plus one load per legitimate trigger: a style switch, a real presentation change, a **map
-  database open** (a freshly opened database carries no style config, so `STARTUP_DB_READY` forces
-  it), the bundled-asset refresh after an update (it runs before the start's load), and the basemap's
-  own stylesheet per basemap open. A style load carries the flag, so a platform-driven surface (Android Auto)
-  does **not** re-apply it: `loadStyleSheet` hands the load the enabled flags
-  (`app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp:2226-2235`, `GetStyleFlags()`),
-  and `DBThread::LoadStyleInternal` stores them for the new style and its basemap
-  (`.../libosmscout-client/src/osmscoutclient/DBThread.cpp:455-460`) and installs them before the parse
-  (`DBThread.cpp:366-369`). That is the native check `TODO.md` §120 asked for, which is why the car's
-  re-application after a switch is gone (change `fix-car-style-switch-costs-one-load`). The dedupe is
-  app-side only: no native accessor exposes the installed pair, and the app is its only writer
-  (`getActiveStyleSheet()` / `wasLastStyleLoadSuccessful()` report the outcome).
-
----
-
-## 15a. Stylesheet load failure (app side) — never render a rejected style, never crash
-
-- **Client contract (libosmscout, branch `naviveylin-local`; change `client-style-load-resilience`):
-  a stylesheet that fails to parse NEVER becomes the active style.** The previously installed style
-  configuration stays; a database that never had one gets the empty configuration (draws no content);
-  the painter is never handed a rejected or absent configuration. The load outcome is reported per
-  attempt through `OSMScoutClient.wasLastStyleLoadSuccessful()` and the active style through
-  `getActiveStyleSheet()` (which now reports what is *actually* installed, not what was requested).
-  Before that change a rejected stylesheet left the database without a style and the render pipeline
-  faulted (`Fatal signal 11` in `osmscout::StyleConfig::HasNodeTextStyles` from
-  `MapPainter::PrepareNode`).
-- **App side**: every load path reports the failure once through the shared seam
-  `com.naviveylin.core.MapStyleLoadReporter` (one `DiagnosticsLog` entry + the same wording on both
-  surfaces; strings `map_style_load_failed` / `map_style_load_failed_kept` in `:core`, EN + DE):
-  - phone: `MapCanvasViewModel.applyStyleSheet` (style switch, persisted style at start) and
-    `pushDarkPresentation` (style-flag reload) → message via `uiState.snackbarMessage`;
-  - car: `CarStyleApplier.onLoadFailed` on both map screens → `reportCarStyleLoadFailure` +
-    `CarStyleLoadNotifier` (channel `map_style`, IMPORTANCE_LOW, silent, auto-cancel). The car
-    templates have no general message slot, so a notification is the non-blocking surface — do not
-    add a template slot for this without a decision (design D2 of the change).
-- **Startup fallback**: a persisted style whose stylesheet cannot be loaded falls back to
-  `BundledMapStyles.DEFAULT_STYLE_NAME` (`standard`) so the first map display is never empty; the
-  failure is still reported. Do not "fix" this by clearing the user's selection.
-- **Verification**: a stylesheet defect is NOT caught by building (§40.55) — the app must be run once with
-  `adb logcat -s NaviVeylin | grep -i "style error"`; the expected outcome is a degraded map (no
-  content for the affected database) plus the message, and no `Fatal signal 11`.
-  `StylesheetHexColorCaseTest` guards the one packaging-time trigger it detects (uppercase hex).
-- **Test fixtures and report parsing (2026-10-05).** A fixture stylesheet must follow the OSS grammar:
-  a node rule is `NODE.TEXT` / `NODE.ICON` (`NODESTYLEDEF = "NODE" "." (NODETEXTSTYLE | NODEICONSTYLE)`), a
-  way rule needs no suffix (`[TYPE _route] WAY { … }`) — writing `NODE { … }` makes every fixture load fail
-  with `Symbol: "." expected`. Give the test seam a failure path that prints `GetErrors()` instead of only
-  asserting `Load() == false`. And when two emitted lines intentionally share a prefix (the condensed
-  `Unknown types in '…'` report and its gated Debug detail line), select the one under test by **level**
-  (or an exact marker), never by substring — the aggregate helper counted its own detail line and reported
-  `2 == 1`.
-
----
-
-## 16. Basemap stylesheet contract
-
-- The basemap database has its own type config (basemap.ost, ~11 types + water-index
-  tiles), so it is rendered with a **dedicated stylesheet** (`basemap-render.oss`)
-  instead of the user-selected main style. Loading the main style into the basemap DB
-  would emit ~450 "Unknown type" parser warnings per load.
-- Native side: `DBThread` holds a `basemapStyleFilename` (absolute path, configured
-  via `OSMScoutClientBuilder.withBasemapStyleSheet`); `LoadStyleInternal` loads it for
-  the basemap database and the main style for the regular databases. Empty filename =
-  fall back to the main style (default). The renderer already uses per-database style
-  configs (`mapData.styleConfig = db->GetStyleConfig()`), so no render-path change is
-  needed.
-- `basemap-render.oss` references ONLY basemap types — zero unknown-type warnings. It
-  mirrors `include/place.oss` magnification ranges (labels persist at the same zoom
-  levels as the standard stylesheet) and handles the `daylight` flag (dark mode).
-  Symbols (`place_capital_city`, `place_city`) are duplicated locally, NOT included
-  via `MODULE "include/place"` — the module would pull in style rules for types not
-  present in the basemap DB and reintroduce warnings.
-- `basemap-render` is NOT offered in the style picker: `MapCanvasViewModel` filters it
-  from `getAvailableStyleSheets()` (spec: map-styles). It is the basemap's internal
-  style, not a user-facing map style.
-- Style switches and the `daylight` flag reload BOTH styles through
-  `LoadStyleInternal`; the basemap style is unaffected by main-style switches. The pair key of §15
-  covers it too: a flag application reloads the basemap stylesheet as well, which is why a redundant
-  flag push costs two parse sets, not one.
-
----
-
-## 16a. POI icons — submodule source, configured directory, symbol fallback
-
-- The stylesheets request POI icons **by name** (`NODE.ICON { name: bus_stop; }`); `symbol:` is a
-  vector symbol defined inline in the stylesheet, and the renderer prefers the image
-  (`MapPainter::LayoutPointLabels`): image → else symbol → else nothing. A style carrying a name and
-  no symbol therefore draws **nothing** unless its PNG loads (that was the defect `fix-poi-symbol-icons` closed).
-- Sourcing: only the raster leaf (`libosmscout/data/icons/14x14/standard/`) is packaged — at build
-  time by `syncSubmoduleIcons` into `assets/icons/14x14/standard`, mirroring the stylesheet rule — and
-  mirrored to internal storage by `AssetCopier.ensureIcons()`. The client gets it once from
-  `MapDownloadModule.configureClient(...)`. The neighbouring SVG set is deliberately **not** shipped:
-  `MapPainterCairo` loads `<name>.png` only ("TODO: add support for reading svg images"), so a
-  symbol-backed entry whose PNG upstream ships as SVG draws its symbol and logs one failed-load line.
-- **The configured directory must end with a path separator.** The loader concatenates
-  (`*path + name + ".png"`), so a path without one fails *silently*, with the same message as a
-  directory that was never configured. `IconAssets.clientDirectory(...)` is the only place that
-  builds this path — do not hand-build it.
-- Gates: `PackagedPoiIconsTest` fails when a stylesheet requests an icon (a `name:` without a
-  `symbol:`) that the packaged set does not carry; `checkSubmoduleIcons` fails the build when the
-  submodule or its raster leaf is missing.
-- On-device evidence is the absence of the failure line:
-  `adb logcat -s NaviVeylin | grep "ERROR while loading image"` leaves only `charging_station` and
-  `mini_roundabout` (symbol-backed, upstream SVG only).
-- The **icon-versus-symbol preference** moves that line. With it on (`preferSymbolIcons` in
-  `MapParameter`, the phone setting `preferSymbolPoiIcons`, default off), `MapPainter::LayoutPointLabels`
-  draws an entry that carries a symbol from the symbol and never reaches `HasIcon`, so no image is
-  looked for: `charging_station` and `mini_roundabout` then produce **no** failure line, and a dual
-  entry such as `hospital` or `bus_stop` stops drawing its raster icon. The recipe above is the
-  **preference-off** one; on device, name which value is in effect next to the log.
-
----
-
-## 16b. Stylesheet source and the on-device copy
-
-- The libosmscout submodule's `stylesheets/` directory (`app/src/main/cpp/libosmscout/stylesheets/`) is the
-  **single source of truth** for the map style sheets. The build copies it into
-  `build/generated/assets/stylesheets` — `Build.md` §12 names the sync and check tasks and their `preBuild`
-  wiring — so a submodule bump changes the next APK with no manual step and there is **no committed snapshot**
-  in `app/src/main/assets/`.
-- `AssetCopier` refreshes the on-device copy from the APK on every app start (per-file size + SHA-256
-  compare, deleting stale files), so an existing install picks up new styles after an update without clearing
-  its data. A stylesheet failure at load time is §15a's contract, not this one.
-
----
-
-## 17. Native tile-data cache — capacity, retention and its release
-
-`NativeTileDataCache` (core) is the single owner of libosmscout's per-database `MapService` cache
-capacity. It is not the app's own bitmap tile cache (`ui/map/TileCache.kt`): this one holds the loaded
-tile *data* per database, which is why walking a wide area is what makes a process big.
-
-- Constants: `PHONE_TILES` 512 (phone map path, `MapCanvasViewModel.initMap`), `CAR_TILES` 128 (car
-  warmup, `AutoServiceModule`), library default 25. Applied per database (regional maps + basemap) and
-  re-applied on every render, so it is a property of the *client*, not of a database.
-- **Configuration is raise-only**: the highest value any surface has requested wins, a lower request is
-  reported `REJECTED`. That is what keeps a car session from shrinking the phone's working set (and vice
-  versa) mid-session.
-- **The one lowering path is an explicit release**: `NativeTileDataCache.trim(client, tiles)` reports
-  `TRIMMED`/`UNCHANGED`/`FAILED` and is called only by `MemoryPressureResponder`. The native side evicts
-  least-recently-used tile data on a smaller value (`DataTileCache::SetSize` → `CleanupCache`), so no
-  bridge change is needed and rendered content never changes — only data reuse.
-- **Triggers** (change `bound-tile-data-retention`, design D1):
-  - a 30 s poll of `ActivityManager.MemoryInfo` while a client has a configured capacity —
-    `lowMemory` halves the capacity, `availMem <= threshold / 2` floors it at 25. This is the *only*
-    pressure signal the platform still offers: **`TRIM_MEMORY_RUNNING_MODERATE/LOW/CRITICAL`, `MODERATE`
-    and `COMPLETE` are not delivered to apps since API 34** (AOSP `ComponentCallbacks2`), and
-    `ComponentCallbacks.onLowMemory()` is deprecated since API 35. Do not build a release on them.
-  - `TRIM_MEMORY_UI_HIDDEN` (halves) and `TRIM_MEMORY_BACKGROUND` (floors) — the two levels that *are*
-    still delivered — **only while no car session is live**: with one, the car surface keeps rendering
-    from those caches and a release would buy a refetch for nothing.
-- **Measured retention ceiling** (2026-09-27, Pixel 8, scripted walk = 10 zoom-out steps + 14 pan swipes
-  via `adb shell input`): native heap 115 MB → 337 MB, `TOTAL PSS` 377 MB → 600 MB, saturating under
-  continued panning, retaining 324 MB after returning to the start viewport; the app's bitmap cache stayed
-  flat. Quote the walk with any retention number, and see `guidelines/Build.md` §10 for the measurement
-  rule (every footprint counter here is a high-water mark).
-- **No fault escapes a release** (`MemoryPressureResponder`): the release runs on a process-wide
-  dispatcher from a process-scoped responder, so its body is `runCatching`-wrapped and a confined fault is
-  recorded under the `MEMORY` tag (throwable class only, never its message). Without that, a throwable
-  raised inside a *memory-pressure* callback reaches the thread's uncaught-exception handler and kills the
-  app — the one moment it can least afford it. The same missing confinement leaked an uncaught exception
-  into the test JVM and was misattributed to another package for a whole session (closed 2026-09-27 by `bound-tile-data-retention`,
-  `ki_processing_failures.log` 2026-09-27): any long-lived scope that a test can construct needs one.
-
----
-
-## 18. The phone canvas while a car session is active — disposal, not hiding
-
-A live car session **disposes** the phone map canvas: `MapCanvasScreen` composes
-the car-session surface *instead of* the canvas (`guidelines/UI.md` §10a) — the
-canvas and all of its overlays, gesture state and remembered frames are simply
-not composed. Merely hiding the canvas would keep its window/EGL/GL buffers
-allocated, which is where the measured saving is: Graphics 132 MB → 28 MB with
-the phone UI gone while the car kept drawing (design of
-`phone-surface-while-car-session`, Pixel 8, fresh process per state).
-
-`MapRenderer.releaseRenderStorage()` gives up the rest. Its order *is* the race
-argument, and each step earns its place:
-
-1. the render **epoch is bumped first**, so a render already in flight discards
-   its result instead of swapping a buffer in behind the release (every commit
-   path checks the epoch under `bufferLock`);
-2. a queued-but-unstarted render is dropped (`pendingRender`). The two
-   **lifetime loops are NOT cancelled**: `debounceJob`/`renderJob` consume the
-   renderer's channels for as long as the renderer lives, and cancelling them
-   leaves a renderer that can never render again — including the resume render.
-   (A first implementation cancelled them and the test caught it immediately:
-   every post-release render silently produced no frame.)
-3. the two frame buffers are recycled under `bufferLock` — they are
-   renderer-private, nothing outside the class ever sees them, exactly as in
-   `shutdown()`;
-4. the tile cache is cleared. Its bitmaps are only **dropped, never recycled**: a
-   tile may still be referenced by a render in flight (the rule `TileCache.clear`
-   already followed);
-5. the last emitted frame is dropped the same way and **never recycled** —
-   Compose may still be drawing it — and the frame flow is reset to a
-   bitmap-less state, because a `StateFlow` retains its last value and that value
-   would otherwise be the only remaining reference keeping the frame alive;
-6. the pool's idle targets are released (`RenderBitmapPool.releaseIdle`). Nobody
-   draws with a target the pool holds free, so this cannot alias a live target;
-   the car's only cost is one fresh allocation on its next render.
-
-**What is deliberately not released: the shared native tile-data cache.** It is
-client-wide and the car surface renders from it while the phone is suspended —
-trimming it would force a refetch storm on the car. Releasing it under *pressure*
-is `bound-tile-data-retention`'s job, not this one.
-
-No native render call happens in the release — only reference drops and two
-short locks — so it is safe from a presence/lifecycle callback. The renderer
-stays usable; the resume is a **fresh render at the retained viewport**, with no
-crossfade from the last frame: keeping that frame for a transition would hold an
-overrun-sized bitmap plus its GPU texture for the whole session, i.e. it would
-give back part of the saving for a cosmetic effect.
-
-All the counters involved are **high-water marks inside a process** (native heap,
-`Graphics`, `TOTAL PSS`, malloced bitmaps), so any verification of this path needs
-a fresh process per state — recipe in `guidelines/Build.md` §10.
-
----
-
-## 19. Route data — one length for one route
-
-**The route's length is the route description's own total.** `RouteEntry.distance` is set from the
-description's cumulative node distances (the sum of the per-step legs when the bridge published aligned
-ones — which is the normal case — else the last node's cumulative distance, else the router's own figure as
-the fallback for a route whose description produced nothing). The router's `GetOverallDistance()` is **not**
-the route's length: it disagrees with the geometry the same routing produced, measured on device 2026-10-05
-as 0.748× of the drawn polyline on a ~70 km route, 0.795× on a ~17 km one and 0.552× on a ~1.5 km one —
-its relative error grows as the route shortens, so neither a fixed ratio nor a fixed offset explains it
-(`TODO.md` §139; the user-visible half is §129). Both route-building paths in
-`libosmscout-client-java/src/OSMScoutClient.cpp` (`calculateRouteWithObjectsWithProfile` and
-`calculateRouteWithObjectsAsync`) derive the length this way, and the change is a submodule commit on
-`naviveylin-local` — not an override in the `:osmscout-client-java` module.
-
-**The app reads it in one place.** `routeLengthMeters(route)` (`app/.../ui/route/RouteStepValues.kt`) is the
-single accessor: it prefers the aligned per-step legs sum (so the displayed total is literally the number the
-step list below it adds up to) and falls back to `RouteEntry.distance`. The planning card's statistic, the
-route summary and the summary dialog read it; `NavigationEngine.routeTotalDistanceMeters(route, lats, lons)`
-does the same for the value navigation publishes, which the routing-status progress denominator divides by.
-That helper keeps one older rule intact: a route without usable geometry publishes **0** even when the
-bridge handed over a length, because the surfaces have no geometry to draw it on
-(spec: `navigation-engine` — Acquisition without usable polyline geometry).
-
-**Do not add a second derivation.** A new consumer that sums the polyline itself, or reads the router's
-figure, recreates exactly this defect: two totals for one route, one of them visible next to a step list that
-adds up to the other. `computeRouteDistance` remains only as the geometry-less fallback inside the helper.
-
-**Measurement.** `RoutePanelViewModel.logStepValues` emits one coordinate-free `Diag/ROUTE` line per
-calculated route (`route analysis: steps=… withValues=… sumM=… totalM=… sumS=… totalS=… maxErrM=…`) comparing
-the legs sum with the route's total; `maxErrM` is ~0 on a correct build. That line deliberately keeps
-`RouteEntry.distance` as its `totalM` rather than the accessor's value — computing the total *from* the legs
-would make the comparison vacuous. `stepValuesDiverge` is the guard on it (2 % / 10 m band since this
-change, tightened from 50 %). The on-device half is
-`RouteInstructionPositionDeviceTest` (`lengths:` lines on `adb logcat -s RouteDeviceTest`), which prints the
-router's figure, the legs sum and the drawn polyline per candidate route.
-
----
-
-## 20. Label wrapping — the bounds the renderer configures
-
-- The app configures the wrapping on `MapParameter` in the native render (`renderMapIntoPixels` in
-  `OSMScoutClient.cpp`): `LabelLineMinCharCount` 5, `LabelLineMaxCharCount` 15, `LabelLineFitToArea` true,
-  `LabelLineFitToWidth` `min(width, height)` of the render buffer — the bounds the Qt plane renderer uses.
-  Setting none of them leaves the library defaults (`MapParameter.cpp`: 5 / 15 / true / 8000 px), whose
-  8000 px bound never binds.
-- **The character count is the bound that wraps**, not the pixel width: `MapPainter::GetProposedLabelWidth`
-  always caps the proposed width at `LabelLineMaxCharCount * averageCharWidth` and floors it at
-  `LabelLineMinCharCount * averageCharWidth`, so the pixel bound only ever narrows a wide area label.
-- **A label is broken at a word boundary only**, in the backends that wrap at all: a one-word label stays
-  on one line however wide it is (Pango `PANGO_WRAP_WORD`, and the no-Pango Cairo wrapper keeps an over-wide
-  word on a line of its own). `Escaldes-Engordany` therefore stays one line while `Andorra la Vella` wraps.
-  The AGG backend never wraps — it takes the object width and the wrapping flag as unused parameters — so
-  none of this reaches it.
-- **The Android build has no Pango**: `features.cmake`'s `find_package(Pango)` does not resolve under the NDK,
-  so `MapCairoFeatures.h` carries `/* #undef OSMSCOUT_MAP_CAIRO_HAVE_LIB_PANGO */` and
-  `MapPainterCairo::Layout` is the FreeType/cairo variant. Absence of the dependency is not the reason — the
-  three Android vcpkg triplets install pango, harfbuzz and fribidi, and `pkg-config --modversion pangocairo`
-  answers `1.58.0` when pointed at one of them (measured 2026-10-26); the module's own detection is what does
-  not reach them. The variant wraps the text itself and reads the same bounds through
-  `GetProposedLabelWidth`. The Pango variant wraps at the width of the *object* it is handed
-  (`PANGO_WRAP_WORD`) and ignores the label-line parameters, so it does not wrap a point label, whose
-  object width is 0; Android does not build it. The Qt and Skia backends compute their width from
-  `GetProposedLabelWidth` too.
-- **What the Android configure does define** is `OSMSCOUT_MAP_CAIRO_HAVE_LIB_FREETYPE` and
-  `OSMSCOUT_MAP_CAIRO_HAVE_LIB_CAIRO_FT` (same build tree, same date), so the backend also compiles
-  `OSMSCOUT_MAP_CAIRO_LOAD_FONT_FILE`: a configured **font file** is loaded with FreeType and drawn through
-  the FreeType font backend of cairo, and `FontNameResolution::CanReadFamilyFromFile()` answers for it. No
-  packaged stylesheet configures a font file — the styles name font families — so this changes no label the
-  app draws today; it is the path that would be taken the moment a style named a file.
-- A wrapped label reports the ink width of its widest line and the lines' block height, so the label
-  layouter places, culls and breaks overlaps with the size the label is drawn at.
-
----
-
-## Parameter Overview
-
-| Parameter | Value | Purpose |
-|---|---|---|
-| `GPS_DEDUPE_MS` | 100 ms | Duplicate time window (coordinate + timestamp) |
-| `GPS_FOLLOW_RENDER_INTERVAL_MS` | 200 ms | Follow-render throttle |
-| `centerSmoothMaxJumpM` | 500 m | Teleport reset center |
-| `COURSE_HISTORY_SIZE` | 10 | Course ring buffer |
-| `MIN_COURSE_DISTANCE_M` | 40 m | Stable course base |
-| `MIN_COURSE_DISTANCE_FAST_M` | 10 m | Fast base after reset/start |
-| `MIN_SEGMENT_FOR_TURN_M` | 8 m | Min. segment for turn detection |
-| `COURSE_TURN_RESET_DEG` | 45° | Turn-reset threshold |
-| `COURSE_LOW_PASS_ALPHA` | 0.3 | Stable course (≥ 40 m) |
-| `COURSE_LOW_PASS_ALPHA_FAST` | 0.7 | Fast course (< 40 m) |
-| `MIN_BEARING_DELTA_DEG` | 2° | Rotation deadband |
-| `MAX_ANGLE_RATE_DEG_PER_RENDER` | 90° | Rotation rate limit per render |
-| `ANGLE_EPSILON_RAD` | (removed) | Former angle tolerance — do not reintroduce |
+The regression checklist is `guidelines/MapFrames.why.md` "Known Pitfalls"; the parameter table is
+`guidelines/MapRendering.recipes.md` "Parameter Overview".

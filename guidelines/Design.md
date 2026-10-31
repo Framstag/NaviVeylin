@@ -1,118 +1,63 @@
 # Design Guidelines — Architecture & Conventions
 
-Common design principles distilled from the OpenSpec changes (`openspec/changes/**`)
-and consolidated specs (`openspec/specs/**`).
+The architecture's normative rules — module layering, state, threading and the engineering principles — and the
+index to the three documents the rest of the architecture is cut into. The four documents answer the four kinds
+of change that read them: `Design.md` (this file: §1 module layering, §3 ViewModel & state, §4 threading, §12
+engineering principles), `guidelines/DesignStack.md` (§2 stack & UI patterns, §9 data, persistence & search),
+`guidelines/DesignNative.md` (§5 the native boundary, split into §5a and §5b) and
+`guidelines/DesignCrossVariant.md` (§6 rendering pipeline, §7 follow mode & GPS, §8 Android Auto & cross-variant
+split into §8a and §8b, §10 build & release, §11 testing). A section that moved keeps its number, and the index
+entry below names the document that now carries it.
 
-**Document map** — pick the right doc: `Design.md` = architecture principles
-(this file); `UI.md` = UI rules (phone + Android Auto); `MapRendering.md` =
-render-pipeline details and pitfalls; `AGENTS.md` = project facts, build,
-logging, stylesheet mechanics.
+**Rule naming** — a rule begins with a bold `Rule:` token, and the first bold span of its bullet is the rule's
+name; a name is unique across `guidelines/*.md`, and another document references it by the rule-reference form
+the route check resolves.
 
-**Maintenance rule** — when a change supersedes a principle here, update this
-document in the same change (see §13 for how supersessions are recorded).
+**Maintenance rule** — when a change supersedes a principle in one of the four documents, update that document in
+the same change; the supersession itself is recorded in `guidelines/Design.why.md` §13.
 
-**Severity** — **MUST** = hard invariant, breaking it is a bug. Unmarked =
-strong preference.
+**Severity** — **MUST** = hard invariant, breaking it is a bug. Unmarked = strong preference.
 
 ---
 
 ## 1. Module layering
 
-- **MUST**: `:app` is the only module that touches the JNI layer and Android
+- **Rule: only `:app` touches the JNI layer and Android context-bound storage** **MUST**: `:app` is the only module that touches the JNI layer and Android
   context-bound storage.
-- `:core` = shared, Android-lean logic used by both `:app` and `:auto`
+- **Rule: `:core` holds the shared, Android-lean logic both variants use** `:core` = shared, Android-lean logic used by both `:app` and `:auto`
   (resolution, formatting, projection, prediction, mappers). `:auto` depends
   on `:core` + the JNI jar, **never** on `:app`.
-- Shared **behaviour** lives in `:core` next to the state it reads, so a rule
+- **Rule: a shared behaviour lives once, in `:core` beside the state it reads** Shared **behaviour** lives in `:core` next to the state it reads, so a rule
   cannot exist twice: `Manoeuvre`/`manoeuvreFromStep`, `turnTypeFor`,
   `ManoeuvreLabels`, `ManeuverSymbols`, `RouteStepGuidance` and the route-row
   policy (`RouteRows.routeRows`, `RouteRow`) are read by both variants. A
   surface that needs a rule the other one already applies imports it — it does
   not derive a second version (change `share-route-rows-in-core`).
-- `:auto` consumes app functionality through provider interfaces defined in
+- **Rule: `:auto` consumes app functionality through `:core` provider interfaces** `:auto` consumes app functionality through provider interfaces defined in
   `:core`, implemented in `:app` with Hilt. Keep providers focused; split when
   they grow.
-- One shared state contract between variants (`NavigationState`); extend it
+- **Rule: one shared state contract between the variants, extended additively** One shared state contract between variants (`NavigationState`); extend it
   additively (new fields defaulted) so existing code compiles unchanged.
-- Single app module for all form factors via resource qualifiers / window
+- **Rule: one app module serves all form factors via resource qualifiers** Single app module for all form factors via resource qualifiers / window
   size classes.
 
 ## 2. Stack & UI patterns
 
-- Single-activity architecture: screens are composables, not activities.
-  Compose + Material 3, Navigation Compose, ViewModel + StateFlow, Hilt,
-  Coroutines. Google Play Services may be used (Fused location, car
-  MapController) but MUST NOT be a hard dependency — provider abstraction,
-  runtime availability check, and fallback (e.g., LocationManager) keep it
-  replaceable by design. No Google Maps SDK (rendering is libosmscout); no
-  Google account required; sideloading is a supported distribution path.
-- Persistence is JSON-file based (JNI favorites, settings, search history);
-  don't add a database layer that duplicates what the native layer already
-  persists.
-- Bottom sheets are the standard overlay pattern; full-screen sheets for
-  management surfaces that keep the map alive underneath. Both compose on top
-  of the map screen via state flags — no nav-graph changes.
-- Always-visible navigation info lives in overlays on the map canvas, not
-  dialogs.
-- Dialogs that must cover a bottom sheet live at top-level screen scope
-  (separate windows can hide behind the sheet window). The route-planning session is **one**
-  surface on the phone for exactly this reason: its step summary used to be a second window
-  (capped at 400 dp, rows without a click handler, its own dismissal ordering) and was
-  deleted in favour of doing everything in the card (design D10, 2026-10-03).
-- Route planning is a **session**, not a sheet (change `route-planning-session`, spec
-  `route-planning-session`): the phone overlay is **two fixed card heights** (compact /
-  expanded) plus a hidden pill, and docks to the side when the surface is wider than it is
-  tall — the docked layout carries the selectable step list, the phone's selector is the
-  step navigator inside the expanded card. The heights are fixed shares of the screen
-  (expanded ≤ 45 %, so the map always keeps ≥ 55 %), never content-driven: a Material3
-  sheet's partially expanded anchor is a fraction of the *content*, and the same panel
-  measured 36 % (edit) and 48 % (route) for what the session called "compact" and ~97 %
-  expanded on the device. The session owns the camera and the route overlay while it is
-  active — a lease on top of BROWSE / FREE_DRIVE / NAVIGATION, never a fourth map mode. Its
-  only exits are Start Navigation and Cancel/End; stopping navigation gives a bounded grace
-  with Restart / End. The route-overview fit uses the height the card **reports**
-  (`MapCanvasViewModel.setOverlayCoveredPx`, measured by the card's `onSizeChanged`) and
-  re-runs when that height changes while a route is reviewed — the nominal fraction it
-  replaced left 614 px of route behind the card; an unchanged height never moves a
-  user-moved viewport.
-- Compose overlays that project map content sit above the frame bitmap and below the
-  markers — see `guidelines/MapRendering.md` (analysed-route-segment overlay).
-
-### Adding to the stack — the recipes
-
-Five shapes recur. Each names the files it touches; the rules above say what the code must look like, and
-the band a surface composes in belongs to `guidelines/UI.md` §11.
-
-- **Adding a dependency**: `app/build.gradle.kts` (or the module's own build file); a native one
-  additionally needs `CMakeLists.txt` and the vcpkg dependency list (`guidelines/Build.md` §12).
-- **Adding a screen**: define the route in `NavGraph.kt`, add the composable under `ui/`, add its ViewModel
-  under `ui/` or `data/`, and register a Hilt module when it needs one.
-- **Adding a full-screen sheet** (e.g. `FavoritesSheet`): the composable under `ui/<feature>/`, a
-  `@HiltViewModel` beside it, wired into `MapCanvasScreen` by a boolean state flag with conditional
-  composition. Compose it in the **modal band** (`MapLayer.MODAL`, `guidelines/UI.md` §11) — never as a
-  bare sibling after the chrome — so no on-map element paints over it.
-- **Adding a details sheet after a search**: a `ModalBottomSheet`, a `showDetailsSheet` flag on
-  `MapCanvasUiState`, and the selection wired to set the flag and move the centre; its favourite action
-  comes from `FavoriteRepository`.
-- **Adding a native function**: the `native` method in the **override**
-  `osmscout-client-java/src/main/java/com/framstag/libosmscout/client/OSMScoutClient.java` — the submodule's copy of that file is one of the
-  five the Gradle module supersedes and is never compiled, so a declaration added there does
-  nothing — the JNI wrapper under the submodule's `libosmscout-client-java/src/`, and a CMake target
-  link when a new library is involved. The `native-bridge-signature-change` skill holds the
-  procedure, the audit script and the one-commit rule for the gitlink and the declaration.
+Moved to `DesignStack.md` §2 — the stack and UI-pattern rules. The recipes for adding a dependency, a screen, a
+full-screen sheet, a details sheet or a native function are procedure and live in `guidelines/Design.recipes.md` §2.
 
 ## 3. ViewModel & state
 
-- One ViewModel per concern; each owns its state as an immutable UiState data
+- **Rule: one ViewModel per concern, owning its state as one immutable UiState `StateFlow`** One ViewModel per concern; each owns its state as an immutable UiState data
   class in a single StateFlow. Cross-ViewModel communication via collected
   flows, never two-way references.
-- State co-locates with the data it displays. Don't create a ViewModel for
+- **Rule: state co-locates with the data it displays** State co-locates with the data it displays. Don't create a ViewModel for
   state a screen already owns, and don't push purely presentational logic
   (formatting, grouping) into one — it belongs in the composable layer.
-- **MUST**: displayed frames are emitted atomically — bitmap, viewport, and
+- **Rule: displayed frames are emitted atomically in one emission** **MUST**: displayed frames are emitted atomically — bitmap, viewport, and
   overlay snapshot travel in ONE emission. Never combine separate sub-flows
   for what is drawn; mixed-frame states jump.
-- Prefer a state field over a separate flow for derived signals.
+- **Rule: a derived signal is a state field, not a separate flow** Prefer a state field over a separate flow for derived signals.
 - **A `Map` is never the carrier for "same contents, different order".** A `StateFlow` drops an emission
   equal to its current value and `Map.equals` ignores iteration order, so an order-only change never reaches
   a collector — it "works" only while the values happen to be identity-unequal (`FavoriteLocation` read
@@ -120,24 +65,24 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   the contents through a shared helper (`orderedGroupNames`, `:core`), so an entry the channel does not name
   yet cannot vanish from a list. Before leaning on a derived value as a contract, ask what makes it **change**,
   not what it contains (spec `group-ordering`; `guidelines/UI.md` §1).
-- Every async operation has an explicit error state surfaced to the user;
+- **Rule: every async operation surfaces an explicit, user-actionable error state** Every async operation has an explicit error state surfaced to the user;
   errors are user-actionable; the process never crashes on data inconsistency.
-- Settings persist as one `@Serializable` AppSettings JSON; new fields need
+- **Rule: settings persist as one `@Serializable` JSON, fields defaulted and decoded leniently** Settings persist as one `@Serializable` AppSettings JSON; new fields need
   defaults and must decode leniently; enum names are stable on disk.
-- Where one value drives several layers (e.g. theme + native style flag),
+- **Rule: a value that drives several layers is resolved once and fanned out** Where one value drives several layers (e.g. theme + native style flag),
   resolve it once in a single source and fan out — one truth, no divergence.
-- Process-global state that two surfaces share (location subscription, settings
+- **Rule: process-global state two surfaces share has one owning seam** Process-global state that two surfaces share (location subscription, settings
   file, native cache capacity, car-session presence) is owned by one seam with an
   explicit rule, never by per-surface start/stop pairs — see §12, "Single owner per
   process-global resource".
-- **MUST**: navigation state is process-owned. Exactly one process-scoped
+- **Rule: navigation state is process-owned by exactly one engine** **MUST**: navigation state is process-owned. Exactly one process-scoped
   `NavigationEngine` (`:app`, `@Singleton`, bound to `core.NavigationViewModel`,
   resolved by the car through `AutoEntryPoint`) owns the native
   `NavigationController`, the navigation session, route acquisition and the
   reroute policy (spec `navigation-engine`, change `one-navigation-engine`).
   Every surface — phone map, Android Auto, Android Automotive OS — is a pure
   observer of that one state.
-- **MUST**: per-surface view state never moves into the engine. Follow mode, free
+- **Rule: per-surface view state never moves into the engine** **MUST**: per-surface view state never moves into the engine. Follow mode, free
   driving, viewport, zoom, map rotation, vehicle anchor preset, overlay layout and
   render state stay with the surface that displays them; starting or stopping
   navigation on one surface must not move another surface's view (spec
@@ -145,9 +90,9 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   The phone keeps a thin surface adapter (`NavigationViewModel`) that owns those
   reactions — follow mode for a session the phone itself started, the route
   panel view, the mode snapshot/restore.
-- Cross-thread shared state uses atomics/volatiles; flags read at job
+- **Rule: cross-thread shared state uses atomics or volatiles, read at execution time** Cross-thread shared state uses atomics/volatiles; flags read at job
   execution time, never snapshotted into queued work.
-- Platform-object side effects (window refs, keep-screen-on) live in
+- **Rule: platform-object side effects live in `DisposableEffect`, not the ViewModel** Platform-object side effects (window refs, keep-screen-on) live in
   `DisposableEffect`, not the ViewModel.
 - **Progress and wall-clock state start at the invariant, not at the data-class default** (§40.61): initialise
   a progress state to "0 % travelled" (`remainingDistance = totalDistance`) rather than the field default,
@@ -156,12 +101,12 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 
 ## 4. Threading
 
-- **MUST**: never call native/JNI code on the main thread; run it on
+- **Rule: native/JNI code is never called on the main thread** **MUST**: never call native/JNI code on the main thread; run it on
   background dispatchers with timeouts and loading UI. This includes the car-app
   host callbacks (they run on the main thread by library contract): they may only
   retain the state they received — resolving a provider, a database query or a
   file read there blocks the host's call and can take the host down.
-- **MUST**: a diagnostic handler never performs filesystem work on its caller.
+- **Rule: a diagnostic handler never performs filesystem work on its caller** **MUST**: a diagnostic handler never performs filesystem work on its caller.
   `DiagnosticsLog.log`/`logThrowable` buffer the line in memory (plus a logcat
   mirror) and one worker thread owns the file — the caller's thread may be a car
   host callback, and the log must not be the reason it answers late. Readers
@@ -170,9 +115,9 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   or from composition. The one deliberate exception is the uncaught-exception
   handler, which writes its trace on the dying thread — a buffered line might
   never be flushed there, and a crash trace must land.
-- Native callbacks arrive on native threads — marshal state updates to the
+- **Rule: native callbacks are marshalled to the main thread through the ViewModel scope** Native callbacks arrive on native threads — marshal state updates to the
   main thread via the ViewModel scope.
-- **MUST**: the navigation engine follows the process-lifetime rule (`:app`
+- **Rule: the navigation engine follows the process-lifetime rule** **MUST**: the navigation engine follows the process-lifetime rule (`:app`
   `NavigationEngine`, change `one-navigation-engine`): one
   `SupervisorJob + Dispatchers.Main` scope created once and never cancelled (the
   process is its owner, so it has no `onCleared`), native calls (route
@@ -181,7 +126,7 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   stay main-confined. `stopNavigation()` is its release point: it stops the native
   controller, resets the reroute gate and stale-speed state, clears the position
   flow, releases the location lease and stops the current voice utterance.
-- **MUST**: the engine's scope carries **its own fault handler**
+- **Rule: the engine's scope carries its own fault handler** **MUST**: the engine's scope carries **its own fault handler**
   (`engineFaultHandler`, change `fix-navigation-engine-fault-isolation`): a fault in
   any engine coroutine — the stale-speed ticker, route acquisition, the location
   feed, a road lookup — is recorded (`ENGINE_FAULT`, with the faulting coroutine and
@@ -191,18 +136,18 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   uncaught throwable reaches the main thread's uncaught handler and kills the
   process, and the engine is what every surface — including a live car session the
   template host is bound to — depends on.
-- **MUST**: the engine's native boundary is confined for **any throwable, not only
+- **Rule: the engine's native boundary confines any throwable, not only exceptions** **MUST**: the engine's native boundary is confined for **any throwable, not only
   exceptions** (`catch (e: Throwable)` at the route-calculation, start and road-lookup
   calls): a linker or class-initialization failure (`UnsatisfiedLinkError`,
   `ExceptionInInitializerError`, `NoClassDefFoundError`) is an `Error`, so an
   `Exception` catch lets it escape the engine and kill the process. Confine it, report
   it, keep the app alive — a road-name lookup stays cosmetic and never stops
   navigation.
-- **MUST**: the engine holds no location subscription outside navigation. It
+- **Rule: the engine holds no location subscription outside navigation** **MUST**: the engine holds no location subscription outside navigation. It
   acquires the refcounted lease (`LocationService.acquire(LocationConsumers.NAV_ENGINE)`)
   on navigation start, releases it on stop/arrival, and never calls
   `startLocationUpdates()` itself; no surface feeds the engine its own fixes.
-- **MUST**: a route attempt releases a location lease only when **it** took it
+- **Rule: a route attempt releases only the location lease it took** **MUST**: a route attempt releases a location lease only when **it** took it
   (change `fix-reroute-lease-release`, spec `navigation-engine` — A failed route attempt
   releases only the lease it took). `calculateAndStart` captures
   `ownsLease = !state.isNavigating` before its native call, and both failure handlers
@@ -213,7 +158,7 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   runs on a frozen position with no error that would explain it. The cancel path
   (`cancelAcquisition`) applies the same ownership rule, so a new attempt path that takes
   its own lease MUST state its ownership rather than assume the failure path fits.
-- **MUST**: the attempt that raised a shared-state flag clears it on **every** terminal
+- **Rule: the attempt that raised a shared-state flag clears it on every terminal outcome** **MUST**: the attempt that raised a shared-state flag clears it on **every** terminal
   outcome, through one writer. `isRerouting` is the worked case (change
   `fix-reroute-failure-state-flags`, spec `rerouting-visual-feedback` — Rerouting state is
   exposed in navigation state): `confirmReroute` sets it, `onRouteInstructions` clears it on
@@ -225,11 +170,11 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   guard: a superseded attempt failing late must not end the attempt a newer request runs.
   The sibling state keeps its own rule — a failed or cancelled reroute does **not** clear
   `isOffRoute`, because the vehicle is still off route.
-- Prefer coroutines over raw threads: conflated channels/StateFlow for
+- **Rule: prefer coroutines over raw threads** Prefer coroutines over raw threads: conflated channels/StateFlow for
   queues, debounce by delay, cancellation via viewModelScope.
-- Debounce high-frequency inputs (search keystrokes, GPS-driven renders)
+- **Rule: high-frequency inputs are debounced before they reach an expensive path** Debounce high-frequency inputs (search keystrokes, GPS-driven renders)
   before they hit expensive paths.
-- **MUST**: a recurring re-evaluation must not return to the main dispatcher
+- **Rule: a recurring re-evaluation does not return to the main dispatcher between periods** **MUST**: a recurring re-evaluation must not return to the main dispatcher
   between periods. Launch its loop *on* the background dispatcher it ticks on and
   let it report a **change** only — the stale-speed ticker
   (`MapCanvasViewModel`, `NavigationEngine`) and the fix-quality ticker do this:
@@ -242,14 +187,14 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   `Dispatchers.Main is used concurrently with setting it` (`guidelines/Build.md`
   §4). Keep the publication path — including its debounce — the single writer, so
   a tick-detected change is published exactly like an input-detected one.
-- **MUST**: never hold the render-target pool's lock across a renderer lock or
+- **Rule: the render-target pool's lock is never held across a renderer lock** **MUST**: never hold the render-target pool's lock across a renderer lock or
   a render/draw. `RenderBitmapPool.acquire`/`release` (change
   `fix-render-buffer-reuse`, spec `render-performance`) take and drop the pool
   lock for bookkeeping only; the car takes `surfaceLock` and the phone
   `MapRenderer.bufferLock` **after** acquiring and **releases at the end of**
   the critical section, so no lock order exists between the pool and a
   renderer, and no suspension point sits inside the display lock.
-- One source of truth per data signal; consumers never re-derive provider or
+- **Rule: one source of truth per data signal** One source of truth per data signal; consumers never re-derive provider or
   pipeline knowledge.
 - Play Services capabilities are optional: access via provider abstraction
   with runtime availability check and fallback (Fused vs LocationManager) —
@@ -271,7 +216,7 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   bound evicts it (carry the count in the flush instead); the write target must be captured **with the
   batch** (a writer that reads its target at write time writes one target's lines into another); and a
   high-water flush only carries the entries present at the crossing, not the tail.
-- **MUST**: a dispatcher hop inside a suspend accessor needs its own test seam. `isLocationSourceEnabled()`
+- **Rule: a dispatcher hop inside a suspend accessor needs its own test seam** **MUST**: a dispatcher hop inside a suspend accessor needs its own test seam. `isLocationSourceEnabled()`
   hopped to `Dispatchers.Default` to keep a binder call off the main thread, which made a virtual-time test
   non-deterministic (green alone, red with the suite) — the fix is an injectable dispatcher
   (`locationSourceDispatcher`), never a test-side timeout or a longer advance. Same rule as the tickers
@@ -279,495 +224,36 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 
 ## 5. Native boundary
 
-- **Live guidance publishes the step model, not instructions** (change `route-steps-live-guidance`,
-  spec `osmscout-jni` — Live guidance publishes route steps): the navigation engine runs
-  `RouteInstructionAgent<osmscout::client::RouteStep, RouteStepBuilder>`, so
-  `NavigationListener.onRouteSteps(RouteStep[])` / `onNextRouteStep(RouteStep)` deliver the same record
-  a calculated route publishes, extended with `remainingDistance`, `remainingTime` and a nested
-  `nextNext` step. **No guidance text crosses the boundary** — not a description, not a short
-  description, not a turn-type name; a surface words every manoeuvre from `:core/ManoeuvreLabels`.
-  The patch is one fork commit on the submodule's `naviveylin-local` branch (`de37a2bd1`) plus the pin
-  bump, and it is a compile-time break for a sibling consumer that read instruction callbacks
-  (JavaScout; its adaptation landed in `999acc16f` and `6c8dc6f94`). The dispatch logs one coordinate-free line per
-  publication (`[JNI] guidance dispatch: list|next steps=N us=M`) — that is the number a cache
-  decision is taken from, so do not delete it without one.
-
-- **A calculated route publishes steps, never prose** (change `retire-instruction-prose`, spec
-  `osmscout-jni` — Per-step leg values on a calculated route): `RouteEntry` carries `latitudes`,
-  `longitudes`, `distance`, `duration`, the structured `steps` and the database mapping, and nothing else.
-  There is no `descriptions` array, no per-instruction position array, no per-step leg array and no
-  `RouteInstruction` class, so **no consumer can read English guidance text from the bridge** — every
-  client words a step from its values (`:core/ManoeuvreLabels` in the app, `NextTurnText` in JavaScout).
-  The route's published length is read from the step list (`LastStepDistanceMeters`, the largest
-  `distanceFromStart`), not from a second description walk; the geometry fallback stays for a route
-  without a description. `osmscout::RouteDescription` and its postprocessor **remain** a libosmscout
-  model — Qt and the other clients read them; only this bridge's Java projection of them went.
-
-- **MUST**: the native core stays platform-pure — no Android dependencies
-  outside the frozen upstream dir, enforced by a CI gate. Platform
-  integration is an app-owned bridge (log sink, load order).
-- Keep the JNI surface small and explicit: integer handles for native
-  objects, batched marshaling, hot paths stay in C++.
-- **MUST**: C++ exceptions convert to Java exceptions at the boundary; native
-  code never aborts the process (asserts kill it).
-- Native method contracts are API; fix behavioral issues in Kotlin, not by
-  changing native semantics.
-- A defect *inside* the library behind an unchanged JNI contract (e.g. its
-  transliteration or matching logic) is fixed upstream as a minimal,
-  upstreamable patch instead of being worked around in Kotlin: a workaround
-  would have to guess at the library's internal semantics and would leave
-  every other caller of the same code broken.
-- Mirror upstream APIs exactly so submodule syncs stay clean; keep submodule
-  patches minimal and upstreamable.
-- Android-specific deviations live as local overrides in a bridge module,
-  never patched into the submodule.
-- Serialize writes in native shared services; a render mutex serializes
-  concurrent renders.
-- **Caller-owned pixel storage for a render** (change `reduce-render-peak-memory`): the render path
-  supplies the frame's pixel storage (a pooled direct `ByteBuffer`) and the native entry point
-  writes into it for the duration of one call, retaining no reference. Two surfaces render
-  concurrently, so the *caller* owns the "never hand the same storage to two renders" rule — which
-  the app already satisfies (a displayed frame is an independent copy, and the pool never hands out
-  a target or buffer twice). The bridge keeps both entry points: the buffer-taking one and the
-  unchanged allocating one, running one shared render body so the two cannot disagree. The format is
-  a contract, not an implementation detail: `0xAARRGGBB` ints, stride `width*4`, native byte order.
-- **No fault escapes a boundary** (same rule as `car-host-fault-isolation` and
-  `MemoryPressureResponder`): a JNI entry point reports an unusable request (`false`/`null`/empty)
-  instead of faulting, and an app-side coroutine on a process-wide dispatcher confines its own
-  throwable (`runCatching` or a `CoroutineExceptionHandler`) — an escaping throwable reaches the
-  thread's uncaught-exception handler and kills the app (and poisons an unrelated test's coroutine
-  harness, closed 2026-09-27 by `bound-tile-data-retention`).
-- Logging: native via `osmscout::log` + app-owned bridge; Kotlin via
-  `android.util.Log` with per-class TAG. Stylesheets: submodule is the single
-  source of truth, synced at build time. Mechanics: `AGENTS.md`.
-- **A failure crosses the boundary as a kind, never as prose** (change `distinguish-routing-failures`, spec
-  `routing-failure-reporting`): the routing entry point publishes a failure with a kind from a closed set
-  (`RouteCallback.KIND_*`, mirrored by `naviveylin::kRouteFailure*` — the two lists are kept in step by
-  hand, the number is what crosses JNI), plus a description for the log and, at a failing route end, the
-  distance to the nearest road the router could use. The surface words it from its own resource, so the
-  phone and the car name the same cause the same way and neither shows a sentence another layer composed.
-- **The seam is additive and lives on one side** (same change): `RouteCallback.onErrorDetail` is a default
-  method delegating to `onError(String)`, so a caller written before it keeps working and the native
-  fallback to `onError` still exists; `RouteCallback.java` and `OSMScoutClient.cpp` are submodule files,
-  while the app-facing `OSMScoutClient.java` is a local override — patched in one place, never both. The
-  kind is extracted in **one** helper shared by both route entry points, which otherwise carry two copies
-  of the same pipeline and would drift.
-- **A router defect is fixed in the router, not described to the user** (same change): when the endpoint a
-  calculation resolved cannot be attached to the road network, the fix is the candidate **selection**
-  (`SimpleRoutingService::IsEndpointAttachable`, which mirrors the four direction-gated searches of
-  `AbstractRoutingService` — keep the ranges in step), not a message that explains the failure. The rule is
-  parameterized by the route end (`RouteEndpoint`), because the start and the target attach along opposite
-  halves of a way: a one-way street can carry one end and not the other. The existing
-  `GetClosestRoutableNode` signatures keep their behaviour and delegate with `RouteEndpoint::Unspecified`,
-  so no existing caller changes.
-
-- **JNI-bridge Java types are positional-argument only** (§40.23): no named arguments, read the constructor
-  before writing a helper (`RouteInstruction` has 5- and 10-arg forms), and update EVERY call site in the
-  same change when such a constructor changes — stale test bytecode surfaces as `NoSuchMethodError`, not a
-  compile error.
-- **Do not mock a Kotlin `object`'s `@JvmStatic` methods** (§40.24): mockk cannot intercept them. Stub the
-  real `applicationContext` and the Java delegate the object calls (`dagger.hilt.EntryPoints`).
-
-### The bridge's two sides, the database-open asymmetry and the submodule discipline
-
-- **Patch the JNI bridge in one place, never both.** The C++ side lives in the libosmscout submodule at
-  `app/src/main/cpp/libosmscout/libosmscout-client-java/src/OSMScoutClient.cpp`, built as
-  `libosmscout_client_java.so` (CMake target `osmscout_client_java`) and depending on `OSMScout::OSMScout`,
-  `OSMScout::Map`, `OSMScout::MapCairo` and `OSMScout::Client`. The Java side is the `:osmscout-client-java`
-  Gradle module, which compiles the submodule's `libosmscout-client-java/java` sources **except five
-  overridden files** — `OSMScoutClient`, `OSMScoutClientBuilder`, `BasemapManager`, `MapDownloadManager` and
-  `AvailableMapEntry`, which come from `osmscout-client-java/src/main/java`, plus the local-only
-  `InstalledMaps` — and produces `libosmscoutclientjava.jar`. Those overrides are Android ports:
-  `HttpURLConnection` map downloads (no `java.net.http` desugaring), the debug-suffix library loading
-  (`osmscout_client_java` → `osmscout_client_javad`), the `reloadBasemap` declaration, public constructors.
-- **Both provenances reach the app, and the dex says so.** The module compiles the overrides and the submodule's
-  client API into two classes directories, and the `jar` task joins them — but an Android consumer never reads that
-  jar: AGP dexes a project dependency from `main`'s `classesDirs` collection, so the split left the APK with no
-  `com.framstag.libosmscout.client` class and the app died at startup with `ClassNotFoundException: MapProvider`
-  (issue #691). The vendored directory is therefore one of `main`'s classes directories
-  (`sourceSets["main"].output.classesDirs`, not `output.dir(...)`, which does not reach the consumer), the
-  provenance rows of the coverage report stay one directory each, and `:app:checkClientApiInDex<Variant>` — buildSrc
-  `com.naviveylin.build.dex`, on every `assemble`/`bundle` — fails when the merged dex defines no class for a
-  `*.java` file under either source root. A referenced type is not a defined one: the gate reads `class_defs`, not
-  the bytes. Because a minified variant's only dex is R8's output (`minify<Variant>WithR8`, not the dex builder and
-  the merge steps a debug variant runs), the gate depends on that task for the `release` variants;
-  `tools/check-dex-gate-graph-selftest.sh` asserts the producer per variant, which is what caught the merge-only
-  wiring that made `./gradlew release` fail on an empty dex tree (2026-10-28).
-- **The two sides are compared, and their difference is recorded.** For those five files the override is the
-  only Java copy the APK sees, so a native declared on one side only reaches the other as a `NoSuchMethodError`
-  at the first call — no compiler error, no failing test (issue #174, the drift class §119 fixed by hand). A
-  blanket "submodule natives ⊆ override natives" check is false, because the port diverges on purpose in both
-  directions, so the difference itself is the contract: `osmscout-client-java/native-parity.txt` records every
-  divergence as `file | submodule-only|override-only | name(types) | reason`, and the build gate
-  `:app:checkNativeParity` (buildSrc `NativeParityScanner`, in `preBuild`) fails on any drift the record does
-  not carry, in either direction, and on a recorded line the trees no longer need. A new submodule native is
-  therefore a build failure in the bump's own build: mirror it, or record why the Android port drops it.
-- **A search request carries its generation.** The search entry points take the generation a caller got from
-  `beginSearch(slot)` — `searchLocations(query, limit, adminRegionHandle, generation)`,
-  `searchLocations(query, limit, defaultRegion, generation)`, `searchLocationByForm(…, generation)`,
-  `searchPOIsByTypes(…, generation)` — and `cancelSearch(generation)` cancels exactly that request, reporting
-  whether it was still running. The policy is `search_breaker.h` beside the JNI TU: one slot per search surface
-  (`places`, `poi`, `route`, `car`), a request is aborted once a newer request of its slot began or it was
-  cancelled, and an aborted search returns an empty result rather than a partial one. A cancel naming a
-  superseded generation aborts nothing, which is what makes cancelling from a `finally` block safe
-  (spec `search-request-lifecycle`, `osmscout-jni`).
-- **The two database-open entries differ on purpose.** `openDatabase(path)` accepts only an existing
-  directory (a rejected path reports `false`, registers nothing and publishes no database-set change), while
-  `openDatabases(paths[])` registers what it is handed — a directory that disappears between the app's scan
-  and the call must not fail the batch — and only reports it, by directory name. Do not "unify" them
-  (spec `native-database-open`).
-- **The submodule is pinned and kept clean.** This repository pins its SHA in the gitlink and bumps it
-  (commit) after every submodule commit; uncommitted submodule changes are not built by CI or by a fresh
-  clone.
-- **One session owns the submodule and its pushes.** Run `git ls-remote origin <branch>` — the remote, not
-  the local remote-tracking ref — immediately before the push: two sessions created the same JNI commits and
-  force-rewrote `naviveylin-local`, reconciled afterwards by a merge (`TODO.md` §40.54).
+Moved to `DesignNative.md` §5 (split into §5a, the boundary's shape, and §5b, the bridge's two sides).
 
 ## 6. Rendering pipeline
 
-- **MUST**: double-buffered rendering — native writes to the back buffer, the
-  front buffer is the only display source, swap is atomic under a lock.
-- Stale renders are discarded by epoch comparison; epochs increment on
-  meaningful changes (zoom/rotation/style/overlay), never on pure position
-  updates — a running render must be allowed to finish.
-- Render larger than the screen (overrun) and blit sub-regions for small
-  pans; full re-render only beyond the margin.
-- **MUST**: caches hold only immutable content keyed by render-affecting
-  state; overlay or position changes never invalidate them. Overlays are
-  layered on top of the display frame, never baked into buffers or tiles.
-- Emit frames only on change; every path must deliver a correctly-sized
-  frame.
-- Mode/style switches invalidate everything (epoch bump + cache clear +
-  forced full render); style flags are pushed absolutely, never toggled.
-- Rotation changes force a full render so labels render correctly; keep angle
-  math normalized and consistent with the native convention.
-- Overlay projection always uses the viewport of the frame actually
-  displayed, and the same projection math as the renderer.
-- Performance budget: hot paths are allocation-free (no per-frame
-  bitmap/array churn); measure before optimizing; keep renders under the frame
-  budget.
-- Pipeline details and pitfalls: `guidelines/MapRendering.md`.
-
-- **Decide who paces a transition before coding it** (§40.58): when two layers can both own it, pick
-  render-paced or fix-paced first; never call a stateful controller twice for a check-then-use pair (the
-  second call sees the state the first one just moved); and scope a renderer-wide rule behind an explicit
-  opt-in flag instead of a global branch.
+Moved to `DesignCrossVariant.md` §6.
 
 ## 7. Follow mode & GPS
 
-- **MUST**: the marker sits on the raw (or navigation-filtered) fix; only the
-  camera is smoothed — a smoothed marker drifts off the road.
-- One signal, two bearings: heavy smoothing for map rotation (churn-free),
-  freshest signal for the marker arrow (lag-free). Signal quality is derived
-  in the location layer; render protection (deadbands, rate clamps, throttle)
-  stays in the render layer.
-- Derive rotation from course history, not raw bearing; reset history on
-  sharp turns and teleports.
-- Between fixes, extrapolate the display (fix + speed × heading × Δt) and
-  ease corrections on fix arrival. **MUST**: prediction is display-only — the
-  navigation engine receives real fixes only. Gate the loop when stationary,
-  follow off, or the surface is invalid.
-- Prefer receiver speed over derived speed; clamp conservatively while
-  decelerating; treat zero/unknown speed as stopped.
-- Details: `guidelines/MapRendering.md`.
+Moved to `DesignCrossVariant.md` §7.
 
 ## 8. Android Auto & cross-variant
 
-- **Every car guidance surface reads the step model** (change `route-steps-live-guidance`):
-  `NavigationTemplateMapper` builds the host `Maneuver` from the step's manoeuvre kind and move
-  (`maneuverTypeForStep`, with the exit ordinal on the number-bearing type), the cue and road from
-  `ManeuverLabels`, and the trip's step estimate from `remainingMeters` / `remainingSeconds`. The
-  roundabout exit number is supplied **both** to the host and as the app's own numbered glyph, because
-  which of the two a given host draws is not observable from a test here. `ManeuverGlyphs.forStep` is
-  the only icon entry point a car surface needs.
-
-- The session owns a simple screen stack (push/popToRoot); no routing
-  library. Replace, don't stack, when a screen supersedes another (navigation
-  replaces the map).
-- Respect host constraints — they are invariants: pane rows are
-  non-actionable, list actions are icon-only, hosts may not forward surface
-  gestures. Use action strips and pane buttons accordingly; interactive
-  actions are parked-only where the host supports it. Prefer host-rendered
-  panels where positioned/controllable; draw on the surface only what the
-  host cannot render, inside the stable area.
-- **MUST**: the car-app surface lifecycle is strict and **session-owned** —
-  one surface-callback registration per session, one owner screen at a time, and
-  the surface released exactly once: on the host's destroy signal or at session
-  end, never by a screen that merely stops. The library starts the incoming
-  screen *before* it stops the outgoing one, so a release in `onStop`
-  disconnects the buffer queue the incoming screen is drawing through (observed
-  as `lockCanvas` failures the host then re-delivers around). A host destroy is
-  **scoped to the surface instance it names**: a destroy of a superseded surface
-  (the host delivered a newer one first — AAOS does re-deliver after a transition)
-  releases that instance only and must not clear or release the live one.
-  Lifetime is tracked **per delivery**, not per instance: an instance delivered
-  again after its release is a new delivery (it may be drawn on and is released
-  once more), and a released instance is never adopted for drawing.
-  **One renderer locks the surface at a time**: the session revokes the surface
-  from the owner it supersedes (`CarSurfaceOwner.onCarSurfaceRevoked`, delivered
-  from `attach`) *before* the incoming owner is told it may draw, and a screen
-  that stops detaches (`rendererGate.detachSurface()`), so a stopped screen's
-  renderer holds no surface reference and no overrun frame buffer and re-acquires
-  the surface through the session on its next start. A session registers with
-  **its own** `CarContext` (a second session replaces the registration), so a
-  session that follows a dropped connection never calls host APIs through a dead
-  host. Pause/resume renderers on screen stop/start; unlock in `finally`; validate
-  before drawing; never lock or draw a released or replaced surface; recover from a
-  dead surface with a **main-thread**, capped invalidate.
-- **MUST**: nothing native runs on a host callback or in a screen constructor —
-  car providers are resolved off the host thread (lazy `Provider`/`Lazy`), a
-  host callback only retains state (including the surface **tap** path and the
-  **surface delivery**: the native client is resolved inside the background block,
-  and the stylesheet day/night flag is *published* (`RendererGate.daylightPush`) and
-  applied by a background collector instead of being pushed from
-  `onCarSurfaceAvailable`, which reloads the style variant on the DB thread), and no
-  fault escapes a host callback or a host-facing path (trip build, host navigation
-  call, notification build/post, frame draw): the car-app library rethrows an app
-  exception on the main thread, which kills the process. Degrade and log instead.
-  **Every** car screen's template build goes through the `car*Template` wrappers
-  (`SafeScreen.kt`) — the map/navigation/free-driving screens were guarded while
-  eleven other screens' `onGetTemplate` could still kill the process.
-- **MUST**: **every host mutation goes through the guarded seam**, not only the
-  template builds and the host callbacks. `CarHostGuards.kt` holds
-  `guardedHostCall(what, tag) { … }` (one `ScreenManager` push/pop/popToRoot/remove,
-  confinement + a `HOST` diagnostics entry per rejection, unthrottled),
-  `armScreenPush(carContext, scope, what) { screen }` and
-  `armShowOnMapSwap(...)` for the click paths — a template row action **arms** the
-  navigation and returns: the target screen is built and pushed on the main thread
-  afterwards, never on the host's answering path (the library rethrows there, and
-  building a screen resolves the entry point, first-touches providers and starts a
-  renderer), and `dismissErrorNotice(...)` for the deferred notice teardown. A
-  rejection is a logged no-op, and each of the four `ScreenManager` operations has
-  exactly one seam call site per screen — never a bare `screenManager.push(...)` in a
-  click listener.
-- **MUST**: every **scope that owns host-mutating work carries the shared fault
-  handler** (`carFaultHandler` / `carSessionScope` / `carScreenScope`): the session
-  scope, each car screen's own scope (including the renderer's) and the screen
-  observation seam (`CarScreenObservations`). An exception from a coroutine body
-  otherwise reaches the main thread's uncaught handler and kills the process — an app
-  process that dies while a car session is live is what takes the templates host down
-  with it. A confined fault ends that piece of work (one child of the scope's
-  `SupervisorJob`), never a sibling. **Unless that piece of work is one iteration of a
-  continuing loop**: a fault then ends the *iteration*, not the loop (change
-  `fix-car-render-loop-restart`, spec `car-host-fault-isolation`). The car map's three loops
-  (render consumer, extrapolation/blit, zoom walk) each run their body through
-  `RenderLoopSupervisor.runIteration(...)`, which skips the iteration, records it (loop name +
-  throwable class, never a message or a coordinate) and 
-  counts it; the loop keeps drawing. Before that, one throwing frame ended the render
-  consumer for good — every later `requestRender()` was dropped and the car map stayed frozen
-  with healthy host chrome until the driver re-entered the screen (`TODO.md` §51). A loop must
-  never be silently abandoned: repeated consecutive faults (`CONSECUTIVE_RENDER_FAULT_THRESHOLD`
-  within `RENDER_FAULT_WINDOW_MS`) re-create the renderer through the gate (bounded by
-  `MAX_RENDERER_RECOVERIES_PER_PERIOD` per started screen period, re-armed in `onStart`), and
-  when the budget is spent the map says so instead of drawing nothing — see
-  `guidelines/MapRendering.md` §14 "Android Auto renderer". A loop iteration **must not swallow
-  `CancellationException`**: a cancelled scope has to end the loop, or nothing can stop it.
-  The **process-scoped navigation engine** the
-  session shares its process with is part of this rule (change
-  `fix-navigation-engine-fault-isolation`): its scope carries `engineFaultHandler`, so
-  an engine fault is confined in the engine — recorded and raised as an engine error —
-  and never takes the session, its host traffic or the process down.
-- **MUST**: the session's **screen-stack bookkeeping follows the mutation that
-  succeeded** (`SessionScreenStack`, `FreeDrivingRestoreGate.recordPush(landed)`): a
-  push the host refused records nothing, so the next state emission retries instead of
-  leaving the driver without a navigation view. Popping is scoped: the stack is popped
-  back to the root only for the session's own transitions, and a transient overlay
-  (the error notice) is removed by identity (`ScreenManager.remove`) — `popToRoot()`
-  took the navigation view down with the notice while the session still believed it
-  was shown. A host mutation **scheduled** while the session was started (the notice's
-  auto-dismiss) is discarded when it would run after the session stopped or ended, and
-  its removal is owed to the next started sync.
-- **MUST**: **every car screen builds its own scope through `carScreenScope(name)`**
-  and cancels it in `onDestroy` — never `CoroutineScope(SupervisorJob() +
-  Dispatchers.Main)` by hand, which is how the fault handler went missing. The one
-  deliberate exception is the process-scoped engine's own scope (`:app`
-  `NavigationEngine`), which is created once for the process lifetime and carries
-  `engineFaultHandler` for exactly that reason. A click
-  path that arms a push relies on that cancellation: a screen popped away before its
-  deferred push runs dies with its scope instead of pushing onto the new stack.
-- **MUST**: while the car app is not the visible car app, host traffic is
-  bounded — the session mutates no host state (no screen push/pop, no template
-  invalidate, no host navigation-state change) and the ongoing notification is
-  re-posted only when its host-visible content changed; guidance updates and
-  trip metadata keep flowing. A template is rebuilt only when its displayed content
-  changes materially: the distance values are compared as the host displays them
-  (the shared rounding), not metre by metre, and a template asset the host receives
-  per rebuild (the lane-guidance image) is reused while its state is unchanged.
-  A session restores a still-active free-driving mode **at most once**.
-- **MUST**: a car screen's shared-state observations are scoped to its **started
-  period** — one instance of each per start, all cancelled on stop. The host stops
-  and starts a screen on every background round trip and on every push/pop of
-  another screen, so per-collector job bookkeeping leaks: the screen it belonged to
-  ran a second copy of the GPS, favorites, dark-mode and basemap observations after
-  every start, and each copy kept requesting renders, native lookups and template
-  refreshes (the count grew monotonically with the number of starts).
-  `CarScreenObservations` (`:auto`) owns the lifetime and a per-screen
-  `<Screen>Observations` class owns what is observed; a stopped screen touches
-  neither the renderer nor the host, and work that must survive a stop (e.g. the
-  free-driving stale-speed ticker) stays on the screen's own scope. **All five screens** run their
-  observations through that seam — the browse map (GPS position, favorites, resolved dark
-  presentation, basemap revisions), the destination details (GPS position, favorites, basemap
-  revisions), the favorites list (favorites + stored group order + stored starred order as one
-  combined observation), navigation and free driving — while a screen's own one-shot work (renderer
-  construction and publish, an address lookup, a settings load) stays on its `carScreenScope`, because
-  it must run once per screen instance, not once per started period. Every observed source is a
-  `StateFlow`, so re-establishing an observation on start applies the current value exactly once —
-  that is how a change made while the screen was stopped reaches it, and it is why `auto-favorites`'
-  "update when the stored order changes while the screen is open" means the **started period**: an
-  observation kept alive across a stop is the defect this rule exists to prevent. See
-  `openspec/specs/auto/screen-observation/spec.md`.
-- Cross-variant parity: same labels and visual hierarchy wherever the
-  platform allows; deviate only as much as required. Shared logic and data
-  have one source; one variant's UI is a thin adapter.
-- **MUST**: distribution — phone and AAOS are separate build flavors under one
-  applicationId; the automotive flavor declares the automotive hardware
-  feature and drops the projection metadata. A single AAB declaring both is
-  rejected by Play.
-- OSM attribution is visible on the map and the licence is reachable at all
-  times (OSMF guidelines), on both flavors.
-- UI rules and parity decisions: `guidelines/UI.md`.
+Moved to `DesignCrossVariant.md` §8 (split into §8a, the car host path and the surface, and §8b, the
+screen-observation seam, parity and distribution).
 
 ## 9. Data, persistence & search
 
-- Maps and other large files live in app-internal storage; downloads use
-  temp-suffix files so partials are never picked up; register storage with
-  the native layer at startup. Long-running work (downloads) keeps the
-  process alive (wake lock / foreground service).
-- An update of installed map data is staged beside its target and swapped in
-  only when it is complete and verified (`.incoming` / `.backup`, `SlotInstall`),
-  so the installation a running client renders stays usable throughout; data a
-  failed or interrupted attempt left in the maps tree is *recognised* by
-  `SlotInstall.stagingTargetOf` rather than only hidden, and the app-start path
-  removes it (spec: `map-updates`). Every reader that opens, lists, centres on or
-  records a database — the start-map resolution, the map manager's installed list,
-  the phone canvas, the car session — goes through `MapTreeDiscovery`, which applies
-  that classification and names each leftover it drops in the diagnostics together
-  with the installation it belongs to; none of them reads the raw `InstalledMaps`
-  scan itself, and the update check, which does, reports the leftovers on its own. The repository update check runs at most once
-  a day on the app-start path (`MapUpdates`, process-scoped) and persists its
-  result — the last completed check and the installations found — in the settings
-  file under the same serialised transaction as every other setting.
-- Persist after completed operations, not debounced; persist on every
-  meaningful change, not only lifecycle events (crash safety). Repositories
-  wrap JNI calls in background dispatchers and expose reactive state.
-- Use Android-compatible HTTP (`HttpURLConnection`); avoid `java.net.http`.
-- Expensive scoped lookups are resolved once, cached, and reused within a
-  movement threshold; release native handles on close.
-- External data access (contacts etc.) is read-on-demand, never persisted,
-  and permission-gated.
-- **MUST**: search never crashes the process, whatever the data consistency.
-- **MUST**: name matching is the map library's job: the app passes the query through
-  and never re-implements matching per surface, so the phone dialog and the car
-  template match identically (spec: `search-name-matching`). A matching defect
-  behind an unchanged JNI contract is fixed in the library (§5), never filtered or
-  patched around per surface.
-- *Ordering* the library's result is not matching: a shared map link may carry a place name
-  (`EXTRA_SUBJECT`, else the name in its own URL), and the phone lists the candidates whose name
-  contains it first — a stable partition that drops nothing, asserted in the picker's own UI test
-  as well as in the view model. A name the library did not match keeps its position, and the
-  car path navigates or geocodes exactly as before (change `read-shared-google-maps-links`).
+Moved to `DesignStack.md` §9.
 
 ## 10. Build & release
 
-- One version-bumping command, gated at configuration time (versions are
-  consumed there); state survives clean builds; version exposed via
-  BuildConfig. Everything else is deterministic and never touches version
-  state.
-- CI pins toolchain commits (dependency-cache stability), derives all config
-  from env, verifies silently-tolerated steps explicitly, and uses caches
-  aggressively.
-- Native libs aligned for 16 KB pages; R8 keep rules for JNI bridge classes.
-- Mechanics: `AGENTS.md`.
+Moved to `DesignCrossVariant.md` §10.
 
 ## 11. Testing
 
-- Extract pure, JVM-testable logic from rendering and template code; test
-  state transitions rather than timing; use injectable seams for provider
-  branches.
-- **MUST**: JNI-dependent unit tests are designed around the host stub's classloader rule — one sandbox
-  config per JVM; `guidelines/Build.md` §6 states the rule itself and its failure mode.
-- Compose UI tests for gesture/panel logic: extract gesture handlers into
-  reusable `Modifier` factories; keep presentation composables
-  callback-driven.
-- **Check a helper's *visibility* before designing a test around it.** `internal` in `:core` is unreachable
-  from `:app`/`:auto` tests (`DiagnosticsLog.flushNow`/`awaitDrained`/`workerThreadOrNull`), a JUnit rule
-  exposed through a public property cannot be `internal`, and a public class cannot take an internal
-  parameter type. Assert the property structurally instead, and read the KDoc of the seam you mean to drive.
-- **Assert what the contract requires — never an invented count.** Read (or measure) the current behaviour
-  before asserting a call/persist/emission count: a `StateFlow` re-delivers its value to every new collector
-  (snapshot before the emission, assert the delta), a stress test must not compare two observations of shared
-  state (derive every assertion from a single read, and stop all writers before the final-state assertion),
-  and a count the code never had makes a test fail on **correct** code. Three documented instances (favorites
-  persist, `CarScreenObservations`, `DiagnosticsLog`) — treat it as a reflex, and prefer re-expressing the
-  assertion against the spec over pinning a number.
-- **Assert the invariant, not "nothing happened", and make the whole failure path runnable.** An
-  asynchronous seam makes emptiness/absolute assertions racy: assert the specific value, or the host-thread
-  invariant, and poll with a bound. A test of fault confinement must be able to execute *every* line of the
-  handler — a `Log`/`DiagnosticsLog` call inside `.onFailure { }` throws "not mocked" under plain JUnit and
-  kills the collector *outside* the guard under test (run it under Robolectric). Never re-init a buffered
-  logger between act and assert: `DiagnosticsLog.initForTest` clears the ring silently, and the failure reads
-  as "the code logged nothing".
-- **Attribute a diagnostics assertion to the lines its own case wrote.** The file `DiagnosticsLog.initForTest`
-  installs is the process-wide sink, so work another class left running logs into it while a case holds it: a
-  whole-file `contains("52.")`, an `entries.size` or an `entries.single()` measures those lines too and reddens
-  the case for reasons its author cannot see. Filter to the marker only the subject's own message carries
-  (`map source unknown value=`, `repository source without a base URL`, `HOST NOTIF post`, `ROUTE calc done:`,
-  `HOST surface`) and keep the count on that list, so a duplicated or missing own line still fails. Filtering at
-  *tag* level (`ENGINE_FAULT_TAG`) is the weaker form — a foreign record carrying that tag still counts — and is
-  only for a record whose message has no marker of its own. The sink's own classes (`DiagnosticsLogTest`,
-  `DiagnosticsLogRetentionTest`, `DiagnosticsLogWritePathTest`) are the exemption — the file is their subject;
-  four cases that predate the rule still decide from the whole file and the requirement
-  `unit-test-suite-runtime`, "A diagnostics assertion is attributed to the lines its own case wrote", names
-  their paths. Measured twice — `SettingsStorageSourceTest`
-  (2026-10-10, `car-favorites-group-level` task 4.2) and `NotificationHostSendLoggingTest` (2026-10-11,
-  `fix-browse-recenter-dwell` task 5.7), issue #115, change `fix-diagnostics-sink-attribution`.
-
-### Kotlin / Compose / Robolectric traps (§40.13–§40.21, §40.28, §40.31, §40.33; §134.73, §134.76)
-
-- **`while (isActive)` needs the explicit `kotlinx.coroutines.isActive` import** (§40.13).
-- **`KProperty0.isInitialized` works only for `lateinit`** (§40.14); for `by lazy` state use a nullable `var`
-  or a flag.
-- **Test coroutine helpers need a receiver** (§40.15): declare them `private fun TestScope.foo()`;
-  `advanceTimeBy(Long)` is an extension, `advanceUntilIdle` is a `TestScope`/`TestCoroutineScope` extension.
-- **Lifetime tickers must run on a real dispatcher with test hooks** (§40.16): a
-  `while (true) { delay(1s) }` loop on the test scheduler hangs every `runTest`.
-- **Never pace a unit test off a timer or a debounce (`Thread.sleep`)** (§40.31): control the loop
-  (`asyncLoopsEnabled = false/true`) and land a frame deterministically (`renderFrame()`).
-- **Compose plurals containing `%d` need an explicit format argument** (§40.17):
-  `pluralStringResource(id, count, count)`.
-- **Never call `composeRule.setContent {}` twice in one test** (§40.18) — collect every value in the single
-  composition.
-- **Never nest two `verticalScroll` containers** (§40.19); give an embedded scrollable an opt-out parameter.
-- **Robolectric's Compose root is clamped to 320×470 dp** (§40.20): assert against the screen, not hardcoded
-  sizes, and read the failing bounds out of the assertion message.
-- **The Robolectric shadow canvas discards `drawBitmap`/`drawPath` (0 opaque pixels) and
-  `@GraphicsMode(NATIVE)` does not fix it here** (§40.21): assert the bitmap contract (size/config/caching/
-  no-throw), leave visuals to on-device, and do not add a second sandbox config.
-- **Verify constructor-argument edits against the file's imports in the same pass** (§40.28) — a rename
-  dropped a still-used import and invented a non-existent class.
-- **Compute `log2` expectations with a calculator, not mentally** (§40.33) — a wrong exponent reads as a
-  product bug in a fit/zoom case.
-- **In ViewModel tests, assert pre-state through an entry path that does not mutate the snapshot field**
-  (§40.60): a path that writes the field before the collector resumes makes the pre-state assertion
-  self-defeating.
-- **Never mock a class that bears `native` methods or returns Kotlin flows** (§134.73): `native` cannot be
-  relaxed or intercepted (`UnsatisfiedLinkError`), a relaxed mock of a `StateFlow`-returning member throws
-  `KotlinNothingValueException` on `collect`, and a relaxed `Boolean` or object answer is `false`/`null` —
-  stub `isValid = true` for a surface a renderer draws on. Use the module's fakes (`FakeOSMScoutClient`,
-  `FakeMapScreenClient`, `FakeAutoRenderClient`, `FakeClientWithBbox`, `FakeStyleLoadClient`) and real
-  `MutableStateFlow`s, and expect to grow a fake one native call at a time.
-- **A car-app or sheet test drives and asserts the surface the way the host does** (§134.76): drive
-  `LifecycleRegistry` through the states a host would (`INITIALIZED` → `CREATED` → `DESTROYED`, never straight
-  to `DESTROYED`); `androidx.car.app.Screen`'s constructor is protected (subclass it);
-  `ShadowDialog.getLatestDialog()` is null for a `Box` overlay (dispatch the back through the activity
-  instead); Material3 `PartiallyExpanded` is a fraction of *content*, so keep the anchor state in the state
-  owner; a node inside a `verticalScroll` in Robolectric's 320×470 dp window fails `assertIsDisplayed` —
-  assert existence and re-check the product consequence; and Compose test symbols are either rule members
-  (`onAllNodes`) or extensions (`assertIsDisplayed`) — read the whole error list before importing.
+Moved to `DesignCrossVariant.md` §11.
 
 ## 12. General engineering principles
 
-- **Single source of truth**: shared logic is extracted once into `:core` or a
+- **Rule: single source of truth - shared logic is extracted once** **Single source of truth**: shared logic is extracted once into `:core` or a
   named helper — never duplicated per variant, screen, or module. The render
   target's reuse rule has exactly one owner: `RenderBitmapPool` (`:core`) hands
   out, takes back and recycles the ARGB_8888 targets both renderers draw into
@@ -777,7 +263,7 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   parameter of the shared composable, not a copy of the control per host — `NavigationStatsRow`
   exposes `leadingModifier` for the strip a caller makes tappable, so the phone card's details tap
   and the stop control keep one implementation and one owner (change `fix-nav-overlay-stop-tap`,
-  spec `navigation-status-details`; the tap-target rule itself is `guidelines/UI.md` §8).
+  spec `navigation-status-details`; the tap-target rule itself is `guidelines/UIPhoneMap.md` §8b).
   The route's visibility has one owner at a time: **navigation** while it runs, and the **open
   session in its stopped state** for the grace window — the engine adapter clears the route on a stop
   only when no session took it over, and a session that ends (its grace expiring included) is the one
@@ -786,16 +272,16 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   surface). No stop control holds that decision of its own: the phone has one session-aware stop path
   and no second one beside it. The same "one owner per surface" rule holds for a *band* the phone
   shares between two composers: the session card and the navigation status card sit on the same bottom
-  edge, and composing both hid the review entirely (measured 2026-10-06) — the card that is shown owns
+  edge, and composing both hid the review entirely — the card that is shown owns
   the band and the other is not composed while it is (change `fix-route-session-stop-path`, design D8).
-  The phone's overlay *stacking* has one owner as well: the five bands of `guidelines/UI.md` §11 decide
+  The phone's overlay *stacking* has one owner as well: the five bands of `guidelines/UIPhoneMap.md` §11 decide
   which element may paint over which, so a band is not re-argued per composable and map chrome never
   lands on top of an open surface (change `fix-phone-map-layer-stack`, spec `map-canvas-screen`).
-- **Single owner per process-global resource**: when the phone UI and a car
+- **Rule: single owner per process-global resource** **Single owner per process-global resource**: when the phone UI and a car
   session share one process (always the case under Android Auto projection), the
   process-wide resources have explicit owners instead of per-surface toggles
   (change `shared-resource-arbitration`):
-  - **Location updates are leased**, never toggled: `LocationService.acquire(consumer)`
+  - **Rule: location updates are leased, never toggled** **Location updates are leased**, never toggled: `LocationService.acquire(consumer)`
     hands out a `LocationLease` (consumers: `phone-map`, `phone-nav`, `car-session`,
     `car-nav`), updates run while at least one lease is held, and the last release
     stops them. A lease is released when its owner ends — the opposite of
@@ -803,13 +289,13 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
     not outlive its owner while "is driving active?" must not be cleared by a dying
     surface. Consumer names are roles, not surfaces, so backgrounding one phone
     surface cannot cut the fixes another still needs (spec `location-updates-lease`).
-  - **Settings writes are transactions**: `SettingsStorage.update { }` performs
+  - **Rule: settings writes are transactions** **Settings writes are transactions**: `SettingsStorage.update { }` performs
     read-modify-write under one lock on top of the existing settings file; a writer
     persists only the fields it owns, and `save(document)` is routed through
     `update` so a whole-document write cannot interleave either. `load()` takes the
     same lock — a read must never observe a half-written file (spec
     `settings-persistence`).
-  - **The native tile-data cache keeps the highest requested capacity** and is never
+  - **Rule: the native tile-data cache keeps the highest requested capacity** **The native tile-data cache keeps the highest requested capacity** and is never
     lowered by a *configuration* request (`NativeTileDataCache`), so the effective value does not depend
     on which surface opened databases first; a car-only process still runs on the car value
     (spec `native-tile-data-cache`). One deliberate exception: `MemoryPressureResponder` *releases*
@@ -817,8 +303,8 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
     `ActivityManager.MemoryInfo` — or when the platform reports the UI hidden / the process backgrounded
     **while no car session is live**; nothing native runs on the callback thread, and the release only
     lowers a cache capacity (never rendered content). The `onTrimMemory` levels it does *not* use and why:
-    see `guidelines/MapRendering.md` §17.
-  - **The car-session-presence signal** (`CarSessionPresence`) is process-scoped and
+    see `guidelines/MapStyling.md` §17.
+  - **Rule: the car-session-presence signal is process-scoped and in-memory only** **The car-session-presence signal** (`CarSessionPresence`) is process-scoped and
     in-memory only: the phone shows an advisory indication and disables nothing. The
     phone UI is deliberately not locked while a car session is live (spec
     `car-session-presence`).
@@ -827,18 +313,18 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
   parallel implementations.
 - **One owner per concern**: an abstraction (ViewModel, repository, provider)
   is justified by a real second consumer — not by structure.
-- **No dead code**: dead code contradicts specs and invites misuse; remove it
+- **Rule: no dead code** **No dead code**: dead code contradicts specs and invites misuse; remove it
   and fix the spec in the same change. Keep spec ↔ code in sync.
-- **Keep contracts stable**: mirror upstream APIs, absorb platform
+- **Rule: keep contracts stable** **Keep contracts stable**: mirror upstream APIs, absorb platform
   differences in adapters, change shared/native behavior only as a last
   resort.
 - **Make it testable**: extract pure functions from drawing and UI assembly;
   keep presentation composables callback-driven.
-- **Survive restarts**: user choices and state that must persist live in the
+- **Rule: survive restarts** **Survive restarts**: user choices and state that must persist live in the
   settings/persistence layer — in-memory-only resets are inconsistent.
-- **Additive changes**: land changes additively; keep rollback a simple
+- **Rule: additive changes** **Additive changes**: land changes additively; keep rollback a simple
   revert; prefer defaulted fields over data migrations.
-- **Separate screen over mode flag**: when two states have different
+- **Rule: a separate screen over a mode flag** **Separate screen over mode flag**: when two states have different
   lifecycles, state, or exit semantics, use a separate screen, not a mode
   parameter.
 - **Change hygiene when editing files (patch tooling).** One file per `edit` call when the anchors come from
@@ -867,102 +353,5 @@ the band a surface composes in belongs to `guidelines/UI.md` §11.
 
 ## 13. Superseded decisions
 
-- The live guidance path built `RouteInstruction` text in native code and parsed it back in the app
-  (`TurnInstructionLocalizer`'s `"Keep "`-prefix and `"Leave motorway"` matching, the five-scalar
-  `nextNext` hint) → live guidance now publishes the **route step model** (change
-  `route-steps-live-guidance`, spec `osmscout-jni` — Live guidance publishes route steps) — the
-  instruction type could not express a motorway change or leave, so the only thing that told them
-  apart was an English sentence the app matched back; and the fallback promise ("native English when
-  unmapped") existed only because the native side wrote prose. `TurnInstructionLocalizer` is deleted,
-  every surface words its manoeuvre through `core/ManoeuvreLabels`, and step matching in the route's
-  list compares distance **and** kind instead of description text. The `RouteInstruction` type stayed in
-  the API for JavaScout one change longer and was then removed with its arrays, its field tests and the
-  bridge's second description walk (change `retire-instruction-prose`, submodule commit `6c8dc6f94`): the
-  prose path was deleted rather than shimmed, because a shim keeps a second model with a reader-shaped
-  temptation — the defect class the two changes before it removed — while a deletion shows every consumer
-  the truth at compile time. JavaScout adopted the step model in `999acc16f` and words its own rows
-  through `NextTurnText`; `TurnType` stayed, because the step model's direction and motorway sub-records
-  carry it.
+Moved to `guidelines/Design.why.md` §13; the provenance table is `guidelines/Design.why.md` Appendix B.
 
-- Dual-mode single APK (phone + AAOS in one artifact,
-  `2026-08-22-add-android-automotive-os`) → two-flavor split
-  (`specs/android-automotive-os`) — Play rejects the combination.
-- GPS markers baked into the native render (`2026-07-29-draw-map`, auto
-  phase 3) → display-layer overlays (`2026-08-14-fix-marker-visibility`) —
-  cached buffers must stay marker-free.
-- AA instruction hints surface-drawn (archived D4/W1) → host-rendered panel
-  (`2026-08-23-aa-navigation-view`) — one source of instruction UI, never
-  both.
-- Bearing smoothing in the ViewModel → location layer
-  (`2026-08-28-gps-bearing-smoothing`) — signal quality in the location
-  layer, render protection in the render layer.
-- Single render path with `blitSubRegion` → TILES/DIRECT split
-  (`2026-08-17-render-mode-switch`) — dead code removed, spec corrected.
-- "No new GPS load — location keeps streaming from the existing
-  `LocationService`" (archived `background-navigation-notification` design) →
-  an invisible, non-navigating FREE_DRIVE holds **no** location lease
-  (`fix-free-drive-background-liveness`, owner decision C) — the assurance
-  stopped being true when the lease mechanism landed
-  (`shared-resource-arbitration`): the phone map's `PHONE_MAP` lease is released
-  on pause, so the background notification keeps the last known road/speed
-  instead of live values. The notification and the FGS protection remain; the
-  deliberate no-lease case is pinned in `specs/location-updates-lease` so a later
-  reader cannot re-add always-on fixes by accident.
-- The repository's readiness flag deferred as API surface (archived
-  `fix-aa-favorites-latency` design: "*`initialized` flag on the repository* —
-  … Deferred") → published as its own signal
-  (`AutoFavoritesProvider.storeReady`, change `fix-car-favorites-loading-stall`) —
-  the deferral assumed the favourites list's loading row was short-lived, but the
-  store publishes from an empty map, so "not initialised yet" and "initialised and
-  holds none" were the same value and the row's end was gated on whichever async
-  emission happened to arrive first. The signal is what lets the car screen show
-  the row only for a genuinely uninitialised store, and the owner's 2026-10-10
-  report ("seconds — noticeably stuck on Loading") is why the trade-off was
-  reopened.
-- The route list built by parsing the native English description lines
-  (`RoutePanelViewModel.parseStepDisplay` / `parseTurnType` / `isInstructionLine`, archived
-  `route-panel-ui` designs) → the list is **derived from `RouteEntry.steps`**
-  (`route-panel-from-steps`, spec `route-analysis` — Rows are derived from the route's steps) — the
-  prose path could not see a manoeuvre the description callback never emitted, so a roundabout exit and
-  every motorway manoeuvre were missing from the list, the text was never localized, and the glyph was a
-  guess from prose that could not tell a motorway change from a plain turn. The structured projection had
-  shipped on every route calculation since submodule commit `62a248b84` and had no consumer; the rows are
-  now that consumer. The parsing path is retired in the app here, and `RouteEntry.descriptions` (with the
-  `instruction*` arrays) follows in `retire-instruction-prose`, which is also where the live path's
-  `TurnInstructionLocalizer` is replaced by the rows' structure-based builder.
-
----
-
-## Appendix A — Quick checklist (apply phase)
-
-- [ ] JNI/native calls off the main thread, with timeouts + loading UI?
-- [ ] Native callbacks marshaled to the main thread?
-- [ ] Displayed frame emitted atomically (bitmap + viewport + marker)?
-- [ ] Overlays never baked into buffers or tiles?
-- [ ] Epoch bumped only on meaningful changes?
-- [ ] Mode/style switch invalidates cache + forces full render?
-- [ ] Marker on raw fix; only the camera smoothed?
-- [ ] AA surface released on stop/destroy; renderer paused/resumed?
-- [ ] Same labels in both variants where platform allows?
-- [ ] New settings fields defaulted + lenient decode?
-- [ ] Shared logic in `:core`, not duplicated?
-- [ ] Change additive; rollback = simple revert?
-- [ ] Pure logic JVM-testable; tests added?
-- [ ] Spec ↔ code in sync (`openspec validate`)?
-
-## Appendix B — Provenance
-
-| Section | Key sources (`openspec/`) |
-|---|---|
-| 1 | `changes/archive/2026-07-26-android-project-setup`, `2026-08-27-search-address-book-persons`, `2026-08-05-auto-phase-2` |
-| 2 | `2026-07-26-android-project-setup`, `2026-07-31-route-panel-ui`, `specs/app` |
-| 3 | `2026-08-14-fix-marker-visibility`, `2026-08-03-dark-mode`, `2026-08-17-render-mode-switch` |
-| 4 | `2026-07-29-add-location-search`, `2026-08-01-turn-by-turn-navigation`, `2026-08-13-gps-render-coalescing` |
-| 5 | `2026-08-21-remove-android-logging-from-libosmscout`, `2026-08-11-search-fixes`, `2026-08-13-basemap`, `specs/osmscout-jni` |
-| 6 | `specs/double-buffering`, `specs/tile-cache`, `specs/canvas-overrun`, `2026-08-17-render-mode-switch`, `2026-08-18-render-performance` |
-| 7 | `2026-08-13-gps-render-coalescing`, `2026-08-28-gps-bearing-smoothing`, `2026-08-28-phone-follow-smoothing`, `specs/smooth-follow` |
-| 8 | `2026-08-05-auto-phase-2/3`, `2026-08-22-free-driving-mode`, `2026-08-22-aa-ui-redesign`, `specs/android-automotive-os`, `specs/cross-variant-ui-parity` |
-| 9 | `2026-07-28-initial-ui-map-download`, `2026-07-29-manage-favorites`, `2026-08-14-improved-fulltext-search`, `2026-08-27-search-address-book-persons` |
-| 10 | `2026-08-19-release-target`, `2026-08-18-github-build` |
-| 11 | `2026-08-03-arrow-renderer`, `2026-08-28-gps-strict-fallback`, `2026-08-14-fix-two-finger-rotation`, `AGENTS.md` |
-| 12 | all of the above |

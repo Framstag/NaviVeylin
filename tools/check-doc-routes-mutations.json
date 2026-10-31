@@ -49,6 +49,46 @@
       "search": "    if ((ends[1] + 0) != (lo + 0) || (ends[2] + 0) != (hi + 0))",
       "replace": "    if (0)",
       "why": "a range a row states is the cheapest and the costliest of the lettered sections it names, so a range the measurement does not give is reported instead of passing as a span"
+    },
+    {
+      "label": "companion-anchor",
+      "case": "layers#aCompanionAnchorThatNoSectionCarriesIsReported",
+      "file": "tools/check-doc-routes.sh",
+      "search": "    if ! awk -F'\\t' -v f=\"$base\" -v n=\"$num\" '$1 == f && $2 == n { found = 1 } END { exit found ? 0 : 1 }' \"$tmp/headings\"; then",
+      "replace": "    if false; then",
+      "why": "a companion's `## §N` anchor is resolved against its base document, so an anchor no section carries is reported instead of the companion becoming a document of its own"
+    },
+    {
+      "label": "rule-name-one-document",
+      "case": "rules#aNameTwiceInOneDocumentIsReported",
+      "file": "tools/check-doc-routes.sh",
+      "search": "  { k = $1 SUBSEP $3; c[k]++; if (c[k] == 1) secs[k] = \"§\" $2; else if (c[k] == 2) secs[k] = secs[k] \" and §\" $2 }",
+      "replace": "  { }",
+      "why": "one rule name stated twice in one document is the duplicate the one-normative-home rule forbids, so the name is counted per section and the second statement is reported"
+    },
+    {
+      "label": "rule-name-two-documents",
+      "case": "rules#aNameTwoDocumentsStateIsReported",
+      "file": "tools/check-doc-routes.sh",
+      "search": "  { k = $1 SUBSEP $3; if (!(k in seen)) { seen[k] = 1; docs[$3] = docs[$3] (docs[$3] == \"\" ? \"\" : \", \") $1 } }",
+      "replace": "  { }",
+      "why": "two documents stating one rule name is the duplicate the one-normative-home rule forbids, found by the token the two statements share instead of by a reader's memory"
+    },
+    {
+      "label": "rule-reference-resolves",
+      "case": "rules#aStaleRuleReferenceIsReported",
+      "file": "tools/check-doc-routes.sh",
+      "search": "  if ! LC_ALL=C awk -F'\\t' -v d=\"$doc\" -v n=\"$num\" -v nm=\"$name\" '$1 == d && $2 == n && $3 == nm { found = 1 } END { exit found ? 0 : 1 }' \"$tmp/rules\"; then",
+      "replace": "  if false; then",
+      "why": "a `see rule <File>.md §N \"<name>\"` reference is resolved against the rule names the section carries, so a renamed rule leaves its references reported with the names the section does carry"
+    },
+    {
+      "label": "rule-with-no-name",
+      "case": "rules#aRuleWithNoNameIsReported",
+      "file": "tools/check-doc-routes.sh",
+      "search": "        if (!inrule) { p = index(line, \"**Rule:\"); if (p == 0) break; inrule = 1; line = substr(line, p + 7); name = \"\" }",
+      "replace": "        if (!inrule) { p = index(line, \"**Rule: \"); if (p == 0) break; inrule = 1; line = substr(line, p + 8); name = \"\" }",
+      "why": "a rule with no name is reported with its file and line instead of being skipped by the extraction, so the empty case cannot pass as a rule the tree does not count"
     }
   ]
 }

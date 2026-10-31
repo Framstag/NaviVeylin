@@ -1,0 +1,16 @@
+# Relocation count, UIPhone.why.md / UIPhone.recipes.md
+
+Blocks removed from guidelines/UIPhone.md into its companions:
+  1. the BROWSE dwell/threshold derivation in §7a -> UIPhone.why.md ## §7a
+  2. the route-planning history (owner findings, the pinned band's 42.67/53.33 dp measurement,
+     the removed third anchor, the right-column inset) in §7b -> UIPhone.why.md ## §7b
+  3. the tap-target fold and the 145->120 dp card measurement in §8b -> UIPhone.why.md ## §8b
+  4. the compass palette and needle-stroke derivations in §8c -> UIPhone.why.md ## §8c
+  5. the daylight palette's contrast ratios in §8a -> UIPhone.why.md ## §8a
+  6. the empty-group / order-channel rationale in §12 -> UIPhone.why.md ## §12
+  7. the platform rationale for the car hint (no shade notice) in §18 -> UIPhone.why.md ## §18
+  8. the drag-surface test recipes in §16 -> UIPhone.recipes.md ## §16
+
+Statements found in the companions (removed blocks = 8):
+guidelines/UIPhone.why.md:7
+guidelines/UIPhone.recipes.md:1

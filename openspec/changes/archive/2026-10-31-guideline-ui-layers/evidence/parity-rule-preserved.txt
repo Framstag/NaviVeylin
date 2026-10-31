@@ -1,0 +1,32 @@
+# The parity rule survives the move
+
+Pre-cut rule text (from evidence/pre-cut.md):
+```
+
+Post-cut rule text (guidelines/UI.md §1):
+## 1. Cross-variant UI parity (general rule)
+
+Source: spec `cross-variant-ui-parity` (change `align-details-actions-and-shared-data`).
+
+- **Rule: same labels and visual style across variants.** Similar UI elements in the
+  phone and Android Auto variants SHALL use the same **labels** and the same **visual
+  style** wherever the platform constraints of both variants allow it.
+- **Rule: a forced deviation is minimal and keeps the label.** When a car-host
+  constraint forces a difference (e.g. rows instead of buttons, glyph marks instead of
+  icons), deviate **only as much as required** and keep the **same label**.
+- **Rule: the action hierarchy is reflected on both variants.** Primary/secondary/destructive
+  hierarchy must be reflected in both variants' styling where the platform allows.
+- **Rule: a documented deviation names its platform constraint.** A deliberate deviation
+  from parity SHALL record the platform constraint that forces it, and the phone and car
+  surfaces SHALL keep the same stored data even where the interaction differs.
+
+The record of the parity decisions already made — one row per element, its phone form, its car form and
+the constraint behind each deviation — is `UI.why.md` §1. Where a row states a constraint on new work,
+that constraint is stated here (or in the section that owns the surface) and the row is its evidence.
+
+The phone's own surfaces and the favourites-management affordances that this rule keeps at
+parity are `guidelines/UIPhone.md` — the browsing hierarchy (§12), the row and card actions
+(§13, §14), the starred chip and drag checklist (§15, §16), the vehicle-position setting
+(§17) and the ongoing navigation notification (§18, §19).
+
+---

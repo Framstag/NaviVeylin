@@ -1,0 +1,42 @@
+# Relocation — rationale into guidelines/Backlog.why.md
+
+Every rationale block of the pre-cut `guidelines/Backlog.md` is now in `Backlog.why.md`, under an anchor of the
+number it came from (`## §N <heading>`). Recorded with the source line range and its byte count in the pre-cut
+file, and the anchor that now carries it (pre-cut file preserved as the baseline; the ranges are the pre-cut
+document's lines).
+
+| source (pre-cut lines) | bytes | companion anchor |
+|---|---|---|
+| §5 the five decision-queue rules (issue #243/#196/#225/#682) | 3010 | §5 |
+| §6 the intake history (issue #199/#200/#201) | 596 | §6 |
+| §12 The decisions, and why | 5740 | §12 |
+| §13 Deferred, and why | 1499 | §13 |
+
+`§9 Checks — why` records the citations of the §9 rules and rows (issue #257/#666/#667/#671/#683/#665/#670/#197/
+#712); the row descriptions themselves are procedure and moved to `Backlog.recipes.md §9`, not here.
+
+Anchors present in the companion:
+
+```
+$ grep -n '^## §' guidelines/Backlog.why.md
+7:## §12 The decisions, and why
+49:## §13 Deferred, and why
+66:## §5 Who may write what — why
+79:## §6 How an item becomes work — why
+87:## §9 Checks — why
+```
+
+Relocation closes, for the two verifications the tasks name:
+
+```
+$ grep -c 'Rule:' guidelines/Backlog.why.md guidelines/Backlog.recipes.md
+guidelines/Backlog.why.md:0
+guidelines/Backlog.recipes.md:0
+
+$ grep -c 'SHALL\|MUST' guidelines/Backlog.why.md
+0
+```
+
+No named rule and no `SHALL`/`MUST` obligation moved with the rationale: every block that moved states history,
+a measurement or a decision already taken, and every obligation a reader must obey stayed in
+`guidelines/Backlog.md` as a `**Rule: …**` bullet.

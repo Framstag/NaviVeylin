@@ -157,6 +157,20 @@ jobs:
           bash tools/check-doc-routes-selftest.sh
           bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
 
+      # The reading set a change's paths derive (`documentation-ownership`, "The review's reading set is
+      # derived from the change's paths"): the map in `tools/doc-routes.json` derives the guideline sections
+      # and named rules for a path glob, so a review is graded against the rules its diff is governed by
+      # rather than against what the change's own artifacts name. Every glob must match a tracked path (a
+      # rename otherwise orphans the rules a reader is told to read) and every named rule under `guidelines/`
+      # must be reached by a glob (a rule has a reader before it has a violation). The self-test runs here
+      # because a check nothing runs is the same silence one level down, and the mutation set is listed for
+      # the same reason as the others: a set that no longer parses fails this step instead of rotting.
+      - name: Check the rule routes
+        run: |
+          bash tools/check-rule-routes.sh
+          bash tools/check-rule-routes-selftest.sh
+          bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list
+
       # ── issue tooling ──────────────────────────────────────────
       # The gate for `tools/issues/**`: the Java core's cases and the shell wrappers driven against a stub
       # `gh` on PATH. Offline, no token, no Gradle — and it refuses below JDK 17 with a named message. The

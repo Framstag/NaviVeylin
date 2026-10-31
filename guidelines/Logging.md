@@ -5,8 +5,8 @@ This document owns the logging rules and the facts around them; the measurement 
 `Build.md` §10 (on-device evidence), the coordinate gate is enforced in the build, and the disclosure duty
 is `Regulatory.md` §9.
 
-**Maintenance rule** — when a change supersedes a logging convention here, update this document in the same
-change. `AGENTS.md` keeps the two facts a session needs before it reads anything else (the one tag and the
+- **Rule: a superseding change updates this document.** When a change supersedes a logging convention here,
+  update this document in the same change. `AGENTS.md` keeps the two facts a session needs before it reads anything else (the one tag and the
 one bridge) plus a route here.
 
 ## 1. Native code (libosmscout submodule)
@@ -15,14 +15,16 @@ one bridge) plus a route here.
   ```cpp
   osmscout::log.Debug() << "...";   // also .Info(), .Warn(), .Error()
   ```
-- **Never** use Android logging (`android/log.h`, `__android_log_print`, `ANDROID_LOG_*`) in libosmscout
+- **Rule: libosmscout never uses Android logging outside its frozen directory.** Never use Android logging
+  (`android/log.h`, `__android_log_print`, `ANDROID_LOG_*`) in libosmscout
   outside its frozen `Android/` directory — no conditional or unconditional Android dependencies allowed
   there. The CI gate `Check libosmscout Android-free outside Android/` (`.github/workflows/build.yml`) fails
   the build if those patterns reappear.
 - No local changes accepted in the libosmscout `Android/` dir; its `android/log.h` usage is upstream-owned
   and never compiled by the app build.
 - Debug output is gated — enable with `osmscout::log.Debug(true)` if needed.
-- **Never log a position here either**, and that rule is gated, not just stated: `checkNoCoordinatesInLogs`
+- **Rule: native code never logs a position.** Never log a position here either, and that rule is gated,
+  not just stated: `checkNoCoordinatesInLogs`
   (buildSrc `NativeCoordinateLogScanner`) reads the native sources this project writes — the NDK bridge
   `app/src/main/cpp/*.cpp|h` and the JNI translation unit `OSMScoutClient.cpp` — and fails on an
   `osmscout::log` statement that streams a position accessor (`coord.GetDisplayText()`,
@@ -30,8 +32,7 @@ one bridge) plus a route here.
   end, search radius, magnification, pixel, accuracy, bearing. `GetDisplayText()` on a `TileId`, `Tiling`
   or `Pixel` is a tile/pixel identity, not a position — the gate is accessor-shaped, so that one line is
   reworded, never allowlisted. Upstream libosmscout (the fork's `naviveylin-local` patch layer aside) is
-  not scanned: its own logging habits are not this project's policy (issue #125, change
-  `fix-native-coordinate-log-gate`).
+  not scanned: its own logging habits are not this project's policy.
 
 ## 2. Native log integration (NaviVeylin side)
 
@@ -44,21 +45,23 @@ one bridge) plus a route here.
 - Native lines appear in Logcat under tag **`NaviVeylin`**, levels mapped `DEBUG/INFO/WARN/ERROR` →
   `D/I/W/E`
 - Inspect with: `adb logcat -s NaviVeylin`
-- A stylesheet load reports the type names the installed database cannot resolve as **one line per parsed
-  style file** (`Unknown types in '<file>': N (<sample>, N more)`) — never one line per rule occurrence; the
+- **Rule: a stylesheet load reports unknown types once per parsed style file.** A stylesheet load reports
+  the type names the installed database cannot resolve as **one line per parsed style file** (`Unknown types in '<file>': N (<sample>, N more)`) — never one line per rule occurrence; the
   complete per-name list needs `osmscout::log.Debug(true)` (native debug is off by default). One such line
   per style file **per load** is the expected output on an install whose map data predates the stylesheet
   (`TODO.md` §91/§99) — a startup loads the set more than once (measured 8 files × 13 loads = 104 lines,
   `TODO.md` §120), so compare per file; a per-occurrence warning wall means the condensation regressed
   (`guidelines/Build.md` §10)
-- The **search request line** — `search: slot=<name> gen=<n> aborted=<bool> nativeMs=<ms>` — is written once
+- **Rule: the search request line is written once per request at `Info`.** The **search request line** —
+  `search: slot=<name> gen=<n> aborted=<bool> nativeMs=<ms>` — is written once
   per search request at `Info` deliberately, so an on-device check reads it with `adb logcat -s NaviVeylin`
   without enabling native debug; `aborted=true` is what shows a superseded or abandoned search having stopped
   (spec `search-request-lifecycle`, the device measurement in `guidelines/Build.md` §10). It carries identity
   only — the slot (`places`, `poi`, `route`, `car`), the request's generation, its abort state and its duration
   — and never a coordinate.
-- The bridge links `osmscout_client_java` and is the **only** place in the native build allowed to use
-  Android logging APIs — libosmscout must stay platform-independent
+- **Rule: the NDK bridge is the only native place that logs through Android.** The bridge links
+  `osmscout_client_java` and is the **only** place in the native build allowed to use Android logging APIs —
+  libosmscout must stay platform-independent.
 
 ## 3. Kotlin (app) logging
 
@@ -68,7 +71,8 @@ one bridge) plus a route here.
   instead of reading it in a host callback or during composition)
 - Kotlin logs and forwarded native logs are separate streams; native lines always come from the bridge under
   the `NaviVeylin` tag
-- **Never log coordinates** (spec `auto-diagnostics` — Diagnostics carry no coordinates): a log or
+- **Rule: a log or diagnostics line never carries a coordinate.** Never log coordinates (spec
+  `auto-diagnostics` — Diagnostics carry no coordinates): a log or
   diagnostics line carries identity instead — object label/id, map database or map file name, magnification,
   screen pixel, accuracy, bearing. The build gate `checkNoCoordinatesInLogs` (buildSrc
   `CoordinateLogScanner`, in `preBuild`) fails on a new one — including a position copied into a local whose
@@ -77,13 +81,14 @@ one bridge) plus a route here.
   `DiagnosticsLog.RETENTION_MS` (7 days) by the logging worker, and the exported text and both viewers lead
   with the `diagnostics_disclosure` statement. See `guidelines/Regulatory.md` §9 and `guidelines/UI.md`
   (gates).
-- **A failure never carries its own wording across a layer boundary.** Native code publishes a failure as a
+- **Rule: a failure never carries its own wording across a layer boundary.** Native code publishes a failure as a
   *kind* (`RouteCallback.KIND_*`, mirrored by `naviveylin::kRouteFailure*` — keep the two in step, the
   number is what crosses JNI) plus a description for the log; the surface words it from its own resource for
   that kind (spec `routing-failure-reporting` — Each reason is worded by the surface). A sentence produced
   outside the resource system is not display text, and a surface that needs to act on a failure needs the
   cause, not prose.
-- **A failed route calculation's cause is measured, not guessed** (spec `route-calculation-feedback` — Route
+- **Rule: a failed route calculation's cause is measured, not guessed.** A failed route calculation's cause
+  is measured, not guessed (spec `route-calculation-feedback` — Route
   calculation is measured without coordinates): the `ROUTE` entry carries `outcome`, the failure's `reason`,
   `reachedPct` (the routing layer's own progress percentage — how far the search got against the
   start-to-target air-line distance, its own progress denominator; `-1` when it reported none) and

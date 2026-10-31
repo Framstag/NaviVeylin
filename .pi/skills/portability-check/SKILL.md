@@ -11,7 +11,7 @@ particular project's lives in a committed config (`tools/tooling.json`,
 `tools/sensors/sensors.json`, `tools/loop/loop.conf`). This skill runs the proof of that boundary, and is
 the recipe for keeping it true when an engine or a config changes.
 
-`guidelines/Backlog.md` §10 owns the concept; `PORTING.md` is the adopter's recipe; the spec is
+`guidelines/BacklogTooling.md` §10 owns the concept; `PORTING.md` is the adopter's recipe; the spec is
 `tooling-portability`.
 
 ## The four commands
@@ -156,7 +156,7 @@ a change that owns those engines (issue #162, `openspec/changes/archive/2026-10-
 ## References
 
 - `PORTING.md` — what to copy, the three files to edit, the adapter to delete, what an update costs
-- `guidelines/Backlog.md` §10 "Portability" — the concept and the boundary
+- `guidelines/BacklogTooling.md` §10 "Portability" — the concept and the boundary
 - `.pi/skills/mutation-runner/SKILL.md` — the runner behind the revert-checks
 - `.pi/skills/revert-check/SKILL.md` — the rule the mutations serve (one mutation per invariant)
 - `openspec/changes/archive/2026-10-18-tooling-portability/{report.md,evidence/}` — the change that landed it, with the gate

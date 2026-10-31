@@ -1,0 +1,27 @@
+# Citations of UIPhone.md's sections, pre-cut
+
+Gathered with:
+  grep -rn 'UIPhone\.md §' AGENTS.md guidelines/*.md .pi/skills/*/SKILL.md
+plus the backticked row forms the check reads (`\`UIPhone.md\` §N`).
+
+## AGENTS.md — Documentation Map rows
+line 29: `UIPhone.md` §5, §6a, §7, §7a, §7b, §8, §8b, §8c, §8a, §10a, §11, §12..§19
+line 34: `MapCar.md` §18, `UIPhone.md` §10a "Phone surface while a car session is active"
+line 35: `DesignStack.md` §9, `UIPhone.md` §6a "Phone search surface"
+
+## Base guideline bodies (resolved by check-doc-routes.sh)
+guidelines/Design.md:266  `guidelines/UIPhone.md` §8b            -> MAP
+guidelines/Design.md:277  `guidelines/UIPhone.md` §11             -> MAP
+guidelines/MapCar.md:150  `guidelines/UIPhone.md` §10a            -> MAP
+guidelines/UI.md:44       `guidelines/UIPhone.md` §12             -> SURFACE (resolves)
+guidelines/UI.md:278      `UIPhone.md` §12                        -> SURFACE (resolves)
+guidelines/UI.md:298      `UIPhone.md` §6a                        -> SURFACE (resolves)
+guidelines/UI.md:311      `UIPhone.md` §6a                        -> SURFACE (resolves)
+guidelines/UI.md:345      `UIPhone.md` §6a                        -> SURFACE (resolves)
+guidelines/UI.md:617      `UIPhone.md` §7a, §8b, §8c, §11          -> MAP (4 refs)
+
+## Companion / skill mentions (not resolved by any check; retargeted for honesty)
+guidelines/Design.recipes.md:9,17  `guidelines/UIPhone.md` §11     -> MAP
+guidelines/Backlog.recipes.md:749  `UIPhone.md` §8, §7a            -> MAP
+guidelines/UI.md:389               `UIPhone.why.md` §8d           -> stale before this cut
+.pi/skills/compose-geometry/SKILL.md:24,98  `guidelines/UIPhone.md` §8b  -> MAP

@@ -20,37 +20,47 @@ give.
 
 | what you are changing | read |
 |---|---|
-| module layering, DI, ViewModel/state, threading, the native boundary | `Design.md` §1, §3, §4, §5 |
-| a new screen, sheet or composable structure, or a new dependency | `Design.md` §2 — its "Adding to the stack" subsection holds the recipes for a dependency, a screen, a full-screen sheet, a details sheet and a native function |
-| how the map is drawn — pipeline, bitmaps, throttling, epochs, front buffer, overrun | `MapRendering.md` §1, §2, §4, §5, §12, §13 |
-| follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapRendering.md` §3, §6, §7, §8, §9, §10, §11 |
-| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapRendering.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.1 kB, §16a 2.4 kB, §16b 0.8 kB (measured 2026-10-29) |
-| label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapRendering.md` §20 "Label wrapping" |
-| phone UI — modes, overlays, layering, controls, dark mode, text | `UI.md` §7, §7a, §8, §8a, §9, §10, §11 — sub-sections §7a 13.9 kB (measured 2026-10-30), §8a 2.5 kB (measured 2026-10-29) |
-| car screens — templates, wait notices, car search and details | `UI.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 1.8 kB, §3c 2.8 kB, §6b 4.9 kB (measured 2026-10-29) |
-| parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6 |
-| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `Design.md` §8 "Android Auto & cross-variant", `MapRendering.md` §14 "Android Auto renderer", `UI.md` §3a 4.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
-| a surface that must live while a phone and a car session are both active | `MapRendering.md` §18 "The phone canvas while a car session is active", `UI.md` §10a "Phone surface while a car session is active" 2.2 kB (measured 2026-10-29) |
-| search, favourites, settings, persistence | `Design.md` §9 "Data, persistence & search", `UI.md` §6a "Phone search surface" 6.0 kB (measured 2026-10-29) |
-| logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `Build.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
-| route data and the numbers derived from it | `MapRendering.md` §19 |
-| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §2 and §4 are indexes of their sub-sections; read the one that owns the question: §2a "Agent iteration protocol" (the iteration loop), §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" (a `uses:` pin and the check that gates one), §3 "Commands reference", §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover", §4d "Attributing a red run", §4f "Artifacts, evidence rules and native verification" — 1.9–7.0 kB per section (bytes/1000, one decimal), against 23.2 kB and 23.4 kB for §2 and §4 before the split (measured 2026-10-22); §4c and §4e are reached through the §4 index — |
-| the native build — CMake sources, the ABI→triplet selection, vcpkg dependencies, stylesheet packaging | `Build.md` §12 |
-| writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `Build.md` §6a "The JNI stub and the classloader sandbox" (the rule a stub-loading test follows), §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions and declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion measured", §6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub for unit tests" (what the committed stub is and where it ships) — 1.3–5.3 kB each (bytes/1000, one decimal), against 22.1 kB for §6 before the split —, §7 "Code coverage", `Design.md` §11 "Testing" |
+| module layering, DI, ViewModel/state, threading, the native boundary | `Design.md` §1, §3, §4; `DesignNative.md` §5a 8.0 kB, §5b 6.5 kB (the native boundary) |
+| a new screen, sheet or composable structure, or a new dependency | `DesignStack.md` §2, §9; the recipes for a dependency, a screen, a full-screen sheet, a details sheet and a native function are in `Design.recipes.md`, under its section "Adding to the stack" |
+| how the map is drawn — the pipeline, bitmaps, throttling, epochs | `MapRendering.md` §1 (the index) — §1a 6.0 kB, §1b 3.1 kB, §1c 1.3 kB, §1d 10.3 kB, §1e 2.3 kB; also §2, §4, §5 |
+| a frame's delivery — front-buffer emission, the overrun display window, the rotation-gesture handoff | `MapFrames.md` §12, §13, §14 |
+| follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapFollow.md` §3, §6, §7, §8, §9, §10, §11 |
+| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapStyling.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.2 kB, §16a 2.4 kB, §16b 0.8 kB (measured 2026-10-31) |
+| label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapStyling.md` §20 "Label wrapping" |
+| the phone map — modes, overlays, layering, the route-planning card | `UIPhoneMap.md` §7, §7a, §7b, §8, §8b, §8c, §8a, §10a, §11 — sub-sections §7a 3.4 kB, §7b 8.0 kB, §8a 1.9 kB, §8b 3.3 kB, §8c 3.5 kB (measured 2026-10-31) |
+| phone surfaces — the details dialog, search, favourites | `UIPhone.md` §5, §6a, §12, §13, §14, §15, §16, §17, §18, §19 — sub-section §6a 6.1 kB (measured 2026-10-31) |
+| car screens — templates, wait notices, car search and details | `UICar.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 2.9 kB, §6b 5.2 kB (measured 2026-10-29) |
+| parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6, §8d "Cross-variant map presentation" 5.5 kB (measured 2026-10-31) |
+| dark mode and text/localisation, on both surfaces | `UI.md` §9, §10 |
+| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 10.0 kB, §8b 2.9 kB (the car host path, the surface and the observation seam), `MapCar.md` §14, `UICar.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
+| a surface that must live while a phone and a car session are both active | `MapCar.md` §18, `UIPhoneMap.md` §10a "Phone surface while a car session is active" 2.4 kB (measured 2026-10-29) |
+| search, favourites, settings, persistence | `DesignStack.md` §9 "Data, persistence & search", `UIPhone.md` §6a "Phone search surface" 6.1 kB (measured 2026-10-29) |
+| logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `BuildNative.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
+| route data and the numbers derived from it | `MapRoute.md` §19 |
+| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §4 is an index of its sub-sections; `BuildGate.md` §2 is an index of the gate's sub-sections. Read the one that owns the question — §2a "Agent iteration protocol" (the iteration loop), §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" (a `uses:` pin and the check that gates one); in `Build.md`: §3 "Commands reference"; in `BuildEvidence.md`: §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover", §4d "Attributing a red run", §4f "Artifacts, evidence rules and native verification" — 1.4–6.0 kB per section (bytes/1000, one decimal), against 23.2 kB and 23.4 kB for the two clusters before the split (measured 2026-10-22); §4c and §4e are reached through the §4 index — |
+| the iteration protocol, the liveness guard, the daemon JVM and the action runtimes | `BuildGate.md` §2 "Common behavior", §2a "Agent iteration protocol", §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" — 1.4–6.0 kB per section (bytes/1000, one decimal) |
+| verdicts, evidence rules, coverage and phone-UI measurement | `BuildEvidence.md` §4 "Result evaluation", §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover", §4c "Native scope, pruned configurations and a restored mutation", §4d "Attributing a red run", §4e "Falsification, flakes and scheduling traps", §4f "Artifacts, evidence rules and native verification", §7 "Code coverage", §11 "Measuring a phone UI finding (do this before changing code)" — 1.7–4.8 kB per section (bytes/1000, one decimal) |
+| test constraints — the JNI stub, teardown, the Compose sandbox, geometry, fork budgets, concurrency, wall-clock waits, red-run diagnosis, the submodule suite | `BuildTests.md` §6 "Test constraints", §6a "The JNI stub and the classloader sandbox", §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions and declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion measured", §6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub for unit tests" — 0.9–3.0 kB per section (bytes/1000, one decimal) |
+| the native build — CMake sources, the ABI→triplet selection, vcpkg dependencies, stylesheet packaging | `BuildNative.md` §12 "Native build and vcpkg" — its sub-sections §12a "Architecture", §12b "Configured feature headers", §12c "vcpkg Dependencies", §12d "Rebuilding vcpkg packages", §12e "vcpkg usage pattern (CI)", §12f "Stylesheet and icon packaging" — 0.1–2.5 kB each (bytes/1000, one decimal) |
+| writing or fixing a test — constraints, fork budget, coverage, the JNI stub | `BuildTests.md` §6a "The JNI stub and the classloader sandbox" (the rule a stub-loading test follows), §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions and declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion measured", §6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub for unit tests" (what the committed stub is and where it ships) — 0.9–3.0 kB each (bytes/1000, one decimal), against 22.1 kB for §6 before the split —; in `BuildEvidence.md`: §7 "Code coverage"; `DesignCrossVariant.md` §11 "Testing" |
 | release, versioning, SBOM, licence inventory | `Build.md` §5, §8, §9 |
-| on-device evidence — car crash triage, phone UI measurement | `Build.md` §10a "Booting the AAOS AVD and driving the car UI", §10b "Judging the car surface and the render loop", §10c "Footprint, the app's host sends and route numbers", §10d "Rejected mutations, the error notice and database registration", §10e "Expectation baselines and the car search scope", §10f "Two checks that need evidence before a behaviour is specified", §10g "Start-map selection on the phone", §10h "Stylesheet load count per start", §10i "Device recipes that cost a round every time", §10j "A calculated route's length" — 0.9–6.8 kB each (bytes/1000, one decimal), against 31.6 kB for §10 before the split —, §10k "The route-row census" (the `ROUTE` tag's one line per calculated route, and the recipe that reads it for a city and a motorway route), §11 |
+| on-device evidence — car crash triage, phone UI measurement | `BuildNative.md` §10a "Booting the AAOS AVD and driving the car UI", §10b "Judging the car surface and the render loop", §10c "Footprint, the app's host sends and route numbers", §10d "Rejected mutations, the error notice and database registration", §10e "Expectation baselines and the car search scope", §10f "Two checks that need evidence before a behaviour is specified", §10g "Start-map selection on the phone", §10h "Stylesheet load count per start", §10i "Device recipes that cost a round every time", §10j "A calculated route's length" — 0.1–2.6 kB each (bytes/1000, one decimal), against 31.6 kB for §10 before the split —, §10k "The route-row census" (the `ROUTE` tag's one line per calculated route, and the recipe that reads it for a city and a motorway route); in `BuildEvidence.md`: §11 |
 | what one project metrics report run measures, its metric definitions, its excluded classes, its surface rule | `Metrics.md` §1 "Invocation and exit status", §2 "What one run measures, and what it does not", §3, §4, §5, §6 "Surface convention" |
 | legal, regulatory, Play policy, privacy, diagnostics disclosure | `Regulatory.md` §2, §3, §4, §6, §9 |
-| engineering principles, and the checklist before an apply pass | `Design.md` §12, "Appendix A — Quick checklist (apply phase)" |
-| why an earlier decision was reversed | `Design.md` §13, "Appendix B — Provenance" |
-| a rendering regression to re-check, and the parameter table | `MapRendering.md` "Known Pitfalls", "Parameter Overview" |
+| engineering principles, and the checklist before an apply pass | `Design.md` §12 "General engineering principles"; the apply checklist is `Design.recipes.md` "Appendix A — Quick checklist (apply phase)" |
+| why an earlier decision was reversed | `Design.why.md` — its "Superseded decisions" section and its "Appendix B — Provenance" |
+| the design document set — which of the four documents carries which section of `Design.md` | `Design.md` §1, §3, §4, §12; `DesignStack.md` §2, §9; `DesignNative.md` §5a 8.0 kB, §5b 6.5 kB; `DesignCrossVariant.md` §6, §7, §8a 10.0 kB, §8b 2.9 kB, §10, §11 |
+| a rendering regression to re-check, and the parameter table | `MapFrames.why.md` "Known Pitfalls" (the regression checklist), `MapRendering.recipes.md` "Parameter Overview" |
 | what is open, and what to do next | the issue tracker (`Framstag/NaviVeylin`, operated by `tools/issues/*.sh`) — `tools/issues/list.sh --status open`, plus the two saved searches (open bugs, open improvements); `--id N` resolves one migrated entry. Skills `triage-todo` (rank), `cleanup-todo` (prune), and the four tooling skills `create-issue`, `list-issues`, `update-issue`, `close-issue` |
-| whether `UI.md` is still accurate | `UI.md` "Keeping this document honest" |
+| whether `UI.md` is still accurate | `UI.md` §20 "Keeping this document honest" |
 | the feature catalogue or the release notes, or how they are generated | `FeatureList.md` §1 "What the two documents are", §3 "One capability key identifies one requirement", §4 "The classification is the only human judgement, and an unclassified spec stops the run", §6 "The prose gates, not a reviewer's memory", §8 "The version is an input" — those 5 sections are 9 268 of the document's 13 162 chars, ~2.6 k tokens against ~3.7 k for the whole document (measured 2026-10-08) |
 | how the guidelines themselves are organized | `openspec/specs/documentation-ownership/spec.md` |
-| the backlog itself, or the automation over it — where an item comes from, what the tracker holds, who may write what, how an item becomes work, the loop and its refusals, the checks, or using this tooling in another project | `Backlog.md` §1 "Status, and what this document owns", §4 "The invariants", §5 "Who may write what", §9 "Checks", §10 "Portability" |
+| the backlog itself — where an item comes from, what the tracker holds, who may write what, how it becomes work, the loop and its refusals | `Backlog.md` §1 "Status, and what this document owns", §4 "The invariants", §5 "Who may write what" |
+| the tooling over the backlog — the declared checks, using it in another project, and where an agent runs | `BacklogTooling.md` §9 "Checks", §10 "Portability", §11 "Where an agent runs" |
+| the loop's procedure — the run's phases, the bounds on a child, the gate and its suite, the refusals it records and the leftovers it reports | `Backlog.md` §7 (the index) — §7a 0.2 kB, §7b 0.2 kB, §7c 0.2 kB, §7d 0.2 kB, §7e 0.1 kB, the bodies in `Backlog.recipes.md` |
 | a citation in an issue body that no longer resolves, or the automatic repair of one | the spec `stale-citation-resolution`, `tools/issues/resolve-stale.sh` (detect, repair, report — a path the tree does not hold is named, never refused and never parked), and the classifier both it and the pre-screen ask: `tools/issues/lib.sh` with the rules in `tools/issues/citations.json`. Skill `cleanup-todo` |
-| copying the tooling into another project — what to copy, the three files to edit, the adapter to delete, the assumptions, and what an update costs | `PORTING.md`; the concept it lands is `Backlog.md` §10 "Portability", and the leak check is `tools/check-portability.sh`. Skills `portability-check` (the check, its 27 cases, the synthetic foreign project, the porting recipe) and `mutation-runner` (a versioned set of shell-gate mutations in one command) |
+| copying the tooling into another project — what to copy, the three files to edit, the adapter to delete, the assumptions, and what an update costs | `PORTING.md`; the concept it lands is `BacklogTooling.md` §10 "Portability", and the leak check is `tools/check-portability.sh`. Skills `portability-check` (the check, its 27 cases, the synthetic foreign project, the porting recipe) and `mutation-runner` (a versioned set of shell-gate mutations in one command) |
+| a concern's rationale or procedure — `guidelines/<Concern>.why.md` (why the rule exists, the measurement that proved it, the reversal, the dated provenance) or `guidelines/<Concern>.recipes.md` (the commands, sample output, device steps, number tables) | the companion document beside its base `guidelines/<Concern>.md`; it carries `## §N` anchors into the base document's sections, so read it beside the base section its anchor names. A companion is not a routed document — it is read, not routed |
 
 ## Tech Stack
 
@@ -83,13 +93,10 @@ licenses/             → Curated license data: native license map, license poli
 
 ### License compliance
 
-- The application's own code is licensed under **GPL-3.0-or-later** (`LICENSE`,
-  `SPDX-License-Identifier: GPL-3.0-or-later`), and first-party components resolve to that SPDX identifier;
-  `guidelines/Build.md` §9 owns the curated inputs (`licenses/native-license-map.json`,
-  `licenses/license-policy.json`), the `license` task group, the SBOM's `naviveylin:license:*` properties and
-  the policy gate that CI and `release` run for both flavors.
-- The app shows exactly the inventory the gate validated, read from `licenses/dependencies.json`, which the
-  build packages into its own assets — it keeps no list of its own.
+The application's own code is licensed under **GPL-3.0-or-later**, and the app shows exactly the inventory the
+gate validated; `guidelines/Build.md` §9 owns the curated license data, the `license` task group, the SBOM
+properties, the packaged `licenses/dependencies.json` and the policy gate that CI and `release` run for both
+flavors.
 
 ### Code Style
 - Kotlin: official style (per `gradle.properties`)
@@ -111,117 +118,58 @@ licenses/             → Curated license data: native license map, license poli
 
 ### Native Integration
 
-- C++ source lives in `app/src/main/cpp/`, and the JNI bridge is split across the libosmscout submodule and
-  the `:osmscout-client-java` module — **patch in one place, never both**.
-- Everything else about the boundary — both sides and the five overridden files, the two database-open
-  entries and why they differ, the submodule pin and clean-tree rules, the one-session-owns-the-push
-  discipline — is `guidelines/Design.md` §5. CMake and vcpkg are `guidelines/Build.md` §12, including where a
-  local vcpkg lives (`$VCPKG_ROOT` or `./vcpkg`) and that the SDK, NDK and Java paths come from
-  `local.properties`. The Cairo rendering backend is not OpenGL on purpose: better map-rendering quality.
+C++ source lives in `app/src/main/cpp/` and the JNI bridge is split across the libosmscout submodule and the
+`:osmscout-client-java` module — **patch in one place, never both**; the rest of the boundary, the submodule
+pin and the one-session-owns-the-push discipline are `guidelines/Design.md` §5, and CMake and vcpkg (a Cairo
+backend, not OpenGL, on purpose) are `guidelines/Build.md` §12.
 
 ### Logging
 
-- Two facts to start with: native lines reach Logcat under the tag **`NaviVeylin`**, surfaced by the
-  app-owned NDK bridge (`native_log_bridge`, `NativeLogBridge`), and **no log or diagnostics line may carry a
-  coordinate** — identity instead (object, database or file name, magnification, pixel, accuracy, bearing),
-  enforced by the `checkNoCoordinatesInLogs` build gate.
-- The rules and the remaining facts — `osmscout::log` and the Android-free rule for libosmscout, the level
-  mapping, the condensed stylesheet-type report, per-class `TAG`, `DiagnosticsLog` with its retention, the
-  disclosure statement — are `guidelines/Logging.md`. Inspect with `adb logcat -s NaviVeylin`; the on-device
-  recipes are `guidelines/Build.md` §10.
+Native lines reach Logcat under the tag **`NaviVeylin`**, surfaced by the app-owned NDK bridge, and **no log
+or diagnostics line may carry a coordinate** — identity instead; the rules and the remaining facts are
+`guidelines/Logging.md`, and the on-device logcat recipes are `guidelines/Build.md` §10.
 
 ### Stylesheets
 
-The submodule's `stylesheets/` directory is the single source of truth for the map styles, and the raster
-icon leaf ships with it; the build copies both into the APK and `AssetCopier` refreshes the on-device copy on
-every app start. The runtime contract — the basemap's dedicated stylesheet, the day/night pair, the icon name
-resolution and its trailing separator, the load-failure rule — is `guidelines/MapRendering.md` §15, §15a,
-§16, §16a and §16b; the sync and check tasks with their packaging gates are `guidelines/Build.md` §12.
+The submodule's `stylesheets/` directory is the single source of truth for the map styles and the build copies
+it into the APK; the runtime contract is `guidelines/MapStyling.md` §15, §15a, §16, §16a and §16b, and the
+sync and packaging gates are `guidelines/Build.md` §12.
 
 ### Android Auto / Android Automotive OS
 
-What this file keeps, with the rest owned by the specs:
-
-- **Two distribution flavors, one applicationId.** The AAOS manifest is a flavor overlay
-  (`app/src/automotive/AndroidManifest.xml`) that re-declares `android.hardware.type.automotive` with
-  `required="true"`, while the main manifest strips the feature the `app-automotive` AAR merges in and removes
-  the projection metadata from the automotive build. The Play constraint that forces this, the
-  `tools:node="remove"` mechanics, the permission set and the two-track upload are spec
-  `android-automotive-os`; the projection declarations are spec `auto`
-  (`openspec/specs/auto/spec.md`, `openspec/specs/android-automotive-os/spec.md`).
-- **The car path's rules and invariants** — one surface owner per session, nothing native on the host
-  thread, no fault escaping the host path, the guarded seam for host mutations, observations scoped to a
-  screen's started period, and the `HOST`/`SESSION`/`SCREEN`/`WARMUP`/`MEMORY` diagnosis tags — are
-  `guidelines/Design.md` §8, `guidelines/UI.md` §3, §3a, §3b and §3c, `guidelines/Build.md` §10, and the specs
-  `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer` and `auto-smooth-follow`. The
-  two that kill a process if broken, in one line each: **no screen or renderer ever calls
-  `Surface.release()`** (the session releases it once), and **every host-facing send and template build is
-  guarded** (the library rethrows on the main thread).
+**Two distribution flavors, one applicationId**, and the car path's rules — one surface owner per session,
+nothing native on the host thread, no fault escaping the host path, and the two that kill a process if broken
+(**no screen or renderer ever calls `Surface.release()`**; **every host-facing send and template build is
+guarded**) — are `guidelines/Design.md` §8, `guidelines/UICar.md` §3, §3a, §3b and §3c,
+`guidelines/MapCar.md` §18, `guidelines/Build.md` §10, and the specs `android-automotive-os`, `auto`,
+`car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer` and `auto-smooth-follow`.
 
 ## Backlog maintenance
 
-The tracker is the live backlog: one GitHub issue per item in `Framstag/NaviVeylin`, carrying exactly one
-`class/*`, one `category/*`, one `status/*` and one `source/*` label, and `agent/eligible` only when a human
-authorised automated work. An item filed **before** the migration also carries `§N` in its title and a
+The tracker is the live backlog, and the nine skills under `.pi/skills/*` (`create-issue`, `list-issues`,
+`update-issue`, `close-issue`, `issue-metadata`, `triage-todo`, `cleanup-todo`, `process-failure-log`) own it;
+read `guidelines/Backlog.md` §1 "Status, and what this document owns", §3 "What the tracker holds", §4 "The
+invariants", §5 "Who may write what" and §9 "Checks". An item filed **before** the migration also carries `§N`
+in its title and a
 `<!-- nvid: N -->` marker in its body: that is how a `§N` quoted by a guideline, a config rule or an archived
 change still finds its entry after the file it came from was deleted — `tools/issues/list.sh --id N`, or the
 recorded table in the migration's `import-evidence.md` (its change directory while it is open, its archive entry
 afterwards). An item filed **after**
-the migration has no `§N`; its identity is its issue number, and ids are never renumbered. Nine skills own
-the tracker:
-
-| Skill | Job |
-|---|---|
-| `create-issue` | file one finding, fingerprint-deduped, never self-authorising |
-| `list-issues` | select a working set from the labels, without reading bodies; `--id N` for one migrated entry |
-| `update-issue` | repair a label or a status against the closed vocabularies |
-| `close-issue` | the only terminal state — with a reason and its evidence |
-| `issue-metadata` | the metadata pass — rescore the items whose basis moved, classify the items with no kind; an interpreter returns numbers and never writes a label (`tools/issues/prioritise.sh`, `classify.sh`) |
-| `triage-todo` | read-only — rank what is open from the persisted band and name the next change |
-| `cleanup-todo` | tracker hygiene: label/status repair, duplicates by fingerprint, `nvid` collisions, evidence before a closure |
-| `process-failure-log` | turn `ki_processing_failures.log` entries into guardrails in `guidelines/*`, CI or a skill |
+the migration has no `§N`; its identity is its issue number, and ids are never renumbered.
 
 ## Agent iteration loop (measure first)
 
-The loop is `guidelines/Build.md` §2a, "Agent iteration protocol": **look then measure before changing code;
+The loop is `guidelines/BuildGate.md` §2a, "Agent iteration protocol": **look then measure before changing code;
 iterate with focused suites and gate once; batch independent questions; one builder per working tree.** It
 exists because those rules cost the most rounds in `ki_processing_failures.log` — rules 1-3 from a change
 whose single visual symptom needed many review rounds, rule 4 from the shared-worktree collisions
 (`TODO.md` §40 item 4) — so a session follows it rather than re-deriving it.
 
-What this file owns about the loop is only where its parts live:
-
-- measuring a pixel symptom: `guidelines/Build.md` §10 and §11, the `pixel-check` skill, and the
-  coordinate-free diagnostics line (spec `auto-diagnostics`);
-- the iteration levers and the measurements behind them: `guidelines/Build.md` §4, §6, §7;
 - a defect fix inside the loop owes a test that fails on HEAD *before* the fix, and an independent read-only
   reviewer before archive — that includes a defect-shaped improvement, whose red case asserts the bound it is
   missing; the loop's contract is the spec `agent-issue-loop`, the eligibility gate the worker applies is
   `tools/loop/prompts/worker.md`, and the entry is `tools/loop/run.sh` (the gate for `tools/loop/**` is
-  `tools/loop-selftest.sh`, offline);
-- the device loop, an emulator with maps, and a Compose geometry assertion: the `device-check`,
-  `provision-phone-emulator` and `compose-geometry` skills;
-- the build, test and falsification skills: `build-app`, `run-tests`, `revert-check`, and the wrapper and
-  peer-edit probes in `guidelines/Build.md` §2.
-
-The hand-written skills under `.pi/skills/` are versioned with the project; the skills the OpenSpec CLI
-generates, and the rest of `.pi/` (session logs, captures, instruction dumps, extension config), are not — the
-split, and what a new skill needs, is `guidelines/Build.md` §1 "Skills". A rule that must survive a fresh
-clone or another agent belongs in **this file**, in `openspec/config.yaml` or in `guidelines/*.md`; the
-*tools* a skill uses belong in the repo (`tools/measure-highlight.py`, with a self-test that runs without a
-device).
-
-Screenshot reading needs no harness package and no second Pi process: pixels are read inside a
-**throwaway child session**. A look is one `subagent` call whose task reads the PNG and answers in words;
-the child's disposable transcript takes the image block, this session's gets text only, and that text goes
-into the evidence file. Recorded fact, and the reason the look is a child: an image content block in **this**
-session's transcript killed the session on 2026-10-16 (two image-bearing tool results, then a pi error that
-repeated on every further prompt, error text not captured), while a `delegate` child read the same capture on
-2026-10-17, received the pixels, described the frame and finished its turn normally. The rule: **a tool result
-must never carry an image block into the session holding the work.** The lane needs a vision-capable model — a
-child of a text-only model receives a placeholder, and then only `tools/measure-highlight.py` answers, *where*
-but not *what*; the look is triage, the script's numbers and exit code stay the evidence. Prerequisites, and
-why the agent never runs `pi --print`, are `guidelines/Build.md` §1, "Looking at a screenshot".
+  `tools/loop-selftest.sh`, offline).
 
 ## OpenSpec Workflow
 

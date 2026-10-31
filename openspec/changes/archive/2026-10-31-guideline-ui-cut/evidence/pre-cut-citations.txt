@@ -1,0 +1,33 @@
+Pre-cut referring set for guidelines/UI.md, measured 2026-10-31 before any edit.
+
+command: grep -rln 'UI\.md.*§' guidelines/ AGENTS.md .pi/skills/
+result (sorted):
+
+AGENTS.md
+guidelines/Backlog.recipes.md
+guidelines/Design.md
+guidelines/UIPhone.md
+guidelines/UIPhoneMap.md
+
+Per-citation detail (command: grep -rn 'UI\.md.*§' <files>):
+
+AGENTS.md:32   car screens row          UI.md §2, §3, §3b, §3c, §4, §6b   -> retargeted to UICar.md
+AGENTS.md:33   parity row              UI.md §1, §6                     -> unchanged (+ §8d added, see notes.md)
+AGENTS.md:34   dark mode row           UI.md §9, §10                    -> unchanged
+AGENTS.md:35   car Surface row         UI.md §3a 5.4 kB                 -> retargeted to UICar.md
+AGENTS.md:142  car path's rules        guidelines/UI.md §3, §3a, §3b, §3c -> retargeted to guidelines/UICar.md
+guidelines/Backlog.recipes.md:749  a recorded past measurement of §1 -> unchanged (§1 stays)
+guidelines/Design.md:67        parity, not content (spec group-ordering) -> unchanged (§1 stays)
+guidelines/UIPhone.md:100      see UI.md §6b   -> UICar.md §6b
+guidelines/UIPhone.md:107      §6b (bare)      -> UICar.md §6b
+guidelines/UIPhone.md:135      UI.md §3        -> UICar.md §3
+guidelines/UIPhone.md:137      UI.md §3        -> UICar.md §3
+guidelines/UIPhoneMap.md:191   UI.why.md §8d   -> unchanged (§8d stays in UI.md)
+
+Companion references (a companion is not a base document, so these are prose, not routed):
+guidelines/UI.md:40   UI.why.md §1   stays      (UI.why.md keeps its §1 anchor)
+guidelines/UI.md:317  UI.why.md §8d  stays      (§8d stays in UI.md)
+guidelines/UIPhone.md:133  UI.why.md §1 stays
+guidelines/UIPhoneMap.md:191  UI.why.md §8d stays
+
+No file under .pi/skills/ cited a UI.md section before the cut, and none does after it.

@@ -1,0 +1,22 @@
+AGENTS.md rows naming guidelines/UI.md before the cut, verbatim (measured 2026-10-31).
+
+command: grep -n 'UI\.md' AGENTS.md
+
+:32 | car screens — templates, wait notices, car search and details | `UI.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 2.9 kB, §6b 5.2 kB (measured 2026-10-29) |
+      -> CAR row. Retargeted to `UICar.md`, every lettered sub-section still priced.
+:33 | parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6 |
+      -> SHARED row. Keeps naming `UI.md`. §8d added to it (see notes.md: it was the one section no row named).
+:34 | dark mode and text/localisation, on both surfaces | `UI.md` §9, §10 |
+      -> SHARED row. Keeps naming `UI.md`.
+:35 | the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 10.0 kB, §8b 2.9 kB (...), `MapCar.md` §14, `UI.md` §3a 5.4 kB (measured 2026-10-29); specs ... |
+      -> MIXED row; its `UI.md` §3a part is CAR and retargets to `UICar.md` §3a, price kept.
+:38 | logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; ... `Regulatory.md` §9 and `UI.md` (gates) |
+      -> SHARED, and it names `UI.md` with no section (the gates live in §10). Unchanged.
+:55 | whether `UI.md` is still accurate | `UI.md` §20 "Keeping this document honest" |
+      -> SHARED row. Unchanged; §20 now says its restatement rule covers both documents.
+:142 ...are `guidelines/Design.md` §8, `guidelines/UI.md` §3, §3a, §3b and §3c,
+      -> PROSE (not a table row), CAR. Retargeted to `guidelines/UICar.md` §3, §3a, §3b and §3c.
+
+Every row is in exactly one of the two sets, and no row names a car section and a shared section
+except :35, whose `DesignCrossVariant.md`/`MapCar.md` members are the car-surface row's subject and
+whose `UI.md` member is car-only. That row's split is stated above rather than left implicit.

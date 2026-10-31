@@ -163,7 +163,8 @@ jobs:
 
       # Every other row runs for any record, none of them reading an output a red build cannot produce:
       # `broken-main` reads the result record the publisher always writes, `pr-conflicts` the API, `hotspot`,
-      # `source-size` and the two documentation-context rows the repository's own files and its history,
+      # `source-size` and the documentation-context rows (`routed-section-size`, `entry-document-size`,
+      # `document-size`, `normative-purity`) the repository's own files and its history,
       # `stale-citations` the tracker, and `metadata-invariant` the tracker's own priority pair. `loop-spend`
       # reads the loop's spend archive, which is machine-local: this checkout has none, and the row states that
       # absence on its own record rather than reporting a failed check for it (issue #690). This is also the half
@@ -173,7 +174,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
           SENSORS_SINCE: ${{ steps.record.outputs.since }}
-        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,routed-section-size,entry-document-size,stale-citations,metadata-invariant,loop-spend "$SENSORS_MODE"
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,routed-section-size,entry-document-size,document-size,normative-purity,stale-citations,metadata-invariant,loop-spend "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

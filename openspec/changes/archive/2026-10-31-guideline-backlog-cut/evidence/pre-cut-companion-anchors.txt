@@ -1,0 +1,31 @@
+Companion anchors before the cut, with the byte span of the material under each.
+Measured 2026-10-31 (grep -n '^## ' plus line-range byte counts; sources are the pre-cut copies).
+
+guidelines/Backlog.recipes.md — 72633 B total, 9 anchors
+  §2     lines ...     ## §2 The participants and the flow
+  §7a    lines ...     ## §7a Running one item: the script, the child and the package
+  §7b    lines ...     ## §7b What an item costs, and the bounds on it
+  §7c    lines ...     ## §7c The gate and its suite
+  §7d    lines ...     ## §7d Refusals, records and the landing
+  §7e    lines ...     ## §7e Leftovers, the report and the queue
+  §8     lines ...     ## §8 The human lane
+  §9     line 668      ## §9 The outcomes a run of a check writes, and the declared rows   <- MOVES
+  §10    line 779      ## §10 Portability — the engine and the project                     <- MOVES
+
+guidelines/Backlog.why.md — 10818 B total, 5 anchors
+  §12    line   7      ## §12 The decisions, and why
+  §13    line  49      ## §13 Deferred, and why
+  §5     line  66      ## §5 Who may write what — why
+  §6     line  79      ## §6 How an item becomes work — why
+  §9     line  87      ## §9 Checks — why                                                <- MOVES
+
+Assignment:
+  Backlog.recipes.md §9 + §10  ->  BacklogTooling.recipes.md (11 688 B after the cut)
+  Backlog.why.md §9            ->  BacklogTooling.why.md     (1 962 B after the cut)
+  everything else stays with Backlog.md
+
+Correction recorded: design.md D3 first stated "`Backlog.why.md` carries no §9/§10/§11 anchor", which was
+read off a grep that had covered only `Backlog.recipes.md`. `check-doc-routes.sh` reported
+"the anchor §9 names no section of its base document guidelines/Backlog.md", the anchor was found at line 87,
+and the companion split was extended to it. A companion is reported, not silently orphaned — which is what
+that error is for.

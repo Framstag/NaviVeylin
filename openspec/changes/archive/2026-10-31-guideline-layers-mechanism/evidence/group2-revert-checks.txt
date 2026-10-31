@@ -1,0 +1,32 @@
+# Route check: companions and named rules — group 2 revert-checks (tasks 2.7, 2.8) and landing proof (2.10)
+# date: 2026-10-31T09:03:56Z
+
+## 2.7 — a companion anchor names a section its base document lacks
+$ bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --only companion-anchor
+companion-anchor	layers#aCompanionAnchorThatNoSectionCarriesIsReported	a companion's `## §N` anchor is resolved against its base document, so an anchor no section carries is reported instead of the companion becoming a document of its own
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+
+## 2.8 — one rule name in two documents, and a stale reference
+$ bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --only rule-name-two-documents
+rule-name-two-documents	rules#aNameTwoDocumentsStateIsReported	two documents stating one rule name is the duplicate the one-normative-home rule forbids, found by the token the two statements share instead of by a reader's memory
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+$ bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --only rule-reference-resolves
+rule-reference-resolves	rules#aStaleRuleReferenceIsReported	a `see rule <File>.md §N "<name>"` reference is resolved against the rule names the section carries, so a renamed rule leaves its references reported with the names the section does carry
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-doc-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 1 mutation(s) run, 1 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+
+## 2.10 — the check on the pre-migration tree
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 169 section references resolve, all 4 skill references resolve
+exit=0

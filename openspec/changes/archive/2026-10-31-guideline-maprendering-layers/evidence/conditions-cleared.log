@@ -1,0 +1,43 @@
+# Post-cut sizes and conditions (2026-10-31)
+
+## documents
+ 46751 guidelines/MapRendering.md
+ 15308 guidelines/MapFollow.md
+ 15497 guidelines/MapCar.md
+ 16994 guidelines/MapStyling.md
+  5219 guidelines/MapRendering.why.md
+  1457 guidelines/MapRendering.recipes.md
+  1135 guidelines/MapFollow.why.md
+   897 guidelines/MapStyling.why.md
+   462 guidelines/MapCar.why.md
+ 24329 AGENTS.md
+128049 insgesamt
+
+## largest section per document
+MapStyling.md §15 5081
+MapStyling.md §15a 3176
+MapStyling.md §16 1792
+MapStyling.md §16a 2437
+MapStyling.md §16b 789
+MapStyling.md §17 3381
+
+## condition counts (before -> after)
+
+document-size (scope normative-document, bound 48000): 2 -> 1
+  before: Design, MapRendering
+  after : Design only (MapRendering 46751, and the four base documents all inside the bound)
+
+normative-purity (scope normative-purity): 12 -> 7
+  before: Design 4, FeatureList 2, Logging 1, MapRendering 5
+  after : Design 4, FeatureList 2, Logging 1  (no Map-family document carries one)
+
+routed-section (scope routed-section, bound 12000): 0 -> 0
+  largest routed section: MapCar.md §14 11875 B (< 12000); MapRendering.md §1d 10282 B
+
+## checks (all exit 0)
+
+bash tools/check-doc-routes.sh            -> all 270 section references resolve, all 2 skill references resolve
+bash tools/check-rule-routes.sh           -> every glob matches the tree and all 434 named rule(s) are reached
+bash tools/check-doc-routes-selftest.sh   -> all 32 cases passed
+bash tools/check-openspec-hygiene.sh      -> OpenSpec artifacts are consistent ...
+openspec validate guideline-maprendering-layers --strict -> Change 'guideline-maprendering-layers' is valid

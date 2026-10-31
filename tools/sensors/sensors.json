@@ -109,6 +109,32 @@
       "fingerprint": { "fields": ["path"] }
     },
     {
+      "id": "document-size",
+      "cmd": "tools/sensors/metrics/doc-context.sh",
+      "cron": "0 12 * * *",
+      "threshold": 32000,
+      "comparison": "greater-than",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "specs-and-process",
+      "lifecycle": "file+close",
+      "scope": "normative-document",
+      "fingerprint": { "fields": ["document"] }
+    },
+    {
+      "id": "normative-purity",
+      "cmd": "tools/sensors/metrics/doc-context.sh",
+      "cron": "30 12 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 2,
+      "class": "improvement",
+      "category": "specs-and-process",
+      "lifecycle": "file+close",
+      "scope": "normative-purity",
+      "fingerprint": { "fields": ["document", "token"] }
+    },
+    {
       "id": "broken-main",
       "cmd": "tools/sensors/conditions/broken-main.sh",
       "cron": "0 */2 * * *",

@@ -1,0 +1,5 @@
+1. the vehicle anchor is applied in exactly one place — the follow render target.
+2. Every frame that goes to Compose (`_frontBufferFlow.value`) must be an independent copy
+3. a render target is released, never recycled
+4. a frame still in use is never handed out again.
+5. the frame's pixel storage is caller-owned too

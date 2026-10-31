@@ -314,7 +314,7 @@ internal const val HOST_TAG = "HOST"
  *
  * The expanded line is recorded as well: it carries the distance-to-turn, the arrival time and the
  * remaining distance the compact text omits whenever a manoeuvre is known, so a car run can be judged
- * from the log without a screenshot of host-drawn text (guidelines/UI.md §3).
+ * from the log without a screenshot of host-drawn text (guidelines/UICar.md §3).
  */
 internal fun recordNotificationPost(post: NotificationPost) {
     DiagnosticsLog.log(

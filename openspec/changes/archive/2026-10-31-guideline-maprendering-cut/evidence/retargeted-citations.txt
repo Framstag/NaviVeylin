@@ -1,0 +1,78 @@
+# Retargeted citations
+
+A citation is repaired by naming the document that now carries the number; no number changed. Every
+substitution is name-only: `MapRendering.md §X` → the document that carries §X. No statement, sentence
+or example changed.
+
+The referring set is the one measured in `pre-cut-citations.txt`: `grep -rln 'MapRendering\.md.*§'
+guidelines/ AGENTS.md .pi/skills/` → `AGENTS.md`, `guidelines/Backlog.recipes.md`, plus
+`guidelines/Backlog.md:391`, whose number precedes the document name and which the wider
+`grep -rn 'MapRendering\.md'` catches.
+
+## 1. AGENTS.md (Documentation Map) — 4 lines changed, 1 row added
+
+| line | before | after |
+|---|---|---|
+| map row | subject `pipeline, bitmaps, throttling, epochs, front buffer, overrun`; `MapRendering.md` … `also §2, §4, §5, §12, §13` | subject narrowed to `the pipeline, bitmaps, throttling, epochs`; `also §2, §4, §5` (the delivery sections are no longer this document's) |
+| **new row** | — | `a frame's delivery — front-buffer emission, the overrun display window, the rotation-gesture handoff` → `MapFrames.md` §12, §13, §14 |
+| label row | `MapRendering.md` §20 "Label wrapping" | `MapStyling.md` §20 "Label wrapping" |
+| route row | `MapRendering.md` §19 | `MapRoute.md` §19 |
+| regression row | `MapRendering.why.md` "Known Pitfalls" | `MapFrames.why.md` "Known Pitfalls" (`MapRendering.recipes.md` "Parameter Overview" is unchanged — that companion did not move) |
+
+No row names a lettered sub-section it did not already price: `§1a`–`§1e` keep their figures, re-read
+against the post-cut table (6.0 / 3.1 / 1.3 / 10.3 / 2.3 kB — `§1b` measures 3 120 B = 3.1 kB).
+
+## 2. guidelines/Backlog.md:391 — retargeted (outside the brief's pattern)
+
+```
+-  reason a `§14` of `MapRendering.md` is written with its heading text.
++  reason a `§14` of `MapFrames.md` is written with its heading text.
+```
+
+§14 moved to `MapFrames.md`. Name-only; the sentence is not rewritten — see `notes.md` NOTE 2.
+
+## 3. tools/doc-routes.json — 20 entries retargeted, 0 left naming a moved section
+
+| entry kind | count | retarget |
+|---|---|---|
+| sections `§12`, `§13`, `§14` (group `app/src/main/java/**`) | 3 | → `MapFrames.md` |
+| section `§19` | 1 | → `MapRoute.md` |
+| section `§20` | 1 | → `MapStyling.md` |
+| rules `§12` ×4, `§13` ×7 | 11 | → `MapFrames.md` |
+| rules `§20` ×4 | 4 | → `MapStyling.md` |
+
+No new glob was added, and none was needed: the new documents' named rules are reached through the
+`app/src/main/java/**` group that already carried them, which matches tracked paths — the cut's two new
+documents are untracked in this working tree, so a `guidelines/MapFrames.md` glob would match no tracked
+path and `check-rule-routes.sh` would refuse it. The five hand-written rule entries under
+`glob: guidelines/MapRendering.md` are untouched, because the rules they name did not move.
+
+## 4. Citations repaired inside the moved or remaining text
+
+| where | before | after | why |
+|---|---|---|---|
+| `MapRendering.md` §1b | "the **display offset** described in §13" | "described in `MapFrames.md` §13" | §13 left the document; a bare number no longer resolves |
+| `MapStyling.md` §20 | `(`MapRendering.recipes.md` §20)` | `(`MapStyling.why.md` §20)` | the anchor it names moved with §20 |
+| `MapRendering.md` closing lines | "The regression checklist is `guidelines/MapRendering.why.md` "Known Pitfalls"" | "… `guidelines/MapFrames.why.md` "Known Pitfalls"" | the anchor and the checklist moved with §13 |
+
+## 5. Left alone, with the reason
+
+- **`guidelines/Backlog.recipes.md:749`** — cites `MapRendering.md` §1, which **stays**. No retarget owed.
+- **`guidelines/DesignCrossVariant.md:37`** (`Pipeline details and pitfalls: guidelines/MapRendering.md`)
+  and **:60** (`Details: guidelines/MapRendering.md`) — plain document pointers with no section number.
+  The pipeline is still `MapRendering.md`; the *pitfalls* are now `MapFrames.why.md`, so the line would
+  need a second pointer, not a different document name. Left and reported.
+- **`guidelines/MapCar.md:5`, `MapFollow.md:5`, `DesignStack.md:53`, `Backlog.md:47`,
+  `.pi/skills/process-failure-log/SKILL.md:26,54`, `MapRendering.why.md:3`, `MapRendering.recipes.md:3`**
+  — plain mentions of the pipeline document, which still owns the pipeline. No number, nothing to
+  retarget.
+- **`guidelines/UI.md`** — not in the measured referring set; untouched.
+
+## Post-retarget checks
+
+`bash tools/check-doc-routes.sh` → `all 310 section references resolve, all 2 skill references resolve`
+(exit 0). Before the cut: 308. The two extra are the new AGENTS.md row's `§12`, `§13` references — the
+`§14`, `§19` and `§20` references moved with their numbers rather than being added.
+
+`bash tools/check-rule-routes.sh` → `every glob matches the tree and all 575 named rule(s) are reached`
+(exit 0), unchanged.

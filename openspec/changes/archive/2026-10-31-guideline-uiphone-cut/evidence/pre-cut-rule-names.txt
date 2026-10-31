@@ -1,0 +1,110 @@
+# Rule names carried by UIPhone.md pre-cut, with their section
+
+Extracted with the check's own `**Rule: <name>**` scanner now applied to the two post-cut
+documents (the rule set is unchanged; only the file each lives in changed).
+
+UIPhoneMap.md §7	the phone map has three modes derived from one source of truth.
+UIPhoneMap.md §7	the drive-mode toggle is a dedicated button below the compass.
+UIPhoneMap.md §7	exiting FREE_DRIVE stays at the current position.
+UIPhoneMap.md §7	the location-options sheet never switches modes.
+UIPhoneMap.md §7a	the button appears only when a GPS fix is available and the map needs it.
+UIPhoneMap.md §7a	the BROWSE dwell completes on elapsed time, not on the next state change.
+UIPhoneMap.md §7a	the BROWSE offset is derived from observed state.
+UIPhoneMap.md §7a	BROWSE framing is not anchor-framed.
+UIPhoneMap.md §7a	the button's placement keeps it clear of the covered bottom edge.
+UIPhoneMap.md §7a	there is no automatic re-engage.
+UIPhoneMap.md §7a	the re-center button is phone-only.
+UIPhoneMap.md §7b	while a route-planning session is open, the session owns the viewport.
+UIPhoneMap.md §7b	the session's own camera moves are the only ones while it is open.
+UIPhoneMap.md §7b	the phone card has two fixed heights, max and min.
+UIPhoneMap.md §7b	the card is the phone's only session surface.
+UIPhoneMap.md §7b	the card's controls are one glyph, one meaning.
+UIPhoneMap.md §7b	selecting a step analyses it and collapses the card to min.
+UIPhoneMap.md §7b	the step navigator moves the analysed step exactly as a list-row tap does.
+UIPhoneMap.md §7b	a step row's distance and duration are the values of the run that ends at its manoeuvre.
+UIPhoneMap.md §7b	the route list is derived from the route's structured steps, never from description text.
+UIPhoneMap.md §7b	live guidance uses the same step model and the same wording.
+UIPhoneMap.md §7b	the analysis is the session's, not the route's.
+UIPhoneMap.md §7b	the card's actions are pinned in their own band at the bottom edge of max.
+UIPhoneMap.md §7b	neither the card nor the panel nests a scroll.
+UIPhoneMap.md §7b	the right-side control column is inset by the height the card reports.
+UIPhoneMap.md §8	every phone map overlay is readable from the driver seat.
+UIPhoneMap.md §8	Android Auto sizes text via the host template.
+UIPhoneMap.md §8b	an overlay's control never sits inside its container's tap target.
+UIPhoneMap.md §8b	progress is a ring around the value's glyph, never a row of its own.
+UIPhoneMap.md §8b	the value slots are one fixed size and share one top edge.
+UIPhoneMap.md §8b	the arc's stroke is one density-independent width.
+UIPhoneMap.md §8b	the ring carries no progress semantics.
+UIPhoneMap.md §8b	the arrival-time glyph stays plain.
+UIPhoneMap.md §8b	one session-aware stop path ends navigation.
+UIPhoneMap.md §8b	one owner per band.
+UIPhoneMap.md §8c	a roundabout exit's turn icon names the exit it takes.
+UIPhoneMap.md §8c	drawn dimensions are density-independent.
+UIPhoneMap.md §8c	the compass button is larger than the other overlay buttons.
+UIPhoneMap.md §8c	the compass needle indicates geographic north in every orientation mode.
+UIPhoneMap.md §8c	the compass palette is per-presentation, never a theme role.
+UIPhoneMap.md §8c	the speed badge uses the standard overlay card container.
+UIPhoneMap.md §8c	a status hue dims to a dark tone of its own family.
+UIPhoneMap.md §8a	the daylight road fills are the standard stylesheet's named fills.
+UIPhoneMap.md §8a	a constant derived from a fill is tuned for its own job, not derived blindly.
+UIPhoneMap.md §8a	the palette's legibility is guarded from the packaged stylesheets.
+UIPhoneMap.md §10a	the car-session surface states the pill's own label as its headline.
+UIPhoneMap.md §10a	the car-session surface shows the shared guidance summary.
+UIPhoneMap.md §10a	the car-session surface's one action is a per-session *Show map here* override.
+UIPhoneMap.md §10a	a suspension resets no map state.
+UIPhoneMap.md §10a	every car-session transition is one diagnostics record.
+UIPhoneMap.md §11	chrome is part of the map.
+UIPhoneMap.md §11	a new element picks a band.
+UIPhoneMap.md §11	the band values are spaced by ten.
+UIPhoneMap.md §11	the session surface owns the screen while it is open.
+UIPhoneMap.md §11	a contract the whole band shares is provided for the whole band.
+UIPhoneMap.md §11	back priority is registration order, not band order.
+UIPhoneMap.md §11	Material dialogs and bottom sheets are a second mechanism.
+UIPhone.md §5	the phone details dialog is full-screen and closes on system back.
+UIPhone.md §5	the details dialog layout is title → mini map → coordinates → address → area → description → actions.
+UIPhone.md §5	coordinates are always shown, five decimals, subdued.
+UIPhone.md §5	the details title precedence is name → address → label → generic.
+UIPhone.md §5	the details dialog has exactly one primary action.
+UIPhone.md §6a	the phone has one search dialog.
+UIPhone.md §6a	the search dialog has a three-mode switch.
+UIPhone.md §6a	an empty Places query shows suggestions.
+UIPhone.md §6a	a typed Places query also searches favorites.
+UIPhone.md §6a	result order is the match tier rule.
+UIPhone.md §6a	the row's first line identifies the entry.
+UIPhone.md §6a	the detail line carries what the first line does not.
+UIPhone.md §6a	the row leads with its type's artwork.
+UIPhone.md §6a	row marking is one composite glyph.
+UIPhone.md §6a	row distance is measured from the ranking reference.
+UIPhone.md §6a	the search field is mode-aware.
+UIPhone.md §6a	the car search surface is not a mirror of the phone's.
+UIPhone.md §6a	the typed query has a lifecycle.
+UIPhone.md §6a	a Compose dropdown popup is asserted by its field's text.
+UIPhone.md §12	both surfaces have two levels in the same order.
+UIPhone.md §12	the starred entry stays a top-level list of its own.
+UIPhone.md §12	a group holding no favorites is listed on the phone and hidden on the car.
+UIPhone.md §12	both favourites levels are browse-and-select only.
+UIPhone.md §12	neither level exceeds the host's row budget.
+UIPhone.md §13	the favorite row keeps star, rename and delete, with "Move to group" in an overflow menu.
+UIPhone.md §14	the group card keeps its tap target, tint, overflow menu and a leading drag handle.
+UIPhone.md §15	the starred chip bar is one flat sequence, and a long press drags a chip.
+UIPhone.md §16	a long-press drag suppresses the item's own tap.
+UIPhone.md §16	both halves of a drag are asserted.
+UIPhone.md §17	both surfaces present the same vehicle-position rows and preset labels by construction.
+UIPhone.md §17	the vehicle-position picker's layout deviates by platform; its labels do not.
+UIPhone.md §17	the vehicle-position value is global.
+UIPhone.md §18	the notification reaches the car as a turn-by-turn hint, never a shade notice.
+UIPhone.md §18	free driving stays phone-only.
+UIPhone.md §18	the notification's own tap target is the phone, and the rail widget carries its own.
+UIPhone.md §18	labels and guidance wording are shared.
+UIPhone.md §18	NAVIGATION content is destination, manoeuvre, distance, arrival and the stop action.
+UIPhone.md §18	a known zero distance is not an unknown distance.
+UIPhone.md §18	FREE_DRIVE content reads the shared free-driving status.
+UIPhone.md §18	an unknown free-driving value leaves no empty fragment.
+UIPhone.md §18	the channels differ by platform.
+UIPhone.md §18	the notification is re-posted only when its host-visible content changed.
+UIPhone.md §18	the notification is silent and ongoing.
+UIPhone.md §19	`Notification.actions` is nullable and its icon is read with `getIcon()`.
+
+# Count per document:
+57 rules in UIPhoneMap.md (grep -c 'Rule:')
+57 UIPhoneMap, 44 UIPhone (grep -c)

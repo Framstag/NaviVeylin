@@ -1,0 +1,31 @@
+Every citation retargeted to BacklogTooling.md, name-only
+
+command: grep -rn 'BacklogTooling\.md.*§' AGENTS.md guidelines/ .pi/skills/ tools/
+
+AGENTS.md:59:| the tooling over the backlog — the declared checks, using it in another project, and where an agent runs | `BacklogTooling.md` §9 "Checks", §10 "Portability", §11 "Where an agent runs" |
+AGENTS.md:62:| copying the tooling into another project — what to copy, the three files to edit, the adapter to delete, the assumptions, and what an update costs | `PORTING.md`; the concept it lands is `BacklogTooling.md` §10 "Portability", and the leak check is `tools/check-portability.sh`. Skills `portability-check` (the check, its 27 cases, the synthetic foreign project, the porting recipe) and `mutation-runner` (a versioned set of shell-gate mutations in one command) |
+guidelines/Backlog.md:71:| ownership | which check owns the item, when a check filed it | it is what bounds that check's reach (`BacklogTooling.md` §9) |
+guidelines/Backlog.md:75:project's, held in one profile (`BacklogTooling.md` §10). As landed by change 1, the namespaces are `class/` (kind),
+guidelines/Backlog.md:136:  later without a new security design (`BacklogTooling.md` §11).
+.pi/skills/loop-spend/SKILL.md:20:days (`guidelines/BacklogTooling.md` §9, issue #690), and records `no-archive` on its own record issue where the
+.pi/skills/portability-check/SKILL.md:14:`guidelines/BacklogTooling.md` §10 owns the concept; `PORTING.md` is the adopter's recipe; the spec is
+.pi/skills/portability-check/SKILL.md:159:- `guidelines/BacklogTooling.md` §10 "Portability" — the concept and the boundary
+tools/sensor-cases.sh:2743:  [ -n "$scope" ] || fail "guidelines/BacklogTooling.md §9 could not be read"
+tools/check-portability.sh:10:# (`tooling-portability` D1, `guidelines/BacklogTooling.md` §10).
+tools/issues/lib.sh:454:# reports (issue #671; `guidelines/BacklogTooling.md` §9).
+tools/issues/lib.sh:486:# drifted stays a judgement (`guidelines/BacklogTooling.md` §9), and a body-only write is not gated: seeing that the
+tools/issues/check-metadata.sh:17:#                        `metadata-invariant` row (`guidelines/BacklogTooling.md` §9, issue #292); run by hand it is
+tools/doc-routes.json:423:        "BacklogTooling.md §9"
+tools/doc-routes.json:439:        "BacklogTooling.md §9"
+tools/doc-routes.json:510:        "BacklogTooling.md §9"
+tools/doc-routes.json:521:        "BacklogTooling.md §9",
+tools/doc-routes.json:522:        "BacklogTooling.md §10",
+tools/doc-routes.json:529:        "BacklogTooling.md §10 \"an engine names no project value\"",
+tools/doc-routes.json:536:        "BacklogTooling.md §9 \"a check is a declared row, not a script.\"",
+tools/doc-routes.json:537:        "BacklogTooling.md §9 \"identity is finer than the check.\"",
+tools/doc-routes.json:538:        "BacklogTooling.md §9 \"hysteresis in both directions.\"",
+tools/doc-routes.json:539:        "BacklogTooling.md §9 \"the issue is the measurement history.\"",
+tools/doc-routes.json:540:        "BacklogTooling.md §9 \"one run of one check files a bounded number of condition items\"",
+tools/doc-routes.json:541:        "BacklogTooling.md §9 \"a row's first exercise is reported, not spent.\""
+
+Excluded as other working trees / immutable run records: .pi/worktrees/, .pi/issue-loop/items/.

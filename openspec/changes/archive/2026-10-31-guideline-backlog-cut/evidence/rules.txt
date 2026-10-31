@@ -1,0 +1,50 @@
+# Rules after the cut — 575, unchanged
+
+`bash tools/check-rule-routes.sh` (2026-10-31):
+
+    check-rule-routes: every glob matches the tree and all 575 named rule(s) are reached
+
+Before the four cuts the same line read **575**. What moved is the *document name* in
+`tools/doc-routes.json`: twelve entries went from `Backlog.md §9` / `§10` to `BacklogTooling.md §9` / `§10`.
+
+    "BacklogTooling.md §9"                                        (three section entries)
+    "BacklogTooling.md §10"                                       (two section entries)
+    "BacklogTooling.md §10 \"an engine names no project value\""
+    "BacklogTooling.md §9 \"a check is a declared row, not a script.\""
+    "BacklogTooling.md §9 \"identity is finer than the check.\""
+    "BacklogTooling.md §9 \"hysteresis in both directions.\""
+    "BacklogTooling.md §9 \"the issue is the measurement history.\""
+    "BacklogTooling.md §9 \"one run of one check files a bounded number of condition items\""
+    "BacklogTooling.md §9 \"a row's first exercise is reported, not spent.\""
+
+## What was NOT renamed
+
+No rule name changed, none was added, none removed. §9 still carries its seven named rules and §10 its one,
+under the same numbers in a different document — which is why a stale reference is repairable by naming a
+different file and never by renumbering.
+
+## What the duplicate rule would catch
+
+`check-doc-routes.sh` reports a rule name stated twice **within one document** and **across
+`guidelines/*.md`**. A cut that copied a section instead of moving it, or that left a rule in both halves,
+fails there rather than passing silently — the reason `--sizes` alone is not the cut's proof.
+
+## One thing this change did not fix, and the review then did
+
+`tools/doc-routes.json` carried two `"UI.md §7"` *section* entries that `guideline-uiphone-cut` left behind;
+`UI.md` has carried no §7 since that cut moved it to `UIPhoneMap.md` §7. No check reads section names in this
+map — only glob existence and rule reach — so it was invisible to CI.
+
+This change recorded it and handed it to its owning change. The independent review of the four cuts marked it
+blocking, and the owning change is in the set and still open, so the correction round **deleted both entries**.
+Doing that exposed what they had been hiding: the map's reached-set contains a line per entry, and those two
+junk lines padded it. With them gone, `check-rule-routes.sh` reported one genuinely unreached rule,
+`guidelines/DesignNative.md` §5b "the map scan publishes only what this build can read", whose own line was
+malformed (`**Rule: X** **X.**`). Both are repaired — the line reads `**Rule: X** The map scan …` and the map
+names it under `DesignNative.md §5b`.
+
+**The corpus now carries 576 named rules, not 575.** The 576th arrived during this pass from a write to
+`guidelines/DesignNative.md` that this session did not make (its mtime moved to 19:26:58; `Build.md` and
+`UI.md` moved with it at 19:26:38; the Documentation Map's §5b figure moved 5.5 kB → 6.5 kB to match). Every
+`575` in this change's evidence was correct when measured. Another writer is active in this working tree,
+which is why archiving is held until the tree is quiet.

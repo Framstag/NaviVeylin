@@ -1,0 +1,30 @@
+{
+  "comment": "The revert-check of `documentation-ownership`'s derived-reading-set requirements: one mutation per refusal — a glob that matches no tracked path, a named rule no glob reaches, and the `--diff` check that a change names every section the map derives for its paths. Run it with `bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the rule routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite. The search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards.",
+  "case-cmd": "bash tools/check-rule-routes-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "glob-matches-the-tree",
+      "case": "routes#aGlobMatchingNoTrackedPathIsReported",
+      "file": "tools/check-rule-routes.sh",
+      "search": "  if [ \"$matched\" -eq 0 ]; then",
+      "replace": "  if false; then",
+      "why": "every glob is matched against the tree's tracked paths, so a glob that matches nothing is reported instead of silently orphaning the rules a reader is told to read"
+    },
+    {
+      "label": "rule-is-reached",
+      "case": "routes#aRuleNoGlobReachesIsReported",
+      "file": "tools/check-rule-routes.sh",
+      "search": "  grep -qxF \"$doc\t$name\" \"$tmp/reached\" && continue",
+      "replace": "  continue",
+      "why": "every named rule under guidelines/ is compared with the rules the map reaches, so a rule no glob reaches is reported before it has a violation"
+    },
+    {
+      "label": "change-names-the-derived-set",
+      "case": "routes#theReadingSetFollowsTheDiff",
+      "file": "tools/check-rule-routes.sh",
+      "search": "      if ! grep -qxF \"$id\" \"$tmp/named\"; then",
+      "replace": "      if false; then",
+      "why": "a change may add a section to its derived reading set and never shrink it, so a derived section the change's artifacts do not name is reported"
+    }
+  ]
+}

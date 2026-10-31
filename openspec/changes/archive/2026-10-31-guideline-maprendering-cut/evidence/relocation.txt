@@ -1,0 +1,44 @@
+# Relocation — the cut is a move, not a rewrite
+
+The text was moved by line slice (`sed -n`), never retyped, so every moved byte is identical. The proof
+is the per-section cost: for §12, §13, §14 and §19 the post-cut `--sizes` byte count equals the pre-cut
+one to the byte.
+
+| block | source lines (pre-cut) | bytes | receiving document | post-cut bytes |
+|---|---|---|---|---|
+| §12 Front-Buffer Emission | `MapRendering.md` 346–366 | 1 748 | `MapFrames.md` §12 | 1 748 |
+| §13 Overrun Display Window | `MapRendering.md` 367–444 | 6 298 | `MapFrames.md` §13 | 6 298 |
+| §14 Rotation Gesture Display-Layer Handoff | `MapRendering.md` 445–466 | 2 459 | `MapFrames.md` §14 | 2 459 |
+| §19 Route data — one length for one route | `MapRendering.md` 467–503 | 3 055 | `MapRoute.md` §19 | 3 055 |
+| §20 Label wrapping — the bounds the renderer configures | `MapRendering.md` 504–538 | 3 042 | `MapStyling.md` §20 | 3 036 |
+| the §13 rationale anchor + `## Known Pitfalls (Regression Checklist)` to EOF | `MapRendering.why.md` 19–end | 4 241 | `MapFrames.why.md` | 4 241 of its body |
+| the §20 recipe anchor + its one measured bullet | `MapRendering.recipes.md` 26–30 | 286 | `MapStyling.why.md` §20 | 286 |
+| the empty `## §20 Label wrapping — the parameter table` heading | `MapRendering.recipes.md` 6 | 46 | — deleted, see `notes.md` | — |
+
+A section's cost runs from its `## ` heading to the line before the next one, so the slice carries the
+separator line that closes it (`---`); that is why §14 and §19 end their new document with one.
+
+`§20` is 3 036 B in its new home where the source region measured 3 044: **−2 B** are the two trailing
+blank lines the source region counted and a file end does not need, and **−6 B** are the one name-only
+citation retarget inside the section (`MapRendering.recipes.md` §20 → `MapStyling.why.md` §20, since the
+anchor it names moved with it). No statement, sentence or example changed.
+
+## The arithmetic closes
+
+Pre-cut `MapRendering.md` = 46 751 = preamble 604 + §1…§5 29 024 + lines 346–540 16 604 + the
+unnumbered tail 519.
+
+Post-cut `MapRendering.md` = 30 344 = preamble 657 + §1…§5 29 045 + the unnumbered tail 642.
+
+46 751 − 16 604 (moved out) = 30 147; + 53 (preamble rewritten for the new homes) + 21 (§1b and §5's
+separators) + 123 (the "Sections that moved out of this document" block grows by two entries) = **30 344**.
+
+Carried: 16 604 out, 16 596 landed (10 505 + 3 055 + 3 036) — the 8 B difference is the 2 trailing blank
+lines and the 6 B name-only citation retarget above.
+
+Companions, closed the same way:
+
+- `MapRendering.why.md` 5 219 → 978 (its §1 anchor stays); 4 241 B + a 259 B preamble = `MapFrames.why.md` 4 500.
+- `MapRendering.recipes.md` 1 457 → 1 122: the §20 anchor and its bullet (286 B) moved, the empty heading
+  (46 B) and the three blank lines around it (3 B) removed — 1 457 − 335 = 1 122.
+- `MapStyling.why.md` 897 → 1 184: + 286 B of anchor and bullet + 1 leading blank line.

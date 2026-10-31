@@ -1,0 +1,15 @@
+Every citation retargeted to UICar.md, name-only (measured after the cut)
+
+command: grep -rn 'UICar\.md.*§' AGENTS.md guidelines/ .pi/skills/
+
+AGENTS.md:32:| car screens — templates, wait notices, car search and details | `UICar.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 2.9 kB, §6b 5.2 kB (measured 2026-10-29) |
+AGENTS.md:35:| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 10.0 kB, §8b 2.9 kB (the car host path, the surface and the observation seam), `MapCar.md` §14, `UICar.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
+AGENTS.md:142:guarded**) — are `guidelines/Design.md` §8, `guidelines/UICar.md` §3, §3a, §3b and §3c,
+guidelines/UIPhone.md:100:  — see `UICar.md` §6b. The car `SearchTemplate` shows empty-query suggestions (mode rows + recent searches)
+guidelines/UIPhone.md:107:  cancellation arriving after a newer request started is a no-op; `UICar.md` §6b states the car's side of the same rule,
+guidelines/UIPhone.md:135:  other screen push (`UICar.md` §3, spec `car-host-fault-isolation`).
+guidelines/UIPhone.md:137:  (`UICar.md` §3, spec `car-list-row-limit`).
+guidelines/UI.md:327:  table (§1), the glyph table (`UICar.md` §2), and each section listed below that quotes the value. A section
+guidelines/UI.md:334:  outside §1 and `UICar.md` §2). The restatements this document owns, and the case that holds each:
+
+Not retargeted, because the section stays: §1, §6, §8d, §9, §10, §20 in UI.md.

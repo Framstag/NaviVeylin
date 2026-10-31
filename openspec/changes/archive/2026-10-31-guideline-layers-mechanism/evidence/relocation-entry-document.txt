@@ -1,0 +1,118 @@
+# The entry document's diet — guideline-layers-mechanism, task 6.1
+# date: 2026-10-31T09:37:02Z
+# removal only; nothing under guidelines/ was written. Rule: 'A relocated rule keeps its statement' —
+# a removed block's statement must already live in the owning document, or the block stays.
+
+## sizes (bytes) — before (task 1.1/6.1) -> after
+AGENTS.md		26646 -> 21796
+
+## REMOVED, block by block — with the owning-document statement that carries it
+
+B1  Backlog maintenance — 'The tracker is the live backlog: one GitHub issue per item ... exactly one
+    class/*, one category/*, one status/* and one source/* label, and agent/eligible only when a human
+    authorised automated work.'
+    owner: guidelines/Backlog.md §3 'What the tracker holds' + §4 I1
+      93:One item is one issue. Everything a reader selects on is a label, so selection is a query and never a read:
+      125:| I1 | An item is authorised for automated work only by a person, and never by the tooling, a check or the loop | the authorisation label is reserved: every write path refuses it | any write path can set it, or an escalated item becomes eligible |
+
+B2  Backlog maintenance — the nine-skill table (a skill's job).
+    owner: .pi/skills/*/SKILL.md (the skill's own contract) — no guideline owns a skill's job; the nine
+    names are kept, the per-skill prose is dropped.
+      .pi/skills/build-app/SKILL.md
+      .pi/skills/cleanup-todo/SKILL.md
+      .pi/skills/close-issue/SKILL.md
+      .pi/skills/compose-geometry/SKILL.md
+      .pi/skills/create-issue/SKILL.md
+      .pi/skills/device-check/SKILL.md
+      .pi/skills/feature-list/SKILL.md
+      .pi/skills/issue-metadata/SKILL.md
+      .pi/skills/list-issues/SKILL.md
+      .pi/skills/loop-spend/SKILL.md
+      .pi/skills/mutation-runner/SKILL.md
+      .pi/skills/native-bridge-signature-change/SKILL.md
+      .pi/skills/openspec-apply-change/SKILL.md
+      .pi/skills/openspec-archive-change/SKILL.md
+      .pi/skills/openspec-bulk-archive-change/SKILL.md
+      .pi/skills/openspec-continue-change/SKILL.md
+      .pi/skills/openspec-explore/SKILL.md
+      .pi/skills/openspec-ff-change/SKILL.md
+      .pi/skills/openspec-new-change/SKILL.md
+      .pi/skills/openspec-open-changes/SKILL.md
+      .pi/skills/openspec-proof-gap-audit/SKILL.md
+      .pi/skills/openspec-propose/SKILL.md
+      .pi/skills/openspec-sync-specs/SKILL.md
+      .pi/skills/openspec-update-change/SKILL.md
+      .pi/skills/openspec-verify-change/SKILL.md
+      .pi/skills/pixel-check/SKILL.md
+      .pi/skills/portability-check/SKILL.md
+      .pi/skills/process-failure-log/SKILL.md
+      .pi/skills/provision-phone-emulator/SKILL.md
+      .pi/skills/release-build/SKILL.md
+      .pi/skills/revert-check/SKILL.md
+      .pi/skills/run-tests/SKILL.md
+      .pi/skills/triage-todo/SKILL.md
+      .pi/skills/update-issue/SKILL.md
+      .pi/skills/update-to-current-libosmscout-master/SKILL.md
+
+B3  Agent iteration loop — the pointer bullets: 'measuring a pixel symptom ...'; 'the iteration levers
+    ...'; 'the device loop ...'; 'the build, test and falsification skills ...'
+    owner: guidelines/Build.md §11, §10, §4, §6, §7 and §1 (the skills)
+      1989:## 11. Measuring a phone UI finding (do this before changing code)
+      1446:## 10. On-device evidence for Android Auto / AAOS (host-crash triage)
+      28:| `build-app` | Compile the app — debug APKs, flavors, ABIs | User asks to build/compile; verify code compiles; after Kotlin/native changes |
+      29:| `run-tests` | Execute unit + instrumented tests | User asks to run tests; verify tests pass; before marking a task complete |
+      30:| `revert-check` | Falsify a new guard: one mutation → the named case must fail → restore → forced green, with the evidence recorded | A task says "revert-check"/"one mutation"/"the case that must fail"; a change adds a test for an invariant; before claiming a test covers new behaviour |
+      34:| `compose-geometry` | Assert a UI geometry invariant (size, tap target, disjointness, visibility inside a parent) in a Compose case instead of `assertExists()` | A phone control or tap area is added/moved; a task asks for a bounds/48 dp/disjointness/visibility case; a device run shows a tap landing on the wrong action or an action that is unreachable |
+
+B4  Agent iteration loop — 'The hand-written skills under .pi/skills/ are versioned ... what a new skill
+    needs, is Build.md §1 Skills.'
+    owner: guidelines/Build.md §1
+      37:Each skill lives in `.pi/skills/<name>/SKILL.md`. The hand-written ones are versioned with the project; a
+
+B5  Agent iteration loop — 'Screenshot reading needs no harness package ... a tool result must never
+    carry an image block into the session holding the work ...'
+    owner: guidelines/Build.md §1, 'Looking at a screenshot'
+      45:### Looking at a screenshot (harness prerequisite)
+      59:- **A tool result must never carry an image block into the session holding the work.** Measured 2026-10-16: two
+
+B6  Key Conventions / License compliance — the two bullets.
+    owner: guidelines/Build.md §9
+      1360:> satisfied. The application's own code is licensed under **GPL-3.0-or-later**
+      1324:| Generated output | `licenses/dependencies.json` + `licenses/texts/*` in each APK's assets; `NOTICE` next to each SBOM | what users read, tied to the artifact that was built |
+      1405:`GenerateLicenseAssets`) writes `licenses/dependencies.json` and
+
+B7  Key Conventions / Native Integration — the two bullets.
+    owner: guidelines/Design.md §5, guidelines/Build.md §12
+      396:- **The two sides are compared, and their difference is recorded.** For those five files the override is the
+      2030:Moved here verbatim from `AGENTS.md`, which keeps only the fact that it is a Cairo/vcpkg build. The
+
+B8  Key Conventions / Logging — the two bullets.
+    owner: guidelines/Logging.md §1 and §2; guidelines/Build.md §10
+      25:- **Never log a position here either**, and that rule is gated, not just stated: `checkNoCoordinatesInLogs`
+      44:- Native lines appear in Logcat under tag **`NaviVeylin`**, levels mapped `DEBUG/INFO/WARN/ERROR` →
+
+B9  Key Conventions / Stylesheets — the paragraph.
+    owner: guidelines/MapRendering.md §15; guidelines/Build.md §12
+      1007:- The libosmscout submodule's `stylesheets/` directory (`app/src/main/cpp/libosmscout/stylesheets/`) is the
+      982:  mirrored to internal storage by `AssetCopier.ensureIcons()`. The client gets it once from
+
+B10 Key Conventions / Android Auto / Android Automotive OS — the two bullets.
+    owner: guidelines/Design.md §8; guidelines/UI.md §3; guidelines/MapRendering.md §18; the specs
+      474:## 8. Android Auto & cross-variant
+      719:  calls `Surface.release()`. Releasing it here (the earlier shape, on replace/stop/shutdown)
+
+## KEPT (statement found in no guideline — 'A homeless rule is filed, not dropped')
+
+K1  Backlog maintenance — the §N / nvid marker convention ('An item filed before the migration also
+    carries §N in its title and a <!-- nvid: N --> marker ... ids are never renumbered').
+    home: .pi/skills/cleanup-todo and .pi/skills/create-issue — a skill, not a guideline, so it stays:
+      45:| The identity | `nvid` in the body for an imported item, the issue number for a newer one. **Never** edit, move or reuse it — a `§N` citation resolves through it |
+
+K2  Agent iteration loop — the rationale 'It exists because those rules cost the most rounds in
+    ki_processing_failures.log ...'. Found in no guideline, so it stays.
+
+K3  Agent iteration loop — the bullet carrying the defect-fix rule and the loop's tooling pointers
+    (tools/loop/prompts/worker.md, tools/loop/run.sh, tools/loop-selftest.sh). The tooling pointers are
+    found in no guideline (Build.md §2a rule 5 names only tools/loop/prompts/reviewer.md), so it stays.
+
+K4  Key Conventions / Code Style and / Architecture — not the per-area half; kept.

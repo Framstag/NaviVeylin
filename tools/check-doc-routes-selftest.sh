@@ -27,6 +27,14 @@
 # The check derives its documents from the fixture's own `guidelines/` directory, so a fixture carries the
 # four base documents plus whichever extra one a case adds — and its table must name every document present.
 #
+# The layers and named-rule cases: a companion that a route does not name is read and its `## §N` anchor is
+# resolved against its base document (`routes#aCompanionIsReadAndNotRouted`,
+# `layers#aCompanionAnchorThatNoSectionCarriesIsReported`, `layers#aDroppedSectionIsReportedInItsCompanion`,
+# `layers#aRuleIsNormativeAndItsRationaleIsACompanion`), and a rule name is unique in its document and across
+# the documents (`rules#aNameTwiceInOneDocumentIsReported`, `rules#aNameTwoDocumentsStateIsReported`) while a
+# `see rule <File>.md §N "<name>"` reference resolves or is reported with the names the section carries
+# (`rules#aReferenceResolvesToTheNamedRule`, `rules#aStaleRuleReferenceIsReported`).
+#
 # Every case carries an id (`routes#<name>`, `routed-read#<name>`), so a task item or a mutation set can quote
 # one instead of a sentence; `--case <id>` runs one of them.
 #
@@ -146,7 +154,8 @@ guidelines_before=$(cat "$root"/guidelines/*.md | md5sum | awk '{print $1}')
 
 for d in good dangling ambiguous mismatch missing noregion extra-unrouted extra-routed extra-dangling \
          skill-ok skill-dangling skill-nofile skill-prefix \
-         body-ambiguous body-text body-fenced body-dangling artifacts; do
+         body-ambiguous body-text body-fenced body-dangling artifacts \
+         comp-ok comp-anchor comp-dropped ruledup-onedoc ruledup-twodoc ruleref-ok ruleref-stale rule-empty; do
   mk_fixture "$tmp/$d"
 done
 
@@ -246,6 +255,153 @@ done
 write_agents "$tmp/artifacts" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
 expect routes#aReferenceInAChangeArtifactIsNotChecked 0 "$tmp/artifacts" "all 5 section references resolve" "a reference in a change artifact is not checked"
 
+# ── the three layers and named rules (`documentation-ownership`, "A guideline document carries one kind of
+# text", "A rule is named") ──────────────────────────────────────────────────────────────────────────────
+# A concern's normative document holds one named rule; its `.why.md` holds the measurement that proved it. The
+# companion is read and resolves its `## §N` anchor against the base document; it is not reported as unrouted.
+write_concern() { # $1 dir, $2 rule name
+  cat > "$1/guidelines/Build.md" <<FIXTURE
+# Build Specification
+
+## 1. The concern
+
+- **Rule: $2.** Refusal path.
+
+## 99. Unused
+FIXTURE
+}
+write_why() { # $1 dir, $2 anchor number, $3 measurement line
+  cat > "$1/guidelines/Build.why.md" <<FIXTURE
+# Build — why
+
+## §$2 The concern
+
+$3
+FIXTURE
+}
+
+write_concern "$tmp/comp-ok" "a concern has one normative home"
+write_why "$tmp/comp-ok" 1 "Measured 2026-10-31: the statement moved and its number did not."
+write_agents "$tmp/comp-ok" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all routes#aCompanionIsReadAndNotRouted 0 "$tmp/comp-ok" \
+  "a companion no row names is read and not reported as unrouted" "all "
+expect layers#aRuleIsNormativeAndItsRationaleIsACompanion 0 "$tmp/comp-ok" "all " \
+  "a fixture concern whose normative document holds a named rule and whose companion holds the measurement resolves"
+
+write_concern "$tmp/comp-anchor" "a concern has one normative home"
+write_why "$tmp/comp-anchor" 9 "the anchor names a section the base document does not carry"
+write_agents "$tmp/comp-anchor" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all layers#aCompanionAnchorThatNoSectionCarriesIsReported 1 "$tmp/comp-anchor" \
+  "a companion anchor that names no section of its base document is reported" "guidelines/Build.why.md" "§9"
+
+# The base document drops the section while the companion still anchors to it.
+printf '# Build Specification\n\n## 99. Unused\n' > "$tmp/comp-dropped/guidelines/Build.md"
+write_why "$tmp/comp-dropped" 1 "the base document no longer carries the section this anchors to"
+write_agents "$tmp/comp-dropped" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all layers#aDroppedSectionIsReportedInItsCompanion 1 "$tmp/comp-dropped" \
+  "a companion whose base document dropped its section is reported" "guidelines/Build.why.md" "§1"
+
+# One document states a rule name in two sections — the duplicate the "one normative home" rule forbids.
+cat > "$tmp/ruledup-onedoc/guidelines/Build.md" <<'FIXTURE'
+# Build Specification
+
+## 1. The concern
+
+- **Rule: a concern has one normative home.** First statement.
+
+## 2. The same name again
+
+- **Rule: a concern has one normative home.** Second statement in the same document.
+
+## 99. Unused
+FIXTURE
+write_agents "$tmp/ruledup-onedoc" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all rules#aNameTwiceInOneDocumentIsReported 1 "$tmp/ruledup-onedoc" \
+  "one document stating a rule name twice is reported" "guidelines/Build.md" "stated more than once in one document"
+
+# Two documents state one rule name.
+cat > "$tmp/ruledup-twodoc/guidelines/Build.md" <<'FIXTURE'
+# Build Specification
+
+## 1. The concern
+
+- **Rule: a shared name.** First.
+
+## 99. Unused
+FIXTURE
+cat > "$tmp/ruledup-twodoc/guidelines/Design.md" <<'FIXTURE'
+# Design Specification
+
+## 1. Another concern
+
+- **Rule: a shared name.** Second.
+
+## 99. Unused
+FIXTURE
+write_agents "$tmp/ruledup-twodoc" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all rules#aNameTwoDocumentsStateIsReported 1 "$tmp/ruledup-twodoc" \
+  "two documents stating one rule name are reported" "stated in more than one document" "Build" "Design"
+
+# A reference resolves to a named rule.
+cat > "$tmp/ruleref-ok/guidelines/Build.md" <<'FIXTURE'
+# Build Specification
+
+## 1. The concern
+
+- **Rule: a referenced rule.** Statement.
+
+## 99. Unused
+FIXTURE
+cat > "$tmp/ruleref-ok/guidelines/Design.md" <<'FIXTURE'
+# Design Specification
+
+## 1. Another concern
+
+See rule Build.md §1 "a referenced rule." — a reference, not a restatement.
+
+## 99. Unused
+FIXTURE
+write_agents "$tmp/ruleref-ok" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect rules#aReferenceResolvesToTheNamedRule 0 "$tmp/ruleref-ok" "all " "a rule reference that resolves passes"
+
+# A reference whose name the section no longer carries is reported with the names it does carry.
+cat > "$tmp/ruleref-stale/guidelines/Build.md" <<'FIXTURE'
+# Build Specification
+
+## 1. The concern
+
+- **Rule: the renamed rule.** Statement.
+
+## 99. Unused
+FIXTURE
+cat > "$tmp/ruleref-stale/guidelines/Design.md" <<'FIXTURE'
+# Design Specification
+
+## 1. Another concern
+
+See rule Build.md §1 "the old name." — a stale reference.
+
+## 99. Unused
+FIXTURE
+write_agents "$tmp/ruleref-stale" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all rules#aStaleRuleReferenceIsReported 1 "$tmp/ruleref-stale" \
+  "a reference whose name the section does not carry is reported with the names it carries" "guidelines/Design.md" "carries no rule named" "the renamed rule."
+
+# A rule written `**Rule:**` with no name is refused with its file and line, instead of being skipped in
+# silence by an extraction that asked only for `**Rule: `.
+cat > "$tmp/rule-empty/guidelines/Build.md" <<'FIXTURE'
+# Build Specification
+
+## 1. The concern
+
+- **Rule:** the statement whose rule carries no name.
+
+## 99. Unused
+FIXTURE
+write_agents "$tmp/rule-empty" '| phone UI | `UI.md` §1 "Cross-variant UI parity" |'
+expect_all rules#aRuleWithNoNameIsReported 1 "$tmp/rule-empty" \
+  "a rule with no name is reported with its file and line" "guidelines/Build.md" "line 5" "**Rule:**"
+
 # ── this project's own tree ────────────────────────────────────────────────────────────────────────────────
 # The three cases `documentation-ownership` names for the cost of a routed read — "A section carrying more than
 # one question is split" (`routed-read#bound`), "The route names the sub-section" (`routed-read#route`) and
@@ -273,6 +429,9 @@ table_pairs() { # $1 = the Documentation Map region
 # Every section of a document as `document<TAB>number<TAB>first line<TAB>last line`: from its `## ` heading
 # through the line before the next one, a heading inside a fenced block being an example.
 section_spans() { # $1 = document path, $2 = document name
+  # a companion (`*.why.md`, `*.recipes.md`) is read, not a document a route names, so this ruler's count
+  # must not carry its `## §N` anchors either: skip it, matching `check-doc-routes.sh`'s document set
+  case "$(basename "$1" .md)" in *.why|*.recipes) return 0 ;; esac
   LC_ALL=C awk -v name="$2" '
     /^```/ { fence = !fence }
     !fence && /^## / {

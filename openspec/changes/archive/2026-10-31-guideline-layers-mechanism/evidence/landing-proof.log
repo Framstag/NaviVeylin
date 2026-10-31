@@ -1,0 +1,21 @@
+# Landing proof (design.md D8) — task 7.3
+# date: 2026-10-31T09:37:16Z
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 169 section references resolve, all 4 skill references resolve
+exit=0
+
+$ bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 5 named rule(s) are reached
+exit=0
+
+$ bash tools/check-portability.sh
+check-portability: OK — 53 engines and 2 templates name no project value (111 value(s) read from the project)
+exit=0
+
+$ tools/sensors/metrics/doc-context.sh  (scope normative-document, bound 48000)
+document-size conditions: 5  (Build, Backlog, UI, MapRendering, Design)
+$ tools/sensors/metrics/doc-context.sh  (scope normative-purity)
+purity conditions: 101 (a condition, and one the six document changes retire)
+
+D8: check-doc-routes exit=0, check-rule-routes exit=0, check-portability exit=0, document-size conditions=5

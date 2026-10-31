@@ -1,0 +1,18 @@
+# Pre-cut rule inventory of `guidelines/Design.md`
+
+grep -c '\*\*Rule:' guidelines/Design.md => 0
+0 (no named rule)
+grep -cE '^[-*] \*\*(Never|Do not|Always|MUST)' guidelines/Design.md (HEAD) => 38
+grep -cE '(SHALL|MUST)' guidelines/Design.md (HEAD) => 36
+
+Population (the 38 bold-imperative bullets + 36 obligation lines, at HEAD):
+```
+21 112 133 140 159 164 175 184 194 201 205 216 232 245 274 306 311 368 428 435 458 493 517 530 543 570 580 588 597 622 658 659 687 734 738 740 753 850
+```
+
+Accounting: 92 bullets were promoted to named rules across the four documents (see post-cut.md).
+The remainder are deliberately left unnamed, each with a reason:
+- a specification pointer, not a rule (`- Pipeline details and pitfalls ...`, `- Details:`, `- Mechanics:`, `- UI rules and parity decisions ...`);
+- a definition, not an obligation (`- Logging: native via ...`);
+- a duplicate statement whose one normative home already carries a name (the Play-Services-optional sentence in §4 repeats the §2 rule, named in DesignStack.md §2);
+- framework-mechanics traps written as `§40.x`/ `§134.x` notes (the Kotlin/Compose/Robolectric list in §11), which are technique notes read in place rather than obligations a change is graded on; they were left unnamed deliberately.

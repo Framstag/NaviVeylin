@@ -5,13 +5,12 @@ to the vehicle manufacturer, the car-app host or the OEM channel. Use it when a 
 touches location, logging, telemetry, feature scope in a country, map data, or release
 distribution.
 
-**Maintenance rule** — when a change alters what the app collects, logs, ships in a
-country, or requests from the platform, update this document in the same change.
+- **Rule: a change that alters what the app collects, logs, ships in a country, or requests from the platform updates this document in the same change.**
 **Not legal advice**: dates and readings below are researched, not reviewed by counsel;
 anything shipped into an OEM/Play car channel gets the partner's compliance team as
 gatekeeper anyway.
 
-Status as of **2026-09-22** (see §10 for the review cadence).
+The review status and cadence are in `Regulatory.why.md` §10 and `Regulatory.recipes.md` §10.
 
 ---
 
@@ -46,6 +45,8 @@ Status as of **2026-09-22** (see §10 for the review cadence).
 
 ### 2.1 Licence obligations (always on)
 
+- **Rule: every shipped component's licence is honoured — source offer, notices, no added restriction — and the licence gate stays green.**
+
 | Component | Licence | Duty |
 |---|---|---|
 | NaviVeylin code | GPL-3.0-or-later | complete corresponding source offer (§6), licence + copyright notices, no additional restrictions |
@@ -60,6 +61,8 @@ extend the curated inputs when a dependency changes.
 
 ### 2.2 Product liability — `Directive (EU) 2024/2853` (biggest exposure)
 
+- **Rule: keep the obey-signs disclaimer and the diagnostics trail, and claim no accuracy the data cannot support.**
+
 - Software (including apps) is a **product**; liability is **no-fault** for defects.
 - Member states transpose by **2026-12-09**; applies to products placed on the market
   after that date.
@@ -73,6 +76,8 @@ extend the curated inputs when a dependency changes.
 
 ### 2.3 Cyber Resilience Act — `Regulation (EU) 2024/2847`
 
+- **Rule: a commercialised build carries vulnerability handling, a declared support period, an SBOM and CE documentation.**
+
 - Applies to products with digital elements placed on the EU market; reporting duties
   from **2026-09-11**, main obligations from **2027-12-11**.
 - Free/open-source software developed or supplied **outside the course of a commercial
@@ -85,12 +90,16 @@ extend the curated inputs when a dependency changes.
 
 ### 2.4 Consumer and digital-content law
 
+- **Rule: consumer and digital-content duties bind the sideloaded build, where the developer is the seller.**
+
 - `Directive (EU) 2019/770` (supply of digital content) and the UCPD: conformity,
   updates, no misleading marketing claims (e.g. speed-limit or ETA accuracy).
 - On Play, Google is merchant of record; for the **sideloaded** APK/AAB the duties are
   ours.
 
 ### 2.5 Export control and sanctions
+
+- **Rule: never distribute to or serve sanctioned regions; the distribution channel is the compliance boundary.**
 
 - Standard OS TLS / platform crypto is treated as the mass-market case (US EAR ENC
   `740.17(b)(1)`; self-classification reporting for mass-market products was removed in
@@ -114,6 +123,8 @@ extend the curated inputs when a dependency changes.
 Location is personal data. The app collects position fixes, favourites, search history
 and diagnostics.
 
+- **Rule: location and diagnostics are personal data, so the developer is the controller and each live regime's duties bind.**
+
 | Regime | Status (2026-09-22) | Duties that concern the app |
 |---|---|---|
 | **GDPR + ePrivacy Art. 5(3)** | live | lawful basis + transparency for location; on-device storage beyond strictly necessary needs consent; DSAR/erasure; Art. 30 records where applicable; no telemetry beyond the declared purpose |
@@ -132,6 +143,8 @@ disclosure (implemented 2026-09-26, change `fix-diagnostics-coordinate-redaction
 The app ships OSM-derived data and renders its boundaries verbatim; several jurisdictions
 regulate that directly.
 
+- **Rule: do not ship OSM data for a jurisdiction whose geodata law forbids it.**
+
 | Jurisdiction | Rule | Effect on us |
 |---|---|---|
 | **China** | 测绘法 — collecting/processing geodata is "surveying and mapping activity"; navigation electronic maps need a 导航电子地图制作 qualification held by a Chinese entity; GCJ-02 offset mandatory; MNR notice (Jul 2024) extends this to intelligent-connected-vehicle perception data; 8-ministry automotive data-export guidelines (2026 edition) require localisation and block export of "important data"; boundaries must follow the state position | **Do not ship OSM data for China**; no qualification, wrong datum, wrong boundaries |
@@ -145,7 +158,8 @@ regulate that directly.
 ## 5. Feature legality by jurisdiction: speed cameras and police checkpoints
 
 This is the one feature class where the **supplier** can be liable, not just the driver.
-Design requirement: a country-keyed feature gate, default **off** for the layers below.
+
+- **Rule: the speed-camera and police-checkpoint layers sit behind a country-keyed feature gate, off by default.**
 
 | Country | Law | Who is punished | Consequence for the app |
 |---|---|---|---|
@@ -160,16 +174,12 @@ Design requirement: a country-keyed feature gate, default **off** for the layers
 
 Google Play Developer Program Policies bind the developer directly.
 
-- **Cleartext repository transport is deliberate** (audited 2026-10-09, change
-  `allow-lan-http-map-repository`). The shipped build permits cleartext HTTP app-wide
-  (`app/src/main/res/xml/network_security_config.xml`, asserted by `checkCleartextTransportPolicy`),
-  because a self-hosted libosmscout mapgen repository is served over plain HTTP by upstream's own web
-  server and its address is a LAN host the user types — Android's static policy cannot name that host
-  in advance, and no narrower form exists. No Play policy forbids it; the **data safety declaration is
-  unchanged** (the app sends no user data — the traffic is a GET for the source the user chose), and
-  the app marks an `http` source as unencrypted in its own UI. The one consequence to state rather
-  than hide: such a transfer has **no integrity protection**, because the download's declared size and
-  CRC-32 arrive over the same connection (`TODO.md` §163).
+- **Rule: the data safety form, privacy policy and prominent disclosure must match what the app and its SDKs actually do.**
+- **Rule: precise location is requested at minimum scope, and no background location is declared.**
+- **Rule: each foreground-service type stays justified and stops with its user-initiated action.**
+- **Rule: the car surface meets the car-app quality tiers or the listing is refused.**
+- **Rule: the target API level is bumped annually.**
+- **Rule: cleartext HTTP is permitted only for the user-typed LAN map repository, and the data-safety declaration is unchanged.**
 
 - **Data safety form + privacy policy + prominent disclosure** must match what the app
   actually does (and what its SDKs do). Misdeclaration → removal.
@@ -209,6 +219,8 @@ Google Play Developer Program Policies bind the developer directly.
 
 ## 7. Conditional obligations
 
+- **Rule: a connected-vehicle or vehicle-signal use carries the EU Data Act's third-party duties.**
+
 | Situation | Obligation |
 |---|---|
 | The app reads vehicle signals (`CarPropertyManager`) or is installed in a connected vehicle | **EU Data Act `2023/2854`** (in application since 2025-09-12): as a third party you may only use the data for the agreed purpose, must not coerce the user, must not use it to develop a competing product, must delete it when no longer needed, must protect trade secrets |
@@ -237,113 +249,30 @@ practical outcome.
 
 ## 9. Repo inventory and open items
 
-**Location permissions in use** (`app/src/main/AndroidManifest.xml`):
+The inventory, the audit dates and the owner-side items are in `Regulatory.why.md` §9, and the
+diagnostics-verification recipe is in `Regulatory.recipes.md` §9. The duties are named here.
 
-- `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (lines 6–7); **no**
-  `ACCESS_BACKGROUND_LOCATION`.
-- `MapDownloadService` with `foregroundServiceType="dataSync"` (line 102).
-- `NavigationNotificationService` with `foregroundServiceType="location"` (line 111) —
-  navigation is the canonical location FGS, but the 2026-10-28 policy still expects the
-  user-initiated-action/termination shape and minimum scope for precise location.
-- `distractionOptimized` metadata present (line 147) — car app quality gate applies.
-
-**Diagnostic logs carry no coordinates** (implemented 2026-09-26, change
-`fix-diagnostics-coordinate-redaction`; spec `auto-diagnostics`):
-
-- Log and diagnostics lines carry precision-free identity instead of a position — object label/id,
-  map database or map file name, magnification, screen pixel, accuracy, bearing. No latitude/longitude
-  pair reaches logcat or the file, enforced by the build gate `checkNoCoordinatesInLogs`
-  (buildSrc `CoordinateLogScanner`).
-- The gate resolves **position-carrying locals**, not just coordinate names: a position copied into a
-  local whose name the identifier list does not know (`val frameLat = viewportLat`, `val a = fix.lat`,
-  or an alias of one) is a finding too. The rule is name/initializer based within one file — a position
-  laundered through two hops in different files, or through a function return, is not resolved, so the
-  enumerated identifier list stays authoritative for the names this repo uses.
-- `filesDir/diagnostics/app.log` (+ `app.log.1`) is pruned by age: `DiagnosticsLog.RETENTION_MS`
-  (7 days) is applied by the logging worker on the first flush of a process and once a day after that;
-  the byte cap remains as the size backstop. A line whose timestamp cannot be parsed is removed too.
-- **The rule covers the file's history, not only new writes** (change `fix-diagnostics-stale-coordinate-purge`,
-  TODO §88): the same retention pass removes a line that carries a coordinate **whatever its age**, so the
-  entries an earlier build wrote are gone within one pass of installing instead of surviving the rest of
-  the window. The rule recognises two shapes (`:core` `LogLineCoordinates`) — a delimited coordinate field
-  name together with a number at coordinate precision, and an unnamed comma-separated pair, which is the
-  pre-redaction car render shape — and the pass reports those drops as a count in its single retention
-  line (`… , N coordinate-carrying`), never repeating the removed position. Residual: a position written
-  without a coordinate field name and with fewer than four fraction digits is not recognised — the age
-  bound still removes it, and new writes are the build gate's concern. The verification recipe's bare
-  grep (`[0-9]{1,3}\.[0-9]{4,}`) is deliberately *stricter* than the rule: a hit that names a
-  magnification or another identity value (a raw `Double` can print at that precision) is an identity
-  line, not a regression.
-- **A source-level privacy gate needs one rule per delivery *shape*, not one per field name** (2026-10-05,
-  from the same gate's second pass). The first rule set targeted coordinate *identifiers* (`lat`/`lon`) and
-  coordinate-shaped formats, so sites where the value arrives **whole** passed it: an interpolated request
-  object (`$request`), a whole-URI hand-over (`${original?.data}`), a destination object, a label string.
-  The gate now separates those shapes — identifier, format, whole object, URI read — from a *scalar read off*
-  a URI (`scheme=${intent?.data?.scheme}` is identity, not a position; `uri`/`url` are legitimate diagnostics
-  content). Two practices keep such a gate honest: run the new rule against the **fixed** shape before
-  claiming an empty false-positive set (widening to "any `.data` in an interpolation" flagged the fix
-  itself), and check `checkNoCoordinatesInLogs` is not vacuous — a brand-new gate that fails on its first
-  run may be the wrong gate, and a `Sync` task's build **output** is not a mutation point (the sync restores
-  the file before the test runs; the source under `app/src/main/cpp/libosmscout/` is).
-- The exported/shared text and both diagnostics viewers lead with the disclosure
-  (`diagnostics_disclosure`, de + en), naming what the file holds and the retention window.
-  The wording needs no change for the purge: it already claims the file carries no coordinates, which
-  the rule above now makes true for the file's history as well.
-- **Impact on an earlier recipe**: the `overlay-projects-against-displayed-frame` frame-vs-pending
-  comparison (TODO §29) used the geo centre of the displayed frame and of the pending render target;
-  that pair is no longer logged. Use `frameMag`/`frameAng`, `pendingMag`/`pendingAng`, `dMag`/`dAng`,
-  the clamped pixel offset (`off=`, `clamped=`) and the render/blit counters — the placement rule
-  itself is unchanged. The `follow` entry's numbers are formatted with a fixed locale on **both**
-  variants — the car line by `fix-car-follow-reengage-render` (spec `auto-diagnostics`), the phone
-  line by `fix-phone-diagnostic-locale` (spec `i18n-l10n`) — so the grep/parse of this recipe works
-  identically on a German install (it printed `off=3,4,-1,5` before, where the decimal comma read as
-  a field separator).
-- **The car render entry (`Diag/MAP`)** carries the committed frame's magnification, the projection DPI
-  and the rendered bitmap's size (`render mag=… dpi=… -> bitmap WxH`) and **no centre** (change
-  `fix-car-render-coordinate-redaction`): the entry is the throttled "a frame was committed"
-  marker, and the frame-vs-pending evidence above is where a follow/surface diagnosis reads position-free
-  state. A car session's exported log therefore contains no render position either.
-
-**Location and foreground-service surface** — audited 2026-09-26 (change
-`fix-location-permission-scope`); the behaviour and the no-change findings are in §6.
-
-**Owner-side items (no code change can satisfy them)**:
-
-- Privacy policy URL in the Play listing (required for a location-using app), plus the in-app
-  statement the About dialog now carries (`about_privacy_statement`).
-- Data safety form: location used on-device for navigation, not shared, no background location;
-  diagnostics stored on-device with no coordinates, 7-day retention, export only when the user asks.
-- Track declarations stay as they are: same applicationId, two flavor AABs (mobile track, dedicated
-  AAOS track).
-
-Tracked as TODO §68 (diagnostics), §88 (coordinate purge of the file's history — implemented by
-`fix-diagnostics-stale-coordinate-purge`, awaiting archive) and §69 (location policy).
+- **Rule: a diagnostics line carries precision-free identity, never a position.** Log and diagnostics
+  lines carry an object label/id, map database or map file name, magnification, screen pixel, accuracy
+  or bearing; no latitude/longitude pair reaches logcat or the file. The build enforces it with
+  `checkNoCoordinatesInLogs` (buildSrc `CoordinateLogScanner`).
+- **Rule: a diagnostic position-carrying local is a finding, not only a named coordinate.** The gate is
+  name/initializer based within one file, so a position copied into a local the identifier list does not
+  know (`val frameLat = viewportLat`, `val a = fix.lat`) is a finding too.
+- **Rule: the diagnostics file is pruned by age, and a coordinate-bearing line is dropped whatever its age.**
+  `filesDir/diagnostics/app.log` (+ `app.log.1`) is pruned by `DiagnosticsLog.RETENTION_MS` (7 days) on
+  the first flush of a process and once a day after that, with the byte cap as the size backstop; the
+  same pass removes a coordinate-bearing line whatever its age.
+- **Rule: a source-level privacy gate carries one rule per delivery shape, not one per field name.**
+  The shapes are identifier, format, whole object and URI read; a scalar read off a URI
+  (`scheme=${intent?.data?.scheme}`) is identity, not a position, and `uri`/`url` are legitimate
+  diagnostics content.
+- **Rule: the exported diagnostics text and both viewers lead with the disclosure of what the file holds and its retention window.**
+- **Rule: the car render entry carries the committed frame's magnification, the projection DPI and the bitmap size, and no centre.**
 
 ---
 
 ## 10. Review cadence and sources
 
-Re-check this document when any of these move, and at least twice a year:
-
-| Topic | Watch |
-|---|---|
-| Product liability | `Directive (EU) 2024/2853` (national transposition, 2026-12-09) |
-| Cyber resilience | `Regulation (EU) 2024/2847` (reporting 2026-09-11, main 2027-12-11) |
-| Play location/FGS | "Permissions and APIs that Access Sensitive Information" + the 2026-04-15 announcement (effective 2026-10-28) — audited 2026-09-26, re-check the no-change findings (§6) at the next review |
-| Car app quality | Google "Car app quality" / driver distraction guidelines |
-| India | DPDP Rules 2025 phases (2026-11-13, 2027-05-13) |
-| China | MNR/automotive data notices, app filing |
-| Feature bans | national road-traffic law changes (FR, CH, DE, …) |
-| HMI standards | ISO 15008 revision, NHTSA Phase 2 status |
-
-Primary sources used for this revision: `Directive (EU) 2024/2853`; `Regulation (EU)
-2024/2847`; `Directive (EU) 2019/882`; `Regulation (EU) 2019/2144` with `2021/1958`,
-`2023/2590`, `2024/1721`; UN R155/R156/R183 texts; EU Data Act `2023/2854` and the
-vehicle-data guidance `OJ C/2025/5026`; Commission Recommendation `2008/653/EC`;
-ISO 15008 / ISO 15007-1; NHTSA Phase 1 (2013) and Phase 2 (2016 proposal); GDPR +
-ePrivacy `2002/58`; India DPDP Act 2023 + DPDP Rules 2025 (G.S.R. 846(E)); DST
-Geospatial Guidelines 2021; China 测绘法 / PIPL / MNR notice 2024 / MIIT app filing
-notice 2023 / automotive data-export guidelines 2026; Korea MOLIT map-export decision
-(2026-02-27); Conseil constitutionnel 2021-948 QPC; C. route L. 130-11/130-12,
-R. 413-15, L. 413-2; Art. 98a SVG; § 23 StVO; Google Play Developer Program Policies
-and Play Console Help.
+The watch list, the review dates and the primary sources are in `Regulatory.why.md` §10 and
+`Regulatory.recipes.md` §10.

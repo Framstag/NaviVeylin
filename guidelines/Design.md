@@ -23,6 +23,12 @@ strong preference.
 - `:core` = shared, Android-lean logic used by both `:app` and `:auto`
   (resolution, formatting, projection, prediction, mappers). `:auto` depends
   on `:core` + the JNI jar, **never** on `:app`.
+- Shared **behaviour** lives in `:core` next to the state it reads, so a rule
+  cannot exist twice: `Manoeuvre`/`manoeuvreFromStep`, `turnTypeFor`,
+  `ManoeuvreLabels`, `ManeuverSymbols`, `RouteStepGuidance` and the route-row
+  policy (`RouteRows.routeRows`, `RouteRow`) are read by both variants. A
+  surface that needs a rule the other one already applies imports it — it does
+  not derive a second version (change `share-route-rows-in-core`).
 - `:auto` consumes app functionality through provider interfaces defined in
   `:core`, implemented in `:app` with Hilt. Keep providers focused; split when
   they grow.

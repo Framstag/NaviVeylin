@@ -1,5 +1,6 @@
 package com.naviveylin.ui.route
 
+import com.naviveylin.core.routeRows
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RouteStep
 import org.junit.Assert.assertEquals
@@ -38,7 +39,7 @@ class RouteStepValuesTest {
 
         assertEquals(200.0, rows[1].distanceMeters, 1e-6)
         assertEquals(20.0, rows[1].durationSeconds, 1e-6)
-        assertEquals(200.0, rows[1].values.distanceMeters, 1e-6)
+        assertEquals(200.0, rows[1].distanceMeters, 1e-6)
     }
 
     @Test

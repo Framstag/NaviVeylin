@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.framstag.libosmscout.client.RouteStep
 import com.naviveylin.auto.R
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -36,6 +37,9 @@ class RouteDescriptionScreen(
     private var observeJob: Job? = null
     private var lastSteps: List<RouteStep>? = null
     private var lastIndex = 0
+
+    /** The last census line written, so an unchanged row set does not repeat it per invalidation. */
+    private var lastDiagnostic: String? = null
 
     init {
         lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -63,6 +67,7 @@ class RouteDescriptionScreen(
     private fun buildTemplate(): ListTemplate {
         val state = navigationViewModel.state.value
         val rows = NavigationTemplateMapper.routeDescriptionRows(carContext, state)
+        logRowCensus(NavigationTemplateMapper.stepsFromCurrentStep(state).size, rows.size)
         val itemList = androidx.car.app.model.ItemList.Builder().apply {
             rows.forEach { row ->
                 val title = if (row.isCurrent) "▶ ${row.title}" else row.title
@@ -84,6 +89,19 @@ class RouteDescriptionScreen(
             )
             .setSingleList(itemList)
             .build()
+    }
+
+    /**
+     * Write the row census once per distinct row set (spec: `auto/navigation-view` — Route description
+     * screen; spec: `auto-diagnostics` — no coordinates, counts only). The car list's row count is the
+     * measurement of the change `share-route-rows-in-core`: it is what tells a route whose nodes are
+     * mostly facts-only from a list that lists every published step.
+     */
+    private fun logRowCensus(stepCount: Int, rowCount: Int) {
+        val line = NavigationTemplateMapper.routeDescriptionDiagnostic(rowCount, stepCount)
+        if (line == lastDiagnostic) return
+        lastDiagnostic = line
+        DiagnosticsLog.log(CAR_SCREEN_DIAG_TAG, line)
     }
 
     /** Invalidate when the route or the current step changes. */

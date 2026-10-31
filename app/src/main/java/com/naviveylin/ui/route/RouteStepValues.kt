@@ -2,8 +2,14 @@ package com.naviveylin.ui.route
 
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RouteStep
+import com.naviveylin.core.MIN_ROW_LEG_METERS
 import com.naviveylin.core.Manoeuvre
+import com.naviveylin.core.ROW_MERGE_WINDOW_METERS
+import com.naviveylin.core.RouteRow
+import com.naviveylin.core.foldName
+import com.naviveylin.core.isDataOnly
 import com.naviveylin.core.manoeuvreFromStep
+import com.naviveylin.core.namesMatch
 import kotlin.math.abs
 
 /**
@@ -123,7 +129,7 @@ internal fun routeCensus(steps: List<RouteStep>, rows: List<RouteRow>): String {
         val change = manoeuvres[index]
         val next = manoeuvres.getOrNull(index + 1) ?: return@count false
         change.kind == RouteStep.Kind.NAME_CHANGE &&
-            next.legDistanceMeters < CLOSE_MANOEUVRE_WINDOW_METERS &&
+            next.legDistanceMeters < ROW_MERGE_WINDOW_METERS &&
             namesMatch(change, next)
     }
     // A name change whose name is blank or repeats the previous one, and one that is only too short to

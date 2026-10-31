@@ -1,5 +1,7 @@
 package com.naviveylin.ui.route
 
+import com.naviveylin.core.RouteRow
+
 /**
  * The map position of one route row's manoeuvre (spec: `route-analysis` — Analysed step is
  * locatable on the map).

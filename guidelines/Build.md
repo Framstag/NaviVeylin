@@ -1502,6 +1502,12 @@ Three things this session got wrong once each, and they are the whole cost of th
   `Markierte Favoriten`, `Alle Favoriten`, …), but a restored free-driving or map screen can be in front,
   and then the same coordinate opens nothing — the OCR of the screenshot is what tells the two apart
   (place names = the map).
+- **System BACK does not reach the car app on this AVD; the screen's own back action does.** Measured
+  2026-10-30 while checking the route description (`share-route-rows-in-core`): `input keyevent KEYCODE_BACK`
+  and `DPAD_UP`+`ENTER` left the screen in place with no new host template, while a tap on the header's back
+  chevron (measured at `x 32..53, y 82..103` on a 1080x600 pane whose header reads `< Route`) popped it — the
+  host answered with a `NavigationTemplate` and the app re-adopted its surface. Use the header action as the
+  back affordance in a recipe, and read the pop from the host's template type, not from the screenshot.
 
 The car UI's own tags are the readable half of every check: `Diag/SCREEN` (what a screen observed, incl. the
 list capacity it read), `Diag/HOST` (what the app sent the host), `Diag/SESSION` (session steps) and the
@@ -1936,7 +1942,7 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   live in `classes3.dex`) and always read the case's own log lines, never just the runner's
   `OK (N tests)` — the same trap as the stale asset APK in `TODO.md` §17, one layer down.
 
-## 10k. The route-row census — what the phone's route list may show (`route-panel-from-steps`)
+## 10k. The route-row census — what the route lists may show (`route-panel-from-steps`, `share-route-rows-in-core`)
 
 - **One line per calculated route, on the `ROUTE` tag, coordinate-free.** The view model logs
   `route census:` with `steps=` / `rows=` and counts per step kind (`turn`, `straightOn`, `nameChange`,
@@ -1963,6 +1969,22 @@ and remember `TODO.md` §17: a gradle or logcat verdict must be an execution, no
   badly), and record both lines verbatim: the numbers, not a summary of them, are the evidence. The
   neighbouring `route analysis:` line reports the same routes' row sum against the route's total and
   `maxErrM`, so a projection that lost a leg shows up beside the census.
+- **Both route lists read the same census (`share-route-rows-in-core`).** The rows are derived once, in
+  `core/RouteRows.kt`, and the phone route panel and the car route description both list them — so `rows=`
+  is the phone list's length *and* the car list's, while `steps=` is what a car list would show if it went
+  back to one row per published step (one maneuver bitmap per row). The car list's own copy is the screen's
+  line, read on the AAOS AVD after tapping the route-list action in navigation (§10a):
+
+  ```bash
+  adb logcat -d -s NaviVeylin:* | grep 'route description rows='
+  #   Diag/SCREEN: route description rows=24 steps=330
+  ```
+
+  It is written once per distinct row set from the screen's template build
+  (`NavigationTemplateMapper.routeDescriptionDiagnostic`): counts only, never a position. The two counts
+  differ by the same factor the census's own `rows=`/`steps=` pair shows. A car line whose `rows` equals
+  `steps` means the car list is listing published steps again, and a `rows=` that contradicts the panel's is
+  a second row policy in the tree.
 
 ## 11. Measuring a phone UI finding (do this before changing code)
 

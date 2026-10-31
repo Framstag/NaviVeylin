@@ -11,7 +11,7 @@ import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RoutingProfile
 import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.ui.route.routeCensus
-import com.naviveylin.ui.route.routeRows
+import com.naviveylin.core.routeRows
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit

@@ -39,6 +39,21 @@ class NavigationTemplateMapperTest {
     private fun instr(distance: Double, type: TurnType, street: String) =
         stepOf(distance, type, street, "desc", "short")
 
+    /**
+     * A published step that carries its own leg — the quantity a route-description row states since
+     * change `share-route-rows-in-core` (a row's distance is the run into its manoeuvre, not the
+     * distance from the route's start).
+     */
+    private fun instrWithLeg(leg: Double, type: TurnType, street: String) =
+        stepOf(
+            distanceTo = leg,
+            legDistance = leg,
+            turnType = type,
+            streetName = street,
+            description = "desc",
+            shortDescription = "short"
+        )
+
     // --- maneuverTypeFromTurnType ---
 
     @Test
@@ -558,9 +573,9 @@ class NavigationTemplateMapperTest {
             isNavigating = true,
             currentStepIndex = 1,
             steps = listOf(
-                instr(1000.0, TurnType.START, "Start St"),
-                instr(800.0, TurnType.LEFT, "Main St"),
-                instr(200.0, TurnType.RIGHT, "Elm St")
+                instrWithLeg(0.0, TurnType.START, "Start St"),
+                instrWithLeg(800.0, TurnType.LEFT, "Main St"),
+                instrWithLeg(200.0, TurnType.RIGHT, "Elm St")
             )
         )
         val rows = NavigationTemplateMapper.routeDescriptionRows(testCarContext(), state)
@@ -577,7 +592,7 @@ class NavigationTemplateMapperTest {
         val state = NavigationState(
             isNavigating = true,
             currentStepIndex = 0,
-            steps = listOf(instr(500.0, TurnType.LEFT, ""))
+            steps = listOf(instrWithLeg(500.0, TurnType.LEFT, ""))
         )
         val rows = NavigationTemplateMapper.routeDescriptionRows(testCarContext(), state)
         assertEquals("500 m · Turn left", rows[0].title)

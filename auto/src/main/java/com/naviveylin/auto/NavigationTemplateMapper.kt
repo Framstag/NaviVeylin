@@ -26,6 +26,7 @@ import com.naviveylin.core.nextManoeuvreFrom
 import com.naviveylin.core.remainingMeters
 import com.naviveylin.core.remainingSeconds
 import com.naviveylin.core.roundDistanceMeters
+import com.naviveylin.core.routeRows
 import com.naviveylin.core.stringResolver
 import com.naviveylin.core.turnTypeFor
 import java.util.TimeZone
@@ -270,28 +271,47 @@ object NavigationTemplateMapper {
     )
 
     /**
-     * Rows for the route description screen: distance + target street title,
-     * description text, current step first and marked.
+     * Rows for the route description screen: one row per **driving decision** — the rows the shared
+     * policy derives from the remaining steps (spec: auto/navigation-view — Route description screen;
+     * change `share-route-rows-in-core`) — titled by the row's own leg distance and its target street,
+     * with the manoeuvre's description as the row's text and the first row current.
+     *
+     * Deriving here rather than listing the steps 1:1 keeps this list the phone list's row set: a
+     * facts-only step earns no row and its leg joins the row above, and a row's distance is its own leg
+     * rather than the distance from the route's start.
      */
     fun routeDescriptionRows(carContext: CarContext, state: NavigationState): List<RouteDescriptionRow> {
         val resolver = carContext.stringResolver()
-        return stepsFromCurrentStep(state).mapIndexed { index, step ->
-            val manoeuvre = manoeuvreFromStep(step)
+        return routeRows(stepsFromCurrentStep(state)).mapIndexed { index, row ->
+            val manoeuvre = row.manoeuvre
             val distance = carContext.getString(
-                if (roundDistanceMeters(step.distanceFromStart) >= 1000) R.string.distance_unit_km else R.string.distance_unit_m,
-                formatDistanceNumber(step.distanceFromStart)
+                if (roundDistanceMeters(row.distanceMeters) >= 1000) R.string.distance_unit_km else R.string.distance_unit_m,
+                formatDistanceNumber(row.distanceMeters)
             )
             val target = manoeuvre.displayName?.takeIf { it.isNotBlank() }
                 ?: ManoeuvreLabels.short(resolver, manoeuvre)
             RouteDescriptionRow(
-                turnType = turnTypeFor(step),
+                turnType = turnTypeFor(manoeuvre),
                 title = carContext.getString(R.string.distance_target, distance, target),
                 text = ManoeuvreLabels.description(resolver, manoeuvre),
                 isCurrent = index == 0,
-                roundaboutExitNumber = step.exitOrdinal
+                roundaboutExitNumber = manoeuvre.roundaboutExit ?: 0
             )
         }
     }
+
+    /**
+     * The route description's row census, as one coordinate-free diagnostics line
+     * (spec: `auto/navigation-view` — Route description screen; spec: `auto-diagnostics` — Diagnostics
+     * carry no coordinates; change `share-route-rows-in-core`).
+     *
+     * Counts only: the rows the shared policy derived from the steps the screen was handed. It is what
+     * says on device whether the car list is the phone's row set (`rows` far below `steps` on a route
+     * whose nodes are mostly facts-only) or one row per step again, which is the difference a route
+     * description sends to its host as a template.
+     */
+    fun routeDescriptionDiagnostic(rowCount: Int, stepCount: Int): String =
+        "route description rows=$rowCount steps=$stepCount"
 
     /**
      * Determine if the displayed fields changed enough to warrant a template re-render.

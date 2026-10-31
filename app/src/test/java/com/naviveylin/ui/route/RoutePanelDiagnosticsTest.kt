@@ -1,5 +1,6 @@
 package com.naviveylin.ui.route
 
+import com.naviveylin.core.routeRows
 import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import org.junit.Assert.assertFalse

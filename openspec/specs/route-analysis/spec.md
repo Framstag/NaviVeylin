@@ -298,10 +298,7 @@ A route reaching the map SHALL carry an analysed step only when a session's own 
 
 ### Requirement: Rows are derived from the route's steps
 
-The route analysis SHALL derive its rows from the route's structured steps, never from description text. A row
-SHALL exist for the start, the arrival, every turn, roundabout, motorway and street-name manoeuvre;
-consecutive straight-on turns SHALL form one row. A step carrying only informational values SHALL NOT be a row.
-A row SHALL carry the legs of every step merged into it, so the rows still cover the route once.
+The system SHALL derive route rows from the route's structured steps — never from description text — by one policy shared by the phone route list and the car route description. A row SHALL exist for the start, the arrival, every turn, roundabout, motorway and street-name manoeuvre; consecutive straight-on turns SHALL form one row. A step carrying only informational values SHALL NOT be a row. A row SHALL carry the legs of every step merged into it, so the rows cover the route once.
 
 #### Scenario: Roundabout and motorway manoeuvres are rows
 
@@ -367,6 +364,13 @@ A row SHALL carry the legs of every step merged into it, so the rows still cover
 - **THEN** the route's complete step list SHALL remain available in the navigation state
 - **AND** deriving rows SHALL NOT mutate or shorten it
 - **Case**: `app: RouteRowDerivationTest` "row derivation leaves the step list intact"
+
+#### Scenario: Both surfaces list the same rows
+
+- **WHEN** a route is listed by the phone route list and by the car route description
+- **THEN** both lists SHALL contain the same rows in the same order with the same count
+- **AND** neither surface SHALL derive a list the other one does not
+- **Case**: `auto: RouteDescriptionScreenTest` "the car list is the same row set as the phone's"
 
 ### Requirement: The route's start anchor is the published start position
 

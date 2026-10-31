@@ -20,8 +20,11 @@ import com.naviveylin.core.FailureReason
 import com.naviveylin.core.LocationGrant
 import com.naviveylin.core.ManoeuvreLabels
 import com.naviveylin.core.NavigationFailure
+import com.naviveylin.core.RouteRow
+import com.naviveylin.core.routeRows
 import com.naviveylin.core.stringResolver
 import com.naviveylin.core.SurfaceOrigin
+import com.naviveylin.core.turnTypeFor
 import com.naviveylin.core.navigationFailureText
 import com.naviveylin.navigation.navigationFailureOf
 import com.naviveylin.core.search.ClientSearchRequests
@@ -812,7 +815,7 @@ class RoutePanelViewModel @Inject constructor(
             instruction = ManoeuvreLabels.description(resolver, manoeuvre),
             distanceMeters = distanceMeters,
             durationSeconds = durationSeconds,
-            turnType = rowTurnType(manoeuvre),
+            turnType = turnTypeFor(manoeuvre),
             kind = manoeuvre.kind,
             roundaboutExit = manoeuvre.roundaboutExit
         )

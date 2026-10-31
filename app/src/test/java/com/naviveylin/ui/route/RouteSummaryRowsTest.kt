@@ -1,5 +1,7 @@
 package com.naviveylin.ui.route
 
+import com.naviveylin.core.routeRows
+import com.naviveylin.core.turnTypeFor
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -47,7 +49,7 @@ class RouteSummaryRowsTest {
             },
             distanceMeters = row.distanceMeters,
             durationSeconds = row.durationSeconds,
-            turnType = rowTurnType(row.manoeuvre)
+            turnType = turnTypeFor(row.manoeuvre)
         )
     }
 
@@ -90,7 +92,7 @@ class RouteSummaryRowsTest {
                         instruction = "Straight on",
                         distanceMeters = row.distanceMeters,
                         durationSeconds = row.durationSeconds,
-                        turnType = rowTurnType(row.manoeuvre)
+                        turnType = turnTypeFor(row.manoeuvre)
                     )
                 }
             )

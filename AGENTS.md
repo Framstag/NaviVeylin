@@ -32,7 +32,7 @@ give.
 | car screens — templates, wait notices, car search and details | `UICar.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 2.9 kB, §6b 5.2 kB (measured 2026-10-29) |
 | parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6, §8d "Cross-variant map presentation" 5.5 kB (measured 2026-10-31) |
 | dark mode and text/localisation, on both surfaces | `UI.md` §9, §10 |
-| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 10.0 kB, §8b 2.9 kB (the car host path, the surface and the observation seam), `MapCar.md` §14, `UICar.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
+| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 10.3 kB, §8b 2.9 kB (the car host path, the surface and the observation seam), `MapCar.md` §14, `UICar.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
 | a surface that must live while a phone and a car session are both active | `MapCar.md` §18, `UIPhoneMap.md` §10a "Phone surface while a car session is active" 2.4 kB (measured 2026-10-29) |
 | search, favourites, settings, persistence | `DesignStack.md` §9 "Data, persistence & search", `UIPhone.md` §6a "Phone search surface" 6.1 kB (measured 2026-10-29) |
 | logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `BuildNative.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
@@ -49,7 +49,7 @@ give.
 | legal, regulatory, Play policy, privacy, diagnostics disclosure | `Regulatory.md` §2, §3, §4, §6, §9 |
 | engineering principles, and the checklist before an apply pass | `Design.md` §12 "General engineering principles"; the apply checklist is `Design.recipes.md` "Appendix A — Quick checklist (apply phase)" |
 | why an earlier decision was reversed | `Design.why.md` — its "Superseded decisions" section and its "Appendix B — Provenance" |
-| the design document set — which of the four documents carries which section of `Design.md` | `Design.md` §1, §3, §4, §12; `DesignStack.md` §2, §9; `DesignNative.md` §5a 8.0 kB, §5b 6.5 kB; `DesignCrossVariant.md` §6, §7, §8a 10.0 kB, §8b 2.9 kB, §10, §11 |
+| the design document set — which of the four documents carries which section of `Design.md` | `Design.md` §1, §3, §4, §12; `DesignStack.md` §2, §9; `DesignNative.md` §5a 8.0 kB, §5b 6.5 kB; `DesignCrossVariant.md` §6, §7, §8a 10.3 kB, §8b 2.9 kB, §10, §11 |
 | a rendering regression to re-check, and the parameter table | `MapFrames.why.md` "Known Pitfalls" (the regression checklist), `MapRendering.recipes.md` "Parameter Overview" |
 | what is open, and what to do next | the issue tracker (`Framstag/NaviVeylin`, operated by `tools/issues/*.sh`) — `tools/issues/list.sh --status open`, plus the two saved searches (open bugs, open improvements); `--id N` resolves one migrated entry. Skills `triage-todo` (rank), `cleanup-todo` (prune), and the four tooling skills `create-issue`, `list-issues`, `update-issue`, `close-issue` |
 | whether `UI.md` is still accurate | `UI.md` §20 "Keeping this document honest" |

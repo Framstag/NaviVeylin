@@ -418,20 +418,24 @@ class MapManagerViewModel @Inject constructor(
 
     fun refreshAvailableMaps() {
         viewModelScope.launch(ioDispatcher) {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val entries = downloadManager.fetchAvailableMaps(defaultProvider)
-                _uiState.value = _uiState.value.copy(
-                    availableEntries = entries,
-                    isLoading = false
-                )
+                _uiState.update {
+                    it.copy(
+                        availableEntries = entries,
+                        isLoading = false
+                    )
+                }
                 // Merge installed maps after fetch
                 refreshInstalledMaps()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "Failed to fetch map list"
-                )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Failed to fetch map list"
+                    )
+                }
             }
         }
     }
@@ -520,20 +524,24 @@ class MapManagerViewModel @Inject constructor(
                 }
                 val merged = (synthetic + nonInstalled).distinctBy { it.name.lowercase() }
 
-                _uiState.value = _uiState.value.copy(
-                    installedMapPaths = pathSet,
-                    installedSources = dirs.associateWith { dir ->
-                        provenanceOf(dir)
-                    },
-                    availableEntries = merged
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = application.getString(
-                        R.string.map_refresh_failed,
-                        e.message ?: application.getString(R.string.unknown_error)
+                _uiState.update {
+                    it.copy(
+                        installedMapPaths = pathSet,
+                        installedSources = dirs.associateWith { dir ->
+                            provenanceOf(dir)
+                        },
+                        availableEntries = merged
                     )
-                )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        error = application.getString(
+                            R.string.map_refresh_failed,
+                            e.message ?: application.getString(R.string.unknown_error)
+                        )
+                    )
+                }
             }
         }
     }
@@ -699,9 +707,9 @@ class MapManagerViewModel @Inject constructor(
             statusText = if (total > 0) "$pct%" else "$bytes bytes"
         )
         // Update progress map directly in UI state for reactive updates
-        _uiState.value = _uiState.value.copy(
-            progressMap = _uiState.value.progressMap + (mapName to pct)
-        )
+        _uiState.update {
+            it.copy(progressMap = it.progressMap + (mapName to pct))
+        }
         updateActiveDownloads()
     }
 
@@ -709,9 +717,9 @@ class MapManagerViewModel @Inject constructor(
     private fun publishComplete(mapName: String, dir: String) {
         Log.d("MapManagerVM", "onComplete: $mapName at $dir")
         downloadStates.remove(mapName)
-        _uiState.value = _uiState.value.copy(
-            progressMap = _uiState.value.progressMap - mapName
-        )
+        _uiState.update {
+            it.copy(progressMap = it.progressMap - mapName)
+        }
         updateActiveDownloads()
         refreshInstalledMaps()
     }
@@ -733,9 +741,9 @@ class MapManagerViewModel @Inject constructor(
                 downloadHandle = null
             )
             if (isCancelled) downloadStates.remove(mapName)
-            _uiState.value = _uiState.value.copy(
-                progressMap = _uiState.value.progressMap - mapName
-            )
+            _uiState.update {
+                it.copy(progressMap = it.progressMap - mapName)
+            }
             updateActiveDownloads()
         }
     }
@@ -758,17 +766,21 @@ class MapManagerViewModel @Inject constructor(
                 if (deleted) {
                     refreshInstalledMaps()
                 } else {
-                    _uiState.value = _uiState.value.copy(
-                        error = application.getString(R.string.map_delete_failed, mapName)
-                    )
+                    _uiState.update {
+                        it.copy(
+                            error = application.getString(R.string.map_delete_failed, mapName)
+                        )
+                    }
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = application.getString(
-                        R.string.map_delete_failed,
-                        e.message ?: application.getString(R.string.unknown_error)
+                _uiState.update {
+                    it.copy(
+                        error = application.getString(
+                            R.string.map_delete_failed,
+                            e.message ?: application.getString(R.string.unknown_error)
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -776,9 +788,9 @@ class MapManagerViewModel @Inject constructor(
     /** Dismiss a download error task; the entry returns to the available state. */
     fun dismissError(mapName: String) {
         downloadStates.remove(mapName)
-        _uiState.value = _uiState.value.copy(
-            progressMap = _uiState.value.progressMap - mapName
-        )
+        _uiState.update {
+            it.copy(progressMap = it.progressMap - mapName)
+        }
         updateActiveDownloads()
     }
 
@@ -830,10 +842,12 @@ class MapManagerViewModel @Inject constructor(
                     it.downloadState == DownloadState.Error
             }
             .sortedBy { it.entry.name }
-        _uiState.value = _uiState.value.copy(
-            activeDownloads = active,
-            downloadingNames = downloadStates.keys.toSet()
-        )
+        _uiState.update {
+            it.copy(
+                activeDownloads = active,
+                downloadingNames = downloadStates.keys.toSet()
+            )
+        }
         // Throttle the notification updates to avoid spam; stopping is not throttled, so the service
         // never lingers after the last download ended (spec `map-download-infrastructure` — "The
         // foreground service stops when downloads end").
@@ -857,11 +871,13 @@ class MapManagerViewModel @Inject constructor(
     fun refreshSources() {
         viewModelScope.launch(ioDispatcher) {
             val settings = settingsStorage.load()
-            _uiState.value = _uiState.value.copy(
-                sources = sourceRegistry.availableSources(),
-                activeSource = settings.selectedMapSource(),
-                repositoryUrlDraft = settings.mapRepositoryUrl
-            )
+            _uiState.update {
+                it.copy(
+                    sources = sourceRegistry.availableSources(),
+                    activeSource = settings.selectedMapSource(),
+                    repositoryUrlDraft = settings.mapRepositoryUrl
+                )
+            }
         }
     }
 
@@ -870,10 +886,12 @@ class MapManagerViewModel @Inject constructor(
      * issue a request (spec `map-download-ui` — "URL field remembers the last value per source").
      */
     fun updateRepositoryUrlDraft(url: String) {
-        _uiState.value = _uiState.value.copy(
-            repositoryUrlDraft = url,
-            sourceTestOutcome = null
-        )
+        _uiState.update {
+            it.copy(
+                repositoryUrlDraft = url,
+                sourceTestOutcome = null
+            )
+        }
         viewModelScope.launch(ioDispatcher) {
             settingsStorage.update { it.copy(mapRepositoryUrl = url) }
         }
@@ -888,7 +906,7 @@ class MapManagerViewModel @Inject constructor(
      */
     fun testRepositoryUrl() {
         viewModelScope.launch(ioDispatcher) {
-            _uiState.value = _uiState.value.copy(isTestingSource = true, sourceTestOutcome = null)
+            _uiState.update { it.copy(isTestingSource = true, sourceTestOutcome = null) }
             val url = _uiState.value.repositoryUrlDraft
             val outcome = when (val result = sourceRegistry.repositoryLister(MapSource.repository(url))
                 .availableRegions(localeLanguage())) {
@@ -902,7 +920,7 @@ class MapManagerViewModel @Inject constructor(
                     failure = result.failure
                 )
             }
-            _uiState.value = _uiState.value.copy(isTestingSource = false, sourceTestOutcome = outcome)
+            _uiState.update { it.copy(isTestingSource = false, sourceTestOutcome = outcome) }
         }
     }
 
@@ -924,7 +942,7 @@ class MapManagerViewModel @Inject constructor(
                 target.baseUrl.isNotBlank() -> target
                 stored.mapRepositoryUrl.isNotBlank() -> MapSource.repository(stored.mapRepositoryUrl)
                 else -> {
-                    _uiState.value = _uiState.value.copy(repositoryUrlRevealed = true)
+                    _uiState.update { it.copy(repositoryUrlRevealed = true) }
                     return@launch
                 }
             }
@@ -932,10 +950,12 @@ class MapManagerViewModel @Inject constructor(
             if (plan.isEmpty) {
                 applySourceSwitch(resolved, plan)
             } else {
-                _uiState.value = _uiState.value.copy(
-                    pendingSourceSwitch = plan,
-                    pendingSourceTarget = resolved
-                )
+                _uiState.update {
+                    it.copy(
+                        pendingSourceSwitch = plan,
+                        pendingSourceTarget = resolved
+                    )
+                }
             }
         }
     }
@@ -944,19 +964,23 @@ class MapManagerViewModel @Inject constructor(
     fun confirmSourceSwitch() {
         val target = _uiState.value.pendingSourceTarget ?: return
         val plan = _uiState.value.pendingSourceSwitch ?: MapSourceSwitchPlan(emptyList(), 0L, null, 0L)
-        _uiState.value = _uiState.value.copy(
-            pendingSourceSwitch = null,
-            pendingSourceTarget = null
-        )
+        _uiState.update {
+            it.copy(
+                pendingSourceSwitch = null,
+                pendingSourceTarget = null
+            )
+        }
         viewModelScope.launch(ioDispatcher) { applySourceSwitch(target, plan) }
     }
 
     /** Drop the held switch: nothing is deleted and the active source stays. */
     fun cancelSourceSwitch() {
-        _uiState.value = _uiState.value.copy(
-            pendingSourceSwitch = null,
-            pendingSourceTarget = null
-        )
+        _uiState.update {
+            it.copy(
+                pendingSourceSwitch = null,
+                pendingSourceTarget = null
+            )
+        }
     }
 
     /**
@@ -983,21 +1007,23 @@ class MapManagerViewModel @Inject constructor(
         // has one (spec `basemap-ui` — "Basemap status clears when its source's data is deleted").
         basemapRegistrar.apply(survivingBasemapDirectory())
 
-        _uiState.value = _uiState.value.copy(activeSource = target)
+        _uiState.update { it.copy(activeSource = target) }
         if (failed.isNotEmpty()) {
-            _uiState.value = _uiState.value.copy(
-                error = application.getString(
-                    R.string.source_switch_delete_failed,
-                    failed.joinToString { it.fileName.toString() }
+            _uiState.update {
+                it.copy(
+                    error = application.getString(
+                        R.string.source_switch_delete_failed,
+                        failed.joinToString { it.fileName.toString() }
+                    )
                 )
-            )
+            }
         }
         refreshSources()
         refreshInstalledMaps()
         if (target.isRepository) {
             refreshRepositoryRegions()
         } else {
-            _uiState.value = _uiState.value.copy(repositoryLeaves = emptyList(), leafMetadata = emptyMap())
+            _uiState.update { it.copy(repositoryLeaves = emptyList(), leafMetadata = emptyMap()) }
             refreshAvailableMaps()
         }
     }
@@ -1013,7 +1039,7 @@ class MapManagerViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) {
             val source = _uiState.value.activeSource
             if (!source.isRepository) return@launch
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = sourceRegistry.repositoryLister(source).availableRegions(localeLanguage())) {
                 is RegionIndexResult.Loaded -> {
                     val leaves = result.regions.flatMap { it.leaves() }.map { leaf ->
@@ -1028,19 +1054,23 @@ class MapManagerViewModel @Inject constructor(
                             -1
                         )
                     }
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        repositoryLeaves = leaves,
-                        repositoryRegionLabels = regionLabelsOf(result.regions),
-                        availableEntries = leaves + _uiState.value.availableEntries
-                            .filter { entry -> entry.name !in _uiState.value.repositoryLeaves.map { it.name } }
-                    )
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            repositoryLeaves = leaves,
+                            repositoryRegionLabels = regionLabelsOf(result.regions),
+                            availableEntries = leaves + it.availableEntries
+                                .filter { entry -> entry.name !in it.repositoryLeaves.map { leaf -> leaf.name } }
+                        )
+                    }
                 }
                 is RegionIndexResult.Unusable -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = application.getString(R.string.repository_region_index_unreadable)
-                    )
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = application.getString(R.string.repository_region_index_unreadable)
+                        )
+                    }
                 }
             }
         }
@@ -1057,9 +1087,9 @@ class MapManagerViewModel @Inject constructor(
         if (current is LeafMetadataState.Probing || current is LeafMetadataState.Loaded) return
         val source = _uiState.value.activeSource
         if (!source.isRepository) return
-        _uiState.value = _uiState.value.copy(
-            leafMetadata = _uiState.value.leafMetadata + (key to LeafMetadataState.Probing)
-        )
+        _uiState.update {
+            it.copy(leafMetadata = it.leafMetadata + (key to LeafMetadataState.Probing))
+        }
         viewModelScope.launch(ioDispatcher) {
             val state = when (
                 val result = sourceRegistry.repositoryLister(source)
@@ -1072,31 +1102,33 @@ class MapManagerViewModel @Inject constructor(
                     else -> LeafMetadataState.Failed(result.failure)
                 }
             }
-            _uiState.value = _uiState.value.copy(
-                leafMetadata = _uiState.value.leafMetadata + (key to state),
-                repositoryLeaves = _uiState.value.repositoryLeaves.map { entry ->
-                    if (entry.serverDirectory == key && state is LeafMetadataState.Loaded) {
-                        AvailableMapEntry(
-                            entry.name, entry.path, entry.description, entry.provider,
-                            state.metadata.totalSizeBytes, entry.serverDirectory,
-                            entry.creationTimestamp, state.metadata.typeConfigVersion
-                        )
-                    } else {
-                        entry
+            _uiState.update {
+                it.copy(
+                    leafMetadata = it.leafMetadata + (key to state),
+                    repositoryLeaves = it.repositoryLeaves.map { entry ->
+                        if (entry.serverDirectory == key && state is LeafMetadataState.Loaded) {
+                            AvailableMapEntry(
+                                entry.name, entry.path, entry.description, entry.provider,
+                                state.metadata.totalSizeBytes, entry.serverDirectory,
+                                entry.creationTimestamp, state.metadata.typeConfigVersion
+                            )
+                        } else {
+                            entry
+                        }
+                    },
+                    availableEntries = it.availableEntries.map { entry ->
+                        if (entry.serverDirectory == key && state is LeafMetadataState.Loaded) {
+                            AvailableMapEntry(
+                                entry.name, entry.path, entry.description, entry.provider,
+                                state.metadata.totalSizeBytes, entry.serverDirectory,
+                                entry.creationTimestamp, state.metadata.typeConfigVersion
+                            )
+                        } else {
+                            entry
+                        }
                     }
-                },
-                availableEntries = _uiState.value.availableEntries.map { entry ->
-                    if (entry.serverDirectory == key && state is LeafMetadataState.Loaded) {
-                        AvailableMapEntry(
-                            entry.name, entry.path, entry.description, entry.provider,
-                            state.metadata.totalSizeBytes, entry.serverDirectory,
-                            entry.creationTimestamp, state.metadata.typeConfigVersion
-                        )
-                    } else {
-                        entry
-                    }
-                }
-            )
+                )
+            }
         }
     }
 

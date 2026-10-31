@@ -182,7 +182,10 @@ screen-observation seam, cross-variant parity and distribution.
   bounded — the session mutates no host state (no screen push/pop, no template
   invalidate, no host navigation-state change) and the ongoing notification is
   re-posted only when its host-visible content changed; guidance updates and
-  trip metadata keep flowing. A template is rebuilt only when its displayed content
+  trip metadata keep flowing (spec: `car-host-fault-isolation` — Trip metadata publishing is bounded by the
+  navigation period: the trip send is what the start/end pair does not defer, the collector takes that
+  decision from `tripSendAllowed`, and `:auto`'s `checkTripSendGate` refuses a collector that asks
+  `SessionHostGate.allowHostMutation()`). A template is rebuilt only when its displayed content
   changes materially: the distance values are compared as the host displays them
   (the shared rounding), not metre by metre, and a template asset the host receives
   per rebuild (the lane-guidance image) is reused while its state is unchanged.

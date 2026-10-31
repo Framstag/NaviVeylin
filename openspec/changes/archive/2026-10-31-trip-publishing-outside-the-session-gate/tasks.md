@@ -58,10 +58,12 @@ is bounded by the navigation period** (delta:
 
 ## 4. The change is verified
 
-- [x] 4.1 **Superseded at reintegration** — the guideline reference is *not* added: the parallel
-  `guideline-layers` change moves `guidelines/Design.md` §8 to `DesignCrossVariant.md` §8a, so this change leaves
-  the guideline untouched and records the sentence to add afterwards (`proposal.md`, "Guideline reference").
-  *Verify:* `git status --short` shows no `guidelines/Design.md` modification; the sentence is in the proposal.
+- [x] 4.1 **Completed at reintegration, in the post-split file.** `guidelines/Design.md` §8 was moved to
+  `guidelines/DesignCrossVariant.md` §8a by the `guideline-layers` change (`4330ce3e`); the requirement
+  reference was added to §8a's "host traffic is bounded while the car app is not visible" rule during the rebase
+  onto it, with the two `AGENTS.md` routing rows re-priced 10.0 → 10.3 kB (`tools/check-doc-routes.sh`).
+  *Verify:* `bash tools/check-doc-routes.sh` → all 327 references resolve; `DesignCrossVariant.md` §8a states the
+  spec requirement and `checkTripSendGate`.
 - [x] 4.2 Full gate, both flavors, once (`guidelines/Build.md` §2 and §4): the app builds and every unit and
   instrumented suite the gate covers is green.
   *Verify:* the gate's verdict line, plus the run's flavor/suite coverage per `Build.md` §4b. Exclusions: none.

@@ -51,16 +51,12 @@ change" — and it is cheap while the deviation is still only a KDoc.
   that asks `SessionHostGate.allowHostMutation()`, one that no longer takes its decision from
   `tripSendAllowed(...)`, and it fails loudly if no collector is found at all, so a renamed or moved collector
   cannot turn the rule off silently.
-- **Guideline reference — deliberately not in this change.** `guidelines/Design.md` §8 already states
-  "guidance updates and trip metadata keep flowing" on this base, so nothing needs changing for consistency. The
-  section is being moved to `guidelines/DesignCrossVariant.md` §8a "The car host path and the surface" by the
-  parallel `guideline-layers` change (uncommitted in the main tree at the time of writing), so editing
-  `Design.md` here would collide with a split this change does not own. The sentence to add after that split
-  lands, in the file that then owns the section:
-
-  > trip metadata keep flowing (spec: `car-host-fault-isolation` — Trip metadata publishing is bounded by the
-  > navigation period; the trip collector takes that decision from `tripSendAllowed`, and the `:auto` check
-  > `checkTripSendGate` refuses a collector that asks `SessionHostGate.allowHostMutation()`).
+- **Guideline reference — landed after the split.** `guidelines/Design.md` §8 was moved to
+  `guidelines/DesignCrossVariant.md` §8a "The car host path and the surface" by the parallel `guideline-layers`
+  change (`4330ce3e`), so this change did not edit `Design.md`. The reference was added to §8a's
+  "host traffic is bounded while the car app is not visible" rule in the same commit that rebased onto that
+  change, together with the two `AGENTS.md` routing rows whose stated §8a measurement moved with it
+  (10.0 → 10.3 kB, `tools/check-doc-routes.sh`).
 - **Close the tracker item.** Issue #71 gets a comment naming the archived requirement and the test, and is
   closed as resolved-by-declaration rather than fixed-by-code — the code was already correct. The item's own
   first fix candidate (gate the send) stays rejected in `design.md` D1. Its stale

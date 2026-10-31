@@ -193,6 +193,9 @@ class ClickPathDefersAndConfinesTest {
             every { groupOrder() } returns MutableStateFlow(listOf("Cities", "Work"))
             every { starredOrder() } returns MutableStateFlow(emptyList())
             every { storeReady() } returns MutableStateFlow(true)
+            // This case is about the row click path, not the cold-session publish (issue #110): the
+            // provider has not resolved a store, so it hands out no snapshot.
+            every { snapshotIfResolved() } returns null
         }
         every { EntryPoints.get(any(), AutoEntryPoint::class.java) } returns entry
 

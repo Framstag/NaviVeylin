@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -122,5 +123,29 @@ class AutoFavoritesProviderImplTest {
 
         assertTrue("the initialisation has to fail for this case to mean anything", attempt.isFailure)
         assertTrue("a failed attempt still reports readiness", brokenProvider.storeReady().value)
+    }
+
+    // --- The snapshot the car host thread may read (issue #110) ---
+
+    @Test
+    fun snapshotIsNullUntilTheProviderHasResolvedTheStore() {
+        // No accessor ran: resolving the repository builds the native client, and this method must
+        // never be the call that does that on the car-app host thread.
+        assertNull("an unresolved provider has no state to hand out", provider.snapshotIfResolved())
+    }
+
+    @Test
+    fun snapshotReportsTheResolvedStoresCurrentState() = runTest {
+        initRepository()
+        provider.addFavorite("Mario's", 51.5, 7.4)
+
+        val snapshot = provider.snapshotIfResolved()
+
+        assertNotNull("a resolved store hands its state out", snapshot)
+        assertTrue("the snapshot carries the store's readiness", snapshot!!.storeReady)
+        assertEquals(
+            listOf("Mario's"),
+            snapshot.favorites[DEFAULT_FAVORITE_GROUP]?.map { it.name }
+        )
     }
 }

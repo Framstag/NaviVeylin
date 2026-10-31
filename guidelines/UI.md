@@ -357,7 +357,16 @@ The car map renderer MUST initialize off the car-app main thread (spec:
   loading row it shows for that wait is honest only while the store is
   uninitialised, which is why the store's readiness is its own signal
   (`AutoFavoritesProvider.storeReady`) rather than a guess made from an empty
-  favourites map.
+  favourites map. **That wait is not the row's deadline** (issue #110, change
+  `fix-car-favorites-cold-template`): the hop is a dispatch onto a shared
+  background dispatcher, and on a cold session the map's first frame holds those
+  threads and the CPU, so the hop entered 623–1715 ms after the observation
+  started while the store had been ready for seconds. A resolved provider
+  therefore hands its current state out without a dispatch
+  (`AutoFavoritesProvider.snapshotIfResolved`) and `FavoritesScreenObservations`
+  publishes it before the hop, so the row stands only for a store the provider has
+  not resolved — on device the published state then arrives in 1–9 ms instead of
+  623–1719 ms.
 - **Host callbacks retain state only**: `onSurfaceAvailable` buffers the surface
   DPI (`RendererGate.surfaceDpi`) and hands it to the renderer as that renderer's
   projection DPI — resolving the client from a callback is forbidden even when the

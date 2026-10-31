@@ -4,6 +4,7 @@ import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.core.AutoFavoritesProvider
 import com.naviveylin.core.DiagnosticsLog
+import com.naviveylin.core.FavoritesSnapshot
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,16 @@ import kotlinx.coroutines.withContext
  * the combined flow's first emission — is what keeps a ready store from being rendered as loading for
  * the width of a channel hop (design D3). The collection then carries later changes; its own first
  * emission repeats the state just published, which is idempotent for the screen.
+ *
+ * **An already-resolved store's state is published before the hop, not after it.** The hop is a
+ * `withContext` onto a shared background dispatcher, and on a cold session the map's first frame
+ * (stylesheet and type config parse, tile retrieval, bitmap render) holds those threads and the CPU:
+ * measured on the AAOS emulator, `favorites resolution entered` arrived 623–1715 ms after
+ * `favorites observation start` while the store had been ready for seconds, so the loading row stayed on
+ * screen although the list was known (issue #110). The provider can hand out that state without a
+ * dispatch ([AutoFavoritesProvider.snapshotIfResolved]), so the screen publishes it at the start of the
+ * period; the hop's own publish then repeats it and `publishOnce` drops the repetition. The hop still
+ * runs and still establishes the collection — nothing here resolves the provider on the host thread.
  *
  * The effects stay on the screen (they write its state fields and call `invalidate()`, which is
  * main-thread only), so they arrive as one callback — this class is testable without a `CarContext`.
@@ -68,29 +79,10 @@ internal class FavoritesScreenObservations(
             // period and the moment the store's state reaches the screen (identity, counts and durations
             // only — `guidelines/Logging.md` §3, spec: auto-diagnostics).
             DiagnosticsLog.log(CAR_SCREEN_DIAG_TAG, "favorites observation start")
-            val sources = withContext(backgroundDispatcher) {
-                DiagnosticsLog.log(
-                    CAR_SCREEN_DIAG_TAG,
-                    "favorites resolution entered after ${System.currentTimeMillis() - startedAt}ms " +
-                        "(thread=${Thread.currentThread().name})"
-                )
-                FavoritesSources(
-                    favorites = favoritesProvider.favoriteLocations(),
-                    groupOrder = favoritesProvider.groupOrder(),
-                    starredOrder = favoritesProvider.starredOrder(),
-                    storeReady = favoritesProvider.storeReady()
-                )
-            }
-            DiagnosticsLog.log(
-                CAR_SCREEN_DIAG_TAG,
-                "favorites resolution done after ${System.currentTimeMillis() - startedAt}ms " +
-                    "(thread=${Thread.currentThread().name})"
-            )
-            // The store's state as the resolution left it: the current value of every source, so the
-            // first template after this start carries it (design D3). The collection's own first
-            // emission repeats this state, and `publishOnce` is what keeps the repetition from reaching
-            // the screen as a second refresh — one applied state per start, which is what the
-            // observation's "exactly once" guarantee counts.
+            // The store's state as the observation leaves it, so the first template after this start
+            // carries it (design D3). `publishOnce` keeps a repeated state from reaching the screen as a
+            // second refresh — one applied state per start, which is what the observation's "exactly
+            // once" guarantee counts.
             var publishedAt = 0L
             var lastPublished: FavoritesState? = null
             fun publishOnce(state: FavoritesState) {
@@ -109,6 +101,30 @@ internal class FavoritesScreenObservations(
                 publish(state)
             }
 
+            // A resolved provider's current state needs no dispatch, and the hop is exactly what the
+            // map's first frame delays: publishing it here is what keeps the first template off the
+            // loading row when the store is already ready (issue #110). An unresolved provider answers
+            // null, so nothing is invented and the loading row stands until the hop's own publish.
+            favoritesProvider.snapshotIfResolved()?.let { publishOnce(FavoritesState.of(it)) }
+
+            val sources = withContext(backgroundDispatcher) {
+                DiagnosticsLog.log(
+                    CAR_SCREEN_DIAG_TAG,
+                    "favorites resolution entered after ${System.currentTimeMillis() - startedAt}ms " +
+                        "(thread=${Thread.currentThread().name})"
+                )
+                FavoritesSources(
+                    favorites = favoritesProvider.favoriteLocations(),
+                    groupOrder = favoritesProvider.groupOrder(),
+                    starredOrder = favoritesProvider.starredOrder(),
+                    storeReady = favoritesProvider.storeReady()
+                )
+            }
+            DiagnosticsLog.log(
+                CAR_SCREEN_DIAG_TAG,
+                "favorites resolution done after ${System.currentTimeMillis() - startedAt}ms " +
+                    "(thread=${Thread.currentThread().name})"
+            )
             publishOnce(FavoritesState.of(sources))
             combine(
                 sources.favorites,
@@ -158,6 +174,14 @@ private data class FavoritesState(
             groupOrder = sources.groupOrder.value,
             starredOrder = sources.starredOrder.value,
             storeReady = sources.storeReady.value
+        )
+
+        /** The state a resolved provider handed out, without a dispatch (issue #110). */
+        fun of(snapshot: FavoritesSnapshot): FavoritesState = FavoritesState(
+            favorites = snapshot.favorites,
+            groupOrder = snapshot.groupOrder,
+            starredOrder = snapshot.starredOrder,
+            storeReady = snapshot.storeReady
         )
     }
 }

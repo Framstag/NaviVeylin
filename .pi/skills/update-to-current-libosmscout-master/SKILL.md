@@ -75,6 +75,13 @@ Conflicts are the normal case, not the exception: upstream and NaviVeylin both e
    - `NavigationPosition.java` — NaviVeylin adds local fields/ctor parameters (e.g. `wayType`) exactly where upstream adds its own (`wayName`/`wayRef`). Resolution: **keep ours** per hunk; upstream's additions usually already sit in the non-conflicting context.
    - `RoadInfo.java` — add/add: both sides created the file. Compare `git show :2:<file>` (ours) and `git show :3:<file>` (theirs); they are frequently identical apart from javadoc. Take upstream's (`git checkout --theirs -- <file>`) unless NaviVeylin has real API differences.
    - `OSMScoutClient.cpp` — content conflict around our plumbing (ctor signature `(...Ljava/lang/String;)V`, `wayTypeJ` local refs, includes) vs upstream's new API. Resolution: **keep ours per hunk**.
+   - `libosmscout-client/src/osmscoutclient/MapManager.cpp` — not a conflict in every merge, but it carries a
+     NaviVeylin-local commit that must survive one: `LookupDatabases()` reads each candidate's data format
+     version and skips a directory whose version differs from `FILE_FORMAT_VERSION` (issue #716, change
+     `fix-basemap-scan-format`). Upstream may rework the same scan; when it does, keep the version read and
+     the skip, and re-run `meson test -C hostbuild "Check map manager"` — its cases are
+     "A scan skips a database whose data format this build does not read" and "A database whose data format
+     version cannot be read stays published".
 3. For the `.cpp` do NOT use `git checkout --ours` on the whole file: it would also drop upstream's *non-conflicting* changes from that file. Resolve hunk-by-hunk instead — e.g. strip markers keeping the `HEAD` side:
    ```bash
    awk '/^<<<<<<< /{keep=1; next} /^=======$/{if(keep){keep=0; drop=1; next}} /^>>>>>>> /{drop=0; next} !drop{print}' \

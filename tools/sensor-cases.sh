@@ -2733,7 +2733,9 @@ case_workflow_aRedRecordRunsNoRecordRow() {
 # have one live home — and every `gh` verb a declared row's command calls must be inside them.
 case_sensors_theDocumentedCredentialCoversEveryDeclaredRow() {
   local doc scope registry command verb need
-  doc="$SENSORS_REPO_ROOT/guidelines/Backlog.md"
+  # §9 moved to `guidelines/BacklogTooling.md` when the backlog corpus was split (its "Checks" section);
+  # `guidelines/Backlog.md` now ends at §7, so reading it left this scope empty and the case red.
+  doc="$SENSORS_REPO_ROOT/guidelines/BacklogTooling.md"
   registry="$SENSORS_ENGINE/sensors.json"
   [ -f "$doc" ] || fail "the checks' doctrine has no file"
 

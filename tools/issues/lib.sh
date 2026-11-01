@@ -326,6 +326,24 @@ issues_question_of() { # <comment-json> → the question it carries, one line
   printf '%s' "$json" | jq -r '.body // "" | '"$ISSUES_QUESTION_JQ"
 }
 
+# The statement a *shaping* comment carries (capability `shaping-inbox`). The run writes it from
+# `tools/loop/labels.sh`: the verdict word on the first line, then `**The shaping:**` and the clause that produced
+# it — the same two-part shape the escalation uses for its question, so a writer and a reader cannot drift about
+# where the verdict is. The program takes a comment body and answers `{verdict, clause}`; an item with no
+# comment, or one whose comment states no verdict, answers two empty strings, and the queue names that rather
+# than presenting it as a finding. One home, embedded by `tools/issues/shaping.sh`, exactly as `ISSUES_QUESTION_JQ`
+# is embedded by `decisions.sh` and restated once in `core/WorkPackage.java`.
+ISSUES_SHAPING_JQ='split("\n")
+  | map(select(test("\\S")))
+  | { verdict: (.[0] // ""),
+      clause: ((map(select(startswith("**The shaping:**"))) | .[0] // "") | sub("^\\*\\*The shaping:\\*\\*[[:space:]]*"; "")) }'
+
+issues_shaping_of() { # <comment-json> → the verdict and the clause, tab-separated
+  local json="${1:-}"
+  [ -n "$json" ] || json='{}'
+  printf '%s' "$json" | jq -r '.body // "" | '"$ISSUES_SHAPING_JQ"' | [.verdict, .clause] | @tsv'
+}
+
 # issues_status_displaced <issue-json> <target-label> <prefix> → one label per line: every value of the
 # status namespace the issue carries other than the target. The prefix is the caller's, so this stays a pure
 # filter: it reads the issue the caller already has and makes no `gh` call and no profile read of its own.
@@ -578,6 +596,26 @@ issues_occurrence() {
   printf '%s\n' "${value:-1}"
 }
 
+# The shape a finding was filed in (`backlog-source-of-truth`, "A finding is filed in one of two shapes"), as the
+# body record carries it: `a` or `b` — the tier keys of the writer — or nothing on an item filed before the keys
+# existed. The marker itself is composed by `issues_body_set` alone, so a reader here cannot meet a second
+# spelling of it.
+issues_tier_of() {
+  issues_body_field "${1:-}" tier
+}
+
+# The change a tier-B finding named, or nothing. Read beside the tier because the two are one claim: a shape
+# without its change is a name nobody can open.
+issues_change_of() {
+  issues_body_field "${1:-}" change
+}
+
+# What exempted a finding from the shape, or nothing: the one caller that files without a cause or a change is the
+# check registry's path (`--sensor <id>`), whose cause is the failing case the registry already names (design D4).
+issues_exempt_of() {
+  issues_body_field "${1:-}" exempt
+}
+
 # Set one record entry, or append it: the writer of a record entry and its reader share this one home, so
 # a body record the metadata pass reads cannot be spelled differently by the pass that writes it.
 issues_body_set() { # <body> <key> <value> → the body with that entry set
@@ -599,6 +637,13 @@ issues_body_set() { # <body> <key> <value> → the body with that entry set
 # project fact.
 issues_sensor_registry() {
   printf '%s\n' "${ISSUES_SENSOR_REGISTRY:-$ISSUES_ROOT/tools/sensors/sensors.json}"
+}
+
+# The OpenSpec changes directory a finding's tier-B shape names (`backlog-source-of-truth`, "A tier-B finding
+# names a change that is ready"): the layout is OpenSpec's own and not this project's, and a caller that keeps its
+# changes elsewhere — the self-test, a worktree — overrides it, exactly as the registry above is overridable.
+issues_changes_dir() {
+  printf '%s\n' "${ISSUES_CHANGES_DIR:-$ISSUES_ROOT/openspec/changes}"
 }
 
 issues_sensor_namespace() {

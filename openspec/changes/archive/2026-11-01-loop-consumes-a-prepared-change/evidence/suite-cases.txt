@@ -1,0 +1,12 @@
+# The declared case count, after this change. Before it the list was 289, derived from the 12 array entries this
+# change adds (`git diff -U0 tools/loop-cases.sh | grep -cE "^\+  '"` = 12) and the 301 measured below — the
+# pre-change count was not taken by a run of the suite, and this note says so rather than presenting it as measured.
+
+$ bash tools/loop-selftest.sh --list | wc -l
+301
+
+$ bash tools/loop-selftest.sh --from-git HEAD
+loop-selftest: all 301 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git HEAD
+
+# The selection is the whole set: `loop_case_core_files` names `tools/loop/loop.conf`, `tools/loop-cases.sh`,
+# `tools/loop-selftest.sh` and `tools/loop/lib.sh`, and a delta to any of them is owed every case.

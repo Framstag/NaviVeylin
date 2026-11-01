@@ -1,0 +1,72 @@
+[
+  {
+    "number": 91,
+    "title": "§91 A claim that spans six capability deltas",
+    "body": "<!-- nvid: 91 -->\n\n- **Observed** ✗: six deltas in one claim.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/specs-and-process" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-shaping" }
+    ]
+  },
+  {
+    "number": 92,
+    "title": "§92 A claim whose acceptance condition is not falsifiable",
+    "body": "<!-- nvid: 92 -->\n\n- **Observed** ✗: \"better\" is the whole claim.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/specs-and-process" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-shaping" }
+    ]
+  },
+  {
+    "number": 93,
+    "title": "§93 An epic filed as one item",
+    "body": "<!-- nvid: 93 -->\n\n- **Observed** ✗: five screens in one item.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/feature" },
+      { "name": "category/ui" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-shaping" }
+    ]
+  },
+  {
+    "number": 94,
+    "title": "§94 One root cause does not explain the symptom",
+    "body": "<!-- nvid: 94 -->\n\n- **Observed** ✗: two unrelated mechanisms.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/car" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-shaping" }
+    ]
+  },
+  {
+    "number": 95,
+    "title": "§95 A non-defect that is not spec-shaped",
+    "body": "<!-- nvid: 95 -->\n\n- **Observed** ✗: an existing capability owns the delta.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/ui" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-shaping" }
+    ]
+  }
+]

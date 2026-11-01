@@ -67,6 +67,7 @@ MUTATIONS=(
   'classify-writes-the-opt-in'
   'the-writer-skips-the-marker'
   'settled-record-not-checked'
+  'shape-key-not-written'
 )
 
 mutation_invariant() {
@@ -79,6 +80,7 @@ mutation_invariant() {
     'classify-writes-the-opt-in') echo "the pass cannot write the automation opt-in (task 8.6, D7)" ;;
     'the-writer-skips-the-marker') echo "no band label is written or removed without the body that leaves the pair intact (task 8.7, D1; the write gate of #671)" ;;
     'settled-record-not-checked') echo "an item whose body keeps a settled state must carry a settled label, or the displaced state is invisible (#683)" ;;
+    'shape-key-not-written') echo "the shape a finding is filed in is written through the body record's one writer, so the reader that looks for the key finds it (backlog-source-of-truth, \"The shape, and the change a tier-B finding names, are recorded in the body\")" ;;
     *) echo "" ;;
   esac
 }
@@ -222,6 +224,11 @@ apply_mutation() {
       # The settled pair is read in one place, so the mutation disables the reading there: the record a tombstone
       # keeps no longer reaches the invariant, and the item whose state a park displaced is reported by nothing.
       patch "$engine/check-metadata.sh" sed 's@^  if issues_records_settled_state "\$body" "\$settled_record"; then@  if false; then@' ;;
+    'shape-key-not-written')
+      # One home writes a body-record entry, so the mutation changes the spelling there: the marker reaches the
+      # item as `tier = a`, which `issues_body_field` does not read — the shape would be recorded in a text no
+      # reader of the record recognises, which is the defect the writer/reader pair exists to prevent.
+      patch "$engine/lib.sh" sed 's@^    printf '\''%s\\n<!-- %s: %s -->'\''@    printf '\''%s\\n<!-- %s = %s -->'\''@' ;;
     *) return 1 ;;
   esac
 }
@@ -236,6 +243,7 @@ probe_mutation() {
     'classify-writes-the-opt-in') probe_opt_in_write ;;
     'the-writer-skips-the-marker') probe_case 'update#refusesABandLabelWithoutItsMarker' ;;
     'settled-record-not-checked') probe_case 'check#aDisplacedSettledStateIsReported' ;;
+    'shape-key-not-written') probe_case 'create#theShapeIsInTheBodyRecord' ;;
     *) return 1 ;;
   esac
 }

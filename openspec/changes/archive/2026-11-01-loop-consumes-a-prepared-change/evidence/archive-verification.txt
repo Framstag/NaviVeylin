@@ -1,0 +1,18 @@
+# The archive verification, taken with the field the spec JSON carries (`.name`; there is no `.text` field)
+
+$ openspec show agent-issue-loop --type spec --json | jq '[.requirements[] | select(.name | test("handed to its worktree"))] | length'
+1
+
+$ openspec show agent-issue-loop --type spec --json | jq '[.requirements[] | select(.name == "Each item is worked by a fresh process, reviewed by a different one") | .scenarios | length]'
+[
+  14
+]
+
+$ openspec show agent-issue-loop --type spec --json | jq -r '.requirements[] | select(.name|test("handed|tier-B|package carries|consumed change")) | "\(.name): \(.scenarios|length) scenarios"'
+The package carries the last recorded decision and its question: 3 scenarios
+The worker is handed one command that answers what the change owes: 7 scenarios
+The round a corrective refusal buys is handed the corrections: 2 scenarios
+A change the item names is handed to its worktree: 3 scenarios
+A tier-B item is verified, never planned again: 3 scenarios
+The package carries the change beside the item's text and its decision: 3 scenarios
+The consumed change is cleaned from the project's tree, and the run does not write it there: 3 scenarios

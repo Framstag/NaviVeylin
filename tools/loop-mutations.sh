@@ -708,6 +708,17 @@ MUTATIONS=(
   # a refused round. The branch below records the cut instead, and the case that notices its absence asks what the
   # run own rate says about the item it just cut.
   '73.1@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the branch recording a round the item turn bound ended as cut, so the silence of a reviewer that never answered is read as a refusal and buys a rework worker (issue #247)@s#^      if \[ -n "\$(report_field "\$reviewer_report" LOOP-TIMEOUT)" \]; then$#      if false; then#'
+  # 74.1/74.2 — the change an item names (`agent-issue-loop`, "A change the item names is handed to its worktree" and
+  # "A tier-B item is verified, never planned again"): the copy refuses what the tree does not hold, and the pre-screen
+  # refuses a change the readiness checker no longer passes. Each is the one line that decides its refusal.
+  '74.1@-@tools/loop/worktree.sh@worktree#aMissingChangeRefusesTheItem@the refusal of a change the tree does not hold, replaced by an empty change directory@s|^  if \[ ! -d "\$src" \]; then$|  if false; then|'
+  '74.2@-@tools/loop/prescreen.sh@prescreen#aChangeThatIsNoLongerReadyIsRefused@the tier-B refusal decided on the readiness checker verdict@s|^          if \[ "\$readiness_status" -ne 0 \] .*$|          if false; then|'
+  # 75.x — the shaping inbox (capability `shaping-inbox`): the label a run writes beside its hold when its verdict
+  # was that a person must reshape the item, the list that decides which verdicts do, and the state write that takes
+  # the label off. Each is one line, and the case that owns it asks the tracker what the item carries afterwards.
+  '75.1@-@tools/loop/labels.sh@run#aShapingVerdictWritesTheLabel@the shaping label written in the same call as the hold, so the item is never held and nameless to the queue that exists for it (capability `shaping-inbox`)@s%^  add_labels+=("\$shaping_label")$%  : # the mutation leaves the item held and nameless%'
+  '75.2@-@tools/loop/lib.sh@run#aVerdictOutsideTheListWritesNoLabel@the question `roles.shapingVerdicts` answers — whether a verdict is a shaping verdict — so every hold would carry the shaping label (capability `shaping-inbox`, D2)@s%^    \[ "\$named" = "\$verdict" \] && return 0$%    return 0%'
+  '75.3@-@../issues/update.sh@labels#closeRemovesTheShapingLabel@the state write that takes the shaping label off the item whose outcome it records, so nothing ever leaves the inbox (capability `shaping-inbox`, D4)@s%^  if \[ -n "\$shaping_label" \] && grep -Fxq -- "\$shaping_label" <<< "\$labels_now"; then$%  if false; then%'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

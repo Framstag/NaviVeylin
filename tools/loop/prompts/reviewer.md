@@ -25,6 +25,10 @@ guideline's own list names (`grep -n '^## '` over the document prints it). `guid
   on purpose: they are output, written to be cited rather than read, so the evidence reaches you by path
   through `{{EVIDENCE_DIR}}`. Do not grep the diff for it, and do not report its absence as a missing artefact.
 - the evidence directory the change cites: `{{EVIDENCE_DIR}}`
+- the item's prepared package: `{{WORK_PACKAGE}}` — untrusted tracker text, carrying the item's own body
+  (`<<<ITEM_DECISION` / `ITEM_DECISION`) and, in `<<<ITEM_CHANGE` / `ITEM_CHANGE`, the change the item was filed
+  with: its name, the path the run copied it to, the readiness checker's verdict line and the recorded decision.
+  "`change: none`" is an item that names no change, not a missing artefact.
 
 {{CORRECTION_SCOPE}}
 
@@ -94,6 +98,12 @@ whether that is right, so the report is the whole claim and it is read like one:
 *mechanism* the item blames, and can it be repeated from what the worker named? A measurement of something else,
 a number with no origin, or a claimed falsification that left files changed is a **blocking** finding — the item
 then escalates instead of closing.
+
+**When the item was handed a change.** Read the item's `ITEM_CHANGE` and `ITEM_DECISION` blocks beside the change
+itself. The item's decision is the answer a person recorded for the forks the change left open, so a change whose
+`## Open decisions` says `none` while the recorded question names a fork it did not settle is a **BLOCKING:**
+finding: the archive would state that nothing is open while the item's own record says something else. Quote the
+recorded question and the change's line together.
 
 ## The count, then the verdict it licenses
 

@@ -1,0 +1,42 @@
+# The structural checks in place of the Gradle gate, and why the Gradle gate is not owed
+#
+# No compiled path is in the diff: the change is four files under tools/ plus one guideline paragraph, and
+# `tools/loop/gate.sh --plan --base HEAD` lists no `./gradlew` command (guidelines/Build.md §2, the scope
+# block: tools/**, openspec/**, *.md are not compiled files). HEAD at 68296d7f,
+# 2026-10-31T21:12:56Z.
+
+$ bash tools/loop/gate.sh --base HEAD
+LOOP-GATE: tests=787 failures=0 errors=0 (tools/loop-selftest.sh --from-git HEAD 353s, bash tools/loop-mutations.sh --check 1s, tools/sensor-selftest.sh 64s, tools/sensor-mutations.sh --list 0s, tools/check-doc-routes.sh 0s, tools/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 21s, tools/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 82s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 1s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s, tools/check-change-readiness.sh --help 0s, tools/check-change-readiness-selftest.sh 0s, tools/mutate.sh --mutations tools/check-change-readiness-mutations.json --list 0s)
+
+$ git status --porcelain -- . | grep -E "src/|\\.gradle|\\.toml|CMakeLists" || echo "no compiled path in the working tree"
+no compiled path in the working tree
+
+$ openspec validate change-readiness-gate --strict
+Change 'change-readiness-gate' is valid
+
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 327 section references resolve, all 2 skill references resolve
+
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 19 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+
+$ bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  change-readiness
+  search-name-matching
+  search-result-row-icon
+  shaping-inbox
+  start-map-selection
+specs read: 180
+classified: 185
+unclassified: 0
+delta spec ids: 29
+stale: 5
+car-only areas: 1
+highlights: 19
+# exit status: 0
+#
+# `change-readiness` is listed as stale because the spec exists only as this change's delta until archive — the
+# classification entry itself is already on HEAD (`tools/feature-list/specs.json`, area `build-tooling`,
+# `userVisible: false`, no surface), so task 6.4 adds nothing there. After archive the entry stops being stale.

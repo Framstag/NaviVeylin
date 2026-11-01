@@ -186,13 +186,18 @@ candidates_json=$(loop_issue_tool list.sh --eligible-only --json --limit "$limit
 # The tracker writes the refusals need are collected here and applied once, after the queue is written, so
 # a pre-screen that dies mid-selection changes no item (the labels are the run script's, never a child's).
 label_writes=$(mktemp) || loop_die "prescreen: could not create the label write list"
+# The verdict line a refused tier-B item carries onto the tracker is queued here, beside the label writes, and
+# applied after the queue for the same reason: a pre-screen that dies mid-selection changes no item. A comment and
+# not a label, because the label a change-not-ready item carries is the shaping inbox's to define — this refusal
+# states the checker's own verdict and leaves the item open.
+comment_writes=$(mktemp) || loop_die "prescreen: could not create the comment write list"
 
 records='[]'
 count=$(printf '%s' "$candidates_json" | jq 'length')
 unreadable_count=0
 read_err=$(mktemp) || loop_die "prescreen: could not create the read error file"
 # The trap cleans both temporary files: the label write list and the one candidate's stderr it holds at a time.
-trap 'rm -f "$label_writes" "$read_err"' EXIT
+trap 'rm -f "$label_writes" "$read_err" "$comment_writes"' EXIT
 i=0
 while [ "$i" -lt "$count" ]; do
   number=$(printf '%s' "$candidates_json" | jq -r ".[$i].number")
@@ -278,6 +283,64 @@ while [ "$i" -lt "$count" ]; do
      ! printf '%s' "$labels" | jq -e --arg l "$LOOP_AUTHORISATION_LABEL" 'any(.[]; .name == $l)' >/dev/null; then
     verdict="missing-authorisation"
     reason="the item does not carry ${LOOP_AUTHORISATION_LABEL} — the opt-in is the author's, not the run's"
+  fi
+
+  # ── the shape the item was filed in, and the change it names (`finding-shape-at-filing`, this change) ────────
+  # A tier-A item is worked exactly as before: its plan is the worker's own. A tier-B item names a change the tree
+  # already holds, and two facts about it are script-decidable before anything is started — the directory is there,
+  # and the profile's readiness checker still reports `ok` for it. Either failing is a refusal, not a hold: the
+  # checker's own verdict line goes onto the item and the run starts no child. Both reads are of the *source* tree,
+  # before any worktree is cut, which is where the run will copy the change from.
+  if [ "$verdict" = "$queued_verdict" ] && [ "$(issues_tier_of "$body" | tr '[:upper:]' '[:lower:]')" = "b" ]; then
+    named_change=$(issues_change_of "$body")
+    changes_family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR)
+    changes_family="${changes_family:-openspec/changes}"
+    change_refusal=""
+    if [ -z "$named_change" ]; then
+      change_refusal="LOOP-CHANGE-READY: refused change-unreadable — the item records tier: b and names no change, so there is no directory to hand a worker"
+    elif ! printf '%s' "$named_change" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]*$'; then
+      change_refusal="LOOP-CHANGE-READY: refused change-unreadable=$named_change — a change is named by one directory name, not by a path"
+    elif [ ! -d "$LOOP_ROOT/$changes_family/$named_change" ]; then
+      change_refusal="LOOP-CHANGE-READY: refused change-unreadable=$changes_family/$named_change — the tree holds no such change directory"
+    else
+      readiness_gate=$(jq -r '.checks.changeReady // ""' "$profile" 2>/dev/null | head -1)
+      readiness_line=""
+      if [ -z "$readiness_gate" ]; then
+        change_refusal="LOOP-CHANGE-READY: refused gate-not-configured — the profile declares no checks.changeReady, so this project has no readiness check to run"
+      else
+        case "$readiness_gate" in
+          /*) readiness_gate_path="$readiness_gate" ;;
+          *) readiness_gate_path="$LOOP_ROOT/$readiness_gate" ;;
+        esac
+        if [ ! -f "$readiness_gate_path" ]; then
+          change_refusal="LOOP-CHANGE-READY: refused gate-not-configured — checks.changeReady names $readiness_gate and no file is there"
+        else
+          readiness_out=$(bash "$readiness_gate_path" "$LOOP_ROOT/$changes_family/$named_change" 2>&1)
+          readiness_status=$?
+          readiness_line=$(printf '%s\n' "$readiness_out" | grep -m1 '^LOOP-CHANGE-READY:' || true)
+          if [ "$readiness_status" -ne 0 ] || [ -z "$readiness_line" ] || [ "${readiness_line##*: }" != "ok" ]; then
+            change_refusal="${readiness_line:-LOOP-CHANGE-READY: refused change-unreadable=$changes_family/$named_change — the check at $readiness_gate printed no verdict line}"
+          fi
+        fi
+      fi
+    fi
+    if [ -n "$change_refusal" ]; then
+      verdict="change-not-ready"
+      reason="the change this item names is not ready to be worked unattended — $change_refusal"
+      evidence="$changes_family${named_change:+/$named_change}"
+      if [ "$write" -eq 1 ]; then
+        # One comment per refusal, not one per run: the checker's own line is the key, so a second run that finds
+        # the change still unready says nothing it has already said on the item.
+        already=$(loop_issue_json "$number" --comments 2>/dev/null |
+          jq -r '[.comments[]? | .body // ""] | join("\n")' 2>/dev/null || true)
+        case "$already" in
+          *"$change_refusal"*) ;;
+          *) comment_body="$change_refusal
+the item is left open and no child was started: shape $changes_family/${named_change:-<the change>} until the readiness check reports 'ok', and it is selected again"
+             printf '%s\t%s\n' "$number" "$(jq -c -n --arg b "$comment_body" '$b')" >> "$comment_writes" ;;
+        esac
+      fi
+    fi
   fi
 
   # A previous attempt's branch is the one rejection the tracker cannot state, so it is asked of git — and
@@ -472,6 +535,20 @@ while IFS=$'\t' read -r write_issue write_label; do
     printf 'pre-screen: could not write %s on #%s — the refusal is in the report and the run continues\n' \
       "$write_label" "$write_issue" >&2
 done < "$label_writes"
+
+# The tier-B refusal's line, written on the item after the queue for the same reason and with the same repair: a
+# tracker write that fails is reported and does not stop a run, because the verdict and its reason are already in
+# the run's state and report.
+while IFS=$'\t' read -r write_issue write_body; do
+  [ -n "$write_issue" ] && [ -n "$write_body" ] || continue
+  refusal_text=$(printf '%s' "$write_body" | jq -r '.')
+  if gh issue comment "$write_issue" --body "$refusal_text" >/dev/null 2>&1; then
+    printf 'pre-screen: the readiness refusal was written on #%s\n' "$write_issue" >&2
+  else
+    printf 'pre-screen: could not write the readiness refusal on #%s — the verdict is in the report and the run continues\n' \
+      "$write_issue" >&2
+  fi
+done < "$comment_writes"
 
 if [ "$json" -eq 1 ]; then
   printf '%s\n' "$records"

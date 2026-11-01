@@ -1,0 +1,53 @@
+# The loop's suite, before and after the shaping-inbox change
+#
+# Measured 2026-11-01 on HEAD 0dd05ba6. The working tree also carries three changes that were not yet committed
+# when this one was applied (`change-readiness-gate`, `finding-shape-at-filing`,
+# `loop-consumes-a-prepared-change`), so the totals below span the whole dirty tree; the list of this change's own
+# cases is the one under them.
+#
+# $ git show HEAD:tools/loop-cases.sh | grep -cE "^  '[a-z]+#"      # before
+  289
+# $ bash tools/loop-selftest.sh --list | grep -cE '^[a-z]+#'      # after
+  305
+  added                                            16
+    of which this change                            4
+#
+# $ bash tools/loop-selftest.sh
+loop-selftest: all 305 cases passed (JDK 27, offline, no token, no sandbox)
+# exit status: 0
+#
+# The cases this change adds:
+  run#aShapingVerdictWritesTheLabel
+  run#aVerdictOutsideTheListWritesNoLabel
+  run#theShapingInboxDoesNotCountAgainstTheCeiling
+  labels#closeRemovesTheShapingLabel
+#
+# The case this change re-aims, because the four verdicts the profile names now also take the shaping label:
+  labels#verdictToLabelMatrix
+#
+# The falsification this change owes for each new invariant (`tools/loop-mutations.sh --only`):
+#
+# $ bash tools/loop-mutations.sh --only 75.1
+RED    75.1  run#aShapingVerdictWritesTheLabel   (the shaping label written in the same call as the hold …)
+       2026-11-01T11:13:03Z — the shaping label rides that write: '--add-label agent/needs-shaping' not found in:
+       gh issue edit 21 --add-label status/on-hold --remove-label status/open
+restore 75.1 run#aShapingVerdictWritesTheLabel green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+#
+# $ bash tools/loop-mutations.sh --only 75.2
+RED    75.2  run#aVerdictOutsideTheListWritesNoLabel   (the question `roles.shapingVerdicts` answers …)
+       2026-11-01T11:13:09Z — and no shaping label is written: expected '0', got '1'
+restore 75.2 run#aVerdictOutsideTheListWritesNoLabel green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+#
+# $ bash tools/loop-mutations.sh --only 75.3
+RED    75.3  labels#closeRemovesTheShapingLabel   (the state write that takes the shaping label off …)
+       2026-11-01T11:13:16Z — the write that settles the item also takes the shaping label off:
+       '--remove-label agent/needs-shaping' not found in:
+       gh issue edit 91 --add-label status/fixed-by --remove-label agent/in-progress --remove-label status/on-hold
+restore 75.3 labels#closeRemovesTheShapingLabel green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+#
+# $ bash tools/loop-mutations.sh --check
+loop-mutations: all 223 cases passed — every selected record applies to the file it names
+# exit status: 0

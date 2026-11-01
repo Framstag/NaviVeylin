@@ -471,6 +471,13 @@ loop_required_labels() {
 # (like the namespace names); a value another project does not need is declared empty, never omitted.
 LOOP_ROLES=""
 LOOP_ROLE_KEYS="queuedVerdict heldVerdict workedClasses firstCategories firstCategoryClasses firstCategoryEvery proposeClass refusedClasses inFlightStatus deviceStatus holdStatus closeStatus settledStatuses inProgressAgent deviceAgent decisionAgent"
+# The two keys the shaping inbox reads (`tools/tooling.json`, capability `shaping-inbox`): `shapingAgent` is the
+# label an item carries when a run's verdict said a person must reshape it, and `shapingVerdicts` names the run
+# verdicts that write it. They are read with the same `loop_role`, but they are **not** required: a profile that
+# omits them reads as "this project has no shaping inbox", so a profile written before the capability still starts
+# a run instead of stopping on a key it never declared (the rule "declare it empty, never omit it" is what the
+# *required* keys keep, and `tools/check-portability.sh` reports neither of these two).
+LOOP_SHAPING_ROLE_KEYS="shapingAgent shapingVerdicts"
 loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop the script, not a subshell
   [ -n "$LOOP_ROLES" ] && return 0
   LOOP_ROLES=$(jq -c '.roles // empty' "$(loop_profile)") || LOOP_ROLES=""
@@ -480,10 +487,31 @@ loop_roles_load() { # called outside `$( )`: a half-adapted profile must stop th
     printf '%s\n' "$LOOP_ROLES" | jq -e --arg k "$key" 'has($k)' >/dev/null ||
       loop_die "the roles section in $(loop_profile) does not declare $key — declare it empty when this project has no such value"
   done
+  # The shaping keys may be absent (see above), but a key that is present must be a name or a list of them: a
+  # number or an object there reads as "no shaping verdict" and would silently empty an inbox the project meant
+  # to declare.
+  for key in $LOOP_SHAPING_ROLE_KEYS; do
+    printf '%s\n' "$LOOP_ROLES" |
+      jq -e --arg k "$key" 'if has($k) then (.[$k] | type | . == "string" or . == "array") else true end' >/dev/null ||
+      loop_die "the roles section in $(loop_profile) declares $key as neither a name nor a list of names"
+  done
 }
 
 loop_role() { # <role> → the value, or one value per line when the role is a list
   printf '%s\n' "$LOOP_ROLES" | jq -r --arg k "$1" '.[$k] // empty | if type == "array" then .[] else . end'
+}
+
+# loop_shaping_verdicts <verdict> → success when the profile names that verdict as a shaping verdict, which is
+# the one question `labels.sh` asks about the list. An absent key, an empty list and a verdict outside it all
+# answer the same way, so a project that declares no shaping inbox writes no shaping label anywhere.
+loop_shaping_verdicts() {
+  local verdict="${1:-}" named
+  [ -n "$verdict" ] || return 1
+  while IFS= read -r named; do
+    [ -n "$named" ] || continue
+    [ "$named" = "$verdict" ] && return 0
+  done < <(loop_role shapingVerdicts)
+  return 1
 }
 
 loop_compat_profile_value() { # the profile's value for a section, via the tooling's own reader

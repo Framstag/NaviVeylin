@@ -6,6 +6,7 @@
     "category": "core",
     "claim": "the core module loses its banner when the fixture starts",
     "anchor": "tools/issues/create.sh:main",
+    "cause": { "file": "tools/issues/create.sh", "line": 1, "case": "foreign#theBannerIsMissing" },
     "labels": ["class/bug", "category/core", "status/open", "source/agent"],
     "body": "- **Observed** ✗: the banner is missing after the fixture starts.\n- **Expected** ℹ: one banner, once."
   },
@@ -16,6 +17,7 @@
     "category": "core",
     "claim": "the core module loses its banner when the fixture starts",
     "anchor": "tools/issues/create.sh:main",
+    "cause": { "file": "tools/issues/create.sh", "line": 1, "case": "foreign#theBannerIsMissing" },
     "labels": ["class/bug", "category/core", "status/open", "source/agent"],
     "body": "- **Observed** ✗: the same missing banner, filed by another hand."
   },
@@ -26,6 +28,7 @@
     "category": "docs",
     "claim": "the docs index names a page that moved",
     "anchor": "tools/issues/create.sh:usage",
+    "cause": { "file": "tools/issues/create.sh", "line": 1, "case": "foreign#theDocsIndexIsStale" },
     "labels": ["class/improvement", "category/docs", "status/open", "source/human"],
     "body": "- **Observed** ✗: the index points at a page that moved."
   }

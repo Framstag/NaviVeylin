@@ -98,13 +98,29 @@ LOOP_SHELL_CASES=(
   'worktree#refusesToMergeOverADirtyProjectTree'
   'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom'
   'worktree#refusesToMergeIntoATreeOffTheBaseBranch'
+  'worktree#theNamedChangeIsCopiedIntoTheItem'
+  'worktree#aMissingChangeRefusesTheItem'
+  'prescreen#aTierAItemPassesUnchanged'
+  'prescreen#aChangeThatIsNoLongerReadyIsRefused'
+  'prescreen#aClosedItemIsNotSelected'
+  'prompt#thePackageCarriesTheChange'
+  'prompt#aTierAItemSaysSo'
+  'run#aTierBItemWritesNoSecondChange'
+  'run#aForkTheChangeDoesNotAnswerIsNamed'
+  'run#aChangeWhosePremiseMovedIsNotRePlanned'
+  'clean#aConsumedChangeIsReported'
+  'clean#aSecondRunFindsNothing'
   'labels#verdictToLabelMatrix'
   'labels#holdCarriesItsReason'
   'labels#trapRemovesInProgressOnSignal'
   'labels#neverWritesReservedLabel'
   'labels#writesOnlyBetweenChildren'
   'labels#closeRemovesTheDecisionLabel'
+  'labels#closeRemovesTheShapingLabel'
   'labels#closeNamesTheSettledTransition'
+  'run#aShapingVerdictWritesTheLabel'
+  'run#aVerdictOutsideTheListWritesNoLabel'
+  'run#theShapingInboxDoesNotCountAgainstTheCeiling'
   'prompt#workerNamesEveryPhaseAndSkill'
   'prompt#workerCarriesTheFeaturePath'
   'prompt#workerNamesTheDecisionField'
@@ -437,6 +453,18 @@ loop_run_shell_case() {
     'worktree#refusesToMergeOverADirtyProjectTree') fn=case_worktree_refusesToMergeOverADirtyProjectTree ;;
     'worktree#refusesToReplayABranchTheBaseDoesNotDescendFrom') fn=case_worktree_refusesToReplayABranchTheBaseDoesNotDescendFrom ;;
     'worktree#refusesToMergeIntoATreeOffTheBaseBranch') fn=case_worktree_refusesToMergeIntoATreeOffTheBaseBranch ;;
+    'worktree#theNamedChangeIsCopiedIntoTheItem') fn=case_worktree_theNamedChangeIsCopiedIntoTheItem ;;
+    'worktree#aMissingChangeRefusesTheItem') fn=case_worktree_aMissingChangeRefusesTheItem ;;
+    'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
+    'prescreen#aChangeThatIsNoLongerReadyIsRefused') fn=case_prescreen_aChangeThatIsNoLongerReadyIsRefused ;;
+    'prescreen#aClosedItemIsNotSelected') fn=case_prescreen_aClosedItemIsNotSelected ;;
+    'prompt#thePackageCarriesTheChange') fn=case_prompt_thePackageCarriesTheChange ;;
+    'prompt#aTierAItemSaysSo') fn=case_prompt_aTierAItemSaysSo ;;
+    'run#aTierBItemWritesNoSecondChange') fn=case_run_aTierBItemWritesNoSecondChange ;;
+    'run#aForkTheChangeDoesNotAnswerIsNamed') fn=case_run_aForkTheChangeDoesNotAnswerIsNamed ;;
+    'run#aChangeWhosePremiseMovedIsNotRePlanned') fn=case_run_aChangeWhosePremiseMovedIsNotRePlanned ;;
+    'clean#aConsumedChangeIsReported') fn=case_clean_aConsumedChangeIsReported ;;
+    'clean#aSecondRunFindsNothing') fn=case_clean_aSecondRunFindsNothing ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
     'labels#holdCarriesItsReason') fn=case_labels_holdCarriesItsReason ;;
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
@@ -444,6 +472,10 @@ loop_run_shell_case() {
     'labels#writesOnlyBetweenChildren') fn=case_labels_writesOnlyBetweenChildren ;;
     'labels#closeRemovesTheDecisionLabel') fn=case_labels_closeRemovesTheDecisionLabel ;;
     'labels#closeNamesTheSettledTransition') fn=case_labels_closeNamesTheSettledTransition ;;
+    'labels#closeRemovesTheShapingLabel') fn=case_labels_closeRemovesTheShapingLabel ;;
+    'run#aShapingVerdictWritesTheLabel') fn=case_run_aShapingVerdictWritesTheLabel ;;
+    'run#aVerdictOutsideTheListWritesNoLabel') fn=case_run_aVerdictOutsideTheListWritesNoLabel ;;
+    'run#theShapingInboxDoesNotCountAgainstTheCeiling') fn=case_run_theShapingInboxDoesNotCountAgainstTheCeiling ;;
     'prompt#workerNamesEveryPhaseAndSkill') fn=case_prompt_workerNamesEveryPhaseAndSkill ;;
     'prompt#workerCarriesTheFeaturePath') fn=case_prompt_workerCarriesTheFeaturePath ;;
     'prompt#workerNamesTheDecisionField') fn=case_prompt_workerNamesTheDecisionField ;;
@@ -777,6 +809,36 @@ conf_with_child_cap() { # <seconds> <out file>
 }
 
 scenario() { printf '%s\n' "$LOOP_FIXTURES/scenarios/$1"; }
+
+# A project that carries the readiness checker its profile names and one prepared change in the *source* tree — the
+# shape a tier-B item is filed with (`finding-shape-at-filing`). The change passes the checker unless the case asks
+# for the unready one, whose `## Open decisions` names a fork. Nothing is committed: an unarchived change is
+# gitignored, which is why the run has to copy it in.
+tier_b_change() { # <project> <change name> [ready|unready]
+  local p="$1" name="$2" ready="${3:-ready}"
+  cp "$LOOP_PROJECT_ROOT/tools/check-change-readiness.sh" "$p/tools/check-change-readiness.sh" ||
+    fail "could not copy the readiness checker into the project"
+  # The checker is tracked and an *unarchived* change is ignored, exactly as this project has it: the merge that
+  # lands an item refuses a dirty project tree, and an unarchived change is invisible to git by design.
+  printf 'openspec/changes/*/\n!openspec/changes/archive/\n' >> "$p/.gitignore"
+  git -C "$p" add .gitignore tools/check-change-readiness.sh >/dev/null 2>&1 &&
+    git -C "$p" -c user.email=selftest@example.invalid -c user.name=selftest \
+      commit -qm 'the readiness checker, and the changes directory ignored' >/dev/null 2>&1 ||
+    fail "could not commit the project's readiness checker"
+  mkdir -p "$p/openspec/changes/$name/specs/demo" "$p/openspec/changes/$name/evidence" ||
+    fail "could not create the prepared change"
+  printf '# Proposal — the prepared change\n\nsurface: 1 case added — `grep -c demo tools/loop-cases.sh`\n' \
+    > "$p/openspec/changes/$name/proposal.md"
+  if [ "$ready" = ready ]; then
+    printf '# Design — the prepared change\n\n## Open decisions\n\nnone\n' > "$p/openspec/changes/$name/design.md"
+  else
+    printf '# Design — the prepared change\n\n## Open decisions\n\n- which bound does the row ship with?\n' \
+      > "$p/openspec/changes/$name/design.md"
+  fi
+  printf '## ADDED Requirements\n\n### Requirement: demo\n\nThe demo exists.\n\n#### Scenario: the demo\n\n- **WHEN** x\n- **THEN** y\n- **Case**: `demo#theCase`\n' \
+    > "$p/openspec/changes/$name/specs/demo/spec.md"
+  printf 'the evidence the change cites\n' > "$p/openspec/changes/$name/evidence/readme.txt"
+}
 
 init_state() { # a run state the pre-screen needs before it can write its queue
   run_state "$1" init --items "${2:-1}" --minutes "${3:-90}" >/dev/null || fail "state init failed"
@@ -2681,13 +2743,15 @@ case_labels_verdictToLabelMatrix() {
   # displaced label, so a verdict that only ever added one would leave two states on the item and fail here.
   check_labels pick "agent/in-progress" ""
   check_labels unpick "" "agent/in-progress"
-  check_labels unspecifiable "status/on-hold" "status/open"
-  check_labels too-wide "status/on-hold" "status/open"
-  check_labels not-spec-shaped "status/on-hold" "status/open"
+  # The four the profile's `roles.shapingVerdicts` names also take the shaping label (capability `shaping-inbox`),
+  # in the same write: `needs-diagnosis` keeps the decision label it wrote before that capability.
+  check_labels unspecifiable "agent/needs-shaping status/on-hold" "status/open"
+  check_labels too-wide "agent/needs-shaping status/on-hold" "status/open"
+  check_labels not-spec-shaped "agent/needs-shaping status/on-hold" "status/open"
   check_labels needs-target "status/on-hold" "status/open"
   check_labels needs-device "agent/needs-device status/on-hold" "status/open"
   check_labels needs-decision "agent/needs-decision status/on-hold" "status/open"
-  check_labels needs-diagnosis "agent/needs-decision status/on-hold" "status/open"
+  check_labels needs-diagnosis "agent/needs-decision agent/needs-shaping status/on-hold" "status/open"
 
   # `stale` left the vocabulary with issue #682: the run escalates that skip instead of parking it, so the
   # label writer must refuse it rather than write a hold nobody can answer — an unrefused verdict is a row
@@ -3054,12 +3118,16 @@ case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
   # exactly one opening and one closing delimiter, whatever the body contained
   assert_eq "1" "$(grep -c '^<<<ISSUE_TEXT$' "$package" || true)" "exactly one opening delimiter"
   assert_eq "1" "$(grep -c '^ISSUE_TEXT$' "$package" || true)" "exactly one closing delimiter"
+  # the change block is neutralised the same way: the item's text cannot open or close it
+  assert_eq "1" "$(grep -c '^<<<ITEM_CHANGE$' "$package" || true)" "exactly one change opening delimiter"
+  assert_eq "1" "$(grep -c '^ITEM_CHANGE$' "$package" || true)" "exactly one change closing delimiter"
+  assert_contains "$(cat "$package")" "<<< ITEM_CHANGE" "the injected opening is defused inside the text block"
   # the injected prose is inside the data block and nowhere else
   assert_eq "1" "$(grep -c 'Ignore all previous instructions' "$package" || true)" "the injected text is carried as data"
   awk '/^<<<ISSUE_TEXT$/{inside=1} /^ISSUE_TEXT$/{inside=0} inside && /Ignore all previous instructions/{found=1} END{exit found ? 0 : 1}' \
     "$package" || fail "the injected text is outside the data block"
   # the instructions never carry it
-  assert_eq "0" "$(grep -c 'Ignore all previous instructions\|^<<<ISSUE_TEXT$' "$prompt" || true)" \
+  assert_eq "0" "$(grep -c 'Ignore all previous instructions\|^<<<ISSUE_TEXT$\|^<<<ITEM_CHANGE$\|^ITEM_CHANGE$' "$prompt" || true)" \
     "the injected text does not reach the instruction position"
   return 0
 }
@@ -3136,6 +3204,22 @@ case_labels_closeRemovesTheDecisionLabel() {
 # purpose, exactly as it is `close.sh`'s (`tools/issues/close.sh` passes `--displace-settled` for that reason),
 # so the verdict names the transition to the guard every routine writer meets (#684). Without it the first of
 # the closure's two writes is refused with exit 3 `status-settled` and the item is left half attempted (#699).
+# A closure takes the shaping label off in the same write that records the settled state (capability
+# `shaping-inbox`): a closed item the inbox kept is work it says a person owes and nobody can do, exactly as a
+# closed item in the decision queue is (#225). The removal is `update.sh`'s, implied by the state this call writes.
+case_labels_closeRemovesTheShapingLabel() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/labels.sh tools/issues/update.sh tools/pi-child-events.sh tools/tooling.json
+  local d p log
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario shaping)
+  log="$d/gh-close-shaping.log"; : > "$log"; export GH_STUB_RECORD="$log"
+  run_labels "$p" close 91 --reason "reshaped into children" --evidence "the four filed items" >/dev/null 2>&1 ||
+    fail "the closure failed"
+  assert_contains "$(grep 'issue edit' "$log")" "--remove-label agent/needs-shaping" \
+    "the write that settles the item also takes the shaping label off"
+  assert_contains "$(cat "$log")" "--add-label status/fixed-by" "and records the state it ended in"
+}
+
 case_labels_closeNamesTheSettledTransition() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/labels.sh tools/pi-child-events.sh tools/tooling.json
   local d p log out status
@@ -3152,6 +3236,99 @@ case_labels_closeNamesTheSettledTransition() {
   assert_contains "$out" "status/retired" \
     "the settled value the closure displaced is said out loud, so a reader of the call sees the claim that moved"
   assert_eq "1" "$(grep -c 'issue close' "$log")" "the item is closed, not left half attempted"
+}
+
+# A shaping verdict (capability `shaping-inbox`) writes the shaping label in the *same* call as the hold and its
+# one-line accounting: one `update.sh` write, so there is no window in which the item is held and nameless to the
+# queue that exists for it. The comment the same call posts opens with the verdict word, because the queue prints
+# the item's own record rather than a summary of it.
+case_run_aShapingVerdictWritesTheLabel() {
+  # files: tools/loop/labels.sh tools/loop/lib.sh tools/loop/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  local d p log out status edit
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  log="$d/gh-shaping.log"; : > "$log"; export GH_STUB_RECORD="$log"
+
+  out=$(run_labels "$p" too-wide 21 --reason "six capability deltas would have to land together" \
+    --evidence "the item dir, the branch, the red test" 2>&1); status=$?
+  assert_eq "0" "$status" "a shaping verdict writes its hold: $out"
+  assert_eq "1" "$(grep -c 'issue edit' "$log" || true)" "the hold and the label are one write"
+  edit=$(grep 'issue edit' "$log")
+  assert_contains "$edit" "--add-label agent/needs-shaping" "the shaping label rides that write"
+  assert_contains "$edit" "--add-label status/on-hold" "beside the hold it explains"
+  assert_contains "$edit" "--remove-label status/open" "and replaces the state the item carried"
+  assert_contains "$out" "agent/needs-shaping" "the call reports the label it wrote"
+  # The first line names the verdict and states what it means for the reader: the item wants splitting, and no
+  # verb in this tooling can split it.
+  assert_contains "$(cat "$log")" "too-wide: the item wants splitting" "the comment's first line names the verdict"
+  assert_contains "$(cat "$log")" '**The shaping:** six capability deltas' "and carries the clause that produced it"
+
+  # The other three verdicts the profile names behave the same way, and `needs-diagnosis` keeps the decision label
+  # it wrote before this capability existed.
+  for verdict in unspecifiable not-spec-shaped; do
+    : > "$log"
+    run_labels "$p" "$verdict" 21 --reason "the fixture cause" --evidence "the fixture evidence" >/dev/null 2>&1 ||
+      fail "$verdict was refused"
+    assert_contains "$(cat "$log")" "--add-label agent/needs-shaping" "$verdict writes the shaping label"
+  done
+  : > "$log"
+  run_labels "$p" needs-diagnosis 21 --reason "the fixture cause" --evidence "the fixture evidence" >/dev/null 2>&1 ||
+    fail "needs-diagnosis was refused"
+  assert_contains "$(cat "$log")" "--add-label agent/needs-shaping" "needs-diagnosis writes the shaping label"
+  assert_contains "$(cat "$log")" "--add-label agent/needs-decision" "beside the decision label it already wrote"
+}
+
+# A verdict the profile does not name as a shaping verdict keeps the bare hold it wrote before this capability:
+# the list is the project's judgement, and `needs-target` is a hold without a reshaping in it.
+case_run_aVerdictOutsideTheListWritesNoLabel() {
+  # files: tools/loop/labels.sh tools/loop/lib.sh tools/loop/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  local d p log out status
+  p=$(new_project); d=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  log="$d/gh-hold.log"; : > "$log"; export GH_STUB_RECORD="$log"
+
+  out=$(run_labels "$p" needs-target 21 --reason "the claim names no target" --evidence "the item dir" 2>&1); status=$?
+  assert_eq "0" "$status" "a hold outside the list is still written: $out"
+  assert_contains "$(cat "$log")" "--add-label status/on-hold" "the hold is the state it wrote before"
+  assert_eq "0" "$(grep -c 'needs-shaping' "$log" || true)" "and no shaping label is written"
+  assert_not_contains "$(cat "$log")" "**The shaping:**" "nor does its comment claim a shaping statement"
+
+  # A project that names no shaping verdict declares the list empty, and then no verdict at all writes the label
+  # (capability `shaping-inbox`, D2): the list is a declaration, and the hold is still written and accounted for.
+  jq '.roles.shapingVerdicts = []' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not empty the shaping list"
+  : > "$log"
+  out=$(run_labels "$p" too-wide 21 --reason "the fixture cause" --evidence "the fixture evidence" 2>&1); status=$?
+  assert_eq "0" "$status" "a skip in a project with no shaping verdicts is still written: $out"
+  assert_contains "$(cat "$log")" "--add-label status/on-hold" "with its hold"
+  assert_eq "0" "$(grep -c 'needs-shaping' "$log" || true)" "and no shaping label, because no verdict is named"
+
+  # A profile written before this capability omits both shaping keys altogether. That is the empty declaration,
+  # not a half-adapted profile: the run starts, writes its hold, and names no shaping label (task 1.3).
+  jq 'del(.roles.shapingAgent, .roles.shapingVerdicts)' "$p/tools/tooling.json" > "$p/tools/tooling.json.new" &&
+    mv "$p/tools/tooling.json.new" "$p/tools/tooling.json" || fail "could not drop the shaping keys"
+  : > "$log"
+  out=$(run_labels "$p" too-wide 21 --reason "the fixture cause" --evidence "the fixture evidence" 2>&1); status=$?
+  assert_eq "0" "$status" "a profile that omits the keys still runs: $out"
+  assert_contains "$(cat "$log")" "--add-label status/on-hold" "and writes the hold it always wrote"
+  assert_eq "0" "$(grep -c 'needs-shaping' "$log" || true)" "with no shaping label"
+}
+
+# Shaping work is unbounded by nature, and the ceiling exists because unanswered *decisions* stop new work: an
+# item carrying the shaping label must therefore not count against it, or a run refuses for a queue it cannot
+# fill (capability `shaping-inbox`, Non-Goals).
+case_run_theShapingInboxDoesNotCountAgainstTheCeiling() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/prescreen.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario shaping)
+  stub_success "$d"
+
+  out=$(run_loop "$p" --items 1 --minutes 90 --max-decisions 2 2>&1); status=$?
+  assert_eq "0" "$status" "five shaping items do not stop a run under a ceiling of two: $out"
+  assert_not_contains "$out" "await a decision" "the ceiling counts the decision label only"
+  assert_contains "$out" "nothing eligible" "the shaping items are holds, so no work is queued"
+  assert_eq "0" "$(grep -c 'needs-decision' "$GH_STUB_RECORD" || true)" "and nothing is escalated for them"
 }
 
 # A block whose cause is the run's own child is not a question the item asked. Rather than escalate a reason
@@ -8327,6 +8504,275 @@ case_clean_reportsWithoutApplyAndRemovesWithIt() {
 
   out=$(run_clean "$p" --apply) || fail "the second --apply failed: $out"
   assert_contains "$out" "nothing to remove" "a second run is a no-op"
+}
+
+# ------------------------------------------------------------- cases: the change an item names (`agent-issue-loop`)
+
+# The worktree is cut from the base and an unarchived change is gitignored, so the change a person wrote and gated
+# reaches the worker only because the run copies it in at the item's start. The copy is whole, is recorded in the
+# state, and follows no symlink out of the source directory.
+case_worktree_theNamedChangeIsCopiedIntoTheItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/state.sh tools/loop/worktree.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local p w out record
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  tier_b_change "$p" add-prepared-change
+  ln -s /etc/hostname "$p/openspec/changes/add-prepared-change/escape-link" ||
+    fail "could not create the fixture's symlink"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null 2>&1 || fail "worktree create failed"
+
+  out=$(run_worktree "$p" start-item 31 a-prepared-change --change add-prepared-change) ||
+    fail "start-item refused the prepared change: $out"
+  [ -f "$w/openspec/changes/add-prepared-change/proposal.md" ] ||
+    fail "the change's proposal was not copied into the worktree"
+  [ -f "$w/openspec/changes/add-prepared-change/specs/demo/spec.md" ] ||
+    fail "the change's spec delta was not copied into the worktree"
+  [ -f "$w/openspec/changes/add-prepared-change/evidence/readme.txt" ] ||
+    fail "the change's evidence directory was not copied into the worktree"
+  [ -e "$w/openspec/changes/add-prepared-change/escape-link" ] &&
+    fail "the copy recreated a symlink out of the change directory"
+
+  record=$(run_state "$p" get '.changeCopies["31"]') || fail "the copy was not recorded in the run's state"
+  assert_eq "openspec/changes/add-prepared-change" "$(printf '%s' "$record" | jq -r '.source')" \
+    "the recorded source"
+  [ "$(printf '%s' "$record" | jq -r '.files')" -ge 4 ] ||
+    fail "the recorded file count does not name what was copied: $record"
+  [ "$(printf '%s' "$record" | jq -r '.bytes')" -gt 0 ] || fail "the recorded size is not a measurement: $record"
+  assert_contains "$out" "change: openspec/changes/add-prepared-change copied into the worktree" \
+    "the start names the copy"
+}
+
+# A change name no directory holds is a refusal before a branch or a child exists — never an empty directory, which
+# would hand a worker a change with nothing in it.
+case_worktree_aMissingChangeRefusesTheItem() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p w out status
+  p=$(new_project); w="$p/.pi/worktrees/loop"
+  export PI_STUB_LOG="$p/pi.log"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null 2>&1 || fail "worktree create failed"
+
+  out=$(run_worktree "$p" start-item 31 a-prepared-change --change add-absent 2>&1); status=$?
+  assert_eq "5" "$status" "a change the tree does not hold refuses the item"
+  assert_contains "$out" "openspec/changes/add-absent" "the refusal names the path the run looked for"
+  assert_eq "" "$(git -C "$w" branch --format='%(refname:short)' | grep '^fix/issue-31-' || true)" \
+    "no branch was cut for a refused item"
+  [ -e "$w/openspec/changes/add-absent" ] && fail "the refusal created an empty change directory"
+  [ -e "$PI_STUB_LOG" ] && fail "a child process was started for a refused item"
+  assert_eq "" "$(run_state "$p" get '.changeCopies["31"] // ""')" "a refused copy is not recorded"
+}
+
+# A tier-A item names no change and is worked exactly as it was: the pre-screen queues it and the run plans it.
+case_prescreen_aTierAItemPassesUnchanged() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status
+  p=$(new_project)
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "0" "$status" "a tier-A item is still queued"
+  assert_contains "$out" '"issue":21' "the tier-A item is a candidate"
+  assert_eq "0" "$(printf '%s' "$out" | jq '[.[] | select(.verdict == "change-not-ready")] | length')" \
+    "no tier-B branch fires for an item that names no change"
+  assert_eq "1" "$(jq -r '.queue | length' "$(state_file "$p")")" "the item reaches the queue"
+}
+
+# The two script-decidable facts about a tier-B item are asked before any worktree is cut: the change directory is
+# there, and the profile's readiness checker still reports `ok`. Either failing is a refusal with the checker's own
+# verdict line on the item, not a hold.
+case_prescreen_aChangeThatIsNoLongerReadyIsRefused() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status record tracker
+  p=$(new_project)
+  tier_b_change "$p" add-prepared-change unready
+  init_state "$p" 3 90
+  # The tracker is copied out of the fixture so the case can make its read answer with the comment a previous run
+  # wrote: the stub records a write instead of storing it, and a real `gh` would answer the next read with it.
+  tracker="$p/tracker"; cp -r "$(scenario tier-b)" "$tracker"
+  export GH_STUB_DIR="$tracker"
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err"); status=$?
+  assert_eq "3" "$status" "an item whose change is no longer ready leaves nothing eligible"
+  record=$(printf '%s' "$out" | jq -c '.[] | select(.issue == 31)')
+  assert_eq "change-not-ready" "$(printf '%s' "$record" | jq -r '.verdict')" "its verdict is the refusal"
+  assert_contains "$(printf '%s' "$record" | jq -r '.reason')" "LOOP-CHANGE-READY: refused open-decision=design.md:5" \
+    "the checker's own verdict line is the reason"
+  assert_eq "openspec/changes/add-prepared-change" "$(printf '%s' "$record" | jq -r '.evidence')" \
+    "the evidence names the change source"
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "no child is started for it"
+  # The refusal reaches the item, and it is one comment per refusal: the same verdict line again writes nothing.
+  assert_contains "$(cat "$p/gh.log")" "issue comment 31" "the verdict line was written on the item"
+  assert_contains "$(cat "$p/gh.log")" "open-decision=design.md:5" "the comment carries the checker's line"
+  jq '.[0].comments = ((.[0].comments // []) + [{author: {login: "Framstag"}, createdAt: "2026-10-31T00:00:00Z",
+        body: "LOOP-CHANGE-READY: refused open-decision=design.md:5"}])' \
+    "$tracker/issues.json" > "$tracker/issues.json.new" && mv "$tracker/issues.json.new" "$tracker/issues.json" ||
+    fail "could not stand the tracker's persisted comment in"
+  run_prescreen "$p" --json >/dev/null 2>&1 || true
+  assert_eq "1" "$(grep -c 'issue comment 31' "$p/gh.log" || true)" "a second run repeats no refusal"
+}
+
+# The closure, not the leftover's absence, is what stops a second consume: a consumed item is not selected again
+# while its source directory is still on disk.
+case_prescreen_aClosedItemIsNotSelected() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/prescreen.sh tools/loop/state.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local p out
+  p=$(new_project)
+  tier_b_change "$p" add-prepared-change
+  init_state "$p" 3 90
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || fail "a ready change is queued: $out"  assert_contains "$out" '"issue":31' "the tier-B item is a candidate while it is open"
+
+  run_state "$p" done 31 --result done --change add-prepared-change >/dev/null ||
+    fail "could not record the item as landed"
+  out=$(run_prescreen "$p" --json 2>"$p/prescreen.err") || true
+  # The pre-screen's own record still names the candidate — the tracker has not moved — and the run's queue is what
+  # decides what is worked; `state.sh queue` drops an item it has recorded.
+  assert_eq "0" "$(jq -r '.queue | length' "$(state_file "$p")")" "the consumed item is not selected again"
+  [ -d "$p/openspec/changes/add-prepared-change" ] ||
+    fail "the case needs the source still on disk to prove the closure and not the leftover does the work"
+}
+
+# The change reaches the child as a block of its own, never in an instruction position, and the recorded decision
+# travels inside it.
+case_prompt_thePackageCarriesTheChange() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local d p package
+  d=$(scratch); p=$(new_project)
+  tier_b_change "$p" add-prepared-change
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  package="$p/.pi/issue-loop/items/31/work-package.md"
+  [ -f "$package" ] || fail "no work package was written for the tier-B item"
+  assert_eq "1" "$(grep -c '^<<<ITEM_CHANGE$' "$package" || true)" "exactly one opening delimiter"
+  assert_eq "1" "$(grep -c '^ITEM_CHANGE$' "$package" || true)" "exactly one closing delimiter"
+  assert_contains "$(cat "$package")" "change: add-prepared-change" "the block names the change"
+  assert_contains "$(cat "$package")" \
+    "path: $p/.pi/worktrees/loop/openspec/changes/add-prepared-change" "the block names its path in the worktree"
+  assert_contains "$(cat "$package")" "readiness: LOOP-CHANGE-READY: ok" "the block quotes the readiness verdict"
+  assert_contains "$(cat "$package")" "decisions: 1" "and the decision a person recorded"
+  [ -f "$p/.pi/worktrees/loop/openspec/changes/add-prepared-change/design.md" ] ||
+    fail "the change was not in the worktree the worker was handed"
+}
+
+# A tier-A item's package says so, because an absent block is a half-prepared package a reader cannot tell from a
+# missing one.
+case_prompt_aTierAItemSaysSo() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p package
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  package="$p/.pi/issue-loop/items/21/work-package.md"
+  [ -f "$package" ] || fail "the work package was not written"
+  assert_eq "1" "$(grep -c '^<<<ITEM_CHANGE$' "$package" || true)" "exactly one opening delimiter"
+  assert_eq "1" "$(grep -c '^ITEM_CHANGE$' "$package" || true)" "exactly one closing delimiter"
+  assert_contains "$(cat "$package")" "change: none" "the block states that the item names no change"
+  assert_eq "1" "$(grep -c '^change: ' "$package" || true)" "and states nothing else in its place"
+}
+
+# A worker handed a change verifies it and applies it; it creates no second change directory for the item.
+case_run_aTierBItemWritesNoSecondChange() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local d p w prompt package
+  d=$(scratch); p=$(new_project); w="$p/.pi/worktrees/loop"
+  tier_b_change "$p" add-prepared-change
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  prompt="$p/.pi/issue-loop/items/31/worker-prompt.md"
+  package="$p/.pi/issue-loop/items/31/work-package.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  assert_contains "$(cat "$prompt")" "ITEM_CHANGE" "the worker is told where it finds the change it was handed"
+  assert_contains "$(cat "$prompt")" "do not write a second" "and forbidden to plan a second one"
+  assert_contains "$(cat "$package")" "change: add-prepared-change" "the package names the change"
+  assert_eq "add-prepared-change archive" \
+    "$(find "$w/openspec/changes" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | tr '\n' ' ' | sed 's/ $//')" \
+    "the prepared change is the only change the item wrote (the archive is the worker's own)"
+  assert_eq "openspec/changes/add-prepared-change" \
+    "$(run_state "$p" get '.changeCopies["31"].source')" "the run recorded the copy it made"
+}
+
+# A fork the change's declaration does not settle is a decision naming that fork and the change's line — never a
+# re-derived option list, which is how a recorded `2` comes to mean a different option.
+case_run_aForkTheChangeDoesNotAnswerIsNamed() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt report
+  d=$(scratch); p=$(new_project)
+  tier_b_change "$p" add-prepared-change
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  report='LOOP-VERDICT: skipped
+LOOP-SKIP-VERDICT: needs-decision
+LOOP-CHANGE: add-prepared-change
+LOOP-ROOT-CAUSE: the prepared change is the plan and it leaves one fork open
+LOOP-RED-TEST: none — nothing was changed
+LOOP-GATE: not run — the tree is unchanged
+LOOP-DECISION: the bound the change leaves open at design.md:5 — options in order: (1) ship it as the change words it, (2) leave the row out'
+  stub_per_item_worker "$d" "$report" 'VERDICT: PASS' ':'
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  prompt="$p/.pi/issue-loop/items/31/worker-prompt.md"
+  assert_contains "$(cat "$prompt")" "naming the fork and the change's line" "the prompt names where the question goes"
+  [ -f "$d/gh.log" ] || fail "nothing was written on the tracker"
+  assert_contains "$(cat "$d/gh.log")" "needs-decision" "the item is escalated as a decision"
+  assert_contains "$(cat "$d/gh.log")" "design.md:5" "and the question names the change's line"
+  assert_eq "1" "$(jq -r '[.items[] | select(.issue == 31) | select(.verdict == "needs-decision")] | length' "$(state_file "$p")")" \
+    "the run recorded the decision verdict"
+}
+
+# A change whose premise moved is a diagnosis naming the path that moved, and never a replacement plan.
+case_run_aChangeWhosePremiseMovedIsNotRePlanned() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/worktree.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt report
+  d=$(scratch); p=$(new_project)
+  tier_b_change "$p" add-prepared-change
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  report='LOOP-VERDICT: skipped
+LOOP-SKIP-VERDICT: needs-diagnosis
+LOOP-CHANGE: add-prepared-change
+LOOP-ROOT-CAUSE: the change cites a start-item whose shape moved
+LOOP-RED-TEST: none — nothing was changed
+LOOP-GATE: not run — the tree is unchanged
+LOOP-DECISION: the change cites tools/loop/worktree.sh:216, which no longer shows the start-item it claimed — options in order: (1) re-shape the change, (2) retire the item'
+  stub_per_item_worker "$d" "$report" 'VERDICT: PASS' ':'
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  prompt="$p/.pi/issue-loop/items/31/worker-prompt.md"
+  assert_contains "$(cat "$prompt")" "needs-diagnosis" "the prompt says what a moved claim becomes"
+  assert_contains "$(cat "$prompt")" "naming the path that moved" "and that it names the path"
+  assert_contains "$(cat "$d/gh.log")" "tools/loop/worktree.sh:216" "the escalation names the path that moved"
+  assert_eq "1" "$(jq -r '[.items[] | select(.issue == 31) | select(.verdict == "needs-diagnosis")] | length' "$(state_file "$p")")" \
+    "the run recorded the diagnosis verdict"
+}
+
+# The source a landed item consumed is reported by the clean command, with its size, and removed only by `--apply`.
+case_clean_aConsumedChangeIsReported() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local d p src out
+  d=$(scratch); p=$(new_project)
+  tier_b_change "$p" add-prepared-change
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  src="$p/openspec/changes/add-prepared-change"
+  [ -d "$src" ] || fail "the case needs the source to survive the landed item"
+  out=$(run_clean "$p") || fail "loop-clean failed: $out"
+  assert_contains "$out" "would remove openspec/changes/add-prepared-change" "the source is reported"
+  assert_matches "$out" "would remove openspec/changes/add-prepared-change \\([0-9][0-9]* B\\) — the change #31 consumed" \
+    "with its size and the item that consumed it"
+  [ -d "$src" ] || fail "the report removed the source without --apply"
+}
+
+case_clean_aSecondRunFindsNothing() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local d p src out
+  d=$(scratch); p=$(new_project)
+  tier_b_change "$p" add-prepared-change
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  src="$p/openspec/changes/add-prepared-change"
+  out=$(run_clean "$p" --apply) || fail "loop-clean --apply failed: $out"
+  assert_contains "$out" "removed openspec/changes/add-prepared-change" "--apply removes the consumed source"
+  [ -e "$src" ] && fail "the consumed source survived --apply"
+  out=$(run_clean "$p" --apply) || fail "the second --apply failed: $out"
+  assert_contains "$out" "nothing to remove" "a second run finds nothing of it"
 }
 
 # ------------------------------------------------------------------- cases: the processes a suite leaves

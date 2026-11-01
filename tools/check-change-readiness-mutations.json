@@ -1,0 +1,62 @@
+{
+  "comment": "The revert-check of the `change-readiness` capability (`tools/check-change-readiness.sh`): one record per refusal the checker can print — `declaration-missing`, `open-decision`, `scenario-without-case`, `surface-missing`, `surface-command-missing`, `change-unreadable` — plus one record for the rule that makes the whole capability safe, that the checker reads the `## Open decisions` declaration and never a section for its meaning, so a real in-flight `## Open Questions` deferral is not a refusal. Run it with `bash tools/mutate.sh --mutations tools/check-change-readiness-mutations.json`; `.pi/skills/revert-check` owns the rule and `.pi/skills/mutation-runner` owns how. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite. Every search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards; `tools/loop/loop.conf` maps this list to the checker's path, so editing the checker runs it.",
+  "case-cmd": "bash tools/check-change-readiness-selftest.sh --case {case}",
+  "mutations": [
+    {
+      "label": "declaration-missing",
+      "case": "readiness#missingDeclaration",
+      "file": "tools/check-change-readiness.sh",
+      "search": "  if [ \"$decl_missing\" = 1 ]; then record declaration-missing",
+      "replace": "  if [ \"$decl_missing\" = 99 ]; then record declaration-missing",
+      "why": "a change that carries no `## Open decisions` section is refused by name, because an omitted declaration and a declaration of `none` are different claims and only one of them can be checked"
+    },
+    {
+      "label": "open-decision",
+      "case": "readiness#openDecision",
+      "file": "tools/check-change-readiness.sh",
+      "search": "  if [ \"$decl_decision\" = 1 ]; then record open-decision",
+      "replace": "  if [ \"$decl_decision\" = 99 ]; then record open-decision",
+      "why": "a declaration whose first non-empty line names a decision is refused with that line, so a change that leaves a worker a fork is not reported ready"
+    },
+    {
+      "label": "scenario-without-case",
+      "case": "readiness#scenarioWithoutCase",
+      "file": "tools/check-change-readiness.sh",
+      "search": "      record scenario-without-case \"${prefix}${spec#\"$dir\"/}\" \"$s_line\" \"$s_name — $s_why\"",
+      "replace": "      :",
+      "why": "every `#### Scenario:` in the change's spec delta owes a `**Case**:` line, because a scenario with no case is a plan for a test that does not exist"
+    },
+    {
+      "label": "surface-missing",
+      "case": "readiness#surfaceMissing",
+      "file": "tools/check-change-readiness.sh",
+      "search": "  if [ -z \"${surface_line:-}\" ]; then record surface-missing",
+      "replace": "  if false; then record surface-missing",
+      "why": "a proposal with no line beginning `surface:` is refused, because an estimate made before the surface is counted is the defect the count exists to prevent"
+    },
+    {
+      "label": "surface-command-missing",
+      "case": "readiness#surfaceCommandMissing",
+      "file": "tools/check-change-readiness.sh",
+      "search": "  if ! printf '%s\\n' \"$surface_text\" | grep -q '`[^`]\\+`'; then record surface-command-missing",
+      "replace": "  if false; then record surface-command-missing",
+      "why": "a surface line that quotes no command is refused, because a count a reader cannot re-take is a number with no measurement behind it"
+    },
+    {
+      "label": "change-unreadable",
+      "case": "readiness#changeUnreadable",
+      "file": "tools/check-change-readiness.sh",
+      "search": "  if [ ! -f \"$design\" ]; then",
+      "replace": "  if false; then",
+      "why": "a change directory that carries no design.md is refused by name instead of being read as a change that declares nothing, so a missing document cannot pass as a clean one"
+    },
+    {
+      "label": "deferral-is-not-a-fork",
+      "case": "readiness#deferralIsNotAFork",
+      "file": "tools/check-change-readiness.sh",
+      "search": "      if (tolower($0) ~ /^##[ \\t]+open decisions[ \\t]*$/) { ins = 1; heading = NR; next }",
+      "replace": "      if (tolower($0) ~ /^##[ \\t]+open questions[ \\t]*$/) { ins = 1; heading = NR; next }",
+      "why": "the checker reads the `## Open decisions` declaration and never the meaning of a section, so the deferral 8 of 15 in-flight designs carried is not a refusal; a checker that read `## Open Questions` would refuse 53 % of the open set"
+    }
+  ]
+}

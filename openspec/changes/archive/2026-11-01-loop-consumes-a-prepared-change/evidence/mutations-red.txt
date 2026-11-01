@@ -1,0 +1,9 @@
+$ bash tools/loop-mutations.sh --only 74.1
+RED    74.1  worktree#aMissingChangeRefusesTheItem   (the refusal of a change the tree does not hold, replaced by an empty change directory)
+restore 74.1 worktree#aMissingChangeRefusesTheItem green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+$ bash tools/loop-mutations.sh --only 74.2
+RED    74.2  prescreen#aChangeThatIsNoLongerReadyIsRefused   (the tier-B refusal decided on the readiness checker verdict)
+restore 74.2 prescreen#aChangeThatIsNoLongerReadyIsRefused green again
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

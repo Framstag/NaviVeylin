@@ -224,6 +224,13 @@ public final class Profile {
                 default -> {
                     if (args[1].startsWith("namespaces.")) {
                         profile.values(args[1].substring("namespaces.".length())).forEach(System.out::println);
+                    } else if (args[1].startsWith("checks.")) {
+                        // A check another tool may run, by name: `checks.changeReady` is the readiness checker the
+                        // filing path reaches for a finding's tier-B shape. An empty value is a declaration that the
+                        // project has no such check, so the reader prints the empty line rather than failing (the
+                        // caller refuses with `gate-not-configured`).
+                        Object value = Json.path(profile.root, "checks", args[1].substring("checks.".length()));
+                        System.out.println(value == null ? "" : String.valueOf(value));
                     } else {
                         System.err.println("Profile: unknown section " + args[1]);
                         System.exit(2);

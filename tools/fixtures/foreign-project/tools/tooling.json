@@ -2,6 +2,10 @@
   "profile": 1,
   "comment": "THE FOREIGN PROFILE — the fixture's own, deliberately different from the upstream project's: another repository, another allowlist, another category vocabulary, another band set and another TTL. A passing fixture cannot be passing by accidental similarity (tooling-portability, D2).",
   "repo": "acme/widget",
+  "checks": {
+    "comment": "The foreign project declares no readiness check, so a finding in its tier-B shape is refused there with `gate-not-configured` — declared empty, never omitted.",
+    "changeReady": ""
+  },
   "allowedAuthors": ["ada"],
   "requiredLabels": ["agent/eligible"],
   "reservedLabels": ["agent/eligible"],

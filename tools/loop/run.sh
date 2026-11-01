@@ -598,7 +598,7 @@ place_submodule_pin() { # → 0 when the tree is clean afterwards; the placement
   [ -z "$(git -C "$worktree" status --porcelain 2>/dev/null)" ]
 }
 retry_start_item() { # → 0 when the retried start succeeded; its output is left in $start_out
-  if start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" 2>&1); then
+  if start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" --change "${item_change:-}" 2>&1); then
     start_after_discard=1
     return 0
   fi
@@ -1327,6 +1327,29 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
   loop_render "$template" "$@" > "$out"
 }
 
+# The readiness verdict line for the change the run handed an item, read again when the package is rendered: the
+# item's answer is the copy in the worktree, so the copy is what is judged. A project that declares no check, or a
+# path that is not there, is named on the line rather than left blank — the block quotes a verdict, not a promise.
+change_readiness_of() { # <change dir> → the checker's one-line verdict
+  local dir="$1" gate gate_path out line
+  gate=$(jq -r '.checks.changeReady // ""' "$(loop_profile)" 2>/dev/null | head -1)
+  if [ -z "$gate" ]; then
+    printf 'LOOP-CHANGE-READY: refused gate-not-configured — the profile declares no checks.changeReady\n'
+    return 0
+  fi
+  case "$gate" in
+    /*) gate_path="$gate" ;;
+    *) gate_path="$LOOP_ROOT/$gate" ;;
+  esac
+  if [ ! -f "$gate_path" ]; then
+    printf 'LOOP-CHANGE-READY: refused gate-not-configured — checks.changeReady names %s and no file is there\n' "$gate"
+    return 0
+  fi
+  out=$(bash "$gate_path" "$dir" 2>&1) || true
+  line=$(printf '%s\n' "$out" | grep -m1 '^LOOP-CHANGE-READY:' || true)
+  printf '%s\n' "${line:-LOOP-CHANGE-READY: refused change-unreadable=$dir — the check at $gate printed no verdict line}"
+}
+
 # The round's prompt, rendered once per attempt: the same contract and the same diff, only the file it is written
 # to differs, so a retried answer is the same question asked again rather than a second review (#224).
 # `CORRECTION_SCOPE` is substituted **first**, not last: `loop_render` replaces one pair at a time on the template it
@@ -1337,6 +1360,7 @@ render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
     "CORRECTION_SCOPE=${2:-}" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "DIFF_RANGE=$diff_base" "EVIDENCE_DIR=$item_dir" \
+    "WORK_PACKAGE=${package:-}" \
     "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
 }
 
@@ -1389,8 +1413,15 @@ while true; do
   propose_class=$(loop_role proposeClass)
   slug=$(slugify "$title")
   [ -n "$slug" ] || slug="issue-$issue"
+  # The change the item's body records (`finding-shape-at-filing`) is the plan a person wrote and gated: the run copies
+  # it into the worktree and hands it over, so a tier-B item is never planned a second time. Empty is a tier-A item,
+  # whose plan is the worker's own; nothing below reads the body for any other purpose.
+  item_body=$(printf '%s' "$issue_json" | jq -r '.body // ""')
+  item_change=$(issues_change_of "$item_body")
+  changes_family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR)
+  changes_family="${changes_family:-openspec/changes}"
 
-  if ! start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" 2>&1); then
+  if ! start_out=$(bash "$LOOP_DIR/worktree.sh" start-item "$issue" "$slug" --change "${item_change:-}" 2>&1); then
     printf '%s\n' "$start_out"
     case "$start_out" in
       # The base moved: the base branch is not what this run recorded, so nothing may be branched off it. That is a
@@ -1518,7 +1549,7 @@ while true; do
   # of resolving the worktree's branch marker by hand (issue #263). Its `change` is the name the run asks the
   # worker for — the same slug the branch carries — because the change the worker files is not known until it
   # reports, and `done` records that one beside the item.
-  change_hint="$(if [ "$class" = "$propose_class" ]; then printf add; else printf fix; fi)-$slug"
+  change_hint="${item_change:-$(if [ "$class" = "$propose_class" ]; then printf add; else printf fix; fi)-$slug}"
   loop_state start "$issue" --change "$change_hint" >/dev/null || {
     printf 'run: could not record #%s as the item in progress\n' "$issue" >&2
     stop_run "the state could not name #$issue as the item in progress"
@@ -1527,6 +1558,11 @@ while true; do
 
   item_dir="$stage_dir/items/$issue"
   mkdir -p "$item_dir"
+  # What the run copied into the worktree, beside the item's other evidence: the source directory, the file count and
+  # the bytes are the run's own record of the preparation, and `loop-clean.sh` reports the source from the state.
+  if [ -n "$item_change" ] && [ -f "$LOOP_STATE_FILE" ]; then
+    jq --arg i "$issue" '(.changeCopies // {})[$i] // empty' "$LOOP_STATE_FILE" > "$item_dir/change-copy.json" 2>/dev/null || true
+  fi
   # The report a person can tail while the item is worked, named where the item starts: the child's own stream
   # arrives only when it exits, so that file is the view that exists in between (issue #191).
   progress item "picked #$issue — its report is written to $item_dir/worker-report.md"
@@ -1541,9 +1577,18 @@ while true; do
   fingerprint=$(printf '%s' "$issue_json" | jq -r '.body // ""' | { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
   # The item's text reaches the child inside a delimited data field, never in an instruction position
   # (D10): the work package is a file, and the prompt names its path instead of inlining it.
+  # The prepared change reaches the child as the third delimited block of its package, with the readiness verdict
+  # read again for the copy in the worktree — the copy is what the child applies, so the copy is what is judged.
+  change_path=""
+  change_readiness=""
+  if [ -n "$item_change" ]; then
+    change_path="$worktree/$changes_family/$item_change"
+    change_readiness=$(change_readiness_of "$change_path")
+  fi
   printf '%s' "$issue_json" |
     issues_core WorkPackage --profile "$(loop_profile)" --issue - \
-      --fingerprint "$fingerprint" --provenance "issue #$issue" > "$package" ||
+      --fingerprint "$fingerprint" --provenance "issue #$issue" \
+      --change "${item_change:-}" --change-path "$change_path" --change-readiness "$change_readiness" > "$package" ||
     loop_die "run: could not render the work package for #$issue"
 
   render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \

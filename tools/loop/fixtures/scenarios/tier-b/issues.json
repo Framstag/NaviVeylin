@@ -1,0 +1,26 @@
+[
+  {
+    "number": 31,
+    "title": "§31 A tier-B item whose change a person prepared and gated",
+    "body": "<!-- nvid: 31 -->\n<!-- tier: b -->\n<!-- change: add-prepared-change -->\n\n- **Observed** ✗: the prepared change is ready and the item names it.\n- **Anchor** ℹ: `tools/tooling.json` carries the vocabulary.",
+    "author": { "login": "Framstag" },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/tooling" },
+      { "name": "status/open" },
+      { "name": "agent/eligible" }
+    ],
+    "comments": [
+      {
+        "author": { "login": "Framstag" },
+        "createdAt": "2026-10-30T21:49:35Z",
+        "body": "**The decision:** does the row ship the bound as a hard rule or as a warning — options in order: (1) a hard rule, (2) a warning with a note"
+      },
+      {
+        "author": { "login": "Framstag" },
+        "createdAt": "2026-10-30T22:02:04Z",
+        "body": "Decision: 1\n<!-- answers: does the row ship the bound as a hard rule or as a warning — options in order: (1) a hard rule, (2) a warning with a note -->"
+      }
+    ]
+  }
+]

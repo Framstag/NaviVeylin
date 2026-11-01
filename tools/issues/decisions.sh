@@ -10,6 +10,9 @@
 # Read-only: no token beyond the tracker read, no write, no preflight. It answers two questions a person asks
 # before answering anything — which items are waiting, and what each one asks.
 #
+# It lists the decision label and nothing else: an item a run handed back to be reshaped carries the shaping
+# label instead, awaits no question, and is listed by `tools/issues/shaping.sh` (capability `shaping-inbox`).
+#
 # Exit: 0 ok (an empty queue is not a failure), 2 usage, 3 the profile declares no decision role.
 #
 # Usage: decisions.sh [--limit N] [--json] [--profile <path>]
@@ -27,7 +30,7 @@ while [ $# -gt 0 ]; do
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) issues_die "decisions: unknown argument $1" ;;
   esac
 done

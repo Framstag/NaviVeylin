@@ -32,6 +32,8 @@
 #   state.sh stop <reason>              # the condition that ended the run, as `next` names it#   state.sh next                       # the next candidate; exit 3 when the run may not continue
 #   state.sh queue                      # read the queue as JSON on stdin (prescreen writes it)
 #   state.sh start <issue> --change <name>
+#   state.sh record-change-copy <issue> --change <name> --source <path> --files N --bytes N
+#                         # the change the item names, copied into its worktree at its start (`worktree.sh`)
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
 #   state.sh done <issue> --result done|skipped|blocked|falsified [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
@@ -354,6 +356,34 @@ cmd_start() {
   patch_state '.current = {issue:$i, change:$c, phase:"A"} | .steps += [{issue:$i, phase:"A", name:"start", status:"ok", note:"", at:$at}]' \
     --argjson i "$issue" --arg c "$change" --arg at "$(iso_utc "$(now_epoch)")"
   printf 'started #%s %s — phase A\n' "$issue" "$change"
+}
+
+# What the run copied into the item's worktree, recorded when the copy is taken (`worktree.sh start-item`) so the
+# item carries the source it consumed and the clean command can report it after the item landed. It is keyed by the
+# item and not hung on `.current`, because it is written before the item is started — the state's `start` names the
+# item afterwards, and a record the copy itself made must survive that.
+cmd_record_change_copy() {
+  require_state
+  local issue="" change="" source="" files="" bytes=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --change) need_value "$@"; change="${2:-}"; shift 2 ;;
+      --source) need_value "$@"; source="${2:-}"; shift 2 ;;
+      --files) need_value "$@"; files="${2:-}"; shift 2 ;;
+      --bytes) need_value "$@"; bytes="${2:-}"; shift 2 ;;
+      --*) loop_die "record-change-copy: unknown argument $1" ;;
+      *) [ -z "$issue" ] || loop_die "record-change-copy: issue given twice"; issue="$1"; shift ;;
+    esac
+  done
+  case "$issue" in ''|*[!0-9]*) loop_die "record-change-copy: usage: state.sh record-change-copy <issue> --change <name> --source <path> --files N --bytes N" ;; esac
+  [ -n "$change" ] || loop_die "record-change-copy: --change is required"
+  case "$files" in ''|*[!0-9]*) files=0 ;; esac
+  case "$bytes" in ''|*[!0-9]*) bytes=0 ;; esac
+  patch_state '.changeCopies = ((.changeCopies // {}) | .[($i|tostring)] = {change:$c, source:$s, files:$f, bytes:$b, at:$at})' \
+    --argjson i "$issue" --arg c "$change" --arg s "$source" --argjson f "$files" --argjson b "$bytes" \
+    --arg at "$(iso_utc "$(now_epoch)")"
+  printf 'change %s copied into the worktree for #%s (%s file(s), %s B) — source %s\n' \
+    "$change" "$issue" "$files" "$bytes" "$source"
 }
 
 # The base the run recorded is the commit every item descends from. A finished attempt merged onto it (issue
@@ -791,6 +821,7 @@ case "$cmd" in
   next) cmd_next "$@" ;;
   queue) cmd_queue "$@" ;;
   start) cmd_start "$@" ;;
+  record-change-copy) cmd_record_change_copy "$@" ;;
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
   score-landings) cmd_score_landings ;;

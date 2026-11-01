@@ -170,6 +170,18 @@ that query (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
   permission a fix closure rides, and only after the review read the claim. A falsification whose tree moved
   during the review is a change, so it is escalated instead (openspec change `falsified-items-close-in-the-loop`).
 
+**The shaping inbox is a third state, and it is neither a hold nor a decision.** Four of the run's verdicts say
+that the item's *shape* is wrong rather than that a question is open — `needs-diagnosis`, `unspecifiable`,
+`too-wide` and `not-spec-shaped`, which `roles.shapingVerdicts` names so a project declares its own list. For those
+the run writes `agent/needs-shaping` in the same call as the hold and its one comment, whose first line is the
+verdict and whose `**The shaping:**` line is the clause behind it; `tools/issues/shaping.sh` lists every open item
+carrying the label with exactly that record, and an item carrying it with no statement is named as carrying none.
+It is not a hold, because it says a person owes a reshaping; it is not a decision, because no question is stated —
+so it is never escalated and never counted against `LOOP_MAX_DECISIONS`. Its writers are the run's skip path, which
+adds it, and the writes that record an outcome — `update.sh`'s state write, `close.sh`'s closure and `answer.sh`'s
+transition — which take it off in the same call, so no queue keeps an item somebody already reshaped or closed.
+The capability is `shaping-inbox`; the queue is a listing, not a ranking.
+
 ## 6. How an item becomes work
 
 ```
@@ -179,6 +191,7 @@ priority      the band is computed once, with its basis          -> reused while
 selection     open + a band + the gates, read from labels        -> a ranked working set, no bodies read
 eligibility   author allowlisted AND authorisation label present -> authorised for unattended work
 discovery     the loop's own cheap checks before spending        -> pre-filtered queue, unjudged
+shaping       a verdict that says a person must reshape this    -> agent/needs-shaping, listed by tools/issues/shaping.sh
 ```
 
 The split matters: **a script decides what can be decided cheaply** (kind, state, author, whether the code
@@ -201,6 +214,36 @@ path the tree does not hold may be one the change itself creates (#281). Measure
 before that shared rule was wrong about 48 of 49 verdicts, and two thirds of an authorised set was excluded
 over prose.
 
+The same split now reaches a **change**, not only an item: what a change leaves open is *declared*, never inferred
+from prose — `design.md` carries `## Open decisions` whose first non-empty line is either the first decision it
+leaves to a person or `none`, every `#### Scenario:` in its spec delta carries a `**Case**:` line, and `proposal.md`
+records a `surface:` count beside the command that took it. `tools/check-change-readiness.sh` reads those three
+artifacts and nothing else and prints one `LOOP-CHANGE-READY:` verdict, refusing by name (`declaration-missing`,
+`open-decision`, `scenario-without-case`, `surface-missing`, `surface-command-missing`, `change-unreadable`); the
+vocabulary, the cases and the mutation list are the capability `change-readiness`. It judges a declaration and never
+the meaning of a section, so a `## Open Questions` entry that defers is not a refusal.
+
+The same writer asks the item the question the shapes answer, and it is a refusal rather than a warning, because a
+warning is a thing a session learns to ignore. A finding carries **one** shape: a `cause` — the `file:line` of the
+mechanism, the case that exercises it and the tallies that case reported — makes it tier A, and a `change` — the
+OpenSpec change it will be worked as, which the readiness checker above must report `ok`, with the forks that
+change left open already answered — makes it tier B. Neither is refused; both is refused, because which shape the
+work takes is not the writer's decision. The shape lands in the item's body record as `tier`, with `change` for
+tier B, and a tier-B item's answers are commented on it, in the form `tools/issues/answer.sh` records, before any
+state label moves. Two callers are exempt and say so on the item (`exempt`): the check registry, whose failing case
+is its cause, and the reconciler, whose findings are historical records. The requirements are the capability
+`backlog-source-of-truth`; the writer is `tools/issues/create.sh` and the session's verb is the `file-finding` skill.
+
+Three facts about a tier-B change, because the run has to carry it: the change is **committed nowhere** while it is
+unarchived (`.gitignore` ignores `openspec/changes/*/`), the run **copies** it into the item's worktree before the
+worker starts and records the copy (`worktree.sh start-item --change`), and the source directory a landed item
+consumed is the **clean command's** to report and remove (`tools/loop/loop-clean.sh`). The item's closure, not the
+leftover's absence, is what stops a second consume. Two consequences: the copy is the authority, so an edit to the
+source while the item runs is recorded and not merged, and a change the tree does not hold, or one the readiness
+check no longer passes, refuses the item before any child starts. The requirements are `agent-issue-loop`'s —
+"A change the item names is handed to its worktree" and its three neighbours; the pre-screen's refusal is
+`change-not-ready`.
+
 Three consequences the design takes as decisions, not accidents:
 
 - the pass is **bounded per run**, so a project-wide vocabulary change becomes a sequence of bounded runs
@@ -214,7 +257,7 @@ Three consequences the design takes as decisions, not accidents:
 `Backlog.md` §7 is an index. The loop's procedure — its phases, the bounds on a child, the gate and its suite,
 the refusals it records and the leftovers it reports — is `guidelines/Backlog.recipes.md`, one sub-section per
 anchor below. Each anchor names a section number this document carries, so a citation of `§7` still resolves and a
-reader lands on the phase they need.
+reader lands on the phase they need. A tier-B item's prepared change reaches the child as its `ITEM_CHANGE` block (§7a).
 
 ## 7a. Running one item: the script, the child and the package
 

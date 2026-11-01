@@ -17,7 +17,7 @@
 #
 # Usage:
 #   worktree.sh create [--base <sha>] [--branch <name>]
-#   worktree.sh start-item <issue> <slug>
+#   worktree.sh start-item <issue> <slug> [--change <name>]
 #   worktree.sh end-item <issue> <slug>
 #   worktree.sh adopt-item <issue> <branch>
 #   worktree.sh branch-state <issue> <branch>
@@ -213,10 +213,55 @@ check_checkout() {
   fi
 }
 
+# The change an item's body records, copied into the item's worktree whole (design D1 of
+# `loop-consumes-a-prepared-change`): the run cuts every worktree from the base and an unarchived change is
+# gitignored, so the plan a person wrote and gated reaches the worker only if the run puts it there. The directory
+# family is the project's (`LOOP_CHANGE_SOURCE_DIR`), never a literal here.
+#
+# What is copied is the change directory and nothing else: the walk never follows a symlink (a link below the change
+# is skipped, not recreated, so the worktree cannot reach out of itself through it) and no other path of the project
+# is read — a build directory outside the change is not a change artifact.
+copy_named_change() { # <issue> <change> — refuses when the tree holds no such change (exit 5)
+  local issue="$1" change="$2" family rel src dest entry files bytes
+  case "$change" in ''|*/*|.|..) loop_die "start-item: --change takes one change directory name, not '$change'" ;; esac
+  family=$(loop_conf_value LOOP_CHANGE_SOURCE_DIR)
+  family="${family:-openspec/changes}"
+  rel="$family/$change"
+  src="$LOOP_ROOT/$rel"
+  dest="$worktree/$rel"
+  if [ ! -d "$src" ]; then
+    loop_refuse "the change '$change' that #$issue names is not in the tree — looked for $rel: the worktree is cut from the base and an unarchived change is gitignored, so the run copies it in, and an absent source is a refusal rather than an empty directory"
+  fi
+  mkdir -p "$dest" || loop_die "start-item: could not create $rel in the worktree"
+  while IFS= read -r -d '' entry; do
+    case "$entry" in "$src"/*) ;; *) continue ;; esac
+    if [ -L "$entry" ]; then continue; fi
+    if [ -d "$entry" ]; then mkdir -p "$dest/${entry#"$src"/}"; continue; fi
+    [ -f "$entry" ] || continue
+    mkdir -p "$(dirname "$dest/${entry#"$src"/}")" &&
+      cp -p -- "$entry" "$dest/${entry#"$src"/}" ||
+      loop_die "start-item: could not copy ${entry#"$src"/} into the worktree"
+  done < <(find "$src" -mindepth 1 -print0 2>/dev/null)
+  files=$(find "$dest" -type f 2>/dev/null | wc -l | tr -d ' ')
+  bytes=$(loop_bytes_of "$dest")
+  if [ -f "$LOOP_STATE_FILE" ]; then
+    bash "$LOOP_DIR/state.sh" record-change-copy "$issue" --change "$change" --source "$rel" \
+      --files "$files" --bytes "$bytes" >&2
+  fi
+  printf 'change: %s copied into the worktree for #%s (%s file(s), %s B)\n' "$rel" "$issue" "$files" "$bytes"
+}
+
 cmd_start_item() {
-  local issue="${1:-}" slug="${2:-}"
-  case "$issue" in ''|*[!0-9]*) loop_die "start-item: usage: worktree.sh start-item <issue> <slug>" ;; esac
-  [ -n "$slug" ] || loop_die "start-item: usage: worktree.sh start-item <issue> <slug>"
+  local issue="" slug="" change=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --change) need_value "$@"; change="${2:-}"; shift 2 ;;
+      -*) loop_die "start-item: unknown argument $1" ;;
+      *) if [ -z "$issue" ]; then issue="$1"; elif [ -z "$slug" ]; then slug="$1"; else loop_die "start-item: too many arguments"; fi; shift ;;
+    esac
+  done
+  case "$issue" in ''|*[!0-9]*) loop_die "start-item: usage: worktree.sh start-item <issue> <slug> [--change <name>]" ;; esac
+  [ -n "$slug" ] || loop_die "start-item: usage: worktree.sh start-item <issue> <slug> [--change <name>]"
   [ -d "$worktree" ] || loop_die "start-item: no worktree at $worktree — run 'create' first"
   check_base
   # One writer per tree: a dirty tree is another item's unfinished work, and committing over it would
@@ -225,6 +270,10 @@ cmd_start_item() {
   dirty=$(gitw status --porcelain)
   [ -z "$dirty" ] || loop_refuse "the worktree is not clean — refusing to start #$issue:
 $dirty"
+  # The prepared change is copied in *before* the branch is cut and before any child exists: the worktree is cut from
+  # the base and an unarchived change is gitignored, so nothing else would carry it, and an item whose change the
+  # tree does not hold is refused here rather than handed a worker an empty directory.
+  [ -z "$change" ] || copy_named_change "$issue" "$change"
   # An earlier run's branch for the same item, decided by what it *carries* (#228, #232):
   #   · nothing of its own — every patch is already in the base's history (`loop_unlanded_commits` is empty,
   #     which is how a branch whose work landed as a commit of the loop's own reads) — so the item starts on it

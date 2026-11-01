@@ -212,6 +212,42 @@ else
   done <<< "$(loop_own_branches "$LOOP_ROOT")"
 fi
 
+# ── the change an item consumed, in the project's own tree ─────────────────────────────────────────
+# The run writes nothing in the project's tree, so what remains of a prepared change after its item landed is the
+# source directory its worktree copy was taken from (`worktree.sh start-item --change`). It is reported only for an
+# item the state records as done: a source an unfinished item left is that item's unfinished work, and this command
+# is not a second discard path. It removes nothing but the path it named, never a path that leaves the project.
+say "loop-clean: change sources the landed items consumed"
+if [ ! -f "$LOOP_STATE_FILE" ]; then
+  say "  none — no run state at ${LOOP_STATE_FILE#"$LOOP_ROOT"/}"
+  kept=$((kept + 1))
+else
+  while IFS=$'\t' read -r consumed_issue consumed_source; do
+    [ -n "$consumed_source" ] || continue
+    case "$consumed_source" in
+      /*|..|*/../*|*/..|*..)
+        say "  kept $consumed_source — not a path inside the project"
+        kept=$((kept + 1))
+        continue ;;
+    esac
+    consumed_dir="$LOOP_ROOT/$consumed_source"
+    [ -e "$consumed_dir" ] || [ -L "$consumed_dir" ] || continue
+    size=$(loop_bytes_of "$consumed_dir")
+    if [ "$apply" -eq 1 ]; then
+      rm -rf -- "$consumed_dir" || { say "  could not remove $consumed_source"; continue; }
+      say "  removed $consumed_source ($size B) — the change #$consumed_issue consumed"
+    else
+      say "  would remove $consumed_source ($size B) — the change #$consumed_issue consumed"
+    fi
+    paths=$((paths + 1)); bytes=$((bytes + size))
+  done < <(jq -r '
+    . as $s
+    | (($s.items // []) | map(select((.result // "") == "done") | (.issue | tostring))) as $landed
+    | (($s.changeCopies // {}) | to_entries[])
+    | select(.key as $k | $landed | index($k) != null)
+    | [.key, (.value.source // "")] | @tsv' "$LOOP_STATE_FILE" 2>/dev/null)
+fi
+
 if [ "$paths" -eq 0 ] && [ "$procs" -eq 0 ] && [ "$branches" -eq 0 ]; then
   printf 'loop-clean: nothing to remove — %s path(s) kept\n' "$kept"
   exit 0

@@ -1,0 +1,95 @@
+[
+  {
+    "number": 91,
+    "state": "OPEN",
+    "title": "§91 An item a run handed back to be reshaped",
+    "updatedAt": "2026-10-30T09:10:00Z",
+    "body": "<!-- nvid: 91 -->\n\n- **Observed** ✗: six capability deltas in one claim.\n- **Anchor** ℹ: `openspec/specs/shaping-inbox/spec.md` states the state.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      { "name": "class/improvement" },
+      { "name": "category/specs-and-process" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-shaping" }
+    ],
+    "comments": [
+      {
+        "author": { "login": "Framstag" },
+        "createdAt": "2026-10-30T09:10:00Z",
+        "body": "too-wide: the item wants splitting into children\n\n**The shaping:** six capability deltas would have to land together, and one change carries one delta.\n\nEvidence: /tmp/loop-items/91, branch fix/issue-91-six-deltas, red test: not reached"
+      }
+    ]
+  },
+  {
+    "number": 92,
+    "state": "OPEN",
+    "title": "§92 An item carrying the shaping label with no statement",
+    "updatedAt": "2026-10-30T09:20:00Z",
+    "body": "<!-- nvid: 92 -->\n\n- **Observed** ✗: nothing.\n- **Anchor** ℹ: `openspec/specs/shaping-inbox/spec.md` states the state.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/specs-and-process" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-shaping" }
+    ],
+    "comments": []
+  },
+  {
+    "number": 93,
+    "state": "OPEN",
+    "title": "§93 An item that awaits a decision, not a reshaping",
+    "updatedAt": "2026-10-30T09:30:00Z",
+    "body": "<!-- nvid: 93 -->\n\n- **Observed** ✗: two readings of one number.\n- **Anchor** ℹ: `openspec/specs/shaping-inbox/spec.md` states the state.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/specs-and-process" },
+      { "name": "status/on-hold" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-decision" }
+    ],
+    "comments": [
+      {
+        "author": { "login": "Framstag" },
+        "createdAt": "2026-10-30T09:30:00Z",
+        "body": "**The decision:** keep the older row, or mark the newer one authoritative?"
+      }
+    ]
+  },
+  {
+    "number": 94,
+    "title": "§94 An item that was closed and still carries the shaping label",
+    "body": "closed by mistake, the label stayed",
+    "state": "CLOSED",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      { "name": "class/bug" },
+      { "name": "category/specs-and-process" },
+      { "name": "status/fixed-by" },
+      { "name": "source/todo-import" },
+      { "name": "agent/eligible" },
+      { "name": "agent/needs-shaping" }
+    ],
+    "comments": [
+      {
+        "author": { "login": "Framstag" },
+        "createdAt": "2026-10-30T09:40:00Z",
+        "body": "unspecifiable\n\n**The shaping:** the claim is not falsifiable."
+      }
+    ]
+  }
+]

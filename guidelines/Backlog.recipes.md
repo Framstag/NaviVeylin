@@ -59,8 +59,10 @@ the run's script                          an agent process (fresh, per item)    
   prepare one working tree, once            phase B  the eligibility gate             not be the writer
   per item:                                 phase C  the change, planned
     a branch of its own, off the base       phase D  applied, with the project's gate
+    the change the item names, copied in
     select, then authorise by label         (E)      reviewed by the separate process
-    hand over a prepared package            phase F  archived, with the evidence
+    hand over a prepared package             phase F  archived, with the evidence
+    hand over a prepared package
     verify, close, record
 ```
 
@@ -79,7 +81,10 @@ item's own stream, 25 624 of the 33 088 characters of system prompt, 77 % of it 
 **every** turn: 9 151 of the 17 235 tokens a turn cost (`python3 tools/loop-spend.py`, issue #661). The routing a
 phase genuinely needs is in its own prompt instead (`tools/loop/prompts/worker.md`, `reviewer.md`): the document
 map, the recipe for a document's section list (`grep -n '^## '`), and where the rules, the capabilities and the
-change artifacts live. The flag must not take the policy with it, so **the start directory stays the project** —
+change artifacts live. For a tier-B item the package also carries the change the item was filed with, as its
+`ITEM_CHANGE` block — the name, the path the run copied it to in the worktree, and the readiness checker's verdict
+line for that copy — so the child applies a plan a person wrote instead of planning one (`agent-issue-loop`,
+"The package carries the change beside the item's text and its decision"). The flag must not take the policy with it, so **the start directory stays the project** —
 that is what resolves this project's tool policy — and the case that pins it is `run#childStartsInTheProjectRoot`,
 beside `adapter#theChildIsStartedWithoutContextFiles`, which refuses any word that moves the trust, the prompt or
 the tools.

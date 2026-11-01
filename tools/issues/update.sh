@@ -20,6 +20,11 @@
 # refused instead of resolved: which state the item would carry is a decision, and a silent one would leave
 # the item's reader unable to tell what the caller meant.
 #
+# A state write also takes the shaping label off, when the item carries it (capability `shaping-inbox`): that
+# label says a run's verdict was that a person must reshape the item, and the write that records a state is
+# that person's answer. The removal rides the same edit, so an item cannot be filed and still queued, and a
+# call that *adds* the label — the run writing it beside its hold — keeps it.
+#
 # A value the profile declares settled (`roles.settledStatuses` — a fix's `closeStatus`, a person's
 # `retiredStatus`) is not displaced by a routine write at all: the claim that an item's premise is settled and
 # the claim that a run has no capacity to take it are different claims, and the second must not erase the first
@@ -77,6 +82,12 @@ profile="$ISSUES_PROFILE"
 # The prefix is resolved once here: reading the profile starts a JVM, and both the target label and the scan
 # below need it (`lib.sh`, "the state namespace").
 status_prefix=$(issues_status_prefix)
+# The shaping label, if the profile declares one, is read here as well: it is the one non-status label a state
+# write removes on its own (see below), so both its halves come from the profile.
+profile_separator=$(jq -r '.namespaceSeparator // "/"' "$profile" 2>/dev/null)
+shaping_role=$(jq -r '.roles.shapingAgent // empty' "$profile" 2>/dev/null)
+shaping_label=""
+[ -z "$shaping_role" ] || shaping_label="agent${profile_separator}${shaping_role}"
 issues_preflight "$profile"
 
 # The state can be named either way: `--status <value>`, or the namespaced label itself. A check's escalation
@@ -165,7 +176,8 @@ issues_band_pair_gate "$profile" "$body_text" "${labels[@]}" -- "${remove_labels
 
 # The state transition, after the gates and before the write: the item decides both what this call must
 # remove and whether its target is already there. Only a state write pays for the read, so a label- or
-# comment-only call is unchanged.
+# comment-only call is unchanged. A call that names only a band label is not a state write either, and it leaves
+# the shaping label alone: which state the item is in is not a band's business.
 add_labels=("${labels[@]}")
 implied_removals=()
 if [ -n "$status_label" ]; then
@@ -188,6 +200,19 @@ if [ -n "$status_label" ]; then
   while IFS= read -r label; do
     [ -n "$label" ] && implied_removals+=("$label")
   done < <(issues_status_displaced "$issue" "$status_label" "$status_prefix")
+  # The shaping inbox's way out (capability `shaping-inbox`, D4): the label says a run's verdict was that a
+  # person must reshape the item, so the write that records what became of it is that person's answer, and the
+  # label leaves in the *same* edit — a second write would leave the item filed and queued for a moment, and a
+  # closure that forgot it would keep a closed item in the queue for ever (#225 is the same defect on the
+  # decision label). A call that names the label itself keeps it: the run writes it beside its own hold, and the
+  # addition wins over this implied removal.
+  if [ -n "$shaping_label" ] && grep -Fxq -- "$shaping_label" <<< "$labels_now"; then
+    keeps_shaping=0
+    for label in "${add_labels[@]}" "${remove_labels[@]}"; do
+      [ "$label" = "$shaping_label" ] && keeps_shaping=1
+    done
+    [ "$keeps_shaping" -eq 1 ] || implied_removals+=("$shaping_label")
+  fi
   # What the profile declares settled is not this write's to remove unless the call names the transition: the
   # guard refuses here, after the read and before the write, so a refused call leaves the item as it was.
   issues_status_settled_guard "$number" "$displace_settled" "${implied_removals[@]}"

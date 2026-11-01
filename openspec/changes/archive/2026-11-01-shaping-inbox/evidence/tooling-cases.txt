@@ -1,0 +1,31 @@
+# The issue-tooling suite, before and after the shaping-inbox change
+#
+# Measured 2026-11-01 on HEAD 0dd05ba6. The working tree also carries three changes that were not yet committed
+# when this one was applied (`change-readiness-gate`, `finding-shape-at-filing`,
+# `loop-consumes-a-prepared-change`), so the totals below span the whole dirty tree; the list of this change's own
+# cases is the one under them, and the counts `shaping#` prefix.
+#
+# $ git show HEAD:tools/issue-tooling-cases.sh | grep -cE "^  '[a-z]+#"      # before
+  112
+# $ bash tools/issue-tooling-selftest.sh --list | grep -cE '^[a-z]+#'      # after
+  137
+  added                                             25
+    of which this change                             9
+#
+# $ bash tools/issue-tooling-selftest.sh
+issue-tooling-selftest: all 155 cases passed (JDK 27, offline, no token, HEAD 0dd05ba6, tools e595ca6b4f17, 2026-11-01T10:59:59Z)
+# exit status: 0
+#
+# The cases this change adds, each named by a scenario of the delta and by the task list:
+  shaping#theQueuePrintsTheVerdictAndClause
+  shaping#anItemWithNoStatementIsNamed
+  shaping#anEmptyQueueExitsZero
+  shaping#anEmptyListIsAnEmptyQueue
+  shaping#theDecisionQueueIgnoresTheShapingLabel
+  shaping#answeringAShapingItemIsRefused
+  shaping#aReshapedItemLeavesTheQueue
+  shaping#aClosedItemLeavesNoLabel
+  shaping#anUndeclaredLabelIsRefused
+#
+# The case this change re-aims, because the verdicts it walks now also take the shaping label:
+  labels#verdictToLabelMatrix      four rows changed, no row removed

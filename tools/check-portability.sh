@@ -169,9 +169,13 @@ done < <(printf '%s\n' "$namespace_names")
 
 # the profile's `roles` section: which namespace value each of the engines' decisions means, so its values
 # are project values exactly as the namespaces' are. A numeric or boolean role is a count or a switch, not a
-# name — `firstCategoryEvery: 4` would otherwise forbid every `$4` in the engines.
+# name — `firstCategoryEvery: 4` would otherwise forbid every `$4` in the engines. `shapingVerdicts` is the one
+# list of *loop* values: the verdict names are the worker protocol's own words (`tools/loop/prompts/worker.md`
+# declares the gates by them), and only *which* of them carry the shaping label is the project's judgement
+# (`shaping-inbox`, D2) — so the list is read by an engine and is not a project value. `shapingAgent`, the label
+# it writes, is one, and is swept like every other role.
 while IFS= read -r value; do add "$value" "tools/tooling.json roles" word; done < <(
-  jq -r '.roles | to_entries[] | select(.key != "comment") | .value
+  jq -r '.roles | to_entries[] | select(.key != "comment" and .key != "shapingVerdicts") | .value
     | if type == "array" then .[] else . end
     | select(type != "number" and type != "boolean")' "$profile" 2>/dev/null)
 

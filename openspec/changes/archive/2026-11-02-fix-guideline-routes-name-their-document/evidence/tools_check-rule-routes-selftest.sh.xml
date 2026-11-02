@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-rule-routes-selftest.sh" tests="9" failures="0" errors="0" time="1">
+  <system-out>PASS  routes#aGuidelineEditDerivesItsOwnDocument — …for a companion layer too — a procedure edit derives its document (exit 0) PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a concern family derives its four siblings, not the corpus (exit 0) check-rule-routes-selftest: all 9 cases passed (throwaway fixtures, no Gradle, no device, no network)</system-out>
+</testsuite>

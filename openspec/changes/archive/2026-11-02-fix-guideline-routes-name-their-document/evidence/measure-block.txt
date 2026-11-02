@@ -1,0 +1,14 @@
+# command: ./tools/loop/measure.sh --change fix-guideline-routes-name-their-document
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=650028bfdf6e652ebd045b4af1be0a90b6c0a481 paths=3 insertions=74 deletions=18
+LOOP-MEASURE-PATH tools/check-rule-routes-mutations.json
+LOOP-MEASURE-PATH tools/check-rule-routes-selftest.sh
+LOOP-MEASURE-PATH tools/doc-routes.json
+LOOP-MEASURE-CHECK tools/check-rule-routes.sh
+LOOP-MEASURE-CHECK tools/check-rule-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list
+LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-guideline-routes-name-their-document scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 case added (3 assertions), 0 rewritten, 0 fixtures realigned, 12 globs rewritten in 1 file, 1 mutation
+LOOP-MEASURE-END

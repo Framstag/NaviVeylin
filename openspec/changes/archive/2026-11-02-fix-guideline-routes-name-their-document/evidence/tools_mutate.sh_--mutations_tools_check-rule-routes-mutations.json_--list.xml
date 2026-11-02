@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+  <system-out>rule-is-reached	routes#aRuleNoGlobReachesIsReported	every named rule under guidelines/ is compared with the rules the map reaches, so a rule no glob reaches is reported before it has a violation change-names-the-derived-set	routes#theReadingSetFollowsTheDiff	a change may add a section to its derived reading set and never shrink it, so a derived section the change's artifacts do not name is reporte</system-out>
+</testsuite>

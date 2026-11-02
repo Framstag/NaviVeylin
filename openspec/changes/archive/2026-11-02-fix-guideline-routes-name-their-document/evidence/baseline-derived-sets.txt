@@ -1,0 +1,39 @@
+# The reading set a guideline or tooling edit derives, on HEAD 650028bf
+# command: bash openspec/changes/fix-guideline-routes-name-their-document/evidence/derive-probe.sh tools/doc-routes.json <paths>
+guidelines/Logging.md
+  globs: guidelines/** guidelines/Logging.md 
+  entries: 270
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack Logging 
+guidelines/Logging.recipes.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/BuildGate.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/DesignStack.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/UI.md
+  globs: guidelines/** guidelines/UI*.md 
+  entries: 449
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack UI UICar UIPhone UIPhoneMap 
+tools/loop/state.sh
+  globs: tools/** tools/loop/** 
+  entries: 4
+  documents: Backlog BacklogTooling BuildGate 
+tools/issues/lib.sh
+  globs: tools/** 
+  entries: 1
+  documents: BacklogTooling 
+tools/sensors/run.sh
+  globs: tools/** tools/sensors/** 
+  entries: 1
+  documents: BacklogTooling 
+
+# the map: bash tools/check-rule-routes.sh --list | tail -1
+check-rule-routes: 27 glob(s), 576 named rule(s) reached
+# the invariants: bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 576 named rule(s) are reached

@@ -1,0 +1,38 @@
+# the map after the change: bash tools/check-rule-routes.sh --list | tail -1
+check-rule-routes: 27 glob(s), 576 named rule(s) reached
+# the invariants: bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 576 named rule(s) are reached
+
+# the reading set each guidepost path derives now
+guidelines/Logging.md
+  globs: guidelines/Logging.* 
+  entries: 12
+  documents: Logging 
+guidelines/Logging.recipes.md
+  globs: guidelines/Logging.* 
+  entries: 12
+  documents: Logging 
+guidelines/BuildGate.recipes.md
+  globs: guidelines/BuildGate.* 
+  entries: 30
+  documents: BuildGate 
+guidelines/DesignStack.md
+  globs: guidelines/Design* 
+  entries: 107
+  documents: Design DesignCrossVariant DesignNative DesignStack 
+guidelines/UI.md
+  globs: guidelines/UI*.md 
+  entries: 191
+  documents: UI UICar UIPhone UIPhoneMap 
+tools/loop/state.sh
+  globs: tools/** tools/loop/** 
+  entries: 4
+  documents: Backlog BacklogTooling BuildGate 
+tools/issues/lib.sh
+  globs: tools/** 
+  entries: 1
+  documents: BacklogTooling 
+tools/sensors/run.sh
+  globs: tools/** tools/sensors/** 
+  entries: 1
+  documents: BacklogTooling 

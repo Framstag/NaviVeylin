@@ -1,0 +1,10 @@
+# red run 2026-11-02T04:13:36Z on HEAD 650028bf
+# command: bash tools/check-rule-routes-selftest.sh --case routes#aGuidelineEditDerivesItsOwnDocument
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — one edit to one guideline document derives that document's entries alone: expected exit 0 containing '', got exit 1:
+                guidelines/Logging.md derives 270 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack Logging ] — the edit is one document, so it must derive Logging alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …for a companion layer too — a procedure edit derives its document: expected exit 0 containing '', got exit 1:
+                guidelines/BuildGate.recipes.md derives 258 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack ] — the edit is one document, so it must derive BuildGate alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …and for a document that shares its concern with three siblings (Design): expected exit 0 containing '', got exit 1:
+                guidelines/DesignStack.md derives 258 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack ] — the edit is one document, so it must derive DesignStack alone
+check-rule-routes-selftest: 3 of 3 cases failed
+# exit=1

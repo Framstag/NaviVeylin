@@ -1,0 +1,28 @@
+# gate run 2026-11-02T04:14:43Z
+# command: ./tools/loop/gate.sh
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
+gate: tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 576 named rule(s) are reached
+gate: tools/check-rule-routes.sh — 1s
+gate: tools/check-rule-routes-selftest.sh
+PASS  routes#theMapResolvesAndEveryRuleIsReached — a map whose glob matches the tree and whose rule is reached passes (exit 0)
+PASS  routes#aGlobMatchingNoTrackedPathIsReported — a glob under which the tree holds no file is reported (exit 1)
+PASS  routes#aRuleNoGlobReachesIsReported — a named rule no glob reaches is reported with its name and document (exit 1)
+PASS  routes#theReadingSetFollowsTheDiff — a change naming fewer sections than the map derives for its paths is reported (exit 1)
+PASS  routes#aChangeNamingItsDerivedSectionsPasses — a change that names every derived section passes (exit 0)
+PASS  routes#aChangeMayAddASection — a change may add a section it names beyond the derived set (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — one edit to one guideline document derives that document's entries alone (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …for a companion layer too — a procedure edit derives its document (exit 0)
+PASS  routes#aGuidelineEditDerivesItsOwnDocument — …and a concern family derives its four siblings, not the corpus (exit 0)
+check-rule-routes-selftest: all 9 cases passed (throwaway fixtures, no Gradle, no device, no network)
+gate: tools/check-rule-routes-selftest.sh — 1s
+gate: tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list
+# tools/check-rule-routes-mutations.json — 4 mutation(s), case command: bash tools/check-rule-routes-selftest.sh --case {case}
+glob-matches-the-tree	routes#aGlobMatchingNoTrackedPathIsReported	every glob is matched against the tree's tracked paths, so a glob that matches nothing is reported instead of silently orphaning the rules a reader is told to read
+rule-is-reached	routes#aRuleNoGlobReachesIsReported	every named rule under guidelines/ is compared with the rules the map reaches, so a rule no glob reaches is reported before it has a violation
+change-names-the-derived-set	routes#theReadingSetFollowsTheDiff	a change may add a section to its derived reading set and never shrink it, so a derived section the change's artifacts do not name is reported
+route-names-its-document	routes#aGuidelineEditDerivesItsOwnDocument	a guideline glob names the document and its companion layers it owns, so one edit to one document derives that document's entries and not the corpus — reverted to the corpus-wide glob, the case reports the ten documents a single Logging.md edit is told to read
+gate: tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list — 0s
+LOOP-GATE: tests=9 failures=0 errors=0 (tools/check-rule-routes.sh 1s, tools/check-rule-routes-selftest.sh 1s, tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list 0s)
+# exit=0

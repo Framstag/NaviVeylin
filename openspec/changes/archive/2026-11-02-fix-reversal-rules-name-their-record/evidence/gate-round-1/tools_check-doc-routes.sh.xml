@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-doc-routes.sh" tests="0" failures="0" errors="1" time="1">
+  <system-out>::error file=AGENTS.md::the routing row "the design document set — which of the four documents carries which section of `Design.md`" states 10.3 kB for DesignCrossVariant.md §8a, but the section measures 10.5 kB (10525 bytes at bytes/1000, one decimal) — state the measurement ::error file=AGENTS.md::the routing row "the design document set — which of the four documents carries which section of `De</system-out>
+</testsuite>

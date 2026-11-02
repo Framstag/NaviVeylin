@@ -1,0 +1,73 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=650028bfdf6e652ebd045b4af1be0a90b6c0a481 paths=58 insertions=1635 deletions=7
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/gate-note.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/measure-block-after-archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/measure-block.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/mutation.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/mutation.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/red-on-HEAD.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/archive-path-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/archive-path-checks.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/corrections-round-2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gate-round-2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gen-feature-list-round-2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/measure-block-after-archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/measure-block-round-2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/measure-block.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/mutation.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/mutation.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/red-on-HEAD.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/surface.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/surface.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/why-not-evidence-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/tasks.md
+LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-PATH tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-PATH tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-reversal-rules-name-their-record scenarios=0 cases=0 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-reversal-rules-name-their-record/evidence/red-on-HEAD.xml tests=5 failures=5
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END

@@ -1,0 +1,41 @@
+# The gate this change owes — two rounds, one red and one green
+
+Both rounds are kept, because the run pays for a red gate round and a green one (`tools/loop/run.sh:127`).
+
+## Round 1 — red (`gate-round-1.log`, tallies in `gate-round-1/`)
+
+```
+LOOP-GATE: tests=41 failures=3 errors=2 (...) — failing: bash tools/gen-feature-list.sh --check-classification tools/check-doc-routes.sh tools/check-doc-routes-selftest.sh
+```
+
+The three failures are this change's own, and they are the sequencing error the round caught: the five pointer
+sentences were written before `AGENTS.md`'s routing figures for `DesignCrossVariant.md` were realigned, so
+`check-doc-routes.sh` reported §8a at 10 525 B against the row's 10.3 kB and §8b at 3 038 B against 2.9 kB, and the
+self-test carried the same three cases. `check-doc-routes.sh --sizes` gave the two figures and the rows were set to
+10.5 kB and 3.0 kB.
+
+## Round 2 — green for every case (`gate.log`, tallies in `gate/`)
+
+```
+LOOP-GATE: tests=41 failures=0 errors=1 (bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s) — failing: bash tools/gen-feature-list.sh --check-classification
+```
+
+`failures=0` and every documentation suite passes. The one `error` is
+`bash tools/gen-feature-list.sh --check-classification` (`gen-feature-list.log`), and it names two spec ids that two
+*other* open changes in this same worktree introduce:
+
+```
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code)
+```
+
+This change adds no spec delta, so it introduces no spec id and cannot classify another change's; the archived item
+`2026-11-02-fix-relocation-record-names-its-owners` closed with the same `errors=1` for the same check
+(`openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gate-round-2.log:11`).
+
+## Focused suites after the fix
+
+- `tools/check-doc-routes.sh` → exit 0, "all 328 section references resolve, all 4 skill references resolve".
+- `tools/check-doc-routes-selftest.sh` → 34 of 34 cases pass.
+- `bash evidence/reversal-pointer-probe.sh` → `tests=5 failures=0` (`after-change.xml`, `after-change.log`).

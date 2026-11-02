@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="bash tools/gen-feature-list.sh --check-classification" tests="0" failures="0" errors="1" time="3">
+  <system-out>car-only areas: 1 highlights: 19 gen-feature-list: classification gate failed</system-out>
+</testsuite>

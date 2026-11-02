@@ -1,0 +1,15 @@
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map — classify it in that change, before it archives)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 182
+classified: 185
+unclassified: 2
+delta spec ids: 14
+stale: 3
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed

@@ -237,7 +237,13 @@ class AutoMapRendererFrameWaitTest {
         renderer.disarmFrameWaitWatchdog()
 
         assertEquals("the armed wait spent one retry", 1, renderer.frameWaitRetries)
-        assertTrue("and it reported the expired wait: $reports", reports.isNotEmpty())
+        // One line per expired wait (`AutoMapRendererLoops.kt:156-160`), and the same form the seam case
+        // above asserts: the count is 1 by construction and the line names the retry index.
+        assertEquals("the armed wait recorded exactly one expired-wait line", 1, reports.size)
+        assertTrue(
+            "and it names the retry index: ${reports.single()}",
+            reports.single().contains("retry 1/${AutoMapRenderer.FRAME_WAIT_MAX_RETRIES}")
+        )
         assertTrue(
             "the armed wait requested the frame again: ${renderer.renderRequestCount} requests since " +
                 "$requestsBefore (this case's own request plus the retry)",

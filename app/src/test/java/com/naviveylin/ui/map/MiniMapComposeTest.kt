@@ -1,6 +1,9 @@
 package com.naviveylin.ui.map
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -17,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlin.math.pow
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -55,6 +59,7 @@ class MiniMapComposeTest {
         lat: Double = 51.5,
         lon: Double = 7.4,
         mag: Double = 12.0,
+        isDarkPresentation: Boolean = false,
         onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null
     ) {
         composeRule.setContent {
@@ -64,7 +69,7 @@ class MiniMapComposeTest {
                 lon = lon,
                 initialMag = mag,
                 modifier = Modifier.size(200.dp),
-                isDarkPresentation = false,
+                isDarkPresentation = isDarkPresentation,
                 onViewportChanged = onViewportChanged
             )
         }
@@ -157,5 +162,76 @@ class MiniMapComposeTest {
 
         // A frame reached the widget (bitmap drawn, marker projected on top).
         assertTrue(client.renderWithRouteAndPoisCount.get() > 0 || client.renderCount.get() > 0)
+    }
+
+    @Test
+    fun darkPresentationPushesTheDarkDaylightFlag() {
+        val client = FakeOSMScoutClient()
+        launch(client, isDarkPresentation = true)
+
+        awaitMag(client, 12.0)
+
+        assertEquals(
+            "the mini map pushes the dark stylesheet variant before its first frame",
+            listOf(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT to false),
+            client.styleFlags.toList()
+        )
+    }
+
+    @Test
+    fun lightPresentationPushesTheDaylightFlag() {
+        val client = FakeOSMScoutClient()
+        launch(client, isDarkPresentation = false)
+
+        awaitMag(client, 12.0)
+
+        assertEquals(
+            "the mini map pushes the light stylesheet variant",
+            listOf(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT to true),
+            client.styleFlags.toList()
+        )
+    }
+
+    @Test
+    fun presentationChangeReRendersTheMiniMap() {
+        val client = FakeOSMScoutClient()
+        var dark by mutableStateOf(false)
+        composeRule.setContent {
+            MiniMap(
+                client = client,
+                lat = 51.5,
+                lon = 7.4,
+                initialMag = 12.0,
+                isDarkPresentation = dark,
+                modifier = Modifier.size(200.dp)
+            )
+        }
+        awaitMag(client, 12.0)
+        // Let the first frame's render calls drain before sampling: only a render caused by
+        // the presentation change may raise the count past this value.
+        composeRule.waitForIdle()
+        runBlocking { delay(300) }
+        val rendersBefore = client.renderCount.get() + client.renderWithRouteAndPoisCount.get()
+
+        composeRule.runOnIdle { dark = true }
+        composeRule.waitForIdle()
+        assertEquals(
+            "the presentation change pushes the dark variant",
+            MapCanvasViewModel.STYLE_FLAG_DAYLIGHT to false,
+            client.styleFlags.last()
+        )
+
+        runBlocking {
+            withTimeout(10_000) {
+                while (client.renderCount.get() + client.renderWithRouteAndPoisCount.get() <= rendersBefore) {
+                    delay(10)
+                }
+            }
+        }
+        assertEquals(
+            "the presentation change re-renders the mini map with the dark variant",
+            MapCanvasViewModel.STYLE_FLAG_DAYLIGHT to false,
+            client.styleFlags.last()
+        )
     }
 }

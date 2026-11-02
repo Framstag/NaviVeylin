@@ -109,6 +109,21 @@ fun MiniMap(
 
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
+    // The bitmap follows the resolved presentation (spec: mini-map — "The mini map renders the
+    // resolved presentation's stylesheet variant"; guidelines/MapStyling.md §15). The push is
+    // keyed on the value, and made before the size/location effect below requests the first
+    // frame. On a later change it invalidates this renderer's own tiles and frame: the main
+    // map's invalidateStyle() does not reach them.
+    var pushedDaylight by remember(renderer) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(renderer, isDarkPresentation) {
+        val daylight = !isDarkPresentation
+        if (pushedDaylight == daylight) return@LaunchedEffect
+        val rendered = pushedDaylight != null && renderer.frameFlow.value.bitmap != null
+        pushedDaylight = daylight
+        client.setStyleSheetFlag(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT, daylight)
+        if (rendered) renderer.invalidateStyle()
+    }
+
     // Size change or new object location → (re)render. North-locked: angle 0.
     LaunchedEffect(canvasSize, lat, lon, initialMag) {
         if (canvasSize.width > 0 && canvasSize.height > 0) {

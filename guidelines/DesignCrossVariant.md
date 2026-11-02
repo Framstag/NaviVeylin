@@ -72,7 +72,8 @@ screen-observation seam, cross-variant parity and distribution.
   `ManeuverLabels`, and the trip's step estimate from `remainingMeters` / `remainingSeconds`. The
   roundabout exit number is supplied **both** to the host and as the app's own numbered glyph, because
   which of the two a given host draws is not observable from a test here. `ManeuverGlyphs.forStep` is
-  the only icon entry point a car surface needs.
+  the only icon entry point a car surface needs. The reversal this rule exists for, and why, is recorded in
+  `guidelines/Design.why.md` §13.
 
 - The session owns a simple screen stack (push/popToRoot); no routing
   library. Replace, don't stack, when a screen supersedes another (navigation
@@ -82,7 +83,8 @@ screen-observation seam, cross-variant parity and distribution.
   gestures. Use action strips and pane buttons accordingly; interactive
   actions are parked-only where the host supports it. Prefer host-rendered
   panels where positioned/controllable; draw on the surface only what the
-  host cannot render, inside the stable area.
+  host cannot render, inside the stable area. The reversal this rule exists for, and why, is recorded in
+  `guidelines/Design.why.md` §13.
 - **Rule: the car-app surface lifecycle is strict and session-owned** **MUST**: the car-app surface lifecycle is strict and **session-owned** —
   one surface-callback registration per session, one owner screen at a time, and
   the surface released exactly once: on the host's destroy signal or at session
@@ -220,7 +222,7 @@ screen-observation seam, cross-variant parity and distribution.
 - **Rule: phone and AAOS are separate build flavors under one applicationId** **MUST**: distribution — phone and AAOS are separate build flavors under one
   applicationId; the automotive flavor declares the automotive hardware
   feature and drops the projection metadata. A single AAB declaring both is
-  rejected by Play.
+  rejected by Play. The reversal this rule exists for, and why, is recorded in `guidelines/Design.why.md` §13.
 - **Rule: OSM attribution is visible and the licence is reachable at all times** OSM attribution is visible on the map and the licence is reachable at all
   times (OSMF guidelines), on both flavors.
 - UI rules and parity decisions: `guidelines/UI.md`.

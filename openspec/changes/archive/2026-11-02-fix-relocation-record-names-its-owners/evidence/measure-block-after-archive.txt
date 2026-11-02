@@ -1,0 +1,23 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=650028bfdf6e652ebd045b4af1be0a90b6c0a481 paths=4 insertions=92 deletions=4
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/
+LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-PATH tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=0 suites=2
+LOOP-MEASURE-CHANGE 2026-11-02-fix-relocation-record-names-its-owners scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/red-on-HEAD.xml tests=1 failures=1 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-SURFACE surface: 1 case added, 1 checker class added, 1 fixture realigned — `grep -c '^case_' tools/check-openspec-hygiene-selftest.sh`,
+LOOP-MEASURE-END

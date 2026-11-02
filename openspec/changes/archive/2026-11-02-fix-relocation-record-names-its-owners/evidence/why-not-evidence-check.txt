@@ -1,0 +1,12 @@
+# why the evidence check is not the home — 2026-11-02T04:25:39Z
+# bash tools/loop/evidence-check.sh openspec/changes/archive/2026-10-31-guideline-layers-mechanism --root .
+
+ok   C1 §references: 22 checked, 4 exempted as archived pointers
+ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 3 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 1042 resolved and in range, 0 unresolved or ambiguous
+evidence-check: PASS
+
+# the record cites its owners as indented paths, not as path:NN pointers, so C5 reads none of them:
+0

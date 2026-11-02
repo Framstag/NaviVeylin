@@ -1,0 +1,23 @@
+# revert-check for tools/check-openspec-hygiene.sh class 4 — 2026-11-02T04:26:44Z
+# base 650028bfdf6e652ebd045b4af1be0a90b6c0a481
+
+## green before any mutation, so a red below is the mutation's
+check-openspec-hygiene-selftest: all 1 case passed (throwaway OpenSpec trees, no Gradle)
+
+## mutation 1: glob-test-never-matches -> artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported
+FAIL artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported: an owner cited as a directory listing passed (exit 0)
+       
+check-openspec-hygiene-selftest: 1 of 1 cases failed — artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported
+  mutated run glob-test-never-matches: exit=1
+
+## mutation 2: fence-is-not-a-citation -> artifact-hygiene#aWrittenPurposePasses
+FAIL artifact-hygiene#aWrittenPurposePasses: the clean tree was reported (exit 1)
+       
+check-openspec-hygiene-selftest: 1 of 1 cases failed — artifact-hygiene#aWrittenPurposePasses
+  mutated run fence-is-not-a-citation: exit=1
+
+## restored: the tree's own checker, both cases green again
+check-openspec-hygiene-selftest: all 1 case passed (throwaway OpenSpec trees, no Gradle)
+check-openspec-hygiene-selftest: all 1 case passed (throwaway OpenSpec trees, no Gradle)
+
+REVERT-CHECK 2 mutation(s) run, 2 went red and restored green, 0 problem(s)

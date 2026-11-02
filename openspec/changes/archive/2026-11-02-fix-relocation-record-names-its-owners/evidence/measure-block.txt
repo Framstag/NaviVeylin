@@ -1,0 +1,12 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=650028bfdf6e652ebd045b4af1be0a90b6c0a481 paths=2 insertions=71 deletions=4
+LOOP-MEASURE-PATH tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-PATH tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-relocation-record-names-its-owners scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-relocation-record-names-its-owners/evidence/red-on-HEAD.xml tests=1 failures=1 time=0s
+LOOP-MEASURE-SURFACE surface: 1 case added, 1 checker class added, 1 fixture realigned — `grep -c '^case_' tools/check-openspec-hygiene-selftest.sh`,
+LOOP-MEASURE-END

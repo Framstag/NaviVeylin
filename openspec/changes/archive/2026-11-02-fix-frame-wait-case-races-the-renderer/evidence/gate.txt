@@ -1,7 +1,7 @@
 # The gate, run once from the change root on 2026-11-02
 
     ./tools/loop/gate.sh          # exit 0
-    LOOP-GATE: tests=0 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 322s)
+    LOOP-GATE: tests=0 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 322s)   # that pair is not retained: it is the gate's own build-dir artefact, removed by a later `./gradlew clean`
 
 The gate's own tally under `app/build/test-results/loop-gate/` carries `tests="0"` because the compiled step
 is one Gradle invocation whose output has no per-suite summary line to read; the counts that ran are in the

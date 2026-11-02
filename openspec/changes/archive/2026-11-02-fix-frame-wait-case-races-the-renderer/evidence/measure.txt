@@ -1,3 +1,7 @@
+# Round 1 block, taken while the change lived at `openspec/changes/fix-frame-wait-case-races-the-renderer`;
+# the `LOOP-MEASURE-TALLY openspec/changes/…` lines below therefore name the pre-archive location. The same
+# block taken after the archive moved is `measure-round2.txt`. The `LOOP-MEASURE-GATE` line below is the only
+# record of the gate's own timing (322s) and is the reason this file is kept.
 LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
 LOOP-MEASURE base=741603aaab8efc1382ea5859cfec38a548459272 paths=1 insertions=23 deletions=9
 LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererFrameWaitTest.kt

@@ -28,7 +28,10 @@ See `proposal.md` — Why. The state that shapes the approach:
 
 - Any change to the frame-wait bound, its retry budget, its clock (`SystemClock.elapsedRealtime`), or the
   renderer's behaviour.
-- Any change to the other six cases, which drive the seam with explicit `nowMs` values and never arm.
+- Any change to the other six cases: none of them is rewritten, and no seam or assertion of theirs is
+  touched. They do arm a wait — `onSurfaceCreated`'s request arms every renderer that has a surface
+  (`AutoMapRenderer.kt:849`) — but none of the six decides its expiry from the armed job, which is the
+  coverage only the changed case gives.
 
 ## Decisions
 
@@ -65,8 +68,11 @@ The retry lands as soon as the one-millisecond bound elapses — possibly while 
 inside `requestRender()`. The case therefore takes `renderRequestCount` **before** its own request and
 asserts the count grew by the request *and* the retry (≥ +2), asserts `frameWaitRetries == 1` (the retry
 incremented it; nothing resets it, since no frame can land while `asyncLoopsEnabled = false`), and asserts
-one recorded diagnostic. A retry that never happens leaves the count at +1 and the retry counter at 0, which
-is the mutation the case is checked against (`evidence/mutation.xml`).
+**exactly one** recorded diagnostic that names the retry index — `assertEquals(1, reports.size)` plus
+`reports.single().contains("retry 1/${AutoMapRenderer.FRAME_WAIT_MAX_RETRIES}")`, the sibling seam case's own
+form (`:89-90`), which hold because `frameWaitIteration` emits one line per retry and nothing else reports
+(`AutoMapRendererLoops.kt:156-160`). A retry that never happens leaves the count at +1 and the retry counter
+at 0, which is the mutation the case is checked against (`evidence/mutation.xml`).
 
 *Alternative eliminated:* re-read the count "after a short wait". Refused by `:auto:checkNoWallClockWaits`
 (no allowlist) and by `guidelines/BuildTests.md` §6e — the retry has an observable, use it.
@@ -85,12 +91,17 @@ is the mutation the case is checked against (`evidence/mutation.xml`).
 
 - Red on the base commit (probe, reverted): `evidence/red-case.xml` — `tests="1" failures="1"`,
   `timestamp="2026-11-02T18:33:56.716Z"`, message `the armed wait requested the frame again`.
-- Green and repeatable after the fix: the case run 10 times —
-  `evidence/case-repeat.xml` (one representative XML; every run `tests="1" failures="0"`), timestamps
-  `18:42:07Z … 18:43:30Z`; the whole class — `evidence/class.xml`, `tests="7" failures="0" errors="0"`,
-  `timestamp="2026-11-02T18:43:58.749Z"`.
+- Green and repeatable after the fix (round 2, with the strict report assertion): six class runs —
+  `evidence/class.xml` (`tests="7" failures="0" errors="0"`, `timestamp="2026-11-02T18:55:18.037Z"`) plus
+  five more, and five single-case runs — one representative XML in `evidence/case-repeat.xml`
+  (`tests="1" failures="0"`, `timestamp="2026-11-02T18:57:11.419Z"`); every run's own `tests=`/`failures=` and
+  timestamp are listed in `evidence/repeat-runs.txt`, which is the record of all eleven.
 - Not vacuous: with the retry removed from `frameWaitIteration` (`requestRender()` at `:162`) the case fails
   deterministically — `evidence/mutation.xml`, `tests="1" failures="1"`,
   `timestamp="2026-11-02T18:43:45.515Z"`; the production file was restored from a copy, `git status` names
   only the test file.
 - The gate: `LOOP-GATE` from `./tools/loop/gate.sh` (see `tasks.md` 4.1).
+
+## Open decisions
+
+none

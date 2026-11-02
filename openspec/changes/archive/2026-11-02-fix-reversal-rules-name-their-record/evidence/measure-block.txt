@@ -1,6 +1,8 @@
 LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
-LOOP-MEASURE base=650028bfdf6e652ebd045b4af1be0a90b6c0a481 paths=58 insertions=1635 deletions=7
+LOOP-MEASURE base=650028bfdf6e652ebd045b4af1be0a90b6c0a481 paths=91 insertions=2320 deletions=14
 LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH guidelines/DesignCrossVariant.md
+LOOP-MEASURE-PATH guidelines/MapFollow.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/design.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/gate.log
@@ -54,6 +56,37 @@ LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-name
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/proposal.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/specs/documentation-ownership/spec.md
 LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/after-change.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/after-change.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/evidence-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-note.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gen-feature-list.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/measure-block.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/reversal-pointer-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/surface.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/tasks.md
 LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
 LOOP-MEASURE-PATH tools/check-doc-routes-selftest.sh
 LOOP-MEASURE-PATH tools/check-openspec-hygiene-selftest.sh
@@ -67,7 +100,22 @@ LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
 LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
 LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
 LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
-LOOP-MEASURE-CHANGE fix-reversal-rules-name-their-record scenarios=0 cases=0 unnamed=0
-LOOP-MEASURE-TALLY openspec/changes/fix-reversal-rules-name-their-record/evidence/red-on-HEAD.xml tests=5 failures=5
-LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-CHANGE 2026-11-02-fix-reversal-rules-name-their-record scenarios=0 cases=0 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/after-change.xml tests=5 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-doc-routes-selftest.sh.xml tests=34 failures=3 time=7s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate-round-1/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=7s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/red-on-HEAD.xml tests=5 failures=5
+LOOP-MEASURE-SURFACE surface: 5 rule sites in 2 documents gain one pointer line; 0 cases added, 0 rewritten, 0 fixtures realigned —
 LOOP-MEASURE-END

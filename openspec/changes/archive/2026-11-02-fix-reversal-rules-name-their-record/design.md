@@ -9,6 +9,11 @@ was reversed to the companion — so the record is reachable from the routing ta
 whose own section a reader is already reading. A pointer that no rule carries is invisible to every check in the
 tree: `grep -rn 'Design\.why' tools/` is 0, so no case and no check reads the relation at all.
 
+This is the state of the **five rule sites the item names**, not of every rule born from a reversal: §13 records
+nine reversals (`sed -n '7,71p' guidelines/Design.why.md | grep -c '^- '` = 9), and the four this delta leaves alone
+are listed as residual under "Residual sites" below. `revision 2, review round 1, item 2` narrowed the claim to the
+sites the delta edits.
+
 ## The fix
 
 One sentence inside each of the five rule blocks that §13 explains — "The reversal this rule exists for, and why, is
@@ -35,11 +40,25 @@ over "every rule born from a reversal names the record" would be undecidable. Th
 five sites it edits (`evidence/reversal-pointer-probe.sh`), which is red on the base (`tests=5 failures=5`) and green
 after the change — the number the delta requires, without turning a judgement into a declared rule.
 
+## Residual sites
+
+Four of §13's nine reversals keep rules that carry no pointer after this delta, and none of them is this change's:
+
+| §13 reversal | rule site left unpointed |
+|---|---|
+| single render path with `blitSubRegion` → TILES/DIRECT split | `guidelines/MapRendering.md:95` "Rule: TILES mode — tile path", `guidelines/MapRendering.md:101` "Rule: DIRECT mode — full native path" |
+| the route list parsed from native description lines → derived from `RouteEntry.steps` | `guidelines/UIPhoneMap.md:124` "Rule: the route list is derived from the route's structured steps, never from description text" |
+| the readiness flag deferred as API surface → published as its own signal | `guidelines/UICar.md:106`, the text naming `AutoFavoritesProvider.storeReady` |
+| "No new GPS load" → an invisible, non-navigating FREE_DRIVE holds no location lease | no guideline rule site; the guarantee is `openspec/specs/location-updates-lease/spec.md` |
+
+The item named five rules and this delta points exactly those five. Widening to the four above is a different change
+with its own probe rows and gate round; it is recorded, not taken, here.
+
 ## Blast radius
 
 | path | what it can break |
 |---|---|
-| `guidelines/DesignCrossVariant.md` | the section bounds and the routing row's figures are unchanged by the plan but not by the text: section 8a measured 10 525 B and section 8b 3 038 B, so `AGENTS.md`'s two rows were realigned to 10.5 kB and 3.0 kB (`tools/check-doc-routes.sh`); no rule name is added or moved |
+| `guidelines/DesignCrossVariant.md` | the section bounds and the routing row's figures are unchanged by the plan but not by the text: section 8a measured 10 525 B and section 8b 3 038 B (`evidence/section-sizes.log`, `tools/check-doc-routes.sh --sizes`), so `AGENTS.md`'s two rows were realigned to 10.5 kB and 3.0 kB (`tools/check-doc-routes.sh`); no rule name is added or moved |
 | `AGENTS.md` | two routing rows' figures for `DesignCrossVariant.md` section 8a/section 8b: 10.3/2.9 kB -> 10.5/3.0 kB; no route added or removed |
 | `guidelines/MapFollow.md` | same: 2 added lines, no rule name added or moved, no measurement touched |
 
@@ -66,6 +85,9 @@ added, and the companion §13 is unchanged, so the reversal of this delta is the
 - **Leaving the four documents to their landed changes.** The 2026-10-31 finding deferred the fix because those
   documents belonged to changes that had landed. Measured today, the five rules live in two documents and the pointer
   is a five-line addition, so the objection no longer holds.
+- **Pointing all nine reversals §13 records.** That is the wider claim the first round of this change made and the
+  review refused (`revision 2`): the item named five rules, so the honest scope is five pointers plus the residual
+  list, and the two rules `MapRendering.md` §1b and `UIPhoneMap.md` §124 carry would need their own probe rows.
 
 ## Open decisions
 

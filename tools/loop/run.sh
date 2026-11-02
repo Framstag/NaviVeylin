@@ -695,11 +695,21 @@ pin_out=$(bash "$LOOP_DIR/worktree.sh" check-module-pin "$base" 2>&1) || {
 [ -z "$pin_out" ] || printf '%s\n' "$pin_out"
 
 # 6. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
-open_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
+#    The cap counts the *candidate* decisions — the items that carry both the decision label and the loop's
+#    opt-in — because that is the population the pre-screen offers and the only one a person can answer: an item
+#    whose owner removed `agent/eligible` is parked, not a question anyone may settle, so it must not spend a slot
+#    of the cap that stops work on the items they can (#745). Measured 2026-11-02 on the live tracker: 13 labelled,
+#    9 of them candidates, against a cap of 10 — the run refused with a free slot in the count it can answer.
+open_decisions=$(loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
   jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
 if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
-  printf 'refusing to start: %s item(s) already await a decision and the cap is %s\n' "$open_decisions" "$max_decisions"
-  loop_issue_tool list.sh --json --limit 400 2>/dev/null |
+  # The refusal names both counts, so a reader can tell the 9 questions the cap compared from the 13 items that
+  # merely carry the label. Read here rather than above: on the path a run normally takes it costs no read.
+  labelled_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
+    jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
+  printf 'refusing to start: %s of the %s item(s) that await a decision are candidates, and the cap is %s\n' \
+    "$open_decisions" "${labelled_decisions:-$open_decisions}" "$max_decisions"
+  loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
     jq -r --arg label "$decision_label" \
       '.[] | select([.labels[].name] | index($label)) | "  #\(.number) \(.title)"'
   printf 'nothing new is produced while decisions accumulate — decide these first\n'

@@ -1,0 +1,5 @@
+=== mutated (--eligible-only removed) ===
+FAIL run#decisionCapCountsOnlyCandidates
+loop-selftest: 1 of 1 cases failed
+=== restored ===
+PASS run#decisionCapCountsOnlyCandidates

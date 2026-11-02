@@ -141,6 +141,7 @@ LOOP_SHELL_CASES=(
   'run#mayCloseNoKeepsAFalsificationOpen'
   'run#falsificationWithAChangedTreeIsBlocked'
   'run#decisionCapRefusesToStart'
+  'run#decisionCapCountsOnlyCandidates'
   'run#aFailedPreScreenRecordsItsStopReason'
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
@@ -497,6 +498,7 @@ loop_run_shell_case() {
     'run#mayCloseNoKeepsAFalsificationOpen') fn=case_run_mayCloseNoKeepsAFalsificationOpen ;;
     'run#falsificationWithAChangedTreeIsBlocked') fn=case_run_falsificationWithAChangedTreeIsBlocked ;;
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
+    'run#decisionCapCountsOnlyCandidates') fn=case_run_decisionCapCountsOnlyCandidates ;;
     'run#aFailedPreScreenRecordsItsStopReason') fn=case_run_aFailedPreScreenRecordsItsStopReason ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
@@ -3499,6 +3501,37 @@ case_run_decisionCapRefusesToStart() {
   assert_contains "$out" "#43" "all of them are printed"
   [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although the run refused"
   assert_eq "" "$(cat "$PI_STUB_LOG" 2>/dev/null || true)" "no agent process was started"
+}
+
+# The cap counts the questions a person can answer, and only those (#745). An item whose owner removed
+# `agent/eligible` is parked: the pre-screen never offers it, so no run may answer it, and it must not spend a
+# slot of the cap that stops work on the items a person can answer. Measured 2026-11-02 on the live tracker —
+# 13 items carried the decision label, 9 of them were candidates, and the recorded cap of 10 refused every run.
+case_run_decisionCapCountsOnlyCandidates() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario parked-decisions)
+  stub_success "$d"
+
+  # The candidates alone reach a cap of two: the run refuses, names the count it compared, and prints the
+  # candidates — never the parked decision, which nobody can answer.
+  out=$(run_loop "$p" --items 1 --minutes 90 --max-decisions 2 2>&1); status=$?
+  assert_eq "5" "$status" "two candidate decisions reach a cap of two"
+  assert_contains "$out" "2 of the 3 item(s) that await a decision are candidates" \
+    "the refusal names both counts, so the count it compared is visible"
+  assert_contains "$out" "#41" "the candidate decisions are printed"
+  assert_contains "$out" "#42" "both of them"
+  assert_not_contains "$out" "#45" "the parked decision is not printed"
+  [ ! -d "$p/.pi/worktrees/loop" ] || fail "a worktree was created although the run refused"
+
+  # The parked decision carries the label but is no candidate: three items are labelled, two are questions. A cap
+  # of three is therefore free, and the run works the one item that asks nothing instead of refusing (#745).
+  out=$(run_loop "$p" --items 1 --minutes 90 --max-decisions 3 2>&1); status=$?
+  assert_eq "0" "$status" "a parked decision does not stop a run whose candidates are below the cap: $out"
+  assert_not_contains "$out" "refusing to start" "and nothing is refused"
+  assert_eq "46" "$(jq -r '.items[0].issue' "$(state_file "$p")")" "the eligible item is the one worked"
+  assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" "and it is the only item the run spent"
 }
 
 # A run that ends because the pre-screen could not reach a verdict records that reason. Before 2026-10-27 the `*)`

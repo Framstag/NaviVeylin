@@ -1,0 +1,96 @@
+[
+  {
+    "number": 41,
+    "title": "§41 An eligible bug awaiting a decision",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/on-hold"
+      },
+      {
+        "name": "agent/eligible"
+      },
+      {
+        "name": "agent/needs-decision"
+      }
+    ]
+  },
+  {
+    "number": 42,
+    "title": "§42 An eligible bug awaiting a decision",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/on-hold"
+      },
+      {
+        "name": "agent/eligible"
+      },
+      {
+        "name": "agent/needs-decision"
+      }
+    ]
+  },
+  {
+    "number": 45,
+    "title": "§45 A roadmap decision the owner parked",
+    "body": "no citation at all",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/ui"
+      },
+      {
+        "name": "status/on-hold"
+      },
+      {
+        "name": "agent/needs-decision"
+      }
+    ]
+  },
+  {
+    "number": 46,
+    "title": "§46 A bug",
+    "body": "- **Anchor** ℹ: `tools/tooling.json`.",
+    "author": {
+      "login": "Framstag"
+    },
+    "labels": [
+      {
+        "name": "class/bug"
+      },
+      {
+        "name": "category/car"
+      },
+      {
+        "name": "status/open"
+      },
+      {
+        "name": "agent/eligible"
+      }
+    ]
+  }
+]

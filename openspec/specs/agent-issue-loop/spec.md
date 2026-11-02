@@ -656,15 +656,17 @@ sufficient to continue after an interrupt without repeating work already done.
 
 ### Requirement: A pile of open decisions stops the run
 
-The run SHALL refuse to start when more items awaiting a person's decision are open than the configured
-cap allows, and SHALL report them instead of producing more work.
+The run SHALL refuse to start when more candidate items awaiting a person's decision are open than the configured
+cap allows, and SHALL report them instead of producing more work. An item is a candidate only when it carries
+both the decision label and the loop's opt-in, so a decision parked by removing `agent/eligible` SHALL NOT count
+(#745).
 
 #### Scenario: The cap is reached
 
-- **WHEN** the number of open items awaiting a decision reaches the cap
-- **THEN** the run refuses to start and prints those items, so nothing new is produced while decisions
-  accumulate
-- **Case**: `run#decisionCapRefusesToStart`
+- **WHEN** the number of candidate items awaiting a decision reaches the cap
+- **THEN** the run refuses to start, prints those items and states the count it compared, so nothing new is
+  produced while decisions accumulate
+- **Case**: `run#decisionCapRefusesToStart`, `run#decisionCapCountsOnlyCandidates`
 
 #### Scenario: An item needing a decision is escalated, not abandoned
 
@@ -723,9 +725,11 @@ writes the decision label beside the hold, as the requirement "A stale skip asks
 #### Scenario: The cap counts the questions a person can answer
 
 - **WHEN** the run counts the open decisions before it starts
-- **THEN** only items carrying the decision label are counted, so an item nobody asked a question about cannot
-  stop a run
-- **Case**: `run#decisionCapRefusesToStart`, `prescreen#aHoldWithNoDecisionIsNotADecision`
+- **THEN** only items that carry the decision label **and** the loop's opt-in are counted, so an item nobody
+  asked a question about — and an item a person parked by removing `agent/eligible` — cannot stop a run, while
+  the refusal still states how many items carry the label beside the count it compared
+- **Case**: `run#decisionCapCountsOnlyCandidates`, `run#decisionCapRefusesToStart`,
+  `prescreen#aHoldWithNoDecisionIsNotADecision`
 
 ### Requirement: The run's mechanics are the project's configuration, not its code
 

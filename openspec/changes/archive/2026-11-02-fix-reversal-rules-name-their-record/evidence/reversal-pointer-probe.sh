@@ -11,7 +11,7 @@
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-root=$(cd "$here/../../../.." && pwd)
+root=""
 out=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -21,6 +21,19 @@ while [ $# -gt 0 ]; do
     *) echo "reversal-pointer-probe: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
+
+# The default root is the tree that holds `guidelines/`, found by walking up, not a fixed number of levels: an
+# archived change sits one directory deeper than an open one, so the four levels that fit
+# `openspec/changes/<change>/evidence` resolve to `openspec/` once the change is archived and every rule block
+# then reads as missing (measured in review round 2, 2026-11-02). A `--root` still overrides it.
+if [ -z "$root" ]; then
+  root="$here"
+  while [ "$root" != "/" ] && [ ! -d "$root/guidelines" ]; do root=$(dirname "$root"); done
+  [ -d "$root/guidelines" ] || {
+    echo "reversal-pointer-probe: no directory above $here holds guidelines/ — pass --root" >&2
+    exit 2
+  }
+fi
 
 # file | anchor — the line the rule's own statement starts on. The rule sites were re-derived on base
 # e190d872: the 2026-10-31 split moved §7/§8 of MapRendering.md into MapFollow.md and the two-flavor rule

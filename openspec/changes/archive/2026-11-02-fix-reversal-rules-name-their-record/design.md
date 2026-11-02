@@ -40,6 +40,14 @@ over "every rule born from a reversal names the record" would be undecidable. Th
 five sites it edits (`evidence/reversal-pointer-probe.sh`), which is red on the base (`tests=5 failures=5`) and green
 after the change — the number the delta requires, without turning a judgement into a declared rule.
 
+**The probe's own root, corrected in review round 2.** The script's default root walked four levels up from its own
+directory, which is the depth of `openspec/changes/<change>/evidence`. Archiving moves the directory one level
+further down, so the default resolved to `openspec/`, every rule block read as absent, and the archived probe
+reported `tests=5 failures=5` behind five `awk` errors (`evidence/probe-default-root.log`). The default now walks up
+until a directory holds `guidelines/` — the same tree for an open and an archived change — while `--root` still
+overrides it and a base checkout still reads red. The pointer text, the five sites and the tallies above are
+unchanged by that correction.
+
 ## Residual sites
 
 Four of §13's nine reversals keep rules that carry no pointer after this delta, and none of them is this change's:

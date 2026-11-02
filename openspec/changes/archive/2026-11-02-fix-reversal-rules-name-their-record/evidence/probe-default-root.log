@@ -1,0 +1,15 @@
+$ bash openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/reversal-pointer-probe.sh
+reversal-pointer-probe: tests=5 failures=0
+rc=0   (default root: the archived path is one level deeper than an open change, so the previous four-level walk-up resolved to openspec/ and every block read as absent)
+
+$ git worktree add --detach .pi/scratch/730-base e190d872   (a checkout of the base, removed at the end of this log)
+$ bash openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/reversal-pointer-probe.sh --root .pi/scratch/730-base
+reversal-pointer-probe: tests=5 failures=5
+reversal-pointer-probe: no Design.why.md pointer in: guidelines/DesignCrossVariant.md / **Every car guidance surface reads the step model** guidelines/DesignCrossVariant.md / Prefer host-rendered guidelines/DesignCrossVariant.md / **Rule: phone and AAOS are separate build flavors under one applicationId** guidelines/MapFollow.md / Bearing smoothing lives in `LocationService` guidelines/MapFollow.md / **Rule: Render target**
+rc=1
+
+$ bash openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record/evidence/reversal-pointer-probe.sh --root .
+reversal-pointer-probe: tests=5 failures=0
+rc=0
+
+$ git worktree remove --force .pi/scratch/730-base

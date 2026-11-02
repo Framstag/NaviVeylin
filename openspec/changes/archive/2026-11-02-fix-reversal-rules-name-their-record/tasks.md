@@ -55,3 +55,12 @@ case, and its `Rejected alternative` is the rule form this change does not take.
 - [x] 6.3 Archive the producer of the two section figures the archive quotes: `evidence/section-sizes.log`,
       `tools/check-doc-routes.sh --sizes`. Verify: the log carries `§8a 10525 bytes` and `§8b 3038 bytes`, the
       two numbers `design.md`'s blast radius states.
+
+## 7. Correction round 2 (the probe's own root, found when the round was re-run)
+
+- [x] 7.1 Make the probe's default root the tree that holds `guidelines/`, so the archived change's own path resolves
+      without a flag. Verify: `evidence/probe-default-root.log` carries three runs — the default root from the archived
+      path (`tests=5 failures=0`), the same script with `--root .pi/scratch/730-base` over a detached checkout of base
+      `e190d872` (`tests=5 failures=5`, the red case), and `--root .` (`tests=5 failures=0`).
+- [x] 7.2 Re-run the evidence checker over the corrected directory and archive it. Verify:
+      `evidence/evidence-check.log` ends `evidence-check: PASS` and carries no `FAIL`.

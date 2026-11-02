@@ -1,0 +1,4 @@
+AutoMapRendererFrameWaitTest > theArmedWaitFiresAndRetriesTheFrame FAILED
+    java.lang.AssertionError: the armed wait requested the frame again: requests=3->3 retries=1 reports=[frame wait expired: no frame in 1 ms (retry 1/2)] drawsAtArm=0 draws=0+0 armedAt=5
+> Task :auto:testDebugUnitTest FAILED
+BUILD FAILED in 8s

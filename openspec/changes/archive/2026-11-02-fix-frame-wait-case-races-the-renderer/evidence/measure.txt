@@ -1,0 +1,14 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=741603aaab8efc1382ea5859cfec38a548459272 paths=1 insertions=23 deletions=9
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererFrameWaitTest.kt
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=322s
+LOOP-MEASURE-GATE seconds=322 suites=1
+LOOP-MEASURE-CHANGE fix-frame-wait-case-races-the-renderer scenarios=5 cases=5 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-frame-wait-case-races-the-renderer/evidence/case-repeat.xml tests=1 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-frame-wait-case-races-the-renderer/evidence/class.xml tests=7 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-frame-wait-case-races-the-renderer/evidence/mutation.xml tests=1 failures=1
+LOOP-MEASURE-TALLY openspec/changes/fix-frame-wait-case-races-the-renderer/evidence/red-case.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 1 case rewritten, 0 cases added, 2 production read sites unchanged, 0 fixtures realigned — `grep -rn "frameWaitClock" --include=*.kt auto/src` and `grep -rn "frameWaitJob" --include=*.kt auto/src/test`
+LOOP-MEASURE-END

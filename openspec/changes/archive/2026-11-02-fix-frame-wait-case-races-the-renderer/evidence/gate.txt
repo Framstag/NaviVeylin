@@ -1,0 +1,24 @@
+# The gate, run once from the change root on 2026-11-02
+
+    ./tools/loop/gate.sh          # exit 0
+    LOOP-GATE: tests=0 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 322s)
+
+The gate's own tally under `app/build/test-results/loop-gate/` carries `tests="0"` because the compiled step
+is one Gradle invocation whose output has no per-suite summary line to read; the counts that ran are in the
+module XMLs, and they are fresh for that run (newest `timestamp` per directory, after the gate started):
+
+    $ for m in app auto core; do d=$m/build/test-results/testDebugUnitTest; ...
+    app (mobile)          tests=2219 failures=0 newest=2026-11-02T18:50:33.820Z
+    app (automotive)      tests=2219 failures=0 newest=2026-11-02T18:48:34.403Z
+    auto                  tests=912  failures=0 newest=2026-11-02T18:46:17.903Z
+    core                  tests=649  failures=0 newest=2026-11-02T18:45:42.536Z
+
+The command that produced those numbers, verbatim (one directory per module/flavor; `d` is the directory and
+`$d/*.xml` its result files):
+
+    t=$(sed -nE 's/.*<testsuite [^>]*tests="([0-9]+)".*/\1/p' $d/*.xml | awk '{s+=$1} END{print s+0}')
+    f=$(sed -nE 's/.*<testsuite [^>]*failures="([0-9]+)".*/\1/p' $d/*.xml | awk '{s+=$1} END{print s+0}')
+    newest=$(sed -nE 's/.*timestamp="([^"]+)".*/\1/p' $d/*.xml | sort | tail -1)
+
+`BUILD SUCCESSFUL in 5m 21s`, `167 actionable tasks: 112 executed, 55 up-to-date`, gate exit 0. The full gate
+log is `/home/tim/projects/NaviVeylin/.pi/issue-loop/items/743/gate.log`.

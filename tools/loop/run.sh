@@ -697,7 +697,7 @@ pin_out=$(bash "$LOOP_DIR/worktree.sh" check-module-pin "$base" 2>&1) || {
 # 6. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 #    The cap counts the *candidate* decisions — the items that carry both the decision label and the loop's
 #    opt-in — because that is the population the pre-screen offers and the only one a person can answer: an item
-#    whose owner removed `agent/eligible` is parked, not a question anyone may settle, so it must not spend a slot
+#    whose owner removed the opt-in is parked, not a question anyone may settle, so it must not spend a slot
 #    of the cap that stops work on the items they can (#745). Measured 2026-11-02 on the live tracker: 13 labelled,
 #    9 of them candidates, against a cap of 10 — the run refused with a free slot in the count it can answer.
 open_decisions=$(loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |

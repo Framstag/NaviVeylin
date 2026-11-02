@@ -1,0 +1,7 @@
+# routed-read#theEntryDocumentNamesTheLoopSkillsByPath — run against base 9318dad90896e1e14364f71e5d6ae119def8f330
+# 2026-11-02T04:37:21Z
+# exit=1
+
+FAIL  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both
+        the entry document names no path for .pi/skills/create-issue .pi/skills/device-check — a reader reaches those skills only by listing .pi/skills/
+check-doc-routes-selftest: 1 of 1 cases failed

@@ -1,9 +1,11 @@
 # the map after the change: bash tools/check-rule-routes.sh --list | tail -1
-check-rule-routes: 27 glob(s), 576 named rule(s) reached
+check-rule-routes: 33 glob(s), 578 named rule(s) reached
 # the invariants: bash tools/check-rule-routes.sh
-check-rule-routes: every glob matches the tree and all 576 named rule(s) are reached
+check-rule-routes: every glob matches the tree and all 578 named rule(s) are reached
 
 # the reading set each guidepost path derives now
+# command: bash openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/derive-probe.sh
+#          tools/doc-routes.json <the paths below>
 guidelines/Logging.md
   globs: guidelines/Logging.* 
   entries: 12
@@ -12,7 +14,7 @@ guidelines/Logging.recipes.md
   globs: guidelines/Logging.* 
   entries: 12
   documents: Logging 
-guidelines/BuildGate.recipes.md
+guidelines/BuildGate.md
   globs: guidelines/BuildGate.* 
   entries: 30
   documents: BuildGate 
@@ -24,6 +26,34 @@ guidelines/UI.md
   globs: guidelines/UI*.md 
   entries: 191
   documents: UI UICar UIPhone UIPhoneMap 
+guidelines/MapCar.md
+  globs: guidelines/MapCar.* 
+  entries: 18
+  documents: MapCar 
+guidelines/MapFollow.md
+  globs: guidelines/MapFollow.* 
+  entries: 31
+  documents: MapFollow 
+guidelines/MapFrames.md
+  globs: guidelines/MapFrames.* 
+  entries: 14
+  documents: MapFrames 
+guidelines/MapRoute.md
+  globs: guidelines/MapRoute.* 
+  entries: 1
+  documents: MapRoute 
+guidelines/MapStyling.md
+  globs: guidelines/MapStyling.* 
+  entries: 27
+  documents: MapStyling 
+guidelines/BacklogTooling.md
+  globs: guidelines/BacklogTooling.* 
+  entries: 9
+  documents: BacklogTooling 
+guidelines/Backlog.md
+  globs: guidelines/Backlog.* 
+  entries: 14
+  documents: Backlog 
 tools/loop/state.sh
   globs: tools/** tools/loop/** 
   entries: 4

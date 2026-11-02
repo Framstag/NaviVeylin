@@ -5,10 +5,13 @@
 # corpus into a throwaway git tree and derives from there.
 #
 # Cases: a map whose globs match the tree and whose rules are all reached (pass); a glob that matches no
-# tracked path; a named rule no glob reaches; `--diff` over a fixture range — the reading set follows the
+# tracked path; a named rule no glob reaches; a normative document no glob names; a `guidelines/` route
+# carrying a document its glob does not match; `--diff` over a fixture range — the reading set follows the
 # paths a change touched, and a change that names fewer sections than the map derives is reported while a
-# change that names them all (or adds one) passes; and one edit to one guideline document of this tree, which
-# must derive that document's own entries and no other document's.
+# change that names them all (or adds one) passes; and five edits to five guideline documents of this tree
+# (one document, one companion layer, one concern family, one of the five `Map*` documents that had been
+# orphaned, and the tooling document that shares the backlog concern), each of which must derive that
+# document's own entries and no other document's.
 #
 # Usage: check-rule-routes-selftest.sh [--case <id>]
 set -uo pipefail
@@ -37,7 +40,17 @@ mk_fixture() { # $1 = directory
   printf 'fun main() {}\n' > "$1/src/Thing.kt"
 }
 
-write_map() { # $1 = directory, $2 = the routes array body
+# Every fixture's map names `guidelines/Doc.*` with no entries, so the fixture already satisfies the third
+# invariant (a normative document no glob names is reported) and the case under test is not answered by it.
+# A case that is *about* one of the two document invariants writes its map without that route, through
+# `write_map_bare`.
+doc_route='{ "glob": "guidelines/Doc.*", "sections": [], "rules": [] }'
+
+write_map() { # $1 = directory, $2 = the routes array body, with the document's own route appended
+  printf '{ "routes": [ %s, %s ] }\n' "$2" "$doc_route" > "$1/tools/doc-routes.json"
+}
+
+write_map_bare() { # $1 = directory, $2 = the routes array body, nothing appended
   printf '{ "routes": [ %s ] }\n' "$2" > "$1/tools/doc-routes.json"
 }
 
@@ -64,6 +77,21 @@ write_map "$tmp/ok" '{ "glob": "src/**", "sections": ["Doc.md §1"], "rules": ["
 expect routes#theMapResolvesAndEveryRuleIsReached 0 "all 1 named rule(s) are reached" \
   "a map whose glob matches the tree and whose rule is reached passes" \
   bash "$check" --root "$tmp/ok"
+
+# ── a normative document no glob names ─────────────────────────────────────────────────────────────────────
+mk_fixture "$tmp/doc-orphan"
+write_map_bare "$tmp/doc-orphan" '{ "glob": "src/**", "sections": ["Doc.md §1"], "rules": ["Doc.md §1 \"nothing yet.\""] }'
+expect routes#aDocumentNoGlobNamesIsReported 1 "no glob matches guidelines/Doc.md" \
+  "a normative document no glob matches is reported, even though its rule is reached by another path's route" \
+  bash "$check" --root "$tmp/doc-orphan"
+
+# ── a guideline route carrying a document its glob does not match ─────────────────────────────────────────
+mk_fixture "$tmp/doc-mismatch"
+printf '# Other Specification\n\n## 1. Another home\n\n- **Rule: another.** Its own body.\n' > "$tmp/doc-mismatch/guidelines/Other.md"
+write_map_bare "$tmp/doc-mismatch" '{ "glob": "guidelines/Doc.*", "sections": ["Doc.md §1", "Other.md §1"], "rules": ["Doc.md §1 \"nothing yet.\""] }, { "glob": "guidelines/Other.*", "sections": ["Other.md §1"], "rules": ["Other.md §1 \"another.\""] }'
+expect routes#aGuidelineRouteCarryingAnotherDocumentIsReported 1 "carries a Other.md entry it does not match" \
+  'a route whose glob sits under `guidelines/` and names a document it never reaches is reported' \
+  bash "$check" --root "$tmp/doc-mismatch"
 
 # ── a glob that matches no tracked path ────────────────────────────────────────────────────────────────────
 mk_fixture "$tmp/glob-dead"
@@ -114,7 +142,9 @@ expect routes#aChangeMayAddASection 0 "" \
 # A glob's granularity is a fact about this tree's map, so the fixture below is the map and the guideline corpus
 # copied from this tree, not a synthetic one. Each document is committed on its own, so `--diff HEAD~1` derives the
 # set for exactly that edit: the entries must name the edited document's own concern and no other — a coarse
-# `guidelines/**` derives the whole corpus for any one of them (issue #733).
+# `guidelines/**` derives the whole corpus for any one of them (issue #733). Five documents are asserted: one
+# document, one companion layer, one concern family, one of the five `Map*` documents that a route split had left
+# with no glob at all, and the tooling document that shares the backlog concern.
 guideline_fixture() { # $1 = directory
   mkdir -p "$1/tools"
   cp "$root/tools/tooling.json" "$root/tools/doc-routes.json" "$1/tools/"
@@ -153,6 +183,12 @@ expect routes#aGuidelineEditDerivesItsOwnDocument 0 "" \
 expect routes#aGuidelineEditDerivesItsOwnDocument 0 "" \
   "…and a concern family derives its four siblings, not the corpus" \
   guideline_edit_derives_only "$tmp/guideline" guidelines/DesignStack.md "Design DesignCrossVariant DesignNative DesignStack"
+expect routes#aGuidelineEditDerivesItsOwnDocument 0 "" \
+  "…and a document a route split had left with no glob derives its own entries, not nothing" \
+  guideline_edit_derives_only "$tmp/guideline" guidelines/MapCar.md MapCar
+expect routes#aGuidelineEditDerivesItsOwnDocument 0 "" \
+  "…and so does the document that shares the backlog concern with a sibling of its own" \
+  guideline_edit_derives_only "$tmp/guideline" guidelines/BacklogTooling.md BacklogTooling
 
 if [ -n "$case_filter" ] && [ "$pass" = 0 ] && [ "$failures" = 0 ]; then
   echo "check-rule-routes-selftest: no case with the id '$case_filter'" >&2

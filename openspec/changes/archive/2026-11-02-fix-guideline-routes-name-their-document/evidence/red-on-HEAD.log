@@ -1,10 +1,17 @@
-# red run 2026-11-02T04:13:36Z on HEAD 650028bf
+# red run 2026-11-02T18:39:34Z on base 650028bf (the map before this change, with the case as shipped)
 # command: bash tools/check-rule-routes-selftest.sh --case routes#aGuidelineEditDerivesItsOwnDocument
+#   run against a throwaway tree holding this change's tools/tooling.json, tools/check-rule-routes.sh,
+#   tools/check-rule-routes-selftest.sh and guidelines/, and `git show 650028bf:tools/doc-routes.json`
+#   as the map — so the case is the shipped one and only the map is the base's.
 FAIL  routes#aGuidelineEditDerivesItsOwnDocument — one edit to one guideline document derives that document's entries alone: expected exit 0 containing '', got exit 1:
-                guidelines/Logging.md derives 270 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack Logging ] — the edit is one document, so it must derive Logging alone
+                guidelines/Logging.md derives 270 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack Logging ] — it is one concern, so it must derive [Logging] alone
 FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …for a companion layer too — a procedure edit derives its document: expected exit 0 containing '', got exit 1:
-                guidelines/BuildGate.recipes.md derives 258 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack ] — the edit is one document, so it must derive BuildGate alone
-FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …and for a document that shares its concern with three siblings (Design): expected exit 0 containing '', got exit 1:
-                guidelines/DesignStack.md derives 258 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack ] — the edit is one document, so it must derive DesignStack alone
-check-rule-routes-selftest: 3 of 3 cases failed
+                guidelines/BuildGate.recipes.md derives 258 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack ] — it is one concern, so it must derive [BuildGate] alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …and a concern family derives its four siblings, not the corpus: expected exit 0 containing '', got exit 1:
+                guidelines/DesignStack.md derives 258 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack ] — it is one concern, so it must derive [Design DesignCrossVariant DesignNative DesignStack] alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …and a document a route split had left with no glob derives its own entries, not nothing: expected exit 0 containing '', got exit 1:
+                guidelines/MapCar.md derives 258 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack ] — it is one concern, so it must derive [MapCar] alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …and so does the document that shares the backlog concern with a sibling of its own: expected exit 0 containing '', got exit 1:
+                guidelines/BacklogTooling.md derives 258 entries naming [Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack ] — it is one concern, so it must derive [BacklogTooling] alone
+check-rule-routes-selftest: 5 of 5 cases failed
 # exit=1

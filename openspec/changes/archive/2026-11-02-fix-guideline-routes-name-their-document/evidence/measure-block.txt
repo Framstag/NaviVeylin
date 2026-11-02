@@ -1,14 +1,68 @@
+# measurement block for this change (2026-11-03T20:33:02Z)
 # command: ./tools/loop/measure.sh --change fix-guideline-routes-name-their-document
-LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
-LOOP-MEASURE base=650028bfdf6e652ebd045b4af1be0a90b6c0a481 paths=3 insertions=74 deletions=18
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/733/tools/loop/loop.conf
+LOOP-MEASURE base=26a28cca9198a0443818b772ec5ac2f4973ebe73 paths=29 insertions=1152 deletions=32
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/baseline-derived-sets.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/checks-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/derived-sets-after.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/derive-probe.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/measure-block.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/mutation-set.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/rule-orphan-on-the-base.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-rule-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-rule-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_mutate.sh_--mutations_tools_check-rule-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/tasks.md
+LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
 LOOP-MEASURE-PATH tools/check-rule-routes-mutations.json
 LOOP-MEASURE-PATH tools/check-rule-routes-selftest.sh
+LOOP-MEASURE-PATH tools/check-rule-routes.sh
 LOOP-MEASURE-PATH tools/doc-routes.json
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
 LOOP-MEASURE-CHECK tools/check-rule-routes.sh
 LOOP-MEASURE-CHECK tools/check-rule-routes-selftest.sh
 LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list
-LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
-LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
-LOOP-MEASURE-CHANGE fix-guideline-routes-name-their-document scenarios=4 cases=4 unnamed=0
-LOOP-MEASURE-SURFACE surface: 1 case added (3 assertions), 0 rewritten, 0 fixtures realigned, 12 globs rewritten in 1 file, 1 mutation
+LOOP-MEASURE-SUITE cases=309 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=12s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-rule-routes-selftest.sh.xml tests=13 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-rule-routes.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-rule-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=22 suites=10
+LOOP-MEASURE-CHANGE 2026-11-02-fix-guideline-routes-name-their-document scenarios=6 cases=6 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=12s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-rule-routes-selftest.sh.xml tests=13 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-rule-routes.sh.xml tests=0 failures=0 time=2s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/tools_mutate.sh_--mutations_tools_check-rule-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-SURFACE surface: 2 cases added (3 assertions) and 2 assertions added to the existing case, 0 rewritten, 0 fixtures
 LOOP-MEASURE-END

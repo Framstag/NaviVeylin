@@ -1,6 +1,6 @@
 {
   "profile": 1,
-  "comment": "THE PATH → RULES MAP — which guideline sections and named rules own a path's conventions. A review's reading set is derived from the paths a change touched, through this file, rather than from the sections the change's own artifacts claim (`documentation-ownership`, \"The review's reading set is derived from the change's paths\"). Two invariants are checked by `tools/check-rule-routes.sh`: every `glob` matches a tracked path (a rename orphans the rules a reader is told to read) and every named rule under `guidelines/` is reached by at least one glob (a rule no change is ever told to obey). This file is the one a second project adapts; the check reads its path from `tools/tooling.json` `docRoutes` and names no glob as a literal. A `guidelines/` glob names the document and its two companion layers it carries the rules of (`guidelines/Logging.*`), or the concern family that shares them (`guidelines/Design*`, `guidelines/UI*.md`) — never the corpus: a route wide enough to match every guideline tells a one-document edit to read ten documents (issue #733, measured 270 entries derived for one `guidelines/Logging.md` edit).",
+  "comment": "THE PATH → RULES MAP — which guideline sections and named rules own a path's conventions. A review's reading set is derived from the paths a change touched, through this file, rather than from the sections the change's own artifacts claim (`documentation-ownership`, \"The review's reading set is derived from the change's paths\"). Four invariants are checked by `tools/check-rule-routes.sh`: every `glob` matches a tracked path (a rename orphans the rules a reader is told to read); every named rule under `guidelines/` is reached by at least one glob (a rule no change is ever told to obey); every normative document under `guidelines/` is matched by at least one glob (a document no glob names derives nothing for its own edits, which is how six documents were silently orphaned by a route split that renamed their coverage away); and a route whose glob sits under `guidelines/` carries no document its glob does not match (a concern's route naming a document it never reaches is the same orphan, one level down). This file is the one a second project adapts; the check reads its path from `tools/tooling.json` `docRoutes` and names no glob as a literal. A `guidelines/` glob names the document and its two companion layers it carries the rules of (`guidelines/Logging.*`), or the concern family that shares them (`guidelines/Design*`, `guidelines/UI*.md`) — never the corpus: a route wide enough to match every guideline tells a one-document edit to read ten documents (issue #733, measured 270 entries derived for one `guidelines/Logging.md` edit).",
   "routes": [
     {
       "glob": "app/src/main/java/**",
@@ -462,6 +462,131 @@
       ]
     },
     {
+      "glob": "guidelines/MapCar.*",
+      "sections": [
+        "MapCar.md §14",
+        "MapCar.md §18"
+      ],
+      "rules": [
+        "MapCar.md §14 \"CRITICAL — the renderer never owns the surface\"",
+        "MapCar.md §14 \"CRITICAL — the stop path detaches\"",
+        "MapCar.md §14 \"Overrun buffer\"",
+        "MapCar.md §14 \"The overrun frame is a pooled target, held until replaced\"",
+        "MapCar.md §14 \"Sub-region blit\"",
+        "MapCar.md §14 \"Extrapolation loop\"",
+        "MapCar.md §14 \"Display-only prediction\"",
+        "MapCar.md §14 \"CRITICAL — overrun bitmap lifecycle\"",
+        "MapCar.md §14 \"CRITICAL — display ownership in follow mode\"",
+        "MapCar.md §14 \"reengageFollow must anchor the viewport and request the frame\"",
+        "MapCar.md §14 \"A stale fix must not freeze the display\"",
+        "MapCar.md §14 \"Blit eligibility\"",
+        "MapCar.md §14 \"The projection DPI travels with the render request\"",
+        "MapCar.md §14 \"Loop liveness — a fault costs one frame, never the pipeline\"",
+        "MapCar.md §14 \"A requested frame that never lands is re-requested\"",
+        "MapCar.md §14 \"Diagnosing a frozen or degraded car map\""
+      ]
+    },
+    {
+      "glob": "guidelines/MapFollow.*",
+      "sections": [
+        "MapFollow.md §3",
+        "MapFollow.md §6",
+        "MapFollow.md §7",
+        "MapFollow.md §8",
+        "MapFollow.md §9",
+        "MapFollow.md §10",
+        "MapFollow.md §11"
+      ],
+      "rules": [
+        "MapFollow.md §3 \"`LocationService`\"",
+        "MapFollow.md §3 \"`MapCanvasViewModel`\"",
+        "MapFollow.md §6 \"Store all angles in radians\"",
+        "MapFollow.md §6 \"The orientation mode decides the fallback, never a stale angle.\"",
+        "MapFollow.md §7 \"`smoothedBearing`\"",
+        "MapFollow.md §7 \"`markerBearing`\"",
+        "MapFollow.md §7 \"Fused path\"",
+        "MapFollow.md §7 \"LocationManager path\"",
+        "MapFollow.md §7 \"Two-state logic\"",
+        "MapFollow.md §7 \"Turn reset\"",
+        "MapFollow.md §7 \"Turn reset keeps the fresh segment\"",
+        "MapFollow.md §7 \"No `-1.0` sentinel\"",
+        "MapFollow.md §8 \"Render target\"",
+        "MapFollow.md §8 \"Position updates on every fix\"",
+        "MapFollow.md §8 \"Projection\"",
+        "MapFollow.md §8 \"Position\"",
+        "MapFollow.md §8 \"Arrow orientation (important)\"",
+        "MapFollow.md §8 \"Do not\"",
+        "MapFollow.md §10 \"No EMA smoothing of the center\"",
+        "MapFollow.md §11 \"The speed each surface feeds the table is its own\"",
+        "MapFollow.md §11 \"A change larger than the window the frame in hand can serve is WALKED (`core/ZoomWalk`).\"",
+        "MapFollow.md §11 \"The walk's pin on the render magnification lives exactly as long as the walk.\"",
+        "MapFollow.md §11 \"The viewport keeps the FINAL magnification while the display walks.\"",
+        "MapFollow.md §11 \"The display animation pivots on the resolved follow anchor while a follow mode is active\""
+      ]
+    },
+    {
+      "glob": "guidelines/MapFrames.*",
+      "sections": [
+        "MapFrames.md §12",
+        "MapFrames.md §13",
+        "MapFrames.md §14"
+      ],
+      "rules": [
+        "MapFrames.md §12 \"The emitted bitmap is the overrun front buffer; the emitted viewport is the frame's OWN viewport\"",
+        "MapFrames.md §12 \"Unchanged-frame reuse\"",
+        "MapFrames.md §12 \"Fractional magnification (continuous pinch)\"",
+        "MapFrames.md §12 \"No angle epsilon check against `currentAngle`\"",
+        "MapFrames.md §13 \"The overrun margin is never negative.\"",
+        "MapFrames.md §13 \"Pan inside the margin renders nothing.\"",
+        "MapFrames.md §13 \"Coverage and display must describe ONE frame: the emitted one.\"",
+        "MapFrames.md §13 \"Diagnosing a stuck pan\"",
+        "MapFrames.md §13 \"The marker overlay must be shifted by the same offset the content is drawn with\"",
+        "MapFrames.md §13 \"The renderer's target center (`currentLat/Lon`) only advances with render requests.\"",
+        "MapFrames.md §13 \"Pan hot path budget\""
+      ]
+    },
+    {
+      "glob": "guidelines/MapRoute.*",
+      "sections": [
+        "MapRoute.md §19"
+      ],
+      "rules": []
+    },
+    {
+      "glob": "guidelines/MapStyling.*",
+      "sections": [
+        "MapStyling.md §20",
+        "MapStyling.md §15",
+        "MapStyling.md §15a",
+        "MapStyling.md §16",
+        "MapStyling.md §16a",
+        "MapStyling.md §16b",
+        "MapStyling.md §17"
+      ],
+      "rules": [
+        "MapStyling.md §20 \"The character count is the bound that wraps\"",
+        "MapStyling.md §20 \"A label is broken at a word boundary only\"",
+        "MapStyling.md §20 \"The Android build has no Pango\"",
+        "MapStyling.md §20 \"What the Android configure does define\"",
+        "MapStyling.md §15 \"Phone\"",
+        "MapStyling.md §15 \"Android Auto\"",
+        "MapStyling.md §15 \"Startup race (both variants)\"",
+        "MapStyling.md §15 \"Periodic work bound (Android Auto)\"",
+        "MapStyling.md §15 \"Load budget and dedupe key (change `dedupe-stylesheet-loads`)\"",
+        "MapStyling.md §15a \"Client contract (libosmscout, branch `naviveylin-local`; change `client-style-load-resilience`): a stylesheet that fails to parse NEVER becomes the active style.\"",
+        "MapStyling.md §15a \"App side\"",
+        "MapStyling.md §15a \"Startup fallback\"",
+        "MapStyling.md §15a \"Verification\"",
+        "MapStyling.md §15a \"Test fixtures and report parsing (2026-10-05).\"",
+        "MapStyling.md §16a \"The configured directory must end with a path separator.\"",
+        "MapStyling.md §17 \"Configuration is raise-only\"",
+        "MapStyling.md §17 \"The one lowering path is an explicit release\"",
+        "MapStyling.md §17 \"Triggers\"",
+        "MapStyling.md §17 \"Measured retention ceiling\"",
+        "MapStyling.md §17 \"No fault escapes a release\""
+      ]
+    },
+    {
       "glob": "guidelines/BuildGate.*",
       "sections": [
         "BuildGate.md §2a"
@@ -519,21 +644,28 @@
         "Backlog.md §4",
         "Backlog.md §5",
         "Backlog.md §7",
-        "BacklogTooling.md §9",
-        "BacklogTooling.md §10",
         "Backlog.md §14"
       ],
       "rules": [
         "Backlog.md §3 \"one item is one issue, and everything a reader selects on is a label.\"",
         "Backlog.md §3 \"priority is a stored fact with a recorded basis, not a number recomputed on every reading.\"",
         "Backlog.md §4 \"an invariant is stated with the observation that would falsify it.\"",
-        "BacklogTooling.md §10 \"an engine names no project value\"",
         "Backlog.md §14 \"a reversal is recorded, not deleted.\"",
         "Backlog.md §5 \"an answer reaches the next worker's package.\"",
         "Backlog.md §5 \"a closure leaves no decision label behind.\"",
         "Backlog.md §5 \"a block asks its own question.\"",
         "Backlog.md §5 \"a stale skip asks its own question, and is never parked on a bare hold.\"",
-        "Backlog.md §5 \"a reviewed falsification closes the item as mis-diagnosed, and only on an unchanged tree.\"",
+        "Backlog.md §5 \"a reviewed falsification closes the item as mis-diagnosed, and only on an unchanged tree.\""
+      ]
+    },
+    {
+      "glob": "guidelines/BacklogTooling.*",
+      "sections": [
+        "BacklogTooling.md §9",
+        "BacklogTooling.md §10"
+      ],
+      "rules": [
+        "BacklogTooling.md §10 \"an engine names no project value\"",
         "BacklogTooling.md §9 \"a check is a declared row, not a script.\"",
         "BacklogTooling.md §9 \"identity is finer than the check.\"",
         "BacklogTooling.md §9 \"hysteresis in both directions.\"",
@@ -991,6 +1123,7 @@
         "DesignCrossVariant.md §8a \"the session's screen-stack bookkeeping follows the mutation that succeeded\"",
         "DesignCrossVariant.md §8a \"every car screen builds its own scope through carScreenScope(name)\"",
         "DesignCrossVariant.md §8a \"host traffic is bounded while the car app is not visible\"",
+        "DesignCrossVariant.md §8a \"a rejected trip update re-arms publishing\"",
         "DesignCrossVariant.md §8b \"a car screen's shared-state observations are scoped to its started period\"",
         "DesignCrossVariant.md §8b \"cross-variant parity - same labels and visual hierarchy wherever the platform allows\"",
         "DesignCrossVariant.md §8b \"phone and AAOS are separate build flavors under one applicationId\"",

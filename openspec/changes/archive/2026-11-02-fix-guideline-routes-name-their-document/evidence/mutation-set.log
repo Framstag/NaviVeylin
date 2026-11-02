@@ -1,4 +1,4 @@
-# 2026-11-02T04:14:37Z
+# 2026-11-02T18:41:11Z
 # command: bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json
 glob-matches-the-tree	routes#aGlobMatchingNoTrackedPathIsReported	every glob is matched against the tree's tracked paths, so a glob that matches nothing is reported instead of silently orphaning the rules a reader is told to read
   RED(exit 1)  1 occurrence(s) replaced in tools/check-rule-routes.sh
@@ -9,10 +9,35 @@ rule-is-reached	routes#aRuleNoGlobReachesIsReported	every named rule under guide
 change-names-the-derived-set	routes#theReadingSetFollowsTheDiff	a change may add a section to its derived reading set and never shrink it, so a derived section the change's artifacts do not name is reported
   RED(exit 1)  1 occurrence(s) replaced in tools/check-rule-routes.sh
   GREEN(exit 0)  restored, and the case passes again
-route-names-its-document	routes#aGuidelineEditDerivesItsOwnDocument	a guideline glob names the document and its companion layers it owns, so one edit to one document derives that document's entries and not the corpus — reverted to the corpus-wide glob, the case reports the ten documents a single Logging.md edit is told to read
+document-is-named	routes#aDocumentNoGlobNamesIsReported	every normative document under guidelines/ is matched against the map's globs, so a document no glob names is reported instead of deriving nothing for its own edits while its rules stay reached through another path's route
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-rule-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+guideline-route-names-its-document	routes#aGuidelineRouteCarryingAnotherDocumentIsReported	a route whose glob sits under guidelines/ is compared with the documents its own entries name, so a route carrying a document its glob never reaches is reported rather than silently orphaning that document's reading set
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-rule-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+route-names-its-document	routes#aGuidelineEditDerivesItsOwnDocument	a guideline glob names the document and its companion layers it owns, so one edit to one document derives that document's entries and not the corpus — with the UI family's glob reverted to the corpus-wide pattern, a Logging.md edit derives the UI, Design and Build families too, and a DesignStack.md edit derives the UI route
   RED(exit 1)  1 occurrence(s) replaced in tools/doc-routes.json
   GREEN(exit 0)  restored, and the case passes again
 
-mutate: 4 mutation(s) run, 4 went red and restored green, 0 problem(s)
+mutate: 6 mutation(s) run, 6 went red and restored green, 0 problem(s)
 mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
 # exit=0
+
+# the red `route-names-its-document` produces, quoted: the mutation reverts the UI family's glob to
+# `guidelines/**` and the case's five assertions all fail, each naming the documents the edit is now told to
+# read. The first round's record could not produce this — it reverted `guidelines/Logging.*`, under which a
+# `Logging.md` edit matched only the Logging route and the case stayed green.
+# command: bash tools/check-rule-routes-selftest.sh --case routes#aGuidelineEditDerivesItsOwnDocument
+#          with `      "glob": "guidelines/UI*.md",` replaced by `      "glob": "guidelines/**",` in tools/doc-routes.json
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — one edit to one guideline document derives that document's entries alone: expected exit 0 containing '', got exit 1:
+                guidelines/Logging.md derives 203 entries naming [Logging UI UICar UIPhone UIPhoneMap ] — it is one concern, so it must derive [Logging] alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …for a companion layer too — a procedure edit derives its document: expected exit 0 containing '', got exit 1:
+                guidelines/BuildGate.recipes.md derives 221 entries naming [BuildGate UI UICar UIPhone UIPhoneMap ] — it is one concern, so it must derive [BuildGate] alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …and a concern family derives its four siblings, not the corpus: expected exit 0 containing '', got exit 1:
+                guidelines/DesignStack.md derives 298 entries naming [Design DesignCrossVariant DesignNative DesignStack UI UICar UIPhone UIPhoneMap ] — it is one concern, so it must derive [Design DesignCrossVariant DesignNative DesignStack] alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …and a document a route split had left with no glob derives its own entries, not nothing: expected exit 0 containing '', got exit 1:
+                guidelines/MapCar.md derives 209 entries naming [MapCar UI UICar UIPhone UIPhoneMap ] — it is one concern, so it must derive [MapCar] alone
+FAIL  routes#aGuidelineEditDerivesItsOwnDocument — …and so does the document that shares the backlog concern with a sibling of its own: expected exit 0 containing '', got exit 1:
+                guidelines/BacklogTooling.md derives 200 entries naming [BacklogTooling UI UICar UIPhone UIPhoneMap ] — it is one concern, so it must derive [BacklogTooling] alone
+check-rule-routes-selftest: 5 of 5 cases failed
+# exit=1

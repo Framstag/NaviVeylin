@@ -194,6 +194,7 @@ LOOP_SHELL_CASES=(
   'run#noProcessOfASignalledRunOutlivesIt'
   'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted'
   'run#childThatNeverStartedIsTheRunsFault'
+  'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault'
   'run#hostBelowTheFloorBlocksTheItemAndStops'
   'run#hostAboveTheFloorRunsTheItem'
   'run#hostWithoutTheReadingPasses'
@@ -549,6 +550,7 @@ loop_run_shell_case() {
     'run#noProcessOfASignalledRunOutlivesIt') fn=case_run_noProcessOfASignalledRunOutlivesIt ;;
     'run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted') fn=case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted ;;
     'run#childThatNeverStartedIsTheRunsFault') fn=case_run_childThatNeverStartedIsTheRunsFault ;;
+    'run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault') fn=case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault ;;
     'run#hostBelowTheFloorBlocksTheItemAndStops') fn=case_run_hostBelowTheFloorBlocksTheItemAndStops ;;
     'run#hostAboveTheFloorRunsTheItem') fn=case_run_hostAboveTheFloorRunsTheItem ;;
     'run#hostWithoutTheReadingPasses') fn=case_run_hostWithoutTheReadingPasses ;;
@@ -5335,6 +5337,54 @@ case_run_childThatNeverStartedIsTheRunsFault() {
   assert_contains "$out" "Error: Unknown option: --mode json" "and carries the child's own message"
   assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "could not start" \
     "the stop is recorded, not only printed"
+  # The item stays the owner's: no escalation, no hold, no comment about a question nobody asked.
+  log=$(cat "$GH_STUB_RECORD")
+  assert_not_contains "$log" "agent/needs-decision" "an item nobody read is not escalated"
+  assert_not_contains "$log" "status/on-hold" "and is not put on hold"
+  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" "nothing is written about it"
+  assert_contains "$log" "--remove-label agent/in-progress" "and the in-progress mark comes off again"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# The same fault with the status a provider leaves behind (issue #742). A child that exits 0 while every request it
+# made was refused writes an answer of nothing: measured 2026-11-01T23:30:01Z, #739 and #740 each left a 0-byte
+# `worker-report.md`, each had all four of its `turn_end` events on `stopReason: error`, and every request had been
+# refused by the provider — yet the run recorded both with `piExit=0`, both as `blocked` on "reported success but the
+# tree is still at the base commit", and escalated both with `agent/needs-decision` and `status/on-hold`: two
+# questions no reviewer and no worker asked spent two of the ten decision slots the project records, and the run then
+# stopped on two consecutive blocked items 125 s into a 360-minute budget. The status is not what separates the two
+# kinds of child; the answer is: a tree at the base beside an answer that carries no closing verdict line is "no
+# part of it was read" whatever status the child ended with.
+case_run_aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status log sf report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The child's status is the stub's own default 0 and its answer is empty: no report block, no words of its own and
+  # no action in the tree behind it, which is the whole of what a provider that refuses every call leaves. Nothing is
+  # installed, so nothing of the item is touched.
+  unset PI_STUB_SAY PI_STUB_REPORT PI_STUB_REPORT_WORKER PI_STUB_REPORT_REVIEWER PI_STUB_EVENTS PI_STUB_ACTION
+  export PI_STUB_EXIT=0
+  export PI_STUB_LOG="$d/pi.log"; : > "$PI_STUB_LOG"
+  export GH_STUB_RECORD="$d/gh.log"; : > "$GH_STUB_RECORD"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
+  sf=$(state_file "$p")
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  # The shape this case is about is both halves at once: a child that ran and answered nothing. A run that started no
+  # child at all is a different case (the host floor's), and this one must not pass by being that.
+  assert_eq "1" "$(grep -c '^invocation' "$PI_STUB_LOG" || true)" "one child was started and it answered"
+  assert_eq "0" "$(wc -c < "$report" 2>/dev/null || printf 0)" "the answer it left is empty"
+  # A child that never read the item is not a failed run…
+  assert_eq "0" "$status" "the run ends on its own stop, not with a child's failure"
+  # …and not a failed item either: nothing about #21 was read, so nothing about #21 is recorded.
+  assert_eq "0" "$(jq -r '.items | length' "$sf")" "the item is not recorded as a blocked one"
+  # What happened is named as the run's own stop, and the stop carries the measurement that decided it — the empty
+  # answer — instead of a status that says the child succeeded.
+  assert_contains "$out" "could not start" "the stop says what did not happen"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "could not start" \
+    "the stop is recorded, not only printed"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$sf")" "0 B" \
+    "and names the empty answer, not the status alone"
   # The item stays the owner's: no escalation, no hold, no comment about a question nobody asked.
   log=$(cat "$GH_STUB_RECORD")
   assert_not_contains "$log" "agent/needs-decision" "an item nobody read is not escalated"

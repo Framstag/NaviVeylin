@@ -1645,20 +1645,30 @@ while true; do
   # A child that never started is the run's fault, not the item's (issue #212). `run_child` returns the child's
   # status and nothing else, so a status alone cannot tell a child whose argv the environment refused — measured
   # 2026-10-20: every child of a run died in under 4 s with one 35-byte complaint and exit 1 — from a child that
-  # worked the item and failed. The item's own evidence separates the two: a child that ended non-zero, wrote no
-  # verdict and left the tree at the base never read the item. Recording that as a blocked item put a question
-  # on the tracker that nobody had asked and spent one of the run's decision slots, twice in 3 minutes. It is
-  # recorded once as the run's own stop instead, and the item is left exactly as its owner set it. Two children
-  # stay on the item's side of this line: one the run itself ended carries its own transcript line and is a
-  # blocked item (issue #203), and one that left work behind has a branch, which is what a later pass escalates
-  # (issue #176).
-  if [ "$worker_exit" -ne 0 ] && [ -z "$verdict_claim" ] && [ -z "$timeout_claim" ] && [ "$head_now" = "$base" ]; then
+  # worked the item and failed. The item's own evidence separates the two: a child that wrote no verdict and left
+  # the tree at the base never read the item. Recording that as a blocked item put a question on the tracker that
+  # nobody had asked and spent one of the run's decision slots, twice in 3 minutes. It is recorded once as the run's
+  # own stop instead, and the item is left exactly as its owner set it. Two children stay on the item's side of this
+  # line: one the run itself ended carries its own transcript line and is a blocked item (issue #203), and one that
+  # left work behind has a branch, which is what a later pass escalates (issue #176).
+  #
+  # The status is not one of the two facts, because a provider refuses a call without touching the child's argv:
+  # measured 2026-11-01T23:30:01Z (issue #742), #739 and #740 each left a 0-byte report and had every `turn_end`
+  # event on `stopReason: error` after the provider refused each request, and the run read both as `piExit=0`,
+  # recorded both `blocked` on "reported success but the tree is still at the base commit" and escalated both — two
+  # decision slots no reviewer and no worker asked for, and the run stopped on two consecutive blocked items 125 s
+  # into a 360-minute budget. A status of 0 beside an answer that carries no verdict and a tree still at the base is
+  # the same "no part of it was read", so the evidence decides this line and the status is only quoted in it.
+  if [ -z "$verdict_claim" ] && [ -z "$timeout_claim" ] && [ "$head_now" = "$base" ]; then
     child_words=$(last_line "$item_dir/worker-report.md")
+    # How much answer there was, in the transcript the stop is recorded from: 0 B is the shape a refused provider
+    # leaves, and it is what tells a reader of the stop reason why the run did not ask the item's owner anything.
+    answer_bytes=$(wc -c < "$item_dir/worker-report.md" 2>/dev/null || printf 0)
     # The in-progress mark comes off before the run stops: an item nothing was done to must be as eligible
     # afterwards as it was before the run picked it.
     loop_labels unpick "$issue" >&2 || true
     in_progress=""
-    stop_run "the child could not start — it exited $worker_exit without a verdict and left the tree at the base${child_words:+: $child_words}"
+    stop_run "the child could not start — it exited $worker_exit with an answer of $answer_bytes B and no verdict line, leaving the tree at the base${child_words:+: $child_words}"
     break
   fi
   archives=$(git -C "$worktree" diff --name-only "$base"..HEAD -- openspec/changes/archive 2>/dev/null |

@@ -422,9 +422,14 @@ failing sets moved was a change worktree and a detached control worktree: the pa
 
 What it does with a child that never started: a status alone cannot tell a child whose argv the environment
 refused from one that worked the item and failed, so the run reads the item's own evidence instead — a worker
-that ended non-zero, wrote no verdict and left the tree at the base commit never read the item. That is the
-run's fault, recorded once as its own stop reason and naming the child's own last line: no item record is
-written, nothing is escalated, the in-progress mark comes off and the item stays exactly as its owner set it.
+that wrote no verdict line and left the tree at the base commit never read the item, **whatever status it ended
+with**. The status is not the test: an adapter that refuses the child's argv leaves exit 1 and a complaint, and a
+provider that refuses every request leaves exit 0 and a 0-byte answer (measured 2026-11-01T23:30:01Z, issue #742:
+two items left a 0-byte `worker-report.md` with every `turn_end` event on `stopReason: error`, were recorded
+`blocked` on "reported success but the tree is still at the base commit" and escalated, and the run stopped on two
+consecutive blocked items 121 s into a 360-minute budget). That is the run's fault, recorded once as its own stop
+reason and naming the status, the size of the answer and the child's own last line: no item record is written,
+nothing is escalated, the in-progress mark comes off and the item stays exactly as its owner set it.
 Measured 2026-10-20: both children of that run died in under 4 s with the same 35-byte complaint, the run
 recorded two items `blocked`, escalated both, and stopped on "two consecutive items ended blocked" 3 minutes
 into an 8 h budget — two questions nobody had asked, and two of its three decision slots (#212). A child the run ended

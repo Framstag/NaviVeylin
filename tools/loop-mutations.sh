@@ -235,9 +235,12 @@ MUTATIONS=(
   # the loop's tooling in another tree the running run's state path again (issue #214).
   '26.2@-@tools/loop/lib.sh@state#inheritedStatePathOutsideTheTreeIsIgnored@the guard that ignores a run identity named from outside this tree (issue #214)@s|^  if loop_path_outside_tree "\$LOOP_STATE_FILE" "\$LOOP_ROOT"; then LOOP_STATE_FILE=""; fi$|  : # the mutation keeps the inherited path|'
   # The classification that tells a child which never started from one that worked the item and failed: without
-  # it every non-zero status is an item fault again, and one environment fault costs the run a decision slot
-  # per item and stops it on "two consecutive items ended blocked" (measured 2026-10-20, issue #212).
-  '27.1@-@tools/loop/run.sh@run#childThatNeverStartedIsTheRunsFault@the classification that keeps a child which never started off the item (issue #212)@s|^  if \[ "\$worker_exit" -ne 0 \] && \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
+  # it every unread item is an item fault again, and one environment fault costs the run a decision slot per item
+  # and stops it on "two consecutive items ended blocked" (measured 2026-10-20, issue #212). Two shapes assert it,
+  # because the status is not what the classification may read: an adapter that refused the child's argv leaves
+  # exit 1 and a complaint (#212), a provider that refused every call leaves exit 0 and a 0-byte answer (#742).
+  '27.1@-@tools/loop/run.sh@run#childThatNeverStartedIsTheRunsFault@the classification that keeps a child which never started off the item (issue #212)@s|^  if \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
+  '27.2@-@tools/loop/run.sh@run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault@the same classification read from the answer rather than the status (issue #742)@s|^  if \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
   # 27.x — the process group a layer of the loop started, and the process the leftover report reads (issue #213).
   # The group kill is implemented once, in `lib.sh`, because the suite and the run must not drift on *how* they
   # end what they started (D16): 28.1 is that one implementation, 28.3 is the run's call site.

@@ -70,18 +70,36 @@ gate had been written for want of that number (issue #663).
 
 #### Scenario: A child that never started is the run's fault, not the item's
 
-A non-zero status alone cannot tell a child whose argv the environment refused from a child that worked the
+A status alone cannot tell a child whose argv the environment refused from a child that worked the
 item and failed: on 2026-10-20 both children of that run died in under 4 s with the same 35-byte complaint,
 and the run recorded two items `blocked`, escalated both with `agent/needs-decision` and `status/on-hold`, and
 stopped on "two consecutive items ended blocked" 3 minutes into an 8 h budget — two questions nobody had asked, and two
-of the run's three decision slots (issue #212).
+of the run's three decision slots (issue #212). The status is not the test, because a provider refuses a call
+without touching the child's argv: that shape ends with a zero status and an answer of nothing (issue #742).
 
 - **WHEN** an agent process ends with a non-zero status, wrote no verdict line, was not ended by the run's own
   wall-clock, and left the item's tree at the run's base commit
-- **THEN** the run records that once as its own stop reason, naming the child's own last line, and stops
-  without escalating an item: no item record is written for it, no decision label and no hold reach it, and it
-  is left as its owner set it — `status/open` and no `agent/needs-decision` — because no part of it was read
+- **THEN** the run records that once as its own stop reason, naming the child's own last line and the size of the
+  answer it left, and stops without escalating an item: no item record is written for it, no decision label and
+  no hold reach it, and it is left as its owner set it — `status/open` and no `agent/needs-decision` — because no
+  part of it was read
 - **Case**: `run#childThatNeverStartedIsTheRunsFault`
+
+#### Scenario: A child whose answer arrived empty is the run's fault too
+
+A provider that refuses every request leaves a child that exits 0 with nothing to say, and the run read that as
+success: measured 2026-11-01T23:30:01Z (issue #742), two items of one run each left a 0-byte report and had every
+`turn_end` event on `stopReason: error`, and each was recorded `blocked` on "reported success but the tree is
+still at the base commit" and escalated — two decision slots no reviewer and no worker asked for, and the run
+stopped on two consecutive blocked items 121 s into a 360-minute budget.
+
+- **WHEN** an agent process ends with a zero status, wrote no verdict line, was not ended by the run's own
+  wall-clock or its turn bound, and left the item's tree at the run's base commit
+- **THEN** the run records that once as its own stop reason, naming the status, the size of the answer it left and
+  the child's own last line, and stops without escalating an item: no item record is written for it, no decision
+  label and no hold reach it, and it is left as its owner set it — `status/open` and no `agent/needs-decision` —
+  because no part of it was read
+- **Case**: `run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault`
 
 #### Scenario: A run is recorded
 

@@ -17,12 +17,14 @@
 # two cases over the project's own tree: `routed-read#route` (a row that routes a lettered sub-section of *any*
 # document states its cost, so a row naming sub-sections and pricing nothing fails) and `routed-read#bound`
 # (the cost of every section of every routed document, printed with the requirement's ruler and the routed
-# pair marked, so the number a row restates is the number the measurement takes) — and three more that read the
+# pair marked, so the number a row restates is the number the measurement takes) — and four more that read the
 # same tree and the same ruler: `routed-read#numbers` (a fixture whose split keeps its parent number, its citations
 # and a passing route check), `routed-read#figure` (a figure a row writes after a lettered reference is that
 # section's measurement, so `0.1 kB` for a kilobyte section fails, and the project's own eleven figures must be
-# their sections') and `routed-read#range` (a range is the span of the lettered sections the row names, while a
-# figure the row writes as a past measurement is not compared).
+# their sections'), `routed-read#range` (a range is the span of the lettered sections the row names, while a
+# figure the row writes as a past measurement is not compared) and `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`
+# (the entry document names, by path, the two skills the iteration loop ends with, and the route check resolves
+# both — a dropped pointer is invisible to a check that only resolves the paths that are still written).
 #
 # The check derives its documents from the fixture's own `guidelines/` directory, so a fixture carries the
 # four base documents plus whichever extra one a case adds — and its table must name every document present.
@@ -709,6 +711,39 @@ echo_case routed-read#figure case_routed_read_figure \
   "a figure a row writes after a lettered reference is that section's measurement, here and over the project's own table"
 echo_case routed-read#range case_routed_read_range \
   "a range a row states is the span of the lettered sections it names, and a past measurement in the same row is not compared"
+
+# `documentation-ownership`, "The entry document names the skill a reader needs by its path". The two skills the
+# iteration loop ends with — filing the finding, and measuring it on a device — were named in blocks an earlier
+# diet removed, and a *dropped* pointer is the one failure the checker cannot report: it resolves the skill paths
+# the documents still write, and an absent reference and a reference to nothing look the same to it. The case
+# reads this repository's entry document, so the two names below are this delta's expectation, declared once
+# here; the second leg runs the check so a re-added name that does not resolve fails this case too.
+case_routed_read_skill_pointers() {
+  local out rc name missing="" named
+  for name in create-issue device-check; do
+    if [ ! -d "$root/.pi/skills/$name" ]; then
+      CASE_WHY="the tree carries no .pi/skills/$name, so this case's expectation no longer names a skill"
+      return 1
+    fi
+    grep -qF ".pi/skills/$name" "$root/AGENTS.md" || missing="$missing .pi/skills/$name"
+  done
+  if [ -n "$missing" ]; then
+    CASE_WHY="the entry document names no path for$missing — a reader reaches those skills only by listing .pi/skills/"
+    return 1
+  fi
+  out=$("$check" --root "$root" 2>&1); rc=$?
+  if [ "$rc" != 0 ]; then
+    CASE_WHY="the route check refused the entry document that names both paths: exit $rc: $out"
+    return 1
+  fi
+  named=$(grep -o '\.pi/skills/\(create-issue\|device-check\)' "$root/AGENTS.md" | sort -u | paste -sd' ' -)
+  printf '        the entry document names %s; %s\n' \
+    "$named" "$(printf '%s\n' "$out" | grep 'skill references resolve' | tail -1)" >&2
+  return 0
+}
+
+echo_case routed-read#theEntryDocumentNamesTheLoopSkillsByPath case_routed_read_skill_pointers \
+  "the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both"
 
 # The two cases above read the tree, so "the repository's documents are untouched" is asserted after them too: a
 # case that measured a document by editing it would pass and leave the tree changed.

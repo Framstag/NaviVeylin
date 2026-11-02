@@ -171,6 +171,12 @@ whose single visual symptom needed many review rounds, rule 4 from the shared-wo
   `tools/loop/prompts/worker.md`, and the entry is `tools/loop/run.sh` (the gate for `tools/loop/**` is
   `tools/loop-selftest.sh`, offline).
 
+- two skills are the loop's ends, and they are named here by their paths: `.pi/skills/create-issue` files one
+  finding as one tracker item, and `.pi/skills/device-check` turns one on-device verification into evidence. The
+  case `routed-read#theEntryDocumentNamesTheLoopSkillsByPath` holds both names, so a dropped pointer fails the
+  suite instead of a run — an absent reference is the one failure a check that only resolves the paths still
+  written cannot report.
+
 ## OpenSpec Workflow
 
 This project uses OpenSpec with the `spec-driven` schema:

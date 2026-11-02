@@ -698,9 +698,9 @@ a section to its derived set by naming it.
 ### Requirement: A relocation record names the owners it cites
 
 When a change proves that a rule it removed from the entry document is stated elsewhere, it SHALL cite each owner
-as a path of its own, the way the removed block named them, and SHALL NOT cite a glob, a directory or a directory's
-complete listing in their place: a reader checks the claim by the owners it names. An archived record SHALL NOT be
-inspected or rewritten, because it is history rather than a defect in the tree.
+as a path of its own, the way the removed block named them, and SHALL NOT cite a glob — the form a directory's
+complete listing takes — in their place: a reader checks the claim by the owners it names. An archived record SHALL
+NOT be inspected or rewritten, because it is history rather than a defect in the tree.
 
 #### Scenario: An owner cited as a directory listing is reported
 

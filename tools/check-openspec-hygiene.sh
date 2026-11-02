@@ -17,9 +17,8 @@
 #      The pass is a `find` over `openspec/specs/` because capability specs sit one level deeper as well
 #      (`auto/*`, `share/*`) and a flat glob cannot see them.
 #   4. a relocation record whose `owner:` line cites a directory listing — a glob such as
-#      `.pi/skills/*/SKILL.md` — in place of the owners the removed block named. The CLI validates the
-#      change and exits 0, so the record's claim then holds for a set its reader cannot identify, and
-#      nothing reports it (issue #732).
+#      `.pi/skills/*/SKILL.md` — in place of the owners the removed block named. The record's claim then
+#      holds for a set its reader cannot identify, and nothing reports it (issue #732).
 #      Only the open changes are read: an archived record is history, and it is neither inspected nor
 #      rewritten here. A citation inside a fenced block is a quotation, not a citation.
 #

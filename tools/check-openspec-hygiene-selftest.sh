@@ -3,7 +3,7 @@
 # OpenSpec tree, breaks exactly one of the artifact classes, and runs the real checker over it — so the
 # script the pipeline runs is exercised against the trees the CLI accepts silently.
 #
-# The three classes and why nothing else reports them are the script's own header. What this file adds is
+# The classes and why nothing else reports them are the script's own header. What this file adds is
 # the red half: a checker whose classes are never violated is a checker nobody has seen fail.
 #
 # Three case ids are the ones the shipped requirement already names —
@@ -61,6 +61,17 @@ operations:
   archive:
     guidance:
       - "Another quoted entry"
+EOF
+  mkdir -p "$d/openspec/changes/demo/evidence"
+  cat > "$d/openspec/changes/demo/evidence/relocation.txt" <<'EOF'
+B1  Backlog maintenance — the tracker paragraph.
+    owner: guidelines/Backlog.md (the owning section states it)
+
+The refused form, quoted rather than made — a fence is not a citation:
+
+```
+    owner: .pi/skills/*/SKILL.md (the skill's own contract)
+```
 EOF
   cat > "$d/openspec/specs/demo/spec.md" <<'EOF'
 # demo Specification
@@ -229,6 +240,36 @@ if [ "$CHECK_RC" = 0 ]; then
   fail_case "artifact-hygiene#$case_f" "a nested spec's placeholder Purpose passed (exit 0)"
 elif ! grep -q 'openspec/specs/share/location-receiving/spec.md:4' "$tmp/$case_f.out"; then
   fail_case "artifact-hygiene#$case_f" "the finding does not name the nested spec and its line"
+fi
+fi
+
+# ── case 7 ────────────────────────────────────────────
+# `artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported` (issue #732): a relocation record that proves its
+# claim with `owner: .pi/skills/*/SKILL.md` names a directory, so its reader cannot tell which owners the removed
+# block named — 35 paths were cited for a table that named eight skills. The same lines under `archive/` are
+# history, and the clean tree carries the offending line inside a fence, where it is a quotation: the case carries
+# all three, so a later guard cannot start inspecting history and neither the fence nor the open half can pass by
+# reading nothing.
+case_g=anOwnerCitedAsADirectoryListingIsReported
+if selected "artifact-hygiene#$case_g"; then
+total=$((total + 1))
+tree="$tmp/tree-owner"; clean_tree "$tree"
+mkdir -p "$tree/openspec/changes/archive/2026-01-01-demo/evidence"
+cat > "$tree/openspec/changes/demo/evidence/relocation.txt" <<'EOF'
+B2  Backlog maintenance — the nine-skill table (a skill's job).
+    owner: .pi/skills/*/SKILL.md (the skill's own contract)
+EOF
+cp "$tree/openspec/changes/demo/evidence/relocation.txt" \
+   "$tree/openspec/changes/archive/2026-01-01-demo/evidence/relocation.txt"
+run "$case_g" "$tree"
+if [ "$CHECK_RC" = 0 ]; then
+  fail_case "artifact-hygiene#$case_g" "an owner cited as a directory listing passed (exit 0)"
+elif ! grep -q 'directory listing' "$tmp/$case_g.out"; then
+  fail_case "artifact-hygiene#$case_g" "the finding does not name the refused form"
+elif ! grep -q 'openspec/changes/demo/evidence/relocation.txt:2' "$tmp/$case_g.out"; then
+  fail_case "artifact-hygiene#$case_g" "the finding does not name the open record's file and its line"
+elif grep -q 'archive/' "$tmp/$case_g.out"; then
+  fail_case "artifact-hygiene#$case_g" "the archived record was inspected, and it is history"
 fi
 fi
 

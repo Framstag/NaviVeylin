@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# check-openspec-hygiene.sh — the three silent-failure classes of the OpenSpec artifacts, in one script so
+# check-openspec-hygiene.sh — the four silent-failure classes of the OpenSpec artifacts, in one script so
 # that the pipeline's step and the self-test that mutates each of them run the same code.
 #
-# All three are silent in the OpenSpec CLI: the command exits 0 and the artifact is wrong.
+# All four are silent in the OpenSpec CLI: the command exits 0 and the artifact is wrong.
 #
 #   1. a `tasks.md` whose items are bare `1. [x]` lines — the task parser only reads `- [x]` / `- [ ]`, so
 #      the change reports `completedTasks: 0, totalTasks: 0, status: "no-tasks"` while `openspec status`
@@ -16,6 +16,12 @@
 #      can repair it, so nothing else would ever report it.
 #      The pass is a `find` over `openspec/specs/` because capability specs sit one level deeper as well
 #      (`auto/*`, `share/*`) and a flat glob cannot see them.
+#   4. a relocation record whose `owner:` line cites a directory listing — a glob such as
+#      `.pi/skills/*/SKILL.md` — in place of the owners the removed block named. The CLI validates the
+#      change and exits 0, so the record's claim then holds for a set its reader cannot identify, and
+#      nothing reports it (issue #732).
+#      Only the open changes are read: an archived record is history, and it is neither inspected nor
+#      rewritten here. A citation inside a fenced block is a quotation, not a citation.
 #
 # Usage: tools/check-openspec-hygiene.sh [--root <dir>]
 # Exit:  0 every artifact is consistent; 1 findings (each printed as a GitHub `::error` annotation);
@@ -26,7 +32,7 @@ root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0")" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,23p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,28p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "$(basename -- "$0"): unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -58,6 +64,26 @@ if [ -f "$config" ]; then
     printf '%s\n' "$bad"
     fail=1
   fi
+fi
+
+# 4. a relocation record that cites its owners as a directory listing (issue #732). The glob is the form a
+# listing takes, and it stands in for the set the removed block named, so a reader cannot check the claim for
+# that set — the owner lines are read, the archived changes are not, and a citation inside a fenced block is a
+# quotation rather than a citation, exactly as `tools/check-doc-routes.sh` reads a quoted section reference.
+owner_offenders=""
+for change_dir in "$root"/openspec/changes/*/; do
+  [ -d "$change_dir" ] || continue
+  [ "$(basename "$change_dir")" = "archive" ] && continue
+  found=$(find "$change_dir" -type f \( -name '*.md' -o -name '*.txt' \) -exec awk '
+    FNR == 1 { fence = 0 }
+    /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+    !fence && /^[[:space:]]*owners?:/ && /\*/ { printf "%s:%d\n", FILENAME, FNR }' {} + 2>/dev/null)
+  [ -n "$found" ] && owner_offenders="$owner_offenders$found"$'\n'
+done
+if [ -n "$(printf '%s' "$owner_offenders" | tr -d '[:space:]')" ]; then
+  echo "::error::a relocation record cites its owners as a directory listing — name the owners the removed block named, one path per owner, so a reader can check the claim for the set it is about"
+  printf '%s' "$owner_offenders" | sed '/^$/d; s|^'"$root"'/||'
+  fail=1
 fi
 
 spec_bad=$(find "$root/openspec/specs" -name spec.md -exec awk '/^## Purpose/{inp=1;next} inp&&/^## /{inp=0} inp&&/TBD - created by archiving/{printf "%s:%d\n", FILENAME, FNR}' {} + 2>/dev/null)

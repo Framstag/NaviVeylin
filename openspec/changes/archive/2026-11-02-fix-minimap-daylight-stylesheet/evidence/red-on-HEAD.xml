@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MiniMapComposeTest" tests="10" skipped="0" failures="3" errors="0" timestamp="2026-11-02T04:56:48.069Z" hostname="dingens" time="21.425">
+  <properties/>
+  <testcase name="zoomInClampedAtMaximumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="7.578"/>
+  <testcase name="zoomOutClampedAtMinimumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.811"/>
+  <testcase name="darkPresentationPushesTheDarkDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.265">
+    <failure message="java.lang.AssertionError: the mini map pushes the dark stylesheet variant before its first frame expected:&lt;[(daylight, false)]&gt; but was:&lt;[]&gt;" type="java.lang.AssertionError">java.lang.AssertionError: the mini map pushes the dark stylesheet variant before its first frame expected:&lt;[(daylight, false)]&gt; but was:&lt;[]&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.naviveylin.ui.map.MiniMapComposeTest.darkPresentationPushesTheDarkDaylightFlag(MiniMapComposeTest.kt:174)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at com.naviveylin.test.ComposeSandboxRule$apply$1.evaluate(ComposeSandboxRule.kt:28)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt:272)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt:271)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.withDisposableContent(ComposeUiTest.android.kt:505)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1$1.invoke(ComposeUiTest.android.kt:333)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withComposeIdlingResource(ComposeUiTest.android.kt:385)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withComposeIdlingResource(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(ComposeUiTest.android.kt:332)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withWindowRecomposer(ComposeUiTest.android.kt:359)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withWindowRecomposer(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1.invoke(ComposeUiTest.android.kt:331)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withTestCoroutines(ComposeUiTest.android.kt:372)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withTestCoroutines(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1.invoke(ComposeUiTest.android.kt:330)
+	at androidx.compose.ui.test.IdlingStrategy.withStrategy(IdlingStrategy.android.kt:52)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(ComposeUiTest.android.kt:329)
+	at androidx.compose.ui.test.IdlingResourceRegistry.withRegistry(IdlingResourceRegistry.jvm.kt:155)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1.invoke(ComposeUiTest.android.kt:328)
+	at androidx.compose.ui.test.ComposeRootRegistry.withRegistry(ComposeRootRegistry.android.kt:146)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:327)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:271)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="rendersFrameForMarkerDrawing" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.27"/>
+  <testcase name="lightPresentationPushesTheDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.269">
+    <failure message="java.lang.AssertionError: the mini map pushes the light stylesheet variant expected:&lt;[(daylight, true)]&gt; but was:&lt;[]&gt;" type="java.lang.AssertionError">java.lang.AssertionError: the mini map pushes the light stylesheet variant expected:&lt;[(daylight, true)]&gt; but was:&lt;[]&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.naviveylin.ui.map.MiniMapComposeTest.lightPresentationPushesTheDaylightFlag(MiniMapComposeTest.kt:188)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at com.naviveylin.test.ComposeSandboxRule$apply$1.evaluate(ComposeSandboxRule.kt:28)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt:272)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt:271)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.withDisposableContent(ComposeUiTest.android.kt:505)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1$1.invoke(ComposeUiTest.android.kt:333)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withComposeIdlingResource(ComposeUiTest.android.kt:385)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withComposeIdlingResource(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(ComposeUiTest.android.kt:332)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withWindowRecomposer(ComposeUiTest.android.kt:359)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withWindowRecomposer(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1.invoke(ComposeUiTest.android.kt:331)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withTestCoroutines(ComposeUiTest.android.kt:372)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withTestCoroutines(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1.invoke(ComposeUiTest.android.kt:330)
+	at androidx.compose.ui.test.IdlingStrategy.withStrategy(IdlingStrategy.android.kt:52)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(ComposeUiTest.android.kt:329)
+	at androidx.compose.ui.test.IdlingResourceRegistry.withRegistry(IdlingResourceRegistry.jvm.kt:155)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1.invoke(ComposeUiTest.android.kt:328)
+	at androidx.compose.ui.test.ComposeRootRegistry.withRegistry(ComposeRootRegistry.android.kt:146)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:327)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:271)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="zoomOutDecreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.469"/>
+  <testcase name="zoomInIncreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.464"/>
+  <testcase name="presentationChangeReRendersTheMiniMap" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="10.566">
+    <failure message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms" type="kotlinx.coroutines.TimeoutCancellationException">kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.naviveylin.ui.map.MiniMapComposeTest$presentationChangeReRendersTheMiniMap$4$1.invokeSuspend(MiniMapComposeTest.kt:221)
+	at com.naviveylin.ui.map.MiniMapComposeTest$presentationChangeReRendersTheMiniMap$4.invokeSuspend(MiniMapComposeTest.kt:219)
+Caused by: kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms
+	at kotlinx.coroutines.TimeoutKt.TimeoutCancellationException(Timeout.kt:188)
+	at kotlinx.coroutines.TimeoutCoroutine.run(Timeout.kt:156)
+	at kotlinx.coroutines.EventLoopImplBase$DelayedRunnableTask.run(EventLoop.common.kt:505)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.DefaultExecutor.run(DefaultExecutor.kt:105)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="zoomButtonsAreVisible" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.062"/>
+  <testcase name="panMovesTheMapCenter" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.304"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

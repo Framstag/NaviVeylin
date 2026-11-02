@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.SearchDialogModeSwitchComposeTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-02T04:58:59.573Z" hostname="dingens" time="2.022">
+  <properties/>
+  <testcase name="modeSwitchPreservesPerModeState" classname="com.naviveylin.ui.map.SearchDialogModeSwitchComposeTest" time="1.736"/>
+  <testcase name="threeModesShownWithPermission" classname="com.naviveylin.ui.map.SearchDialogModeSwitchComposeTest" time="0.152"/>
+  <testcase name="contactsModeHiddenWithoutPermission" classname="com.naviveylin.ui.map.SearchDialogModeSwitchComposeTest" time="0.126"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

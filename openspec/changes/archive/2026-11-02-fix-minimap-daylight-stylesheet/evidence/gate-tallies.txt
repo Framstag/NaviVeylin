@@ -1,0 +1,9 @@
+# JVM tallies of the gate's ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache (BUILD SUCCESSFUL in 5m 40s)
+# command: for d in app/build/test-results/testMobileDebugUnitTest app/build/test-results/testAutomotiveDebugUnitTest auto/build/test-results/testDebugUnitTest core/build/test-results/testDebugUnitTest; do grep -h -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$d"/*.xml | awk ...; done
+
+app/build/test-results/testMobileDebugUnitTest: files=311 tests=2222 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest: files=311 tests=2222 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest: files=94 tests=912 failures=0 errors=0
+core/build/test-results/testDebugUnitTest: files=66 tests=653 failures=0 errors=0
+
+total: files=782 tests=6009 failures=0 errors=0

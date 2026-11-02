@@ -207,27 +207,41 @@ class AutoMapRendererFrameWaitTest {
     @Test
     fun theArmedWaitFiresAndRetriesTheFrame() {
         // The armed job — not only the seam — turns an expired wait into a request. The bound is
-        // lowered so the case can await the job's completion instead of a deadline.
+        // lowered so the case can await the job's completion instead of a deadline, and the injected
+        // clock advances *on its own read*: the arm reads it once (the arm instant) and every later
+        // read is past the bound, so the fire-time decision cannot depend on which thread got there
+        // first. Advancing it from this thread after `requestRender()` is that race, and the job that
+        // wins reads the clock at the arm instant, sees the wait unexpired and drops it without a
+        // retry or a report — the load-dependent red main of issue #743 (issue #25's black surface is
+        // what a dropped wait looks like on the device).
         rendererWithSurface()
+        // The surface-created request armed a wait of its own (`AutoMapRenderer.kt:849`). Its `delay`
+        // reads the bound when it runs, so lowering the bound below would shorten it mid-flight and it
+        // would retry beside this case's wait — two watchdogs and two retries in the counters. Disarm it
+        // first: this case arms exactly one wait, with its own clock.
+        renderer.disarmFrameWaitWatchdog()
         renderer.frameWaitBoundMs = 1L
-        var clock = 0L
-        renderer.frameWaitClock = { clock }
+        var reads = 0
+        renderer.frameWaitClock = { if (reads++ == 0) 0L else 5L }
         val reports = mutableListOf<String>()
         renderer.frameWaitReport = { reports += it }
-        renderer.requestRender()
+        // Read before this case's own request: the retry lands as soon as the one-millisecond bound
+        // elapses, which can be before, during or after any snapshot taken later on this thread.
         val requestsBefore = renderer.renderRequestCount
+        renderer.requestRender()
 
         val job = renderer.frameWaitJob
         assertTrue("the request armed a wait", job != null)
-        clock = 5L // the bound has passed when the job runs
         runBlocking { job?.join() }
-        // The chain would keep re-arming; stop it so nothing outlives the assertions.
+        // A retry re-arms the wait; stop it so nothing outlives the assertions.
         renderer.disarmFrameWaitWatchdog()
 
-        assertTrue(
-            "the armed wait requested the frame again",
-            renderer.renderRequestCount > requestsBefore
-        )
+        assertEquals("the armed wait spent one retry", 1, renderer.frameWaitRetries)
         assertTrue("and it reported the expired wait: $reports", reports.isNotEmpty())
+        assertTrue(
+            "the armed wait requested the frame again: ${renderer.renderRequestCount} requests since " +
+                "$requestsBefore (this case's own request plus the retry)",
+            renderer.renderRequestCount >= requestsBefore + 2
+        )
     }
 }

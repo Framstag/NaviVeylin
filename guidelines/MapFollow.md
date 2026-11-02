@@ -43,7 +43,8 @@ rules, follow-mode rotation and camera center, and auto-zoom. The pipeline it ri
   case it is NaN and yields 0).
 ## 7. Bearing Smoothing (location layer)
 
-Bearing smoothing lives in `LocationService` (`BearingFilter`), NOT in the ViewModel. The location
+Bearing smoothing lives in `LocationService` (`BearingFilter`), NOT in the ViewModel — the reversal this
+rule exists for, and why, is recorded in `guidelines/Design.why.md` §13. The location
 layer emits a uniform `GpsFix` with two bearings, provider-agnostic to consumers:
 
 - **Rule: `smoothedBearing`** — for map rotation. Stable, no render churn.
@@ -92,7 +93,8 @@ Provider-aware inside `LocationService` only:
 - **Rule: Render target** the marker is a Compose overlay (`LocationMarkerOverlay`) drawn on top of the
   rendered map bitmap in `MapCanvasScreen`. It is NEVER written into cached tiles, the back buffer,
   or the front buffer — those hold only static map content. A marker-only move/hide triggers no
-  native render, no epoch bump, and no tile invalidation.
+  native render, no epoch bump, and no tile invalidation. The reversal this rule exists for, and why, is
+  recorded in `guidelines/Design.why.md` §13.
 - **Rule: Position updates on every fix** the VM calls `updateMarkerState` (renderer snapshot + direct
   `uiState.gpsMarker*` update) on every distinct fix — the overlay shows the latest fix
   immediately, independent of the render cadence. The frame collector does NOT overwrite the

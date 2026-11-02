@@ -1,0 +1,11 @@
+$ grep -rln "Design\.why\.md" guidelines/*.md
+guidelines/Design.md
+$ grep -rn "Design\.why" tools/ | wc -l
+0
+$ grep -c "Design\.why" guidelines/Design.md
+2
+$ grep -rn "Design\.why" AGENTS.md | wc -l
+1
+$ grep -c "Design\.why" guidelines/DesignCrossVariant.md guidelines/MapFollow.md
+guidelines/DesignCrossVariant.md:0
+guidelines/MapFollow.md:0

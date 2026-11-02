@@ -2,6 +2,10 @@
 
 Android navigation app built on the [libosmscout](https://github.com/Framstag/libosmscout) ecosystem.
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Framstag_NaviVeylin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Framstag_NaviVeylin)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Framstag_NaviVeylin&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Framstag_NaviVeylin)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=Framstag_NaviVeylin&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=Framstag_NaviVeylin)
+
 ## Prerequisites
 
 | Tool | Version | Notes |

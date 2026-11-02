@@ -307,6 +307,17 @@ jobs:
           bash tools/check-action-runtimes.sh
           bash tools/check-action-runtimes-selftest.sh
 
+      # ── sonar workflow ─────────────────────────────────────────
+      # The scan is a workflow of its own that runs from `main` only, and its boundary — what the analysis
+      # measures as this repository's code — is a property file rather than an inference. Nothing else reads
+      # either one: a `pull_request` trigger or a dropped exclusion parses and the run stays green, so the
+      # triggers, the runtime guard, the scanner pin and the exclusion groups are checked here
+      # (spec `sonar-analysis`, change `integrate-sonar-analysis`). Text files only: no build, no token.
+      - name: Check sonar workflow
+        run: |
+          bash tools/check-sonar-workflow.sh
+          bash tools/check-sonar-workflow-selftest.sh
+
       # ── Compose sandbox rule ───────────────────────────────────
       # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
       # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has

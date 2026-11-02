@@ -57,12 +57,14 @@ expect() { # expect <0|1|2> <label> [<needle in the output>]
   echo "ok: $label"
 }
 
-# The red case of issue #240: this repository's own pins, checked as they stand.
+# The red case of issue #240: this repository's own pins, checked as they stand. It is the case
+# `sonar-analysis` names for the pin this change adds — a workflow pin that no floor row records is what turns
+# this green run red.
 total=$((total + 1))
 if repo_out=$(bash "$checker" --root "$root" 2>&1); then
-  echo "ok: this repository's workflows pin a Node 24 major"
+  echo "ok: action-runtimes#theRepositorysOwnPinsPass — this repository's workflows pin a Node 24 major"
 else
-  echo "FAIL: this repository's workflows pin a Node 24 major"
+  echo "FAIL: action-runtimes#theRepositorysOwnPinsPass — this repository's workflows pin a Node 24 major"
   printf '%s\n' "$repo_out" | sed 's/^/       /'
   failed=$((failed + 1))
 fi
@@ -81,7 +83,7 @@ write_workflow actions/cache/restore@v5
 expect 0 "a subpath of a recorded action resolves to the action's floor"
 
 write_workflow actions/never-heard-of@v1
-expect 1 "an action with no recorded runtime fails" "has no recorded Node runtime"
+expect 1 "action-runtimes#anActionWithNoRecordedRuntimeFails — an action with no recorded runtime fails" "has no recorded Node runtime"
 
 write_workflow actions/checkout@main
 expect 1 "an unverifiable ref fails" "is not a released major"

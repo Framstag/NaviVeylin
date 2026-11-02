@@ -172,6 +172,7 @@
     "share/location-receiving": { "area": "handoff", "userVisible": true, "surfaces": ["phone"] },
     "smooth-follow": { "area": "positioning", "userVisible": true, "surfaces": ["phone"] },
     "smooth-zoom": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },
+    "sonar-analysis": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "spec-feature-index": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "stale-citation-resolution": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "start-map-selection": { "area": "offline-maps", "userVisible": true, "surfaces": ["phone"] },

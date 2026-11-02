@@ -441,9 +441,12 @@
     {
       "glob": ".github/workflows/**",
       "sections": [
-        "BuildEvidence.md §4"
+        "BuildEvidence.md §4",
+        "BuildEvidence.md §7"
       ],
-      "rules": []
+      "rules": [
+        "BuildEvidence.md §7 \"the analysis is a consumer of the reports, and gates nothing.\""
+      ]
     },
     {
       "glob": "guidelines/MapRendering.md",

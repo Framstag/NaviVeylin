@@ -268,6 +268,14 @@ and a restored mutation", §4d "Attributing a red run", §4e "Falsification, fla
 - **Rule: CI generates the reports after "Run unit tests" and uploads them** as the `coverage-reports`
   artifact (`if-no-files-found: error`); a following step prints the per-module, per-flavor tallies from the
   result XML.
+- **Rule: the analysis is a consumer of the reports, and gates nothing.** The SonarQube Cloud project
+  `Framstag_NaviVeylin` is fed by `.github/workflows/sonar.yml`, which runs from `main` only and imports the
+  per-module XMLs named above — `app`, `auto` and `core` from Kover, `:osmscout-client-java` from its own
+  JaCoCo report — never the merged Kover report and never `jacocoVendoredTestReport`. What the analysis
+  measures as this repository's code is declared in the root `sonar-project.properties`: the Kotlin and Java
+  this repository owns, with the `libosmscout` native tree and the vendored client API excluded. The quality
+  gate colours the badge and the project and fails no run (no gate-wait property is set), the same position
+  as the first rule in this section; a scanner that could not complete still fails the run.
 
 (The baseline figures, the engine/agent timings, the deprecation baselines and the case histories are
 `guidelines/BuildEvidence.why.md` §7; the sample commands and tallies are `guidelines/Build.recipes.md` §7.)

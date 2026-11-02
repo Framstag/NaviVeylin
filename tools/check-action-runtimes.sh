@@ -49,6 +49,7 @@ actions/cache 5 https://raw.githubusercontent.com/actions/cache/v5/action.yml
 actions/checkout 5 https://raw.githubusercontent.com/actions/checkout/v5/action.yml
 actions/setup-java 5 https://raw.githubusercontent.com/actions/setup-java/v5/action.yml
 actions/upload-artifact 6 https://raw.githubusercontent.com/actions/upload-artifact/v6/action.yml
+SonarSource/sonarqube-scan-action 7 https://raw.githubusercontent.com/SonarSource/sonarqube-scan-action/v7/action.yml
 '
 
 floor_of() { # floor_of <action> -> first node24 major, empty when unrecorded

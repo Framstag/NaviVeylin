@@ -118,6 +118,7 @@ Moved to `BuildGate.md` §2e.
 | Release build (both AABs, bumps version) | `./gradlew release` |
 | Generate SBOM for one variant | `./gradlew :app:generateSbom<MobileDebug|MobileRelease|AutomotiveRelease>` |
 | Generate only the native SBOM section | `./gradlew :app:mergeNativeSbom` |
+| Run the SonarQube Cloud scan by hand (`main` only; needs `SONAR_TOKEN`) | `./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests -PjvmTestsOnly --no-build-cache`, then `./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport`, then `SonarSource/sonarqube-scan-action@v7` with `SONAR_TOKEN` set — `.github/workflows/sonar.yml` runs exactly these steps |
 
 A run meant to cover the whole suite adds `--continue`, or the first failing module ends the invocation and
 the remaining suites never execute; read the executed-task list in the output for what actually ran, not the

@@ -1,0 +1,9 @@
+# run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault — run against base 412ec81d232f1f3428bf23cfb1eafe343cbdeec7
+# 2026-11-02T19:05:59Z
+# exit=1
+
+run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault|   the item is not recorded as a blocked one: expected '0', got '1'
+--- run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault[0] (exit 1)
+  the item is not recorded as a blocked one: expected '0', got '1'
+FAIL run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault
+loop-selftest: 1 of 1 cases failed

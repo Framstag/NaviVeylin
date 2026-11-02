@@ -1,0 +1,12 @@
+
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Why section should not exceed 1000 characters
+Task status: ✓ Complete
+
+Specs to update:
+  agent-issue-loop: update
+Applying changes to openspec/specs/agent-issue-loop/spec.md:
+  ~ 1 modified
+Totals: + 0, ~ 1, - 0, → 0
+Specs updated successfully.
+Change 'fix-a-child-that-exits-zero-with-an-empty-answer' archived as '2026-11-02-fix-a-child-that-exits-zero-with-an-empty-answer'.

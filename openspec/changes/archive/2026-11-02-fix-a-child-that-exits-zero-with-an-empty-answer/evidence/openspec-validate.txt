@@ -1,0 +1,6 @@
+Change 'fix-a-child-that-exits-zero-with-an-empty-answer' has issues
+✗ [ERROR] agent-issue-loop/spec.md: MODIFIED "One command starts a budgeted run, with no dialogue" omits scenario(s) the current spec still has: "A run is recorded", "An item's spend is read from the child's own stream", "Nothing reported is printed as zero", "The report names the actions the caller owes", "A branch whose patches are in the base is not an action", "An action list is empty only when the state says so", "The host a run works on is read and named", "A host below the floor is reported instead of spent", "A host that publishes no reading is not refused", "The bound a child is given is what one item's own gate costs". The modified block has 7 scenarios; the current spec has 16 scenarios. It adds 1 scenario not in the current spec: "A child whose answer arrived empty is the run's fault too". Copy the omitted scenarios into the MODIFIED block (a MODIFIED requirement replaces the whole block, so archive refuses to drop them).
+Next steps:
+  - Ensure change has deltas in specs/: use headers ## ADDED/MODIFIED/REMOVED/RENAMED Requirements
+  - Each requirement MUST include at least one #### Scenario: block
+  - Debug parsed deltas: openspec show fix-a-child-that-exits-zero-with-an-empty-answer --json --deltas-only

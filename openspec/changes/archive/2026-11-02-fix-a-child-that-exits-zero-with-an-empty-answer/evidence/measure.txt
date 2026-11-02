@@ -1,0 +1,72 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=741603aaab8efc1382ea5859cfec38a548459272 paths=26 insertions=725 deletions=33
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererFrameWaitTest.kt
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/case-repeat.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/class.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/clock-race-diagnostic.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/evidence-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/gate.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/measure-round2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/mutation.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/readiness-round2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/red-case.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/repeat-runs.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-2-corrections.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/second-watchdog-diagnostic.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/specs/auto-map-renderer/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/tasks.md
+LOOP-MEASURE-PATH openspec/specs/auto-map-renderer/spec.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 741603aaab8efc1382ea5859cfec38a548459272
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=306 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_loop-mutations.sh_--check.xml tests=224 failures=0 time=2s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=7s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=22s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-portability.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_issue-tooling-selftest.sh.xml tests=155 failures=0 time=96s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-mutations-selftest.sh.xml tests=34 failures=0 time=207s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_loop-selftest.sh_--from-git_412ec81d.xml tests=306 failures=0 time=382s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=721 suites=17
+LOOP-MEASURE-CHANGE fix-a-child-that-exits-zero-with-an-empty-answer scenarios=17 cases=15 unnamed=2
+LOOP-MEASURE-TALLY openspec/changes/fix-a-child-that-exits-zero-with-an-empty-answer/evidence/red-on-HEAD.xml tests=1 failures=1 time=0s
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 cases rewritten, 0 fixtures changed, 1 engine line edited, 2 mutation records (1 re-pointed, 1 added), 1 guideline paragraph reworded, 1 spec scenario added — `grep -rn 'z "\$verdict_claim"' tools/` → 1 site; `grep -rln 'never read the item' tools/ guidelines/ openspec/specs/` → 3 files; `grep -rn 'childThatNeverStartedIsTheRunsFault' tools/ guidelines/ openspec/specs/` → 3 files, 5 lines
+LOOP-MEASURE-END

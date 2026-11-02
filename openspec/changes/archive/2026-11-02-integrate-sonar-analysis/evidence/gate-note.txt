@@ -1,0 +1,31 @@
+# The gate's one failing step, and why it is not this change's
+
+`./tools/loop/gate.sh` was run once, on 2026-11-02, and its own line is
+
+```
+LOOP-GATE: tests=932 failures=0 errors=1 (…) — failing: bash tools/gen-feature-list.sh --check-classification
+```
+
+(`evidence/gate.txt`). Every suite this change's pathspec owes passed. The one step that failed reports two delta
+spec ids this change does not introduce:
+
+```
+$ bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map — classify it in that change, before it archives)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code — classify it in that change, before it archives)
+```
+
+Both are the work of *other* open changes in the same working tree, and the check's own message says where the
+classification belongs: in the change that introduces the spec id. This change introduces exactly one delta spec id,
+`sonar-analysis`, and it is classified — `tools/feature-list/specs.json` carries
+`"sonar-analysis": { "area": "build-tooling", "userVisible": false, "surfaces": [] }`, task 6.5.
+
+The same check over the run's base `05ed9835`, taken by `evidence/gate-base-green.sh` (`git archive 05ed9835
+openspec tools/gen-feature-list.sh tools/feature-list FEATURES.md` into a scratch directory), exits **0** with
+`unclassified: 0, delta spec ids: 0`: the two ids are not in that commit, they enter the working tree with the other
+changes' open artifacts, which live in gitignored directories under `openspec/changes/`.
+
+So the step is red on this tree before this change and green on the base, and repairing it would mean writing a
+classification — a human judgement of another capability's area and surface — into a change this item does not own.
+The `sonar-analysis` line this change does owe is the one it added.

@@ -42,11 +42,11 @@ after the change — the number the delta requires, without turning a judgement 
 
 **The probe's own root, corrected in review round 2.** The script's default root walked four levels up from its own
 directory, which is the depth of `openspec/changes/<change>/evidence`. Archiving moves the directory one level
-further down, so the default resolved to `openspec/`, every rule block read as absent, and the archived probe
-reported `tests=5 failures=5` behind five `awk` errors (`evidence/probe-default-root.log`). The default now walks up
-until a directory holds `guidelines/` — the same tree for an open and an archived change — while `--root` still
-overrides it and a base checkout still reads red. The pointer text, the five sites and the tallies above are
-unchanged by that correction.
+further down, so the default resolved to `openspec/` — where neither document exists — and the probe reported
+`tests=5 failures=5` with an `awk` fatal error per rule instead of reading them (`evidence/probe-default-root.log`).
+The default now walks up until a directory holds `guidelines/` — the same tree for an open and an archived change —
+while `--root` still overrides it and a base checkout still reads red. The pointer text, the five sites and the
+tallies above are unchanged by that correction.
 
 ## Residual sites
 
@@ -66,7 +66,7 @@ with its own probe rows and gate round; it is recorded, not taken, here.
 
 | path | what it can break |
 |---|---|
-| `guidelines/DesignCrossVariant.md` | the section bounds and the routing row's figures are unchanged by the plan but not by the text: section 8a measured 10 525 B and section 8b 3 038 B (`evidence/section-sizes.log`, `tools/check-doc-routes.sh --sizes`), so `AGENTS.md`'s two rows were realigned to 10.5 kB and 3.0 kB (`tools/check-doc-routes.sh`); no rule name is added or moved |
+| `guidelines/DesignCrossVariant.md` | the section bounds and the routing row's figures are unchanged by the plan but not by the text: section 8a measured 10 540 B and section 8b 3 038 B (`evidence/section-sizes.log`, `tools/check-doc-routes.sh --sizes`), so `AGENTS.md`'s two rows were realigned to 10.5 kB and 3.0 kB (`tools/check-doc-routes.sh`); no rule name is added or moved |
 | `AGENTS.md` | two routing rows' figures for `DesignCrossVariant.md` section 8a/section 8b: 10.3/2.9 kB -> 10.5/3.0 kB; no route added or removed |
 | `guidelines/MapFollow.md` | same: 2 added lines, no rule name added or moved, no measurement touched |
 
@@ -95,7 +95,7 @@ added, and the companion §13 is unchanged, so the reversal of this delta is the
   is a five-line addition, so the objection no longer holds.
 - **Pointing all nine reversals §13 records.** That is the wider claim the first round of this change made and the
   review refused (`revision 2`): the item named five rules, so the honest scope is five pointers plus the residual
-  list, and the two rules `MapRendering.md` §1b and `UIPhoneMap.md` §124 carry would need their own probe rows.
+  list, and the two rules `MapRendering.md` §1b and `UIPhoneMap.md:124` carry would need their own probe rows.
 
 ## Open decisions
 

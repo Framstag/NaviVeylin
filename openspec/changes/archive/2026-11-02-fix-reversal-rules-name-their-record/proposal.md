@@ -60,7 +60,10 @@ guidelines/UICar.md` prints nothing):
 The relocation is the change's own input, not a defect of it: the same five rules are the ones the item names, and the
 2026-10-31 change `guideline-design-layers` left the fix open because they then lived in four documents that other
 landed changes owned (`openspec/changes/archive/2026-10-31-guideline-design-layers/evidence/blocked-2.2-finding.md`).
-Today they live in **two** documents, both routed from `AGENTS.md`, so one change owns the whole delta.
+Today they live in **two** documents, both routed from `AGENTS.md`, so one change owns the whole delta. A reversal
+with more than one rule site is pointed at the one site the item named: the step-model reversal's siblings
+(`DesignNative.md:21`, `UIPhoneMap.md:136`, and the host-rendered/one-source text at `UI.md:146`) stay unpointed and
+are not claims of this archive.
 
 **The red test.** `reversal-pointer-probe`, `evidence/reversal-pointer-probe.sh` — a text probe that reads the
 block of each of the five rules (from its statement line to the next blank line, bullet or heading) and requires
@@ -81,7 +84,8 @@ routes a reversal to `Design.why.md` §13 — the two rows this delta makes meet
 
 **Surface.** Measured with the commands above: **0 cases added, 0 rewritten, 0 fixtures realigned** — 5 rule sites
 in 2 documents gain one pointer line each, and nothing asserts the pointer today (`grep -rn 'Design\.why' tools/`
-= 0). The three added lines in `DesignCrossVariant.md` also move section 8a to 10 525 B and section 8b to 3 038 B, so `AGENTS.md`'s
+= 0). The three pointer sentences in `DesignCrossVariant.md` — two on new lines and the section 8b one appended to
+an existing line — also move section 8a to 10 540 B and section 8b to 3 038 B, so `AGENTS.md`'s
 two routing rows for them state 10.5 kB and 3.0 kB after the delta (`tools/check-doc-routes.sh --sizes`,
 `evidence/section-sizes.log`); the two
 `MapFollow.md` lines move no routed figure, because its row prices no section.

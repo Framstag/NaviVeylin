@@ -50,10 +50,11 @@ case, and its `Rejected alternative` is the rule form this change does not take.
       `guidelines/UICar.md:106`). No new claim, case or assertion.
 - [x] 6.2 Archive the evidence checker's output: `evidence/evidence-check.log`, from
       `bash tools/loop/evidence-check.sh openspec/changes/archive/2026-11-02-fix-reversal-rules-name-their-record --root .`.
-      Verify: the file ends `evidence-check: PASS`, with `C1 §references: 23 checked`, `C2 test tallies: 3 pairs
-      confirmed` and no `FAIL`.
+      Verify: the file ends `evidence-check: PASS`, with `C1 §references:` and `C2 test tallies:` confirmed at
+      the counts the file records, and no `FAIL`. (The counts rise as evidence is added, so this task pins the
+      verdict and the checker's own output, not a number.)
 - [x] 6.3 Archive the producer of the two section figures the archive quotes: `evidence/section-sizes.log`,
-      `tools/check-doc-routes.sh --sizes`. Verify: the log carries `§8a 10525 bytes` and `§8b 3038 bytes`, the
+      `tools/check-doc-routes.sh --sizes`. Verify: the log carries `§8a 10540 bytes` and `§8b 3038 bytes`, the
       two numbers `design.md`'s blast radius states.
 
 ## 7. Correction round 2 (the probe's own root, found when the round was re-run)
@@ -64,3 +65,9 @@ case, and its `Rejected alternative` is the rule form this change does not take.
       `e190d872` (`tests=5 failures=5`, the red case), and `--root .` (`tests=5 failures=0`).
 - [x] 7.2 Re-run the evidence checker over the corrected directory and archive it. Verify:
       `evidence/evidence-check.log` ends `evidence-check: PASS` and carries no `FAIL`.
+- [x] 7.3 Apply the eight NOTEs review round 2 returned (no blocking finding): the archived checker counts in 6.2,
+      `UIPhoneMap.md:124` for the `§124` typo, "three pointer sentences" for "three added lines", the sibling-site
+      clause in `proposal.md`'s residual paragraph, the host-rendered-panel pointer's subject in
+      `DesignCrossVariant.md` §8a, and the probe's two XMLs re-run from this worktree instead of the loop's. Verify:
+      `evidence/after-change.xml` and `evidence/red-on-HEAD.xml` name this worktree and `.pi/scratch/730-base`, the
+      tallies are unchanged (`5/0` green, `5/5` red), and every check below stays green.

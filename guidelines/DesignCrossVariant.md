@@ -83,8 +83,8 @@ screen-observation seam, cross-variant parity and distribution.
   gestures. Use action strips and pane buttons accordingly; interactive
   actions are parked-only where the host supports it. Prefer host-rendered
   panels where positioned/controllable; draw on the surface only what the
-  host cannot render, inside the stable area. The reversal this rule exists for, and why, is recorded in
-  `guidelines/Design.why.md` §13.
+  host cannot render, inside the stable area. The reversal behind the host-rendered-panel rule, and why, is
+  recorded in `guidelines/Design.why.md` §13.
 - **Rule: the car-app surface lifecycle is strict and session-owned** **MUST**: the car-app surface lifecycle is strict and **session-owned** —
   one surface-callback registration per session, one owner screen at a time, and
   the surface released exactly once: on the host's destroy signal or at session

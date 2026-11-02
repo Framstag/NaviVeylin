@@ -39,3 +39,5 @@ This change adds no spec delta, so it introduces no spec id and cannot classify 
 - `tools/check-doc-routes.sh` → exit 0, "all 328 section references resolve, all 4 skill references resolve".
 - `tools/check-doc-routes-selftest.sh` → 34 of 34 cases pass.
 - `bash evidence/reversal-pointer-probe.sh` → `tests=5 failures=0` (`after-change.xml`, `after-change.log`).
+
+(after review round 2 the pointer in section 8a was reworded to name the host-rendered-panel rule; §8a reads 10 540 B and the row still rounds to 10.5 kB)

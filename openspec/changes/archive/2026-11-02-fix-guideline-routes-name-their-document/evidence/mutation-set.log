@@ -1,0 +1,18 @@
+# 2026-11-02T04:14:37Z
+# command: bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json
+glob-matches-the-tree	routes#aGlobMatchingNoTrackedPathIsReported	every glob is matched against the tree's tracked paths, so a glob that matches nothing is reported instead of silently orphaning the rules a reader is told to read
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-rule-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+rule-is-reached	routes#aRuleNoGlobReachesIsReported	every named rule under guidelines/ is compared with the rules the map reaches, so a rule no glob reaches is reported before it has a violation
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-rule-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+change-names-the-derived-set	routes#theReadingSetFollowsTheDiff	a change may add a section to its derived reading set and never shrink it, so a derived section the change's artifacts do not name is reported
+  RED(exit 1)  1 occurrence(s) replaced in tools/check-rule-routes.sh
+  GREEN(exit 0)  restored, and the case passes again
+route-names-its-document	routes#aGuidelineEditDerivesItsOwnDocument	a guideline glob names the document and its companion layers it owns, so one edit to one document derives that document's entries and not the corpus — reverted to the corpus-wide glob, the case reports the ten documents a single Logging.md edit is told to read
+  RED(exit 1)  1 occurrence(s) replaced in tools/doc-routes.json
+  GREEN(exit 0)  restored, and the case passes again
+
+mutate: 4 mutation(s) run, 4 went red and restored green, 0 problem(s)
+mutate: the whole set is falsified — every named case failed with its mutation in place and passed again after the restore
+# exit=0

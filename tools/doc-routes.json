@@ -1,6 +1,6 @@
 {
   "profile": 1,
-  "comment": "THE PATH → RULES MAP — which guideline sections and named rules own a path's conventions. A review's reading set is derived from the paths a change touched, through this file, rather than from the sections the change's own artifacts claim (`documentation-ownership`, \"The review's reading set is derived from the change's paths\"). Two invariants are checked by `tools/check-rule-routes.sh`: every `glob` matches a tracked path (a rename orphans the rules a reader is told to read) and every named rule under `guidelines/` is reached by at least one glob (a rule no change is ever told to obey). This file is the one a second project adapts; the check reads its path from `tools/tooling.json` `docRoutes` and names no glob as a literal.",
+  "comment": "THE PATH → RULES MAP — which guideline sections and named rules own a path's conventions. A review's reading set is derived from the paths a change touched, through this file, rather than from the sections the change's own artifacts claim (`documentation-ownership`, \"The review's reading set is derived from the change's paths\"). Two invariants are checked by `tools/check-rule-routes.sh`: every `glob` matches a tracked path (a rename orphans the rules a reader is told to read) and every named rule under `guidelines/` is reached by at least one glob (a rule no change is ever told to obey). This file is the one a second project adapts; the check reads its path from `tools/tooling.json` `docRoutes` and names no glob as a literal. A `guidelines/` glob names the document and its two companion layers it carries the rules of (`guidelines/Logging.*`), or the concern family that shares them (`guidelines/Design*`, `guidelines/UI*.md`) — never the corpus: a route wide enough to match every guideline tells a one-document edit to read ten documents (issue #733, measured 270 entries derived for one `guidelines/Logging.md` edit).",
   "routes": [
     {
       "glob": "app/src/main/java/**",
@@ -449,7 +449,7 @@
       ]
     },
     {
-      "glob": "guidelines/MapRendering.md",
+      "glob": "guidelines/MapRendering.*",
       "sections": [
         "MapRendering.md §2"
       ],
@@ -462,7 +462,7 @@
       ]
     },
     {
-      "glob": "guidelines/**",
+      "glob": "guidelines/BuildGate.*",
       "sections": [
         "BuildGate.md §2a"
       ],
@@ -513,7 +513,7 @@
       "rules": []
     },
     {
-      "glob": "guidelines/Backlog.md",
+      "glob": "guidelines/Backlog.*",
       "sections": [
         "Backlog.md §3",
         "Backlog.md §4",
@@ -543,7 +543,7 @@
       ]
     },
     {
-      "glob": "guidelines/**",
+      "glob": "guidelines/BuildEvidence.*",
       "sections": [
         "BuildEvidence.md §4",
         "BuildEvidence.md §4a",
@@ -624,7 +624,7 @@
       ]
     },
     {
-      "glob": "guidelines/**",
+      "glob": "guidelines/BuildTests.*",
       "sections": [
         "BuildTests.md §6",
         "BuildTests.md §6a",
@@ -660,7 +660,7 @@
       ]
     },
     {
-      "glob": "guidelines/**",
+      "glob": "guidelines/BuildNative.*",
       "sections": [
         "BuildNative.md §10",
         "BuildNative.md §12"
@@ -678,7 +678,7 @@
       ]
     },
     {
-      "glob": "guidelines/**",
+      "glob": "guidelines/Build.*",
       "sections": [
         "Build.md §5"
       ],
@@ -890,7 +890,7 @@
       ]
     },
     {
-      "glob": "guidelines/**",
+      "glob": "guidelines/Design*",
       "sections": [
         "Design.md §1",
         "Design.md §3",
@@ -1004,7 +1004,7 @@
       ]
     },
     {
-      "glob": "guidelines/Logging.md",
+      "glob": "guidelines/Logging.*",
       "sections": [
         "Logging.md §1",
         "Logging.md §2",
@@ -1023,7 +1023,7 @@
       ]
     },
     {
-      "glob": "guidelines/FeatureList.md",
+      "glob": "guidelines/FeatureList.*",
       "sections": [
         "FeatureList.md §1",
         "FeatureList.md §3",
@@ -1044,7 +1044,7 @@
       ]
     },
     {
-      "glob": "guidelines/Metrics.md",
+      "glob": "guidelines/Metrics.*",
       "sections": [
         "Metrics.md §1",
         "Metrics.md §2",
@@ -1065,7 +1065,7 @@
       ]
     },
     {
-      "glob": "guidelines/Regulatory.md",
+      "glob": "guidelines/Regulatory.*",
       "sections": [
         "Regulatory.md §2",
         "Regulatory.md §3",

@@ -1,5 +1,5 @@
 {
-  "comment": "The revert-check of `documentation-ownership`'s derived-reading-set requirements: one mutation per refusal — a glob that matches no tracked path, a named rule no glob reaches, and the `--diff` check that a change names every section the map derives for its paths. Run it with `bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the rule routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite. The search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards.",
+  "comment": "The revert-check of `documentation-ownership`'s derived-reading-set requirements: one mutation per refusal — a glob that matches no tracked path, a named rule no glob reaches, and the `--diff` check that a change names every section the map derives for its paths — and one of the map's own data, the glob a guideline document is reached by reverted to the corpus-wide `guidelines/**`, so the granularity the map states is checked rather than assumed. Run it with `bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json`; `.pi/skills/mutation-runner` owns how, `.pi/skills/revert-check` owns the rule, and the CI step that owns the rule routes prints `--list`, so a set that no longer parses fails the pipeline instead of rotting. `case-cmd` runs one named case (`--case {case}`), so a mutation pays one case and not the suite. The search is a single line and unique in its file, because the runner's replacement is literal and line-based, and the file is restored byte for byte afterwards.",
   "case-cmd": "bash tools/check-rule-routes-selftest.sh --case {case}",
   "mutations": [
     {
@@ -25,6 +25,14 @@
       "search": "      if ! grep -qxF \"$id\" \"$tmp/named\"; then",
       "replace": "      if false; then",
       "why": "a change may add a section to its derived reading set and never shrink it, so a derived section the change's artifacts do not name is reported"
+    },
+    {
+      "label": "route-names-its-document",
+      "case": "routes#aGuidelineEditDerivesItsOwnDocument",
+      "file": "tools/doc-routes.json",
+      "search": "      \"glob\": \"guidelines/Logging.*\",",
+      "replace": "      \"glob\": \"guidelines/**\",",
+      "why": "a guideline glob names the document and its companion layers it owns, so one edit to one document derives that document's entries and not the corpus — reverted to the corpus-wide glob, the case reports the ten documents a single Logging.md edit is told to read"
     }
   ]
 }

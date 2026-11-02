@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Self-test for tools/check-rule-routes.sh — every case runs against a throwaway fixture under a temp
-# directory, so the project's own documents and map are not read and nothing in the repository is written.
+# Self-test for tools/check-rule-routes.sh — almost every case runs against a throwaway fixture under a temp
+# directory, so nothing in the repository is written. One case reads this tree's own map: the granularity of a
+# glob is a fact about *this* map, and a fixture cannot carry it — so that case copies the map and the guideline
+# corpus into a throwaway git tree and derives from there.
 #
 # Cases: a map whose globs match the tree and whose rules are all reached (pass); a glob that matches no
-# tracked path; a named rule no glob reaches; and `--diff` over a fixture range — the reading set follows the
+# tracked path; a named rule no glob reaches; `--diff` over a fixture range — the reading set follows the
 # paths a change touched, and a change that names fewer sections than the map derives is reported while a
-# change that names them all (or adds one) passes.
+# change that names them all (or adds one) passes; and one edit to one guideline document of this tree, which
+# must derive that document's own entries and no other document's.
 #
 # Usage: check-rule-routes-selftest.sh [--case <id>]
 set -uo pipefail
@@ -105,6 +108,51 @@ printf '# a change\n\nIt is graded against `Doc.md` §1, and it adds `Build.md` 
 expect routes#aChangeMayAddASection 0 "" \
   "a change may add a section it names beyond the derived set" \
   bash "$check" --root "$tmp/diff" --diff HEAD~1 --change "$tmp/diff/openspec/changes/thing"
+
+# ── one guideline edit derives its own document, and no other document's ───────────────────────────────────
+#
+# A glob's granularity is a fact about this tree's map, so the fixture below is the map and the guideline corpus
+# copied from this tree, not a synthetic one. Each document is committed on its own, so `--diff HEAD~1` derives the
+# set for exactly that edit: the entries must name the edited document's own concern and no other — a coarse
+# `guidelines/**` derives the whole corpus for any one of them (issue #733).
+guideline_fixture() { # $1 = directory
+  mkdir -p "$1/tools"
+  cp "$root/tools/tooling.json" "$root/tools/doc-routes.json" "$1/tools/"
+  cp -R "$root/guidelines" "$1/guidelines"
+  git -C "$1" init -q -b main >/dev/null 2>&1 || { echo "check-rule-routes-selftest: git init failed" >&2; exit 2; }
+  git -C "$1" add -A >/dev/null 2>&1
+  git -C "$1" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm base >/dev/null 2>&1
+}
+
+guideline_edit_derives_only() { # $1 = directory, $2 = path it edits, $3 = the documents it may derive, sorted
+  local out entries docs
+  printf '\nOne more sentence, appended by the case (issue #733).\n' >> "$1/$2" || return 1
+  git -C "$1" add -A >/dev/null 2>&1
+  git -C "$1" -c user.email=selftest@example.invalid -c user.name=selftest commit -qm "edit $2" >/dev/null 2>&1
+  out=$(bash "$check" --root "$1" --diff HEAD~1 2>&1)
+  entries=$(printf '%s\n' "$out" | grep -E '^  [A-Za-z0-9_-]+\.md §')
+  docs=$(printf '%s\n' "$entries" | sed -E 's/^  ([A-Za-z0-9_-]+)\.md.*/\1/' | sort -u | tr '\n' ' ')
+  if [ "$(printf '%s' "$entries" | grep -c .)" -eq 0 ]; then
+    printf '        %s derives nothing — the map reaches no document for it\n' "$2"
+    return 1
+  fi
+  if [ "$docs" != "$3 " ]; then
+    printf '        %s derives %s entries naming [%s] — it is one concern, so it must derive [%s] alone\n' \
+      "$2" "$(printf '%s' "$entries" | grep -c .)" "$docs" "$3"
+    return 1
+  fi
+}
+
+guideline_fixture "$tmp/guideline"
+expect routes#aGuidelineEditDerivesItsOwnDocument 0 "" \
+  "one edit to one guideline document derives that document's entries alone" \
+  guideline_edit_derives_only "$tmp/guideline" guidelines/Logging.md Logging
+expect routes#aGuidelineEditDerivesItsOwnDocument 0 "" \
+  "…for a companion layer too — a procedure edit derives its document" \
+  guideline_edit_derives_only "$tmp/guideline" guidelines/BuildGate.recipes.md BuildGate
+expect routes#aGuidelineEditDerivesItsOwnDocument 0 "" \
+  "…and a concern family derives its four siblings, not the corpus" \
+  guideline_edit_derives_only "$tmp/guideline" guidelines/DesignStack.md "Design DesignCrossVariant DesignNative DesignStack"
 
 if [ -n "$case_filter" ] && [ "$pass" = 0 ] && [ "$failures" = 0 ]; then
   echo "check-rule-routes-selftest: no case with the id '$case_filter'" >&2

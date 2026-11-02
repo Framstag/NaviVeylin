@@ -671,8 +671,11 @@ carries it, and SHALL NOT judge prose.
 
 A review's reading set SHALL be derived from the paths a change touched, through a map from a path glob to the
 guideline sections and rule names that own that path's conventions. The map SHALL be a file in the tree, a glob
-that matches no tracked path SHALL be reported, and a rule that no glob reaches SHALL be reported. A change MAY add
-a section to its derived set by naming it.
+that matches no tracked path SHALL be reported, and a rule that no glob reaches SHALL be reported. A glob over
+`guidelines/` SHALL name the document — with its companion layers — or the concern family whose sections and rules
+its route carries, and SHALL NOT be wide enough to match the whole corpus, because under the union a review
+derives, one corpus-wide glob returns every guideline route for any guideline edit. A change MAY add a section to
+its derived set by naming it.
 
 #### Scenario: The reading set follows the diff
 
@@ -731,3 +734,11 @@ no statement either skill makes moves out of the section that owns it.
 - **THEN** the entry document names `.pi/skills/create-issue` and `.pi/skills/device-check` by their paths, and the
   route check resolves both, so a removal of either pointer fails the suite instead of a run
 - **Case**: `routed-read#theEntryDocumentNamesTheLoopSkillsByPath`
+#### Scenario: One guideline edit derives its own document
+
+- **WHEN** a change touches one file under `guidelines/` — a normative document, or one of its companion layers
+- **THEN** the derived set is that document's concern's entries and no other document's, so a one-document edit is
+  never told to read the whole corpus
+- **Case**: `routes#aGuidelineEditDerivesItsOwnDocument` — this tree's own map and guideline corpus are copied into
+  a throwaway git tree, one edit is committed per document, and `--diff` must derive the edited document's entries
+  alone (measured on base `650028bf`: 270 entries naming 10 documents for one `guidelines/Logging.md` edit)

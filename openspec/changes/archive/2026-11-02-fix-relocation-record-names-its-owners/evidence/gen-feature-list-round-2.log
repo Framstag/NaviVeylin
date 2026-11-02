@@ -1,0 +1,19 @@
+# 2026-11-02T04:31:37Z — the gate's one failing step, run on its own to attribute it
+# command: bash tools/gen-feature-list.sh --check-classification
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map — classify it in that change, before it archives)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 182
+classified: 185
+unclassified: 2
+delta spec ids: 14
+stale: 3
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+# This change introduces no spec id: it adds one requirement to documentation-ownership, which the
+# classification already carries. Both offenders named above belong to other open changes.

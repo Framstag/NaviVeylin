@@ -32,10 +32,9 @@ reported".
       `archive/` is. Verify: run against base `650028bf`'s checker it fails —
       `evidence/red-on-HEAD.log`, `evidence/red-on-HEAD.xml` (tests=1 failures=1, 2026-11-02T04:25:12Z), taken by
       `evidence/red-on-HEAD.sh`.
-- [x] 2.2 Confirm the failure is the class and not the fixture: the case's clean sibling
-      `artifact-hygiene#aWrittenPurposePasses` passes on base, so the fixture tree itself is accepted. Verify: the
-      same script run over a clean tree prints `all 7 cases passed` once the class lands, and case `a`'s fixture is
-      the one the failing case extends.
+- [x] 2.2 Confirm the failure is the class and not the fixture: the case extends case `a`'s clean tree, so the only
+      difference is the class's own record. Verify: the same script run over that clean tree prints
+      `all 7 cases passed` once the class lands, and case `a`'s fixture is the one the failing case extends.
 
 ## 3. The class that owns it
 
@@ -87,3 +86,28 @@ Requirement: the same requirement.
       `openspec/specs/documentation-ownership/spec.md:698`. Verify:
       `openspec show documentation-ownership --type spec --json | jq '[.requirements[] | select(.text | test("cite each owner"))] | length'`
       prints `1`.
+
+## 6. Correction round 2 — the review's one blocking finding
+
+- [x] 6.1 Narrow the requirement to the form the class can see, in both copies: the shipped
+      `openspec/specs/documentation-ownership/spec.md:698` and this change's archived delta now read "SHALL NOT cite a
+      glob — the form a directory's complete listing takes — in their place", so no reader is told that a bare
+      directory citation is refused. `design.md`'s "The rule" bullet and `proposal.md`'s capability line carry the same
+      wording. Verify: `grep -n -e 'directory or a directory' -e 'glob or a directory' -e 'glob or directory'
+      openspec/specs/documentation-ownership/spec.md specs/documentation-ownership/spec.md design.md proposal.md
+      tools/check-openspec-hygiene.sh` prints nothing, so the requirement and every copy of it name one refused form.
+- [x] 6.2 Delete the four claims the review recorded as `UNPROVEN` rather than support them: the CLI-validates-and-
+      exits-0 sentence from `proposal.md`, `design.md`'s root cause and class 4 of the checker's header, the
+      "no tool reads the record" half of the same root cause, `tasks.md` 2.2's "passes on base", and
+      `proposal.md`'s "the claim … is true". Verify: `grep -n -e 'no tool reads the record' -e 'validates the change and'
+      -e 'passes on base' design.md proposal.md tools/check-openspec-hygiene.sh` prints nothing, and `tasks.md` 2.2 no
+      longer states what the base suite did.
+- [x] 6.3 Re-check the pointers and run the gate once for this round: `bash tools/loop/evidence-check.sh
+      openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners --root .` prints
+      `evidence-check: PASS` (295 `file:line` pointers resolved, 0 dangling), and `./tools/loop/gate.sh` printed its
+      summary line over seven steps with `errors=1`, the failing step being
+      `bash tools/gen-feature-list.sh --check-classification` (`evidence/gate-round-2.log`, whose tallies are copied
+      beside it: `tools/check-doc-routes-selftest.sh.xml` tests=33 failures=0,
+      `tools/check-openspec-hygiene-selftest.sh.xml` tests=7 failures=0, and the failing step's own XML errors=1).
+      The failing step is attributed in `evidence/gen-feature-list-round-2.log`: it names the two other open changes'
+      unclassified spec ids and three stale entries, and this change introduces no spec id.

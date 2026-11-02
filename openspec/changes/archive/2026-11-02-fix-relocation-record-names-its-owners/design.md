@@ -6,8 +6,8 @@ A document change proves that a removed block's statements live elsewhere by cit
 The record this rule comes from cited the *directory* the owners live in — `.pi/skills/*/SKILL.md`, a glob beside
 all 35 contracts it expands to — while the block it justified named eight skills
 (`evidence/relocation-entry-document.txt:19`, `:21`-`:55`; `git show 4330ce3e^:AGENTS.md` table rows = 8). The claim
-is true and uncheckable at once: its reader is given a set of 35 where the claim is about eight, and no tool reads
-the record, so nothing reports the difference. That is the mechanism, and it is one mechanism.
+is uncheckable from the record: its reader is given a set of 35 where the claim is about eight, and nothing reports
+the difference. That is the mechanism, and it is one mechanism.
 
 ## The fix
 
@@ -15,7 +15,8 @@ One clause in `documentation-ownership`, and the class that enforces it in the c
 silent-failure classes of the OpenSpec artifacts:
 
 - **The rule.** A relocation record names each owner as a path of its own, the way the removed block named them, and
-  never as a glob or a directory listing. An archived record is not inspected: it is history.
+  never as a glob — the form a directory's complete listing takes. An archived record is not inspected: it is
+  history.
 - **The class.** `tools/check-openspec-hygiene.sh` reads the `owner:` lines of the open changes' artifacts and
   reports one that carries a glob, with the file and the line. It skips `openspec/changes/archive/`, so the record
   the rule came from keeps exactly what it recorded.

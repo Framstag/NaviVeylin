@@ -13,14 +13,14 @@ followed by every skill contract in the tree — 35 of them (`:21` to `:55`). Th
 and the sentence above it says nine
 (`git show 4330ce3e^:AGENTS.md | sed -n '/^| Skill | Job |/,/^$/p' | grep -c '^| `'` = 8;
 `sed -n '/^B2/,/^B3/p' openspec/changes/archive/2026-10-31-guideline-layers-mechanism/evidence/relocation-entry-document.txt | grep -c '^\s*\.pi/skills/'`
-= 35). The claim — each skill's job is stated in its own contract — is true, but the record does not show it for the
-owners its block was about, so a reader cannot check it for the set it names. The change's own review graded that
+= 35). The record does not show the claim — each skill's job is stated in its own contract — for the owners its
+block was about, so a reader cannot check it for the set it names. The change's own review graded that
 NOTE on evidence quality (`evidence/known-gaps.md:22`, G2) rather than a defect in the tree, and the archived record
 is history: this change does not repair it.
 
 **The root cause, in one sentence.** A relocation record cites the owners of a claim as the directory they live in —
 a glob, and everything it expands to — instead of the owners the removed block named, so the record's claim holds
-for an unidentified set and no check reports it: the OpenSpec CLI validates the change and exits 0.
+for an unidentified set and no check reports it.
 
 **The red case.** `artifact-hygiene#anOwnerCitedAsADirectoryListingIsReported`, added to
 `tools/check-openspec-hygiene-selftest.sh`. It builds a throwaway tree whose open change carries exactly the record
@@ -65,8 +65,8 @@ None.
 ### Modified Capabilities
 
 - `documentation-ownership`: one requirement added beside "A relocated rule keeps its statement" — a relocation
-  record names each owner as a path of its own and never as a glob or directory listing, and an archived record is
-  not inspected. No shipped requirement's text changes.
+  record names each owner as a path of its own and never as a glob — the form a directory's complete listing takes —
+  and an archived record is not inspected. No shipped requirement's text changes.
 
 ## Impact
 

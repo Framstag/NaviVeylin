@@ -1,0 +1,37 @@
+# RouteStepModelTest — red before the selector change, green after
+# Submodule app/src/main/cpp/libosmscout at e4ec10400, main tree at e190d872, 2026-11-02
+
+## RED: selector reverted to collected[index] / collected[index+1]
+$ git checkout -- libosmscout-client/src/osmscoutclient/routing/RouteStepBuilder.cpp
+$ cmake --build build --target RouteStepModelTest && ctest --test-dir build -R RouteStepModelTest --output-on-failure
+1/1 Test #73: RouteStepModelTest ...............***Failed    0.02 sec
+/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/Tests/src/RouteStepModelTest.cpp:620: FAILED:
+  REQUIRE( step.kind==RouteStep::Kind::turn )
+/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/Tests/src/RouteStepModelTest.cpp:691: FAILED:
+  REQUIRE( step.kind==RouteStep::Kind::motorwayLeave )
+/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/Tests/src/RouteStepModelTest.cpp:672: FAILED:
+  REQUIRE( step.nextNext )
+/home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/Tests/src/RouteStepModelTest.cpp:715: FAILED:
+  REQUIRE( step.kind==RouteStep::Kind::turn )
+0% tests passed, 1 tests failed out of 1
+The following tests FAILED:
+
+## GREEN: this change's selector
+$ cmake --build build --target RouteStepModelTest && ctest --test-dir build -R RouteStepModelTest --output-on-failure
+Test project /home/tim/projects/NaviVeylin/app/src/main/cpp/libosmscout/build
+    Start 73: RouteStepModelTest
+1/1 Test #73: RouteStepModelTest ...............   Passed    0.02 sec
+
+100% tests passed out of 1
+
+Total Test time (real) =   0.02 sec
+
+## FALSIFICATION (2026-11-02): IsManoeuvre mutated to `return true || ...`
+$ cmake --build build --target RouteStepModelTest && ctest -R RouteStepModelTest --output-on-failure
+5 FAILED checks, including:
+  REQUIRE( step.nextNext->kind==RouteStep::Kind::roundaboutLeave )
+  REQUIRE( step.kind==RouteStep::Kind::turn )
+  REQUIRE( step.kind==RouteStep::Kind::motorwayLeave )
+  REQUIRE( step.kind==RouteStep::Kind::turn )
+
+restored; RouteStepModelTest 100% passed.

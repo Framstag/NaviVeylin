@@ -642,7 +642,8 @@ roundabout leave from a motorway change without reading text. A node with no des
 Live guidance SHALL publish, on every position update, the step of the manoeuvre ahead as the same structured
 record a calculated route publishes, extended with the distance and time remaining to that manoeuvre and, when
 the following manoeuvre is within the close-manoeuvre window, that manoeuvre as a nested step. It SHALL publish
-no guidance text.
+no guidance text. A described route node SHALL never be published as the manoeuvre ahead or as its nested
+step.
 
 #### Scenario: The step ahead carries its manoeuvre and remaining distance
 
@@ -650,6 +651,20 @@ no guidance text.
 - **THEN** the published next step SHALL describe that roundabout leave with its exit ordinal
 - **AND** SHALL report 300 m, within the tolerance of the position's progress, as remaining distance
 - **Case**: `app(device): RouteStepModelBridgeTest` "a roundabout leave step carries ordinal and direction"
+
+#### Scenario: A described route node is never the step ahead
+
+- **WHEN** the next described route node carries only a name and a way type and the next manoeuvre lies further ahead
+- **THEN** the published step SHALL describe that manoeuvre, not the node
+- **AND** the node SHALL NOT be the published step's nested step either
+- **Case**: `libosmscout: RouteStepModelTest` "The step ahead is the next manoeuvre, not the next described node"
+
+#### Scenario: A manoeuvre beyond the initial look-ahead is still found
+
+- **WHEN** a long leg carries no manoeuvre within the initial look-ahead distance
+- **THEN** the published step SHALL be the manoeuvre that lies further ahead
+- **AND** the arrival SHALL be published only when no manoeuvre follows the position
+- **Case**: `libosmscout: RouteStepModelTest` "A manoeuvre beyond the collect window is still the step ahead"
 
 #### Scenario: A published step carries no guidance text
 

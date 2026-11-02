@@ -28,8 +28,7 @@ import org.junit.runner.RunWith
  * `NextNextHintDeviceTest` proves that real map data yields an announced entry whose hint is the leave;
  * this case renders *that* record through the real overlay and measures the row: the hint arrow is the
  * 36 dp node, its ink is present (the glyph is drawn as the `ManeuverSymbols` bitmap, which Robolectric's
- * canvas discards and no JVM case can rasterise), and the row's wording names the exit the route takes.
- */
+ * canvas discards and no JVM case can rasterise), and the row's wording names the exit the route takes./
 @RunWith(AndroidJUnit4::class)
 class NextTurnHintRowDeviceTest {
 
@@ -54,18 +53,13 @@ class NextTurnHintRowDeviceTest {
 
     @Test
     fun theHintRowIsTheNumberedExitAtTheHintSize() {
-        // The shape real data produced in `NextNextHintDeviceTest`: entry, a facts-only ring node, the leave.
-        val route = listOf(
-            step(RouteStep.Kind.ROUNDABOUT_ENTER, 1000.0, "Kreisverkehr"),
-            step(RouteStep.Kind.INFORMATIVE, 1010.0, "Ringstraße"),
-            step(RouteStep.Kind.ROUNDABOUT_LEAVE, 1035.0, "Bahnhofstraße", exit = 2),
-            step(RouteStep.Kind.INFORMATIVE, 1050.0)
-        )
-        val published = step(RouteStep.Kind.INFORMATIVE, 1000.0, "Kreisverkehr").apply {
-            remainingDistance = 0.0
+        // The shape live guidance publishes: the entry at 1000 m, the leave at 1035 m as its own hint.
+        val published = step(RouteStep.Kind.ROUNDABOUT_ENTER, 1000.0, "Kreisverkehr").apply {
+            remainingDistance = 100.0
+            nextNext = step(RouteStep.Kind.ROUNDABOUT_LEAVE, 1035.0, "Bahnhofstraße", exit = 2)
         }
 
-        val announced = guidanceStep(published, route)
+        val announced = guidanceStep(published)
         val hint = announced.nextNext
         assertTrue("the approach announces the exit as its hint", hint != null)
 

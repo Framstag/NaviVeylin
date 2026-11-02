@@ -12,11 +12,11 @@ import com.framstag.libosmscout.client.RouteStep
  * instead of inferring them from a screenshot. Identity only — kind, ordinal, direction, and the hint row's
  * own ordinal — never a coordinate (enforced by the `checkNoCoordinatesInLogs` build gate).
  *
- * The step this line is given is the **announced** one, so `hintExit` is the app-derived following
- * manoeuvre (`core/nextManoeuvreAfter`, change `fix-following-manoeuvre-hint`), while `kind`, `exit` and
- * `cw` stay the native record's own values. Read the two apart: `exit` answers "did the native record
- * carry an ordinal", `hintExit` answers "did the surface find the exit to announce before the ring was
- * entered" — which is the defect that change fixed, and 0 on HEAD is its measurement.
+ * The step this line is given is the **announced** one. Both of its roundabout fields are the native
+ * record's own values: `exit`/`cw` are the manoeuvre ahead, and `hintExit` is the following manoeuvre the
+ * builder nested in `nextNext` (spec: `osmscout-jni` — Live guidance publishes route steps). Read them
+ * together: every live guidance surface now shows the native hint, so a roundabout approach has to log
+ * both ordinals from the record, before the ring is entered.
  *
  * The manoeuvre constant chosen from these fields is deliberately not part of the line: it is an
  * `androidx.car.app` value that `:app` must not depend on, and mirroring its integers here would

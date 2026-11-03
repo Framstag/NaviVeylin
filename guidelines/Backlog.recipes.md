@@ -59,11 +59,10 @@ the run's script                          an agent process (fresh, per item)    
   prepare one working tree, once            phase B  the eligibility gate             not be the writer
   per item:                                 phase C  the change, planned
     a branch of its own, off the base       phase D  applied, with the project's gate
-    the change the item names, copied in
-    select, then authorise by label         (E)      reviewed by the separate process
-    hand over a prepared package             phase F  archived, with the evidence
-    hand over a prepared package
-    verify, close, record
+    the change the item names, copied in              │ the gate line ends that child
+    select, then authorise by label         phase F  archived, with the evidence
+    hand over a prepared package                      (a second fresh child, below)
+    verify, close, record                   (E)      reviewed by a second fresh process
 ```
 
 What makes it survivable over a long run: the orchestrator is a **script**, not a session, so it reads no
@@ -73,6 +72,24 @@ outcome from what it reads itself (I10).
 
 What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
 is the script's (I8); and the tracker credential is not in the agent's environment (§5).
+
+The gate is where a gated item's **first** child ends, and the archive is written by a second one. Measured on the
+archive (`python3 tools/loop-spend.py`, 2026-11-02, 213 items / 524 sessions / 30 795 turns): of the 274 sessions
+that ran a gate, **1.43 B of their 1.83 B tokens were charged after the first `LOOP-GATE` line** — 13 700 turns at
+104 k of context per turn, against 7 868 at 52 k before it — because everything the derivation had put into that
+session (Phase A, the plan, the focused rounds, every tool result they injected) is re-read on each turn of the
+evidence-and-archive tail. The tail decides none of it: it reads the gate's line, the change's `tasks.md` and the
+gate's own failing output, so it is a fresh child charged the project's baseline once (`LOOP-SPEND-BASELINE
+tokens=17056`) instead of the first child's context once per turn, and the four facts it needs travel as prompt
+values so it re-derives nothing. A mean item is 2.88 Mtok with no review round, 11.81 with one and 19.16 with two,
+which is the trend this split is measured against. The case that pins it is `run#childUsageIsRecordedPerItem`: its
+fixture's second child starts at 17 056 input tokens, the item's spend is the sum of the two children, and the
+largest context recorded is still the first child's. The repair a refusal buys is split the same way
+(`worker-tail-round2-prompt.md`), because a rework round that paid the tail in-session would cost what the item did.
+The bound this does not move: the item's turn bound (`LOOP_ITEM_TURNS_MAX`) is the **item's**, read over the one event
+stream its children share, so a gate child that spends it leaves the tail none and the item is blocked at the bound
+without its commit — the same shape the reviewer's rounds already had, and the reason the split's own case asserts a
+tail of one turn rather than a long one.
 
 What a child is started with, and what it therefore re-reads. Its system prompt carries **no project context**:
 the adapter the configured command names starts it with `--no-context-files`, because a child started in the

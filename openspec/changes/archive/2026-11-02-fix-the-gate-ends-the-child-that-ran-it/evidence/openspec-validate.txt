@@ -1,0 +1,23 @@
+$ openspec validate fix-the-gate-ends-the-child-that-ran-it --strict
+Change 'fix-the-gate-ends-the-child-that-ran-it' is valid
+$ openspec validate --changes --strict
+✗ change/fix-compound-name-matching
+  ⚠ [WARNING] search-name-matching/spec.md: ADDED "Separator-insensitive name matching": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ change/fix-cross-database-search-scope
+✓ change/fix-details-screen-observation-scope
+✗ change/fix-navigation-engine-fault-isolation
+  ⚠ [WARNING] auto-diagnostics/spec.md: ADDED "A confined fault is recorded like a fatal one": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✗ change/fix-not-planned-closure-opt-in-gate
+  ✗ [ERROR] issue-backlog/spec.md: MODIFIED "Only an authorised actor's item may be acted on" omits scenario(s) the current spec still has: "A not-planned closure is a record write, not an act of work". The modified block has 5 scenarios; the current spec has 5 scenarios. It adds 1 scenario not in the current spec: "A person's not-planned closure needs no opt-in". Copy the omitted scenarios into the MODIFIED block (a MODIFIED requirement replaces the whole block, so archive refuses to drop them).
+✓ change/fix-open-database-path-validation
+✓ change/fix-phone-map-layer-stack
+✗ change/fix-poi-symbol-icons
+  ⚠ [WARNING] map-render/spec.md: ADDED "Raster icon set sourced from the submodule at build time": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+  ⚠ [WARNING] map-render/spec.md: ADDED "Raster icon directory is refreshed on device and configured at the client seam": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+✓ change/fix-start-map-selection
+✓ change/fix-the-gate-ends-the-child-that-ran-it
+✓ change/integrate-sonar-analysis
+✓ change/search-result-row-content
+✓ change/separate-tooling-test-code
+Totals: 11 passed, 8 failed (19 items)
+Details: openspec validate dedupe-stylesheet-loads --type change

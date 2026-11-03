@@ -5,6 +5,14 @@ is nobody to ask, so a question you cannot answer from the tree is a verdict (`s
 never a guess and never a request. A second, fresh process reviews what you produce, and the run's own
 script — not your report — decides whether the item closed.
 
+Your phases end **at the gate**. The evidence and the archive are written by a second, fresh process — the tail
+worker, `tools/loop/prompts/worker-tail.md` — which the run starts from the block you print when the gate has run,
+handed your gate line, the change's `tasks.md` and the last lines of your own output. Measured on this loop's
+archive (`python3 tools/loop-spend.py`, 2026-11-02): 78 % of a gated item's tokens were charged after its gate,
+because the whole derivation was re-read on every turn of a tail that decides nothing about it. So do not archive
+the change here, and do not report a `closed` verdict: it is the tail's, and it is a claim about an archive you
+did not write.
+
 Placeholders below are filled by the run's script before you are started. They are the whole work package
 you get: everything else you need is in the tree.
 
@@ -188,9 +196,9 @@ project's gate **once**, exactly as the run's configuration states it:
 
 The gate is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A
 gate that does not complete inside the run's budget — the run ends a child that outlasts its configured
-wall-clock, and that includes every command you started — leaves the item `blocked` with its log, and a second
-attempt is not yours to make. Two attempts at one gate is how a run spends its whole budget inside one child,
-so record `blocked` with what the first run printed and the item goes to a person with its transcript.
+wall-clock, and that includes every command you started — is not yours to report: the run records the item
+`blocked` with your log itself, and a second attempt is not yours to make. Two attempts at one gate is how a run
+spends its whole budget inside one child.
 
 `{{MEASURE_CMD}}` is not the gate and does not stand in for it: it reads, the gate runs. Run it again only when
 the pathspec or the change has moved, and quote the block you already have when nothing has.
@@ -201,34 +209,39 @@ to "refresh" evidence: the re-run is what destroys it, so copy the XMLs you cite
 at the moment they are produced. Never mark a task done on a cached or partial run, and never while a
 failure is open. Tests red after three focused attempts is `blocked`, not "adjust the test".
 
-## Phase F — evidence and archive
+**The gate is where your session ends.** When it has run, print the gate block below and stop: copy the XMLs you
+cite into `{{EVIDENCE_DIR}}` as they are produced, and archive nothing. The run starts the tail process from those
+lines, and that process reads the change's `tasks.md`, the gate line and the last 200 lines of your own tool output
+— which is why you stop here rather than carrying this session's whole context through the archive.
 
-1. Verify the change; zero CRITICAL issues, or each one explained.
-2. Copy every cited XML into the change's **own** `evidence/` directory (`<change>/evidence/`) — that is
-   the versioned half, and the run refuses an item whose change cites a test result but carries none — and
-   keep a copy in `{{EVIDENCE_DIR}}` as well, which is where the run reads the reports and the diff.
-   Then check the pointers mechanically, from the change root:
-   `bash tools/loop/evidence-check.sh openspec/changes/<change-name> --root .` — it resolves
-   every `file:line`, every quoted `tests=`/`failures=`, every `/tmp` pointer and every `§N`, and reports a
-   dangling one. Fix what it reports before you archive.
-3. Archive the change. Confirm the directory exists under the archive and that the delta merged into the
-   capability spec.
-4. **Do not commit, do not push, and do not run version control**: the run's script owns git and commits
-   your work for you. Leave the tree as your change left it.
-5. **Do not touch the issue tracker**: the run's script owns every label and the closure.
+A gate that did not pass is not yours to repair either: the tail records the item `blocked` with the failing output
+you printed. What you must leave behind is the evidence of what you did — the XMLs in `{{EVIDENCE_DIR}}`, the change
+in the change root, and the block below.
 
 ## What the run reads back from your report
 
 End your output with exactly these lines, and keep them the last lines. The run verifies each of them
-against the tree itself; a claim it cannot verify makes the item `blocked`, not `closed`.
+against the tree itself, and it starts the tail process from them: a line you leave out is a fact that process does
+not get.
 
 ```
-LOOP-VERDICT: closed|skipped|blocked
-LOOP-SKIP-VERDICT: <one of the gate's verdicts, when LOOP-VERDICT is skipped>
 LOOP-CHANGE: <the change name, or - when nothing was planned>
 LOOP-ROOT-CAUSE: <one line>
 LOOP-RED-TEST: <case name> fails on HEAD — XML tests=<n> failures=<n> (<timestamp>)
 LOOP-GATE: tests=<n> failures=<n> errors=<n> (<flavour/module coverage>)
+```
+
+**The gate line is what ends your session.** It is required when you ran the gate, and the run starts no tail
+without it; a `LOOP-GATE` you did not run is a false claim the tree contradicts.
+
+**A verdict is yours only when no gate was run.** Print `LOOP-VERDICT: skipped` with its `LOOP-SKIP-VERDICT` when
+the item never reached Phase D — the claim did not hold, or one of the eligibility gate's conditions failed — or
+`LOOP-VERDICT: blocked` when the work stopped before the gate (tests red after three focused attempts, a
+measurement the change needed and could not take). Omit `LOOP-VERDICT` when you ran the gate: the tail writes it.
+
+```
+LOOP-VERDICT: skipped|blocked
+LOOP-SKIP-VERDICT: <one of the gate's verdicts, when LOOP-VERDICT is skipped>
 LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why>
 LOOP-FALSIFIED: <the mechanism the item blames, quoted — only with LOOP-SKIP-VERDICT: falsified>
 LOOP-MEASURED: <the number you measured instead, and how you took it: case name, command, or probe>
@@ -246,6 +259,3 @@ mechanism it blames is not what the measurement shows, or the cause it names is 
 probe). A falsification means the tree is unchanged, so it carries no `LOOP-DECISION`: the run holds the
 measurement, closes the item as mis-diagnosed and records it apart from a fix. A falsification with no number,
 or with a number whose origin nobody can repeat, is read as an ordinary skip and escalated.
-
-`LOOP-VERDICT: closed` means: the red case existed and is now green, the affected cases pass, the archive
-exists, and the evidence is in `{{EVIDENCE_DIR}}`.

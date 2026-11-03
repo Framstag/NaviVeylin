@@ -100,7 +100,7 @@ MUTATIONS=(
   '9.2@-@tools/loop/worktree.sh@worktree#refusesWhenMainAdvanced@the stale-base refusal@s|^  if \[ "$current" != "$base" \]; then|  if false; then|'
   '9.3@writes@tools/loop/run.sh@labels#writesOnlyBetweenChildren@one writer per tree: the child runs while the wrapper writes state@s|^  run_child "$item_dir/worker-prompt.md" "$item_dir/worker-report.md"$|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$item_dir/worker-prompt.md" ) > "$item_dir/worker-report.md" 2>\&1 \&\n  worker_pid=$!\n  ( while kill -0 "$worker_pid" 2>/dev/null; do bash "$LOOP_DIR/state.sh" step A --name during-child --status running >/dev/null 2>\&1; sleep 0.02; done ) \&\n  wait "$worker_pid"|'
   '9.4@-@tools/loop/run.sh@labels#trapRemovesInProgressOnSignal@the signal trap that removes the in-progress label@s|^    loop_labels unpick "$in_progress" >&2 \|\| true$|    : # the mutation keeps the in-progress label|'
-  '9.5@-@tools/loop/run.sh@run#childClaimWithoutCommitIsBlocked@the run verifying instead of trusting the child@s|^  if \[ "$worker_exit" -ne 0 \]; then|  if false; then|;;s|^  elif \[ "$verdict_claim" = "skipped" \]; then|  elif false; then|;;s|^  elif \[ "$head_now" = "$base" \]; then|  elif false; then|;;s|^  elif \[ -z "$change" \]; then|  elif false; then|;;s|^  elif \[ -n "$LOOP_GATE_CMD" \] && \[ "$gate_found" -eq 0 \]; then|  elif false; then|;;s|^  elif \[ "$cited_evidence" -eq 1 \] && \[ "$carried" -eq 0 \]; then|  elif false; then|'
+  '9.5@-@tools/loop/run.sh@run#childClaimWithoutCommitIsBlocked@the run verifying instead of trusting the child@s|^  if \[ "\$last_exit" -ne 0 \]; then|  if false; then|;;s|^  elif \[ "\$verdict_claim" = "skipped" \]; then|  elif false; then|;;s|^  elif \[ "\$head_now" = "\$base" \]; then|  elif false; then|;;s|^  elif \[ -z "\$change" \]; then|  elif false; then|;;s|^  elif \[ -n "\$LOOP_GATE_CMD" \] && \[ "\$gate_found" -eq 0 \]; then|  elif false; then|;;s|^  elif \[ "\$cited_evidence" -eq 1 \] && \[ "\$carried" -eq 0 \]; then|  elif false; then|'
   '9.6@-@tools/loop/run.sh@run#decisionCapRefusesToStart@the decision cap that stops a run@s|^if \[ "${open_decisions:-0}" -ge "$max_decisions" \]; then|if false; then|'
   '9.7@-@tools/loop/run.sh@run#mayCloseNoLeavesTheIssueOpen@the closure opt-out@s|^      if \[ "$may_close" = "no" \]; then close_args+=(--no-close); fi$|      : # the mutation closes anyway|'
   '9.8@-@tools/loop/worktree.sh@worktree#oneBranchPerItemOffTheBase@one branch per item@s|switch -c "$branch" "$base"|switch -c "fix/loop-branch" "$base"|'
@@ -374,7 +374,7 @@ MUTATIONS=(
   # #262 was ended by the cap at 23:48 with mutation 19.2 applied, `end-item` committed that tree 18 s later, and
   # the dead arm stayed on `origin/fix/issue-262-…` until a person amended it by hand at 05:05. The mutation
   # restores the unconditional commit, so the case reads a branch the run must have left at the base.
-  '45.1@-@tools/loop/run.sh@run#treeOfAChildTheCapEndedIsNotCommitted@the guard that leaves the tree of a child the run ended uncommitted (issue #271)@s|^  if \[ "\$worker_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then$|  if false; then|'
+  '45.1@-@tools/loop/run.sh@run#treeOfAChildTheCapEndedIsNotCommitted@the guard that leaves the tree of a child the run ended uncommitted (issue #271)@s|^  if \[ "\$last_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then$|  if false; then|'
   # 45.2 is the same rule at the second commit site, and it is a separate record because it is a separate guard:
   # the first one leaving the item's own worker uncommitted says nothing about the worker a refusing review round
   # sends the change back with (issue #271, found by that change's round-1 review — the requirement was universal
@@ -722,6 +722,17 @@ MUTATIONS=(
   '75.1@-@tools/loop/labels.sh@run#aShapingVerdictWritesTheLabel@the shaping label written in the same call as the hold, so the item is never held and nameless to the queue that exists for it (capability `shaping-inbox`)@s%^  add_labels+=("\$shaping_label")$%  : # the mutation leaves the item held and nameless%'
   '75.2@-@tools/loop/lib.sh@run#aVerdictOutsideTheListWritesNoLabel@the question `roles.shapingVerdicts` answers — whether a verdict is a shaping verdict — so every hold would carry the shaping label (capability `shaping-inbox`, D2)@s%^    \[ "\$named" = "\$verdict" \] && return 0$%    return 0%'
   '75.3@-@../issues/update.sh@labels#closeRemovesTheShapingLabel@the state write that takes the shaping label off the item whose outcome it records, so nothing ever leaves the inbox (capability `shaping-inbox`, D4)@s%^  if \[ -n "\$shaping_label" \] && grep -Fxq -- "\$shaping_label" <<< "\$labels_now"; then$%  if false; then%'
+
+  # 76.1 — the gate ends the child that ran it, and a fresh child writes the archive (issue #744). Measured on the
+  # archive 2026-11-02 (`python3 tools/loop-spend.py`): 1.43 B of the 1.83 B tokens of the 274 sessions that ran a gate
+  # were charged after the first `LOOP-GATE` line. The condition below is the one line that decides whether the tail
+  # child exists at all, so a tail made unreachable puts the item's whole derivation back into the archive phase — and
+  # the case that owns it counts the children (`run#childUsageIsRecordedPerItem`), which one child cannot satisfy.
+  '76.1@-@tools/loop/run.sh@run#childUsageIsRecordedPerItem@the tail child the gate line starts, and the item spend as the sum of two children (issue #744)@s|^  if \[ "\$worker_exit" -eq 0 \] \&\& \[ "\$worker_write_decides" -eq 0 \] \&\&$|  if [ "$worker_exit" -eq 0 ] \&\& [ "$worker_write_decides" -eq 99 ] \&\&|'
+  # 76.2 — the arm that records a red gate as the tail reported it (issue #744, review round 1). Without it the item
+  # falls to "no archived change appears in the run's diff", which is the opposite of what the tail said and drops the
+  # gate's own numbers; the case asks the reason for the gate's line and for the absence of that sentence.
+  '76.2@-@tools/loop/run.sh@run#aRedGateIsBlockedByTheTail@the outcome arm that takes a blocked verdict as the tail reported it, with the gate line (issue #744)@s|^  elif \[ "\$verdict_claim" = "blocked" \]; then$|  elif false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -1,0 +1,35 @@
+$ git status --short  # the two open changes this red belongs to are working-tree only (gitignored)
+openspec/changes/car-reroute-without-losing-the-map
+openspec/changes/separate-tooling-test-code
+
+$ bash tools/gen-feature-list.sh --check-classification   # this worktree
+gen-feature-list: unclassified spec id(s):
+  auto/off-route-indicator (introduced by the open change car-reroute-without-losing-the-map — classify it in that change, before it archives)
+  tooling-test-layout (introduced by the open change separate-tooling-test-code — classify it in that change, before it archives)
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 183
+classified: 186
+unclassified: 2
+delta spec ids: 37
+stale: 3
+car-only areas: 1
+highlights: 19
+gen-feature-list: classification gate failed
+exit=1
+
+$ git archive b5d37f91 | tar -x -C /tmp/744-base && (cd /tmp/744-base && bash tools/gen-feature-list.sh --check-classification)   # the run base, no open change
+gen-feature-list: stale classification entry for a spec that no longer exists:
+  search-name-matching
+  search-result-row-icon
+  start-map-selection
+specs read: 183
+classified: 186
+unclassified: 0
+delta spec ids: 0
+stale: 3
+car-only areas: 1
+highlights: 19
+exit=0

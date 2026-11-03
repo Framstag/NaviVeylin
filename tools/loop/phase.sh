@@ -83,6 +83,10 @@ trap 'rm -rf "$temp"' EXIT
 body="$temp/body"
 
 prompt="$here/prompts/worker.md"
+# Phase F's checklist is the tail child's own prompt, because that phase is a second child (issue #744): the run
+# starts it from the gate block, so the prompt that states it is the one the tail process is handed, and a phase
+# whose checklist lived in the child that has already ended would be a checklist nobody reads.
+case "$phase" in F) prompt="$here/prompts/worker-tail.md" ;; esac
 # The phase's own section: its heading and everything under it, up to the prompt's next second-level heading, with the
 # blank lines its end carries trimmed — the checklist is read from the one file that states it, never copied here.
 section=""

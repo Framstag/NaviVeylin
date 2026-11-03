@@ -38,7 +38,7 @@ concurrency:
 jobs:
   metadata:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       # The band label and the body marker are written through `tools/issues/update.sh`, and the

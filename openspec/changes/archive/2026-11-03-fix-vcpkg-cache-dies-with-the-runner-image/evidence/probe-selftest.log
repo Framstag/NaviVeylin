@@ -1,0 +1,10 @@
+# 2026-11-03T17:52:05Z
+# command: bash tools/ci-vcpkg-cache-selftest.sh
+PASS  vcpkg-cache#anAnsweringFeedIsReported — a client that answers makes the probe print the source the job should use (exit 0)
+PASS  vcpkg-cache#aRefusingFeedIsReportedAndDisablesTheCache — a refusing client is reported with its own message (exit 1)
+PASS  vcpkg-cache#aRefusingFeedIsReportedAndDisablesTheCache — …and the same refusal names what the install does instead (exit 1)
+PASS  vcpkg-cache#aRefusingFeedIsReportedAndDisablesTheCache — …and names the measured cost of relying on it (exit 1)
+PASS  vcpkg-cache#aMissingClientIsReported — a client that does not exist is named rather than surfacing as a shell error (exit 1)
+PASS  vcpkg-cache#theProbePrintsNothingSensitive — the probe's line carries no credential and no coordinate (exit 0)
+ci-vcpkg-cache-selftest: all 6 cases passed (throwaway stubs, no network)
+# exit=0

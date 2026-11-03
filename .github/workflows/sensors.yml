@@ -41,7 +41,7 @@ concurrency:
 jobs:
   sensors:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       # The record itself is read from the build pipeline's artifact of this commit — the workflow's own

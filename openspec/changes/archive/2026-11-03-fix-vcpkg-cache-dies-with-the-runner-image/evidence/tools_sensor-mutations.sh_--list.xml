@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensor-mutations.sh --list" tests="0" failures="0" errors="0" time="1">
+  <system-out>8.33 sensors#entryDocumentSizeRow — an entry document past its own row bound is a violation (issue #197) (tools/sensors/metrics/doc-context.sh) 3.1 sensors#documentSizeRow — a normative document past the row bound is a violation (design D4) (tools/sensors/metrics/doc-context.sh) 3.2 layers#aFigureInANormativeDocumentIsACondition — a measured figure inside a normative document is a condition (docum</system-out>
+</testsuite>

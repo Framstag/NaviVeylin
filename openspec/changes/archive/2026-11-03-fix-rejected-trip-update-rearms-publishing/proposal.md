@@ -31,8 +31,9 @@ not re-open the fork.
 
 **The red test.** `NavigationManagerControllerTest.aTransientTripRejectionRearmsPublishing`,
 `…aRejectedTripIsNotResentUntilItsContentChanges` and
-`…aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget` (the last rewritten from
-`aRejectedTripUpdateEndsTripPublishing`, which asserted the latch: `verify(exactly = 1)`). On base `4367cb4d`,
+`…aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget` (a fresh body; the case whose body was kept,
+with its `verify(exactly = 1)` widened to `verify(exactly = 2)`, is
+`aRejectedTripIsNotResentUntilItsContentChanges`). On base `4367cb4d`,
 with the controller unchanged, the case class reads JUnit `tests=11 failures=3 errors=0` at
 `2026-11-03T12:21:34Z` (`/home/tim/projects/NaviVeylin/.pi/issue-loop/items/736/red-on-HEAD.xml`): the
 first rejection is never followed by a send, so two

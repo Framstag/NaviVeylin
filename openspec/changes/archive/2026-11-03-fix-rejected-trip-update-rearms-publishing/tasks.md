@@ -8,10 +8,12 @@ contract.
 Requirement: "A rejected trip update re-arms publishing within a retry budget" — its three scenarios.
 
 - [x] 1.1 Add `aTransientTripRejectionRearmsPublishing` and `aRejectedTripIsNotResentUntilItsContentChanges` to
-      `auto/src/test/java/com/naviveylin/auto/NavigationManagerControllerTest.kt`, and rewrite
-      `aRejectedTripUpdateEndsTripPublishing` as `aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget`
-      (five changed trip contents against a host that refuses every send; the case asserts exactly three
-      sends, so a budget of one or of five turns it red). Verify: on base `4367cb4d` with the controller
+      `auto/src/test/java/com/naviveylin/auto/NavigationManagerControllerTest.kt`, and add
+      `aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget` (five changed trip contents against a host
+      that refuses every send; the case asserts exactly three sends, so a budget of one or of five turns it
+      red). The old `aRejectedTripUpdateEndsTripPublishing` body was kept and widened: it is now
+      `aRejectedTripIsNotResentUntilItsContentChanges`, with its `verify(exactly = 1)` reading
+      `verify(exactly = 2)`. Verify: on base `4367cb4d` with the controller
       unchanged the class reads JUnit `tests=11 failures=3 errors=0` at `2026-11-03T12:21:34Z`, the three
       cases finding one `updateTrip` call where they need two, two and three — `evidence/red-on-HEAD.xml`
       (captured from `auto/build/test-results/testDebugUnitTest/TEST-…NavigationManagerControllerTest.xml`).
@@ -130,7 +132,7 @@ exercises. No new claim, case or assertion.
       SUCCESSFUL in 8m 34s`, 148 executed, `--no-build-cache`) and
       `evidence/gate-post-merge-gen-feature-list.xml` (`tests="0" failures="0"`, system-out `stale: 5 car-only
       areas: 1 highlights: 19`). The merge touches none of this change's paths: `git diff --name-only
-      4367cb4d..e63f6b45` lists `tools/feature-list/specs.json`, `tools/loop/**`, two `app/src/test` files and
+      4367cb4d..e63f6b45` lists `tools/feature-list/specs.json`, `tools/loop/**`, three `app/src/test` files and
       `openspec/specs/unit-test-suite-runtime/spec.md`.
 
 - [x] 6.2 Pin the contract's "a run with no accepted send in between", which review round 2 recorded as the one
@@ -139,7 +141,8 @@ exercises. No new claim, case or assertion.
       refuse three more changed contents: five sends, a never-resetting counter stops after four) and the
       scenario *An accepted trip ends the run and resets the budget* that names it, in the delta and in the
       merged `openspec/specs/car-host-fault-isolation/spec.md`. Verify: with the delivered send's
-      `rejectedUpdates = 0` removed (the `REVERT-CHECK MUTATION` line) the case reads
+      `rejectedUpdates = 0` removed (the `REVERT-CHECK MUTATION` line, recorded with its restore in
+      `evidence/revert-check.md`) the case reads
       `Verification failed: … 4 matching calls found, but needs at least 5 and at most 5 calls` @
       `2026-11-03T19:52:37Z` (`evidence/revert-check-red-reset-budget.xml`, `tests="1" failures="1"`); restored,
       `NavigationManagerControllerTest` reads `tests=12 failures=0` @ `2026-11-03T19:52:51Z`
@@ -147,4 +150,13 @@ exercises. No new claim, case or assertion.
       `tests=9 failures=0` @ `2026-11-03T19:52:58Z`
       (`evidence/green-reset-budget-controller-trip-cases.xml`), and `bash tools/loop/measure.sh --change
       fix-rejected-trip-update-rearms-publishing` reads
-      `LOOP-MEASURE-CHANGE … scenarios=15 cases=15 unnamed=0`, superseding task 4.1's 14.
+      `LOOP-MEASURE-CHANGE … scenarios=15 cases=15 unnamed=0`, superseding task 4.1's 14 — the block is
+      `evidence/measure-round3.txt`.
+
+- [x] 6.3 State the bound where the guideline owns it, which review rounds 1 and 3 both recorded as the one gap
+      they could not grade as a contradiction: add "Rule: a rejected trip update re-arms publishing" to
+      `guidelines/DesignCrossVariant.md` §8a beside the trip-send rule, so the next reader of the routing table
+      finds the re-arm and its budget without opening the spec. Verify: `bash tools/check-doc-routes.sh` reports
+      `all 329 section references resolve` after both `AGENTS.md` rows that price §8a move from 10.5 kB to
+      11.0 kB, `bash tools/check-doc-routes-selftest.sh` passes 34 of 34, and the gate over the final tree is
+      green (`evidence/gate-post-merge.md`, its last section).

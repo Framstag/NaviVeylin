@@ -192,6 +192,11 @@ screen-observation seam, cross-variant parity and distribution.
   (the shared rounding), not metre by metre, and a template asset the host receives
   per rebuild (the lane-guidance image) is reused while its state is unchanged.
   A session restores a still-active free-driving mode **at most once**.
+- **Rule: a rejected trip update re-arms publishing** **MUST**: a rejected
+  `NavigationManager.updateTrip` MUST NOT end the navigation period by itself — the refused content counts as
+  delivered, so the next changed trip is sent again, and at most three consecutive refusals (a run with no
+  accepted send in between) are spent before publishing stops until the next navigation start
+  (spec: `car-host-fault-isolation` — A rejected trip update re-arms publishing within a retry budget).
 ## 8b. The screen-observation seam, cross-variant parity and distribution
 
 - **Rule: a car screen's shared-state observations are scoped to its started period** **MUST**: a car screen's shared-state observations are scoped to its **started

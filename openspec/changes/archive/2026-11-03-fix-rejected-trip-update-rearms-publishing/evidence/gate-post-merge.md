@@ -38,7 +38,8 @@ focused cases the change's record carries still stand beside this run.
 ## The run after task 6.2's case and scenario
 
 Task 6.2 adds one case to `NavigationManagerControllerTest` and one scenario to the delta and the merged
-capability, so the gate was run once more over the final tree (`2026-11-03T20:04Z`):
+capability, so the gate was run once more over the final tree (the run's tallies are stamped
+`2026-11-03T19:58:42Z`–`19:58:56Z`):
 
 ```
 LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 308s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)
@@ -47,3 +48,18 @@ LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsO
 Its compiled-step tally is `gate-final-gradlew-test.xml` (`tests="0" failures="0" errors="0" time="308"`,
 system-out `BUILD SUCCESSFUL in 5m 7s`, 18 executed, `--no-build-cache`); the earlier run's tallies above stand
 as the record of the merge itself.
+
+## The run over the final tree, after the guideline rule
+
+The final pass also states the bound where the guideline owns it (`guidelines/DesignCrossVariant.md` §8a,
+"Rule: a rejected trip update re-arms publishing"), which moves that section's measured cost from 10.5 kB to
+11.0 kB and so updates both `AGENTS.md` routing rows that price it. That is a documentation delta, and its
+checks are `tools/check-doc-routes.sh` (329 references resolve) and its 34-case self-test; the whole gate was
+run once more anyway, over the tree as it now stands (`2026-11-03T20:12Z`):
+
+```
+LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 530s, bash tools/gen-feature-list.sh --check-classification 15s, tools/check-doc-routes.sh 4s, tools/check-doc-routes-selftest.sh 18s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 3s, tools/check-openspec-hygiene.sh 1s, tools/check-openspec-hygiene-selftest.sh 0s)
+```
+
+Tally: `gate-final-tree-gradlew-test.xml` (`tests="0" failures="0" errors="0" time="530"`, `BUILD SUCCESSFUL in
+8m 49s`, 18 executed, `--no-build-cache`).

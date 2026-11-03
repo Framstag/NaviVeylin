@@ -1,0 +1,6 @@
+# red case on base 55b5d658, before tools/check-sonar-workflow.sh gained the assertion
+# command: bash tools/check-sonar-workflow-selftest.sh --case sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag
+# taken: 2026-11-03T07:04:15Z
+FAIL: sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag (expected exit 1, got 0)
+       sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
+# exit: 1

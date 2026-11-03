@@ -91,6 +91,21 @@ permanently stop a car map's frame pipeline or detach it from the state it consu
   the capability's "A rejected trip update re-arms publishing within a retry budget" requirement
 - **Case**: `auto: NavigationManagerControllerTest.aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget`
 
+#### Scenario: Host navigation start is rejected
+
+- **WHEN** the host rejects the navigation start (no callback set, an already-started session)
+- **THEN** the failure is logged, the controller stays not navigating, no trip is published to the host that
+  refused the session, and the process keeps running
+- **Case**: `auto: NavigationManagerControllerTest.aRejectedNavigationStartLeavesTheControllerNotPublishing`
+
+#### Scenario: Host navigation end is rejected
+
+- **WHEN** the host rejects the navigation end or the callback removal because it still considers the app
+  navigating
+- **THEN** both calls are still attempted, each failure is logged, and no fault escapes into the session's
+  lifecycle handling
+- **Case**: `auto: NavigationManagerControllerTest.aRejectedNavigationEndDoesNotEscape`
+
 #### Scenario: Rendering a car frame fails
 
 - **WHEN** locking or drawing the car surface throws

@@ -74,3 +74,43 @@ scenario.
       and why (no `emulator` binary on `PATH`, no attached device, no deterministic rebind recipe) — stated in
       `design.md`, "Not taken: the AAOS measurement the decision recommended". Verify: the section names the
       commands that were checked and claims no device evidence.
+
+## 5. Correction round 2 (the bound is consecutive refusals, and the modified scenario's `WHEN`)
+
+Review round 1 refused the change on two findings, both wording and mapping: the merged contract and both
+KDocs bounded a *navigation period* while the code bounds a *run of consecutive refusals* (`rejectedUpdates = 0`
+on every delivered send, `NavigationManagerController.kt:142`), and the modified *Host navigation call rejected*
+scenario kept a `WHEN` (`a host navigation-state call is rejected`) broader than the trip update its named case
+exercises. No new claim, case or assertion.
+
+- [x] 5.1 Narrow the bound to consecutive refusals in the merged requirement and the three KDocs that restate
+      it. Verify: `grep -in 'consecutive' openspec/specs/car-host-fault-isolation/spec.md
+      auto/src/main/java/com/naviveylin/auto/NavigationManagerController.kt` names the requirement sentence
+      (`spec.md:476`), the class KDoc (`:32`), the `publishTrip` KDoc (`:114`) and the
+      `MAX_REJECTED_TRIP_UPDATES` KDoc (`:169`, "Consecutive", the reason the grep is case-insensitive), and a
+      `grep -n 'refusals before publishing\|one period has spent'` over both files finds no surviving
+      per-period claim, and the proposal's *attempt budget* bullet says "three consecutive refusals (a successful
+      send ends the run)" instead of "per navigation period", so no record still states the rejected bound. The delta's own copy of the requirement carries the same sentence
+      (`specs/car-host-fault-isolation/spec.md:7-11`), so the archive's record matches the merged spec.
+- [x] 5.2 Narrow the modified scenario's `WHEN` to a rejected trip update, in the merged spec and the delta
+      (`:59-63`), so the case the `**Case**:` line names exercises it. Verify: the scenario reads
+      *"a host trip update is rejected because the host's navigation session is no longer active"*, and
+      `NavigationManagerControllerTest.aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget` sends trip
+      updates only (`verify(exactly = 3) { nm.updateTrip(any()) }`).
+- [x] 5.3 Re-run the focused cases after the KDoc edits, so the green side is post-correction. Verify:
+      `./gradlew :auto:testDebugUnitTest -PforceTests -PjvmTestsOnly --tests
+      'com.naviveylin.auto.NavigationManagerController*'` → `BUILD SUCCESSFUL in 11s`,
+      `NavigationManagerControllerTest` JUnit `tests=11 failures=0 errors=0` at `2026-11-03T12:34:05.152Z`
+      (`evidence/green-round2-controller-cases.xml`) and `NavigationManagerControllerTripTest` `tests=9
+      failures=0 errors=0` at `2026-11-03T12:34:10.373Z` (`evidence/green-round2-controller-trip-cases.xml`).
+- [x] 5.4 Run the gate once for this round, against the same base, and attribute its one failing step. Verify:
+      the gate line (quoted verbatim in `evidence/gate-round2-attribution.md`) is green on this change's
+      paths — the compiled step, `tools/check-doc-routes.sh`, its self-test, `tools/check-todo-references.sh`,
+      both `tools/check-openspec-hygiene.sh` checks and the mutation list — and its single red step,
+      `bash tools/gen-feature-list.sh --check-classification`, is attributed there: two unclassified ids that
+      are other open changes' deltas (`car-reroute-without-losing-the-map`, `separate-tooling-test-code`) and
+      three stale entries the run's base already carries
+      (`git show 4367cb4d:tools/feature-list/specs.json` → `3` keys, the base's `openspec/specs/` → `0` of
+      those ids), so the step is red before this work and red after it, on paths this change does not edit.
+      This change's own capability row is `tools/feature-list/specs.json:49`. This task ends the worker's
+      session; the archive is the tail worker's.

@@ -74,8 +74,9 @@ repeats 11 shipped scenarios; 10 carry `**Case**: none — …` because this cha
   delivered for the change throttle (`lastPublishedState = state`) and increments a rejection counter, so the
   next *changed* trip content is sent again — the re-arm — while content the host already refused is not
   resent.
-- **The re-arm is bounded by an attempt budget, not a clock.** `MAX_REJECTED_TRIP_UPDATES = 3` per navigation
-  period: the fourth rejection is not attempted, and from the third the controller does what it does today —
+- **The re-arm is bounded by an attempt budget, not a clock.** `MAX_REJECTED_TRIP_UPDATES = 3` consecutive
+  refusals (a successful send ends the run): the fourth rejection of a run is not attempted, and from the third
+  the controller does what it does today —
   logs and sets `navigating = false` until the next `onNavigationStarted`. A dead host therefore receives at
   most three refused sends per period, not one per position fix, and `onNavigationStarted` resets the budget.
 - **The log line says which half fired**: "re-arming for the next changed trip" below the budget, "the budget

@@ -5,9 +5,10 @@
 ### Requirement: A rejected trip update re-arms publishing within a retry budget
 
 A rejected `NavigationManager.updateTrip` SHALL NOT by itself end trip publishing for the rest of the
-navigation period: the controller SHALL re-arm the send so the next changed trip content is sent again. A
-navigation period SHALL spend at most three rejected trip updates before it stops publishing until the next
-navigation start, and a rejected update SHALL NOT be resent for trip content the host already refused.
+navigation period: the controller SHALL re-arm the send so the next changed trip content is sent again. At
+most three consecutive rejected trip updates — a run with no accepted send in between — SHALL be spent before
+publishing stops until the next navigation start, and a rejected update SHALL NOT be resent for trip content
+the host already refused.
 
 #### Scenario: A transient rejection re-arms on the next changed trip
 
@@ -23,7 +24,8 @@ navigation start, and a rejected update SHALL NOT be resent for trip content the
 
 #### Scenario: The retry budget bounds a host that keeps rejecting
 
-- **WHEN** three trip updates in one navigation period have been rejected
+- **WHEN** three consecutive trip updates in one navigation period have been rejected, with no accepted send
+  in between
 - **THEN** no further trip update is sent until the next navigation start
 - **Case**: `auto: NavigationManagerControllerTest.aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget`
 
@@ -56,8 +58,8 @@ permanently stop a car map's frame pipeline or detach it from the state it consu
 
 #### Scenario: Host navigation call rejected
 
-- **WHEN** a host navigation-state call is rejected because the host's navigation session is no longer active
-- **THEN** the app logs it and keeps running, and a rejected trip update re-arms publishing under
+- **WHEN** a host trip update is rejected because the host's navigation session is no longer active
+- **THEN** the app logs it and keeps running, and the rejected trip update re-arms publishing under
   the capability's "A rejected trip update re-arms publishing within a retry budget" requirement
 - **Case**: `auto: NavigationManagerControllerTest.aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget`
 

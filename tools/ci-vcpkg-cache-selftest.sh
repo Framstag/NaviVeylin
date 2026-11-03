@@ -77,6 +77,14 @@ expect vcpkg-cache#aMissingClientIsReported 1 "the NuGet client $tmp/none/nuget 
   "a client that does not exist is named rather than surfacing as a shell error" \
   bash "$probe" --probe --nuget "$tmp/none/nuget" --source "https://example.test/index.json"
 
+# A client that rejected the probe's own arguments also exits non-zero, and reading that as a dead feed is how the
+# first version of this probe switched the cache off on a runner where it worked (issue #761). The diagnostic is
+# the first line that names a cause, not the last: every failure ends in a stack frame.
+usage_client=$(stub "$tmp/usage" usage 1 "Unknown option: -Take")
+expect vcpkg-cache#aRejectedArgumentIsNotReadAsADeadFeed 1 "did not answer (1): Unknown option: -Take" \
+  "a client rejecting the probe's arguments is reported with that line, not as a dead feed" \
+  bash "$probe" --probe --nuget "$usage_client" --source "https://example.test/index.json"
+
 # The client's message is quoted, so a token in it would be logged. No case here can invent a real token; this
 # asserts the shape the probe prints — no credential, no coordinate pair.
 leak_check() {

@@ -71,8 +71,11 @@ fi
 
 # ── the question the cache asks ──────────────────────────────────────────────────────────────────────────────
 # `list` resolves the source's service index, which is the request that fails when the transport is broken; it
-# needs no package name and no token beyond the source's configured credential.
-args=(list -Source "$source_url" -Take 1 -NonInteractive)
+# needs no package name and no token beyond the source's configured credential. Its arguments are the ones the
+# client has: `-Take` belongs to `search`, not to `list`, and the first version of this probe passed it and read
+# the client's "Unknown option" crash as a dead feed — so the install ran with the cache switched off on a runner
+# where the cache worked (issue #761's own run, measured 2026-11-03).
+args=(list -Source "$source_url" -NonInteractive)
 config="${HOME:-/nonexistent}/.config/NuGet/NuGet.Config"
 [ -f "$config" ] && args+=(-ConfigFile "$config")
 
@@ -86,10 +89,12 @@ if [ "$rc" -eq 0 ]; then
   exit 0
 fi
 
-# The client's own last words, one line, because the exception's first line is the one that names the cause
-# ("The SSL connection could not be established") and the stack below it is noise in a job log.
-last=$(grep -v '^[[:space:]]*$' "$tmp/out" 2>/dev/null | tail -n 1 | cut -c1-200)
-[ -n "$last" ] || last="the client exited $rc with no message"
+# The client's message, one line. `-Take`-style argument errors and transport failures both end in a stack frame,
+# so the last line is not the diagnostic: the first line that names a cause is, and a client that rejected its
+# arguments is reported as exactly that rather than as a dead feed.
+diag=$(grep -viE '^[[:space:]]*$' "$tmp/out" 2>/dev/null | grep -iE 'unknown option|unrecognized|usage:|Unable to load|exception|error|could not be established' | head -n 1 | cut -c1-200)
+[ -n "$diag" ] || diag=$(grep -v '^[[:space:]]*$' "$tmp/out" 2>/dev/null | head -n 1 | cut -c1-200)
+[ -n "$diag" ] || diag="the client exited $rc with no message"
 printf '::warning::ci-vcpkg-cache: the feed %s did not answer (%s): %s — the install runs with VCPKG_BINARY_SOURCES=clear, so every port builds from source and nothing is pushed; %s\n' \
-  "$source_url" "$rc" "$last" "$COST" >&2
+  "$source_url" "$rc" "$diag" "$COST" >&2
 exit 1

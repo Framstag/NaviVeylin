@@ -1,58 +1,22 @@
-# gate run 2026-11-03T19:07:55Z
+# gate run 2026-11-03T21:28:28Z
 # command: ./tools/loop/gate.sh
-LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/vcpkg/tools/loop/loop.conf
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/probe/tools/loop/loop.conf
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
-gate: tools/loop-selftest.sh --from-git 9e3ed182a1387e56da1ca87c19b66cce2e4cdda7
-gate: tools/loop-selftest.sh --from-git 9e3ed182a1387e56da1ca87c19b66cce2e4cdda7 — 375s
-gate: bash tools/loop-mutations.sh --check
-gate: bash tools/loop-mutations.sh --check — 2s
-gate: tools/sensor-selftest.sh
-gate: tools/sensor-selftest.sh — 63s
-gate: tools/sensor-mutations.sh --list
-gate: tools/sensor-mutations.sh --list — 1s
-gate: tools/check-action-runtimes.sh
-gate: tools/check-action-runtimes.sh — 0s
-gate: tools/check-action-runtimes-selftest.sh
-gate: tools/check-action-runtimes-selftest.sh — 0s
 gate: bash tools/gen-feature-list.sh --check-classification
-gate: bash tools/gen-feature-list.sh --check-classification — 3s
+gate: bash tools/gen-feature-list.sh --check-classification — 4s
 gate: tools/check-doc-routes.sh
 gate: tools/check-doc-routes.sh — 1s
 gate: tools/check-doc-routes-selftest.sh
 gate: tools/check-doc-routes-selftest.sh — 8s
 gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
-gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list — 1s
 gate: tools/check-todo-references.sh
 gate: tools/check-todo-references.sh — 1s
 gate: tools/check-openspec-hygiene.sh
 gate: tools/check-openspec-hygiene.sh — 0s
 gate: tools/check-openspec-hygiene-selftest.sh
 gate: tools/check-openspec-hygiene-selftest.sh — 0s
-gate: tools/check-portability.sh
-gate: tools/check-portability.sh — 1s
-gate: tools/check-portability-selftest.sh
-gate: tools/check-portability-selftest.sh — 23s
-gate: tools/mutate-selftest.sh
-gate: tools/mutate-selftest.sh — 0s
-gate: tools/mutate.sh --mutations tools/portability-mutations.json --list
-gate: tools/mutate.sh --mutations tools/portability-mutations.json --list — 0s
-gate: tools/issue-tooling-selftest.sh
-gate: tools/issue-tooling-selftest.sh — 91s
-gate: tools/mutate.sh --mutations tools/status-mutations.json --list
-gate: tools/mutate.sh --mutations tools/status-mutations.json --list — 0s
-gate: tools/mutate.sh --mutations tools/create-mutations.json --list
-gate: tools/mutate.sh --mutations tools/create-mutations.json --list — 0s
-gate: tools/mutate.sh --mutations tools/close-mutations.json --list
-gate: tools/mutate.sh --mutations tools/close-mutations.json --list — 0s
-gate: tools/mutate.sh --mutations tools/duplicates-mutations.json --list
-gate: tools/mutate.sh --mutations tools/duplicates-mutations.json --list — 0s
-gate: tools/mutate.sh --mutations tools/decision-question-mutations.json --list
-gate: tools/mutate.sh --mutations tools/decision-question-mutations.json --list — 1s
-gate: tools/check-sonar-workflow.sh
-gate: tools/check-sonar-workflow.sh — 0s
-gate: tools/check-sonar-workflow-selftest.sh
-gate: tools/check-sonar-workflow-selftest.sh — 0s
 gate: tools/ci-vcpkg-cache-selftest.sh
 gate: tools/ci-vcpkg-cache-selftest.sh — 0s
-LOOP-GATE: tests=864 failures=0 errors=0 (tools/loop-selftest.sh --from-git 9e3ed182a1387e56da1ca87c19b66cce2e4cdda7 375s, bash tools/loop-mutations.sh --check 2s, tools/sensor-selftest.sh 63s, tools/sensor-mutations.sh --list 1s, tools/check-action-runtimes.sh 0s, tools/check-action-runtimes-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 23s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 91s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 1s, tools/check-sonar-workflow.sh 0s, tools/check-sonar-workflow-selftest.sh 0s, tools/ci-vcpkg-cache-selftest.sh 0s)
+LOOP-GATE: tests=48 failures=0 errors=0 (bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/ci-vcpkg-cache-selftest.sh 0s)
 # exit=0

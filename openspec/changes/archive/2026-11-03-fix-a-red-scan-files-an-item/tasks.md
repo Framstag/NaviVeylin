@@ -102,13 +102,14 @@ touched paths owe. No Gradle task, no device, no emulator.
       `tests=6 failures=6`) and `evidence/red-on-pre-correction.log` (the corrections' cases red on `18748b88`,
       the revision review round 1 read).
 - [x] 7.2 Run the focused suites for the touched pathspec, then the project's gate (`./tools/loop/gate.sh`),
-      copying the suites' tallies it writes into this change's `evidence/gate/`. It ran twice: once after the
-      code and case corrections (227 s), once after the documents and evidence those corrections changed
-      (315 s, the run `evidence/gate.txt` quotes), because the delta's tasks, the spec ids the classification
-      reads and the hygiene check are gate inputs. Verification: the verdict line reports no failure and no
-      error over 28 suites, and the 28 per-suite tallies under `evidence/gate/` are the ones that line sums.
+      copying the suites' tallies it writes into this change's `evidence/gate/`. It ran three times, on three
+      trees: after the code and case corrections (227 s), after the documents and evidence those corrections
+      changed (315 s), and on the merged tree that lands (206 s, `--base 47ec83e5`, the run `evidence/gate.txt`
+      quotes) — the last alone describes the tree a reader can check out. Verification: the verdict line
+      reports no failure and no error over 28 suites, and the 28 per-suite tallies under `evidence/gate/` are
+      the ones that line sums.
 - [x] 7.3 Quote `./tools/loop/measure.sh --change 2026-11-03-fix-a-red-scan-files-an-item`'s `LOOP-MEASURE` block
-      into the change's evidence rather than re-deriving a number by hand: `LOOP-MEASURE-GATE seconds=315
+      into the change's evidence rather than re-deriving a number by hand: `LOOP-MEASURE-GATE seconds=206
       suites=28`, `LOOP-MEASURE-CHANGE … scenarios=5 cases=5 unnamed=0` (`evidence/gate.txt`).
 
 ## 8. Review round 1's corrections

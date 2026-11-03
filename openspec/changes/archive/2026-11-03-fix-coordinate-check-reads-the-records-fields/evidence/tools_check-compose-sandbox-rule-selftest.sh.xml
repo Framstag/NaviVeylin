@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-compose-sandbox-rule-selftest.sh" tests="0" failures="0" errors="0" time="0">
+  <system-out>ok: a Compose class without the rule fails ok: the rule without @get:Rule(order = 0) fails ok: a tree without a Compose test class passes</system-out>
+</testsuite>

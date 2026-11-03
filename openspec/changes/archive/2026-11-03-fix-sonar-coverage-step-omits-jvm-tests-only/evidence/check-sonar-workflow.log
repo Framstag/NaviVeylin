@@ -1,0 +1,5 @@
+# the assertion this change adds, read against the tree it lands in
+# command: bash tools/check-sonar-workflow.sh
+# taken: 2026-11-03T07:04:56Z
+sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
+# exit: 0

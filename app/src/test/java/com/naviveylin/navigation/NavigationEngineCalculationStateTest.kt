@@ -24,6 +24,8 @@ import com.naviveylin.core.EngineDispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import com.naviveylin.test.engineUnderTest
+import com.naviveylin.test.coordinateShapedToken
+import com.naviveylin.test.recordFields
 
 /**
  * The in-flight route calculation in the shared state
@@ -227,8 +229,24 @@ class NavigationEngineCalculationStateTest {
         assertTrue(entry, entry.contains("outcome=ok"))
         assertTrue(entry, entry.contains("duration="))
         assertTrue("the reported progress count reaches the entry", entry.contains("percents=2"))
-        assertFalse("no coordinate precision in the entry", entry.contains("52.5"))
-        assertFalse("no coordinate precision in the entry", entry.contains("13.4"))
+        // The record's own fields decide coordinate-freedom, never the whole line (issue #728): the reader
+        // prefixes every line with `[yyyy-MM-dd HH:mm:ss.SSS]`, whose `ss.SSS` field reads `13.412` at second
+        // `:13`, and the record carries its own measurements — a clock reading a whole-line substring check
+        // reads as a coordinate, so the case's answer was decided by when it happened to run.
+        val record = recordFields(entry, calcDone)
+        assertEquals(
+            "the record carries the calculation's own fields, and a position is not one of them: $entry",
+            setOf("source", "duration", "percents", "outcome", "reachedPct", "reason", "nearestRoadM"),
+            record.keys
+        )
+        assertFalse(
+            "no field of the record is coordinate-shaped: $entry",
+            record.values.any { coordinateShapedToken.matches(it) }
+        )
+        assertTrue(
+            "the duration is a whole number of milliseconds, so it cannot read as a position: $entry",
+            record.getValue("duration").matches(Regex("""\d+ms"""))
+        )
         // Only the line this case's own subject wrote decides it (issue #115): the file is the process-wide
         // sink, so a line another class logs while this case holds it is not the calculation's record.
         DiagnosticsLog.log("OTHER", "a line another class logged into this file: lat=52.520008 lon=13.404954")

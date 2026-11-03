@@ -1,0 +1,19 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=55b5d658f079ada3764ca4c737af8e53dd23e528 paths=4 insertions=54 deletions=2
+LOOP-MEASURE-PATH .github/workflows/sonar.yml
+LOOP-MEASURE-PATH guidelines/Build.md
+LOOP-MEASURE-PATH tools/check-sonar-workflow-selftest.sh
+LOOP-MEASURE-PATH tools/check-sonar-workflow.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-sonar-workflow.sh
+LOOP-MEASURE-CHECK tools/check-sonar-workflow-selftest.sh
+LOOP-MEASURE-SUITE cases=308 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-sonar-coverage-step-omits-jvm-tests-only scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-SURFACE surface: 2 workflow lines edited, 1 guideline row edited, 1 assertion added, 1 case added, 0 fixtures realigned — `grep -n '\./gradlew' .github/workflows/sonar.yml; grep -rn 'runs exactly these steps' guidelines/; grep -rn 'koverXmlReport' tools/*.sh`
+LOOP-MEASURE-END

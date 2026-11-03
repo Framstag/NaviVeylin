@@ -185,9 +185,19 @@ free_mib=$(host_free_mib)
 # could not be merged" — the real cause never named (issue #241, measured 2026-10-21: five refused
 # fast-forwards, `git config --get core.bare` → `true`, `git rev-parse --is-inside-work-tree` → `false`, and one
 # `git config core.bare false` fixed all of it). The run refuses before it writes anything, and says what to do.
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s item-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
+# A role that runs on a command of its own is named in the header, because a run that spends a different model
+# on part of its work is not the same run as one that does not, and nothing else in the run's own line would say
+# so (`LOOP_AGENT_CMD_<ROLE>` in loop.conf). `-` is the ordinary case: every child through `LOOP_AGENT_CMD`.
+agent_roles="-"
+for role in WORKER WORKER_TAIL REVIEWER; do
+  role_value=$(loop_conf_value "LOOP_AGENT_CMD_$role")
+  [ -n "$(printf '%s' "$role_value" | tr -d '[:space:]')" ] || continue
+  if [ "$agent_roles" = "-" ]; then agent_roles=$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-');
+  else agent_roles="$agent_roles,$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-')"; fi
+done
+printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s item-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
   "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$item_turns_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
+  "$read_only" "$strict_outside_write" "$child_max" "$item_turns_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -1109,6 +1119,20 @@ child_turns() { # child_turns <events file> → the `turn_end` lines it holds
 # base — never from the child's own claim, which only exists once it is over. `fmt_elapsed` and the `progress`
 # line the run's own phases use live in `lib.sh`, so a phase line and a child's line agree on what an elapsed
 # time looks like (issue #191).
+
+# Which role a child plays, derived from the prompt's name — the same three the fixture stub distinguishes
+# (`worker`, `worker-tail`, `reviewer`) and the naming `phase` already carries. The role names a configuration
+# key (`LOOP_AGENT_CMD_<ROLE>`), so a prompt file renamed for a round or a retry cannot move a child to another
+# command: `reviewer-prompt-2-retry.md` and `reviewer-prompt-1.md` are both `reviewer`.
+child_role() { # child_role <prompt-file> → worker | worker-tail | reviewer | <the name itself>
+  case "${1##*/}" in
+    *-tail*) printf 'worker-tail' ;;
+    reviewer-*) printf 'reviewer' ;;
+    worker-*) printf 'worker' ;;
+    *) printf '%s' "$(basename "$1" .md)" ;;
+  esac
+}
+
 run_child() { # run_child <prompt-file> <report-file> — every child goes through LOOP_AGENT_CMD (D3)
   # The child is bounded by the recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 2700 = 45 min) and not
   # only by the run's `--minutes`: the deadline is consulted between items, so a child that never returns
@@ -1121,12 +1145,24 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns
+  local before after rc phase child_cmd role_key role_cmd stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
   before=$(project_state)
   phase=$(basename "$1" .md)
+  # Which command starts this child — the same one indirection, one step finer. A role whose key the project
+  # recorded runs its children through it (`LOOP_AGENT_CMD_REVIEWER`, say) and every other role keeps the single
+  # `LOOP_AGENT_CMD`; the key is derived from the prompt's name by `child_role`, so the mapping is mechanical and
+  # a project that wants one command for everything sets nothing (the keys are empty in this project's
+  # `loop.conf`). What it buys is the difference the transcript already measures: over 227 items (2026-11-03,
+  # `tools/loop-spend.py --json`) the reviewer's 7 522 turns carry 53.6 k tokens each against the worker's 84.5 k
+  # at 25 654 turns, and the reviewer's job is a diff against the item's own checklist. Which model a role runs on
+  # is a value this project records, not a fact the engine knows: no script under `tools/loop/` names a model.
+  child_cmd="$LOOP_AGENT_CMD"
+  role_key="LOOP_AGENT_CMD_$(child_role "$1" | tr '[:lower:]-' '[:upper:]_')"
+  role_cmd=$(loop_conf_value "$role_key")
+  if [ -n "$(printf '%s' "$role_cmd" | tr -d '[:space:]')" ]; then child_cmd="$role_cmd"; fi
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
   # carries no other child's test results (issue #253). The **tail** child is the exception and is why this line is
   # not a `worker*` glob (issue #744): it is started *after* the gate wrote those results because the archive it
@@ -1166,7 +1202,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # closed because a member of a background group that reads a terminal is stopped, not run, and an unattended
   # child has nobody to type at it anyway.
   set -m
-  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1"; printf '%s\n' "$?" > "$2.status" ) > "$2" 2>&1 < /dev/null &
+  ( cd "$LOOP_ROOT" && $child_cmd "$1"; printf '%s\n' "$?" > "$2.status" ) > "$2" 2>&1 < /dev/null &
   child=$!
   active_child="$child"
   set +m

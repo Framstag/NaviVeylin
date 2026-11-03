@@ -110,6 +110,7 @@ jobs:
       # reproducible by hand. It compiles exactly the source sets that are in scope — which is also what
       # `sonar.java.binaries` needs — and executes the coverage agent the two report steps below read.
       - name: Run unit tests
+        id: tests
         run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" test -PforceTests -PjvmTestsOnly --no-build-cache
 
       # One report per module, one provenance for the Java module: the root merged Kover report is not
@@ -124,12 +125,48 @@ jobs:
       # before the scanner. The report tasks only read what the step above measured, and the toggle refuses a
       # packaging invocation only.
       - name: Generate coverage reports
+        id: coverage
         run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport -PjvmTestsOnly
 
       # The scan itself: the token is the only credential and `sonar-project.properties` is the whole
       # configuration. The step carries no error-swallowing wrapper, so a refused token, an unreachable server
       # or a configuration the scanner cannot read fails this run.
       - name: Scan
+        id: scan
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # The scan's own outcome, written for every run and published as the artifact the checks' pipeline
+      # fetches. Without it a scan that has never once succeeded is indistinguishable from a healthy one: three
+      # failed scans of `main` filed no item of any kind (issue #751). `tools/build-inputs.sh` is the one place
+      # that knows the path, so this record and the `broken-scan` row that reads it cannot drift apart — and the
+      # write lives here, in the pipeline that holds the scanner credential, never in the pipeline that holds
+      # the tracker's (`tools/check-sonar-workflow.sh` holds the boundary between them).
+      - name: Write the scan's result record
+        if: always()
+        env:
+          # The run's conclusion, then each step that can fail, in the order they ran. The first that neither
+          # succeeded nor was skipped is the cause the item is filed under; a step that never ran has no
+          # outcome and is not a cause.
+          SCAN_STATUS: ${{ job.status }}
+          SCAN_STEPS: >-
+            [{"id":"Run unit tests","command":"./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache","outcome":"${{ steps.tests.outcome }}"},
+             {"id":"Generate coverage reports","command":"./gradlew :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport -PjvmTestsOnly","outcome":"${{ steps.coverage.outcome }}"},
+             {"id":"Scan","command":"SonarSource/sonarqube-scan-action@v7","outcome":"${{ steps.scan.outcome }}"}]
+        run: bash tools/build-inputs.sh --scan-result --status "$SCAN_STATUS" --steps "$SCAN_STEPS"
+
+      # `if: always()` for the same reason the record is written for every run: a *failed* scan is exactly when
+      # the checks' pipeline needs it. `if-no-files-found: error` because an upload that carries nothing is the
+      # defect this step exists for, and a green run with no record must be red here rather than silent.
+      # The path is the workspace root because `upload-artifact` roots a single explicit file at its own
+      # directory: a record under `app/build/` would be carried as `scan-result.json` and unpacked at the
+      # workspace root anyway, so the row declares the path the upload root can actually carry
+      # (`tools/build-inputs.sh`, `scan_result`; issue #751).
+      - name: Publish the scan's record
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: scan-inputs
+          path: scan-result.json
+          if-no-files-found: error

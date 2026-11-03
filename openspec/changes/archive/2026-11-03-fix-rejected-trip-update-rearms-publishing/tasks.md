@@ -114,3 +114,18 @@ exercises. No new claim, case or assertion.
       those ids), so the step is red before this work and red after it, on paths this change does not edit.
       This change's own capability row is `tools/feature-list/specs.json:49`. This task ends the worker's
       session; the archive is the tail worker's.
+
+## 6. After the base moved
+
+- [x] 6.1 Merge the moved base into the item branch and re-run the gate, so the round-2 red step is answered
+      rather than attributed. Base: `main` = `e63f6b45`, whose `00bdd407` classified the two delta spec ids the
+      round-2 gate reported (`auto/off-route-indicator`, `tooling-test-layout`) in
+      `tools/feature-list/specs.json`. Verify: `bash tools/loop/gate.sh --base main` reads
+      `LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+      514s, …)`, quoted verbatim in `evidence/gate-post-merge.md`, with the tallies
+      `evidence/gate-post-merge-gradlew-test.xml` (`tests="0" failures="0" errors="0" time="514"`, `BUILD
+      SUCCESSFUL in 8m 34s`, 148 executed, `--no-build-cache`) and
+      `evidence/gate-post-merge-gen-feature-list.xml` (`tests="0" failures="0"`, system-out `stale: 5 car-only
+      areas: 1 highlights: 19`). The merge touches none of this change's paths: `git diff --name-only
+      4367cb4d..e63f6b45` lists `tools/feature-list/specs.json`, `tools/loop/**`, two `app/src/test` files and
+      `openspec/specs/unit-test-suite-runtime/spec.md`.

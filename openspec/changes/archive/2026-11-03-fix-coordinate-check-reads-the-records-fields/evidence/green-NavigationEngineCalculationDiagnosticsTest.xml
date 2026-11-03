@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-03T12:51:29.818Z" hostname="dingens" time="0.029">
+  <properties/>
+  <testcase name="noCoordinatesInTheEntry" classname="com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest" time="0.024"/>
+  <testcase name="entryOnAFailedCalculation" classname="com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest" time="0.0"/>
+  <testcase name="anUnknownFailureStillNamesSomething" classname="com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest" time="0.0"/>
+  <testcase name="entryOnACancelledCalculation" classname="com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest" time="0.0"/>
+  <testcase name="aCalculationThatReportedNoProgressSaysSo" classname="com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest" time="0.0"/>
+  <testcase name="theReasonIsIdentifiableFromTheEntryAlone" classname="com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest" time="0.001"/>
+  <testcase name="entryOnASuccessfulCalculation" classname="com.naviveylin.navigation.NavigationEngineCalculationDiagnosticsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

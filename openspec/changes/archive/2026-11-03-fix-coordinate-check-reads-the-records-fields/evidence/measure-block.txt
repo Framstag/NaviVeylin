@@ -1,0 +1,54 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=55b5d658f079ada3764ca4c737af8e53dd23e528 paths=27 insertions=496 deletions=6
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/navigation/NavigationEngineCalculationStateTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/navigation/NavigationEngineRerouteTest.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/test/DiagnosticsRecords.kt
+LOOP-MEASURE-PATH .github/workflows/sonar.yml
+LOOP-MEASURE-PATH guidelines/Build.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/check-sonar-workflow.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/green-selftest.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/measure-block.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/tools_check-action-runtimes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/tools_check-action-runtimes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/tools_check-sonar-workflow-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/tools_check-sonar-workflow.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/specs/sonar-analysis/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-sonar-coverage-step-omits-jvm-tests-only/tasks.md
+LOOP-MEASURE-PATH openspec/specs/sonar-analysis/spec.md
+LOOP-MEASURE-PATH tools/check-sonar-workflow-selftest.sh
+LOOP-MEASURE-PATH tools/check-sonar-workflow.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/check-action-runtimes.sh
+LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-sonar-workflow.sh
+LOOP-MEASURE-CHECK tools/check-sonar-workflow-selftest.sh
+LOOP-MEASURE-SUITE cases=308 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-coordinate-check-reads-the-records-fields scenarios=3 cases=3 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-coordinate-check-reads-the-records-fields/evidence/green-NavigationEngineCalculationDiagnosticsTest.xml tests=7 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-coordinate-check-reads-the-records-fields/evidence/green-NavigationEngineCalculationStateTest.xml tests=6 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-coordinate-check-reads-the-records-fields/evidence/green-NavigationEngineRerouteTest.xml tests=17 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-coordinate-check-reads-the-records-fields/evidence/guard-mutation-NavigationEngineCalculationStateTest.xml tests=6 failures=1
+LOOP-MEASURE-TALLY openspec/changes/fix-coordinate-check-reads-the-records-fields/evidence/red-on-HEAD-NavigationEngineCalculationStateTest.xml tests=6 failures=1
+LOOP-MEASURE-TALLY openspec/changes/fix-coordinate-check-reads-the-records-fields/evidence/red-on-HEAD-NavigationEngineRerouteTest.xml tests=17 failures=0
+LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-END

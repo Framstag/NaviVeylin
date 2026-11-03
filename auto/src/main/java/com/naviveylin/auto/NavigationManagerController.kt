@@ -28,9 +28,9 @@ import com.naviveylin.core.NavigationState
  * rejects) trip updates outside an active navigation session. A rejected update
  * does not end the period by itself (spec: car-host-fault-isolation — "A
  * rejected trip update re-arms publishing within a retry budget"): the refused
- * content counts as delivered, so the next changed trip is sent again, and one
- * period spends at most [MAX_REJECTED_TRIP_UPDATES] refusals before publishing
- * stops until the next [onNavigationStarted].
+ * content counts as delivered, so the next changed trip is sent again, and
+ * [MAX_REJECTED_TRIP_UPDATES] consecutive refusals — a run with no accepted send in
+ * between — stop publishing until the next [onNavigationStarted].
  *
  * All methods are main-thread (the [NavigationManager] contract); the session
  * calls them from its main-thread observer.
@@ -111,9 +111,9 @@ class NavigationManagerController(
      * (spec: car-host-fault-isolation — "A rejected trip update re-arms publishing
      * within a retry budget"): the refused content counts as delivered, so the next
      * changed trip is sent again — guidance resumes for a host that accepts again —
-     * and once one period has spent [MAX_REJECTED_TRIP_UPDATES] refusals the
-     * controller treats the host session as ended and stops publishing until the next
-     * [onNavigationStarted].
+     * and once [MAX_REJECTED_TRIP_UPDATES] consecutive refusals have been spent, with
+     * no accepted send in between, the controller treats the host session as ended
+     * and stops publishing until the next [onNavigationStarted].
      */
     fun publishTrip(state: NavigationState, tripFor: (NavigationState) -> Trip?) {
         if (!navigating) return
@@ -166,9 +166,9 @@ class NavigationManagerController(
         private const val TAG = "NavigationManagerCtl"
 
         /**
-         * Refused trip updates one navigation period spends before it stops publishing
-         * (spec: car-host-fault-isolation — "A rejected trip update re-arms publishing
-         * within a retry budget").
+         * Consecutive refused trip updates spent before publishing stops — an accepted
+         * send ends the run and resets the count (spec: car-host-fault-isolation —
+         * "A rejected trip update re-arms publishing within a retry budget").
          */
         private const val MAX_REJECTED_TRIP_UPDATES = 3
 

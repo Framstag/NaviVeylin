@@ -116,8 +116,15 @@ jobs:
       # generated (its module-relative paths are the known breakage, design D4) and the vendored JaCoCo report
       # is not generated either (it measures the submodule, design D4). A report task that does not run is a
       # failed step here rather than a silent zero in the analysis.
+      #
+      # `-PjvmTestsOnly` again, for the same reason the test step carries it (guidelines/Build.md §3): the
+      # licence inventory is a variant asset source, so without the toggle this invocation's graph regains
+      # `generateLicenseAssets` → `generateSbom` → `mergeNativeSbom`, and `mergeNativeSbom` reads vcpkg's
+      # installed-status file at configuration time — a runner that never ran `./setup-vcpkg.sh` fails here,
+      # before the scanner. The report tasks only read what the step above measured, and the toggle refuses a
+      # packaging invocation only.
       - name: Generate coverage reports
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :koverXmlReport :app:koverXmlReport :auto:koverXmlReport :core:koverXmlReport :osmscout-client-java:jacocoTestReport -PjvmTestsOnly
 
       # The scan itself: the token is the only credential and `sonar-project.properties` is the whole
       # configuration. The step carries no error-swallowing wrapper, so a refused token, an unreachable server

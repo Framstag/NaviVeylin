@@ -171,6 +171,36 @@ else
       esac
     done < <(sed -n "${start},${end}p" "$wf" | grep -n 'continue-on-error' || true)
   fi
+
+  # ── the Gradle steps: a test or report graph carries the JVM-only toggle ────────────────────────────
+  # The licence inventory is a variant asset source (`app/build.gradle.kts`, spec `build-sbom`), so a unit-test
+  # graph carries `generateLicenseAssets` → `generateSbom` → `mergeNativeSbom`, and `mergeNativeSbom` reads
+  # vcpkg's installed-status file while it is configured. This workflow installs the Android SDK and never runs
+  # `./setup-vcpkg.sh`, so a Gradle step whose graph holds that chain fails at property evaluation: the scanner
+  # never runs and the project has no analysis at all (three red runs on `main` before this assertion existed).
+  # `-PjvmTestsOnly` takes the chain out of a test or report graph, and the toggle refuses only a packaging
+  # invocation (`JvmOnlyTestRun.refusalFor`), which no step here asks for. The report step reads what the test
+  # step wrote — that is why they are two steps, and why both carry the toggle.
+  while IFS=: read -r n cmdline; do
+    [ -n "${n:-}" ] || continue
+    case "${cmdline#"${cmdline%%[![:space:]]*}"}" in
+      '#'*) continue ;;   # a comment that explains the recipe is prose, not a step
+    esac
+    case "$cmdline" in
+      *-PjvmTestsOnly*) continue ;;
+    esac
+    for token in $cmdline; do
+      case "$token" in
+        -*|./gradlew) continue ;;
+      esac
+      name=${token##*:}
+      case "$name" in
+        *[Tt]est*|*[Kk]over*)
+          error "$wf_rel" "$n" "the Gradle step requests '$name' without -PjvmTestsOnly — a test or report graph then carries the licence inventory's mergeNativeSbom, which reads vcpkg's installed-status file at configuration time and fails this run before the scanner (guidelines/Build.md §3, spec sonar-analysis, 'The workflow's Gradle steps run a JVM-only graph')"
+          break ;;
+      esac
+    done
+  done < <(grep -n '\./gradlew' "$wf" || true)
 fi
 
 # ── the quality gate is never waited for ───────────────────────────────────────────────────────────

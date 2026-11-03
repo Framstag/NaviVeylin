@@ -11,6 +11,8 @@
 #   sonar-workflow#theVendoredReportIsNotListed       a vendored coverage report reddens the check
 #   sonar-workflow#theGateIsNotWaitedFor              a gate-wait property reddens the check
 #   sonar-workflow#theScanStepIsNotContinueOnError    an error-swallowing scan step reddens the check
+#   sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag a Gradle test/report step without -PjvmTestsOnly reddens
+#                                                    the check
 #
 # The fixtures are the repository's own two files, copied into a temporary tree per case — no build, no device,
 # no network, and no fixture in the repository to keep in step with them.
@@ -44,6 +46,7 @@ cases=(
   'sonar-workflow#theVendoredReportIsNotListed'
   'sonar-workflow#theGateIsNotWaitedFor'
   'sonar-workflow#theScanStepIsNotContinueOnError'
+  'sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag'
 )
 
 if [ "$list" -eq 1 ]; then
@@ -153,6 +156,18 @@ run_case() {
       fresh
       sed -i 's/^\( *\)uses: SonarSource\/sonarqube-scan-action@v7$/\1uses: SonarSource\/sonarqube-scan-action@v7\n\1continue-on-error: true/' "$tmp/$wf_rel"
       check_fails "$1" "$wf_rel" "'continue-on-error' on the scan step" ;;
+    'sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag')
+      # The report step re-configures the graph the test step configured: without the toggle that graph carries
+      # the licence inventory's mergeNativeSbom, which reads vcpkg's installed-status file at configuration time
+      # and fails a runner that never ran ./setup-vcpkg.sh, before the scanner runs.
+      fresh
+      plant "$wf_rel" 's/^( *run: .*\.\/gradlew.*) -PjvmTestsOnly(.*)$/\1\2/'
+      check_fails "$1" "$wf_rel" "without -PjvmTestsOnly" || return 1
+      # …and the assertion is about the flag, not about which report tasks a step names: dropping one leaves the
+      # step with the toggle and the check green.
+      fresh
+      plant "$wf_rel" 's/ :app:koverXmlReport//'
+      check_passes "$1" ;;
     *) echo "check-sonar-workflow-selftest: unknown case '$1'" >&2; exit 2 ;;
   esac
   echo "ok: $1"

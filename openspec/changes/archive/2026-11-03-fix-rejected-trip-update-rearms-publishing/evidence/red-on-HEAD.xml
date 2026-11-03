@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationManagerControllerTest" tests="11" skipped="0" failures="3" errors="0" timestamp="2026-11-03T12:21:34.340Z" hostname="dingens" time="4.309">
+  <properties/>
+  <testcase name="aTransientTripRejectionRearmsPublishing" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="3.988">
+    <failure message="java.lang.AssertionError: Verification failed: call 1 of 1: NavigationManager(#1).updateTrip(any())). One matching call found, but needs at least 2 and at most 2 calls&#10;Call: NavigationManager(#1).setNavigationManagerCallback(com.naviveylin.auto.NavigationManagerController$callback$1@68ba8f95)&#10;Stack trace:&#10;                                io.mockk.impl.InternalPlatform.captureStackTrace                       (InternalPlatform.kt:130)               &#10;                                  io.mockk.impl.stub.MockKStub.handleInvocation                        (MockKStub.kt:253)                      &#10;io.mockk.impl.instantiation.JvmMockFactoryHelper$mockHandler$1.invocation                              (JvmMockFactoryHelper.kt:24)            &#10;                         io.mockk.proxy.jvm.advice.Interceptor.call                                    (Interceptor.kt:21)                     &#10;                 androidx.car.app.navigation.NavigationManager.setNavigationManagerCallback            (NavigationManager.java:147)            &#10;               com.naviveylin.auto.NavigationManagerController.onNavigationStarted                     (NavigationManagerController.kt:60)     &#10;           com.naviveylin.auto.NavigationManagerControllerTest.aTransientTripRejectionRearmsPublishing (NavigationManagerControllerTest.kt:155)&#10;               jdk.internal.reflect.DirectMethodHandleAccessor.invoke                                  (DirectMethodHandleAccessor.java:103)   &#10;                                      java.lang.reflect.Method.invoke                                  (Method.java:580)                       &#10;                     org.junit.runners.model.FrameworkMethod$1.runReflectiveCall                       (FrameworkMethod.java:59)               &#10;           org.junit.internal.runners.model.ReflectiveCallable.run                                     (ReflectiveCallable.java:12)            &#10;                       org.junit.runners.model.FrameworkMethod.invokeExplosively                       (FrameworkMethod.java:56)               &#10;            org.junit.internal.runners.statements.InvokeMethod.evaluate                                (InvokeMethod.java:17)                  &#10;                              org.junit.runners.ParentRunner$3.evaluate                                (ParentRunner.java:306)                 &#10;      org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate                                (RobolectricTestRunner.java:502)        &#10;                  org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2                       (SandboxTestRunner.java:285)            &#10;                     org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0                (Sandbox.java:104)                      &#10;                               java.util.concurrent.FutureTask.run                                     (FutureTask.java:317)                   &#10;                       java.util.concurrent.ThreadPoolExecutor.runWorker                               (ThreadPoolExecutor.java:1144)          &#10;                java.util.concurrent.ThreadPoolExecutor$Worker.run                                     (ThreadPoolExecutor.java:642)           &#10;                                              java.lang.Thread.run                                     (Thread.java:1583)                      " type="java.lang.AssertionError">java.lang.AssertionError: Verification failed: call 1 of 1: NavigationManager(#1).updateTrip(any())). One matching call found, but needs at least 2 and at most 2 calls
+Call: NavigationManager(#1).setNavigationManagerCallback(com.naviveylin.auto.NavigationManagerController$callback$1@68ba8f95)
+Stack trace:
+                                io.mockk.impl.InternalPlatform.captureStackTrace                       (InternalPlatform.kt:130)               
+                                  io.mockk.impl.stub.MockKStub.handleInvocation                        (MockKStub.kt:253)                      
+io.mockk.impl.instantiation.JvmMockFactoryHelper$mockHandler$1.invocation                              (JvmMockFactoryHelper.kt:24)            
+                         io.mockk.proxy.jvm.advice.Interceptor.call                                    (Interceptor.kt:21)                     
+                 androidx.car.app.navigation.NavigationManager.setNavigationManagerCallback            (NavigationManager.java:147)            
+               com.naviveylin.auto.NavigationManagerController.onNavigationStarted                     (NavigationManagerController.kt:60)     
+           com.naviveylin.auto.NavigationManagerControllerTest.aTransientTripRejectionRearmsPublishing (NavigationManagerControllerTest.kt:155)
+               jdk.internal.reflect.DirectMethodHandleAccessor.invoke                                  (DirectMethodHandleAccessor.java:103)   
+                                      java.lang.reflect.Method.invoke                                  (Method.java:580)                       
+                     org.junit.runners.model.FrameworkMethod$1.runReflectiveCall                       (FrameworkMethod.java:59)               
+           org.junit.internal.runners.model.ReflectiveCallable.run                                     (ReflectiveCallable.java:12)            
+                       org.junit.runners.model.FrameworkMethod.invokeExplosively                       (FrameworkMethod.java:56)               
+            org.junit.internal.runners.statements.InvokeMethod.evaluate                                (InvokeMethod.java:17)                  
+                              org.junit.runners.ParentRunner$3.evaluate                                (ParentRunner.java:306)                 
+      org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate                                (RobolectricTestRunner.java:502)        
+                  org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2                       (SandboxTestRunner.java:285)            
+                     org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0                (Sandbox.java:104)                      
+                               java.util.concurrent.FutureTask.run                                     (FutureTask.java:317)                   
+                       java.util.concurrent.ThreadPoolExecutor.runWorker                               (ThreadPoolExecutor.java:1144)          
+                java.util.concurrent.ThreadPoolExecutor$Worker.run                                     (ThreadPoolExecutor.java:642)           
+                                              java.lang.Thread.run                                     (Thread.java:1583)                      
+	at io.mockk.impl.recording.states.VerifyingState.failIfNotPassed(VerifyingState.kt:63)
+	at io.mockk.impl.recording.states.VerifyingState.recordingDone(VerifyingState.kt:42)
+	at io.mockk.impl.recording.CommonCallRecorder.done(CommonCallRecorder.kt:47)
+	at io.mockk.impl.eval.RecordedBlockEvaluator.record(RecordedBlockEvaluator.kt:63)
+	at io.mockk.impl.eval.VerifyBlockEvaluator.verify(VerifyBlockEvaluator.kt:30)
+	at io.mockk.MockKDsl.internalVerify(API.kt:120)
+	at io.mockk.MockKKt.verify(MockK.kt:218)
+	at io.mockk.MockKKt.verify$default(MockK.kt:209)
+	at com.naviveylin.auto.NavigationManagerControllerTest.aTransientTripRejectionRearmsPublishing(NavigationManagerControllerTest.kt:166)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="aRejectedNavigationStartLeavesTheControllerNotPublishing" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.038"/>
+  <testcase name="hostSendsAreRecordedForDiagnosis" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.043"/>
+  <testcase name="destroyWhileNavigatingDoesNotThrow" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.028"/>
+  <testcase name="navigationStartRegistersCallbackAndStarts" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.037"/>
+  <testcase name="aRejectedTripIsNotResentUntilItsContentChanges" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.028">
+    <failure message="java.lang.AssertionError: Verification failed: call 1 of 1: NavigationManager(#23).updateTrip(any())). One matching call found, but needs at least 2 and at most 2 calls&#10;Call: NavigationManager(#23).setNavigationManagerCallback(com.naviveylin.auto.NavigationManagerController$callback$1@52fa5c90)&#10;Stack trace:&#10;                                io.mockk.impl.InternalPlatform.captureStackTrace                              (InternalPlatform.kt:130)               &#10;                                  io.mockk.impl.stub.MockKStub.handleInvocation                               (MockKStub.kt:253)                      &#10;io.mockk.impl.instantiation.JvmMockFactoryHelper$mockHandler$1.invocation                                     (JvmMockFactoryHelper.kt:24)            &#10;                         io.mockk.proxy.jvm.advice.Interceptor.call                                           (Interceptor.kt:21)                     &#10;                 androidx.car.app.navigation.NavigationManager.setNavigationManagerCallback                   (NavigationManager.java:147)            &#10;               com.naviveylin.auto.NavigationManagerController.onNavigationStarted                            (NavigationManagerController.kt:60)     &#10;           com.naviveylin.auto.NavigationManagerControllerTest.aRejectedTripIsNotResentUntilItsContentChanges (NavigationManagerControllerTest.kt:178)&#10;               jdk.internal.reflect.DirectMethodHandleAccessor.invoke                                         (DirectMethodHandleAccessor.java:103)   &#10;                                      java.lang.reflect.Method.invoke                                         (Method.java:580)                       &#10;                     org.junit.runners.model.FrameworkMethod$1.runReflectiveCall                              (FrameworkMethod.java:59)               &#10;           org.junit.internal.runners.model.ReflectiveCallable.run                                            (ReflectiveCallable.java:12)            &#10;                       org.junit.runners.model.FrameworkMethod.invokeExplosively                              (FrameworkMethod.java:56)               &#10;            org.junit.internal.runners.statements.InvokeMethod.evaluate                                       (InvokeMethod.java:17)                  &#10;                              org.junit.runners.ParentRunner$3.evaluate                                       (ParentRunner.java:306)                 &#10;      org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate                                       (RobolectricTestRunner.java:502)        &#10;                  org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2                              (SandboxTestRunner.java:285)            &#10;                     org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0                       (Sandbox.java:104)                      &#10;                               java.util.concurrent.FutureTask.run                                            (FutureTask.java:317)                   &#10;                       java.util.concurrent.ThreadPoolExecutor.runWorker                                      (ThreadPoolExecutor.java:1144)          &#10;                java.util.concurrent.ThreadPoolExecutor$Worker.run                                            (ThreadPoolExecutor.java:642)           &#10;                                              java.lang.Thread.run                                            (Thread.java:1583)                      " type="java.lang.AssertionError">java.lang.AssertionError: Verification failed: call 1 of 1: NavigationManager(#23).updateTrip(any())). One matching call found, but needs at least 2 and at most 2 calls
+Call: NavigationManager(#23).setNavigationManagerCallback(com.naviveylin.auto.NavigationManagerController$callback$1@52fa5c90)
+Stack trace:
+                                io.mockk.impl.InternalPlatform.captureStackTrace                              (InternalPlatform.kt:130)               
+                                  io.mockk.impl.stub.MockKStub.handleInvocation                               (MockKStub.kt:253)                      
+io.mockk.impl.instantiation.JvmMockFactoryHelper$mockHandler$1.invocation                                     (JvmMockFactoryHelper.kt:24)            
+                         io.mockk.proxy.jvm.advice.Interceptor.call                                           (Interceptor.kt:21)                     
+                 androidx.car.app.navigation.NavigationManager.setNavigationManagerCallback                   (NavigationManager.java:147)            
+               com.naviveylin.auto.NavigationManagerController.onNavigationStarted                            (NavigationManagerController.kt:60)     
+           com.naviveylin.auto.NavigationManagerControllerTest.aRejectedTripIsNotResentUntilItsContentChanges (NavigationManagerControllerTest.kt:178)
+               jdk.internal.reflect.DirectMethodHandleAccessor.invoke                                         (DirectMethodHandleAccessor.java:103)   
+                                      java.lang.reflect.Method.invoke                                         (Method.java:580)                       
+                     org.junit.runners.model.FrameworkMethod$1.runReflectiveCall                              (FrameworkMethod.java:59)               
+           org.junit.internal.runners.model.ReflectiveCallable.run                                            (ReflectiveCallable.java:12)            
+                       org.junit.runners.model.FrameworkMethod.invokeExplosively                              (FrameworkMethod.java:56)               
+            org.junit.internal.runners.statements.InvokeMethod.evaluate                                       (InvokeMethod.java:17)                  
+                              org.junit.runners.ParentRunner$3.evaluate                                       (ParentRunner.java:306)                 
+      org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate                                       (RobolectricTestRunner.java:502)        
+                  org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2                              (SandboxTestRunner.java:285)            
+                     org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0                       (Sandbox.java:104)                      
+                               java.util.concurrent.FutureTask.run                                            (FutureTask.java:317)                   
+                       java.util.concurrent.ThreadPoolExecutor.runWorker                                      (ThreadPoolExecutor.java:1144)          
+                java.util.concurrent.ThreadPoolExecutor$Worker.run                                            (ThreadPoolExecutor.java:642)           
+                                              java.lang.Thread.run                                            (Thread.java:1583)                      
+	at io.mockk.impl.recording.states.VerifyingState.failIfNotPassed(VerifyingState.kt:63)
+	at io.mockk.impl.recording.states.VerifyingState.recordingDone(VerifyingState.kt:42)
+	at io.mockk.impl.recording.CommonCallRecorder.done(CommonCallRecorder.kt:47)
+	at io.mockk.impl.eval.RecordedBlockEvaluator.record(RecordedBlockEvaluator.kt:63)
+	at io.mockk.impl.eval.VerifyBlockEvaluator.verify(VerifyBlockEvaluator.kt:30)
+	at io.mockk.MockKDsl.internalVerify(API.kt:120)
+	at io.mockk.MockKKt.verify(MockK.kt:218)
+	at io.mockk.MockKKt.verify$default(MockK.kt:209)
+	at com.naviveylin.auto.NavigationManagerControllerTest.aRejectedTripIsNotResentUntilItsContentChanges(NavigationManagerControllerTest.kt:192)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="navigationEndEndsThenClearsCallback" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.025"/>
+  <testcase name="aThrowingTripIsNotPublishedAndPublishingRecovers" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.031"/>
+  <testcase name="aRejectedNavigationEndDoesNotEscape" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.02"/>
+  <testcase name="aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.026">
+    <failure message="java.lang.AssertionError: Verification failed: call 1 of 1: NavigationManager(#39).updateTrip(any())). One matching call found, but needs at least 3 and at most 3 calls&#10;Call: NavigationManager(#39).setNavigationManagerCallback(com.naviveylin.auto.NavigationManagerController$callback$1@366faa76)&#10;Stack trace:&#10;                                io.mockk.impl.InternalPlatform.captureStackTrace                                         (InternalPlatform.kt:130)               &#10;                                  io.mockk.impl.stub.MockKStub.handleInvocation                                          (MockKStub.kt:253)                      &#10;io.mockk.impl.instantiation.JvmMockFactoryHelper$mockHandler$1.invocation                                                (JvmMockFactoryHelper.kt:24)            &#10;                         io.mockk.proxy.jvm.advice.Interceptor.call                                                      (Interceptor.kt:21)                     &#10;                 androidx.car.app.navigation.NavigationManager.setNavigationManagerCallback                              (NavigationManager.java:147)            &#10;               com.naviveylin.auto.NavigationManagerController.onNavigationStarted                                       (NavigationManagerController.kt:60)     &#10;           com.naviveylin.auto.NavigationManagerControllerTest.aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget (NavigationManagerControllerTest.kt:204)&#10;               jdk.internal.reflect.DirectMethodHandleAccessor.invoke                                                    (DirectMethodHandleAccessor.java:103)   &#10;                                      java.lang.reflect.Method.invoke                                                    (Method.java:580)                       &#10;                     org.junit.runners.model.FrameworkMethod$1.runReflectiveCall                                         (FrameworkMethod.java:59)               &#10;           org.junit.internal.runners.model.ReflectiveCallable.run                                                       (ReflectiveCallable.java:12)            &#10;                       org.junit.runners.model.FrameworkMethod.invokeExplosively                                         (FrameworkMethod.java:56)               &#10;            org.junit.internal.runners.statements.InvokeMethod.evaluate                                                  (InvokeMethod.java:17)                  &#10;                              org.junit.runners.ParentRunner$3.evaluate                                                  (ParentRunner.java:306)                 &#10;      org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate                                                  (RobolectricTestRunner.java:502)        &#10;                  org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2                                         (SandboxTestRunner.java:285)            &#10;                     org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0                                  (Sandbox.java:104)                      &#10;                               java.util.concurrent.FutureTask.run                                                       (FutureTask.java:317)                   &#10;                       java.util.concurrent.ThreadPoolExecutor.runWorker                                                 (ThreadPoolExecutor.java:1144)          &#10;                java.util.concurrent.ThreadPoolExecutor$Worker.run                                                       (ThreadPoolExecutor.java:642)           &#10;                                              java.lang.Thread.run                                                       (Thread.java:1583)                      " type="java.lang.AssertionError">java.lang.AssertionError: Verification failed: call 1 of 1: NavigationManager(#39).updateTrip(any())). One matching call found, but needs at least 3 and at most 3 calls
+Call: NavigationManager(#39).setNavigationManagerCallback(com.naviveylin.auto.NavigationManagerController$callback$1@366faa76)
+Stack trace:
+                                io.mockk.impl.InternalPlatform.captureStackTrace                                         (InternalPlatform.kt:130)               
+                                  io.mockk.impl.stub.MockKStub.handleInvocation                                          (MockKStub.kt:253)                      
+io.mockk.impl.instantiation.JvmMockFactoryHelper$mockHandler$1.invocation                                                (JvmMockFactoryHelper.kt:24)            
+                         io.mockk.proxy.jvm.advice.Interceptor.call                                                      (Interceptor.kt:21)                     
+                 androidx.car.app.navigation.NavigationManager.setNavigationManagerCallback                              (NavigationManager.java:147)            
+               com.naviveylin.auto.NavigationManagerController.onNavigationStarted                                       (NavigationManagerController.kt:60)     
+           com.naviveylin.auto.NavigationManagerControllerTest.aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget (NavigationManagerControllerTest.kt:204)
+               jdk.internal.reflect.DirectMethodHandleAccessor.invoke                                                    (DirectMethodHandleAccessor.java:103)   
+                                      java.lang.reflect.Method.invoke                                                    (Method.java:580)                       
+                     org.junit.runners.model.FrameworkMethod$1.runReflectiveCall                                         (FrameworkMethod.java:59)               
+           org.junit.internal.runners.model.ReflectiveCallable.run                                                       (ReflectiveCallable.java:12)            
+                       org.junit.runners.model.FrameworkMethod.invokeExplosively                                         (FrameworkMethod.java:56)               
+            org.junit.internal.runners.statements.InvokeMethod.evaluate                                                  (InvokeMethod.java:17)                  
+                              org.junit.runners.ParentRunner$3.evaluate                                                  (ParentRunner.java:306)                 
+      org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate                                                  (RobolectricTestRunner.java:502)        
+                  org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2                                         (SandboxTestRunner.java:285)            
+                     org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0                                  (Sandbox.java:104)                      
+                               java.util.concurrent.FutureTask.run                                                       (FutureTask.java:317)                   
+                       java.util.concurrent.ThreadPoolExecutor.runWorker                                                 (ThreadPoolExecutor.java:1144)          
+                java.util.concurrent.ThreadPoolExecutor$Worker.run                                                       (ThreadPoolExecutor.java:642)           
+                                              java.lang.Thread.run                                                       (Thread.java:1583)                      
+	at io.mockk.impl.recording.states.VerifyingState.failIfNotPassed(VerifyingState.kt:63)
+	at io.mockk.impl.recording.states.VerifyingState.recordingDone(VerifyingState.kt:42)
+	at io.mockk.impl.recording.CommonCallRecorder.done(CommonCallRecorder.kt:47)
+	at io.mockk.impl.eval.RecordedBlockEvaluator.record(RecordedBlockEvaluator.kt:63)
+	at io.mockk.impl.eval.VerifyBlockEvaluator.verify(VerifyBlockEvaluator.kt:30)
+	at io.mockk.MockKDsl.internalVerify(API.kt:120)
+	at io.mockk.MockKKt.verify(MockK.kt:218)
+	at io.mockk.MockKKt.verify$default(MockK.kt:209)
+	at com.naviveylin.auto.NavigationManagerControllerTest.aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget(NavigationManagerControllerTest.kt:215)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="hostStopInvokesStopHandler" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.042"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/home/tim/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.6/46e2545d7a97b6ccb195621650c5957279eb4812/byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

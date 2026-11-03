@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationManagerControllerTripTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-03T12:21:49.407Z" hostname="dingens" time="1.994">
+  <properties/>
+  <testcase name="unchangedTripContentIsNotRepublished" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="1.728"/>
+  <testcase name="changedRoundedDistanceIsRepublished" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="0.044"/>
+  <testcase name="sessionDestroyStopsPublishing" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="0.027"/>
+  <testcase name="tripIsNotPublishedAfterNavigationEnds" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="0.033"/>
+  <testcase name="publishingResumesWithFreshThrottleAfterRestart" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="0.033"/>
+  <testcase name="tripIsPublishedAfterNavigationStarts" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="0.037"/>
+  <testcase name="hostFailureIsSwallowed" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="0.031"/>
+  <testcase name="tripIsNotPublishedBeforeNavigationStarts" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="0.026"/>
+  <testcase name="publishedTripCarriesTheCurrentStep" classname="com.naviveylin.auto.NavigationManagerControllerTripTest" time="0.034"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

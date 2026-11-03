@@ -99,6 +99,22 @@ jobs:
               exit "$status"
             fi
           fi
+          # The scan's own record comes from a pipeline of its own (`.github/workflows/sonar.yml`), whose
+          # artifact is fetched the same way — with the same read-only token, so the workflow's own token is
+          # still used for exactly one thing. Its ready-ness is reported apart from the build's: the scan of
+          # this commit may still be running, and `broken-scan` is then selected by no tick rather than
+          # reported as a failed check (exit 3 = no completed scan carries the record yet).
+          if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --workflow sonar.yml --artifact scan-inputs; then
+            echo "scan-ready=true" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -eq 3 ]; then
+              echo "scan-ready=false" >> "$GITHUB_OUTPUT"
+            else
+              exit "$status"
+            fi
+          fi
           # The previous Sensors run's start time: the lower bound this tick's interval reaches back to.
           # A tick GitHub skipped leaves its minutes in this interval, so the row whose cadence fell into
           # the gap is selected by the next tick that runs, whatever the gap (issue #256). With no previous
@@ -175,6 +191,18 @@ jobs:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
           SENSORS_SINCE: ${{ steps.record.outputs.since }}
         run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,routed-section-size,entry-document-size,document-size,normative-purity,stale-citations,metadata-invariant,loop-spend "$SENSORS_MODE"
+
+      # The scan's row, and only for a commit whose scan has finished: the scan is a pipeline of its own, so
+      # its record exists minutes after the build's, and a tick that read too early would report a failed check
+      # for a scan that is still running (spec `backlog-sensors`, "No record yet is not a failed check"). It runs
+      # for a red build as well — the scan measures the commit, not the build's verdict — and it reads only the
+      # record the scan published, so a red main is still exactly one row's verdict.
+      - name: Run the scan's condition row
+        if: steps.record.outputs.ready == 'true' && steps.record.outputs.scan-ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+          SENSORS_SINCE: ${{ steps.record.outputs.since }}
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-scan "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

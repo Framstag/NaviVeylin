@@ -21,6 +21,7 @@ INPUTS_CASES=(
   'inputs#reportsTheRunsConclusion'
   'inputs#refusesAnotherCommitsRecord'
   'inputs#noRecordExitsThree'
+  'inputs#theScanRecordIsTheScanPipelinesOwn'
 )
 
 inputs_cases() {
@@ -41,6 +42,7 @@ inputs_run_case() {
     'inputs#reportsTheRunsConclusion') case_inputs_reportsTheRunsConclusion ;;
     'inputs#refusesAnotherCommitsRecord') case_inputs_refusesAnotherCommitsRecord ;;
     'inputs#noRecordExitsThree') case_inputs_noRecordExitsThree ;;
+    'inputs#theScanRecordIsTheScanPipelinesOwn') case_inputs_theScanRecordIsTheScanPipelinesOwn ;;
     *) printf 'no such case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -327,6 +329,42 @@ case_inputs_aRedBuildStillCarriesTheResultRecord() {
   assert_eq '{"job":"test","case":"com.naviveylin.FixtureTest.bWork","result":"failure"}' \
     "$(jq -c . "$dir/app/build/gate-result.json")" "the result record was written before the report"
   [ ! -e "$dir/app/build/reports/jacoco/coverage.json" ] || fail "a coverage summary appeared without its reports"
+}
+
+case_inputs_theScanRecordIsTheScanPipelinesOwn() {
+  # The scan's record is published by the scan's own workflow, so the build writes neither it nor a
+  # placeholder for it — and the registry may still declare it, because the publisher is the one place that
+  # knows every path a row declares (spec `backlog-sensors`, "A pipeline outside the build publishes its own
+  # record", issue #751).
+  local dir out
+  out=$(publisher --manifest) || fail "the manifest could not be printed"
+  assert_contains "$out" "app/build/scan-result.json" "the manifest names the scan's record"
+
+  # A build writes its own record and does not wait for the scan's: the scan runs beside it, not after it.
+  dir=$(workspace)
+  module_reports "$dir"; timing_record "$dir"; package_apk "$dir"; test_results "$dir" clean
+  out=$(publisher --root "$dir" --write 2>&1) || fail "--write refused a workspace without the scan's record: $out"
+  [ ! -e "$dir/app/build/scan-result.json" ] || fail "--write wrote the scan's record, which only the scan produces"
+
+  # The record itself: the first step that did not succeed is the cause, and the command it ran travels with
+  # it, so the item says what failed rather than only that something did.
+  dir=$(workspace)
+  out=$(publisher --root "$dir" --scan-result --status failure \
+    --steps '[{"id":"Run unit tests","command":"./gradlew test","outcome":"success"},
+              {"id":"Scan","command":"SonarSource/sonarqube-scan-action@v7","outcome":"failure"}]' 2>&1) \
+    || fail "the scan's record could not be written: $out"
+  assert_eq '{"job":"sonar","step":"Scan","command":"SonarSource/sonarqube-scan-action@v7","result":"failure"}' \
+    "$(jq -c . "$dir/app/build/scan-result.json")" "the record names the failing step and its command"
+
+  dir=$(workspace)
+  publisher --root "$dir" --scan-result --status success \
+    --steps '[{"id":"Scan","command":"SonarSource/sonarqube-scan-action@v7","outcome":"success"}]' >/dev/null 2>&1 \
+    || fail "a green scan's record could not be written"
+  assert_eq '{"job":"sonar","step":"","command":"","result":"success"}' \
+    "$(jq -c . "$dir/app/build/scan-result.json")" "a green scan names no failing step"
+
+  # The pairing the row relies on still holds over the shipped registry.
+  publisher --check >/dev/null 2>&1 || fail "--check refused the repository's own registry"
 }
 
 case_inputs_fetchRestoresTheDeclaredPaths() {

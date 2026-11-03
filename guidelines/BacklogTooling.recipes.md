@@ -30,6 +30,14 @@ concluded `success`; the rest run for any record, so **"the build is red" is exa
 `broken-main`, which reads the result record the publisher always writes — and no row reports a failure a
 person would have to read as "the build was red, the check was fine".
 
+A pipeline the build does not own publishes its record the same way, under its own ready-ness. The scan
+(`.github/workflows/sonar.yml`) writes `app/build/scan-result.json` — the run's result, the step that broke and
+the command it ran — for every run, a red one included, and uploads it as the `scan-inputs` artifact;
+`tools/build-inputs.sh --scan-result` is what writes it, so the path is the publisher's and `--check` pairs it
+with the `broken-scan` row exactly as it pairs the build's own inputs. The checks' run fetches that artifact
+with the same fetcher and reports a second ready-ness beside the build's, because a scan of the commit may
+still be running: without it a scan that had never once succeeded filed nothing at all, for three runs (#751).
+
 One row exists to watch the mechanism rather than the project: `stale-citations` reports the **count of
 citations nothing accounts for**, measured by the resolver's own dry run — the items it reports unresolved plus
 the ones a park before #281 left holding one — so a residue that grows — a repair that stopped reaching

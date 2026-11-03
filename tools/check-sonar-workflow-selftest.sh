@@ -11,6 +11,7 @@
 #   sonar-workflow#theVendoredReportIsNotListed       a vendored coverage report reddens the check
 #   sonar-workflow#theGateIsNotWaitedFor              a gate-wait property reddens the check
 #   sonar-workflow#theScanStepIsNotContinueOnError    an error-swallowing scan step reddens the check
+#   sonar-workflow#theRecordIsPublishedOnEveryOutcome  a record its own run does not publish reddens the check
 #
 # The fixtures are the repository's own two files, copied into a temporary tree per case — no build, no device,
 # no network, and no fixture in the repository to keep in step with them.
@@ -44,6 +45,7 @@ cases=(
   'sonar-workflow#theVendoredReportIsNotListed'
   'sonar-workflow#theGateIsNotWaitedFor'
   'sonar-workflow#theScanStepIsNotContinueOnError'
+  'sonar-workflow#theRecordIsPublishedOnEveryOutcome'
 )
 
 if [ "$list" -eq 1 ]; then
@@ -153,6 +155,16 @@ run_case() {
       fresh
       sed -i 's/^\( *\)uses: SonarSource\/sonarqube-scan-action@v7$/\1uses: SonarSource\/sonarqube-scan-action@v7\n\1continue-on-error: true/' "$tmp/$wf_rel"
       check_fails "$1" "$wf_rel" "'continue-on-error' on the scan step" ;;
+    'sonar-workflow#theRecordIsPublishedOnEveryOutcome')
+      # A scan that publishes nothing is invisible to the checks' registry, and a scan that publishes only
+      # when it passed is invisible exactly when it matters. Rename the artifact and the row's fetch reads
+      # nothing; make the record's step conditional and a red scan writes nothing at all (issue #751).
+      fresh
+      plant "$wf_rel" 's/name: scan-inputs/name: scan-outcome/'
+      check_fails "$1" "$wf_rel" "scan-inputs" || return 1
+      fresh
+      plant "$wf_rel" "/name: Write the scan.s result record/{n;s/if: always\\(\\)/if: success()/}"
+      check_fails "$1" "$wf_rel" "if: always()" ;;
     *) echo "check-sonar-workflow-selftest: unknown case '$1'" >&2; exit 2 ;;
   esac
   echo "ok: $1"

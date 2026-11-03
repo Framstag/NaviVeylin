@@ -79,9 +79,12 @@ SENSOR_CASES=(
   'sensors#brokenMainFingerprintDistinguishesCauses'
   'sensors#prConflictsOnlyOwnPRs'
   'sensors#brokenMainGreenReportsClear'
+  'sensors#aFailedScanIsItsOwnCondition'
+  'sensors#aGreenScanClearsItsCondition'
   'sensors#aRecordedConditionParsesToItsObject'
   'sensors#prConflictsNothingReportsClear'
   'workflow#onlyTwoTriggers'
+  'workflow#theScanRecordIsFetchedBeforeItsRowRuns'
   'workflow#aRedRecordRunsNoRecordRow'
   'workflow#theTickDeclaresItsWindow'
   'sensors#engineNamesNoProjectValue'
@@ -162,9 +165,12 @@ sensor_run_case() {
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
     'sensors#prConflictsOnlyOwnPRs') case_sensors_prConflictsOnlyOwnPRs ;;
     'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
+    'sensors#aFailedScanIsItsOwnCondition') case_sensors_aFailedScanIsItsOwnCondition ;;
+    'sensors#aGreenScanClearsItsCondition') case_sensors_aGreenScanClearsItsCondition ;;
     'sensors#aRecordedConditionParsesToItsObject') case_sensors_aRecordedConditionParsesToItsObject ;;
     'sensors#prConflictsNothingReportsClear') case_sensors_prConflictsNothingReportsClear ;;
     'workflow#onlyTwoTriggers') case_workflow_onlyTwoTriggers ;;
+    'workflow#theScanRecordIsFetchedBeforeItsRowRuns') case_workflow_theScanRecordIsFetchedBeforeItsRowRuns ;;
     'workflow#aRedRecordRunsNoRecordRow') case_workflow_aRedRecordRunsNoRecordRow ;;
     'workflow#theTickDeclaresItsWindow') case_workflow_theTickDeclaresItsWindow ;;
     'sensors#engineNamesNoProjectValue') case_sensors_engineNamesNoProjectValue ;;
@@ -2513,6 +2519,53 @@ case_sensors_prConflictsOnlyOwnPRs() {
 
 # ----------------------------------------------------------------------------- 6. the pipeline
 
+case_sensors_aFailedScanIsItsOwnCondition() {
+  # The scan pipeline sat outside every row: `sonar.yml` published no record, no row named it, and a workflow
+  # that had never once succeeded read as healthy (issue #751). The condition is a *state* of the scan, and its
+  # identity is the failing step, so a second, unrelated failing step is a second issue rather than a
+  # reopening of the first one's record.
+  local dir log artifact out row fp
+  row=$(jq -c '.rows[] | select(.id == "broken-scan")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no broken-scan row"
+  assert_eq "boolean" "$(jq -r '.comparison' <<< "$row")" "the scan's row fires on a state, not a number"
+  assert_eq "1" "$(jq -r '.threshold' <<< "$row")" "the state is red or green"
+  assert_eq "bug" "$(jq -r '.class' <<< "$row")" "a red scan files a bug"
+  assert_eq '["job","step"]' "$(jq -c '.fingerprint.fields' <<< "$row")" "the identity is the failing step"
+  assert_eq "app/build/scan-result.json" "$(jq -r '.input' <<< "$row")" "the record the scan publishes is the row's input"
+  [ -f "$SENSORS_ENGINE/conditions/broken-scan.sh" ] || fail "no condition script beside broken-main.sh"
+
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  artifact="$dir/scan-result.json"
+  jq -n '{job: "sonar", step: "Scan", command: "SonarSource/sonarqube-scan-action@v7", result: "failure"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-scan --apply --input "$artifact" --json 2>&1)
+  fp=$(fingerprint_of job sonar step Scan)
+  assert_contains "$out" '"verdict":"violation"' "a red scan is a violation: $out"
+  assert_contains "$out" '"row":"broken-scan"' "the finding is the row's own"
+  assert_contains "$out" "\"fingerprint\":\"$fp\"" "the identity is the failing job and step"
+  assert_eq "1" "$(condition_creates "$log")" "a red scan files one condition"
+}
+
+case_sensors_aGreenScanClearsItsCondition() {
+  # The other half of the same duty, and the reason the record carries the run's result rather than only a
+  # failure: a scan that is green again clears the item its own condition opened.
+  local dir log artifact out fp body
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of job sonar step Scan)
+  body=$(printf 'the scan of main is red\n\n<!-- fingerprint: %s -->\n<!-- condition: {"job":"sonar","step":"Scan"} -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 751 OPEN null broken-scan "$body")]"
+  artifact="$dir/scan-result.json"
+  jq -n '{job: "sonar", step: "", command: "", result: "success"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-scan --apply --input "$artifact" --json 2>&1)
+  assert_contains "$out" '"verdict":"clear"' "a green scan reports a clear: $out"
+  assert_contains "$out" "\"fingerprint\":\"$fp\"" "the clear names the recorded condition's identity"
+  assert_eq "1" "$(recorded "$log" 'issue close')" \
+    "the issue the recorded condition identifies is the one a green scan closes"
+  assert_eq "0" "$(condition_creates "$log")" "a green scan files no condition"
+}
+
 case_workflow_onlyTwoTriggers() {
   local file out
   file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
@@ -2606,6 +2659,55 @@ case_workflow_onlyTwoTriggers() {
     fail "CODEOWNERS does not cover the workflow directory"
 }
 
+case_workflow_theScanRecordIsFetchedBeforeItsRowRuns() {
+  # A row reads a file, so the file has to be in the tree before the row is selected — and the scan's record
+  # exists only once the scan of *this commit* has finished, which is minutes after the build's. The fetch
+  # step reports the two ready-nesses apart (`ready` for the build's record, `scan-ready` for the scan's), and
+  # the scan's row runs on the second alone: a tick that read too early selects no row and reports no failed
+  # check (spec `backlog-sensors`, "A pipeline outside the build publishes its own record").
+  local file sonar fetch_block scan_block input artifact
+  file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
+  sonar="$SENSORS_REPO_ROOT/.github/workflows/sonar.yml"
+  [ -f "$file" ] || fail "the sensor pipeline has no file"
+  [ -f "$sonar" ] || fail "the scan workflow has no file"
+
+  fetch_block=$(awk "/- name: Fetch this commit.s build record/ { inside = 1; next }
+                     inside && /^[[:space:]]*- name:/ { inside = 0 } inside" "$file")
+  [ -n "$fetch_block" ] || fail "no step fetches this commit's record"
+
+  # The record is fetched from the scan workflow, under the artifact name the scan publishes — one name, so a
+  # rename on either side is a red case rather than a row that silently reads nothing.
+  assert_contains "$fetch_block" "--workflow sonar.yml" "the fetch does not ask the scan workflow"
+  artifact=$(printf '%s\n' "$fetch_block" | grep -o -- '--artifact [A-Za-z0-9_.-]*' | awk '{ print $2 }')
+  assert_eq "scan-inputs" "$artifact" "the fetch asks for the artifact the scan publishes"
+  assert_contains "$fetch_block" "scan-ready" "the fetch reports whether the scan's record exists yet"
+  sonar_upload=$(awk '
+    function flush() { if (body ~ /name: scan-inputs/) printf "%s", body; body = "" }
+    /^[[:space:]]*- name:/ { flush(); body = $0 "\n"; next }
+    { if (body != "") body = body $0 "\n" }
+    END { flush() }' "$sonar")
+  [ -n "$sonar_upload" ] || fail "the scan workflow publishes no 'scan-inputs' artifact"
+  case "$(printf '%s\n' "$sonar_upload" | grep -E '^[[:space:]]*if:' | head -1)" in
+    *'always()'*) ;;
+    *) fail "the scan's artifact is not published on 'always()', so a red scan publishes nothing" ;;
+  esac
+
+  # The row is selected on its own ready-ness, and only for the record path it declares.
+  scan_block=$(awk "/- name: Run the scan.s condition row/ { inside = 1; next }
+                    inside && /^[[:space:]]*- name:/ { inside = 0 } inside" "$file")
+  [ -n "$scan_block" ] || fail "no step runs the scan's condition row"
+  assert_contains "$scan_block" "steps.record.outputs.ready == 'true'" "the row still waits for the build's record"
+  assert_contains "$scan_block" "steps.record.outputs.scan-ready == 'true'" \
+    "the row is selected only once a completed scan carries its record"
+  assert_contains "$scan_block" "--rows broken-scan" "the step runs the scan's row"
+  assert_contains "$scan_block" 'run.sh --due' "the row is selected by the tick's window"
+  assert_eq "1" "$(grep -c -- '--rows broken-scan' "$file")" "no second step runs the row without the record"
+
+  input=$(jq -r '.rows[] | select(.id == "broken-scan") | .input' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$input" ] || fail "the registry declares no broken-scan row"
+  assert_contains "$(cat "$sonar")" "$input" "the scan workflow publishes the path the row declares"
+}
+
 # The interval is not a constant the engine assumes: the pipeline declares its lower bound, the previous
 # tick's start time, so a tick GitHub skipped leaves its minutes in the next tick's interval (#256).
 case_workflow_theTickDeclaresItsWindow() {
@@ -2675,12 +2777,14 @@ case_workflow_aRedRecordRunsNoRecordRow() {
     /^ +if: / { gate = $0 }
     /run: bash tools\/sensors\/run\.sh --due .*--rows / { printf "%s\t%s\n", gate, $0 }
   ' "$file")
-  assert_eq "2" "$(printf '%s\n' "$steps" | grep -c .)" "the pipeline has one row step per family of rows"
+  assert_eq "3" "$(printf '%s\n' "$steps" | grep -c .)" "the pipeline has one row step per family of rows"
 
   record_step=$(printf '%s\n' "$steps" | grep "conclusion == 'success'" || true)
-  other_step=$(printf '%s\n' "$steps" | grep -v "conclusion == 'success'" || true)
+  scan_step=$(printf '%s\n' "$steps" | grep 'scan-ready' || true)
+  other_step=$(printf '%s\n' "$steps" | grep -v "conclusion == 'success'" | grep -v 'scan-ready' || true)
   [ -n "$record_step" ] ||
     fail "the rows that read the build's own outputs are not gated on a record a successful build published"
+  [ -n "$scan_step" ] || fail "no row step waits for the scan's own record (the scan is a pipeline of its own)"
   [ -n "$other_step" ] || fail "no row step runs for a record the build did not complete successfully"
 
   # Every row step names the rows it selects, so what runs for a red record is a decision in the file
@@ -2688,17 +2792,20 @@ case_workflow_aRedRecordRunsNoRecordRow() {
   hits=$(grep -n 'run\.sh --due' "$file" | grep -v -- '--rows' || true)
   assert_empty "$hits" "a row step selects every due row, so a red build's record reaches a row that reads it"
 
-  # The two lists are the registry's rows: one home for which check exists, and the file's two sets must
-  # cover it exactly once — a row added to the registry and left out of both steps would otherwise never run.
+  # The lists are the registry's rows: one home for which check exists, and the file's steps must cover it
+  # exactly once — a row added to the registry and left out of every step would otherwise never run.
   record_rows=$(printf '%s' "$record_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
+  scan_rows=$(printf '%s' "$scan_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
   other_rows=$(printf '%s' "$other_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
   [ -n "$record_rows" ] || fail "the record rows' step names no rows"
+  [ -n "$scan_rows" ] || fail "the scan's row step names no rows"
   [ -n "$other_rows" ] || fail "the other rows' step names no rows"
   declared=$(jq -r '.rows[].id' "$SENSORS_ENGINE/sensors.json" | sort)
-  selected=$(printf '%s\n%s\n' "$(printf '%s' "$record_rows" | tr ',' '\n')" \
+  selected=$(printf '%s\n%s\n%s\n' "$(printf '%s' "$record_rows" | tr ',' '\n')" \
+    "$(printf '%s' "$scan_rows" | tr ',' '\n')" \
     "$(printf '%s' "$other_rows" | tr ',' '\n')" | grep -v '^$' | sort)
-  assert_eq "$declared" "$selected" "the two steps select every declared row"
-  assert_eq "$(printf '%s\n' "$selected" | sort -u)" "$selected" "no row is selected by both steps"
+  assert_eq "$declared" "$selected" "the steps select every declared row"
+  assert_eq "$(printf '%s\n' "$selected" | sort -u)" "$selected" "no row is selected by two steps"
 
   # The pipeline's own commands, run against the record a red build publishes: the result record alone
   # (the publisher always writes that one), in a tree that has the tools the pipeline runs.

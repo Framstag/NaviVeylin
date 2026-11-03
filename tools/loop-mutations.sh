@@ -108,11 +108,11 @@ MUTATIONS=(
   # child-start line — the command and its directory — and not on its tail: the tail gained the child's own
   # completion record (`.status`, issue #227), and a record that quotes the whole line is orphaned by the next
   # edit to any part of it (issue #264).
-  '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$LOOP_ROOT" \&\& pi --print "$1"; printf|'
+  '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$LOOP_ROOT" \&\& pi --print "$1"; printf|'
   '9.10@-@tools/loop/run.sh@run#reviewerWriteInvalidatesTheRound@the reviewer read-only comparison@s|^      if \[ "$read_only" = "on" \] && \[ "$before" != "$after" \]; then|      if false; then|'
   '9.11@-@tools/loop/prompts/worker.md@state#projectKeysAreReadFromLoopConf@the project facts living in loop.conf@s|{{WORKER_SKILLS}}|openspec-propose openspec-apply-change build-app run-tests revert-check|'
   '12.1@-@tools/loop/worktree.sh@run#commitsWithoutAnAmbientIdentity@the commit is attributed to the run'"'"'s own identity@s|-c user.name="\$who_name" -c user.email="\$who_email" ||'
-  '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$worktree" \&\& $LOOP_AGENT_CMD "$1"; printf|'
+  '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$worktree" \&\& $child_cmd "$1"; printf|'
   '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsNoted@the run recording a child write left outside the worktree@s|^    outside_write_line "$before" "$after" >> "$2"$|    : # the mutation carries the write instead|'
   '12.4@-@tools/loop/run.sh@run#strictOutsideWriteDiscardsTheReviewRound@the round discarded on a difference the run can place or was told to judge@s|^      if outside_write_decides; then$|      if false; then|'
   '12.9@-@tools/loop/run.sh@run#strictOutsideWriteBlocksTheItem@the strict run turning the difference into a verdict about the item@s|^  elif outside_write_decides; then$|  elif false; then|'
@@ -362,7 +362,7 @@ MUTATIONS=(
   # lock change took 41.x first (`#265`), and a label names one invariant for good.
   '43.1@-@../loop-mutations.sh@mutation#aStaleRecordIsNamed@the exit that fails a set whose record no longer applies (issue #264)@s|^  if \[ "$stale" -ne 0 \]; then$|  if false; then|'
   '43.2@-@tools/loop/loop.conf@gate#anEnginePathOwesTheRecordCheck@the profile pair that owes the record check for a path under the engine (issue #264)@s#tools/loop/\*|bash tools/loop-mutations\.sh --check;##'
-  '43.3@-@tools/loop/run.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $LOOP_AGENT_CMD "$1" \&\& printf|'
+  '43.3@-@tools/loop/run.sh@mutation#everyDeclaredRecordApplies@the anchor two records keep on the child-start line (issue #264)@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1" \&\& printf|'
   # 44.1 is the cap reaching further than the child's process group. The group is what `set -m` gives the child,
   # and a descendant that called `setsid` is in no group the two signals name: measured 2026-10-22 (issue #272),
   # the mutation harness a child had started kept mutating and restoring the worktree until seven minutes after
@@ -733,6 +733,10 @@ MUTATIONS=(
   # falls to "no archived change appears in the run's diff", which is the opposite of what the tail said and drops the
   # gate's own numbers; the case asks the reason for the gate's line and for the absence of that sentence.
   '76.2@-@tools/loop/run.sh@run#aRedGateIsBlockedByTheTail@the outcome arm that takes a blocked verdict as the tail reported it, with the gate line (issue #744)@s|^  elif \[ "\$verdict_claim" = "blocked" \]; then$|  elif false; then|'
+  # 77.1 is the role-scoped command a project records instead of one command for every child. The head of the line
+  # `run_child` resolves is the resolution itself: with it gone every child is back on `LOOP_AGENT_CMD`, which is the
+  # shape before the key existed — so the case that names the invariant must see the reviewer's child move.
+  '77.1@-@tools/loop/run.sh@state#aRolesOwnCommandStartsOnlyThatRolesChild@the role-scoped agent command that lets one role run on a command of its own@s#^  if \[ -n "\$.*then child_cmd="\$role_cmd"; fi$#  : the mutation keeps every child on the project command#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

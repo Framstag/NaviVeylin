@@ -47,6 +47,7 @@ LOOP_SHELL_CASES=(
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
   'state#agentCommandRefusesAnEmptyValue'
+  'state#aRolesOwnCommandStartsOnlyThatRolesChild'
   'state#doneRecordsTheCommitItLanded'
   'state#theLandingScoreIsReadOnceAndStored'
   'state#aLandingWithNoRunIsUnscored'
@@ -404,6 +405,7 @@ loop_run_shell_case() {
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
     'state#agentCommandRefusesAnEmptyValue') fn=case_state_agentCommandRefusesAnEmptyValue ;;
+    'state#aRolesOwnCommandStartsOnlyThatRolesChild') fn=case_state_aRolesOwnCommandStartsOnlyThatRolesChild ;;
     'state#doneRecordsTheCommitItLanded') fn=case_state_doneRecordsTheCommitItLanded ;;
     'state#theLandingScoreIsReadOnceAndStored') fn=case_state_theLandingScoreIsReadOnceAndStored ;;
     'state#aLandingWithNoRunIsUnscored') fn=case_state_aLandingWithNoRunIsUnscored ;;
@@ -1416,6 +1418,41 @@ EOF
   # every child — the worker phase's two children and the reviewer — went through the configured value
   assert_eq "3" "$(grep -c 'AGENT-CMD' "$d/agent.log")" "every child invocation expands the configured command"
   assert_eq "3" "$(grep -c '^invocation' "$PI_STUB_LOG")" "and every one arrived at the child"
+}
+
+# A role can be started by a command of its own — how a project puts its reviewer on a cheaper model without
+# touching a phase. The key is derived from the prompt's name, so the case asserts both halves: the reviewer's
+# child went through the configured command, and no child of the other roles did.
+case_state_aRolesOwnCommandStartsOnlyThatRolesChild() {
+  # files: tools/loop/fixtures/pi tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf out
+  d=$(scratch); p=$(new_project)
+  cat > "$d/worker-agent.sh" <<EOF
+#!/usr/bin/env bash
+printf 'WORKER-CMD\n' >> "$d/agent.log"
+exec "$LOOP_FIXTURES/pi" "\$@"
+EOF
+  cat > "$d/reviewer-agent.sh" <<EOF
+#!/usr/bin/env bash
+printf 'REVIEWER-CMD\n' >> "$d/agent.log"
+exec "$LOOP_FIXTURES/pi" "\$@"
+EOF
+  chmod +x "$d/worker-agent.sh" "$d/reviewer-agent.sh"
+  : > "$d/agent.log"
+  # The seam is a configuration key, so the case sets it where the loop reads it — the role's key beside the
+  # project's one, and the roles the case does not name keep it.
+  conf="$d/loop.conf"
+  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$d/worker-agent.sh --print\"|" \
+      -e "s|^LOOP_AGENT_CMD_REVIEWER=.*|LOOP_AGENT_CMD_REVIEWER=\"$d/reviewer-agent.sh --print\"|" "$LOOP_CONF" > "$conf"
+  export LOOP_CONF="$conf"
+  out=$(run_one_item "$p" "$d" 2>&1) || fail "the run failed with a role-scoped agent command"
+  # The one-item fixture starts three children — the worker's two and the reviewer's one (the sibling case's own
+  # count) — so the split is visible in which command each of them expanded.
+  assert_eq "1" "$(grep -c '^REVIEWER-CMD' "$d/agent.log")" \
+    "the reviewer's child went through the role's own command"
+  assert_eq "2" "$(grep -c '^WORKER-CMD' "$d/agent.log")" \
+    "and every other child went through the project's one"
+  assert_contains "$out" "agent-roles=reviewer" "the run's own header names the role that was given its own command"
 }
 
 case_state_agentCommandRefusesAnEmptyValue() {

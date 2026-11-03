@@ -540,7 +540,8 @@ cmd_done() {
                            reviewVerdict:(if $rv == "" then null else $rv end),
                            gate:$gate,
                            closed:$closed, rootCause:$rc, redTest:$rt,
-                           tools:$usage.tools, tokens:$usage.tokens, cost:$usage.cost,
+                           tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
+                           tokens:$usage.tokens, cost:$usage.cost,
                            context:$usage.context}}]
       else
         .items | map(if .issue == $i then
@@ -645,9 +646,16 @@ num_or_null() {
 #   * **nothing reported is null, never zero.** A provider that streams no usage leaves zeros, and a zero
 #     printed as a figure reads as a measurement nobody made; the report prints `-` for a null.
 #
-# A stream that holds none of these records — a plain-text command, or another agent's format — yields four
+# The shape a session spent its budget in is two more counts (issue #757): the `tool_execution_end` lines are
+# the calls and the `turn_end` lines are the turns, and `report.sh` reads their ratio. It is recorded as the two
+# counts rather than as the ratio, because a ratio cannot say whether an item was slow or merely empty — and
+# because an item's calls and turns are each summed over its children, the way its tokens are. A turn is every
+# `turn_end`, not only the ones that reported a usage record: a child that reports no usage still pays a turn,
+# and a ratio read over the reporting turns alone would flatter exactly the providers that measure least.
+#
+# A stream that holds none of these records — a plain-text command, or another agent's format — yields six
 # nulls, so the engine reads a child's dialect without depending on it.
-child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,context}
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context}
   local events="${1:-}" blob=""
   if [ -n "$events" ] && [ -f "$events" ]; then
     blob=$(jq -s -c '
@@ -661,10 +669,14 @@ child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,con
       | ($all | turns) as $t
       | ([$all[] | select(.type == "tool_execution_end") | (.toolName? // empty) | strings]
          | group_by(.) | map({key: .[0], value: length}) | from_entries) as $tools
+      | ([$all[] | select(.type == "tool_execution_end")] | length) as $calls
+      | ([$all[] | select(.type == "turn_end")] | length) as $turns
       | ([$all[] | select(.type == "compaction_end") | (.result?.tokensBefore? // empty) | numbers] | max) as $compacted
       | ([$t[] | ((.input // 0) + (.cacheRead // 0))] | max) as $turnMax
       | ([$turnMax // 0, $compacted // 0] | max) as $context
       | {tools: (if ($tools | length) > 0 then $tools else null end),
+         calls: (if $turns > 0 then $calls else null end),
+         turns: (if $turns > 0 then $turns else null end),
          tokens:
            (if ($t | length) == 0 then null
             else ([$t[] | ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0))] | add) as $sum
@@ -684,7 +696,7 @@ child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,con
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"tokens":null,"cost":null,"context":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null}' ;;
   esac
 }
 
@@ -711,9 +723,9 @@ cmd_report() {
   jq -r --argjson over "$tokens_warn" '
     "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over |",
-    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — |"
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -744,7 +756,17 @@ cmd_report() {
              else (($tk.input // 0) + ($tk.output // 0) + ($tk.cacheRead // 0) + ($tk.cacheWrite // 0)) end) as $tot
           | if $over > 0 and $tot != null and $tot > $over
             then "\(((($tot / $over) * 10) | round) / 10)x" else "-" end) as $overcol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) |") end),
+       # The shape the item spent its budget in (issue #757): its tool calls per turn, appended after the band for
+       # the reason the band was appended — every column a reader already quoted keeps its index. The two counts are
+       # recorded (`tools/loop/state.sh`) and their ratio is derived here; an item that recorded no turn prints
+       # `-`, never a zero, exactly as every other unreported figure does. Unlike the band column this one is the
+       # figure of the item itself and not a multiple of a bound, so it prints whether or not a floor is recorded —
+       # the floor is the comparison the report trend makes, and `0` means no comparison rather than no measurement.
+       | ((.metrics.calls // null) as $calls
+          | (.metrics.turns // null) as $turns
+          | if $calls == null or $turns == null or $turns == 0 then "-"
+            else "\(((($calls / $turns) * 100) | round) / 100)" end) as $callscol
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")

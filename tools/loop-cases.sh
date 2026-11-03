@@ -292,6 +292,7 @@ LOOP_SHELL_CASES=(
   'report#landedBranchesAreNamedAsRemovable'
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
+  'report#anItemBelowTheCallsPerTurnFloorIsNamed'
   'report#trendFiguresFromState'
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
@@ -654,6 +655,7 @@ loop_run_shell_case() {
     'report#landedBranchesAreNamedAsRemovable') fn=case_report_landedBranchesAreNamedAsRemovable ;;
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
+    'report#anItemBelowTheCallsPerTurnFloorIsNamed') fn=case_report_anItemBelowTheCallsPerTurnFloorIsNamed ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
@@ -7362,6 +7364,12 @@ LOOP-GATE: tests=1 failures=0 from the first child' \
   assert_eq "2" "$(jq -r '.items[0].metrics.tools.bash' "$f")" "the tool counts are recorded by name"
   assert_eq "2" "$(jq -r '.items[0].metrics.tools.read' "$f")" \
     "every tool the child used has its own count, both children of the item included"
+  # The shape the item spent its budget in (issue #757): the calls and the turns are counted, not derived, and
+  # both are summed over the item's children exactly as their tokens are.
+  assert_eq "5" "$(jq -r '.items[0].metrics.calls' "$f")" \
+    "the item's tool calls are counted over both children"
+  assert_eq "2" "$(jq -r '.items[0].metrics.turns' "$f")" \
+    "beside the turns the ratio is read against"
   # `usage` is the latest cumulative figure of one response, so a turn's spend is its *last* update: summing the
   # two updates of one turn would report 3000 input tokens for a 2000-token response. Across two children the sum
   # is the items's: the gate child's last turn plus the tail child's only turn.
@@ -8405,15 +8413,15 @@ case_report_wallTimeAndReasonInTheTable() {
   assert_eq "blocked" "$(table_cell "$row_muted" 13)" "that row is still a block"
   assert_eq "no mechanism caused this one" "$(table_cell "$row_muted" 14)" \
     "whose reason is its own note, so - in the stop column is not a row without a reason"
-  # Sixteen columns, so seventeen separators: the wall, the reason and the three spend columns were added, then
-  # the block's mechanism, then the band an item's spend is read against (issue #662), and nothing was dropped.
-  # The row keeps its shape with the new column, and the block neither mechanism caused has the same shape as the
-  # others.
-  assert_eq "17" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
-    "the row keeps its sixteen columns"
-  assert_eq "17" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
+  # Seventeen columns, so eighteen separators: the wall, the reason and the three spend columns were added, then
+  # the block's mechanism, then the band an item's spend is read against (issue #662), then the shape it spent it
+  # in (#757), and nothing was dropped. The row keeps its shape with the new column, and the block neither
+  # mechanism caused has the same shape as the others.
+  assert_eq "18" "$(printf '%s' "$row_done" | grep -o '|' | wc -l | tr -d ' ')" \
+    "the row keeps its seventeen columns"
+  assert_eq "18" "$(printf '%s' "$row_blocked" | grep -o '|' | wc -l | tr -d ' ')" \
     "the blocked row has the same shape"
-  assert_eq "17" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
+  assert_eq "18" "$(printf '%s' "$row_muted" | grep -o '|' | wc -l | tr -d ' ')" \
     "and so does a block no mechanism caused"
 }
 
@@ -8559,6 +8567,106 @@ JSONL
   assert_contains "$out" "over the item token bound: off" "a bound of 0 is off, and the report says so"
   row_over=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
   assert_eq "-" "$(table_cell "$row_over" 16)" "and no row is flagged by a bound that is off"
+}
+
+# Every cost in this loop is turns times context, so the shape a session spent its budget in is a number of its own
+# (issue #757): the archive reads 36 825 tool calls in 33 183 turns, 1.11 per turn, at 78 k tokens per turn and 97 %
+# cache read — a chain of single-call turns, each re-reading the whole conversation. The state now records the two
+# counts it is derived from (`metrics.calls`, `metrics.turns`), the table prints the item's ratio, and the trend
+# prints the run's ratio beside the items below `LOOP_ITEM_CALLS_PER_TURN_MIN` — the shape read against a recorded
+# floor, the way the token band reads an item's spend against a ceiling. A **warning, never a stop**.
+case_report_anItemBelowTheCallsPerTurnFloorIsNamed() {
+  # files: tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf f out trend calls_line row_batched row_chained row_empty
+  d=$(scratch); p=$(new_project)
+  # The floor is a recorded value, so the case measures against one of its own rather than following the project's.
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_ITEM_CALLS_PER_TURN_MIN=.*/LOOP_ITEM_CALLS_PER_TURN_MIN=2/' "$LOOP_ENGINE/loop.conf" > "$conf" ||
+    fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
+  # #21 batches: six calls in two turns, 3.0 per turn. #22 is a chain: two calls in four turns, 0.5 per turn.
+  cat > "$d/batched.jsonl" <<'JSONL'
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"read"}
+{"type":"tool_execution_end","toolCallId":"c2","toolName":"read"}
+{"type":"tool_execution_end","toolCallId":"c3","toolName":"bash"}
+{"type":"turn_end"}
+{"type":"tool_execution_end","toolCallId":"c4","toolName":"read"}
+{"type":"tool_execution_end","toolCallId":"c5","toolName":"bash"}
+{"type":"tool_execution_end","toolCallId":"c6","toolName":"bash"}
+{"type":"turn_end"}
+JSONL
+  cat > "$d/chained.jsonl" <<'JSONL'
+{"type":"tool_execution_end","toolCallId":"d1","toolName":"read"}
+{"type":"turn_end"}
+{"type":"turn_end"}
+{"type":"tool_execution_end","toolCallId":"d2","toolName":"read"}
+{"type":"turn_end"}
+{"type":"turn_end"}
+JSONL
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/batched.jsonl" >/dev/null
+  run_state "$p" done 22 --result done --verdict closed --wall 42 --events "$d/chained.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "6" "$(jq -r '.items[] | select(.issue == 21) | .metrics.calls' "$f")" \
+    "the item's tool calls are counted from its event stream"
+  assert_eq "2" "$(jq -r '.items[] | select(.issue == 21) | .metrics.turns' "$f")" \
+    "and so are its turns, so the ratio is derived from two recorded numbers"
+  out=$(run_report "$p") || fail "the report failed"
+  # 8 calls in 6 turns is 1.3333…, printed at the two decimals the ratio is read at.
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "calls:  1.33 calls per turn (8 calls / 6 turns)" \
+    "the trend prints the run's calls per turn, with the two counts it is derived from"
+  calls_line=$(printf '%s\n' "$trend" | grep '^  calls:' || true)
+  assert_contains "$calls_line" "below the recorded floor of 2 per turn: #22 0.5" \
+    "and names the item below the recorded floor, with its own ratio"
+  assert_not_contains "$calls_line" "#21" "while the item above the floor is not named"
+  row_batched=$(printf '%s\n' "$out" | grep '^| #21 |' || true)
+  row_chained=$(printf '%s\n' "$out" | grep '^| #22 |' || true)
+  [ -n "$row_batched" ] || fail "no table row for #21"
+  assert_eq "3" "$(table_cell "$row_batched" 17)" "the row carries the item's own calls per turn"
+  assert_eq "0.5" "$(table_cell "$row_chained" 17)" "in a column appended after the token band"
+  assert_contains "$out" "closed 2 · mis-diagnosed 0 · skipped 0 · blocked 0" \
+    "the floor is a warning: both items keep the outcome their work earned"
+  # A project that records no floor flags nothing, and the line says the floor is off rather than printing
+  # `none` — which would read as a measurement nobody made, the rule every spend column keeps. The negative half
+  # is half the assertion: a floor that is off names no item, exactly as the token band's own case reads both.
+  sed -e 's/^LOOP_ITEM_CALLS_PER_TURN_MIN=.*/LOOP_ITEM_CALLS_PER_TURN_MIN=0/' "$conf" > "$d/off.conf"
+  export LOOP_CONF="$d/off.conf"
+  out=$(run_report "$p") || fail "the report failed with the floor off"
+  assert_contains "$out" "floor off — LOOP_ITEM_CALLS_PER_TURN_MIN records 0, so no item is flagged" \
+    "a floor of 0 is off, and the trend says so"
+  calls_line=$(printf '%s\n' "$out" | grep '^  calls:' || true)
+  assert_not_contains "$calls_line" "#22" "and a floor that is off names no item"
+  # A state that recorded no turn prints `-` with its reason, never a zero that reads as a measurement. The run is
+  # stopped before the state is replaced: `init` keeps the state it replaces, and a run that ended without recording
+  # why is a banner every replacement prints — noise the assertions below would be read through.
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result blocked --verdict blocked >/dev/null
+  out=$(run_report "$p") || fail "the report failed for a state with no event stream"
+  assert_contains "$out" "calls:  - · no item recorded a turn" \
+    "an item that reported no turn prints a dash and the reason, not a zero"
+  row_empty=$(printf '%s\n' "$out" | grep '^| #31 |' || true)
+  [ -n "$row_empty" ] || fail "no table row for #31"
+  assert_eq "-" "$(table_cell "$row_empty" 17)" "the column says the same for that item"
+  # A state written before this figure existed records tokens for its items and no counts at all, and the dash it
+  # prints says so rather than naming a run of items that answered without a tool — the distinction the review
+  # rate's dash already makes between "nobody measured" and "this state predates the field". `metrics.tokens` is
+  # what such a state holds instead, so the case writes it: the point is the state's shape, not the stream's.
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":41,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 41 --result done --verdict closed --events "$d/batched.jsonl" >/dev/null
+  f=$(state_file "$p")
+  jq 'del(.stateDigest)
+      | (.items[0].metrics.turns, .items[0].metrics.calls) = null
+      | .items[0].metrics.tokens = {input: 1000, output: 100, cacheRead: 500, cacheWrite: 0}' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the figure existed"
+  assert_contains "$out" "calls:  - · this state records no calls or turns — it was written before the report read them" \
+    "a state that predates the two counts says so, instead of naming a run of items that answered without a tool"
 }
 
 # Whether the loop is getting more often right is not a question one run's rows answer: a run that cost what the

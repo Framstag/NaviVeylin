@@ -310,6 +310,23 @@ Nothing in the run reads the key: an item above the band is worked, reviewed, ga
 and a project that records no key (or `0`) flags nothing. *Why* an item cost what it did stays the analysis
 question, and `tools/loop-spend.py` (skill `loop-spend`) is its tool.
 
+The band bounds *what* an item cost; the shape it spent it in had no number either (issue #757). Every cost in
+this loop is turns times context — a turn re-reads the whole conversation — so a session that makes one tool call
+per turn pays the conversation again for every independent read it could have batched, and nothing in the report
+said so. Measured over `.pi/issue-loop/items` (227 items, 2026-11-03, the streams `tools/loop-spend.py` reads):
+**36 825 `tool_execution_end` lines in 33 183 `turn_end` lines — 1.11 calls per turn** — at 78 k tokens a turn and
+97 % of the spend charged as cache read; per item p10 0.99, p25 1.05, p50 1.11, p75 1.22, p90 1.32, maximum 1.61,
+so no item of the archive ever amortised two calls in a turn. The state now records the two counts the rate is
+derived from (`metrics.calls`, `metrics.turns`, summed over the item's children exactly as its tokens are), the
+table prints the item's own ratio in a column appended after the band, and the report's trend prints the run's
+ratio beside the items below the floor `LOOP_ITEM_CALLS_PER_TURN_MIN` records — 1.05, the archive's p25, which
+names the worst quarter, the band the single-call chain sits in. It is the token band's mirror in every other
+respect: a **warning, never a stop**, nothing in the run reads the key, and `0` or no key prints the floor as off
+rather than as `none`. The rule the number implies is in the worker's prompt: independent reads, greps and lookups
+belong in **one** turn, and a path already read is cited rather than opened again. The levers that raise the ratio
+are that rule, `tools/look.sh` (#687) and the session split at the first gate (#688); the **stop** it complements is
+the item turn bound (`LOOP_ITEM_TURNS_MAX`), which ends a child inside one unbounded grind.
+
 **The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
 watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it
 reports on elapsed **seconds** (`SECONDS` against its own base), not on the number of looks it took, so
@@ -596,7 +613,9 @@ as `blocked`); **what each one cost** — the wall time
 their count, the tokens it used and what they cost, the largest context it reached, with `-` where nothing was
 reported rather than a zero that reads as a measurement (#211) — beside the run-level `spent`, and each item's tokens read against the band
 `LOOP_ITEM_TOKENS_WARN` records: the row of an item above it carries how far above it is in a column of its own
-and the run-level line names the items above it, which is a **warning and never a stop** (#662); and **what the
+and the run-level line names the items above it, which is a **warning and never a stop** (#662), and the row's
+last column carries the item's tool calls per turn, the shape the spend was made in, read against the floor
+`LOOP_ITEM_CALLS_PER_TURN_MIN` records and named for the items below it (#757); and **what the
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the
@@ -606,7 +625,8 @@ an answer, so `none` is printed only when all five sources were
 read and empty — it never hides a branch that carries work.
 
 Beside those three, and about the loop rather than about one run, the report says whether the loop is getting
-faster and more often right (#247): the review round-1 pass rate and the item wall median, minimum and maximum,
+faster and more often right (#247): the review round-1 pass rate, the item wall median, minimum and maximum, and
+the run's tool calls per turn beside the items below its recorded floor (#757),
 both totalled from the state the report already reads, with `-` and its reason where nobody measured one. The
 rate is counted from the **verdict** a round ended on (`done --review-verdict`), never from the round count: the
 count is the round the loop *attempted* — `run.sh` writes it before the reviewer runs — so a round 1 that refused

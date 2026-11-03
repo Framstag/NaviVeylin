@@ -737,6 +737,16 @@ MUTATIONS=(
   # `run_child` resolves is the resolution itself: with it gone every child is back on `LOOP_AGENT_CMD`, which is the
   # shape before the key existed — so the case that names the invariant must see the reviewer's child move.
   '77.1@-@tools/loop/run.sh@state#aRolesOwnCommandStartsOnlyThatRolesChild@the role-scoped agent command that lets one role run on a command of its own@s#^  if \[ -n "\$.*then child_cmd="\$role_cmd"; fi$#  : the mutation keeps every child on the project command#'
+
+  # 78.x — a run reports the shape it spent its budget in, and names an item below the recorded floor (issue #757).
+  # Measured over the archive: 36 825 tool calls in 33 183 turns, 1.11 per turn, at 78 k tokens a turn and 97 % cache
+  # read — one call per turn is a chain in which every turn re-reads the whole conversation. Two sites in the report
+  # (the trend floor and the table column) and one in the state (the counts the ratio is derived from), each with
+  # the case `report#anItemBelowTheCallsPerTurnFloorIsNamed`.
+  '78.1@-@tools/loop/report.sh@report#anItemBelowTheCallsPerTurnFloorIsNamed@the trend naming the items below the recorded calls-per-turn floor, so a chain of single-call turns is never flagged (issue #757)@s|select(\.r < \$floor)|select(false)|'
+  '78.2@-@tools/loop/state.sh@report#anItemBelowTheCallsPerTurnFloorIsNamed@the table column that prints the per-item calls per turn (issue #757)@s|if \$calls == null or \$turns == null or \$turns == 0 then "-"|if true then "-"|'
+  '78.3@-@tools/loop/state.sh@report#anItemBelowTheCallsPerTurnFloorIsNamed@the calls an item event stream records, so the ratio has nothing to be derived from (issue #757)@s|^         calls: (if \$turns > 0 then \$calls else null end),$|         calls: null,|'
+  '78.4@-@tools/loop/report.sh@report#anItemBelowTheCallsPerTurnFloorIsNamed@the dash a state written before the two counts existed prints, replaced by a reason that names a run of items answering without a tool (issue #757)@s|select(.metrics.tokens != null)|select(false)|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

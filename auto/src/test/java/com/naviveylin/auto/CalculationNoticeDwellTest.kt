@@ -1,6 +1,7 @@
 package com.naviveylin.auto
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.lang.reflect.Method
 
@@ -58,6 +59,30 @@ class CalculationNoticeDwellTest {
     private fun String.dwellName(): Boolean =
         this == "calculationNoticeDwellRemainingMs" ||
             startsWith("calculationNoticeDwellRemainingMs$")
+
+    /**
+     * A failed reroute's report on the map surface ends by itself after its bounded time, with no
+     * tap and no host screen (spec: `route-calculation-feedback` — The failure notice ends by
+     * itself).
+     */
+    @Test
+    fun theSurfaceReportEndsAfterItsDwell() {
+        assertEquals(
+            "one millisecond before the dwell the report still stands",
+            false,
+            surfaceFailureReportElapsed(NavigationSession.ERROR_DISPLAY_MS - 1)
+        )
+        assertTrue(
+            "the dwell boundary ends the report",
+            surfaceFailureReportElapsed(NavigationSession.ERROR_DISPLAY_MS)
+        )
+        assertTrue(surfaceFailureReportElapsed(60_000L))
+        assertEquals(
+            "the bounded time is the 10 s the spec records for a pushed notice too",
+            10_000L,
+            NavigationSession.ERROR_DISPLAY_MS
+        )
+    }
 
     @Test
     fun aRouteArrivingInsideTheDwellKeepsTheNoticeUp() {

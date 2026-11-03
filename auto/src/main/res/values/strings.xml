@@ -58,6 +58,10 @@
     <string name="search_history_hint">Search for places from the map to build up history</string>
     <string name="route_calculation_title">Calculating route</string>
     <string name="route_calculation_percent">%1$d%%</string>
+    <string name="route_calculation_strip_wait">Calculating route…</string>
+    <string name="route_calculation_strip_percent">Calculating route… %1$d%%</string>
+    <string name="route_calculation_strip_failed">Recalculation failed</string>
+    <string name="off_route_panel_cue">Off the planned route</string>
     <string name="cancel">Cancel</string>
     <string name="retry">Retry</string>
     <string name="back">Back</string>

@@ -134,11 +134,14 @@ internal class SessionScreenStack {
         get() = calculationNotice != null
 
     /**
-     * Whether showing the calculation notice needs a new screen: false while a notice is
-     * already up, in which case the caller updates that notice's progress and invalidates
-     * it instead of stacking a second screen.
+     * Whether showing the calculation notice needs a new screen: false while a notice is already
+     * up (the caller updates that notice's progress and invalidates it instead of stacking a second
+     * screen), and false while navigation is active — a reroute keeps the navigation view on
+     * screen and the map surface carries the wait, however long the calculation runs (spec:
+     * `auto/navigation-view` — Reroute keeps the navigation view on screen).
      */
-    fun needsCalculationNoticePush(): Boolean = calculationNotice == null
+    fun needsCalculationNoticePush(navigating: Boolean = false): Boolean =
+        !navigating && calculationNotice == null
 
     /** Record that the calculation [notice] is now on the stack. */
     fun onCalculationNoticePushed(notice: Any) {

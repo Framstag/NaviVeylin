@@ -8,20 +8,6 @@ import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
 
-/**
- * Percentage step the notice displays. A value inside the same step cannot change what the
- * driver sees, so it must not cost a host template push — the same rule
- * `NavigationTemplateMapper.displayedDistanceBucket` applies to distances
- * (spec: `car-host-fault-isolation` — Bounded host-facing traffic).
- */
-internal const val CALCULATION_PERCENT_STEP = 5
-
-/**
- * The percentage the notice displays for a reported [percent], or null while the
- * calculation has not reported one.
- */
-internal fun displayedCalculationPercent(percent: Int?): Int? =
-    percent?.let { (it / CALCULATION_PERCENT_STEP) * CALCULATION_PERCENT_STEP }
 
 /**
  * Transient wait notice pushed by the car session while a route calculation is in flight
@@ -32,11 +18,11 @@ internal fun displayedCalculationPercent(percent: Int?): Int? =
  * identity and it is *updated* in place rather than pushed a second time.
  *
  * The Cancel action is the notice's **only** exit, and it is only offered while navigation is
- * **not** active: a reroute happens with guidance still running, and neither cancelling it nor
- * losing the instruction panel is what a driver off route needs (spec:
- * `auto/navigation-view` — Reroute keeps the navigation view live under the notice). Whether the
- * notice is cancellable is therefore fixed for its whole life; it is decided when the session
- * pushes it.
+ * **not** active — the notice is only pushed in that case. A reroute happens with guidance still
+ * running, and neither cancelling it nor losing the instruction panel is what a driver off route
+ * needs: the map surface's [CalculationStrip] carries that wait instead (spec:
+ * `auto/navigation-view` — Reroute keeps the navigation view on screen). Whether the notice is
+ * cancellable is therefore fixed for its whole life; it is decided when the session pushes it.
  *
  * **No back affordance on purpose** (deviation from the exploration's C1, forced by the platform):
  * car-app 1.7's [Screen] exposes no back callback (`onBackPressed` does not exist; back is a

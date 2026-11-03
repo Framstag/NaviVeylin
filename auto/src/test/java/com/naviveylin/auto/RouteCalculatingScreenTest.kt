@@ -62,7 +62,7 @@ class RouteCalculatingScreenTest {
     }
 
     @Test
-    fun theNoticeOffersCancelWhileNavigationIsNotActive() {
+    fun theNoticeOffersCancelOnlyWhenNotNavigating() {
         val template = notice(cancellable = true)
 
         val row = template.pane.rows.single()

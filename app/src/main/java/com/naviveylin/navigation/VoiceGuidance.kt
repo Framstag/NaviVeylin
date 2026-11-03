@@ -34,6 +34,16 @@ class VoiceGuidance @Inject constructor(
     }
 
     /**
+     * Announce the departure from the planned route (spec: `voice-guidance` — A departure from the
+     * planned route is announced once). The wording is a fixed resource sentence: it carries no
+     * position, distance or bearing. Whether it is spoken at all, and how often, is the engine's
+     * [OffRouteAnnouncementGate].
+     */
+    fun announceOffRoute() {
+        output.speak(context.getString(R.string.voice_off_route))
+    }
+
+    /**
      * The GPS state a sequence announces, or `null` when it carries none (spec: `voice-guidance` —
      * GPS announcements are one shared switch, off by default). The engine holds a GPS state before
      * speaking it and gates it on the shared switch, so it has to tell the two kinds apart without

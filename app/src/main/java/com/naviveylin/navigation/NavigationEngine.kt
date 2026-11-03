@@ -213,6 +213,13 @@ class NavigationEngine @Inject constructor(
      */
     private var gpsHoldJob: Job? = null
 
+    /**
+     * The once-per-departure rule for the spoken off-route cue (spec: `voice-guidance` — A
+     * departure from the planned route is announced once). Re-armed when the vehicle is back on a
+     * route and dropped with the session.
+     */
+    private val offRouteAnnouncement = OffRouteAnnouncementGate()
+
     /** Timestamp of the last fix forwarded to the native controller (feed dedupe). */
     private var lastFedFixTime = 0L
 
@@ -817,6 +824,7 @@ class NavigationEngine @Inject constructor(
         // A voice instruction after navigation stops is silent).
         voiceGuidance.stop()
         cancelGpsHold()
+        offRouteAnnouncement.rearm()
         // The next session names its own surface; until one does, speech follows the phone's
         // switch (spec: `voice-guidance` — The voice switch is per surface).
         sessionOrigin = SurfaceOrigin.PHONE
@@ -863,6 +871,46 @@ class NavigationEngine @Inject constructor(
         copy(failure = failure)
 
     /** Acquire the navigation-scoped location lease (idempotent). */
+    /**
+     * Announce the departure from the planned route once, following the surface's own voice switch
+     * (spec: `voice-guidance` — A departure from the planned route is announced once). The car surface
+     * does not speak: the phone's TTS does, so the cue is engine-level and reaches both surfaces.
+     *
+     * Silent outside a session and with the switch off; a suppressed departure is not replayed when
+     * the switch is turned on while the vehicle stays off route.
+     */
+    private fun announceOffRouteDeparture() {
+        scope.launch(Dispatchers.Main) {
+            val settings = settingsStorage.load()
+            val voiceEnabled = when (sessionOrigin) {
+                SurfaceOrigin.CAR -> settings.autoVoiceGuidanceEnabled
+                else -> settings.voiceGuidanceEnabled
+            }
+            if (!offRouteAnnouncement.onDeparture(_state.value.isNavigating, voiceEnabled)) {
+                DiagnosticsLog.log(
+                    VOICE_TAG,
+                    voiceAnnouncementLine(
+                        VoiceAnnouncementKind.OFF_ROUTE,
+                        sessionOrigin,
+                        VoiceAnnouncementOutcome.SUPPRESSED,
+                        if (!_state.value.isNavigating) VoiceAnnouncementReason.SESSION_ENDED
+                        else VoiceAnnouncementReason.VOICE_SWITCH_OFF
+                    )
+                )
+                return@launch
+            }
+            voiceGuidance.announceOffRoute()
+            DiagnosticsLog.log(
+                VOICE_TAG,
+                voiceAnnouncementLine(
+                    VoiceAnnouncementKind.OFF_ROUTE,
+                    sessionOrigin,
+                    VoiceAnnouncementOutcome.SPOKEN
+                )
+            )
+        }
+    }
+
     /**
      * Hold a GPS state for [FLAP_WINDOW_MILLIS] before announcing it (spec: `voice-guidance` — A GPS
      * announcement is spoken only after the state held). The opposite state replaces the hold, so a
@@ -1066,6 +1114,9 @@ class NavigationEngine @Inject constructor(
                         isRerouting = false,
                         isOffRoute = false
                     ) }
+                    // Back on a route: the next departure is announced again (spec: `voice-guidance`
+                    // — A departure from the planned route is announced once).
+                    offRouteAnnouncement.rearm()
                     if (steps.isNotEmpty()) {
                         val list = steps.toList()
                         _state.update { it.copy(nextStep = guidanceStep(list[0])) }
@@ -1250,6 +1301,7 @@ class NavigationEngine @Inject constructor(
         confirmElapsedMs: Long
     ) {
         _state.update { it.copy(isRerouting = true, isOffRoute = true) }
+        announceOffRouteDeparture()
         val vehicle = _state.value.vehicle ?: Vehicle.CAR
         val retainedDestLat = _state.value.destLat.takeIf { !it.isNaN() } ?: destLat
         val retainedDestLon = _state.value.destLon.takeIf { !it.isNaN() } ?: destLon

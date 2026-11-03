@@ -121,6 +121,25 @@ class RoutingFailureNoticeTest {
     }
 
     @Test
+    fun theFailureReplacesTheCalculationNotice() {
+        // A failed calculation clears the live calculation on the same state emission that carries
+        // the failure, so the calculation notice is stale and leaves while the failure takes over —
+        // in a pane while not navigating, on the map surface while navigating (spec:
+        // `route-calculation-feedback` — The car notice never outlives its calculation).
+        val failure = failure(FailureReason.NO_ROUTE_FOUND)
+
+        assertTrue("the failure carries its own wording", carText(failure).isNotBlank())
+        assertTrue(
+            "the calculation notice cannot outlive the failed calculation",
+            noticeIsStale(live = null, noticeShown = true)
+        )
+        assertFalse(
+            "a live calculation keeps its notice",
+            noticeIsStale(live = null, noticeShown = false)
+        )
+    }
+
+    @Test
     fun aReasonWithNoActionStatesNoDestinationForIt() {
         // The failing end of a route has no map-manager fix, so the notice must not send the driver to the
         // phone for it.

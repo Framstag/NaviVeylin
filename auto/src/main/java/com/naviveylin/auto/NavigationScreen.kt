@@ -141,6 +141,20 @@ class NavigationScreen(
      * drawn on the map surface in the overlay below — the host chrome cannot state it.
      */
     private var mapDegraded = false
+
+    /**
+     * The route-calculation strip's published state: written by the state collector (main thread),
+     * read by the overlay drawer on the frame thread. A snapshot, never the ViewModel, and the
+     * wording is resolved here so the frame path makes no resource call (spec:
+     * `route-calculation-feedback` — A route calculation during navigation is drawn on the map
+     * surface).
+     */
+    @Volatile
+    private var calculationStrip: CalculationStrip.Snapshot = CalculationStrip.Snapshot()
+
+    @Volatile
+    private var calculationStripLabel: String = ""
+
     private var surfaceHeight = 0
     private var surfaceDpi = DEFAULT_DPI
     // Host-reported stable area (surface pixels; empty = unknown): the hint
@@ -312,6 +326,20 @@ class NavigationScreen(
                 density = density,
                 usableBounds = stableArea,
                 text = carContext.getString(R.string.osm_attribution)
+            )
+            // The reroute's wait is drawn, not pushed: the map stays the displayed view for the
+            // whole calculation (spec: `route-calculation-feedback` — A route calculation during
+            // navigation is drawn on the map surface; `auto-map-layout` — The route-calculation
+            // strip has one place on the navigation surface).
+            CalculationStrip.draw(
+                canvas = canvas,
+                surfaceWidth = w,
+                surfaceHeight = h,
+                density = density,
+                stableBounds = stableArea,
+                darkPresentation = rendererGate.currentDarkPresentation(),
+                snapshot = calculationStrip,
+                label = calculationStripLabel
             )
             // The map is gone (design D5): the host template has no slot for this text, so the
             // app draws it — the surface keeps its last frame, which is where the driver reads it.
@@ -562,7 +590,46 @@ class NavigationScreen(
     }
 
     /**
-     * One navigation-state emission (spec: auto/navigation-view — template rebuilds,
+     * Publish the calculation strip's state and wording for [state] (spec:
+     * `route-calculation-feedback` — A route calculation during navigation is drawn on the map
+     * surface). A change of the *displayed* percentage or of the phase costs a render frame, never a
+     * template `invalidate()`: progress is not a host concern any more.
+     */
+    private fun publishCalculationStrip(state: NavigationState) {
+        val snapshot = when {
+            !state.isNavigating -> CalculationStrip.Snapshot()
+            state.calculation != null -> CalculationStrip.Snapshot(
+                phase = CalculationStrip.Phase.WAITING,
+                percent = state.calculation?.percent
+            )
+            calculationFailureShownOnSurface(isNavigating = true, reason = state.failure?.reason) ->
+                CalculationStrip.Snapshot(phase = CalculationStrip.Phase.FAILED)
+            else -> CalculationStrip.Snapshot()
+        }
+        val label = CalculationStrip.label(
+            snapshot = snapshot,
+            wait = carContext.getString(R.string.route_calculation_strip_wait),
+            waitPercent = carContext.getString(R.string.route_calculation_strip_percent),
+            failed = carContext.getString(R.string.route_calculation_strip_failed)
+        )
+        if (label != calculationStripLabel) {
+            calculationStrip = snapshot
+            calculationStripLabel = label
+            DiagnosticsLog.log(
+                CAR_HOST_DIAG_TAG,
+                when (snapshot.phase) {
+                    CalculationStrip.Phase.IDLE -> "strip hidden"
+                    CalculationStrip.Phase.FAILED -> "strip failed"
+                    CalculationStrip.Phase.WAITING ->
+                        "strip pct=${displayedCalculationPercent(snapshot.percent)} shown=1"
+                }
+            )
+            // Redraw the surface now instead of waiting for the next GPS tick.
+            rendererGate.requestRender()
+        }
+    }
+
+    /** (spec: auto/navigation-view — template rebuilds,
      * route polyline, destination marker; auto/screen-observation — observed only while
      * the screen is started). Never runs while the screen is stopped, so a stopped
      * screen requests neither a template refresh nor a render.
@@ -570,6 +637,7 @@ class NavigationScreen(
     private fun onNavigationState(state: NavigationState) {
         val changed = hasStateChanged(state)
         lastState = state
+        publishCalculationStrip(state)
         // Navigation ended while this screen is visible: leave
         // immediately (design D2). The not-navigating fallback is
         // a dead end — the lone strip BACK would stop nothing — so

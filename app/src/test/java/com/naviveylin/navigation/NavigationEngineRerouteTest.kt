@@ -34,6 +34,8 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import com.naviveylin.test.engineUnderTest
+import com.naviveylin.test.coordinateShapedToken
+import com.naviveylin.test.recordFields
 
 /**
  * The engine's reroute policy (spec: `reroute-trigger` — all requirements;
@@ -495,9 +497,19 @@ class NavigationEngineRerouteTest {
                     "the deviation is the ~40 m fast-path distance",
                     deviation!! in 35.0..45.0
                 )
+                // The record's own fields decide coordinate-freedom, never the whole line (issue #728): the
+                // reader's `[yyyy-MM-dd HH:mm:ss.SSS]` stamp reads `52.5xx` at second `:52`, and this record's
+                // own `deviation_m=` is a decimal distance — a whole-line substring check lets a clock reading
+                // or a measurement stand in for the position it is meant to catch.
+                val record = recordFields(line, "reroute confirmed")
+                assertEquals(
+                    "the record carries the reroute's own fields, and a position is not one of them: $line",
+                    setOf("offroute_ms", "confirm_ms", "deviation_m"),
+                    record.keys
+                )
                 assertFalse(
-                    "no coordinate reaches the line",
-                    line.contains("52.5") || line.contains("13.45")
+                    "no field of the record is coordinate-shaped: $line",
+                    record.values.any { coordinateShapedToken.matches(it) }
                 )
             } finally {
                 DiagnosticsLog.reset()

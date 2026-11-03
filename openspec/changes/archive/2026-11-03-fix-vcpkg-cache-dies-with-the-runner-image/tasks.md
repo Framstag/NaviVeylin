@@ -58,3 +58,20 @@ given" and "An unreachable cache costs the build only".
 - [x] 5.3 Archive the change and confirm the delta merged into `openspec/specs/ci-vcpkg-cache/spec.md`. Verify:
       `openspec show ci-vcpkg-cache --type spec --json | jq '[.requirements[] | select(.text | test("pinned image"))] | length'`
       is 1.
+
+## 6. The correction round — the probe rejected its own argument
+
+Requirement: the same requirement, the sentence that the run probes the cache before the install.
+
+- [x] 6.1 Record what the merged probe did on its first real run: PR #762's own workflow run printed
+      `##[warning]ci-vcpkg-cache: … did not answer (1):   at NuGet.CommandLine.Program.MainCore …` and the install
+      then ran with `VCPKG_BINARY_SOURCES: clear`, compiling every port from source
+      (`evidence/probe-rejected-its-own-argument.log`). Verify: the log carries both lines.
+- [x] 6.2 Fix the invocation and the diagnosis: `nuget list -Source <url> -NonInteractive` (`-Take` is an option of
+      `search`, not of `list`), and the reported line is the first that names a cause rather than the last, which
+      is always a stack frame. Add `vcpkg-cache#aRejectedArgumentIsNotReadAsADeadFeed` so a client that refuses the
+      probe's own arguments cannot be read as a dead feed again. Verify:
+      `bash tools/ci-vcpkg-cache-selftest.sh` reports `all 7 cases passed`.
+- [x] 6.3 Re-run the gate and record it; the probe's own run on the next branch is the measurement that it now
+      reports an answering feed. Verify: `LOOP-GATE: tests=… failures=0 errors=0`, and a workflow run whose probe
+      step concludes `success` with the install restoring packages.

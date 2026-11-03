@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.NavigationManagerControllerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-03T19:52:51.464Z" hostname="dingens" time="6.786">
+  <properties/>
+  <testcase name="aTransientTripRejectionRearmsPublishing" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="6.314"/>
+  <testcase name="aRejectedNavigationStartLeavesTheControllerNotPublishing" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.067"/>
+  <testcase name="hostSendsAreRecordedForDiagnosis" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.081"/>
+  <testcase name="destroyWhileNavigatingDoesNotThrow" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.032"/>
+  <testcase name="navigationStartRegistersCallbackAndStarts" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.039"/>
+  <testcase name="aRejectedTripIsNotResentUntilItsContentChanges" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.045"/>
+  <testcase name="navigationEndEndsThenClearsCallback" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.031"/>
+  <testcase name="aThrowingTripIsNotPublishedAndPublishingRecovers" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.032"/>
+  <testcase name="aDeliveredTripResetsTheRejectionBudget" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.036"/>
+  <testcase name="aRejectedNavigationEndDoesNotEscape" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.031"/>
+  <testcase name="aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.033"/>
+  <testcase name="hostStopInvokesStopHandler" classname="com.naviveylin.auto.NavigationManagerControllerTest" time="0.035"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/home/tim/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.6/46e2545d7a97b6ccb195621650c5957279eb4812/byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

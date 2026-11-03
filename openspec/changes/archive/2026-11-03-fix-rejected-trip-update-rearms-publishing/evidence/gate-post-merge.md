@@ -27,6 +27,23 @@ time="514"`, system-out `BUILD SUCCESSFUL in 8m 34s 167 actionable tasks: 148 ex
 `stale: 5 car-only areas: 1 highlights: 19` — the stale rows are the three pre-existing entries main's own
 commit message calls not-errors, and the run no longer reports a failed classification).
 
-The merge added only main's own paths (`tools/feature-list/specs.json`, `tools/loop/**`, two `app/src/test`
-files and `openspec/specs/unit-test-suite-runtime/spec.md`); this change's own files are unchanged by it, so the
+The merge added only main's own paths — `tools/feature-list/specs.json`, `tools/loop-cases.sh`,
+`tools/loop-mutations.sh`, `tools/loop/loop.conf`, `tools/loop/run.sh`,
+`openspec/specs/unit-test-suite-runtime/spec.md`, `openspec/changes/archive/2026-11-03-fix-coordinate-check-reads-the-records-fields/**`
+and three `app/src/test` files (`NavigationEngineCalculationStateTest.kt`, `NavigationEngineRerouteTest.kt`,
+`test/DiagnosticsRecords.kt`; measured with `git diff --name-only 4367cb4d..e63f6b45`); this change's own files
+are unchanged by it, so the
 focused cases the change's record carries still stand beside this run.
+
+## The run after task 6.2's case and scenario
+
+Task 6.2 adds one case to `NavigationManagerControllerTest` and one scenario to the delta and the merged
+capability, so the gate was run once more over the final tree (`2026-11-03T20:04Z`):
+
+```
+LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 308s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)
+```
+
+Its compiled-step tally is `gate-final-gradlew-test.xml` (`tests="0" failures="0" errors="0" time="308"`,
+system-out `BUILD SUCCESSFUL in 5m 7s`, 18 executed, `--no-build-cache`); the earlier run's tallies above stand
+as the record of the merge itself.

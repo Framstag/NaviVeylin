@@ -216,6 +216,40 @@ class NavigationManagerControllerTest {
     }
 
     @Test
+    fun aDeliveredTripResetsTheRejectionBudget() {
+        // Spec: car-host-fault-isolation — the budget counts *consecutive* refusals,
+        // "a run with no accepted send in between": an accepted send ends the run, so a
+        // counter that never resets stops earlier than the contract says.
+        val nm = mockk<NavigationManager>()
+        every { nm.setNavigationManagerCallback(any()) } just Runs
+        every { nm.navigationStarted() } just Runs
+        var hostAccepts = false
+        every { nm.updateTrip(any()) } answers {
+            if (!hostAccepts) throw IllegalStateException("Navigation is not started")
+        }
+        val controller = NavigationManagerController(nm) {}
+        controller.onNavigationStarted()
+
+        fun publish(metres: Double) {
+            controller.publishTrip(NavigationState(remainingDistance = metres)) {
+                mockk<Trip>(relaxed = true)
+            }
+        }
+
+        publish(100.0) // refused — 1 in the run
+        hostAccepts = true
+        publish(200.0) // accepted — the run ends here, so the counter resets
+        hostAccepts = false
+        publish(300.0) // refused — 1 in the new run
+        publish(400.0) // refused — 2 in the new run
+        publish(500.0) // refused — 3 in the new run, sent: the budget of this run is spent here
+
+        // Five sends: the accepted trip reset the count, so the third refusal of the new
+        // run is still attempted. A counter that never resets stops after four.
+        verify(exactly = 5) { nm.updateTrip(any()) }
+    }
+
+    @Test
     fun hostSendsAreRecordedForDiagnosis() {
         // Spec: car-host-fault-isolation — Host interaction is diagnosable.
         val file = java.io.File.createTempFile("diag", ".log")

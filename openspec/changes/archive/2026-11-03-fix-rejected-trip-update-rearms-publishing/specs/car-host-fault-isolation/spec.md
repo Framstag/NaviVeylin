@@ -29,6 +29,13 @@ the host already refused.
 - **THEN** no further trip update is sent until the next navigation start
 - **Case**: `auto: NavigationManagerControllerTest.aRepeatedlyRejectedHostStopsPublishingAfterTheRetryBudget`
 
+#### Scenario: An accepted trip ends the run and resets the budget
+
+- **WHEN** a trip update is accepted after refused ones in the same navigation period
+- **THEN** the next refusals are counted from zero, so publishing continues past the count the earlier run
+  had reached
+- **Case**: `auto: NavigationManagerControllerTest.aDeliveredTripResetsTheRejectionBudget`
+
 ## MODIFIED Requirements
 
 ### Requirement: No fault escapes into the host path

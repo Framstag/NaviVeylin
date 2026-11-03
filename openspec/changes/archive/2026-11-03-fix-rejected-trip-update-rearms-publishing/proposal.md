@@ -45,11 +45,11 @@ requirement *A rejected trip update re-arms publishing within a retry budget*; t
 host-facing send is guarded and that the driver's guidance keeps flowing is `guidelines/DesignCrossVariant.md`
 §8a (reached from `guidelines/Design.md` §8) and `guidelines/UICar.md` §3 "Car-host template constraints".
 
-**Surface.** The rule has one enforcement site, one caller, one case asserting it, one log line and one
-shipped scenario; the change adds two cases, rewrites one, and repeats the modified requirement's eleven
+**Surface.** The rule has one enforcement site, one caller, three cases asserting it, one log line and one
+shipped scenario; the change adds three cases, rewrites one, and repeats the modified requirement's eleven
 scenarios because a `MODIFIED` block replaces the whole requirement:
 
-surface: 2 cases added, 1 rewritten, 0 fixtures realigned — `git grep -n 'aRejectedTripUpdateEndsTripPublishing'
+surface: 3 cases added, 1 rewritten, 0 fixtures realigned — `git grep -n 'aRejectedTripUpdateEndsTripPublishing'
 HEAD -- auto/` (1 case), `git grep -n 'trip update rejected' HEAD -- auto/src/main` (1 log line),
 `git grep -c 'publishTrip' HEAD -- 'auto/src/test/java/com/naviveylin/auto/*.kt'` (6/13/2), `sed -n '62,137p'
 openspec/specs/car-host-fault-isolation/spec.md | grep -c '^#### Scenario:'` (11)
@@ -62,8 +62,9 @@ git grep -rn 'navigationManager.updateTrip|\.publishTrip(' auto/src/main → 2 s
 git grep -c '@Test' HEAD -- .../NavigationManagerControllerTest.kt → 9 (the file the rewrite lands in)
 ```
 
-so the surface is: **1 enforcement site edited** (`NavigationManagerController.publishTrip`), **2 cases added,
-1 case rewritten** in `NavigationManagerControllerTest` (9 → 11 cases), **0 fixtures realigned**,
+so the surface is: **1 enforcement site edited** (`NavigationManagerController.publishTrip`), **3 cases added,
+1 case rewritten** in `NavigationManagerControllerTest` (9 → 12 cases; the third case is task 6.2's), **0
+fixtures realigned**,
 **1 shipped scenario modified plus 1 requirement added** in `car-host-fault-isolation` (the `MODIFIED` block
 repeats 11 shipped scenarios; 10 carry `**Case**: none — …` because this change does not re-case them), and
 **no production caller changed** — `NavigationSession.kt:733` and `tripSendAllowed` are untouched.

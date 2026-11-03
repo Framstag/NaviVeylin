@@ -45,16 +45,19 @@ Requirement: `car-host-fault-isolation` — the new requirement and the modified
 scenario.
 
 - [x] 3.1 Write `specs/car-host-fault-isolation/spec.md`: `ADDED` "A rejected trip update re-arms publishing
-      within a retry budget" (three scenarios, each naming one case) and `MODIFIED` "No fault escapes into the
+      within a retry budget" (three scenarios at this step, each naming one case; the fourth arrived with task
+      6.2) and `MODIFIED` "No fault escapes into the
       host path" with the shipped text and all 11 scenarios repeated, the rejected-call scenario reworded, and
       `- **Case**: none — …` on the ten scenarios this change does not re-case. Verify:
       `diff <(sed -n '62,137p' openspec/specs/car-host-fault-isolation/spec.md | grep -v '^#### Scenario:\|^$')
-      <(the delta's modified block, Case lines removed)` shows only the reworded `THEN`.
+      <(the delta's modified block, Case lines removed)` shows only the reworded `WHEN`/`THEN` of the
+      rejected-call scenario (task 5.2 reworded the `WHEN` after this check was first written).
 - [x] 3.2 Run the artifact checks the gate owes the `openspec/*` paths. Verify: `openspec validate
       fix-rejected-trip-update-rearms-publishing --strict` passes, `bash tools/check-openspec-hygiene.sh`
       passes, `bash tools/gen-feature-list.sh --check-classification` passes, and `bash
       tools/check-change-readiness.sh fix-rejected-trip-update-rearms-publishing` reports
-      `LOOP-READINESS ok` (the delta's 14 scenarios each carry a `**Case**:` line, the design declares
+      `LOOP-READINESS ok` (the delta's 15 scenarios each carry a `**Case**:` line — 14 when this step ran, the
+      fourth ADDED one arrived with task 6.2 —, the design declares
       `## Open decisions` `none`, and the proposal carries its `surface:` line).
 
 ## 4. The gate
@@ -129,3 +132,19 @@ exercises. No new claim, case or assertion.
       areas: 1 highlights: 19`). The merge touches none of this change's paths: `git diff --name-only
       4367cb4d..e63f6b45` lists `tools/feature-list/specs.json`, `tools/loop/**`, two `app/src/test` files and
       `openspec/specs/unit-test-suite-runtime/spec.md`.
+
+- [x] 6.2 Pin the contract's "a run with no accepted send in between", which review round 2 recorded as the one
+      residual the change left: all three ADDED scenarios refuse without an accepted send, so a counter that
+      never resets passed them identically. Add `aDeliveredTripResetsTheRejectionBudget` (refuse, accept, then
+      refuse three more changed contents: five sends, a never-resetting counter stops after four) and the
+      scenario *An accepted trip ends the run and resets the budget* that names it, in the delta and in the
+      merged `openspec/specs/car-host-fault-isolation/spec.md`. Verify: with the delivered send's
+      `rejectedUpdates = 0` removed (the `REVERT-CHECK MUTATION` line) the case reads
+      `Verification failed: … 4 matching calls found, but needs at least 5 and at most 5 calls` @
+      `2026-11-03T19:52:37Z` (`evidence/revert-check-red-reset-budget.xml`, `tests="1" failures="1"`); restored,
+      `NavigationManagerControllerTest` reads `tests=12 failures=0` @ `2026-11-03T19:52:51Z`
+      (`evidence/green-reset-budget-controller-cases.xml`) and `NavigationManagerControllerTripTest`
+      `tests=9 failures=0` @ `2026-11-03T19:52:58Z`
+      (`evidence/green-reset-budget-controller-trip-cases.xml`), and `bash tools/loop/measure.sh --change
+      fix-rejected-trip-update-rearms-publishing` reads
+      `LOOP-MEASURE-CHANGE … scenarios=15 cases=15 unnamed=0`, superseding task 4.1's 14.

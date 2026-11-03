@@ -1,0 +1,16 @@
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C1 dangling §7 in openspec/changes/fix-calls-per-turn-is-a-reported-number (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+FAIL C2 quoted tally tests=899 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/fix-calls-per-turn-is-a-reported-number/evidence
+ok   C2 test tallies: 6 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 800 resolved and in range, 44 unresolved or ambiguous
+----
+evidence-check: FAIL (10)

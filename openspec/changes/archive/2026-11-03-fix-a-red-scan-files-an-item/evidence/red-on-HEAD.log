@@ -1,0 +1,23 @@
+# red on base 55b5d658f079ada3764ca4c737af8e53dd23e528
+# 2026-11-03T06:47:15Z
+# bash tools/sensor-selftest.sh --case sensors#aFailedScanIsItsOwnCondition
+  the registry declares no broken-scan row
+FAIL sensors#aFailedScanIsItsOwnCondition
+exit=1
+
+# bash tools/build-inputs-selftest.sh --case inputs#theScanRecordIsTheScanPipelinesOwn
+# 2026-11-03T06:47:18Z
+  the manifest names the scan's record: 'app/build/scan-result.json' not found in: app/build/reports/jacoco/coverage.json
+app/build/gate-result.json
+build/gate-timings.json
+app/build/outputs/apk/mobile/debug/app-mobile-debug.apk
+FAIL inputs#theScanRecordIsTheScanPipelinesOwn
+exit=1
+
+# bash tools/check-sonar-workflow-selftest.sh --case sonar-workflow#theRecordIsPublishedOnEveryOutcome
+# 2026-11-03T06:47:18Z
+FAIL: sonar-workflow#theRecordIsPublishedOnEveryOutcome (the report does not name 'if: always()')
+       ::error file=.github/workflows/sonar.yml,line=1::no step writes the scan's record (a 'tools/build-inputs.sh --scan-result' step) — a scan whose outcome nothing records reads as healthy (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
+       ::error file=.github/workflows/sonar.yml,line=1::no step publishes the scan's record as the 'scan-inputs' artifact — the checks' run fetches exactly that name, and a renamed artifact reads as one that does not exist yet (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
+ok: sonar-workflow#theRecordIsPublishedOnEveryOutcome
+exit=1

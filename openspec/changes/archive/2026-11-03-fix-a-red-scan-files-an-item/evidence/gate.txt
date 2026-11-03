@@ -1,0 +1,34 @@
+gate — ./tools/loop/gate.sh, run once from the change root on 2026-11-03, base 55b5d658f079ada3764ca4c737af8e53dd23e528
+------------------------------------------------------------------------------------------------------------
+
+LOOP-GATE: tests=315 failures=0 errors=0 (tools/sensor-selftest.sh 65s, tools/sensor-mutations.sh --list 0s, tools/build-inputs.sh --check 0s, tools/build-inputs-selftest.sh 1s, tools/build-inputs-mutations.sh --list 0s, tools/check-action-runtimes.sh 0s, tools/check-action-runtimes-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 23s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issues/check-metadata.sh 1s, tools/issues/metadata-mutations.sh --list 1s, tools/issue-tooling-selftest.sh 93s, tools/mutate.sh --mutations tools/status-mutations.json --list 1s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s, tools/check-sonar-workflow.sh 0s, tools/check-sonar-workflow-selftest.sh 1s)
+
+The tallies the gate wrote, copied here at the moment they were produced (evidence/gate/*.xml); the gate's own
+directory is emptied by a `clean`, this copy is not. The measure block read them:
+
+LOOP-MEASURE-GATE seconds=197 suites=25
+LOOP-MEASURE-SUITE cases=308 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-CHANGE fix-a-red-scan-files-an-item scenarios=5 cases=5 unnamed=0
+LOOP-MEASURE-TALLY …/tools_sensor-selftest.sh.xml tests=78 failures=0 time=65s
+LOOP-MEASURE-TALLY …/tools_build-inputs-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY …/tools_check-sonar-workflow-selftest.sh.xml tests=9 failures=0 time=1s
+LOOP-MEASURE-TALLY …/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=23s
+LOOP-MEASURE-TALLY …/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=8s
+LOOP-MEASURE-TALLY …/tools_issue-tooling-selftest.sh.xml tests=155 failures=0 time=93s
+LOOP-MEASURE-TALLY …/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0 time=0s
+
+The red run on the base commit, before the change (`evidence/red-on-HEAD.log`, `evidence/red-on-HEAD.xml`):
+tests=3 failures=3, 2026-11-03T06:47Z — the registry had no `broken-scan` row, the manifest named no scan
+record, and the scan workflow published nothing.
+
+Not run, and why: `tools/gen-feature-list.sh --check-classification` and `tools/check-openspec-hygiene.sh` are
+owed by a path under `openspec/`, and an open change's directory is gitignored (`.gitignore:76`), so the gate's
+diff sees no `openspec/` path and owes neither. Checked by hand instead: `openspec validate
+fix-a-red-scan-files-an-item --strict` exits 1 on one warning only (the requirement text is 544 characters,
+past the 500-character style bound; every scenario and every delta parses), and `tools/check-openspec-hygiene.sh`
+prints `OpenSpec artifacts are consistent: 4 open change(s) carry task markers …`. `tools/gen-feature-list.sh
+--check-classification` is red **without** this change on this prepared tree — two capabilities two other open
+changes introduce (`auto/off-route-indicator` from `car-reroute-without-losing-the-map`,
+`tooling-test-layout` from `separate-tooling-test-code`) are unclassified — and green at the base commit alone
+(measured: `git archive 55b5d658 | tar -x -C /tmp/base55 && bash tools/gen-feature-list.sh
+--check-classification` → exit 0). Classifying them is those changes' line to write, not this one's.

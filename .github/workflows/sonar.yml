@@ -152,10 +152,14 @@ jobs:
       # `if: always()` for the same reason the record is written for every run: a *failed* scan is exactly when
       # the checks' pipeline needs it. `if-no-files-found: error` because an upload that carries nothing is the
       # defect this step exists for, and a green run with no record must be red here rather than silent.
+      # The path is the workspace root because `upload-artifact` roots a single explicit file at its own
+      # directory: a record under `app/build/` would be carried as `scan-result.json` and unpacked at the
+      # workspace root anyway, so the row declares the path the upload root can actually carry
+      # (`tools/build-inputs.sh`, `scan_result`; issue #751).
       - name: Publish the scan's record
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: scan-inputs
-          path: app/build/scan-result.json
+          path: scan-result.json
           if-no-files-found: error

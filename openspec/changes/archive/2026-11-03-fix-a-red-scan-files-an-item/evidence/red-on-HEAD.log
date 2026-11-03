@@ -1,13 +1,56 @@
-# red on base 55b5d658f079ada3764ca4c737af8e53dd23e528
-# 2026-11-03T06:47:15Z
+# red on base 55b5d658f079ada3764ca4c737af8e53dd23e528 — the change's base commit
+# 2026-11-03T19:44:14Z
+# the cases and the structural check are the change's own; every production file is that revision's
+
 # bash tools/sensor-selftest.sh --case sensors#aFailedScanIsItsOwnCondition
+# 2026-11-03T19:44:14Z
   the registry declares no broken-scan row
 FAIL sensors#aFailedScanIsItsOwnCondition
 exit=1
 
+# bash tools/sensor-selftest.sh --case sensors#aGreenScanClearsItsCondition
+# 2026-11-03T19:44:18Z
+  a green scan reports a clear: sensors: run: no row with id 'broken-scan' — the registry declares: build-duration package-size hotspot coverage source-size routed-section-size entry-document-size document-size normative-purity broken-main pr-conflicts stale-citations metadata-invariant loop-spend : '"verdict":"clear"' not found in: sensors: run: no row with id 'broken-scan' — the registry declares: build-duration package-size hotspot coverage source-size routed-section-size entry-document-size document-size normative-purity broken-main pr-conflicts stale-citations metadata-invariant loop-spend 
+FAIL sensors#aGreenScanClearsItsCondition
+exit=1
+
+# bash tools/sensor-selftest.sh --case workflow#theScanRecordIsFetchedBeforeItsRowRuns
+# 2026-11-03T19:44:22Z
+  the fetch does not ask the scan workflow: '--workflow sonar.yml' not found in:         id: record
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --conclusion-file "$RUNNER_TEMP/build-conclusion"; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "conclusion=$(cat "$RUNNER_TEMP/build-conclusion")" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -eq 3 ]; then
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+            else
+              exit "$status"
+            fi
+          fi
+          # The previous Sensors run's start time: the lower bound this tick's interval reaches back to.
+          # A tick GitHub skipped leaves its minutes in this interval, so the row whose cadence fell into
+          # the gap is selected by the next tick that runs, whatever the gap (issue #256). With no previous
+          # run — the first tick — the interval is the schedule's own cadence.
+          prev=$(gh run list --workflow sensors.yml --branch main --status completed --limit 1 \
+            --json createdAt --jq '.[0].createdAt // empty' 2>/dev/null || true)
+          [ -n "$prev" ] || prev=$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          echo "since=$prev" >> "$GITHUB_OUTPUT"
+
+      # The labels the checks file under are declared by the registry (`sensor/<id>`) and by the profile,
+      # so they are created from that declaration before anything files: a filing under a label the tracker
+      # does not carry would fail. Re-running is a no-op. Gated on the record like the rows: a run with
+      # nothing to measure writes nothing at all (spec `backlog-sensors`, "no record yet … nothing is written").
+FAIL workflow#theScanRecordIsFetchedBeforeItsRowRuns
+exit=1
+
 # bash tools/build-inputs-selftest.sh --case inputs#theScanRecordIsTheScanPipelinesOwn
-# 2026-11-03T06:47:18Z
-  the manifest names the scan's record: 'app/build/scan-result.json' not found in: app/build/reports/jacoco/coverage.json
+# 2026-11-03T19:44:25Z
+  the manifest names the scan's record: 'scan-result.json' not found in: app/build/reports/jacoco/coverage.json
 app/build/gate-result.json
 build/gate-timings.json
 app/build/outputs/apk/mobile/debug/app-mobile-debug.apk
@@ -15,9 +58,18 @@ FAIL inputs#theScanRecordIsTheScanPipelinesOwn
 exit=1
 
 # bash tools/check-sonar-workflow-selftest.sh --case sonar-workflow#theRecordIsPublishedOnEveryOutcome
-# 2026-11-03T06:47:18Z
+# 2026-11-03T19:44:25Z
 FAIL: sonar-workflow#theRecordIsPublishedOnEveryOutcome (the report does not name 'if: always()')
+       ::error file=.github/workflows/sonar.yml,line=1::no 'broken-scan' row declares the scan's record — the workflow would publish a record no row reads (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
        ::error file=.github/workflows/sonar.yml,line=1::no step writes the scan's record (a 'tools/build-inputs.sh --scan-result' step) — a scan whose outcome nothing records reads as healthy (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
        ::error file=.github/workflows/sonar.yml,line=1::no step publishes the scan's record as the 'scan-inputs' artifact — the checks' run fetches exactly that name, and a renamed artifact reads as one that does not exist yet (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
 ok: sonar-workflow#theRecordIsPublishedOnEveryOutcome
+exit=1
+
+# bash tools/check-sonar-workflow-selftest.sh --case sonar-workflow#theRecordPathIsTheUploadsOwn
+# 2026-11-03T19:44:25Z
+FAIL: sonar-workflow#theRecordPathIsTheUploadsOwn (the report does not name 'not the row's')
+       ::error file=.github/workflows/sonar.yml,line=1::no 'broken-scan' row declares the scan's record — the workflow would publish a record no row reads (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
+       ::error file=.github/workflows/sonar.yml,line=1::no step writes the scan's record (a 'tools/build-inputs.sh --scan-result' step) — a scan whose outcome nothing records reads as healthy (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
+       ::error file=.github/workflows/sonar.yml,line=1::no step publishes the scan's record as the 'scan-inputs' artifact — the checks' run fetches exactly that name, and a renamed artifact reads as one that does not exist yet (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
 exit=1

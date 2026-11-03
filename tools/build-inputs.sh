@@ -69,7 +69,14 @@ package_apk="app/build/outputs/apk/mobile/debug/app-mobile-debug.apk"
 # The scan's own record, written by `--scan-result` in the scan pipeline and read by the `broken-scan` row:
 # the job, the step and the command that failed, and the run's result. The scan publishes it, so it is in the
 # manifest `--check` compares the registry against and in no `--write` of the build's.
-scan_result="app/build/scan-result.json"
+#
+# The path carries no directory on purpose. `actions/upload-artifact` roots the archive at the least common
+# ancestor of the upload's `path:` list, so a single explicit file is carried under its *basename*: an upload
+# of `app/build/scan-result.json` lands at `scan-result.json` in the artifact, and `fetch-build-inputs.sh
+# --dest .` then unpacks it at the workspace root — a row declaring the directory would read nothing. A
+# root-level record is the path the upload root can carry, so writer, upload and row agree by construction
+# (issue #751, review round 1).
+scan_result="scan-result.json"
 
 # The per-module Kover XML reports the coverage summary is derived from, and the pure-Java module's two JaCoCo
 # reports. `:koverXmlReport` merges the three Android modules, so each module is measured from its own.

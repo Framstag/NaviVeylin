@@ -44,8 +44,12 @@ case "$result" in
       "the scan succeeded, so the condition it recorded has cleared"
     # A green scan with nothing recorded must still report: the runner reads a row that printed nothing as a
     # failed check, and "the condition is absent" is a verdict, not silence (`backlog-sensors`, three
-    # outcomes). The identity is this run's own, so the finding lands on no issue and closes nothing.
+    # outcomes). The identity is this run's own, so the finding lands on no issue and closes nothing — and it
+    # carries the record's own sentinel for "no step caused this" (`the-run`, as `--scan-result` writes one for
+    # a run that broke before a named step), because every fingerprint field must be non-empty.
     if [ "$SENSORS_CLEARED" -eq 0 ]; then
+      fields=$(jq -nc --arg job "$job" '{job: $job, step: "the-run"}')
+      fingerprint=$(sensors_fingerprint "$fields" "job step")
       sensors_emit "$fingerprint" "success" clear "$fields" "" \
         "the scan of main is green" "the scan is green and no condition is recorded for ${job}"
     fi

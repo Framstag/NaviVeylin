@@ -189,7 +189,13 @@ fi
 # of the run (issue #751). The record is written and uploaded on `if: always()` — a red scan is exactly when a
 # reader needs it — and the path it is uploaded from is the path the row declares, so the two cannot drift.
 if [ -f "$wf" ]; then
-  record_path="app/build/scan-result.json"
+  # The row's own declaration, not a second copy of the path: the row is what reads it, so its `input` is what
+  # the artifact has to carry (issue #751, review round 1).
+  record_path=$(jq -r '.rows[]? | select(.id == "broken-scan") | .input // empty' \
+    "$root/tools/sensors/sensors.json" 2>/dev/null | head -1)
+  if [ -z "$record_path" ]; then
+    error "$wf_rel" 1 "no 'broken-scan' row declares the scan's record — the workflow would publish a record no row reads (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
+  fi
   record_block=$(step_block "$wf" 'build-inputs.sh --scan-result')
   if [ -z "$record_block" ]; then
     error "$wf_rel" 1 "no step writes the scan's record (a 'tools/build-inputs.sh --scan-result' step) — a scan whose outcome nothing records reads as healthy (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
@@ -211,10 +217,31 @@ if [ -f "$wf" ]; then
       *'always()'*) ;;
       *) error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the upload step's 'if:' line is not 'if: always()' — a failed scan publishes no record otherwise, and its failure stays invisible (spec backlog-sensors, 'A pipeline outside the build publishes its own record')" ;;
     esac
-    case "$upload_block" in
-      *"$record_path"*) ;;
-      *) error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the artifact does not carry '$record_path', the path the row declares — the row would read a file nothing publishes (spec backlog-sensors, 'A pipeline outside the build publishes its own record')" ;;
-    esac
+    # The upload root decides where the record lands, not the string in the workflow. `upload-artifact` roots
+    # the archive at the least common ancestor of the uploaded `path:` list, so a single explicit file is
+    # carried under its basename: `app/build/scan-result.json` would arrive as `scan-result.json` and
+    # `fetch-build-inputs.sh --dest .` would unpack it at the workspace root, where the row — declaring the
+    # directory — reads nothing (issue #751, review round 1). So the declared path must name the file at the
+    # root the upload produces, and the upload must list exactly that one path.
+    upload_paths=$(printf '%s\n' "$upload_block" | awk '
+      /^[[:space:]]*path:/ { collecting = 1; line = $0; sub(/^[[:space:]]*path:[[:space:]]*/, "", line);
+                           if (line != "" && line != "|" && line != ">-" && line != ">") print line; next }
+      collecting && /^[[:space:]]*[A-Za-z_-]+:/ { collecting = 0 }
+      collecting && NF { line = $0; sub(/^[[:space:]]*/, "", line); print line }')
+    if [ -z "$upload_paths" ]; then
+      error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the upload step names no 'path:' — the artifact carries nothing (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
+    else
+      case "$record_path" in
+        */*) error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the row declares '$record_path' with a directory, but a single explicit upload path is archived under its basename and unpacked at the workspace root — declare the record at the path the upload root can carry (spec backlog-sensors, 'A pipeline outside the build publishes its own record')" ;;
+      esac
+      # Exactly the row's path, and nothing else: a second entry would move the archive's root, and this check
+      # would have to model that root rather than compare names. Listing one path makes "what the artifact
+      # carries" and "what the row declares" the same string, which is the property a red scan needs.
+      if [ "$(printf '%s\n' "$upload_paths" | grep -c .)" -ne 1 ] ||
+         [ "$(printf '%s\n' "$upload_paths")" != "$record_path" ]; then
+        error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the upload lists '$(printf '%s' "$upload_paths" | tr '\n' ' ')', not the row's '$record_path' alone — the artifact would carry a different path than the row reads (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
+      fi
+    fi
   fi
 fi
 

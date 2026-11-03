@@ -31,12 +31,15 @@ concluded `success`; the rest run for any record, so **"the build is red" is exa
 person would have to read as "the build was red, the check was fine".
 
 A pipeline the build does not own publishes its record the same way, under its own ready-ness. The scan
-(`.github/workflows/sonar.yml`) writes `app/build/scan-result.json` — the run's result, the step that broke and
-the command it ran — for every run, a red one included, and uploads it as the `scan-inputs` artifact;
+(`.github/workflows/sonar.yml`) writes `scan-result.json` at the workspace root — the run's result, the step that
+broke and the command it ran — for every run, a red one included, and uploads it as the `scan-inputs` artifact;
 `tools/build-inputs.sh --scan-result` is what writes it, so the path is the publisher's and `--check` pairs it
-with the `broken-scan` row exactly as it pairs the build's own inputs. The checks' run fetches that artifact
-with the same fetcher and reports a second ready-ness beside the build's, because a scan of the commit may
-still be running: without it a scan that had never once succeeded filed nothing at all, for three runs (#751).
+with the `broken-scan` row exactly as it pairs the build's own inputs. The path sits at the root because
+`actions/upload-artifact` roots an archive at the least common ancestor of its `path:` list, so a single
+explicit file is carried under its basename and restored at the workspace root: a record declared under
+`app/build/` would be unpacked somewhere the row does not read. The checks' run fetches that artifact with the
+same fetcher and reports a second ready-ness beside the build's, because a scan of the commit may still be
+running: without it a scan that had never once succeeded filed nothing at all, for three runs (#751).
 
 One row exists to watch the mechanism rather than the project: `stale-citations` reports the **count of
 citations nothing accounts for**, measured by the resolver's own dry run — the items it reports unresolved plus

@@ -12,9 +12,11 @@
 #   sonar-workflow#theGateIsNotWaitedFor              a gate-wait property reddens the check
 #   sonar-workflow#theScanStepIsNotContinueOnError    an error-swallowing scan step reddens the check
 #   sonar-workflow#theRecordIsPublishedOnEveryOutcome  a record its own run does not publish reddens the check
+#   sonar-workflow#theRecordPathIsTheUploadsOwn       a record the upload root cannot carry reddens the check
 #
-# The fixtures are the repository's own two files, copied into a temporary tree per case — no build, no device,
-# no network, and no fixture in the repository to keep in step with them.
+# The fixtures are the repository's own three files (the workflow, the scan's properties and the checks'
+# registry that declares the row reading the record), copied into a temporary tree per case — no build, no
+# device, no network, and no fixture in the repository to keep in step with them.
 #
 # Usage: check-sonar-workflow-selftest.sh [--root <dir>] [--case <id>] [--list]
 # Exit: 0 every selected case passed, 1 a case failed, 2 usage or an unknown case id.
@@ -46,6 +48,7 @@ cases=(
   'sonar-workflow#theGateIsNotWaitedFor'
   'sonar-workflow#theScanStepIsNotContinueOnError'
   'sonar-workflow#theRecordIsPublishedOnEveryOutcome'
+  'sonar-workflow#theRecordPathIsTheUploadsOwn'
 )
 
 if [ "$list" -eq 1 ]; then
@@ -57,13 +60,15 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 wf_rel=".github/workflows/sonar.yml"
 props_rel="sonar-project.properties"
+registry_rel="tools/sensors/sensors.json"
 
 # A throwaway tree carrying the repository's own scan files, which is the green fixture every case starts from.
 fresh() {
-  rm -rf "$tmp/.github" "$tmp/sonar-project.properties"
-  mkdir -p "$tmp/.github/workflows"
+  rm -rf "$tmp/.github" "$tmp/sonar-project.properties" "$tmp/tools"
+  mkdir -p "$tmp/.github/workflows" "$tmp/tools/sensors"
   if [ -f "$repo/$wf_rel" ]; then cp "$repo/$wf_rel" "$tmp/$wf_rel"; fi
   if [ -f "$repo/$props_rel" ]; then cp "$repo/$props_rel" "$tmp/$props_rel"; fi
+  if [ -f "$repo/$registry_rel" ]; then cp "$repo/$registry_rel" "$tmp/$registry_rel"; fi
 }
 
 # plant <file> <sed expression>: rewrite one line of the green fixture.
@@ -165,6 +170,16 @@ run_case() {
       fresh
       plant "$wf_rel" "/name: Write the scan.s result record/{n;s/if: always\\(\\)/if: success()/}"
       check_fails "$1" "$wf_rel" "if: always()" ;;
+    'sonar-workflow#theRecordPathIsTheUploadsOwn')
+      # The upload root decides where the record lands. A single explicit file is archived under its basename
+      # and unpacked at the workspace root, so a record declared (or uploaded) under a directory is a file the
+      # row never finds (issue #751, review round 1).
+      fresh
+      plant "$wf_rel" 's#^([[:space:]]*)path: scan-result\.json#\1path: app/build/scan-result.json#'
+      check_fails "$1" "$wf_rel" "not the row's" || return 1
+      fresh
+      plant "$registry_rel" 's#"input": "scan-result\.json"#"input": "app/build/scan-result.json"#'
+      check_fails "$1" "$wf_rel" "with a directory" ;;
     *) echo "check-sonar-workflow-selftest: unknown case '$1'" >&2; exit 2 ;;
   esac
   echo "ok: $1"

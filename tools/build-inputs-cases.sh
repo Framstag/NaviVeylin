@@ -338,13 +338,17 @@ case_inputs_theScanRecordIsTheScanPipelinesOwn() {
   # record", issue #751).
   local dir out
   out=$(publisher --manifest) || fail "the manifest could not be printed"
-  assert_contains "$out" "app/build/scan-result.json" "the manifest names the scan's record"
+  assert_contains "$out" "scan-result.json" "the manifest names the scan's record"
+  # The publisher's path and the row's declared input are one string: a record written where the row does not
+  # read it would be published and still be invisible (issue #751, review round 1).
+  assert_eq "$(jq -r '.rows[] | select(.id == "broken-scan") | .input' "$INPUTS_REPO_ROOT/tools/sensors/sensors.json")" \
+    "$(printf '%s\n' "$out" | grep -E '^scan-result\.json$')" "the row declares the path the scan publishes"
 
   # A build writes its own record and does not wait for the scan's: the scan runs beside it, not after it.
   dir=$(workspace)
   module_reports "$dir"; timing_record "$dir"; package_apk "$dir"; test_results "$dir" clean
   out=$(publisher --root "$dir" --write 2>&1) || fail "--write refused a workspace without the scan's record: $out"
-  [ ! -e "$dir/app/build/scan-result.json" ] || fail "--write wrote the scan's record, which only the scan produces"
+  [ ! -e "$dir/scan-result.json" ] || fail "--write wrote the scan's record, which only the scan produces"
 
   # The record itself: the first step that did not succeed is the cause, and the command it ran travels with
   # it, so the item says what failed rather than only that something did.
@@ -354,14 +358,14 @@ case_inputs_theScanRecordIsTheScanPipelinesOwn() {
               {"id":"Scan","command":"SonarSource/sonarqube-scan-action@v7","outcome":"failure"}]' 2>&1) \
     || fail "the scan's record could not be written: $out"
   assert_eq '{"job":"sonar","step":"Scan","command":"SonarSource/sonarqube-scan-action@v7","result":"failure"}' \
-    "$(jq -c . "$dir/app/build/scan-result.json")" "the record names the failing step and its command"
+    "$(jq -c . "$dir/scan-result.json")" "the record names the failing step and its command"
 
   dir=$(workspace)
   publisher --root "$dir" --scan-result --status success \
     --steps '[{"id":"Scan","command":"SonarSource/sonarqube-scan-action@v7","outcome":"success"}]' >/dev/null 2>&1 \
     || fail "a green scan's record could not be written"
   assert_eq '{"job":"sonar","step":"","command":"","result":"success"}' \
-    "$(jq -c . "$dir/app/build/scan-result.json")" "a green scan names no failing step"
+    "$(jq -c . "$dir/scan-result.json")" "a green scan names no failing step"
 
   # The pairing the row relies on still holds over the shipped registry.
   publisher --check >/dev/null 2>&1 || fail "--check refused the repository's own registry"

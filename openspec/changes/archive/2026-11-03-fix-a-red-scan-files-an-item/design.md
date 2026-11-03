@@ -16,15 +16,21 @@ read exactly like a healthy one (#751; the same shape made a red *build* visible
 Make the scan publish a record of its own, in the shape the loop already reads, and let one row read it:
 
 1. **The record.** `tools/build-inputs.sh --scan-result --status <conclusion> --steps <json>` writes
-   `app/build/scan-result.json`: `{job, step, command, result}`, where `job` is the workflow's job, `step` the
-   first step that neither succeeded nor was skipped, and `command` the `run:`/`uses:` value that step carried.
-   The script is the project's, not the engine's — it already is the one place that knows which paths the rows
-   declare, so the record's path and the row's `input` stay paired by construction.
+   `scan-result.json` at the workspace root: `{job, step, command, result}`, where `job` is the workflow's job,
+   `step` the first step that neither succeeded nor was skipped, and `command` the `run:`/`uses:` value that step
+   carried. The script is the project's, not the engine's — it already is the one place that knows which paths
+   the rows declare, so the record's path and the row's `input` stay paired by construction. The path carries no
+   directory because `actions/upload-artifact` roots an archive at the least common ancestor of its `path:`
+   list: a single explicit file is carried under its basename, so `app/build/scan-result.json` would be
+   restored as `./scan-result.json` in the checks' tree and a row declaring the directory would read nothing
+   (review round 1).
 2. **The publisher.** The path joins `foreign_paths()`: `--manifest` and `--check` count it (a row may declare
    it), `--write` neither writes it nor requires it. That split is what keeps `--check` a real pairing while
    letting two pipelines produce into one manifest.
 3. **The workflow.** `sonar.yml` gives the three failing-capable steps ids, writes the record on
-   `if: always()` and uploads `app/build/scan-result.json` as `scan-inputs` on `if: always()`. The write is in
+   `if: always()` and uploads `scan-result.json` as `scan-inputs` on `if: always()`. The upload lists exactly the
+   one path the row declares, and `check-sonar-workflow.sh` reads that declaration from the registry rather than
+   repeating it, so a root the upload changes cannot pass unseen (review round 1). The write is in
    the scan pipeline, never in the checks' pipeline, so the tracker token's scope (`Backlog.md` §9, the one
    workflow holding `issues: write`) is untouched.
 4. **The readiness.** The checks' `run` fetches the scan's artifact with the same fetcher and the same
@@ -33,7 +39,9 @@ Make the scan publish a record of its own, in the shape the loop already reads, 
    build as well as a green one.
 5. **The condition.** `broken-scan.sh` reads the record and emits one of the three outcomes: a violation
    identified by `job`+`step`, a clear for every condition its own issues record (through the shared
-   `sensors_clear_recorded`, which `broken-main` now uses too), or an error when the record is unreadable.
+   `sensors_clear_recorded`, which `broken-main` now uses too), or an error when the record is unreadable. A
+   green scan that clears nothing still reports, under the record's own `the-run` sentinel — every fingerprint
+   field must be non-empty, and an empty `step` is a malformed finding the runner refuses (review round 1).
 
 ## The decision the shape had to settle, and how the evidence settled it
 
@@ -82,6 +90,27 @@ Revert the commit. The row, the condition script, the publisher's foreign path, 
 the shared helper go together; `--check` then pairs the manifest with the registry as before, and the next
 `sensors` run selects no `broken-scan` row. Nothing persisted, nothing shipped, no state file, no artifact name
 any other job reads.
+
+## Review round 1: what the reviewer refused, and what changed
+
+The answer recorded on the item was "apply the additive corrections and re-gate". Four findings were blocking:
+
+1. **The artifact root.** `upload-artifact` roots the archive at the least common ancestor of its `path:` list,
+   so the single `app/build/scan-result.json` was carried as `scan-result.json` and restored at the workspace
+   root, while the row declared the directory and would have read nothing — the item's defect, inverted. The
+   record moved to the workspace root (`scan-result.json`), the upload lists that one path, and
+   `check-sonar-workflow.sh` now reads the declared path from the registry and refuses a declaration with a
+   directory or an upload that lists anything else. New case: `sonar-workflow#theRecordPathIsTheUploadsOwn`.
+2. **The failed-scan scenario's unasserted conjuncts.** The item's text and the second failing step are now
+   asserted in `sensors#aFailedScanIsItsOwnCondition`.
+3. **The green-with-nothing-recorded half** is asserted in `sensors#aGreenScanClearsItsCondition` — and it found
+   a real defect: the row-level clear carried an empty `step`, which the runner refuses as a malformed finding.
+   The clear now uses the record's own `the-run` sentinel.
+4. **The readiness branch** is asserted in `workflow#theScanRecordIsFetchedBeforeItsRowRuns` (`[ "$status" -eq 3 ]`,
+   `scan-ready=false`, `exit "$status"`), and its base-red run is in the evidence at last.
+
+The record's four paths are re-checked by one revert-check (`evidence/revert-check.log`): the publisher's path
+mutated to the directory form reddens `inputs#theScanRecordIsTheScanPipelinesOwn`, the restored file is green.
 
 ## Open decisions
 

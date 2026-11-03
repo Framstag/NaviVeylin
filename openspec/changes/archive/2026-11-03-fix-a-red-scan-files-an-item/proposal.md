@@ -38,17 +38,20 @@ this change adds the case that a *second* pipeline publishes one of those inputs
 ## What Changes
 
 - **The scan publishes its own record.** `tools/build-inputs.sh` gains `--scan-result --status <conclusion>
-  --steps <json>`: it writes `app/build/scan-result.json` holding the run's result and, for a red run, the
-  step that broke and the command it ran. `.github/workflows/sonar.yml` calls it on `if: always()` and uploads
-  the file as the `scan-inputs` artifact on `if: always()` as well — a red scan is exactly when a reader needs
-  it. The three steps that can fail carry ids, so the record names its cause instead of only its conclusion.
+  --steps <json>`: it writes `scan-result.json` at the workspace root holding the run's result and, for a red
+  run, the step that broke and the command it ran. `.github/workflows/sonar.yml` calls it on `if: always()` and
+  uploads the file as the `scan-inputs` artifact on `if: always()` as well — a red scan is exactly when a reader
+  needs it. The three steps that can fail carry ids, so the record names its cause instead of only its
+  conclusion. The path carries no directory because `upload-artifact` archives a single explicit file under its
+  basename: a record written under `app/build/` would be restored at the workspace root, where a row declaring
+  the directory reads nothing (review round 1).
 - **The publisher pairs the path with its producer.** `tools/build-inputs.sh` declares
-  `app/build/scan-result.json` as a path a *foreign* pipeline publishes: `--manifest` and `--check` count it,
+  `scan-result.json` as a path a *foreign* pipeline publishes: `--manifest` and `--check` count it,
   so a row may declare it, and `--write` neither writes it nor requires it — the build and the scan run beside
   each other, and a build that demanded the scan's record would fail on every commit whose scan is unfinished.
 - **One row.** `tools/sensors/sensors.json` declares `broken-scan`
   (`tools/sensors/conditions/broken-scan.sh`, `boolean`, threshold 1, `class: bug`, category
-  `build-and-harness`, `file+close`, input `app/build/scan-result.json`, fingerprint fields `[job, step]`).
+  `build-and-harness`, `file+close`, input `scan-result.json`, fingerprint fields `[job, step]`).
   One issue per failing step, closed when a green scan clears it — the shape `broken-main` gives the build.
 - **The tick learns when the scan has finished.** The checks' pipeline fetches the scan's artifact with the
   same fetcher and the same read-only workflow token, and reports a second readiness (`scan-ready`): exit 3
@@ -60,9 +63,11 @@ this change adds the case that a *second* pipeline publishes one of those inputs
   of its own copy of the loop, so "a green run closes what its own record names" lives in one place.
 - **Two bounds hold it.** `tools/check-sonar-workflow.sh` asserts that the scan writes and uploads its record
   on `if: always()`, that the artifact is named `scan-inputs`, and that it carries the path the row declares —
-  renaming either side is now a red check rather than a row that silently reads nothing. The workflow's own
-  `sensors#workflow#theScanRecordIsFetchedBeforeItsRowRuns` holds the other end: the fetch asks the scan
-  workflow for that artifact, and the row's step is gated on `scan-ready` alone.
+  renaming either side, or moving the record under a directory the archive's root cannot carry, is now a red
+  check rather than a row that silently reads nothing. The workflow's own
+  `workflow#theScanRecordIsFetchedBeforeItsRowRuns` holds the other end: the fetch asks the scan
+  workflow for that artifact, reports the exit-3 branch that writes `scan-ready=false`, and the row's step is
+  gated on that readiness as well as the build's.
 - **Documentation gains the second pipeline.** `guidelines/BacklogTooling.md` §9 names `broken-scan` among the
   declared rows, and `guidelines/BacklogTooling.recipes.md` §9 states how a pipeline the build does not own
   publishes its record under its own readiness.
@@ -90,9 +95,11 @@ this change adds the case that a *second* pipeline publishes one of those inputs
 `.github/workflows/sensors.yml` (the scan fetch inside the existing record step, one gated run step),
 `tools/build-inputs.sh` (`--scan-result`, the foreign path in the manifest), `tools/sensors/sensors.json` (one
 row), `tools/sensors/lib.sh` (one helper), `tools/sensors/conditions/broken-main.sh` (uses it),
-`tools/sensor-cases.sh` (three cases), `tools/build-inputs-cases.sh` (one case),
-`tools/check-sonar-workflow.sh` and its self-test (one assertion, one case),
-`guidelines/BacklogTooling.md` §9, `guidelines/BacklogTooling.recipes.md` §9.
+`tools/sensor-cases.sh` (two cases), `tools/build-inputs-cases.sh` (one case),
+`tools/check-sonar-workflow.sh` and its self-test (three assertions, two cases),
+`guidelines/BacklogTooling.md` §9, `guidelines/BacklogTooling.recipes.md` §9. The shipped
+`openspec/specs/backlog-sensors/spec.md` gains the same requirement on archive, and the change's own documents
+record the review round's corrections.
 
 **Not touched**: no Gradle build file, no module source, no test source, no CMake or vcpkg input, no
 `sonar-project.properties`. The scan's trigger set, its token scope and its exclusion boundary are unchanged,
@@ -111,7 +118,7 @@ the scan's record.
 unpublished build record would. The structural check is what makes that a red gate rather than a silent one;
 the fetcher cannot tell a workflow that forgot from one that has not finished.
 
-surface: 5 cases added (3 in `tools/sensor-cases.sh`, 1 in `tools/build-inputs-cases.sh`, 1 in
+surface: 5 cases added (2 in `tools/sensor-cases.sh`, 1 in `tools/build-inputs-cases.sh`, 2 in
 `tools/check-sonar-workflow-selftest.sh`), 0 rewritten, 1 row added, 2 workflows touched, 1 published path
 declared — `grep -c 'broken-scan' tools/sensor-cases.sh tools/build-inputs-cases.sh tools/sensors/sensors.json`
 and `grep -c 'scan-inputs' .github/workflows/sonar.yml .github/workflows/sensors.yml`.

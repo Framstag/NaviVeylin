@@ -647,4 +647,4 @@ completed run carries it.
 - **THEN** the record it writes and the artifact that carries it both run on `always()`, the artifact carries
   the path the row declares, and a run that publishes nothing is reported by the workflow's own structural
   check rather than passing as healthy
-- **Case**: `sonar-workflow#theRecordIsPublishedOnEveryOutcome`
+- **Case**: `sonar-workflow#theRecordIsPublishedOnEveryOutcome`, `sonar-workflow#theRecordPathIsTheUploadsOwn`

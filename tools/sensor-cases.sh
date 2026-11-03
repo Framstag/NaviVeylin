@@ -2531,7 +2531,7 @@ case_sensors_aFailedScanIsItsOwnCondition() {
   assert_eq "1" "$(jq -r '.threshold' <<< "$row")" "the state is red or green"
   assert_eq "bug" "$(jq -r '.class' <<< "$row")" "a red scan files a bug"
   assert_eq '["job","step"]' "$(jq -c '.fingerprint.fields' <<< "$row")" "the identity is the failing step"
-  assert_eq "app/build/scan-result.json" "$(jq -r '.input' <<< "$row")" "the record the scan publishes is the row's input"
+  assert_eq "scan-result.json" "$(jq -r '.input' <<< "$row")" "the record the scan publishes is the row's input"
   [ -f "$SENSORS_ENGINE/conditions/broken-scan.sh" ] || fail "no condition script beside broken-main.sh"
 
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
@@ -2545,6 +2545,22 @@ case_sensors_aFailedScanIsItsOwnCondition() {
   assert_contains "$out" '"row":"broken-scan"' "the finding is the row's own"
   assert_contains "$out" "\"fingerprint\":\"$fp\"" "the identity is the failing job and step"
   assert_eq "1" "$(condition_creates "$log")" "a red scan files one condition"
+
+  # …and the item says what broke, not only that something did: the record carries the failing step's command
+  # and the item carries it into the tracker (spec `backlog-sensors`, "A red scan is one condition, and its
+  # identity is the step that broke"). The filing's body travels on the write log, so the log is where the
+  # item's own text is read.
+  assert_contains "$(log_text "$log")" "the scan failed at Scan" "the item names the step that broke"
+  assert_contains "$(log_text "$log")" "SonarSource/sonarqube-scan-action@v7" "the item names the command that failed"
+
+  # A second, unrelated failing step is a second item rather than a reopening of the first one's: the identity
+  # is the step, so a different step is a different condition (design D4).
+  jq -n '{job: "sonar", step: "Run unit tests", command: "./gradlew test", result: "failure"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-scan --apply --input "$artifact" --json 2>&1)
+  fp=$(fingerprint_of job sonar step "Run unit tests")
+  assert_contains "$out" "\"fingerprint\":\"$fp\"" "a second failing step carries its own identity"
+  assert_eq "2" "$(condition_creates "$log")" "a second failing step files a second item"
 }
 
 case_sensors_aGreenScanClearsItsCondition() {
@@ -2564,6 +2580,22 @@ case_sensors_aGreenScanClearsItsCondition() {
   assert_eq "1" "$(recorded "$log" 'issue close')" \
     "the issue the recorded condition identifies is the one a green scan closes"
   assert_eq "0" "$(condition_creates "$log")" "a green scan files no condition"
+
+  # The other half: a green record with *nothing* recorded must still report. The runner reads a row that
+  # printed nothing as a failed check, so "the condition is absent" is a verdict the row has to print, on its
+  # own identity — it owns no issue, so it closes nothing (spec `backlog-sensors`, "A green scan clears its
+  # condition"; the counterpart is `sensors#brokenMainGreenReportsClear`).
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  artifact="$dir/scan-result.json"
+  jq -n '{job: "sonar", step: "", command: "", result: "success"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-scan --apply --input "$artifact" --json 2>&1)
+  assert_contains "$out" '"verdict":"clear"' "a green scan with nothing recorded still reports a clear: $out"
+  assert_contains "$out" '"row":"broken-scan"' "the clear is the row's own"
+  assert_eq "0" "$(recorded "$log" 'issue close')" "a clear that owns no issue closes nothing"
+  assert_eq "0" "$(condition_creates "$log")" "and files no condition"
+  assert_eq "1" "$(record_creates "$log")" "a green scan still reaches the tracker, on the row's record"
 }
 
 case_workflow_onlyTwoTriggers() {
@@ -2702,6 +2734,14 @@ case_workflow_theScanRecordIsFetchedBeforeItsRowRuns() {
   assert_contains "$scan_block" "--rows broken-scan" "the step runs the scan's row"
   assert_contains "$scan_block" 'run.sh --due' "the row is selected by the tick's window"
   assert_eq "1" "$(grep -c -- '--rows broken-scan' "$file")" "no second step runs the row without the record"
+
+  # The wait itself, not the word: the fetch tells "no completed scan of this commit carries the record yet"
+  # from "cannot tell", writes its own readiness as false in the first case, and fails the tick in the second,
+  # so an unfinished scan selects no row and reports no failed check (spec `backlog-sensors`, "An unfinished
+  # scan selects no row").
+  assert_contains "$fetch_block" '[ "$status" -eq 3 ]' "the fetch separates 'not ready' from 'cannot tell'"
+  assert_contains "$fetch_block" 'scan-ready=false' "an unfinished scan is recorded as not ready"
+  assert_contains "$fetch_block" 'exit "$status"' "a fetch that cannot tell still fails the tick"
 
   input=$(jq -r '.rows[] | select(.id == "broken-scan") | .input' "$SENSORS_ENGINE/sensors.json")
   [ -n "$input" ] || fail "the registry declares no broken-scan row"

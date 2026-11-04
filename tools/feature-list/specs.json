@@ -52,6 +52,7 @@
     "car-session-presence": { "area": "car-only", "userVisible": true, "surfaces": ["car"] },
     "change-readiness": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "ci-action-runtimes": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
+    "ci-gate-layout": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "ci-unit-test-jni": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "ci-vcpkg-cache": { "area": "build-tooling", "userVisible": false, "surfaces": [] },
     "compass-button": { "area": "map-interaction", "userVisible": true, "surfaces": ["phone"] },

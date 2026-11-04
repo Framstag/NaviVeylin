@@ -107,7 +107,10 @@ removes the marker, the gate child and the round; `run#thePreGateReviewRunsBefor
 
 - **The saving is a model estimate, not a measurement.** Two `tools/loop-spend.py --json` runs either side of a
   landing, compared per item, are what decide it; what is measured here is the shape (the round before the gate, the
-  one gate child, the outcome arm).
+  one gate child, the outcome arm), and the *before* side is taken and kept in `evidence/spend-baseline.md` and
+  `evidence/spend-baseline.json` — 227 items, 2 591 Mtok, 61.0 % of it after the item's first gate, 117 sessions that
+  ran the gate three times or more. The after side is the same command over the items landed once this change is in
+  the base, and it does not exist yet.
 - **The extra child a passing item pays** is a project baseline (#744 records `LOOP-SPEND-BASELINE tokens=17056`).
   This change does not measure whether that is smaller than the gate console's removal from the derivation's context.
 - **The pre-gate round's own quality** is not measured: whether a reader with no gate result finds the findings the

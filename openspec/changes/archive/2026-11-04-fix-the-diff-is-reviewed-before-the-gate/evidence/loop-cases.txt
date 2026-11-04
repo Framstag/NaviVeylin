@@ -1,0 +1,22 @@
+# The loop's own suite, offline, all 312 cases
+command: bash tools/loop-selftest.sh
+date: 2026-11-04T06:17:22Z
+
+```
+PASS run#childPastItsTurnBoundIsBlocked
+PASS run#theRecordedZeroKeepsTheTurnBoundOff
+PASS gate#aStepThatNamesNoCaseIsAttributedByItsStep
+loop-selftest: all 312 cases passed (JDK 27, offline, no token, no sandbox)
+...
+PASS lines: 312
+```
+
+The two cases this change adds:
+
+```
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+PASS run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun
+PASS run#thePreGateReviewRunsBeforeTheGate
+PASS run#engineNamesNoProjectFact
+PASS phase#oneCallPrintsThePhaseState
+```

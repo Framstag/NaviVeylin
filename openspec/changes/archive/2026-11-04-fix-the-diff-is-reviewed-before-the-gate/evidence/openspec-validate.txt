@@ -1,0 +1,9 @@
+# openspec validate --strict
+date: 2026-11-04T06:32:14Z
+
+```
+Change 'fix-the-diff-is-reviewed-before-the-gate' is valid
+✓ change/shaping-inbox-consumer
+Totals: 14 passed, 8 failed (22 items)
+Details: openspec validate dedupe-stylesheet-loads --type change
+```

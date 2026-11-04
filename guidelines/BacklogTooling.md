@@ -74,7 +74,10 @@ identity that files an item is a **concrete allowlisted person**, because the ga
 only attributable one (§5, I2).
 
 The declared rows and what each measures — `broken-main`, `broken-scan`, `stale-citations`, `metadata-invariant`, `hotspot`,
-`source-size`, `routed-section-size`, `entry-document-size` and `loop-spend` — are `guidelines/BacklogTooling.recipes.md` §9.
+`source-size`, `routed-section-size`, `entry-document-size`, `loop-spend` and `libosmscout-lag` — are
+`guidelines/BacklogTooling.recipes.md` §9. `libosmscout-lag` declares its own recurrence bound (`k: 100`) because
+its condition returns by design after every update, not because a fix failed to hold, so the registry's 3 would hand
+ordinary maintenance to a person as a design problem.
 
 ## 10. Portability
 

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Stub `curl` for the sensor tooling's offline case: answers one comparison request from environment variables,
+# so the row that reads an upstream server is exercised with no network.
+#
+# Env: CURL_STUB_STATUS (the HTTP status, default 200), CURL_STUB_BODY (the response body), CURL_STUB_EXIT (the
+#      transport's status, for the no-answer half), CURL_STUB_RECORD (a file the invocation is appended to).
+# The caller passes `-w '\n%{http_code}'`, so the body and the status are separated the way the real tool
+# separates them.
+set -uo pipefail
+if [ -n "${CURL_STUB_RECORD:-}" ]; then
+  printf 'curl %s\n' "$*" >> "$CURL_STUB_RECORD"
+fi
+if [ -n "${CURL_STUB_EXIT:-}" ]; then
+  exit "$CURL_STUB_EXIT"
+fi
+printf '%s\n%s\n' "${CURL_STUB_BODY:-}" "${CURL_STUB_STATUS:-200}"

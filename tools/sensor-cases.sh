@@ -32,6 +32,7 @@ SENSOR_CASES=(
   'run#noBaselineFileWritten'
   'run#aClearWithNoIssueReachesTheRecord'
   'lib#theRecordIsNotACondition'
+  'lib#aRowBoundIsACount'
   'report#printsACountingLinePerRow'
   'report#aGreenRowIsNotNever'
   'report#aFiledRowIsReported'
@@ -58,6 +59,8 @@ SENSOR_CASES=(
   'run#hysteresisBothDirections'
   'run#hysteresisCountersSurviveARestart'
   'run#escalatesPastKRecurrences'
+  'run#aRowDeclaresItsOwnRecurrenceBound'
+  'run#libosmscoutLagReadsThreeOutcomes'
   'run#escalationNeverSetsEligibility'
   'sensors#buildDurationRow'
   'hotspot#ranksBySizeTimesChanges'
@@ -118,6 +121,7 @@ sensor_run_case() {
     'run#noBaselineFileWritten') case_run_noBaselineFileWritten ;;
     'run#aClearWithNoIssueReachesTheRecord') case_run_aClearWithNoIssueReachesTheRecord ;;
     'lib#theRecordIsNotACondition') case_lib_theRecordIsNotACondition ;;
+    'lib#aRowBoundIsACount') case_lib_aRowBoundIsACount ;;
     'report#printsACountingLinePerRow') case_report_printsACountingLinePerRow ;;
     'report#aGreenRowIsNotNever') case_report_aGreenRowIsNotNever ;;
     'report#aFiledRowIsReported') case_report_aFiledRowIsReported ;;
@@ -144,6 +148,8 @@ sensor_run_case() {
     'run#hysteresisBothDirections') case_run_hysteresisBothDirections ;;
     'run#hysteresisCountersSurviveARestart') case_run_hysteresisCountersSurviveARestart ;;
     'run#escalatesPastKRecurrences') case_run_escalatesPastKRecurrences ;;
+    'run#aRowDeclaresItsOwnRecurrenceBound') case_run_aRowDeclaresItsOwnRecurrenceBound ;;
+    'run#libosmscoutLagReadsThreeOutcomes') case_run_libosmscoutLagReadsThreeOutcomes ;;
     'run#escalationNeverSetsEligibility') case_run_escalationNeverSetsEligibility ;;
     'sensors#buildDurationRow') case_sensors_buildDurationRow ;;
     'hotspot#ranksBySizeTimesChanges') case_hotspot_ranksBySizeTimesChanges ;;
@@ -935,6 +941,46 @@ case_lib_theRecordIsNotACondition() {
   assert_contains "$out" '"condition":{"path":"x"}' "a condition issue is still read as one: $out"
 }
 
+# A row may declare its own recurrence bound, and that bound is a count of at least one: a row that may bound its
+# escalation at zero has bounded the condition away, and a value that is not a count must be refused by name rather
+# than compared as a number (issue #769, the row `libosmscout-lag` is the first to declare one).
+case_lib_aRowBoundIsACount() {
+  local dir registry out status
+  dir=$(scratch)
+
+  registry="$dir/k-zero.json"
+  jq '.rows[0].k = 0' "$(fixture registry.json)" > "$registry"
+  out=$(cd "$SENSORS_REPO_ROOT" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_registry_problems' _ "$registry" 2>&1)
+  assert_contains "$out" "fixture-emit: row-k-not-a-count: 0" "a bound of zero is refused by name: $out"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$SENSORS_REPO_ROOT/tools/issues/fixtures" \
+    sensor_engine run.sh --only fixture-emit --registry "$registry" 2>&1)
+  status=$?
+  assert_eq "9" "$status" "a run of a row bound at zero refuses before it writes: $out"
+
+  registry="$dir/k-not-a-count.json"
+  jq '.rows[0].k = "many"' "$(fixture registry.json)" > "$registry"
+  out=$(cd "$SENSORS_REPO_ROOT" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_registry_problems' _ "$registry" 2>&1)
+  assert_contains "$out" "fixture-emit: row-k-not-a-count: many" "a bound that is not a count is refused by name: $out"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$SENSORS_REPO_ROOT/tools/issues/fixtures" \
+    sensor_engine run.sh --only fixture-emit --registry "$registry" 2>&1)
+  status=$?
+  assert_eq "9" "$status" "a run of a row whose bound is not a count refuses before it writes: $out"
+
+  registry="$dir/k-valid.json"
+  jq '.rows[0].k = 100' "$(fixture registry.json)" > "$registry"
+  out=$(cd "$SENSORS_REPO_ROOT" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_registry_problems' _ "$registry" 2>&1)
+  assert_empty "$out" "a row that declares a count of at least one is complete: $out"
+}
+
 case_report_printsACountingLinePerRow() {
   local dir out lines
   dir=$(scratch)
@@ -1607,6 +1653,85 @@ case_run_escalatesPastKRecurrences() {
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
     sensor_engine run.sh --only fixture-emit --apply --input "$findings" --registry "$(fixture registry.json)" 2>&1)
   assert_eq "0" "$(recorded "$log" 'issue reopen')" "no fourth reopen happens"
+}
+
+# A row's own `k` is the bound that decides when reopening stops: the engine already reads it
+# (`tools/sensors/run.sh:509`), and until this case nothing exercised it. The fixture registry declares five, so an
+# item at occurrence three is still work and one at occurrence five has reached the bound and escalates.
+case_run_aRowDeclaresItsOwnRecurrenceBound() {
+  local dir log out fp findings body
+  dir=$(throwaway_project "$(fixture registry-row-bound.json)")
+  log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of case alpha)
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 5 case alpha)")
+
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->\n<!-- violation-run: 0 -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 97 CLOSED COMPLETED fixture-recurrence "$body")]"
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-recurrence --apply --input "$findings" 2>&1)
+  assert_eq "1" "$(recorded "$log" 'issue reopen')" "below the row's own bound the item is reopened: $out"
+  assert_contains "$out" "action=reopened" "the run reports the reopen"
+
+  log="$dir/calls2.log"; : > "$log"
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 5 -->\n<!-- violation-run: 0 -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 97 CLOSED COMPLETED fixture-recurrence "$body")]"
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-recurrence --apply --input "$findings" 2>&1)
+  assert_eq "0" "$(recorded "$log" 'issue reopen')" "at the row's own bound nothing is reopened: $out"
+  assert_contains "$(cat "$log")" "--add-label agent/needs-decision" "the row's own bound decides the escalation"
+  assert_contains "$out" "action=escalated" "the run reports the escalation"
+}
+
+# The lag row's three outcomes, offline: a stub `curl` first on PATH answers the comparison request, so the
+# measurement's own reading of the pin and of upstream's answer is exercised without a network. A count is a
+# violation, zero is a clear, and an answer the server refused (403, 404, 500) is the third outcome — never a
+# clear, and never a tracker write.
+case_run_libosmscoutLagReadsThreeOutcomes() {
+  local dir log stub out status code
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"; stub="$dir/bin"
+  mkdir -p "$stub"
+  cp "$(fixture curl)" "$stub/curl"
+  chmod +x "$stub/curl"
+
+  issues_fixture "$dir" '[]'
+  out=$(cd "$SENSORS_REPO_ROOT" && PATH="$stub:$PATH" GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    CURL_STUB_STATUS=200 \
+    CURL_STUB_BODY='{"ahead_by":40,"commits":[{"sha":"9fd3a1e62aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]}' \
+    sensor_engine run.sh --only libosmscout-lag --apply 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a readable comparison answers a verdict: $out"
+  assert_contains "$out" "verdict=violation measurement=40" "a count upstream carries is the condition"
+  assert_eq "1" "$(condition_creates "$log")" "a drift files one condition"
+
+  issues_fixture "$dir" '[]'; : > "$log"
+  out=$(cd "$SENSORS_REPO_ROOT" && PATH="$stub:$PATH" GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    CURL_STUB_STATUS=200 CURL_STUB_BODY='{"ahead_by":0,"commits":[]}' \
+    sensor_engine run.sh --only libosmscout-lag --apply 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a zero answer is a clear: $out"
+  assert_contains "$out" "verdict=clear measurement=0" "nothing upstream carries is the clear"
+  assert_eq "0" "$(condition_creates "$log")" "a clear files no condition"
+
+  for code in 403 404 500; do
+    issues_fixture "$dir" '[]'; : > "$log"
+    out=$(cd "$SENSORS_REPO_ROOT" && PATH="$stub:$PATH" GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+      CURL_STUB_STATUS="$code" CURL_STUB_BODY='{"message":"not this answer"}' \
+      sensor_engine run.sh --only libosmscout-lag --apply 2>&1)
+    status=$?
+    assert_eq "8" "$status" "HTTP $code is a failed check, not a clear: $out"
+    assert_contains "$out" "verdict=error measurement=error-" "HTTP $code carries the error reason as its measurement"
+    assert_eq "0" "$(condition_creates "$log")" "HTTP $code writes no condition"
+    assert_eq "0" "$(record_creates "$log")" "HTTP $code writes no record"
+  done
+
+  issues_fixture "$dir" '[]'; : > "$log"
+  out=$(cd "$SENSORS_REPO_ROOT" && PATH="$stub:$PATH" GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    CURL_STUB_EXIT=6 sensor_engine run.sh --only libosmscout-lag --apply 2>&1)
+  status=$?
+  assert_eq "8" "$status" "a request that did not complete is a failed check, not a clear: $out"
+  assert_contains "$out" "verdict=error measurement=error-upstream-unreachable" \
+    "the transport's failure carries its own reason"
+  assert_eq "0" "$(condition_creates "$log")" "a failed request writes no condition"
 }
 
 case_run_escalationNeverSetsEligibility() {

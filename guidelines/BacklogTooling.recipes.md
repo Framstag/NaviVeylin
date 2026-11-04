@@ -126,6 +126,20 @@ read is still an `error`, so a tool whose output shape changed fails loudly inst
 it cannot do is decide whether a share that rose is a regression or a week of harness work; that is the reader's
 judgement, on the comment the row leaves.
 
+One row watches **whether upstream has moved past the submodule's pin**, because nothing did: `libosmscout-lag`
+reads the gitlink with `git ls-tree HEAD` (no submodule clone) and asks GitHub's public `compare` endpoint for the
+commits upstream's branch carries that the pin does not (`ahead_by`). The measurement is that count, and the bound is
+**any drift** (`threshold: 1`, `comparison: boolean`) rather than a lag: the pin is deliberately a merge commit, so
+after an update lands it is not upstream's head, and a count of zero is the clear that says the update landed —
+where a lag bound would ration when the update happens and a days-behind bound would fire during an upstream quiet
+period when there is nothing to merge. The row declares its own recurrence bound (`k: 100`, about two years at the
+observed weekly cadence) because its condition returns as a matter of course after every update: at the registry's
+3 the fourth routine cycle would escalate ordinary maintenance to a person as a design problem. Measured when the
+row landed: the pin was `7c449bf66`, upstream `master` was `9fd3a1e62`, and the count was 40 commits the pin did not
+carry (2026-11-04). An unreadable answer — a failed request, a refusal, a server error, or a pin upstream does not
+carry — is an `error`, never a zero, and the pipeline runs the row for a red build too because drift does not
+depend on the build's verdict.
+
 
 ## §10 Portability — the engine and the project
 

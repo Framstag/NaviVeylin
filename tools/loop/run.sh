@@ -20,7 +20,7 @@
 #
 # Usage: run.sh [--items N] [--minutes M] [--review on|off] [--may-close yes|no] [--push yes|no]
 #               [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off]
-#               [--strict-outside-write yes|no] [--dry-run]
+#               [--pre-gate-review on|off] [--strict-outside-write yes|no] [--dry-run]
 #               [--clean-worktree] [--reset-worktree] [--base <sha>]
 set -uo pipefail
 
@@ -31,6 +31,7 @@ source "$here/lib.sh"
 items=""
 minutes=""
 review=""
+pre_gate=""
 may_close=""
 max_decisions=""
 max_review_rounds=""
@@ -51,12 +52,13 @@ while [ $# -gt 0 ]; do
     --max-decisions) need_value "$@"; max_decisions="${2:-}"; shift 2 ;;
     --max-review-rounds) need_value "$@"; max_review_rounds="${2:-}"; shift 2 ;;
     --review-read-only) need_value "$@"; read_only="${2:-}"; shift 2 ;;
+    --pre-gate-review) need_value "$@"; pre_gate="${2:-}"; shift 2 ;;
     --strict-outside-write) need_value "$@"; strict_outside_write="${2:-}"; shift 2 ;;
     --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     --clean-worktree) clean_worktree=1; shift ;;
     --reset-worktree) reset_worktree=1; shift ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) loop_die "run: unknown argument $1" ;;
   esac
 done
@@ -81,6 +83,7 @@ measure_cmd="${LOOP_MEASURE_CMD:-}"
 : "${items:=$(loop_conf_value LOOP_ITEMS_DEFAULT)}"
 : "${minutes:=$(loop_conf_value LOOP_MINUTES_DEFAULT)}"
 : "${review:=$(loop_conf_value LOOP_REVIEW_DEFAULT)}"
+: "${pre_gate:=$(loop_conf_value LOOP_PRE_GATE_REVIEW_DEFAULT)}"
 : "${may_close:=$(loop_conf_value LOOP_MAY_CLOSE_DEFAULT)}"
 : "${max_decisions:=$(loop_conf_value LOOP_MAX_DECISIONS_DEFAULT)}"
 : "${max_review_rounds:=$(loop_conf_value LOOP_MAX_REVIEW_ROUNDS_DEFAULT)}"
@@ -97,6 +100,12 @@ done
 # never happened, and the branch would carry a `review-failed-round-0` that refuses it for ever.
 case "$max_review_rounds" in ''|*[!0-9]*|0) loop_die "run: --max-review-rounds must be a positive integer" ;; esac
 case "$review" in on|off) ;; *) loop_die "run: --review must be on or off" ;; esac
+case "$pre_gate" in on|off) ;; *) loop_die "run: --pre-gate-review must be on or off" ;; esac
+# A run with no reviewer has nothing to read the diff before the gate, and the split exists for that reading
+# (issue #758): the diff is reviewed, its findings are applied by a fresh child, and the item's one gate is run on a
+# change a reader has already agreed with. So the shape is folded here, once, and the header, the prompt the change
+# child is handed and the round below all read the one value.
+[ "$review" = on ] || pre_gate=off
 case "$may_close" in yes|no) ;; *) loop_die "run: --may-close must be yes or no" ;; esac
 case "$push" in yes|no) ;; *) loop_die "run: --push must be yes or no" ;; esac
 case "$read_only" in on|off) ;; *) loop_die "run: --review-read-only must be on or off" ;; esac
@@ -195,8 +204,8 @@ for role in WORKER WORKER_TAIL REVIEWER; do
   if [ "$agent_roles" = "-" ]; then agent_roles=$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-');
   else agent_roles="$agent_roles,$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-')"; fi
 done
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s item-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
-  "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
+printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s item-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
+  "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
   "$read_only" "$strict_outside_write" "$child_max" "$item_turns_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
@@ -1167,9 +1176,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # carries no other child's test results (issue #253). The **tail** child is the exception and is why this line is
   # not a `worker*` glob (issue #744): it is started *after* the gate wrote those results because the archive it
   # writes is read from them, so clearing them there would leave the item blocked on a gate result the run itself
-  # had deleted.
+  # had deleted. The **gate** child is the other exception (issue #758): the change child that went before it already
+  # started on a cleared tree, and what stands in the tree now is that child's own focused runs, which the gate it is
+  # about to run supersedes.
   case "$phase" in
     worker-tail*) ;;
+    worker-gate*) ;;
     worker*) clear_stale_test_results ;;
   esac
   interval="${LOOP_PROGRESS_SECONDS:-30}"
@@ -1434,6 +1446,20 @@ render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
   loop_render "$template" "$@" > "$out"
 }
 
+# The one section of `tools/loop/prompts/worker.md` that changes with the run's review shape (`{{GATE_STEP}}`). It is
+# a section of the worker's own prompt and not a second worker prompt, because everything else about the child — the
+# route, Phases A–C, the report block — is the same in both shapes and two copies of it would be two rules.
+#
+#   gate-own.md       the change child runs the gate; one child from the diagnosis to the gate (the shape an item
+#                     worked with `--review off` keeps)
+#   gate-deferred.md  the change child's session ends at the diff, a fresh child runs the gate (issue #758)
+#
+# The run substitutes this **first**: the section names `{{GATE_CMD}}` and `{{EVIDENCE_DIR}}` itself, so a section
+# inserted after those pairs would hand the child a path called `{{GATE_CMD}}`.
+gate_step_text() { # → the `{{GATE_STEP}}` section for the shape <on|off> asks for
+  if [ "${1:-off}" = on ]; then cat "$LOOP_DIR/prompts/gate-deferred.md"; else cat "$LOOP_DIR/prompts/gate-own.md"; fi
+}
+
 # The readiness verdict line for the change the run handed an item, read again when the package is rendered: the
 # item's answer is the copy in the worktree, so the copy is what is judged. A project that declares no check, or a
 # path that is not there, is named on the line rather than left blank — the block quotes a verdict, not a promise.
@@ -1459,13 +1485,13 @@ change_readiness_of() { # <change dir> → the checker's one-line verdict
 
 # The round's prompt, rendered once per attempt: the same contract and the same diff, only the file it is written
 # to differs, so a retried answer is the same question asked again rather than a second review (#224).
-# `CORRECTION_SCOPE` is substituted **first**, not last: `loop_render` replaces one pair at a time on the template it
-# has accumulated so far, and the section names `{{DIFF_PATH}}` and `{{CHANGE_ROOT}}` itself. A section inserted
-# after those pairs would survive verbatim and hand the reviewer a file called `{{DIFF_PATH}}` — the round that
-# exists to verify corrections pointing at a placeholder (item #245's round-1 review).
-render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope]
+# `CORRECTION_SCOPE` and `PRE_GATE` are substituted **first**, not last: `loop_render` replaces one pair at a time on the
+# template it has accumulated so far, and both sections name `{{DIFF_PATH}}` and `{{CHANGE_ROOT}}` themselves. A
+# section inserted after those pairs would survive verbatim and hand the reviewer a file called `{{DIFF_PATH}}` — the
+# round that exists to verify corrections pointing at a placeholder (item #245's round-1 review).
+render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope] [the pre-gate section]
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
-    "CORRECTION_SCOPE=${2:-}" \
+    "CORRECTION_SCOPE=${2:-}" "PRE_GATE=${3:-}" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "DIFF_RANGE=$diff_base" "EVIDENCE_DIR=$item_dir" \
     "WORK_PACKAGE=${package:-}" \
     "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
@@ -1699,6 +1725,7 @@ while true; do
     loop_die "run: could not render the work package for #$issue"
 
   render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \
+    "GATE_STEP=$(gate_step_text "$pre_gate")" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
     "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
     "CLASS=$class" "PROPOSE_CLASS=$propose_class"
@@ -1719,6 +1746,145 @@ while true; do
   worker_write_note="$outside_write_note"
   worker_write_decides=0
   outside_write_decides && worker_write_decides=1
+  # The child that ran the gate, and the report its result is read from: the item's change child, unless the run
+  # deferred the gate to a child of its own below (issue #758).
+  gate_report="$item_dir/worker-report.md"
+  gate_child="worker"
+  gate_exit="$worker_exit"
+  gate_write_note="$worker_write_note"
+  gate_write_decides="$worker_write_decides"
+
+  # ── the diff is reviewed before the gate, and a fresh child runs the one gate (issue #758) ────────────────────
+  #
+  # The change ends the child that made it: with `--pre-gate-review on` (`worker.md`'s `{{GATE_STEP}}`) the change
+  # child stops at the diff and reports `LOOP-DIFF-READY` instead of a gate line, a fresh reviewer reads that diff,
+  # and the gate child applies its findings in one pass and then runs the item's gate **once**. Measured on this
+  # loop's archive (`python3 tools/loop-spend.py`, 2026-11-03, 227 items): 1 581 of 2 591 Mtok — 61 % — are spent
+  # after the item's first gate, 117 child sessions ran the gate three times or more, and a finding a reader could
+  # have made from the diff alone was paid for twice: the gate it did not need, and the second full pass the rework
+  # that answered it then made. The reviewer itself is cheap — 7 522 turns at 53.6 k tokens against the worker's
+  # 84.5 k at 25 654 turns — so a round before the gate does not reduce how many rounds an item takes, it reduces
+  # what a round costs.
+  #
+  # What stays where it was: the review round after the gate, because a change is judged after its verification as
+  # well, and the tail that writes the archive. The round below is **not** a round of the review budget: it refuses
+  # nothing, the item is never blocked by what it finds, and the round `--max-review-rounds` bounds is the one after
+  # the gate. Its report stays in the item's directory and is named in the item's step, which is where a reader finds
+  # what the change was asked to fix before its gate ran.
+  #
+  # A change child that ran the gate itself — one that ignored the prompt, or an item worked under the one-child
+  # contract — leaves a gate line and no `LOOP-DIFF-READY`, and the item is read exactly as it was: a gate the run did
+  # not run is not re-run, and a round before a gate that has already run has nothing to read.
+  pre_gate_refusal=""
+  pre_gate_refusal_verdict=""
+  if [ "$pre_gate" = on ] && [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ]; then
+    change_diff_ready=$(report_field "$gate_report" LOOP-DIFF-READY)
+    change_gate_claim=$(report_field "$gate_report" LOOP-GATE)
+    change_verdict=$(report_field "$gate_report" LOOP-VERDICT)
+    if [ -n "$change_diff_ready" ] && [ -z "$change_gate_claim" ] && [ -z "$change_verdict" ] &&
+      [ -z "$(report_field "$gate_report" LOOP-TIMEOUT)" ] &&
+      [ -z "$(report_field "$gate_report" LOOP-DEADLINE)" ]; then
+      # The change is committed before anything reads it: the round's diff is `git diff <base>..HEAD`, and work the
+      # run has not committed is not that.
+      bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
+      head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+      progress commit "the change child stopped at the diff — HEAD ${head_now:0:12} (base ${base:0:12})"
+      if [ "$head_now" != "$base" ]; then
+        # The round's diff, its file and the pathspec are the post-gate round's own: one reviewer contract, one diff.
+        review_exclude_spec=$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)
+        diff_base="$base"
+        diff_file="$item_dir/review-pre-gate.diff"
+        write_review_diff "$diff_base" "$diff_file"
+        before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
+          { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
+        pre_gate_report="$item_dir/pre-gate-review.md"
+        render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt.md" "" \
+          "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")"
+        run_child "$item_dir/reviewer-pre-gate-prompt.md" "$pre_gate_report"
+        # An answer cut on its way to the file decides nothing, and it is the run's own transport rather than a
+        # reviewer that stayed quiet, so the round is asked once more — the rule the rounds after the gate follow
+        # (#224). A round a clock ended says so in its own report and is read as it stands.
+        pre_gate_deadline=$(report_field "$pre_gate_report" LOOP-DEADLINE 2>/dev/null || true)
+        if [ -z "$pre_gate_deadline" ] && [ -z "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ] &&
+          ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
+          printf 'run: the pre-gate answer was cut short (%s) — retrying the round once\n' \
+            "$(last_line "$pre_gate_report")" >&2
+          pre_gate_report="$item_dir/pre-gate-review-retry.md"
+          render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt-retry.md" "" \
+            "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")"
+          run_child "$item_dir/reviewer-pre-gate-prompt-retry.md" "$pre_gate_report"
+          pre_gate_deadline=$(report_field "$pre_gate_report" LOOP-DEADLINE 2>/dev/null || true)
+        fi
+        after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
+          { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
+        # A reviewer that wrote cannot have been the reviewer (D3), and the two guards come first for the reason the
+        # post-gate round states: the round is discarded whatever ended the child.
+        if [ "$read_only" = on ] && [ "$before" != "$after" ]; then
+          pre_gate_refusal_verdict="reviewer-wrote"
+          pre_gate_refusal="the pre-gate review round was discarded: the working tree changed while the reviewer ran"
+        elif outside_write_decides; then
+          pre_gate_refusal_verdict="reviewer-wrote"
+          pre_gate_refusal="the pre-gate review round was discarded: the project's own tree changed while the reviewer ran — $outside_write_note${outside_write_attributed:+ (attributed to this round: $outside_write_attributed)}"
+        else
+          if [ -n "$outside_write_note" ]; then
+            loop_state step A --name outside-write-pre-gate --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
+            progress note "$outside_write_note"
+          fi
+          if [ -n "$pre_gate_deadline" ]; then
+            deadline_claim="$pre_gate_deadline"
+            pre_gate_refusal_verdict="deadline"
+            pre_gate_refusal="the run's deadline passed while the pre-gate reviewer was running — the round was cut, not refused, so the change is left for the next run"
+          elif [ -n "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ]; then
+            pre_gate_refusal_verdict="cut-short"
+            pre_gate_refusal="the run ended the pre-gate reviewer at the item's turn bound — the round was cut, not refused, so the change is left for the next run"
+          elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
+            pre_gate_refusal_verdict="cut-short"
+            pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
+          fi
+        fi
+      fi
+      if [ -z "$pre_gate_refusal" ] && [ "$head_now" != "$base" ]; then
+        # What the round found, in the shape the post-gate round is read in: only an explicit refusal with a count
+        # hands anything to the child that follows. A `VERDICT: FAIL` with zero blocking findings is a pass whose
+        # notes are recorded, and a report with no count line at all refuses nothing.
+        blocking=$(blocking_count "$pre_gate_report")
+        pre_gate_findings=""
+        if grep -q '^VERDICT: FAIL' "$pre_gate_report" 2>/dev/null && [ -n "$blocking" ] && [ "$blocking" -gt 0 ]; then
+          pre_gate_findings="$pre_gate_report"
+        fi
+        loop_state step A --name pre-gate-review --status ok \
+          --note "the diff was read before the gate: $(if [ -n "$pre_gate_findings" ]; then printf '%s blocking finding(s) handed to the gate child' "$blocking"; else printf 'no blocking finding'; fi)" >/dev/null
+        # The gate child is a phase of its own: it is handed what the change child established, and the findings when
+        # there are any, and it decides nothing the change child already decided.
+        render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt.md" \
+          "ISSUE=$issue" "CHANGE_ROOT=$worktree" "EVIDENCE_DIR=$item_dir" "BASE=$base" \
+          "GATE_CMD=$LOOP_GATE_CMD" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
+          "CHANGE_NAME=${change_diff_ready:--}" "CHANGE_ANSWER=$(report_field "$gate_report" LOOP-CHANGE)" \
+          "ROOT_CAUSE=$(report_field "$gate_report" LOOP-ROOT-CAUSE)" \
+          "RED_TEST=$(report_field "$gate_report" LOOP-RED-TEST)" \
+          "FINDINGS_PATH=${pre_gate_findings:-none — the round read before the gate found no blocking finding}"
+        # The findings are appended rather than substituted, for the reason the post-gate rework appends them: a
+        # report is arbitrary text, and a value substituted into a skeleton is a value the skeleton's own
+        # placeholders would then rewrite.
+        if [ -n "$pre_gate_findings" ]; then
+          printf '\n## The round that read this diff before the gate refused it; apply exactly these findings\n\n' \
+            >> "$item_dir/worker-gate-prompt.md"
+          cat "$pre_gate_findings" >> "$item_dir/worker-gate-prompt.md"
+        fi
+        run_child "$item_dir/worker-gate-prompt.md" "$item_dir/worker-gate-report.md"
+        gate_exit=$?
+        gate_child="gate worker"
+        gate_report="$item_dir/worker-gate-report.md"
+        gate_write_note="$outside_write_note"
+        gate_write_decides=0
+        outside_write_decides && gate_write_decides=1
+        loop_state step A --name worker-gate \
+          --status "$(if [ "$gate_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
+          --note "exit $gate_exit" >/dev/null
+      fi
+    fi
+  fi
+
   tail_started=0
   tail_exit=0
   tail_report="$item_dir/worker-tail-report.md"
@@ -1727,12 +1893,12 @@ while true; do
   # the gate it did **not** run, and reading that as "the gate ran" would start a child with an archive to write for a
   # tree the item never changed. `closed` is the one verdict that does not settle it here, because it is the shape a
   # report written against the older one-child contract carries; the tail then verifies the archive the same way.
-  first_verdict=$(report_field "$item_dir/worker-report.md" LOOP-VERDICT)
-  if [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ] &&
+  first_verdict=$(report_field "$gate_report" LOOP-VERDICT)
+  if [ -z "$pre_gate_refusal" ] && [ "$gate_exit" -eq 0 ] && [ "$gate_write_decides" -eq 0 ] &&
     { [ -z "$first_verdict" ] || [ "$first_verdict" = closed ]; } &&
-    [ -z "$(report_field "$item_dir/worker-report.md" LOOP-TIMEOUT)" ] &&
-    [ -z "$(report_field "$item_dir/worker-report.md" LOOP-DEADLINE)" ]; then
-    tail_after_gate "$item_dir/worker-report.md" "$item_dir/worker-tail-prompt.md" "$tail_report" || true
+    [ -z "$(report_field "$gate_report" LOOP-TIMEOUT)" ] &&
+    [ -z "$(report_field "$gate_report" LOOP-DEADLINE)" ]; then
+    tail_after_gate "$gate_report" "$item_dir/worker-tail-prompt.md" "$tail_report" || true
   fi
   if [ "$tail_started" -eq 1 ]; then
     loop_state step A --name worker-tail \
@@ -1742,9 +1908,9 @@ while true; do
   # The report the item is decided from, and the child whose ending decides the commit: the tail's when one ran,
   # the gate child's otherwise. Both are recorded, so a reader of the item reads the gate's numbers in the first
   # transcript and the archive's in the second.
-  final_report="$item_dir/worker-report.md"
-  last_child="worker"
-  last_exit="$worker_exit"
+  final_report="$gate_report"
+  last_child="$gate_child"
+  last_exit="$gate_exit"
   if [ "$tail_started" -eq 1 ]; then
     final_report="$tail_report"
     last_child="tail worker"
@@ -1852,6 +2018,12 @@ while true; do
     loop_state step A --name outside-write --status ok --note "$worker_write_note" >/dev/null 2>&1 || true
     progress note "$worker_write_note"
   fi
+  # …and the gate child's reading, under a name of its own when the run deferred the gate to one (issue #758): the
+  # step a later reader looks a difference up by must name the child it belongs to.
+  if [ "$gate_child" = "gate worker" ] && [ -n "$gate_write_note" ] && [ "$gate_write_decides" -eq 0 ]; then
+    loop_state step A --name outside-write-gate --status ok --note "$gate_write_note" >/dev/null 2>&1 || true
+    progress note "$gate_write_note"
+  fi
   # …and the tail child's reading, under a name of its own when one ran: two children are two readings, and the step
   # a later reader looks a difference up by must name the child it belongs to (issue #744).
   if [ "$tail_started" -eq 1 ] && [ -n "$outside_write_note" ] && ! outside_write_decides; then
@@ -1865,7 +2037,11 @@ while true; do
   # place to keep them apart (issue #280; measured 2026-10-23: 198.8 M of refusing rounds against 22.9 M of merge
   # refusals over the archive, distinguishable then only by reading the note). Every other block leaves it empty.
   stop_reason=""
-  if [ "$last_exit" -ne 0 ]; then
+  # The pre-gate round comes first because it stopped the item before any gate ran (issue #758): its reason names the
+  # round, and an item it ended has no gate result for the arms below to read.
+  if [ -n "$pre_gate_refusal" ]; then
+    outcome="blocked"; blocked_reason="$pre_gate_refusal"
+  elif [ "$last_exit" -ne 0 ]; then
     outcome="blocked"; blocked_reason="the $last_child process exited $last_exit"
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
     # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
@@ -1897,7 +2073,7 @@ while true; do
   fi
 
   review_rounds=0
-  review_verdict="off"
+  review_verdict="${pre_gate_refusal_verdict:-off}"
   review_notes_text=""
   # The report the round is decided from: the reviewer's answer, or the retry's when the first one arrived cut.
   reviewer_report=""
@@ -2050,9 +2226,12 @@ while true; do
           break
         fi
       fi
-      # FAIL: the same change goes back to a new worker process with the reviewer's findings.
+      # FAIL: the same change goes back to a new worker process with the reviewer's findings. Its session runs the
+      # gate itself (`gate_step_text off`): the round that refused it came *after* a gate, so there is nothing left to
+      # read before one, and the round its repair buys is the next review round.
       findings=$(cat "$reviewer_report")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
+        "GATE_STEP=$(gate_step_text off)" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
         "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
         "CLASS=$class" "PROPOSE_CLASS=$propose_class"

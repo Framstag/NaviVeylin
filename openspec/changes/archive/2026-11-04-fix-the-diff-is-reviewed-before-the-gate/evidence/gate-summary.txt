@@ -1,0 +1,21 @@
+# The gate steps this delta owes, and what each printed
+date: 2026-11-04T06:32:43Z
+base: 944f1803
+
+tools/loop-selftest.sh (all 312 cases, offline)            all 312 cases passed
+tools/loop-mutations.sh --check                            all 235 records apply
+tools/loop-mutations.sh --only '79.1 79.2 79.3 79.4'       4 red, 0 not noticed, 0 restore failures
+tools/loop-mutations-selftest.sh                           all 34 cases passed
+tools/check-portability.sh --quiet                         OK — 55 engines and 7 templates name no project value
+tools/check-portability-selftest.sh                        all 29 cases passed
+tools/check-doc-routes.sh                                  all 329 section references resolve
+tools/check-doc-routes-selftest.sh                         all 34 cases passed
+tools/check-todo-references.sh                             66 citations resolve through the recorded table
+tools/check-openspec-hygiene.sh                            artifacts are consistent
+tools/mutate-selftest.sh                                   36 passed, 0 failed
+tools/issue-tooling-selftest.sh                            all 155 cases passed
+tools/loop/evidence-check.sh <this change>                 PASS — 343 file:line resolved, 0 unresolved
+
+Not run: the Gradle suites. This delta touches no compiled file — tools/loop/**,  tools/loop-cases.sh, tools/loop-mutations.sh, a prompt directory and one guideline section —  so the gate for it is the loop's own shell suite (guidelines/Build.md §2a's scope block).
+
+tools/check-rule-routes.sh reports one rule of DesignCrossVariant.md reached by no glob; that is on the  base (measured in a worktree at 944f1803) and is not this change's.

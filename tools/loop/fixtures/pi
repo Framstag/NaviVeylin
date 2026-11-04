@@ -13,8 +13,11 @@
 # Env:
 #   PI_STUB_LOG        append-only log of invocations (required for the assertions)
 #   PI_STUB_REPORT     a file whose contents are printed on stdout (the child's "report");
-#   PI_STUB_REPORT_WORKER / PI_STUB_REPORT_REVIEWER / PI_STUB_REPORT_TAIL override it per role — the tail child is
-#                      the one the run starts after the gate (issue #744), and the one that writes the item's verdict
+#   PI_STUB_REPORT_WORKER / PI_STUB_REPORT_REVIEWER / PI_STUB_REPORT_TAIL / PI_STUB_REPORT_GATE override it per role.
+#                      The tail child is the one the run starts after the gate (issue #744), and the one that writes the
+#                      item's verdict; the gate child is the one the run defers the gate to (issue #758), and the one
+#                      that prints the gate line. Both are roles of their own because a case stages their answers
+#                      differently from the change child's.
 #   PI_STUB_EVENTS     a JSONL fixture the stub prints on stdout *before* its report — the child's own event
 #                      stream, which the adapter keeps and the run records (issue #211). A real child emits it
 #                      because it is started in event mode; printing it here is the same wire without a model.
@@ -131,12 +134,15 @@ if [ -n "${PI_STUB_SAY:-}" ] && [ -f "$PI_STUB_SAY" ]; then
   cat "$PI_STUB_SAY"
 fi
 
-# The report may differ by role, because the two children answer in different shapes. The tail child is a role of
+# The report may differ by role, because the children answer in different shapes. The tail child is a role of
 # its own since issue #744 — it is the process that writes the item's verdict, so a case that stages a red gate needs
-# it to answer differently from the child that ran the gate.
+# it to answer differently from the child that ran the gate — and the gate child is one since issue #758, because it is
+# the process that runs the gate: a case that stages a change child stopping at the diff needs an answer from the child
+# that then runs the gate, and no change child's report can serve as one.
 report="${PI_STUB_REPORT:-}"
 case "${prompt##*/}" in
   *-tail*) report="${PI_STUB_REPORT_TAIL:-${PI_STUB_REPORT_WORKER:-$report}}" ;;
+  worker-gate*) report="${PI_STUB_REPORT_GATE:-${PI_STUB_REPORT_WORKER:-$report}}" ;;
   worker*) [ -n "${PI_STUB_REPORT_WORKER:-}" ] && report="$PI_STUB_REPORT_WORKER" ;;
   reviewer*) [ -n "${PI_STUB_REPORT_REVIEWER:-}" ] && report="$PI_STUB_REPORT_REVIEWER" ;;
 esac

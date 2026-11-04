@@ -32,6 +32,8 @@ guideline's own list names (`grep -n '^## '` over the document prints it). `guid
 
 {{CORRECTION_SCOPE}}
 
+{{PRE_GATE}}
+
 **Read-only, and a reading task.** Do not edit a file, do not commit, do not run version control, do not touch
 the issue tracker, **do not run the gate**, **do not run a test suite**, and do not use the network. The one
 command this task asks you to run is the reading-set derivation in item 7 (`tools/check-rule-routes.sh

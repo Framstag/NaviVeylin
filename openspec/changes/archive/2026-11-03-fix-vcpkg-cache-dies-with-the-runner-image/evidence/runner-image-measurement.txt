@@ -1,0 +1,34 @@
+# `Install vcpkg dependencies` against the two runner images `ubuntu-latest` hands out
+#
+# Read with the GitHub Actions API on 2026-11-03:
+#   gh api repos/Framstag/NaviVeylin/actions/runs/<id>/jobs \
+#     --jq '.jobs[]|select(.name|test("Build debug"))|.steps[]
+#           |select(.name=="Install vcpkg dependencies" or .name=="Build debug APK" or .name=="Run unit tests")
+#           |"\(.name) \(.started_at) \(.completed_at)"'
+#   image: gh api --allow-escape-sequences repos/Framstag/NaviVeylin/actions/jobs/<job>/logs | grep -m1 'Image: ubuntu'
+#
+# run         created              image         vcpkg step  build  unit tests  conclusion
+# 41528122094 2026-11-02T21:24:55Z ubuntu-26.04  73 min      10 min 4 min       failure (a Kotlin flake)
+# 41585715604 2026-11-03T05:45:02Z ubuntu-26.04  62 min       8 min 6 min       success
+# 41509739025 2026-11-02T19:25:07Z ubuntu-24.04   1 min      10 min 7 min       success
+# 41489972047 2026-11-02T17:18:51Z ubuntu-24.04   2 min       9 min 7 min       failure (the labels case)
+# 41393192664 2026-11-02T05:17:57Z ubuntu-24.04   2 min       9 min 5 min       failure (a Kotlin flake)
+# 41303297916 2026-11-01T11:45:33Z ubuntu-24.04   1 min       9 min 8 min       success
+# 41289155673 2026-11-01T09:30:34Z ubuntu-24.04   1 min       7 min 6 min       success
+#
+# The separation is total: every run on ubuntu-24.04 spent 1-2 minutes in the step, both runs on ubuntu-26.04
+# spent 62 and 73. The build and unit-test steps are the same on both images, so the whole difference is the step.
+#
+# What the 26.04 log carries (job 125750588009, run 41585715604):
+#   NuGet.Protocol.Core.Types.FatalProtocolException: Unable to load the service index for source
+#     https://nuget.pkg.github.com/Framstag/index.json.
+#     ---> System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.
+#          at ./external/boringssl/ssl/handshake_client.c:1132
+#          at Mono.Btls.MonoBtlsContext.ProcessHandshake ()
+#   15 x "Restored 0 package(s) from NuGet in <12 s | 13 s | 23 s | 24 s | 42 s | 54 s | 1.5 min | 1.8 min | 1.9 min>"
+#   73 ports built from source (the 24.04 runs built none: they restored 14, 17, 18, 8, 6, 3 and 1 packages)
+#   99 x "note: while pushing NuGet package", each failing with the same SSL error,
+#        from 2026-11-03T06:10:35Z to 2026-11-03T07:12:31Z - 62 minutes inside the step
+#
+# The transport is what fails; the feed, its permissions and the token are not in question, which the same
+# package set restoring normally on ubuntu-24.04 shows.

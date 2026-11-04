@@ -43,7 +43,7 @@ jobs:
     # `workflow_dispatch` can select any ref, so the guard is a runtime check rather than a line of YAML to be
     # trusted (design D2). The dispatch of any other branch is refused here, before the scanner runs.
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     timeout-minutes: 180

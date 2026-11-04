@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git 9e3ed182a1387e56da1ca87c19b66cce2e4cdda7" tests="308" failures="0" errors="0" time="375">
+  <system-out>PASS run#childPastItsTurnBoundIsBlocked PASS run#theRecordedZeroKeepsTheTurnBoundOff loop-selftest: all 308 cases passed (JDK 27, offline, no token, no sandbox) — selection: --from-git 9e3ed182a1387e56da1ca87c19b66cce2e4cdda7</system-out>
+</testsuite>

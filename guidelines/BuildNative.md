@@ -192,6 +192,15 @@ The command is `guidelines/BuildNative.recipes.md` §12d.
   runner-image/toolchain update causes exactly one rebuild, then the cache self-heals. The job runs with
   `permissions: packages: write`; mono-complete is installed for `nuget.exe`. Fork PRs restore but skip
   pushes (read-only token).
+- **The runner image is a pin, and the cache's transport is probed**: `runs-on: ubuntu-24.04`, never
+  `ubuntu-latest`, because the cache's client is `nuget.exe` under `mono` and it rides the image — measured
+  2026-11-03, `ubuntu-26.04` broke mono's TLS handshake to `nuget.pkg.github.com` and `Install vcpkg
+  dependencies` went from 1–2 minutes to **62** and **73** minutes: 15 restore attempts all `Restored 0
+  package(s)`, 73 ports compiled from source, and 99 failed pushes over 62 minutes inside the step.
+  `tools/ci-vcpkg-cache.sh --probe` runs before the install and its outcome selects `VCPKG_BINARY_SOURCES`
+  (`clear;nuget,…` when the feed answered, `clear` when it did not), so a dead transport costs the source
+  build and one warning line instead of 99 failed pushes. `tools/check-action-runtimes.sh` refuses a
+  `-latest` label in any workflow, which is what keeps the pin from being dropped.
 - **The old files-provider design is not reintroduced** — it restored stale archives on an exact key hit,
   vcpkg rejected them all, and the post-step never re-saved; do not reintroduce it.
 - **Adding/removing a dependency**: edit the `DEPS` list in `setup-vcpkg.sh`; for an unregistered port, add an

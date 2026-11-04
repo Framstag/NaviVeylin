@@ -50,17 +50,14 @@ scenario's case is named in the task that lands it.
 
 ## 5. The gate
 
-- [x] 5.1 `./tools/loop/gate.sh` from the change root, once, after 4.1. **Round 2's run is the verdict**
-      (`evidence/gate-2.log`, `evidence/gate-2/`, `evidence/gate-2-tallies.txt`) on the tree committed as
-      `e9a10210` — `a80dc1cb` plus the `changed || force` re-render fix that this round's first gate caught
-      (`MapCanvasViewModelViewportRestoreTest`, which no focused filter had run): the JVM half is
-      `BUILD SUCCESSFUL in 283s` with 0 failures / 0 errors over mobile 2232, automotive 2232, `:auto` 912,
-      `:core` 653 and `:osmscout-client-java` 112 (6141 tests), and the one red step is a wall-clock bound in
-      `tools/loop-selftest.sh`, not code: `FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s)`,
-      which passes alone on the same tree (`PASS` quoted in `gate-2.log`; BuildEvidence.md §4d/§4e). The
-      round-1 run is history: `evidence/gate.log` ended with `errors=1` on
-      `tools/gen-feature-list.sh --check-classification`, whose two unclassified spec ids belong to two other
-      open changes in the shared worktree (`evidence/gate-attribution.md`).
+- [x] 5.1 `./tools/loop/gate.sh` from the change root. **Round 3's run is the verdict** (`evidence/gate-3.log`,
+      `evidence/gate-3/`, `evidence/gate-3-tallies.txt`) on `629055e3`, the commit that lands: the JVM half is
+      `BUILD SUCCESSFUL in 299s` with 0 failures / 0 errors over mobile 2234, automotive 2234, `:auto` 912,
+      `:core` 653 and `:osmscout-client-java` 112 (6145 tests); both `:app` flavors ran (BuildEvidence.md §4b). The
+      one red step is a wall-clock bound in `tools/loop-selftest.sh`, not code:
+      `FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s)`, which passed alone twice on this
+      branch — two suite runs red, two alone-runs green, recorded in `gate-3.log`; the N = 2 rate is a residual in
+      6.12. Earlier gates are history: `gate-2.*` measured `e9a10210`, `gate.log` is round 1's run.
       Parent: the whole delta.
 
 ## 6. Round 2 — the reviewer's three blocking findings
@@ -133,11 +130,14 @@ See `design.md`, "Round 2", for why each one is additive rather than a re-run.
       `first render at default mag: []` (`evidence/revert-check-3.8.log`), and the restored tree is forced green
       on the same case (`-3.8-green.xml`, 6 cases).
       Parent: `FIRST_RENDERED_FRAME` / `STARTUP_DB_READY`.
-- [x] 6.12 Round 3 records the two-facts split in `design.md` ("Round 3") and corrects the three round-1/2
-      sentences that described the old shape (`proposal.md` "What Changes", `tasks.md` 2.1 and 3.1, and round 2's
-      own "no remembered value" claim). Residuals left as notes, not fixed here: the gate's red step has N = 2
-      measurements (the suite that exceeded its bound, and the case passing alone) and no N ≥ 3 rate, which
-      `BuildEvidence.md` §4e prefers; the hygiene and doc-route steps were re-run after this file's last edit and
-      are green, but the gate's own copy of them predates it. The machine-local `vcpkg` symlink is not tracked
-      (`git ls-files -s vcpkg` → empty, `.git/info/exclude` carries it).
-      Parent: round 3's findings 2–5.
+- [x] 6.12 Round 3 records the two-facts split in `design.md` ("Round 3") and corrects the round-1/2 sentences
+      that described the old shape (`proposal.md` "What Changes", `tasks.md` 2.1 and 3.1, and round 2's own "no
+      remembered value" claim). Round 4 adds: the widget's invalidation and palette read
+      `MapDaylightApplier.applied`, so a rejected reload cannot mark the other variant as drawn; `§15`'s phone
+      rule and `§15a`'s phone bullet name the applier as the record and its **callers** as the reporters.
+      Residuals left as notes, not fixed here: the gate's red step has N = 2 green alone-runs and 2 red suite runs,
+      not the N >= 3 rate `BuildEvidence.md` §4e prefers (the case is `tools/`, not this change); the hygiene,
+      doc-route and todo checks are re-run in `evidence/post-gate-checks.txt` after the last artifact edit, while
+      the gate's own copy predates it; the machine-local `vcpkg` symlink is not tracked
+      (`git ls-files -s vcpkg` empty, carried in `.git/info/exclude`).
+      Parent: round 3's findings 2–5 and round 4's notes.

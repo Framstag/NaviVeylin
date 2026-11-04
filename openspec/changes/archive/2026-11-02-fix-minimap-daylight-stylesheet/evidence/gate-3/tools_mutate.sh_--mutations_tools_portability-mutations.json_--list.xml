@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/mutate.sh --mutations tools/portability-mutations.json --list" tests="0" failures="0" errors="0" time="0">
+<testsuite name="tools/mutate.sh --mutations tools/portability-mutations.json --list" tests="0" failures="0" errors="0" time="1">
   <system-out>6.7	preconditions#refusesUnderMachineLocalState	a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289) 7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290) 7.2	foreign#baseBranchIsTheFixturesConfiguration	the foreign project'</system-out>
 </testsuite>

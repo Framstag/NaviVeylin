@@ -1,0 +1,15 @@
+# Round-3 gate — 2026-11-04T22:00:33Z on 629055e3 (the tree that lands)
+# command: tools/loop/gate.sh --base aee35ca6fe60bb243fc6d4227d5a50e2675a87c3
+#
+# JVM half PASSED: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache, BUILD SUCCESSFUL in 299s,
+# 0 test failures and 0 test errors in every module (gate-3-tallies.txt); both :app flavors ran (§4b).
+#
+# One red step, attributed to a wall-clock bound in the loop's own suite, not to this change:
+#   FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s)
+# The same case passed alone twice on this branch (N = 2 passes, 2 suite runs red) — BuildEvidence.md §4e
+# wants an N >= 3 rate; this is a bound-dependent case in tools/, not a case of this change, and the
+# residual is recorded in tasks.md 6.12.
+#
+# The other steps are green: check-doc-routes, check-openspec-hygiene, check-todo-references,
+# gen-feature-list --check-classification, check-rule-routes, check-portability, check-action-runtimes,
+# the issue-tooling self-test and the mutation lists.

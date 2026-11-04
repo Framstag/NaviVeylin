@@ -7,7 +7,7 @@
 # sandbox tool: git is never stubbed, because the git logic is part of what is being tested (D13).
 #
 # Usage: bash tools/loop-selftest.sh [--list] [--case <group#name|glob>] [--group <group>] [--jobs <n>]
-#                                    [--files <path> ...] [--from-git <base>] [--case-files]
+#                                    [--files <path> ...] [--from-git <base>] [--case-files] [--print-bound]
 #        A run that may execute more than one case holds this tree's lock; `--list`, `--case-files` and one named
 #        `--case` hold none. `--jobs` bounds how many cases run at once — the value the invocation names, else the
 #        profile's `LOOP_SELFTEST_JOBS`, else the host's CPU count. Every case keeps a process group, a scratch root
@@ -52,6 +52,7 @@ while [ $# -gt 0 ]; do
     --from-git) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; from_git="${2:-}"; shift 2 ;;
     --jobs) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_jobs="${2:-}"; shift 2 ;;
     --case-files) list_declared=1; shift ;;
+    --print-bound) print_bound=1; shift ;;
     -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
     *) echo "loop-selftest: unknown argument $1" >&2; exit 2 ;;
   esac
@@ -107,8 +108,15 @@ export LOOP_CONF="${LOOP_CONF:-$root/tools/loop/loop.conf}"
   echo "loop-selftest: no loop configuration at $LOOP_CONF" >&2
   exit 2
 }
+# The pool an invocation asked for, read **before** the profile is sourced: the profile carries the project's default
+# for `LOOP_SELFTEST_JOBS` (empty means "the host's CPU count"), so sourcing it would otherwise overwrite the caller's
+# `LOOP_SELFTEST_JOBS=4` with nothing — measured 2026-11-04 (issue #766), where the documented escape hatch did nothing
+# from the environment and only `--jobs` reached the runner. A caller's value wins over the profile's empty default and
+# loses to the profile's recorded one only when the caller gave none.
+caller_jobs="${LOOP_SELFTEST_JOBS:-}"
 # shellcheck source=tools/loop/loop.conf
 source "$LOOP_CONF"
+LOOP_SELFTEST_JOBS="${LOOP_SELFTEST_JOBS:-$caller_jobs}"
 
 # How many cases run at once (issue #260). The value is the invocation's `--jobs`, else the profile's
 # `LOOP_SELFTEST_JOBS`, else the host's CPU count — a host that cannot answer is a pool of one, never a suite that
@@ -134,8 +142,24 @@ workers=$(selftest_workers "${only_jobs:-${LOOP_SELFTEST_JOBS:-}}")
 # never returned held a suite — and the gate behind it — for 56 minutes, and the item whose gate it was had to be
 # repaired by hand afterwards. The suite's slowest case is 9–15 s and all 223 cases took 273 s the same day, so the
 # default is 60× the slowest case; a case that needs more raises the key.
+#
+# The bound is multiplied by the pool, because it was measured on one case at a time and the cases that *wait* — for a
+# child's timeout, a heartbeat interval, a report window — have their wall clock read by the scheduler, not by
+# themselves. Measured 2026-11-04 (issue #766): three CI runs of one tree failed on a different case each time
+# (`run#reviewBudgetIsARecordedValue`, then `run#aReviewerEndedAtItsTurnBoundIsNotARefusal` with three `report#*`
+# cases), every one of them green when run alone, and `LOOP_SELFTEST_JOBS=4 bash tools/loop-selftest.sh` on a 16-vCPU
+# host reproduced it — `FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s)`. A 4-vCPU runner is the
+# default pool (`selftest_workers` falls back to the CPU count), so the default bound was the one shape that could not
+# survive the runner it runs on. The pool is the bound's honest multiplier: each competing case can sit behind its
+# peers for its own wall clock, so the pool's size is the ceiling of that wait.
 case_max="${LOOP_CASE_MAX_SECONDS:-900}"
 case "$case_max" in ''|*[!0-9]*|0) case_max=900 ;; esac
+case_max=$((case_max * workers))
+# …and the run says which bound it applied only when asked: the line is on stderr and `--list` output is parsed by the
+# pipeline and by the suite's own cases, so a run that always printed it would put a line into a list nobody expected
+# (`driver#theListIsFilteredTheSameWayASuiteRunIs`). `--print-bound` is what `driver#theCaseBoundScalesWithThePool`
+# reads; a run that wants it in its log passes it.
+[ "${print_bound:-0}" = 1 ] && printf 'loop-selftest: %s case(s) at a time, %s s per case\n' "$workers" "$case_max" >&2
 # The ceiling of whatever started this invocation (issue #692), read once here: a caller whose own per-call ceiling
 # is smaller than this suite's bounds kills the call mid-run, and the item above it is left with its work
 # uncommitted — measured twice on 2026-10-28 at `900000ms`, the second time 1 383 s after the child was gone (the

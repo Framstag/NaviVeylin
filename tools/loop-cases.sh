@@ -220,6 +220,8 @@ LOOP_SHELL_CASES=(
   'run#doesNotCloseOnAMergeTheBaseCannotTake'
   'run#recordsAFailedReviewOnTheBranch'
   'run#announcesAndRecordsTheReviewRound'
+  'run#thePreGateReviewRunsBeforeTheGate'
+  'run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard'
@@ -580,6 +582,8 @@ loop_run_shell_case() {
     'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
     'run#recordsAFailedReviewOnTheBranch') fn=case_run_recordsAFailedReviewOnTheBranch ;;
     'run#announcesAndRecordsTheReviewRound') fn=case_run_announcesAndRecordsTheReviewRound ;;
+    'run#thePreGateReviewRunsBeforeTheGate') fn=case_run_thePreGateReviewRunsBeforeTheGate ;;
+    'run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun') fn=case_run_aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard') fn=case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard ;;
@@ -860,17 +864,21 @@ pi_log() { printf '%s\n' "$PI_STUB_LOG"; }
 # The stub child's fixtures. `worker` is the report the worker prints, `reviewer` the reviewer's, and the
 # action leaves a real change in the tree so the wrapper's own commit and verification run for real.
 #
-# The tree work belongs to the **gate** child and not to the tail child the run starts after it (issue #744): the
-# tail's job is the archive the gate child already left, and a fixture that wrote the change a second time would
+# The tree work belongs to the **change** child and not to the tail child the run starts after the gate (issue #744):
+# the tail's job is the archive the gate child already left, and a fixture that wrote the change a second time would
 # overwrite it — measured on `run#aCorrectiveRoundIsHandedTheCorrections`, whose round-2 worker's content was
-# rewritten by the round-2 tail before the run measured the round's diff.
+# rewritten by the round-2 tail before the run measured the round's diff. It does not belong to the **gate** child
+# either (issue #758): that child is started on a change already in the tree, so an action that rewrote it would
+# replace the diff the pre-gate round has just read.
 stub_write() { # stub_write <dir> <worker-report> <reviewer-report> [extra-action]
   local dir="$1" worker="$2" reviewer="$3" extra="${4:-}"
   printf '%s\n' "$worker" > "$dir/worker-report.txt"
   printf '%s\n' "$reviewer" > "$dir/reviewer-report.txt"
+  printf '%s\n' "$STUB_GATE_REPORT" > "$dir/gate-report.txt"
   {
     printf 'case "$1" in\n'
     printf '  worker-tail*) ;;\n'
+    printf '  worker-gate*) ;;\n'
     printf '  worker*)\n'
     printf '    mkdir -p openspec/changes/archive/2026-01-01-fix-demo/evidence\n'
     printf '    printf "archived\\n" > openspec/changes/archive/2026-01-01-fix-demo/proposal.md\n'
@@ -884,10 +892,19 @@ stub_write() { # stub_write <dir> <worker-report> <reviewer-report> [extra-actio
   } > "$dir/worker-action.sh"
   export PI_STUB_REPORT_WORKER="$dir/worker-report.txt"
   export PI_STUB_REPORT_REVIEWER="$dir/reviewer-report.txt"
+  export PI_STUB_REPORT_GATE="$dir/gate-report.txt"
   export PI_STUB_ACTION="$dir/worker-action.sh"
   export PI_STUB_LOG="$dir/pi.log"; : > "$PI_STUB_LOG"
   export GH_STUB_RECORD="$dir/gh.log"; : > "$GH_STUB_RECORD"
 }
+
+# The report the **change** child prints when the run has deferred the gate to a child of its own (issue #758): the
+# diff marker in place of a gate line, and no verdict — the child that runs the gate prints the gate line and the tail
+# after it writes the verdict. A case that models a gated item under the pre-gate shape uses this one.
+STUB_CHANGE_REPORT='LOOP-DIFF-READY: fix-demo
+LOOP-CHANGE: fix-demo
+LOOP-ROOT-CAUSE: the fixture has exactly one cause
+LOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)'
 
 STUB_WORKER_REPORT='LOOP-VERDICT: closed
 LOOP-CHANGE: fix-demo
@@ -932,6 +949,7 @@ stub_per_item_worker() { # stub_per_item_worker <dir> <worker-report> <reviewer-
     printf 'n=$(cat "%s" 2>/dev/null || printf 0)\n' "$dir/per-item-count"
     printf 'case "$1" in\n'
     printf '  worker-tail*) ;;\n'
+    printf '  worker-gate*) ;;\n'
     printf '  worker*)\n'
     printf '    n=$((n + 1)); printf "%%s\\n" "$n" > "%s"\n' "$dir/per-item-count"
     printf '%s\n' "$4"
@@ -3210,7 +3228,7 @@ case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
 case_prompt_thePhasePromptsCarryTheirOwnRoute() {
   # files: tools/loop/prompts/
   local f text tok
-  for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-tail.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
+  for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/worker-tail.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
     [ -f "$f" ] || fail "no prompt skeleton at $f"
     text=$(cat "$f")
     assert_contains "$text" 'AGENTS.md' "$(basename "$f") names the project's document map"
@@ -3221,7 +3239,7 @@ case_prompt_thePhasePromptsCarryTheirOwnRoute() {
   [ -f "$LOOP_PROJECT_ROOT/AGENTS.md" ] || fail "the document map the prompts name is not in the project root"
   # every repository path a skeleton names, read the way a child would read it: relative to the project root it is
   # started in. A glob (`tools/*-cases.sh`) is a pattern and not a path, so it is skipped.
-  for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-tail.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
+  for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/worker-tail.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
     for tok in $(grep -oE '(tools|guidelines|openspec|licenses|app)/[A-Za-z0-9_./-]+' "$f" | sed -e 's#[.,)]*$##' | sort -u); do
       case "$tok" in *'*'*) continue ;; esac
       [ -e "$LOOP_PROJECT_ROOT/$tok" ] ||
@@ -5985,6 +6003,99 @@ case_run_announcesAndRecordsTheReviewRound() {
   commits=$(git -C "$p" log --format=%s main)
   assert_contains "$commits" "round 1 requested" "the announcement is a commit on the branch"
   assert_contains "$commits" "round 1 passed" "and so is the answer"
+}
+
+# The order the two judgements happen in, which is the whole of issue #758: the diff is read **before** the item's one
+# gate, so a finding a reader can make from the diff alone costs one pass instead of a gate and a second full pass —
+# measured on the loop's archive, 61 % of 227 items' spend (1 581 of 2 591 Mtok) is charged after the first gate and
+# 117 child sessions ran the gate three times or more. The case stages the sequence a real item takes: the change
+# child stops at the diff, the reviewer refuses what it reads, and the child that runs the gate is handed the findings.
+# What it asserts that the older order cannot produce: the reviewer's round is logged before the gate command is
+# reached, the findings are in the gate child's prompt, and the item still spends exactly one gate.
+case_run_thePreGateReviewRunsBeforeTheGate() {
+  # files: tools/loop/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p order extra out state pre_prompt gate_prompt refuse
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The order the work happened in, written by the children themselves: the stub stands in for a child, so a child's
+  # own action is where "this round was read" and "the gate was reached" are observable at all. The round that reads
+  # before the gate refuses the diff (one blocking finding), and the round after the gate passes it — the shape the
+  # split exists for, because the refusal is answered before the item's one gate is spent.
+  order="$d/order.log"; : > "$order"
+  refuse="$d/pre-gate-fail.txt"
+  printf 'LOOP-BLOCKING: 1\nBLOCKING: the tasks the change claims are done name a case the tree does not hold\nVERDICT: FAIL\n' \
+    > "$refuse"
+  extra=$(cat <<EOF
+case "\$1" in
+  reviewer-pre-gate-prompt*) printf 'review\n' >> $(printf '%q' "$order"); cp $(printf '%q' "$refuse") "\$PI_STUB_REPORT_REVIEWER" ;;
+  reviewer-prompt-*) printf 'VERDICT: PASS\n' > "\$PI_STUB_REPORT_REVIEWER" ;;
+  worker-gate-prompt.md) printf 'gate\n' >> $(printf '%q' "$order") ;;
+esac
+EOF
+)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' "$extra"
+  # The tail is the child that writes the item's verdict, and the shape it answers in is the one it always had.
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  state=$(state_file "$p")
+
+  assert_eq "review gate" "$(paste -sd' ' "$order")" \
+    "the round is read before the gate child is started"
+  # The prompt the change child was handed is what tells it to stop at the diff; the other fragment would have run the
+  # gate in that child, and a round after it would have nothing left to read.
+  assert_contains "$(cat "$p/.pi/issue-loop/items/21/worker-prompt.md")" "The gate is not yours this item" \
+    "the change child is told the gate is deferred"
+  pre_prompt="$p/.pi/issue-loop/items/21/reviewer-pre-gate-prompt.md"
+  [ -f "$pre_prompt" ] || fail "the run read no diff before the gate: no prompt at $pre_prompt"
+  assert_contains "$(cat "$pre_prompt")" "This round is read before the gate" \
+    "the reviewer is told it reads the diff before the gate"
+  gate_prompt="$p/.pi/issue-loop/items/21/worker-gate-prompt.md"
+  [ -f "$gate_prompt" ] || fail "the run started no gate child: no prompt at $gate_prompt"
+  assert_contains "$(cat "$gate_prompt")" "BLOCKING: the tasks the change claims are done name a case the tree does not hold" \
+    "the round's findings reach the prompt of the child that runs the gate"
+  assert_eq "1" "$(grep -c '^prompt: worker-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "the item runs exactly one gate child"
+  assert_eq "0" "$(grep -c '^prompt: worker-prompt-round2.md$' "$PI_STUB_LOG" || true)" \
+    "and the refusal bought no rework pass, which is where a second gate would have come from"
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "pre-gate-review")] | length' "$state")" \
+    "the round before the gate is a step on the item"
+  assert_eq "done" "$(jq -r '.items[0].result' "$state")" "the item closes on the same one gate"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$state")" \
+    "the round before the gate is not a round of the review budget"
+}
+
+# A round that never answered decided nothing, and the gate has not run yet, so the change is left for the next run
+# exactly as a round the run's own clock cuts is left after a gate: recorded, not refused, and with no gate child
+# started on an unread diff (issue #758).
+case_run_aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun() {
+  # files: tools/loop/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # An answer that arrives without its closing verdict line, twice: the transport cut it, no reviewer refused it.
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'the round was interrupted before it graded anything'
+  printf '%s\n' "$STUB_WORKER_REPORT" > "$d/tail-report.txt"
+  export PI_STUB_REPORT_TAIL="$d/tail-report.txt"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  state=$(state_file "$p")
+
+  assert_eq "1" "$(grep -c '^prompt: reviewer-pre-gate-prompt-retry.md$' "$PI_STUB_LOG" || true)" \
+    "a round cut on its way to the file is asked once more"
+  assert_eq "0" "$(grep -c '^prompt: worker-gate-prompt.md$' "$PI_STUB_LOG" || true)" \
+    "a diff nobody read is not gated: the gate child is never started"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is recorded blocked"
+  assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
+    "and its record carries the cut, not a refusal no reviewer made"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "the pre-gate reviewer's report was cut short twice" \
+    "the reason names the round that never answered, and names it as the one before the gate"
+  # …and the round after the gate is not asked about a change its gate never ran on: an item whose pre-gate round was
+  # cut is left for the next run, not reviewed again on a diff no gate touched.
+  assert_eq "0" "$(grep -c '^prompt: reviewer-prompt-1' "$PI_STUB_LOG" || true)" \
+    "no review round after the gate was started"
+  # The change the change child left is committed before the round reads it, which is what a later run adopts.
+  assert_contains "$(git -C "$p" ls-tree -r --name-only "$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)")" \
+    "demo-fix.txt" "the change is on the branch for the next run"
 }
 
 case_run_mergesAFinishedAttemptAndClosesTheItem() {
@@ -10971,7 +11082,7 @@ PKG
 # the phase is expected to change, and the item's own text inside the delimiters it was rendered with. The checklist is
 # the prompt's own section — one home for it — so what the call prints is what a second read of that file would say.
 case_phase_oneCallPrintsThePhaseState() {
-  # files: tools/loop/phase.sh tools/loop/prompts/worker.md tools/loop/prompts/worker-tail.md tools/loop/loop.conf tools/loop/lib.sh tools/loop/state.sh tools/loop-cases.sh tools/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/phase.sh tools/loop/prompts/worker.md tools/loop/prompts/worker-gate.md tools/loop/prompts/worker-tail.md tools/loop/loop.conf tools/loop/lib.sh tools/loop/state.sh tools/loop-cases.sh tools/loop-selftest.sh tools/pi-child-events.sh tools/tooling.json
   local phase p wt out status
   phase="$LOOP_PROJECT_ROOT/tools/loop/phase.sh"
   [ -f "$phase" ] || fail "nothing prints the phase state in one call: tools/loop/phase.sh is not in the tree (issue #688)"
@@ -11021,11 +11132,21 @@ case_phase_oneCallPrintsThePhaseState() {
   assert_contains "$out" 'Archive the change' "the phase's own archive step is printed: $out"
   assert_not_contains "$out" 'Use the apply and verification skills' "and no other phase's items: $out"
 
-  # A phase the prompt carries no section for says so rather than inventing a checklist, and a phase outside the set
-  # the run records a step against is a usage error.
+  # Phase E is the gate child's phase (issue #758): the run defers the gate to that child, so its checklist is read
+  # from the prompt that child is started from — the same rule phase F follows since #744.
   out=$( cd "$p" && LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" bash "$phase" E 2>&1 ); status=$?
+  assert_eq "0" "$status" "phase E is a phase of the run: $out"
+  assert_contains "$out" "CHECKLIST: $LOOP_ENGINE/prompts/worker-gate.md" \
+    "and its checklist is the gate child's own prompt: $out"
+  assert_contains "$out" '1. **Apply the findings, if there are any, and nothing else.**' \
+    "whose items are printed as they stand: $out"
+  assert_not_contains "$out" 'Use the apply and verification skills' "and no other phase's items: $out"
+
+  # A phase no prompt carries a section for says so rather than inventing a checklist, and a phase outside the set
+  # the run records a step against is a usage error.
+  out=$( cd "$p" && LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" LOOP_WORKTREE="$wt" bash "$phase" prescreen 2>&1 ); status=$?
   assert_eq "0" "$status" "a phase with no section of its own is still a phase of the run: $out"
-  assert_contains "$out" 'the prompt carries no section for phase E' "and the absence is named instead of invented: $out"
+  assert_contains "$out" 'the prompt carries no section for phase prescreen' "and the absence is named instead of invented: $out"
   out=$( cd "$p" && LOOP_STATE_FILE="$p/.pi/issue-loop/run.json" bash "$phase" Z 2>&1 ); status=$?
   assert_eq "2" "$status" "a phase outside the recorded set is a usage error: $out"
   assert_contains "$out" 'is not one of prescreen A B C D E F' "and the refusal names the set: $out"

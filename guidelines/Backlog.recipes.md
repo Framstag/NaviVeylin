@@ -53,16 +53,20 @@ One command starts a run; the run's script owns the budget, the working tree, th
 state; and each item is worked by a fresh agent process with a different process reviewing it.
 
 ```
-the run's script                          an agent process (fresh, per item)      a reviewer (fresh)
+the run's script                          the change child (fresh, per item)      a reviewer (fresh)
   preflight: is the identity allowed?       phase A  the root cause, proven by a     the fixed review
   decision cap: too many open decisions?             case that is RED before the fix    contract, must
   prepare one working tree, once            phase B  the eligibility gate             not be the writer
   per item:                                 phase C  the change, planned
-    a branch of its own, off the base       phase D  applied, with the project's gate
-    the change the item names, copied in              │ the gate line ends that child
-    select, then authorise by label         phase F  archived, with the evidence
-    hand over a prepared package                      (a second fresh child, below)
-    verify, close, record                   (E)      reviewed by a second fresh process
+    a branch of its own, off the base       phase D  applied — the session ends at
+    the change the item names, copied in              the diff, not at the gate
+    select, then authorise by label                   │ LOOP-DIFF-READY
+    hand over a prepared package                      ▼
+    verify, close, record                   (E)      the diff is read first, by the reviewer beside it
+     commit, merge, record                  phase E  the findings applied in one pass,
+                                                     then the gate — one fresh child
+                                            phase F  archived, with the evidence
+                                                     (another fresh child, below)
 ```
 
 What makes it survivable over a long run: the orchestrator is a **script**, not a session, so it reads no
@@ -72,6 +76,23 @@ outcome from what it reads itself (I10).
 
 What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
 is the script's (I8); and the tracker credential is not in the agent's environment (§5).
+
+The diff is read **before** the item's gate, and the gate is a phase of its own (issue #758). Measured on this
+loop's archive (`python3 tools/loop-spend.py --json`, 2026-11-03, 227 items, 2 591 Mtok): **1 581 Mtok — 61 % — is
+spent after the item's first gate**, and 117 child sessions ran the gate three times or more. The reviewer is not
+what costs that — 7 522 turns at 53.6 k tokens each, against the worker's 84.5 k at 25 654 turns — it is what a
+review *triggers*: a finding a reader could have made from the diff alone was paid for by the gate it did not need
+and then by the full pass the rework that answered it made, on top of a full gate of its own. So the change child's
+session ends at the diff (`LOOP-DIFF-READY`, `tools/loop/prompts/worker.md` and its `{{GATE_STEP}}` section), a fresh
+reviewer reads that diff (`prompts/reviewer.md` with the section `prompts/pre-gate-review.md`, whose item 3 — the gate
+reality — it records as not yet applicable), and the child that runs the gate (`prompts/worker-gate.md`) applies the
+findings in one pass and then runs the item's **one** gate. The round before the gate is **not** a round of
+`--max-review-rounds`: it refuses nothing, it never blocks the item, and its report stays in the item's directory; the
+round the budget bounds is the one after the gate, which is where a change is judged on its verification as well.
+`--pre-gate-review off` (`LOOP_PRE_GATE_REVIEW_DEFAULT`) keeps the older shape — one child from the diagnosis to the
+gate — and is folded to `off` by every run with `--review off`, because a run with no reviewer has none to place in
+front of the gate. A change child that runs the gate anyway is read as it always was: the run does not re-run a gate,
+and a round before a gate that has already run has nothing to read.
 
 The gate is where a gated item's **first** child ends, and the archive is written by a second one. Measured on the
 archive (`python3 tools/loop-spend.py`, 2026-11-02, 213 items / 524 sessions / 30 795 turns): of the 274 sessions

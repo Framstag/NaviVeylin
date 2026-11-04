@@ -5,13 +5,16 @@ is nobody to ask, so a question you cannot answer from the tree is a verdict (`s
 never a guess and never a request. A second, fresh process reviews what you produce, and the run's own
 script — not your report — decides whether the item closed.
 
-Your phases end **at the gate**. The evidence and the archive are written by a second, fresh process — the tail
-worker, `tools/loop/prompts/worker-tail.md` — which the run starts from the block you print when the gate has run,
-handed your gate line, the change's `tasks.md` and the last lines of your own output. Measured on this loop's
-archive (`python3 tools/loop-spend.py`, 2026-11-02): 78 % of a gated item's tokens were charged after its gate,
-because the whole derivation was re-read on every turn of a tail that decides nothing about it. So do not archive
-the change here, and do not report a `closed` verdict: it is the tail's, and it is a claim about an archive you
-did not write.
+Your phases end **before the archive**. The evidence and the archive are written by a second, fresh process — the tail
+worker, `tools/loop/prompts/worker-tail.md` — which the run starts from the block you print when your own session ends,
+handed what you established and the last lines of your own output. Measured on this loop's archive (`python3
+ tools/loop-spend.py`, 2026-11-02): 78 % of a gated item's tokens were charged after its gate, because the whole
+derivation was re-read on every turn of a tail that decides nothing about it. So do not archive the change here, and
+do not report a `closed` verdict: it is the tail's, and it is a claim about an archive you did not write.
+
+Where your session ends is the run's to say, and Phase D ends with it: **at the gate** when the gate is yours, or at
+**the diff** when the run has deferred the gate to a fresh child that applies a reviewer's findings first. Read the end
+of Phase D before you start; the block at the bottom of this file says which line ends yours.
 
 Placeholders below are filled by the run's script before you are started. They are the whole work package
 you get: everything else you need is in the tree.
@@ -197,36 +200,18 @@ production code: proposal, capability delta, design and tasks, then apply — th
 
 ## Phase D — apply
 
-Use the apply and verification skills from the list above. Iterate with focused suites, and run the
-project's gate **once**, exactly as the run's configuration states it:
-
-```
-{{GATE_CMD}}
-```
-
-The gate is evidence, not a thing to retry: it is run once per item and its result is quoted, not improved. A
-gate that does not complete inside the run's budget — the run ends a child that outlasts its configured
-wall-clock, and that includes every command you started — is not yours to report: the run records the item
-`blocked` with your log itself, and a second attempt is not yours to make. Two attempts at one gate is how a run
-spends its whole budget inside one child.
+Use the apply and verification skills from the list above. Iterate with focused suites.
 
 `{{MEASURE_CMD}}` is not the gate and does not stand in for it: it reads, the gate runs. Run it again only when
 the pathspec or the change has moved, and quote the block you already have when nothing has.
 
 Scoped by what the change touched: no compiled file — no gate, the structural check stands in and you say
-so; test sources only — the red case plus the affected cases; code — the gate above. Do not re-run a gate
+so; test sources only — the red case plus the affected cases; code — the gate. Do not re-run a gate
 to "refresh" evidence: the re-run is what destroys it, so copy the XMLs you cite into `{{EVIDENCE_DIR}}`
 at the moment they are produced. Never mark a task done on a cached or partial run, and never while a
 failure is open. Tests red after three focused attempts is `blocked`, not "adjust the test".
 
-**The gate is where your session ends.** When it has run, print the gate block below and stop: copy the XMLs you
-cite into `{{EVIDENCE_DIR}}` as they are produced, and archive nothing. The run starts the tail process from those
-lines, and that process reads the change's `tasks.md`, the gate line and the last 200 lines of your own tool output
-— which is why you stop here rather than carrying this session's whole context through the archive.
-
-A gate that did not pass is not yours to repair either: the tail records the item `blocked` with the failing output
-you printed. What you must leave behind is the evidence of what you did — the XMLs in `{{EVIDENCE_DIR}}`, the change
-in the change root, and the block below.
+{{GATE_STEP}}
 
 ## What the run reads back from your report
 
@@ -239,15 +224,21 @@ LOOP-CHANGE: <the change name, or - when nothing was planned>
 LOOP-ROOT-CAUSE: <one line>
 LOOP-RED-TEST: <case name> fails on HEAD — XML tests=<n> failures=<n> (<timestamp>)
 LOOP-GATE: tests=<n> failures=<n> errors=<n> (<flavour/module coverage>)
+LOOP-DIFF-READY: <the change name — required in place of the gate line when the gate is not yours>
 ```
 
-**The gate line is what ends your session.** It is required when you ran the gate, and the run starts no tail
-without it; a `LOOP-GATE` you did not run is a false claim the tree contradicts.
+**The gate line, or the diff marker, is what ends your session** — whichever Phase D put at the end of it. `LOOP-GATE`
+is required when you ran the gate, and a `LOOP-GATE` you did not run is a false claim the tree contradicts.
+`LOOP-DIFF-READY` is required when the gate was deferred, and its value is the change whose diff is ready to be read:
+that is what the run hands the gate child and the reviewer in place of a gate line, and printing a gate line there
+instead is a claim about a gate that has not been run.
 
-**A verdict is yours only when no gate was run.** Print `LOOP-VERDICT: skipped` with its `LOOP-SKIP-VERDICT` when
-the item never reached Phase D — the claim did not hold, or one of the eligibility gate's conditions failed — or
-`LOOP-VERDICT: blocked` when the work stopped before the gate (tests red after three focused attempts, a
-measurement the change needed and could not take). Omit `LOOP-VERDICT` when you ran the gate: the tail writes it.
+**A verdict is yours only when the item never reached the end of Phase D.** Print `LOOP-VERDICT: skipped` with its
+`LOOP-SKIP-VERDICT` when the item never reached Phase D — the claim did not hold, or one of the eligibility gate's
+conditions failed — or `LOOP-VERDICT: blocked` when the work stopped before your session's end (tests red after three
+focused attempts, a measurement the change needed and could not take). Omit `LOOP-VERDICT` when you left a gate line or
+`LOOP-DIFF-READY`: the item's verdict is written by the child that follows you, because it is a claim about work — the
+gate, the archive — that you did not finish.
 
 ```
 LOOP-VERDICT: skipped|blocked

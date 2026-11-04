@@ -48,7 +48,9 @@ scenario's case is named in the task that lands it.
 ## 5. The gate
 
 - [x] 5.1 `./tools/loop/gate.sh` from the change root, once, after 4.1. **Round 2's run is the verdict**
-      (`evidence/gate-2.log`, `evidence/gate-2/`, `evidence/gate-2-tallies.txt`) on `a80dc1cb`: the JVM half is
+      (`evidence/gate-2.log`, `evidence/gate-2/`, `evidence/gate-2-tallies.txt`) on the tree committed as
+      `e9a10210` — `a80dc1cb` plus the `changed || force` re-render fix that this round's first gate caught
+      (`MapCanvasViewModelViewportRestoreTest`, which no focused filter had run): the JVM half is
       `BUILD SUCCESSFUL in 283s` with 0 failures / 0 errors over mobile 2232, automotive 2232, `:auto` 912,
       `:core` 653 and `:osmscout-client-java` 112 (6141 tests), and the one red step is a wall-clock bound in
       `tools/loop-selftest.sh`, not code: `FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s)`,

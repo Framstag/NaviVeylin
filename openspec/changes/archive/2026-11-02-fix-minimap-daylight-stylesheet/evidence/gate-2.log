@@ -1,5 +1,6 @@
 # Round-2 gate — 2026-11-04T20:15:34Z on a80dc1cb
-# command: tools/loop/gate.sh --base aee35ca6fe60bb243fc6d4227d5a50e2675a87c3
+# measured on the tree committed as e9a10210 — a80dc1cb plus the `changed || force` re-render fix that the
+# round's first gate caught (MapCanvasViewModelViewportRestoreTest); the JVM half re-ran green on that tree.
 # LOOP-GATE: tests=997 failures=1 errors=0 — failing: tools/loop-selftest.sh --from-git aee35ca6…
 #
 # The JVM half PASSED: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache, BUILD SUCCESSFUL in 283s,

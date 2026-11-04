@@ -51,14 +51,15 @@ scenario's case is named in the task that lands it.
 
 ## 5. The gate
 
-- [x] 5.1 `./tools/loop/gate.sh` from the change root. **Round 3's run is the verdict** (`evidence/gate-3.log`,
-      `evidence/gate-3/`, `evidence/gate-3-tallies.txt`) on `629055e3`, the commit that lands: the JVM half is
-      `BUILD SUCCESSFUL in 299s` with 0 failures / 0 errors over mobile 2234, automotive 2234, `:auto` 912,
-      `:core` 653 and `:osmscout-client-java` 112 (6145 tests); both `:app` flavors ran (BuildEvidence.md §4b). The
-      one red step is a wall-clock bound in `tools/loop-selftest.sh`, not code:
-      `FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s)`, which passed alone twice on this
-      branch — two suite runs red, two alone-runs green, recorded in `gate-3.log`; the N = 2 rate is a residual in
-      6.12. Earlier gates are history: `gate-2.*` measured `e9a10210`, `gate.log` is round 1's run.
+- [x] 5.1 `./tools/loop/gate.sh` from the change root. **Round 5's run is the verdict** (`evidence/gate-4.log`,
+      `evidence/gate-4/`, `evidence/gate-4-tallies.txt`) on `64ab4bb8`, the commit that lands: `LOOP-GATE: tests=997
+      failures=0 errors=0` — every step green, no failing step. The JVM half is `BUILD SUCCESSFUL in 5m` forced
+      (`-PforceTests --no-build-cache`, executed rather than replayed), 0 failures / 0 errors over mobile 2234,
+      automotive 2234, `:auto` 912, `:core` 653 and `:osmscout-client-java` 112 (6145 tests); both `:app` flavors
+      ran (BuildEvidence.md §4b). The wall-clock case that reddened three earlier gates
+      (`tools/loop-selftest.sh` `run#aReviewerEndedAtItsTurnBoundIsNotARefusal`, 900 s bound) passed in this run;
+      its three solo passes are quoted in `gate-3.log`. Earlier gates are history: `gate-3.*` measured `629055e3`
+      with that one red step, `gate-2.*` measured `e9a10210`, `gate.log` is round 1's run.
       Parent: the whole delta.
 
 ## 6. Round 2 — the reviewer's three blocking findings
@@ -137,9 +138,9 @@ See `design.md`, "Round 2", for why each one is additive rather than a re-run.
       remembered value" claim). Round 4 adds: the widget's invalidation and palette read
       `MapDaylightApplier.applied`, so a rejected reload cannot mark the other variant as drawn; `§15`'s phone
       rule and `§15a`'s phone bullet name the applier as the record and its **callers** as the reporters.
-      Residuals left as notes, not fixed here: the gate's red step has N = 2 green alone-runs and 2 red suite runs,
-      not the N >= 3 rate `BuildEvidence.md` §4e prefers (the case is `tools/`, not this change); the hygiene,
-      doc-route and todo checks are re-run in `evidence/post-gate-checks.txt` after the last artifact edit, while
-      the gate's own copy predates it; the machine-local `vcpkg` symlink is not tracked
-      (`git ls-files -s vcpkg` empty, carried in `.git/info/exclude`).
+      Residuals left as notes, not fixed here: the widgets' drawn palette colour has no case (the record it reads is
+      pinned by revert-check 3.7); the hygiene, doc-route and todo checks are re-run in
+      `evidence/post-gate-checks.txt` after the last artifact edit, while the gate's own copy predates it; the
+      machine-local `vcpkg` symlink is not tracked (`git ls-files -s vcpkg` empty, carried in `.git/info/exclude`).
+      The former wall-clock residual is closed: the landing gate ran that case green (`gate-4.log`).
       Parent: round 3's findings 2–5 and round 4's notes.

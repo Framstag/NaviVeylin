@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/loop-selftest.sh --from-git aee35ca6fe60bb243fc6d4227d5a50e2675a87c3" tests="305" failures="1" errors="0" time="1061">
-  <system-out>PASS run#theRecordedZeroKeepsTheTurnBoundOff FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s) loop-selftest: 1 of 305 cases failed</system-out>
-</testsuite>

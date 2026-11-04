@@ -1,4 +1,4 @@
-# Post-gate checks re-run after the artifacts' last edit (2026-11-04T22:00:43Z)
+# Post-gate checks re-run after the artifacts' last edit (2026-11-04T22:28:46Z)
 $ tools/check-doc-routes.sh
 check-doc-routes: all 328 section references resolve, all 4 skill references resolve
 $ tools/check-doc-routes-selftest.sh
@@ -7,4 +7,4 @@ $ tools/check-openspec-hygiene.sh
 Every capability spec states its Purpose.
 OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
 $ tools/check-todo-references.sh
-check-todo-references: 66 citation(s) resolve through the recorded table; 8176 file(s) excluded by the allowlist above
+check-todo-references: 66 citation(s) resolve through the recorded table; 8178 file(s) excluded by the allowlist above

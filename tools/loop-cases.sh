@@ -328,6 +328,7 @@ LOOP_SHELL_CASES=(
   'driver#aRunningCasePrintsItsOwnLines'
   'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt'
   'driver#aSecondSuiteInOneRepositoryIsRefused'
+  'driver#noFixtureFifoIsOpenedWriteOnly'
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
   'gate#aGreenLogNamesNoFailingCase'
   'gate#aFailingCaseCarriesItsFactsAndItsRerun'
@@ -690,6 +691,7 @@ loop_run_shell_case() {
     'driver#aRunningCasePrintsItsOwnLines') fn=case_driver_aRunningCasePrintsItsOwnLines ;;
     'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt') fn=case_driver_aCaseThatLeavesAProcessBehindIsSweptWithIt ;;
     'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
+    'driver#noFixtureFifoIsOpenedWriteOnly') fn=case_driver_noFixtureFifoIsOpenedWriteOnly ;;
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
     'gate#aGreenLogNamesNoFailingCase') fn=case_gate_aGreenLogNamesNoFailingCase ;;
     'gate#aFailingCaseCarriesItsFactsAndItsRerun') fn=case_gate_aFailingCaseCarriesItsFactsAndItsRerun ;;
@@ -4878,9 +4880,11 @@ case_run_childOutlastingTheWallClockIsBlocked() {
   set +m
   wait_for_stub_child "$fifo.ready" || true
   [ -e "$fifo.ready" ] || fail "the stub child never started"
-  # The case holds the fifo's writer side for its whole life (`exec 8>`), so releasing a child never blocks and
-  # never leaves a writer behind: the stub opens the fifo for reading, this descriptor opens against it.
-  exec 8> "$fifo"
+  # The case holds the fifo's writer side for its whole life (`exec 8<>`), so releasing a child never blocks and
+  # never leaves a writer behind: the stub opens the fifo for reading, this descriptor opens against it. The open is
+  # read-write on purpose (issue #774): a write-only open waits for the reader, and when the run has already ended
+  # the child there is no reader left to arrive, so the case would wait on the harness's bound instead of failing.
+  exec 8<> "$fifo"
   # The bound on this case, not on the run (issue #308): the run is supposed to end itself inside a second or two,
   # but the host need not be free — 60 s is a wide margin, and the failing reading is a host's slowness reported as
   # a defect in the engine.
@@ -4942,7 +4946,7 @@ case_run_childIsEndedAtTheRunsDeadline() {
   set +m
   wait_for_stub_child "$fifo.ready" || true
   [ -e "$fifo.ready" ] || fail "the stub child never started; the run said: $(cat "$d/out")"
-  exec 8> "$fifo"
+  exec 8<> "$fifo"
   # The run's deadline arrives now. The clock the poll must read is the run's own recorded one — the state file
   # `report.sh` and `next` read — and moving it is the only way to reach the bound without waiting the 90
   # minutes the budget names: a shorter `--minutes` is refused by the item floor before any child starts, which
@@ -5015,7 +5019,7 @@ case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision() {
   set +m
   wait_for_stub_child "$fifo.ready" || true
   [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
-  exec 8> "$fifo"
+  exec 8<> "$fifo"
   # The run's deadline arrives while the reviewer waits — the same hand edit the worker's own case takes, and for
   # the same reason: a shorter `--minutes` is refused by the item floor before any child starts.
   state=$(state_file "$p")
@@ -5095,7 +5099,7 @@ EOF
   set +m
   wait_for_stub_child "$fifo.ready" || true
   [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
-  exec 8> "$fifo"
+  exec 8<> "$fifo"
   for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
   if kill -0 "$pid" 2>/dev/null; then
     kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
@@ -5163,7 +5167,7 @@ case_run_detachedProcessInTheWorktreeIsEndedByTheCap() {
   fi
   # The case holds the fifo's writer side for its whole life, so releasing a child never blocks and never leaves a
   # writer behind.
-  exec 8> "$fifo"
+  exec 8<> "$fifo"
   writer=""
   for i in $(seq 1 100); do [ -f "$d/writer.pid" ] && { writer=$(cat "$d/writer.pid"); break; }; sleep 0.1; done
   # Twenty seconds is a bound on this case, not on the run: the run is supposed to end itself well inside it.
@@ -5240,7 +5244,7 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
   fi
   # The case holds the fifo's writer side for its whole life, so releasing a child never blocks and never leaves a
   # writer behind. The child is never released: the 2 s cap ends it with its file written.
-  exec 8> "$fifo"
+  exec 8<> "$fifo"
   for i in $(seq 1 200); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
   if kill -0 "$pid" 2>/dev/null; then
     # The diagnosis has to clean up after itself: the run's own group dies here, and the fifo line the child never
@@ -6954,7 +6958,7 @@ case_run_stateNamesTheItemInProgress() {
     fail "the stub child never started, so there is no item in flight to read the state about"
   fi
   # The case holds the fifo's writer side, so releasing a child never blocks and never leaves a writer behind.
-  exec 8> "$fifo"
+  exec 8<> "$fifo"
   assert_eq "21" "$(jq -r '.current.issue' "$sf" 2>/dev/null)" \
     "the state names the item while it is being worked"
   assert_eq "A" "$(jq -r '.current.phase' "$sf" 2>/dev/null)" "and the phase the run last recorded"
@@ -9466,7 +9470,7 @@ case_run_interruptedRunEndsTheChildItStarted() {
     fail "the stub child never started, so there is no child to end"
   fi
   # The case holds the fifo's writer side, so releasing a child never blocks and never leaves a writer behind.
-  exec 8> "$fifo"
+  exec 8<> "$fifo"
   child=""
   for i in $(seq 1 100); do [ -f "$d/child.pid" ] && { child=$(cat "$d/child.pid"); break; }; sleep 0.1; done
   if [ -z "$child" ]; then
@@ -10304,6 +10308,27 @@ quick#b" "$(tail -2 "$quick_log" | sort)" "and the suite the lock was released f
 # A profile's suite command may carry `{base}`, and the gate replaces it with the base it resolved — the same base
 # whose diff produced the pathspec — so a suite narrows itself to the delta being measured. The engine knows no
 # suite by name: it hands over the base and nothing else.
+# A case that stages a child blocked on a fifo holds the fifo's writer side for its whole life, and the child is the
+# only reader. A write-only open waits for that reader: when the run has already ended the child — which is exactly
+# what a case about a child the run ended stages — no reader will ever arrive, so the case waits on the harness's
+# per-case bound, and an hour of runner time is reported as `exceeded 3600 s` instead of as the defect (issue #774,
+# main's run 41828847613). The read-write open never waits, still holds the writer side the case needs, and still
+# blocks the child in its `read`.
+case_driver_noFixtureFifoIsOpenedWriteOnly() {
+  # files: tools/loop-cases.sh
+  local src hits opens
+  src="$LOOP_PROJECT_ROOT/tools/loop-cases.sh"
+  [ -f "$src" ] || fail "the suite's own case file is not where the check looks for it: $src"
+  # The positive control: a check that finds no read-write open at all would pass on a tree that dropped the idiom
+  # instead of one that wrote it, so the count is asserted before the refusal.
+  opens=$(grep -c 'exec [0-9][0-9]*<> "\$fifo"' "$src" || true)
+  [ "${opens:-0}" -gt 0 ] || fail "no case holds a fixture fifo's writer side any more, so this check reads nothing: $src"
+  # Comments name the rejected form on purpose (this very case explains it), so only code lines are read.
+  hits=$(grep -nE 'exec [0-9][0-9]*> *"\$' "$src" | grep -vE '^[0-9]+:[[:space:]]*#' | grep -vE 'exec [0-9][0-9]*<>' || true)
+  [ -z "$hits" ] || fail "a case opens a fixture fifo write-only, so it waits for a reader that may never come: $hits"
+  return 0
+}
+
 case_gate_theDeltaHandsASuiteTheBaseItMeasured() {
   # files: tools/loop/ tools/loop/gate.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf base plan
@@ -11400,7 +11425,7 @@ EOF
   [ -e "$fifo.ready" ] || fail "the stub child never started"
   # The case holds the fifo's writer side for its whole life, so a child that is released never blocks and never
   # finds a writer behind it. 60 s is the case's own margin on a host that need not be free (issue #308).
-  exec 8> "$fifo"
+  exec 8<> "$fifo"
   for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
   if kill -0 "$pid" 2>/dev/null; then
     kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null

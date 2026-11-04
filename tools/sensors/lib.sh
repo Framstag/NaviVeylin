@@ -198,8 +198,7 @@ sensors_row_problems() { # <row-json> → one reason per line, empty when the ro
     0) printf 'row-max-filings-not-a-count: %s\n' "$value" ;;
   esac
   # A row whose condition recurs by design declares its own recurrence bound, and that bound is a count of at least
-  # one: a row that may bound its escalation at zero has bounded the condition away, and a value that is not a
-  # count is refused by name rather than compared as a number (issue #769).
+  # one: a value that is not a count is refused by name rather than compared as a number (issue #769).
   value=$(sensors_row_field "$row" k)
   case "$value" in
     '') : ;;

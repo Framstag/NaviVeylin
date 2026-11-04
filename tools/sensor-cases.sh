@@ -941,9 +941,9 @@ case_lib_theRecordIsNotACondition() {
   assert_contains "$out" '"condition":{"path":"x"}' "a condition issue is still read as one: $out"
 }
 
-# A row may declare its own recurrence bound, and that bound is a count of at least one: a row that may bound its
-# escalation at zero has bounded the condition away, and a value that is not a count must be refused by name rather
-# than compared as a number (issue #769, the row `libosmscout-lag` is the first to declare one).
+# A row may declare its own recurrence bound, and that bound is a count of at least one: a value that is not a count
+# must be refused by name rather than compared as a number (issue #769, the row `libosmscout-lag` is the first to
+# declare one).
 case_lib_aRowBoundIsACount() {
   local dir registry out status
   dir=$(scratch)

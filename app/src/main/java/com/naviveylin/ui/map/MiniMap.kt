@@ -141,12 +141,13 @@ fun MiniMap(
                     else Log.w("MiniMap", message)
                 }
         }
-        // The palette and the re-render follow the variant the client carries, not the one that was
-        // requested (guidelines/UI.md §9): after a rejected reload the two differ.
-        val carried = MapDaylightApplier.applied(client) ?: isDarkPresentation
-        appliedDark = carried
-        if (renderedDark != carried) {
-            renderedDark = carried
+        // The palette follows the variant the client carries, not the one that was requested
+        // (guidelines/UI.md §9): after a rejected reload the two differ. The re-render compares the
+        // *requested* value, because that is the value this effect was restarted for; the variant the
+        // bitmap ends up in is the client's, and a rejected reload leaves both unchanged.
+        appliedDark = MapDaylightApplier.applied(client) ?: isDarkPresentation
+        if (renderedDark != isDarkPresentation) {
+            renderedDark = isDarkPresentation
             if (hadFrame) renderer.invalidateStyle()
         }
     }

@@ -13,3 +13,7 @@
 # The other steps are green: check-doc-routes, check-openspec-hygiene, check-todo-references,
 # gen-feature-list --check-classification, check-rule-routes, check-portability, check-action-runtimes,
 # the issue-tooling self-test and the mutation lists.
+# The same case, run alone, twice on this branch:
+$ tools/loop-selftest.sh --case 'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal        (2026-11-04, run 1)
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal        (2026-11-04T22:10Z, run 2)

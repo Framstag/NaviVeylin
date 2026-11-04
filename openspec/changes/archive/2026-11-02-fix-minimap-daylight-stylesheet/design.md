@@ -175,4 +175,18 @@ round-2 gate caught (mutation: `changed || force` → `changed`, `evidence/rever
 
 **What round 2 got wrong about its own record.** Its "no remembered value" was false (the widget remembers what
 it drew), its `FAILED` branch destroyed the record, and four of its re-dated red halves were round 2's tallies —
-all six are re-run on round 3's sources (`evidence/revert-check-3.2a…3.4-red.xml`, `2026-11-04T20:3xZ`).
+all nine are re-run on the sources that land (`evidence/revert-check-3.2a…3.4-red.xml` at `22:05–22:08Z`; 3.5–3.9
+as dated in `tasks.md` 6.9).
+
+## Round 4 and 5 — what stayed and what was withdrawn
+
+Round 4 asked for a case and a mutation behind `pushDaylight`'s `FAILED` return (done: 6.10, revert-check 3.9),
+and round 5 asked the same for a widget edit that compared the re-render against `MapDaylightApplier.applied`.
+That edit is **withdrawn**: the effect re-runs only when `isDarkPresentation` or the renderer changes, so
+`renderedDark` is only ever compared within an effect run that the requested value started — the two comparisons
+differ in exactly one reachable state (a rejected reload, where comparing against the carried value would skip an
+invalidation that leaves the same pixels), and no case could distinguish them without inventing a third writer.
+The guard therefore compares the requested value again, and what round 5 keeps is the **palette**: it reads
+`applied()`, so after a rejected reload it draws the variant the client carries. The record behind it is
+`MapDaylightApplierTest` "aRejectedReloadKeepsTheVariantTheClientCarries" (3.7); the drawn colour itself has no
+case, and `tasks.md` 6.8 says so.

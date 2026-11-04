@@ -1,6 +1,5 @@
-# revert-check 3.2b — the widget's own invalidation removed (re-run on the round-3 sources, 2026-11-04T20:33:05Z)
+# revert-check 3.2b — the widget's own invalidation removed (re-run on the landing sources, 2026-11-04T22:07:30Z)
 # mutation: MiniMap.kt, 'if (renderedDark != isDarkPresentation)' -> 'if (false && ...)'
-# result: 2 failures — both re-render cases time out waiting for a render:
+# result: 2 failures — both re-render cases wait for a render that never comes:
 message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms"
 message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms"
-# green half: restored, then forced green (round-3 sources) — ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache --tests "com.naviveylin.ui.map.MiniMap*" --tests "com.naviveylin.ui.map.MapDaylight*"

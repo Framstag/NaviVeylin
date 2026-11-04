@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapDaylightApplierTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-04T21:10:47.483Z" hostname="dingens" time="0.287">
+<testsuite name="com.naviveylin.ui.map.MapDaylightApplierTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-04T22:08:52.077Z" hostname="dingens" time="0.144">
   <properties/>
-  <testcase name="firstPushAppliesAndRecordsTheValue" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.038"/>
-  <testcase name="aRejectedReloadIsNotRecordedSoTheNextWriterRetries" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.037"/>
-  <testcase name="aRejectedReloadKeepsTheVariantTheClientCarries" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.038"/>
-  <testcase name="twoClientsKeepTheirOwnRecord" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.056"/>
-  <testcase name="aValueTheClientCarriesIsNotPushedAgain" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.047"/>
-  <testcase name="forceRePushesAValueTheRecordAlreadyHolds" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.036"/>
-  <testcase name="theSecondWriterPaysNothingForAValueTheFirstApplied" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.026"/>
+  <testcase name="firstPushAppliesAndRecordsTheValue" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.018"/>
+  <testcase name="aRejectedReloadIsNotRecordedSoTheNextWriterRetries" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.019"/>
+  <testcase name="aRejectedReloadKeepsTheVariantTheClientCarries" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.02"/>
+  <testcase name="twoClientsKeepTheirOwnRecord" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.025"/>
+  <testcase name="aValueTheClientCarriesIsNotPushedAgain" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.02"/>
+  <testcase name="forceRePushesAValueTheRecordAlreadyHolds" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.019"/>
+  <testcase name="theSecondWriterPaysNothingForAValueTheFirstApplied" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.019"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -15,11 +15,14 @@ packaging failures behind these rules are in `guidelines/MapStyling.why.md`.
   tiles from the other variant).
 - **Rule: Phone**: the environment source is `DarkModeController` (system night mode, or the
   ambient light sensor when enabled — see `dark-mode` spec). `MapDaylightApplier` holds the value the
-  client carries, one record per client, and pushes only a changed one; it reports a rejected reload
-  through `MapStyleLoadReporter`. The re-render is **each surface's own**: a writer invalidates its
-  own renderer (`invalidateStyle()` — epoch bump and full re-render) when the value *it* last drew
-  changes, never on whether the applier answered APPLIED or UNCHANGED — on a presentation flip the
-  main map usually pushes first, and the mini map would otherwise keep the other variant.
+  client carries, one record per client, and pushes only a changed one; its **callers** report a
+  rejected reload through `MapStyleLoadReporter` (the applier itself has no `Context`). The re-render
+  is **each surface's own**: a writer invalidates its own renderer (`invalidateStyle()` — epoch bump
+  and full re-render) when the presentation it was asked for differs from the one *it* last drew,
+  never on whether the applier answered APPLIED or UNCHANGED — on a presentation flip the main map
+  usually pushes first, and the mini map would otherwise keep the other variant. A palette drawn beside
+  the bitmap reads `MapDaylightApplier.applied(client)`, so it follows the variant the client carries
+  rather than the one that was requested.
 - **Rule: Android Auto**: the source is the HOST's day/night state, never the phone's system
   mode — the car process runs on the phone but the head unit decides (its own light
   sensor / time). `NavigationSession.hostDark` (init from `CarContext.isDarkMode()`,

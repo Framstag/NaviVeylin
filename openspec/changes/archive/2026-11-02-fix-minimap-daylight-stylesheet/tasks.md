@@ -40,13 +40,14 @@ scenario's case is named in the task that lands it.
 
 ## 4. Tests the change can affect
 
-- [x] 4.1 `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MiniMap*"` — the widget's own
-      cases, green and forced. Round 2 re-ran the changed classes forced and green: `MiniMapComposeTest` 13 cases,
-      `MapDaylightApplierTest` 7, `MapDaylightRecordTest` 1, `MapCanvasViewModelStyleTest` 17 — 38 cases, 0
-      failures, 0 errors, `2026-11-04T21:10:40Z` (`evidence/focused-4.2/`), plus
-      `MapCanvasViewModelViewportRestoreTest`, which the full run caught and the round-3 fix repaired
-      (`evidence/revert-check-3.8*`). Excluded: no other module reads `MiniMap`; the widget's palette cases are in
-      `MiniMap*`.
+- [x] 4.1 `./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache --tests
+      "com.naviveylin.ui.map.MiniMap*" --tests "com.naviveylin.ui.map.MapDaylight*" --tests
+      "com.naviveylin.ui.map.MapCanvasViewModelStyleTest"` — the widget's cases, the applier's and the two view-model
+      suites that own the changed calls: `MiniMapComposeTest` 13, `MapDaylightApplierTest` 7,
+      `MapDaylightRecordTest` 1, `MapCanvasViewModelStyleTest` 17 — 38 cases, 0 failures, 0 errors,
+      `2026-11-04T22:08:35Z` (`evidence/focused-4.2/`), plus `MapCanvasViewModelViewportRestoreTest`, which the
+      full run caught and the round-3 fix repaired (`evidence/revert-check-3.8*`). Excluded: no other module reads
+      `MiniMap`; the widget's palette cases are in `MiniMap*`.
 
 ## 5. The gate
 
@@ -84,13 +85,14 @@ See `design.md`, "Round 2", for why each one is additive rather than a re-run.
 - [x] 6.4 The re-render half is mutated too, which round 1's NOTE left open: `if (hadFrame)
       renderer.invalidateStyle()` reduced to `if (false && …)` fails `presentationChangeReRendersTheMiniMap`
       (`evidence/revert-check-3.2b.log`). Parent: "it SHALL re-render its own viewport when the value changes".
-- [x] 6.5 `guidelines/MapStyling.md` §15 and §15a name the shared record and the widget as a load path, §15's
-      "Rule: Phone" states that each surface re-renders on its own change, and "Rule: Startup race" reconciles
-      `stylePushedToNative` with the applier. The change no longer claims "no guideline text moves";
-      `proposal.md`'s two unmeasured figures are corrected (`isDarkPresentation` 115 → 128 lines, measured
-      2026-11-04; `MiniMapComposeTest` `@Test` 7 → 13) and the `MapRenderer.kt` pointer now reads `484-489`. The
-      `AGENTS.md` §15a cost figure (`3.2 kB` → `3.4 kB`) is that edit's consequence and `tools/check-doc-routes.sh`
-      is the check that verifies it (green in `evidence/gate-2/`).
+- [x] 6.5 `guidelines/MapStyling.md` §15 and §15a name the shared record, the widget as a load path, the
+      callers as the reporters, and the palette's `applied()` source; §15's "Rule: Phone" states that each surface
+      re-renders on its own change, and "Rule: Startup race" reconciles `stylePushedToNative` with the applier.
+      The change no longer claims "no guideline text moves"; `proposal.md`'s two unmeasured figures are corrected
+      (`isDarkPresentation` 115 → 128 lines, measured 2026-11-04; `MiniMapComposeTest` `@Test` 7 → 13) and the
+      `MapRenderer.kt` pointer now reads `484-489`. The `AGENTS.md` §15a cost figure is that edit's consequence and
+      `tools/check-doc-routes.sh` is the check that verifies it — the section's growth moved the figure to
+      `3.5 kB` (green in `evidence/post-gate-checks.txt`).
       Parent: the review's finding 7.
 - [x] 6.6 Each surface re-renders on **its own** variant change, not on who performed the push: the widget keeps
       `renderedDark` and invalidates outside the applier's outcome; `pushDaylight` re-renders when its own
@@ -107,17 +109,17 @@ See `design.md`, "Round 2", for why each one is additive rather than a re-run.
       `expected:<UNCHANGED> but was:<APPLIED>` (`evidence/revert-check-3.6.log`).
       Parent: §15's one load per changed value.
 - [x] 6.8 One reporting seam, not two: `rejectedLoadMessage` is the single call site of
-      `MapStyleLoadReporter.reportFailure`, used by `MapCanvasViewModel.reportStyleLoadFailure` and by the
-      widget's `rejectedVariantMessage`. The widget's palette follows the **applied** variant
-      (`MapDaylightApplier.applied`), so a rejected reload no longer leaves palette and bitmap disagreeing
-      (`guidelines/UI.md` §9). The reject case now asserts exactly one report per attempt.
+      `MapStyleLoadReporter.reportFailure` on the phone, used by `MapCanvasViewModel.reportStyleLoadFailure` and by
+      the widget's `rejectedVariantMessage`. The widget's palette reads `MapDaylightApplier.applied`, the variant the
+      client carries (`guidelines/UI.md` §9); the drawn colour itself has no case — the record it reads is the one
+      `MapDaylightApplierTest` "aRejectedReloadKeepsTheVariantTheClientCarries" pins (3.7). The reject case asserts
+      exactly one report per attempt.
       Parent: §15a's "one place" and `map-styles`' "Failure is reported once per attempt".
-- [x] 6.9 Every revert-check carries its green half, on the sources it was run against: restored, then
-      `./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache --tests "com.naviveylin.ui.map.MiniMap*"
-      --tests "com.naviveylin.ui.map.MapDaylight*" --tests "com.naviveylin.ui.map.MapCanvasViewModelStyleTest"` —
-      38 cases, 0 failures, `2026-11-04T21:10:40Z` (`evidence/revert-check-3.2a…3.9-green.xml`,
-      `evidence/focused-4.2/`). All nine red halves were re-run against the sources they falsify: 3.2a–3.4 at
-      `20:30–20:34Z`, 3.5/3.6/3.7/3.9 at `20:34–21:09Z`.
+- [x] 6.9 Every revert-check carries its green half, on the sources it was run against, and all nine red halves
+      were re-run against the sources that land: 3.2a–3.4 on the final `MiniMap.kt` (`22:05–22:08Z`), 3.5/3.9 at
+      `21:09Z`, 3.6 at `21:10Z`, 3.7 at `20:34Z`, 3.8 at `20:35Z` (both on files unchanged since). The green halves
+      are one forced run — 38 cases, 0 failures, `2026-11-04T22:08:35Z` (`evidence/revert-check-3.2a…3.9-green.xml`,
+      `evidence/focused-4.2/`).
       Parent: BuildEvidence.md §4e.
 - [x] 6.10 A rejected variant reload keeps the record of the variant the client carries: `applied.remove(client)`
       dropped, and `pushDaylight` writes `appliedMapStyle` only when the push was not `FAILED`. Cases:

@@ -261,7 +261,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
   | ([.items[]
       | select((.metrics.calls // null) != null and (.metrics.turns // 0) > 0)
       | {i: .issue, c: .metrics.calls, t: .metrics.turns,
-         r: (((.metrics.calls / .metrics.turns) * 100) | round) / 100}]) as $calls
+         r: ((.metrics.calls / .metrics.turns) * 100 | round | . / 100)}]) as $calls
   | ( if ($calls | length) == 0 then
         # A state written before this figure existed records tokens for its items and no counts, and a dash with
         # the wrong reason would read as a run of items that answered without a tool — the distinction the review
@@ -271,7 +271,7 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           else "- · no item recorded a turn" end
       else ([$calls[].c] | add) as $tc
         | ([$calls[].t] | add) as $tt
-        | (((($tc / $tt) * 100) | round) / 100) as $ratio
+        | (((($tc / $tt) * 100) | round | . / 100)) as $ratio
         | ( if $floor > 0
               then ([$calls[] | select(.r < $floor) | "#\(.i) \(.r)"]) as $below
                 | "\($ratio) calls per turn (\($tc) calls / \($tt) turns) · "

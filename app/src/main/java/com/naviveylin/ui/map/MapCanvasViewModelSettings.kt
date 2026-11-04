@@ -266,7 +266,10 @@ internal fun MapCanvasViewModel.pushDaylight(daylight: Boolean, force: Boolean =
         MapDaylightPush.UNCHANGED, MapDaylightPush.APPLIED -> Unit
     }
     appliedMapStyle = AppliedMapStyle(appliedMapStyle?.styleName, daylight)
-    if (changed) {
+    // Both halves re-render this surface: a value it had not drawn, and a *forced* re-push — the
+    // `STARTUP_DB_READY` / `FIRST_RENDERED_FRAME` reasons exist because the native side may have dropped
+    // the earlier push, so the map has to render again under it.
+    if (changed || force) {
         mapRenderer?.invalidateStyle()
         invalidateRowIcons()
     }

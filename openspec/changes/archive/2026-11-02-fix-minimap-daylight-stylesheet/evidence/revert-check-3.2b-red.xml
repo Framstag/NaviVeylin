@@ -1,19 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MiniMapComposeTest" tests="12" skipped="0" failures="1" errors="0" timestamp="2026-11-04T17:10:44.301Z" hostname="dingens" time="24.419">
+<testsuite name="com.naviveylin.ui.map.MiniMapComposeTest" tests="13" skipped="0" failures="2" errors="0" timestamp="2026-11-04T20:32:20.615Z" hostname="dingens" time="41.602">
   <properties/>
-  <testcase name="zoomInClampedAtMaximumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="9.672"/>
-  <testcase name="aClientThatAlreadyCarriesTheVariantIsNotReloaded" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.361"/>
-  <testcase name="zoomOutClampedAtMinimumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.795"/>
-  <testcase name="darkPresentationPushesTheDarkDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.276"/>
-  <testcase name="rendersFrameForMarkerDrawing" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.267"/>
-  <testcase name="lightPresentationPushesTheDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.278"/>
-  <testcase name="zoomOutDecreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.476"/>
-  <testcase name="zoomInIncreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.481"/>
-  <testcase name="presentationChangeReRendersTheMiniMap" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="10.583">
+  <testcase name="zoomInClampedAtMaximumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="15.784"/>
+  <testcase name="aValueAnotherWriterAppliedStillReRendersTheWidget" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="10.804">
     <failure message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms" type="kotlinx.coroutines.TimeoutCancellationException">kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms
 	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
-	at com.naviveylin.ui.map.MiniMapComposeTest$presentationChangeReRendersTheMiniMap$4$1.invokeSuspend(MiniMapComposeTest.kt:304)
-	at com.naviveylin.ui.map.MiniMapComposeTest$presentationChangeReRendersTheMiniMap$4.invokeSuspend(MiniMapComposeTest.kt:302)
+	at com.naviveylin.ui.map.MiniMapComposeTest$aValueAnotherWriterAppliedStillReRendersTheWidget$4$1.invokeSuspend(MiniMapComposeTest.kt:308)
+	at com.naviveylin.ui.map.MiniMapComposeTest$aValueAnotherWriterAppliedStillReRendersTheWidget$4.invokeSuspend(MiniMapComposeTest.kt:306)
 Caused by: kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms
 	at kotlinx.coroutines.TimeoutKt.TimeoutCancellationException(Timeout.kt:188)
 	at kotlinx.coroutines.TimeoutCoroutine.run(Timeout.kt:156)
@@ -23,9 +16,30 @@ Caused by: kotlinx.coroutines.TimeoutCancellationException: Timed out waiting fo
 	at java.base/java.lang.Thread.run(Thread.java:1583)
 </failure>
   </testcase>
-  <testcase name="aRejectedVariantReloadIsReported" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.271"/>
-  <testcase name="zoomButtonsAreVisible" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.063"/>
-  <testcase name="panMovesTheMapCenter" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.286"/>
+  <testcase name="aClientThatAlreadyCarriesTheVariantIsNotReloaded" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.296"/>
+  <testcase name="zoomOutClampedAtMinimumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.797"/>
+  <testcase name="darkPresentationPushesTheDarkDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.268"/>
+  <testcase name="rendersFrameForMarkerDrawing" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.267"/>
+  <testcase name="lightPresentationPushesTheDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.257"/>
+  <testcase name="zoomOutDecreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.466"/>
+  <testcase name="zoomInIncreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.483"/>
+  <testcase name="presentationChangeReRendersTheMiniMap" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="10.579">
+    <failure message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms" type="kotlinx.coroutines.TimeoutCancellationException">kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.naviveylin.ui.map.MiniMapComposeTest$presentationChangeReRendersTheMiniMap$4$1.invokeSuspend(MiniMapComposeTest.kt:356)
+	at com.naviveylin.ui.map.MiniMapComposeTest$presentationChangeReRendersTheMiniMap$4.invokeSuspend(MiniMapComposeTest.kt:354)
+Caused by: kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms
+	at kotlinx.coroutines.TimeoutKt.TimeoutCancellationException(Timeout.kt:188)
+	at kotlinx.coroutines.TimeoutCoroutine.run(Timeout.kt:156)
+	at kotlinx.coroutines.EventLoopImplBase$DelayedRunnableTask.run(EventLoop.common.kt:505)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.DefaultExecutor.run(DefaultExecutor.kt:105)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="aRejectedVariantReloadIsReported" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.266"/>
+  <testcase name="zoomButtonsAreVisible" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.065"/>
+  <testcase name="panMovesTheMapCenter" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.292"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

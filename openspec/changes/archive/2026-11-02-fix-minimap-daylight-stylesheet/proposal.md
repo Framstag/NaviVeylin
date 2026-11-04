@@ -68,10 +68,14 @@ six cases, the `launch` helper's new parameter, the sink parameter and the appli
 
 ## What Changes
 
-- **`MiniMap.kt`** — one `LaunchedEffect(renderer, isDarkPresentation)` pushes
-  `client.setStyleSheetFlag(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT, !isDarkPresentation)` before the first frame,
-  keyed on the value so a recomposition does not repeat it; on a later value change it calls
-  `renderer.invalidateStyle()` so the widget's tile cache and front buffer cannot survive the variant switch.
+- **`MiniMap.kt`** — one `LaunchedEffect(renderer, isDarkPresentation)` applies the variant through the shared
+  `MapDaylightApplier` (`app/…/ui/map/MapDaylightApplier.kt`) before the first frame, so a client that already
+  carries the value costs no native call and no stylesheet reload; on a later value change it calls
+  `renderer.invalidateStyle()` so the widget's tile cache and front buffer cannot survive the variant switch. A
+  rejected reload is reported through `MapStyleLoadReporter` and handed to the embedder's `onStyleLoadFailure`.
+- **`MapDaylightApplier.kt`** (new) — the phone's one record of the `daylight` flag, per client and value; the
+  main map's `ensureMapStyle`/`pushDaylight` go through it too, and a stylesheet load records the variant it
+  installed.
 - **`specs/mini-map/spec.md`** (delta) — one added requirement, three scenarios, each naming one case.
 - **Guideline change in round 2 only.** `MapStyling.md` §15 already owns the variant rule and §15a the
   reporting rule; round 1 moved no text. The reviewer's dedupe and reporting findings made the widget a

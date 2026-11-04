@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MiniMapComposeTest" tests="12" skipped="0" failures="1" errors="0" timestamp="2026-11-04T17:11:48.958Z" hostname="dingens" time="14.503">
+<testsuite name="com.naviveylin.ui.map.MiniMapComposeTest" tests="13" skipped="0" failures="1" errors="0" timestamp="2026-11-04T20:33:50.923Z" hostname="dingens" time="21.267">
   <properties/>
-  <testcase name="zoomInClampedAtMaximumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="9.864"/>
-  <testcase name="aClientThatAlreadyCarriesTheVariantIsNotReloaded" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.329"/>
-  <testcase name="zoomOutClampedAtMinimumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.798"/>
-  <testcase name="darkPresentationPushesTheDarkDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.268"/>
-  <testcase name="rendersFrameForMarkerDrawing" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.264"/>
-  <testcase name="lightPresentationPushesTheDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.276"/>
-  <testcase name="zoomOutDecreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.476"/>
-  <testcase name="zoomInIncreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.469"/>
-  <testcase name="presentationChangeReRendersTheMiniMap" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.617"/>
-  <testcase name="aRejectedVariantReloadIsReported" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.275">
-    <failure message="java.lang.AssertionError: a rejected variant reload is reported to the embedding surface (spec: map-styles — &quot;Style flag change fails&quot;)" type="java.lang.AssertionError">java.lang.AssertionError: a rejected variant reload is reported to the embedding surface (spec: map-styles — &quot;Style flag change fails&quot;)
+  <testcase name="zoomInClampedAtMaximumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="15.664"/>
+  <testcase name="aValueAnotherWriterAppliedStillReRendersTheWidget" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.669"/>
+  <testcase name="aClientThatAlreadyCarriesTheVariantIsNotReloaded" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.273"/>
+  <testcase name="zoomOutClampedAtMinimumMagnification" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.793"/>
+  <testcase name="darkPresentationPushesTheDarkDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.275"/>
+  <testcase name="rendersFrameForMarkerDrawing" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.269"/>
+  <testcase name="lightPresentationPushesTheDaylightFlag" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.261"/>
+  <testcase name="zoomOutDecreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.482"/>
+  <testcase name="zoomInIncreasesMagnificationByOneStep" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.475"/>
+  <testcase name="presentationChangeReRendersTheMiniMap" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.621"/>
+  <testcase name="aRejectedVariantReloadIsReported" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.266">
+    <failure message="java.lang.AssertionError: a rejected variant reload is reported once per attempt (spec: map-styles — &quot;Failure is reported once per attempt&quot;) expected:&lt;1&gt; but was:&lt;0&gt;" type="java.lang.AssertionError">java.lang.AssertionError: a rejected variant reload is reported once per attempt (spec: map-styles — &quot;Failure is reported once per attempt&quot;) expected:&lt;1&gt; but was:&lt;0&gt;
 	at org.junit.Assert.fail(Assert.java:89)
-	at org.junit.Assert.assertTrue(Assert.java:42)
-	at org.junit.Assert.assertNotNull(Assert.java:713)
-	at com.naviveylin.ui.map.MiniMapComposeTest.aRejectedVariantReloadIsReported(MiniMapComposeTest.kt:265)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.naviveylin.ui.map.MiniMapComposeTest.aRejectedVariantReloadIsReported(MiniMapComposeTest.kt:264)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
@@ -64,8 +65,8 @@
 	at java.base/java.lang.Thread.run(Thread.java:1583)
 </failure>
   </testcase>
-  <testcase name="zoomButtonsAreVisible" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.068"/>
-  <testcase name="panMovesTheMapCenter" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.319"/>
+  <testcase name="zoomButtonsAreVisible" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.071"/>
+  <testcase name="panMovesTheMapCenter" classname="com.naviveylin.ui.map.MiniMapComposeTest" time="0.297"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

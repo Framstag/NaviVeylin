@@ -64,7 +64,8 @@ internal object MapDaylightApplier {
     /**
      * The presentation the client carries, or `null` when no phone writer has applied one. A surface
      * that draws a palette beside the bitmap reads this, so the palette follows the variant that is
-     * installed rather than the one that was requested (`guidelines/UI.md` §9).
+     * installed rather than the one that was requested (`guidelines/UI.md` §9). A rejected reload
+     * leaves the previous entry in place — that is the variant the client still carries.
      */
     fun applied(client: OSMScoutClient): Boolean? = applied[client]
 
@@ -88,8 +89,11 @@ internal object MapDaylightApplier {
             return MapDaylightPush.ERROR
         }
         if (!accepted) {
-            // Not recorded: the client carries the other variant, so the next writer retries.
-            applied.remove(client)
+            // The client kept the previous variant, and the record has to keep saying *which* one that
+            // is: `applied()` is what a palette beside the bitmap reads, and a cleared record would
+            // also make the next writer re-push this very value (one reload of an unchanged variant,
+            // §15). The target value stays unrecorded, so `needsPush(target)` is true and the retry
+            // still pushes.
             return MapDaylightPush.FAILED
         }
         applied[client] = dark

@@ -125,9 +125,10 @@ optional `onStyleLoadFailure` sink, which `SearchDialog`/`PoiResultsWithMap` and
 `uiState.snackbarMessage`; with no sink the message is logged. Mutation: reducing the `FAILED` branch to `Unit`
 fails `aRejectedVariantReloadIsReported` (`evidence/revert-check-3.4.log`).
 
-What this costs: three signatures gain the optional sink, and the widget no longer owns a remembered value.
-What it buys: one recorded value per client, so no surface can hold the client at a variant the other surface
-does not expect, and the reload budget is the one §15 states.
+What this costs: three signatures gain the optional sink, and the widget keeps a remembered value — but only
+for its **own re-render** (`renderedDark`), not as the flag's record, which stays the applier's. What it buys: one
+recorded value per client, so no surface can hold the client at a variant the other surface does not expect, and
+the reload budget is the one §15 states.
 
 **Round 1 claims this retires.** "One extra stylesheet load per mini-map mount" (design, blast radius) is gone —
 measured by the dedupe case. "No signature change" is false now. "Composition order proves the push precedes
@@ -137,3 +138,41 @@ with an asynchronous renderer.
 **Mutation of the re-render half** (round 1's other open NOTE): `if (hadFrame) renderer.invalidateStyle()`
 reduced to `if (false && …)` fails `presentationChangeReRendersTheMiniMap` with a render-count timeout
 (`evidence/revert-check-3.2b.log`), so the half task 3.1 left unmutated is now falsified.
+
+## Round 3 — where the record and the re-render part company
+
+Round 2 wired both to the applier's answer, which is wrong in one direction: on a presentation flip the view
+model pushes first (its collector runs before Compose recomposes the dialog), so the widget's `push` answers
+`UNCHANGED` — and round 2 returned without invalidating. The mini map kept the other variant: the second half of
+item #729, on the path its own scenario forbids. The mirror case (widget first, main map second) lost the main
+map's re-render the same way.
+
+**The rule now.** Two facts, two owners:
+
+- *Which variant does the client carry?* — `MapDaylightApplier`'s record, one per client. It decides whether a
+  native call is needed, and a palette beside the bitmap reads it, so the palette follows the applied variant
+  even after a rejected reload (`guidelines/UI.md` §9).
+- *Which variant did this surface last draw?* — the surface's own value: the widget's `renderedDark` (with
+  `appliedDark` for its palette) and the view model's `appliedMapStyle`, plus the `force` reasons
+  (`STARTUP_DB_READY`, `FIRST_RENDERED_FRAME`) that exist because the native side may have dropped the earlier
+  push. A change there invalidates that surface's own renderer, whoever performed the native call, and does not
+  depend on the applier's answer.
+
+**A rejected reload keeps the record it had.** Round 2 cleared it, which lost `applied()` (the palette fell back
+on the *requested* variant), made the next writer re-push a value the client already carried, and — because
+`pushDaylight` also overwrote `appliedMapStyle` on `FAILED` — made a successful retry skip its own re-render. Now
+nothing is written on `FAILED`: `applied()` still names the variant the client carries, the target value stays
+unrecorded so the retry pushes, and the retry's `changed` is true so it re-renders.
+
+**Evidence.** `aValueAnotherWriterAppliedStillReRendersTheWidget` (mutation: the outcome-dependent invalidation,
+`evidence/revert-check-3.5.log`) and `aRejectedReloadKeepsTheVariantTheClientCarries` (mutation: clearing the
+record, `evidence/revert-check-3.7.log`); `MapCanvasViewModelViewportRestoreTest` pins the forced re-render the
+round-2 gate caught (mutation: `changed || force` → `changed`, `evidence/revert-check-3.8.log`).
+
+**One seam, one report.** `rejectedLoadMessage` is the single call site of
+`MapStyleLoadReporter.reportFailure` on the phone — the view model's `reportStyleLoadFailure` and the widget's
+`rejectedVariantMessage` both go through it (§15a's "one place").
+
+**What round 2 got wrong about its own record.** Its "no remembered value" was false (the widget remembers what
+it drew), its `FAILED` branch destroyed the record, and four of its re-dated red halves were round 2's tallies —
+all six are re-run on round 3's sources (`evidence/revert-check-3.2a…3.4-red.xml`, `2026-11-04T20:3xZ`).

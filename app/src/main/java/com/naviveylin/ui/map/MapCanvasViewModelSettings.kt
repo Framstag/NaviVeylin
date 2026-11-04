@@ -256,15 +256,18 @@ internal fun MapCanvasViewModel.pushDaylight(daylight: Boolean, force: Boolean =
     // already applied makes the applier answer UNCHANGED, and the main map's tiles and frame are
     // still its own to invalidate — otherwise the map keeps the other variant until the next pan.
     val changed = appliedMapStyle?.daylight != daylight
-    when (MapDaylightApplier.push(client, daylight, force)) {
+    val outcome = MapDaylightApplier.push(client, daylight, force)
+    when (outcome) {
         MapDaylightPush.ERROR -> return
         MapDaylightPush.FAILED ->
-            // The flag change reloads the active stylesheet; when that load is
-            // rejected the previously active style stays in effect and the
-            // failure is reported (spec: map-styles — "Style flag change fails").
+            // The flag change reloads the active stylesheet; when that load is rejected the previously
+            // active style and variant stay in effect and the failure is reported (spec: map-styles —
+            // "Style flag change fails"). Nothing was applied, so neither this surface's record nor a
+            // re-render follows: the next request retries, and it must see `changed` then.
             rejectedVariantMessage(context, client)?.let { showSnackbar(it) }
         MapDaylightPush.UNCHANGED, MapDaylightPush.APPLIED -> Unit
     }
+    if (outcome == MapDaylightPush.FAILED) return
     appliedMapStyle = AppliedMapStyle(appliedMapStyle?.styleName, daylight)
     // Both halves re-render this surface: a value it had not drawn, and a *forced* re-push — the
     // `STARTUP_DB_READY` / `FIRST_RENDERED_FRAME` reasons exist because the native side may have dropped

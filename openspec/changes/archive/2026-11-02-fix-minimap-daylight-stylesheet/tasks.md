@@ -17,9 +17,10 @@ scenario's case is named in the task that lands it.
 ## 2. The fix
 
 - [x] 2.1 `MiniMap.kt` — one `LaunchedEffect(renderer, isDarkPresentation)` composed before the size/location
-      render effect pushes `client.setStyleSheetFlag(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT, !isDarkPresentation)`,
-      keyed on the value; on a later change it calls `renderer.invalidateStyle()` so the widget's tile cache and
-      front buffer do not survive the variant switch (parent: same requirement).
+      render effect applies the variant through `MapDaylightApplier` (round 1 pushed
+      `client.setStyleSheetFlag(…)` from the widget itself; rounds 2–3 replaced that writer); on a later change
+      it calls `renderer.invalidateStyle()` so the widget's tile cache and front buffer do not survive the
+      variant switch (parent: same requirement).
       Verification: the three cases above green, plus the whole `MiniMap*` set.
 
 - [x] 2.2 `openspec/specs/mini-map/spec.md` — one added requirement and its three scenarios, through the delta;
@@ -30,9 +31,12 @@ scenario's case is named in the task that lands it.
 
 ## 3. The invariant's revert-check
 
-- [x] 3.1 Delete the `setStyleSheetFlag` line from the effect (`// REVERT-CHECK MUTATION`), run the three cases —
-      all three fail; restore, re-run `-PforceTests --no-build-cache` — green. Parent: "A presentation change
-      re-renders the mini map". Mutation and both XMLs in `evidence/revert-check-*`; no marker survives.
+- [x] 3.1 Round 1 deleted the `setStyleSheetFlag` line from the effect (`// REVERT-CHECK MUTATION`), and all
+      three cases failed. The widget no longer writes the flag directly, so the mutation site moved: the mutation
+      that removes the push now sits before the applier call (`if (!hadFrame) return@LaunchedEffect`,
+      `evidence/revert-check-3.2a.log`) and the one that removes the re-render sits on the widget's own trigger
+      (`evidence/revert-check-3.2b.log`). Both were re-run on the round-3 sources, both fail for their own reason,
+      and both carry a forced green half. Parent: "A presentation change re-renders the mini map".
 
 ## 4. Tests the change can affect
 
@@ -112,8 +116,27 @@ See `design.md`, "Round 2", for why each one is additive rather than a re-run.
       (`MapDaylightApplier.applied`), so a rejected reload no longer leaves palette and bitmap disagreeing
       (`guidelines/UI.md` §9). The reject case now asserts exactly one report per attempt.
       Parent: §15a's "one place" and `map-styles`' "Failure is reported once per attempt".
-- [x] 6.9 Every round-2 revert-check carries its green half: restored, then
+- [x] 6.9 Every round-2 revert-check carries its green half, re-run on round 3's sources: restored, then
       `./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache --tests "com.naviveylin.ui.map.MiniMap*"
-      --tests "com.naviveylin.ui.map.MapDaylight*"` — 20 cases, 0 failures, `2026-11-04T19:25:17Z`
-      (`evidence/revert-check-3.2a…3.6-green.xml`).
+      --tests "com.naviveylin.ui.map.MapDaylight*"` — 21 cases (13 + 7 + 1), 0 failures, `2026-11-04T20:34:45Z`
+      (`evidence/revert-check-3.2a…3.7-green.xml`, `evidence/focused-4.2/`). The four red halves round 2 left
+      (`3.2a`, `3.2b`, `3.3`, `3.4`) were re-run against these sources, not re-dated.
       Parent: BuildEvidence.md §4e.
+- [x] 6.10 A rejected variant reload keeps the record of the variant the client carries: `applied.remove(client)`
+      dropped, `pushDaylight` writes `appliedMapStyle` only when the push was not `FAILED`. Case:
+      `MapDaylightApplierTest` "aRejectedReloadKeepsTheVariantTheClientCarries"; revert-check 3.7
+      (`evidence/revert-check-3.7.log`: `expected:<false> but was:<null>`).
+      Parent: `UI.md` §9's applied-variant palette and §15's one load per changed value.
+- [x] 6.11 The forced re-push re-renders again (`changed || force`), which the round's first gate caught through
+      `MapCanvasViewModelViewportRestoreTest`. Revert-check 3.8: `changed || force` → `changed` fails it with
+      `first render at default mag: []` (`evidence/revert-check-3.8.log`), and the restored tree is forced green
+      on the same case (`-3.8-green.xml`, 6 cases).
+      Parent: `FIRST_RENDERED_FRAME` / `STARTUP_DB_READY`.
+- [x] 6.12 Round 3 records the two-facts split in `design.md` ("Round 3") and corrects the three round-1/2
+      sentences that described the old shape (`proposal.md` "What Changes", `tasks.md` 2.1 and 3.1, and round 2's
+      own "no remembered value" claim). Residuals left as notes, not fixed here: the gate's red step has N = 2
+      measurements (the suite that exceeded its bound, and the case passing alone) and no N ≥ 3 rate, which
+      `BuildEvidence.md` §4e prefers; the hygiene and doc-route steps were re-run after this file's last edit and
+      are green, but the gate's own copy of them predates it. The machine-local `vcpkg` symlink is not tracked
+      (`git ls-files -s vcpkg` → empty, `.git/info/exclude` carries it).
+      Parent: round 3's findings 2–5.

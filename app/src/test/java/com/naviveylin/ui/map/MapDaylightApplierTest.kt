@@ -89,6 +89,23 @@ class MapDaylightApplierTest {
     }
 
     @Test
+    fun aRejectedReloadKeepsTheVariantTheClientCarries() {
+        // A rejected reload leaves the client at the variant it already had. The record has to keep
+        // naming *that* one — a palette beside the bitmap reads it (UI.md §9) — while the target value
+        // stays unrecorded, so the next writer retries it.
+        MapDaylightApplier.record(client, false)
+        client.styleLoadSuccessful = false
+
+        assertEquals(MapDaylightPush.FAILED, MapDaylightApplier.push(client, true))
+        assertEquals(
+            "the record still names the variant the client carries",
+            false,
+            MapDaylightApplier.applied(client)
+        )
+        assertTrue("the target value is still unapplied", MapDaylightApplier.needsPush(client, true))
+    }
+
+    @Test
     fun twoClientsKeepTheirOwnRecord() {
         val other = FakeOSMScoutClient()
         MapDaylightApplier.push(client, false)

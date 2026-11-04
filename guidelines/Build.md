@@ -114,6 +114,7 @@ Moved to `BuildGate.md` §2e.
 | Run the gate a change owes, by its own pathspec (what the loop's gate command names) | `tools/loop/gate.sh --base <sha>` — the Gradle gate when a compiled path changed, else the shell commands of the pipeline's check steps that read the touched paths; `--plan` prints the selection without running it |
 | Run app unit tests only (one flavor — there is no `:app:testDebugUnitTest`) | `./gradlew :app:testMobileDebugUnitTest` (or `:app:testAutomotiveDebugUnitTest`) |
 | Run single test class | `./gradlew :app:testMobileDebugUnitTest --tests "<FQCN>"` |
+| Read what the central workflow runs, and where | `gh run view --job <id> --json jobs`: the run's verdict is the conjunction of three jobs — `Build debug APK (all ABIs)` (the build and its unit tests), `Offline gates` (every check that needs no SDK, NDK, vcpkg, Gradle or token), `Loop self-test (<leg>)` (the loop's suite, one leg per group selection, fail-fast off). The last two run beside the build and are no input to it, so a required check must name all three |
 | Run instrumented tests (device required) | `./gradlew connectedAndroidTest` |
 | Release build (both AABs, bumps version) | `./gradlew release` |
 | Generate SBOM for one variant | `./gradlew :app:generateSbom<MobileDebug|MobileRelease|AutomotiveRelease>` |

@@ -40,14 +40,13 @@ scenario's case is named in the task that lands it.
 
 ## 4. Tests the change can affect
 
-- [x] 4.1 `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MiniMap*" --tests
-      "com.naviveylin.ui.map.LocationDetails*" --tests "com.naviveylin.ui.map.PoiSearchPanel*" --tests
-      "com.naviveylin.ui.map.SearchDialog*"` — the widget's own cases and the surfaces that embed it, green and
-      forced (round 1: `evidence/focused-4.1/`). Round 2 re-ran the changed classes forced and green:
-      `MiniMapComposeTest` 13 cases, `MapDaylightApplierTest` 6, `MapDaylightRecordTest` 1 — 0 failures, 0
-      errors, `2026-11-04T19:25:17Z` (`evidence/focused-4.2/`), plus `MapCanvasViewModelViewportRestoreTest`,
-      which the full run caught and the round-2 fix repaired. Excluded: no other module reads `MiniMap`; the
-      widget's palette cases are in `MiniMap*`.
+- [x] 4.1 `./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MiniMap*"` — the widget's own
+      cases, green and forced. Round 2 re-ran the changed classes forced and green: `MiniMapComposeTest` 13 cases,
+      `MapDaylightApplierTest` 7, `MapDaylightRecordTest` 1, `MapCanvasViewModelStyleTest` 17 — 38 cases, 0
+      failures, 0 errors, `2026-11-04T21:10:40Z` (`evidence/focused-4.2/`), plus
+      `MapCanvasViewModelViewportRestoreTest`, which the full run caught and the round-3 fix repaired
+      (`evidence/revert-check-3.8*`). Excluded: no other module reads `MiniMap`; the widget's palette cases are in
+      `MiniMap*`.
 
 ## 5. The gate
 
@@ -116,16 +115,18 @@ See `design.md`, "Round 2", for why each one is additive rather than a re-run.
       (`MapDaylightApplier.applied`), so a rejected reload no longer leaves palette and bitmap disagreeing
       (`guidelines/UI.md` §9). The reject case now asserts exactly one report per attempt.
       Parent: §15a's "one place" and `map-styles`' "Failure is reported once per attempt".
-- [x] 6.9 Every round-2 revert-check carries its green half, re-run on round 3's sources: restored, then
+- [x] 6.9 Every revert-check carries its green half, on the sources it was run against: restored, then
       `./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache --tests "com.naviveylin.ui.map.MiniMap*"
-      --tests "com.naviveylin.ui.map.MapDaylight*"` — 21 cases (13 + 7 + 1), 0 failures, `2026-11-04T20:34:45Z`
-      (`evidence/revert-check-3.2a…3.7-green.xml`, `evidence/focused-4.2/`). The four red halves round 2 left
-      (`3.2a`, `3.2b`, `3.3`, `3.4`) were re-run against these sources, not re-dated.
+      --tests "com.naviveylin.ui.map.MapDaylight*" --tests "com.naviveylin.ui.map.MapCanvasViewModelStyleTest"` —
+      38 cases, 0 failures, `2026-11-04T21:10:40Z` (`evidence/revert-check-3.2a…3.9-green.xml`,
+      `evidence/focused-4.2/`). All nine red halves were re-run against the sources they falsify: 3.2a–3.4 at
+      `20:30–20:34Z`, 3.5/3.6/3.7/3.9 at `20:34–21:09Z`.
       Parent: BuildEvidence.md §4e.
 - [x] 6.10 A rejected variant reload keeps the record of the variant the client carries: `applied.remove(client)`
-      dropped, `pushDaylight` writes `appliedMapStyle` only when the push was not `FAILED`. Case:
-      `MapDaylightApplierTest` "aRejectedReloadKeepsTheVariantTheClientCarries"; revert-check 3.7
-      (`evidence/revert-check-3.7.log`: `expected:<false> but was:<null>`).
+      dropped, and `pushDaylight` writes `appliedMapStyle` only when the push was not `FAILED`. Cases:
+      `MapDaylightApplierTest` "aRejectedReloadKeepsTheVariantTheClientCarries" and
+      `MapCanvasViewModelStyleTest` "aRejectedFlagPushLeavesTheSurfacesRecordAndTheRetryApplies"; revert-checks
+      3.7 (`expected:<false> but was:<null>`) and 3.9 (`expected:<false> but was:<true>`).
       Parent: `UI.md` §9's applied-variant palette and §15's one load per changed value.
 - [x] 6.11 The forced re-push re-renders again (`changed || force`), which the round's first gate caught through
       `MapCanvasViewModelViewportRestoreTest`. Revert-check 3.8: `changed || force` → `changed` fails it with

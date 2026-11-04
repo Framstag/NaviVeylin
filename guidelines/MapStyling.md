@@ -92,11 +92,11 @@ packaging failures behind these rules are in `guidelines/MapStyling.why.md`.
 - **Rule: App side**: every load path reports the failure once through the shared seam
   `com.naviveylin.core.MapStyleLoadReporter` (one `DiagnosticsLog` entry + the same wording on both
   surfaces; strings `map_style_load_failed` / `map_style_load_failed_kept` in `:core`, EN + DE):
-  - phone: `MapCanvasViewModel.loadMapStyle` (style switch, persisted style at start) and
-    `MapDaylightApplier.push` (style-flag reload, the one entry both phone writers use — the main
-    map and the `MiniMap` widget) → message via `uiState.snackbarMessage`; the widget reports
-    through the optional `onStyleLoadFailure` sink, which every embedder wires to that state, and
-    falls back to a `Log.w` entry when no sink is given;
+  - phone: `MapCanvasViewModel.loadMapStyle` (style switch, persisted style at start) and the callers of
+    `MapDaylightApplier.push` (style-flag reload, the one entry both phone writers use — the main map and
+    the `MiniMap` widget; the applier itself has no `Context` and cannot report) → message via
+    `uiState.snackbarMessage`; the widget reports through the optional `onStyleLoadFailure` sink, which
+    every embedder wires to that state, and falls back to a `Log.w` entry when no sink is given;
   - car: `CarStyleApplier.onLoadFailed` on both map screens → `reportCarStyleLoadFailure` +
     `CarStyleLoadNotifier` (channel `map_style`, IMPORTANCE_LOW, silent, auto-cancel). The car
     templates have no general message slot, so a notification is the non-blocking surface — do not

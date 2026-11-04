@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapDaylightRecordTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-04T20:34:46.090Z" hostname="dingens" time="10.451">
+<testsuite name="com.naviveylin.ui.map.MapDaylightRecordTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-04T21:10:40.939Z" hostname="dingens" time="6.537">
   <properties/>
-  <testcase name="aStyleLoadRecordsTheVariantItInstalled" classname="com.naviveylin.ui.map.MapDaylightRecordTest" time="9.746"/>
+  <testcase name="aStyleLoadRecordsTheVariantItInstalled" classname="com.naviveylin.ui.map.MapDaylightRecordTest" time="6.02"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

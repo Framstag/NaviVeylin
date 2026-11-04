@@ -125,7 +125,8 @@ fun MiniMap(
     //
     // The *re-render* is this widget's own fact, not the push's outcome: on a presentation flip the
     // main map usually pushes first, so the applier answers UNCHANGED here — and this widget's tile
-    // cache and front buffer are still its own to invalidate.
+    // cache and front buffer are still its own to invalidate. It follows the variant the client
+    // actually carries (`applied`), so a rejected reload cannot mark the other variant as drawn.
     var renderedDark by remember(renderer) { mutableStateOf(isDarkPresentation) }
     var appliedDark by remember(renderer) { mutableStateOf(isDarkPresentation) }
     LaunchedEffect(renderer, isDarkPresentation) {
@@ -140,11 +141,12 @@ fun MiniMap(
                     else Log.w("MiniMap", message)
                 }
         }
-        // The palette follows the variant the client carries, not the one that was requested
-        // (guidelines/UI.md §9): after a rejected reload the two differ.
-        appliedDark = MapDaylightApplier.applied(client) ?: isDarkPresentation
-        if (renderedDark != isDarkPresentation) {
-            renderedDark = isDarkPresentation
+        // The palette and the re-render follow the variant the client carries, not the one that was
+        // requested (guidelines/UI.md §9): after a rejected reload the two differ.
+        val carried = MapDaylightApplier.applied(client) ?: isDarkPresentation
+        appliedDark = carried
+        if (renderedDark != carried) {
+            renderedDark = carried
             if (hadFrame) renderer.invalidateStyle()
         }
     }

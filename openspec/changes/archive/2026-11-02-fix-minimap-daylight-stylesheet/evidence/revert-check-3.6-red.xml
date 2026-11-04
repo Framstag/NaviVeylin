@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.naviveylin.ui.map.MapDaylightRecordTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-11-04T19:24:57.748Z" hostname="dingens" time="5.15">
+<testsuite name="com.naviveylin.ui.map.MapDaylightRecordTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-11-04T21:10:21.046Z" hostname="dingens" time="5.654">
   <properties/>
-  <testcase name="aStyleLoadRecordsTheVariantItInstalled" classname="com.naviveylin.ui.map.MapDaylightRecordTest" time="4.782">
+  <testcase name="aStyleLoadRecordsTheVariantItInstalled" classname="com.naviveylin.ui.map.MapDaylightRecordTest" time="5.27">
     <failure message="java.lang.AssertionError: the load itself records the variant, so no writer pushes it again expected:&lt;UNCHANGED&gt; but was:&lt;APPLIED&gt;" type="java.lang.AssertionError">java.lang.AssertionError: the load itself records the variant, so no writer pushes it again expected:&lt;UNCHANGED&gt; but was:&lt;APPLIED&gt;
 	at org.junit.Assert.fail(Assert.java:89)
 	at org.junit.Assert.failNotEquals(Assert.java:835)

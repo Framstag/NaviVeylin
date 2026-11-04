@@ -318,6 +318,7 @@ LOOP_SHELL_CASES=(
   'driver#aCoreFileOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
   'driver#theSuiteRunsItsCasesInAPool'
+  'driver#theCaseBoundScalesWithThePool'
   'driver#aCaseThatBlocksIsEndedByItsOwnBound'
   'driver#aCaseInsideItsBoundKeepsItsOwnVerdict'
   'driver#aSuiteEndsInsideTheCeilingItsCallerNamed'
@@ -677,6 +678,7 @@ loop_run_shell_case() {
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
     'driver#theSuiteRunsItsCasesInAPool') fn=case_driver_theSuiteRunsItsCasesInAPool ;;
+    'driver#theCaseBoundScalesWithThePool') fn=case_driver_theCaseBoundScalesWithThePool ;;
     'driver#aCaseThatBlocksIsEndedByItsOwnBound') fn=case_driver_aCaseThatBlocksIsEndedByItsOwnBound ;;
     'driver#aCaseInsideItsBoundKeepsItsOwnVerdict') fn=case_driver_aCaseInsideItsBoundKeepsItsOwnVerdict ;;
     'driver#aSuiteEndsInsideTheCeilingItsCallerNamed') fn=case_driver_aSuiteEndsInsideTheCeilingItsCallerNamed ;;
@@ -10298,7 +10300,9 @@ CASES
   driver=$(printf '%s\n' "$out" | sed -n 1p)
   conf=$(printf '%s\n' "$out" | sed -n 2p)
   printf 'LOOP_CASE_MAX_SECONDS=2\n' >> "$conf"
-  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" 2>&1); status=$?
+  # `--jobs 1`, because this case is about the bound itself: the bound a run applies follows its pool (issue #766), so
+  # a case that asserts the printed "exceeded 2 s" asks for the serial run it measured.
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" --jobs 1 2>&1); status=$?
   [ "$status" -ne 124 ] || fail "the suite was still inside a case that never returned after 60 s: $out"
   assert_eq "1" "$status" "the suite fails on the case its own bound ended: $out"
   assert_contains "$out" "FAIL stub#blocks (exceeded 2 s)" "and the line names the case with the bound that ended it"
@@ -10329,7 +10333,7 @@ CASES
   driver=$(printf '%s\n' "$out" | sed -n 1p)
   conf=$(printf '%s\n' "$out" | sed -n 2p)
   printf 'LOOP_CASE_MAX_SECONDS=5\n' >> "$conf"
-  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" 2>&1); status=$?
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" --jobs 1 2>&1); status=$?
   assert_eq "1" "$status" "the suite fails on the case that failed by itself: $out"
   assert_contains "$out" "PASS stub#quick" "a case inside its bound keeps its own pass"
   assert_contains "$out" "FAIL stub#fails" "and a case that failed inside its bound keeps its own failure"
@@ -10385,6 +10389,37 @@ CASES
 # inside gets exactly the suite it got before, green summary and all. This case is green against the unfixed driver by
 # construction — it is the guard that a ceiling cannot be turned into "everything ended early" — and the mutation
 # `70.2` is what makes it red.
+# The bound a case may run is measured on **one** case at a time, and the pool is one case per CPU, so on a 4-vCPU
+# runner the cases that wait — for a child's timeout, a heartbeat interval, a report window — are starved past a bound
+# that never moved. Measured 2026-11-04 (issue #766): three CI runs of one tree, a different case red in each, every
+# one of them green when run alone, and `LOOP_SELFTEST_JOBS=4 bash tools/loop-selftest.sh` reproduced it on a 16-vCPU
+# host (`FAIL run#aReviewerEndedAtItsTurnBoundIsNotARefusal (exceeded 900 s)`). The bound therefore follows the pool,
+# and the run says which bound it applied: a run whose bound nobody can read cannot be told from one that applied the
+# serial value on a machine four times slower.
+case_driver_theCaseBoundScalesWithThePool() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d out driver conf status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#quick' 'stub#alsoQuick')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() { sleep 1; }
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  printf 'LOOP_CASE_MAX_SECONDS=600\n' >> "$conf"
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" --print-bound --jobs 4 2>&1); status=$?
+  assert_eq "0" "$status" "a pool of four keeps the suite green: $out"
+  assert_contains "$out" "loop-selftest: 4 case(s) at a time, 2400 s per case" \
+    "the bound a four-way run applies is the profile's value times the pool: $out"
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" --print-bound --jobs 1 2>&1); status=$?
+  assert_eq "0" "$status" "one case at a time keeps the suite green: $out"
+  assert_contains "$out" "loop-selftest: 1 case(s) at a time, 600 s per case" \
+    "and a serial run keeps the profile's own value, unmultiplied: $out"
+  return 0
+}
+
 case_driver_aCeilingTheSuiteFitsInsideChangesNothing() {
   # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
   local d out driver conf status
@@ -10435,7 +10470,8 @@ CASES
   driver=$(printf '%s\n' "$out" | sed -n 1p)
   conf=$(printf '%s\n' "$out" | sed -n 2p)
   printf 'LOOP_CASE_MAX_SECONDS=3\n' >> "$conf"
-  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" 2>&1); status=$?
+  # `--jobs 1`: the bound a run applies follows its pool (issue #766), and this case asserts the 3 s it measured.
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 60 bash "$driver" --jobs 1 2>&1); status=$?
   [ "$status" -ne 124 ] || fail "the suite was still inside the printing case after 60 s: $out"
   assert_contains "$out" "stub#slow| a line from a case that has not ended" \
     "the running case's own line reaches the suite's output, prefixed with the case"

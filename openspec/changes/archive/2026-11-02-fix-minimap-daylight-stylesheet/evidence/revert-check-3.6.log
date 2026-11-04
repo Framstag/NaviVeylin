@@ -1,0 +1,8 @@
+# revert-check 3.6 — the style load's record removed (mutation F, 2026-11-04)
+# mutation: MapCanvasViewModelSettings.kt, 'MapDaylightApplier.record(client, daylight)' deleted from
+#           loadMapStyle's success branch.
+# command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MapDaylightRecordTest"
+# result: 1 failure — the load path's record is now covered by a case that fails without it:
+message="java.lang.AssertionError: the load itself records the variant, so no writer pushes it again expected:&lt;UNCHANGED&gt; but was:&lt;APPLIED&gt;"
+# green half: restored, then forced green — ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
+#             --tests "com.naviveylin.ui.map.MiniMap*" --tests "com.naviveylin.ui.map.MapDaylight*"

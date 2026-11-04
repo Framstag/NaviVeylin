@@ -2,3 +2,5 @@
 # mutation: MiniMap.kt, 'MapDaylightApplier.push(client, isDarkPresentation)' -> '..., force = true)'
 # result: 1 failure — the reload-per-mount cost §15 budgets is now checked by a case that fails without the dedupe:
 message="java.lang.AssertionError: no variant push for a value the client already carries expected:&lt;[]&gt; but was:&lt;[(daylight, false)]&gt;"
+# green half: restored, then forced green — ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
+#             --tests "com.naviveylin.ui.map.MiniMap*" --tests "com.naviveylin.ui.map.MapDaylight*"

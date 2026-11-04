@@ -14,9 +14,12 @@ packaging failures behind these rules are in `guidelines/MapStyling.why.md`.
   render uses it. No tile cache survives the reload (variant switch must not show
   tiles from the other variant).
 - **Rule: Phone**: the environment source is `DarkModeController` (system night mode, or the
-  ambient light sensor when enabled — see `dark-mode` spec). `MapDaylightApplier` holds the applied
-  value per client and pushes a changed one (epoch bump + full re-render through the owner's
-  `invalidateStyle()`).
+  ambient light sensor when enabled — see `dark-mode` spec). `MapDaylightApplier` holds the value the
+  client carries, one record per client, and pushes only a changed one; it reports a rejected reload
+  through `MapStyleLoadReporter`. The re-render is **each surface's own**: a writer invalidates its
+  own renderer (`invalidateStyle()` — epoch bump and full re-render) when the value *it* last drew
+  changes, never on whether the applier answered APPLIED or UNCHANGED — on a presentation flip the
+  main map usually pushes first, and the mini map would otherwise keep the other variant.
 - **Rule: Android Auto**: the source is the HOST's day/night state, never the phone's system
   mode — the car process runs on the phone but the head unit decides (its own light
   sensor / time). `NavigationSession.hostDark` (init from `CarContext.isDarkMode()`,
@@ -34,8 +37,10 @@ packaging failures behind these rules are in `guidelines/MapStyling.why.md`.
   value. The one state that would drop a push — a database in the list that is not open — is not reachable from
   the app: a list change closes and clears the set before rebuilding it under the same write lock
   (`DBThread.cpp:183-188`). Consequence for the appliers: the flag is keyed on the value alone on both variants
-  (phone `stylePushedToNative` re-pushes on the first rendered frame, car `CarDaylightApplier` as soon as a
-  renderer exists) and **no** application follows a style load (change `fix-car-style-switch-costs-one-load`).
+  — phone: `MapDaylightApplier`'s one record per client, re-pushed by `MapCanvasViewModel`'s
+  `STARTUP_DB_READY`/`FIRST_RENDERED_FRAME` reasons (`stylePushedToNative` is the view model's own
+  "pushed with a database open" flag, not a second value record); car: `CarDaylightApplier` as soon as a
+  renderer exists — and **no** application follows a style load (change `fix-car-style-switch-costs-one-load`).
   Forbidding an application on every settings re-read is what change `fix-aaos-host-crash` (design D5)
   established: a bare `reset()` there pushed a flag, reloaded the variant and forced a full render every few
   seconds for nothing.

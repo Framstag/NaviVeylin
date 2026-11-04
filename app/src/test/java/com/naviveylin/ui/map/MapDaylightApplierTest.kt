@@ -99,12 +99,4 @@ class MapDaylightApplierTest {
             MapDaylightApplier.push(other, false)
         )
     }
-
-    @Test
-    fun forgettingAClientRePushesItsValue() {
-        MapDaylightApplier.push(client, true)
-        MapDaylightApplier.forget(client)
-
-        assertTrue(MapDaylightApplier.needsPush(client, true))
-    }
 }

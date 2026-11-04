@@ -1,0 +1,9 @@
+# revert-check 3.5 — the re-render trigger tied back to the push outcome (mutation E, 2026-11-04)
+# mutation: MiniMap.kt, 'UNCHANGED, APPLIED, ERROR -> Unit' -> '... -> return@LaunchedEffect', i.e. the
+#           round-2 shape in which a value another writer applied skips the widget's invalidation.
+# command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MiniMap*"
+# result: 2 failures, both on the render-count wait (no re-render at all):
+message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms"
+message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms"
+# green half: restored, then forced green — ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
+#             --tests "com.naviveylin.ui.map.MiniMap*" --tests "com.naviveylin.ui.map.MapDaylight*"

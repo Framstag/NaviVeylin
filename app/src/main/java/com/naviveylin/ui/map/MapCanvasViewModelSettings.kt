@@ -207,11 +207,10 @@ internal enum class MapStyleApplyReason(
     FIRST_RENDERED_FRAME(true),
 }
 
-/** Resolved presentation the stylesheet `daylight` flag has to carry. */
 /**
  * Resolved presentation the stylesheet `daylight` flag has to carry — `true` means the **dark**
- * variant is wanted, so [`pushDaylight`] unsets the flag for it (the name is historical; the value
- * is the dark presentation, as in [`AppliedMapStyle.daylight`] and `CarDaylightApplier.apply`).
+ * variant is wanted, so `pushDaylight` unsets the flag for it (the name is historical; the value
+ * is the dark presentation, as in `AppliedMapStyle.daylight` and `CarDaylightApplier.apply`).
  */
 internal fun MapCanvasViewModel.resolvedDaylight(): Boolean = darkModeController.isDarkPresentation.value
 
@@ -234,8 +233,9 @@ internal suspend fun MapCanvasViewModel.ensureMapStyle(
 ): Boolean {
     // The flag's record is the shared applier's, not this view model's: the mini map widget writes
     // the same client, and a per-writer record would reload the stylesheet set for a value the
-    // client already carries (guidelines/MapStyling.md §15 — one record per client and value).
-    if (reason.forceFlag || MapDaylightApplier.needsPush(client, daylight)) {
+    // client already carries (guidelines/MapStyling.md §15 — one record per client and value). The
+    // *re-render* below stays this surface's own (see pushDaylight).
+    if (reason.forceFlag || appliedMapStyle?.daylight != daylight || MapDaylightApplier.needsPush(client, daylight)) {
         pushDaylight(daylight, force = reason.forceFlag)
     }
     if (styleName != null && (reason.forceLoad || appliedMapStyle?.styleName != styleName)) {
@@ -252,19 +252,24 @@ internal suspend fun MapCanvasViewModel.ensureMapStyle(
  * already carries.
  */
 internal fun MapCanvasViewModel.pushDaylight(daylight: Boolean, force: Boolean = false) {
+    // What *this* view model last drew is its own fact: a value another writer (the mini map widget)
+    // already applied makes the applier answer UNCHANGED, and the main map's tiles and frame are
+    // still its own to invalidate — otherwise the map keeps the other variant until the next pan.
+    val changed = appliedMapStyle?.daylight != daylight
     when (MapDaylightApplier.push(client, daylight, force)) {
-        MapDaylightPush.UNCHANGED -> return
         MapDaylightPush.ERROR -> return
         MapDaylightPush.FAILED ->
             // The flag change reloads the active stylesheet; when that load is
             // rejected the previously active style stays in effect and the
             // failure is reported (spec: map-styles — "Style flag change fails").
             rejectedVariantMessage(context, client)?.let { showSnackbar(it) }
-        MapDaylightPush.APPLIED -> Unit
+        MapDaylightPush.UNCHANGED, MapDaylightPush.APPLIED -> Unit
     }
     appliedMapStyle = AppliedMapStyle(appliedMapStyle?.styleName, daylight)
-    mapRenderer?.invalidateStyle()
-    invalidateRowIcons()
+    if (changed) {
+        mapRenderer?.invalidateStyle()
+        invalidateRowIcons()
+    }
 }
 
 /**
@@ -319,8 +324,10 @@ internal suspend fun MapCanvasViewModel.loadMapStyle(
  * entry plus the non-blocking message shown next to the map (spec:
  * map-styles). Called once per load attempt; a report produced while no map
  * surface is visible stays in the UI state and is shown when the map is next
- * composed.
+ * composed. The seam itself is [rejectedLoadMessage], shared with the mini map
+ * widget's load path (`guidelines/MapStyling.md` §15a — one place).
  */
+
 /** The native side's active stylesheet, or `null` when the client cannot answer. */
 internal fun MapCanvasViewModel.activeStyleSheet(): String? = try {
     client.getActiveStyleSheet()
@@ -330,22 +337,7 @@ internal fun MapCanvasViewModel.activeStyleSheet(): String? = try {
 }
 
 internal fun MapCanvasViewModel.reportStyleLoadFailure(requestedStyle: String) {
-    val succeeded = try {
-        client.wasLastStyleLoadSuccessful()
-    } catch (e: Exception) {
-        Log.e(MapCanvasViewModel.TAG, "wasLastStyleLoadSuccessful failed", e)
-        true
-    }
-    val activeStyle = activeStyleSheet()
-    val message = MapStyleLoadReporter.reportFailure(
-        resolver = context.stringResolver(),
-        requestedStyle = requestedStyle,
-        activeStyle = activeStyle,
-        loadSucceeded = succeeded
-    )
-    if (message != null) {
-        showSnackbar(message)
-    }
+    rejectedLoadMessage(context, client, requestedStyle, activeStyleSheet())?.let { showSnackbar(it) }
 }
 
 /**

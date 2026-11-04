@@ -62,6 +62,13 @@ internal object MapDaylightApplier {
     fun needsPush(client: OSMScoutClient, dark: Boolean): Boolean = applied[client] != dark
 
     /**
+     * The presentation the client carries, or `null` when no phone writer has applied one. A surface
+     * that draws a palette beside the bitmap reads this, so the palette follows the variant that is
+     * installed rather than the one that was requested (`guidelines/UI.md` §9).
+     */
+    fun applied(client: OSMScoutClient): Boolean? = applied[client]
+
+    /**
      * Applies the presentation to [client] unless the client already carries it.
      *
      * @param dark the resolved presentation: true selects the dark stylesheet variant
@@ -97,11 +104,6 @@ internal object MapDaylightApplier {
         applied[client] = dark
     }
 
-    /** Drops the record for [client], so the next writer re-pushes. */
-    fun forget(client: OSMScoutClient) {
-        applied.remove(client)
-    }
-
     /** Test seam: forgets every client. */
     fun reset() {
         applied.clear()
@@ -109,20 +111,20 @@ internal object MapDaylightApplier {
 }
 
 /**
- * Reports one rejected variant reload through the shared seam
+ * Reports one failed stylesheet load through the shared seam
  * (`guidelines/MapStyling.md` §15a — every load path reports) and returns the message to show, or
- * `null` when the client says the reload was accepted.
+ * `null` when the client says the load was accepted.
  *
- * `requestedStyle` is the stylesheet that was reloaded — the active one, since a flag push
- * reloads whatever is installed — and [activeStyle] the style that stayed in effect.
+ * This is the one place the report is made, for both phone load paths: a stylesheet load
+ * (`MapCanvasViewModel.reportStyleLoadFailure`) and a stylesheet-flag reload
+ * ([rejectedVariantMessage]).
  */
-internal fun rejectedVariantMessage(context: Context, client: OSMScoutClient): String? {
-    val active = try {
-        client.getActiveStyleSheet()
-    } catch (e: Exception) {
-        Log.e("MapDaylightApplier", "getActiveStyleSheet failed", e)
-        null
-    }
+internal fun rejectedLoadMessage(
+    context: Context,
+    client: OSMScoutClient,
+    requestedStyle: String,
+    activeStyle: String?,
+): String? {
     val accepted = try {
         client.wasLastStyleLoadSuccessful()
     } catch (e: Exception) {
@@ -131,8 +133,24 @@ internal fun rejectedVariantMessage(context: Context, client: OSMScoutClient): S
     }
     return MapStyleLoadReporter.reportFailure(
         resolver = context.stringResolver(),
-        requestedStyle = active ?: DEFAULT_STYLE_NAME,
-        activeStyle = active,
+        requestedStyle = requestedStyle,
+        activeStyle = activeStyle,
         loadSucceeded = accepted,
     )
+}
+
+/**
+ * Reports one rejected stylesheet-variant reload and returns the message to show.
+ *
+ * `requestedStyle` is the stylesheet that was reloaded — the active one, since a flag push
+ * reloads whatever is installed — and the active style is what stayed in effect.
+ */
+internal fun rejectedVariantMessage(context: Context, client: OSMScoutClient): String? {
+    val active = try {
+        client.getActiveStyleSheet()
+    } catch (e: Exception) {
+        Log.e("MapDaylightApplier", "getActiveStyleSheet failed", e)
+        null
+    }
+    return rejectedLoadMessage(context, client, active ?: DEFAULT_STYLE_NAME, active)
 }

@@ -2,3 +2,5 @@
 # mutation: MiniMap.kt, the MapDaylightPush.FAILED branch reduced to 'Unit'
 # result: 1 failure — §15a's every-load-path-reports rule is now checked by a case that fails without the report:
 message="java.lang.AssertionError: a rejected variant reload is reported to the embedding surface (spec: map-styles — &quot;Style flag change fails&quot;)"
+# green half: restored, then forced green — ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
+#             --tests "com.naviveylin.ui.map.MiniMap*" --tests "com.naviveylin.ui.map.MapDaylight*"

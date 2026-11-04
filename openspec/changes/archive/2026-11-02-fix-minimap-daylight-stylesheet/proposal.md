@@ -17,7 +17,7 @@ $ grep -n 'setStyleSheetFlag' app/src/main/java/com/naviveylin/ui/map/MapCanvasV
 
 The main map is the only writer of that flag (`resolvedDaylight()` at `MapCanvasViewModelSettings.kt:211`), and
 the mini map has its own renderer, its own tile cache and its own front buffer, so a variant change invalidates
-the main map's cache (`invalidateStyle()`, `MapRenderer.kt:484-490`) and leaves the mini map's bitmap at the
+the main map's cache (`invalidateStyle()`, `MapRenderer.kt:484-489`) and leaves the mini map's bitmap at the
 variant it last rendered — a day-stylesheet bitmap inside a dialog whose canvas follows the theme
 (`drawRect(surfaceColor)`, `MiniMap.kt:163`). The widget's own KDoc already states the value it must follow:
 "@param isDarkPresentation resolved dark presentation … the widget's map bitmap must follow the same value"
@@ -54,16 +54,17 @@ app/src/test auto/src/test core/src/test`) are 11 files, none of them the mini m
 
 ```
 $ grep -rn 'isDarkPresentation' app/src/main/java app/src/test/java | wc -l
-115
+128        (measured 2026-11-04; the base e190d8729 gives 115)
 $ grep -rln 'daylight\|STYLE_FLAG_DAYLIGHT' app/src/test auto/src/test core/src/test | wc -l
-11
+12
 $ grep -rln 'MiniMap(' app/src/main/java app/src/test/java | wc -l
 4
 ```
 
-surface: 3 cases added, 0 rewritten, 0 fixtures realigned — `grep -c '@Test' app/src/test/java/com/naviveylin/ui/map/MiniMapComposeTest.kt`
-7 -> 10 against the base, and `grep -rn 'isDarkPresentation' app/src` 115 -> 119 (the three cases and the `launch`
-helper's new parameter).
+surface: 3 cases added in round 1, 3 in round 2, 0 rewritten, 0 fixtures realigned —
+`grep -c '@Test' app/src/test/java/com/naviveylin/ui/map/MiniMapComposeTest.kt`
+7 -> 13 against the base, and `grep -rn 'isDarkPresentation' app/src` 115 -> 128 (measured 2026-11-04: the
+six cases, the `launch` helper's new parameter, the sink parameter and the applied-variant palette line).
 
 ## What Changes
 

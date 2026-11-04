@@ -2,3 +2,5 @@
 # mutation: MiniMap.kt, 'if (hadFrame) renderer.invalidateStyle()' -> 'if (false && hadFrame) ...'
 # result: 1 failure — the re-render half of the requirement is now checked by a case that fails without it:
 MiniMapComposeTest > presentationChangeReRendersTheMiniMap FAILED — kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms
+# green half: restored, then forced green — ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
+#             --tests "com.naviveylin.ui.map.MiniMap*" --tests "com.naviveylin.ui.map.MapDaylight*"

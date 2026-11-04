@@ -6,3 +6,5 @@
 message="java.lang.AssertionError: the first frame is rendered under the pushed dark variant expected:&lt;[false]&gt; but was:&lt;[null]&gt;"
 message="java.lang.AssertionError: every frame is rendered under the pushed light variant expected:&lt;[true]&gt; but was:&lt;[null]&gt;"
 message="java.lang.AssertionError: a rejected variant reload is reported to the embedding surface (spec: map-styles — &quot;Style flag change fails&quot;)"
+# green half: restored, then forced green — ./gradlew :app:testMobileDebugUnitTest -PforceTests --no-build-cache
+#             --tests "com.naviveylin.ui.map.MiniMap*" --tests "com.naviveylin.ui.map.MapDaylight*"

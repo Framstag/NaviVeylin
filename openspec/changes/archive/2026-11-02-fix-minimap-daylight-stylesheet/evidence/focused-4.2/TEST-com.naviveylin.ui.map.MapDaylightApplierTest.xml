@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapDaylightApplierTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-04T19:25:17.838Z" hostname="dingens" time="8.494">
+  <properties/>
+  <testcase name="firstPushAppliesAndRecordsTheValue" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="7.168"/>
+  <testcase name="aRejectedReloadIsNotRecordedSoTheNextWriterRetries" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.05"/>
+  <testcase name="twoClientsKeepTheirOwnRecord" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.053"/>
+  <testcase name="aValueTheClientCarriesIsNotPushedAgain" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.055"/>
+  <testcase name="forceRePushesAValueTheRecordAlreadyHolds" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.048"/>
+  <testcase name="theSecondWriterPaysNothingForAValueTheFirstApplied" classname="com.naviveylin.ui.map.MapDaylightApplierTest" time="0.072"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

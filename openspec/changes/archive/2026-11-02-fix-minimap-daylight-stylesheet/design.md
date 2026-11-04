@@ -38,7 +38,7 @@ Why this shape:
   SetStyleFlag` queues on the same DB thread that renders, so the order is preserved even when the native side is
   still warming up; §15's startup-race rule makes a pre-database push safe.
 - **`invalidateStyle()` only after a frame exists.** It clears the widget's tile cache and forces a full render at
-  the current viewport (`MapRenderer.kt:484-490`). Before any frame is displayed there is nothing to invalidate,
+  the current viewport (`MapRenderer.kt:484-489`). Before any frame is displayed there is nothing to invalidate,
   and the pending first render already carries the new flag. The `frameFlow.value.bitmap != null` read avoids
   rendering the renderer's default viewport when the value changes between composition and the first frame.
 

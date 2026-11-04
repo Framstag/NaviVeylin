@@ -16,5 +16,6 @@ starts after you: that child applies your findings in one pass, and then runs th
 - `LOOP-CORRECTIONS-ONLY` and `LOOP-DECISION` are not read from this round. `LOOP-BLOCKING:` and `VERDICT:` are, and a
   `VERDICT: FAIL` with a count above zero is what hands your list to the gate child.
 
-Item 5 (revert-check) and item 6 (evidence pointers) are graded as they always are: the change child ran its mutation
-before this round, and the numbers it quotes are in its record.
+Items 5 (whether the mutation that proves the change targets the production invariant) and 6 (whether every quoted
+number is the output of a command the record carries) are graded as they always are: the change child ran its mutation
+before this round, and the numbers it quotes are in its records.

@@ -14,8 +14,9 @@ packaging failures behind these rules are in `guidelines/MapStyling.why.md`.
   render uses it. No tile cache survives the reload (variant switch must not show
   tiles from the other variant).
 - **Rule: Phone**: the environment source is `DarkModeController` (system night mode, or the
-  ambient light sensor when enabled — see `dark-mode` spec). `pushDarkPresentation`
-  dedupes and calls `invalidateStyle()` (epoch bump + full re-render).
+  ambient light sensor when enabled — see `dark-mode` spec). `MapDaylightApplier` holds the applied
+  value per client and pushes a changed one (epoch bump + full re-render through the owner's
+  `invalidateStyle()`).
 - **Rule: Android Auto**: the source is the HOST's day/night state, never the phone's system
   mode — the car process runs on the phone but the head unit decides (its own light
   sensor / time). `NavigationSession.hostDark` (init from `CarContext.isDarkMode()`,
@@ -48,8 +49,15 @@ packaging failures behind these rules are in `guidelines/MapStyling.why.md`.
   render at startup).
 - **Rule: Load budget and dedupe key (change `dedupe-stylesheet-loads`)**: the app-side state that decides
   whether to touch the native side is the pair **(style name, `daylight`)**. Phone:
-  `MapCanvasViewModel.ensureMapStyle` is the single entry, with the reason
-  `RE_OBSERVED` / `STYLE_SWITCH` / `STARTUP_DB_READY` / `FIRST_RENDERED_FRAME`; car:
+  `MapDaylightApplier` holds the `daylight` half as one record per client and value, and it is the
+  entry every phone writer goes through — `MapCanvasViewModel.ensureMapStyle` (reasons
+  `RE_OBSERVED` / `STYLE_SWITCH` / `STARTUP_DB_READY` / `FIRST_RENDERED_FRAME`) and the `MiniMap`
+  widget, which embeds its own `MapRenderer` over the same client. A mount for a value the client
+  already carries therefore performs no native call, so the budget is one stylesheet load **per
+  changed value per client**, not one per writer and not one per mini-map mount (2026-11-04: a
+  per-writer record cannot see the other writer's push, so a widget mount reloads the set for a value
+  the client already carries — `MiniMapComposeTest` "aClientThatAlreadyCarriesTheVariantIsNotReloaded"
+  fails when the widget forces the push); car:
   `CarStyleApplier` (style name) plus `CarDaylightApplier` (`daylight`). Both native calls
   (`loadStyleSheet`, `setStyleSheetFlag`) reload the whole stylesheet set, so one startup loads it
   **once**, plus one load per legitimate trigger: a style switch, a real presentation change, a **map
@@ -79,8 +87,11 @@ packaging failures behind these rules are in `guidelines/MapStyling.why.md`.
 - **Rule: App side**: every load path reports the failure once through the shared seam
   `com.naviveylin.core.MapStyleLoadReporter` (one `DiagnosticsLog` entry + the same wording on both
   surfaces; strings `map_style_load_failed` / `map_style_load_failed_kept` in `:core`, EN + DE):
-  - phone: `MapCanvasViewModel.applyStyleSheet` (style switch, persisted style at start) and
-    `pushDarkPresentation` (style-flag reload) → message via `uiState.snackbarMessage`;
+  - phone: `MapCanvasViewModel.loadMapStyle` (style switch, persisted style at start) and
+    `MapDaylightApplier.push` (style-flag reload, the one entry both phone writers use — the main
+    map and the `MiniMap` widget) → message via `uiState.snackbarMessage`; the widget reports
+    through the optional `onStyleLoadFailure` sink, which every embedder wires to that state, and
+    falls back to a `Log.w` entry when no sink is given;
   - car: `CarStyleApplier.onLoadFailed` on both map screens → `reportCarStyleLoadFailure` +
     `CarStyleLoadNotifier` (channel `map_style`, IMPORTANCE_LOW, silent, auto-cancel). The car
     templates have no general message slot, so a notification is the non-blocking surface — do not

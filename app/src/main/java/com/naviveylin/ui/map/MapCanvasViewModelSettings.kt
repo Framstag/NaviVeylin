@@ -208,6 +208,11 @@ internal enum class MapStyleApplyReason(
 }
 
 /** Resolved presentation the stylesheet `daylight` flag has to carry. */
+/**
+ * Resolved presentation the stylesheet `daylight` flag has to carry — `true` means the **dark**
+ * variant is wanted, so [`pushDaylight`] unsets the flag for it (the name is historical; the value
+ * is the dark presentation, as in [`AppliedMapStyle.daylight`] and `CarDaylightApplier.apply`).
+ */
 internal fun MapCanvasViewModel.resolvedDaylight(): Boolean = darkModeController.isDarkPresentation.value
 
 /**
@@ -227,8 +232,11 @@ internal suspend fun MapCanvasViewModel.ensureMapStyle(
     reason: MapStyleApplyReason,
     allowDefaultFallback: Boolean = false,
 ): Boolean {
-    if (reason.forceFlag || appliedMapStyle?.daylight != daylight) {
-        pushDaylight(daylight)
+    // The flag's record is the shared applier's, not this view model's: the mini map widget writes
+    // the same client, and a per-writer record would reload the stylesheet set for a value the
+    // client already carries (guidelines/MapStyling.md §15 — one record per client and value).
+    if (reason.forceFlag || MapDaylightApplier.needsPush(client, daylight)) {
+        pushDaylight(daylight, force = reason.forceFlag)
     }
     if (styleName != null && (reason.forceLoad || appliedMapStyle?.styleName != styleName)) {
         return loadMapStyle(styleName, daylight, allowDefaultFallback)
@@ -237,20 +245,22 @@ internal suspend fun MapCanvasViewModel.ensureMapStyle(
 }
 
 /**
- * Pushes the `daylight` flag; the native side reloads the active stylesheet with it
- * (`guidelines/MapRendering.md` section 15). The recorded flag is updated only after the call
- * returned, so a later request re-pushes a value the native side never took.
+ * Pushes the `daylight` flag through [MapDaylightApplier]; the native side reloads the active
+ * stylesheet with it (`guidelines/MapStyling.md` §15). The applier records the value only after the
+ * call returned successfully, so a later request — from this view model or from the mini map
+ * widget — re-pushes a value the native side never took, and no writer reloads a value the client
+ * already carries.
  */
-internal fun MapCanvasViewModel.pushDaylight(daylight: Boolean) {
-    try {
-        client.setStyleSheetFlag(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT, !daylight)
-        // The flag change reloads the active stylesheet; when that load is
-        // rejected the previously active style stays in effect and the
-        // failure is reported (spec: map-styles — "Style flag change fails").
-        reportStyleLoadFailure(activeStyleSheet() ?: DEFAULT_STYLE_NAME)
-    } catch (e: Exception) {
-        Log.e(MapCanvasViewModel.TAG, "setStyleSheetFlag failed", e)
-        return
+internal fun MapCanvasViewModel.pushDaylight(daylight: Boolean, force: Boolean = false) {
+    when (MapDaylightApplier.push(client, daylight, force)) {
+        MapDaylightPush.UNCHANGED -> return
+        MapDaylightPush.ERROR -> return
+        MapDaylightPush.FAILED ->
+            // The flag change reloads the active stylesheet; when that load is
+            // rejected the previously active style stays in effect and the
+            // failure is reported (spec: map-styles — "Style flag change fails").
+            rejectedVariantMessage(context, client)?.let { showSnackbar(it) }
+        MapDaylightPush.APPLIED -> Unit
     }
     appliedMapStyle = AppliedMapStyle(appliedMapStyle?.styleName, daylight)
     mapRenderer?.invalidateStyle()
@@ -284,6 +294,9 @@ internal suspend fun MapCanvasViewModel.loadMapStyle(
     }
     if (ok) {
         appliedMapStyle = AppliedMapStyle(name, daylight)
+        // `loadStyleSheet` hands the load the enabled flags, so the variant this load installed is
+        // the one the applier must remember (§15).
+        MapDaylightApplier.record(client, daylight)
         mapRenderer?.invalidateStyle()
         invalidateRowIcons()
         return true

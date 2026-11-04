@@ -85,6 +85,8 @@ fun LocationDetailsDialog(
     onRemoveFromFavorites: () -> Unit,
     onRouteToLocation: (() -> Unit)? = null,
     onShowOnMap: (() -> Unit)? = null,
+    /** Message sink for a rejected stylesheet-variant reload of the mini map (spec: map-styles). */
+    onStyleLoadFailure: ((String) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     var showGroupPicker by remember { mutableStateOf(false) }
@@ -164,6 +166,7 @@ fun LocationDetailsDialog(
                 initialMag = initialMag,
                 isDarkPresentation = isDarkPresentation,
                 currentPosition = currentPosition,
+                onStyleLoadFailure = onStyleLoadFailure,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)

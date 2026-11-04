@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -75,6 +76,10 @@ import kotlinx.coroutines.SupervisorJob
  *   current-position marker)
  * @param onViewportChanged optional callback fired after every viewport change
  *   (initial render, pan, zoom) with the widget's center/magnification
+ * @param onStyleLoadFailure optional sink for the message of a rejected stylesheet-variant reload
+ *   (spec: map-styles — "Style flag change fails"). The report itself is written to the diagnostics
+ *   log by `MapStyleLoadReporter` whether or not a sink is given; a surface that shows messages
+ *   passes one, so the user learns that the widget's bitmap is still the other variant.
  */
 @Composable
 fun MiniMap(
@@ -87,9 +92,11 @@ fun MiniMap(
     additionalMarkers: List<Pair<Double, Double>> = emptyList(),
     selectedMarker: Pair<Double, Double>? = null,
     currentPosition: Pair<Double, Double>? = null,
-    onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null
+    onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null,
+    onStyleLoadFailure: ((String) -> Unit)? = null
 ) {
-    val densityDpi = LocalContext.current.resources.displayMetrics.densityDpi.toDouble()
+    val context = LocalContext.current
+    val densityDpi = context.resources.displayMetrics.densityDpi.toDouble()
     val surfaceColor = MaterialTheme.colorScheme.surface
     val markerColor = MaterialTheme.colorScheme.primary
     val additionalMarkerColor = MaterialTheme.colorScheme.secondary
@@ -110,18 +117,27 @@ fun MiniMap(
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
     // The bitmap follows the resolved presentation (spec: mini-map — "The mini map renders the
-    // resolved presentation's stylesheet variant"; guidelines/MapStyling.md §15). The push is
-    // keyed on the value, and made before the size/location effect below requests the first
-    // frame. On a later change it invalidates this renderer's own tiles and frame: the main
-    // map's invalidateStyle() does not reach them.
-    var pushedDaylight by remember(renderer) { mutableStateOf<Boolean?>(null) }
+    // resolved presentation's stylesheet variant"; guidelines/MapStyling.md §15). The push goes
+    // through the shared applier, so this widget is the same value-keyed writer as the main map:
+    // a client that already carries the value costs no native call and no stylesheet reload. It is
+    // made before the size/location effect below requests the first frame, and the widget's own
+    // native-call order is what `darkPresentationPushesTheDarkDaylightFlag` asserts. On a later
+    // change it invalidates this renderer's own tiles and frame: the main map's invalidateStyle()
+    // does not reach them.
     LaunchedEffect(renderer, isDarkPresentation) {
-        val daylight = !isDarkPresentation
-        if (pushedDaylight == daylight) return@LaunchedEffect
-        val rendered = pushedDaylight != null && renderer.frameFlow.value.bitmap != null
-        pushedDaylight = daylight
-        client.setStyleSheetFlag(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT, daylight)
-        if (rendered) renderer.invalidateStyle()
+        val hadFrame = renderer.frameFlow.value.bitmap != null
+        when (MapDaylightApplier.push(client, isDarkPresentation)) {
+            MapDaylightPush.UNCHANGED, MapDaylightPush.ERROR -> return@LaunchedEffect
+            // A rejected variant load is this widget's load path too (guidelines/MapStyling.md
+            // §15a — every load path reports once; spec: map-styles — "Style flag change fails").
+            MapDaylightPush.FAILED ->
+                rejectedVariantMessage(context, client)?.let { message ->
+                    if (onStyleLoadFailure != null) onStyleLoadFailure(message)
+                    else Log.w("MiniMap", message)
+                }
+            MapDaylightPush.APPLIED -> Unit
+        }
+        if (hadFrame) renderer.invalidateStyle()
     }
 
     // Size change or new object location → (re)render. North-locked: angle 0.

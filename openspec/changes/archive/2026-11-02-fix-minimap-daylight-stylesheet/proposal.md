@@ -17,7 +17,7 @@ $ grep -n 'setStyleSheetFlag' app/src/main/java/com/naviveylin/ui/map/MapCanvasV
 
 The main map is the only writer of that flag (`resolvedDaylight()` at `MapCanvasViewModelSettings.kt:211`), and
 the mini map has its own renderer, its own tile cache and its own front buffer, so a variant change invalidates
-the main map's cache (`invalidateStyle()`, `MapRenderer.kt:480-486`) and leaves the mini map's bitmap at the
+the main map's cache (`invalidateStyle()`, `MapRenderer.kt:484-490`) and leaves the mini map's bitmap at the
 variant it last rendered — a day-stylesheet bitmap inside a dialog whose canvas follows the theme
 (`drawRect(surfaceColor)`, `MiniMap.kt:163`). The widget's own KDoc already states the value it must follow:
 "@param isDarkPresentation resolved dark presentation … the widget's map bitmap must follow the same value"
@@ -43,7 +43,8 @@ XML `tests="10" failures="3" errors="0"`, timestamp `2026-11-02T04:56:48Z` (`evi
 screen; the shipped spec names no stylesheet variant, hence the delta is an ADDED requirement. The
 contract is `guidelines/MapStyling.md` §15 "Day/Night (daylight flag) contract": the flag selects the variant,
 no tile cache survives the reload, and a presentation change must invalidate the surface's own frame. The
-guideline already states the rule; this change makes the widget obey it, so no guideline text moves.
+guideline already states the rule; this change makes the widget obey it, so no rule text moves (round 2 updates
+the two places that name the *entry* a phone writer uses — see `design.md`, "Round 2").
 
 **Surface.** The flag has one app-side writer today (`MapCanvasViewModelSettings.kt:246`) and this change adds a
 second, value-deduped one. The cases that assert the flag (`grep -rln 'daylight\|STYLE_FLAG_DAYLIGHT'
@@ -71,7 +72,10 @@ helper's new parameter).
   keyed on the value so a recomposition does not repeat it; on a later value change it calls
   `renderer.invalidateStyle()` so the widget's tile cache and front buffer cannot survive the variant switch.
 - **`specs/mini-map/spec.md`** (delta) — one added requirement, three scenarios, each naming one case.
-- **No guideline change.** `MapStyling.md` §15 already owns the rule; the change removes a violation of it.
+- **Guideline change in round 2 only.** `MapStyling.md` §15 already owns the variant rule and §15a the
+  reporting rule; round 1 moved no text. The reviewer's dedupe and reporting findings made the widget a
+  second *writer* on one client, so §15's "single entry" sentence and §15a's phone bullet now name
+  `MapDaylightApplier` as the shared record and the widget as a load path.
 
 Additive: the widget keeps its public signature (`isDarkPresentation` already exists) and gains no state the
 caller must supply. Rollback: revert the one effect in `MiniMap.kt`; the three cases go red again.

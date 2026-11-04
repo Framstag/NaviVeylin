@@ -136,6 +136,8 @@ fun SearchDialog(
     onPoiSearch: () -> Unit,
     isDarkPresentation: Boolean,
     onPoiEntryClick: (PoiEntry) -> Unit,
+    /** Message sink for a rejected stylesheet-variant reload of the POI mini map (spec: map-styles). */
+    onStyleLoadFailure: ((String) -> Unit)? = null,
     // Contacts mode
     addressBookAvailable: Boolean,
     contactsQuery: String,
@@ -230,6 +232,7 @@ fun SearchDialog(
                 currentPosition = currentPosition,
                 selectedPoi = selectedPoi,
                 isDarkPresentation = isDarkPresentation,
+                onStyleLoadFailure = onStyleLoadFailure,
                 onPoiCategorySelected = onPoiCategorySelected,
                 onPoiRadiusChanged = onPoiRadiusChanged,
                 onPoiSearch = onPoiSearch,
@@ -602,7 +605,9 @@ private fun PoiContent(
     onPoiRadiusChanged: (Double) -> Unit,
     onPoiSearch: () -> Unit,
     isDarkPresentation: Boolean,
-    onPoiEntryClick: (PoiEntry) -> Unit
+    onPoiEntryClick: (PoiEntry) -> Unit,
+    /** Message sink for a rejected stylesheet-variant reload of the POI mini map (spec: map-styles). */
+    onStyleLoadFailure: ((String) -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -681,6 +686,7 @@ private fun PoiContent(
                     currentPosition = currentPosition,
                     selectedPoi = selectedPoi,
                     isDarkPresentation = isDarkPresentation,
+                    onStyleLoadFailure = onStyleLoadFailure,
                     onEntryClick = onPoiEntryClick,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -815,6 +821,8 @@ internal fun PoiResultsWithMap(
     isDarkPresentation: Boolean,
     onEntryClick: (PoiEntry) -> Unit,
     modifier: Modifier = Modifier,
+    /** Message sink for a rejected stylesheet-variant reload of the embedded mini map. */
+    onStyleLoadFailure: ((String) -> Unit)? = null,
     /** Test hook: force the landscape branch; null uses the real maxWidth > maxHeight check. */
     landscapeOverride: Boolean? = null
 ) {
@@ -842,6 +850,7 @@ internal fun PoiResultsWithMap(
                     additionalMarkers = results.map { it.lat to it.lon },
                     selectedMarker = selectedPoi,
                     currentPosition = currentPosition,
+                    onStyleLoadFailure = onStyleLoadFailure,
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 8.dp)
@@ -863,6 +872,7 @@ internal fun PoiResultsWithMap(
                     additionalMarkers = results.map { it.lat to it.lon },
                     selectedMarker = selectedPoi,
                     currentPosition = currentPosition,
+                    onStyleLoadFailure = onStyleLoadFailure,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(240.dp)

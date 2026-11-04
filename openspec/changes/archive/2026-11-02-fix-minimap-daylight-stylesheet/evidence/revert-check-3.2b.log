@@ -1,0 +1,4 @@
+# revert-check 3.2b — the widget's own invalidation removed (mutation B, 2026-11-04)
+# mutation: MiniMap.kt, 'if (hadFrame) renderer.invalidateStyle()' -> 'if (false && hadFrame) ...'
+# result: 1 failure — the re-render half of the requirement is now checked by a case that fails without it:
+MiniMapComposeTest > presentationChangeReRendersTheMiniMap FAILED — kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms

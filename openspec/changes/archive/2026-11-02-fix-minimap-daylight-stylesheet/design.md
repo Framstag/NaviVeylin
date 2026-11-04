@@ -38,7 +38,7 @@ Why this shape:
   SetStyleFlag` queues on the same DB thread that renders, so the order is preserved even when the native side is
   still warming up; §15's startup-race rule makes a pre-database push safe.
 - **`invalidateStyle()` only after a frame exists.** It clears the widget's tile cache and forces a full render at
-  the current viewport (`MapRenderer.kt:480-486`). Before any frame is displayed there is nothing to invalidate,
+  the current viewport (`MapRenderer.kt:484-490`). Before any frame is displayed there is nothing to invalidate,
   and the pending first render already carries the new flag. The `frameFlow.value.bitmap != null` read avoids
   rendering the renderer's default viewport when the value changes between composition and the first frame.
 
@@ -84,3 +84,56 @@ through the renderer's existing debounced scope. Both happen on the composition'
 - On-device measurement is the dialog's own bitmap after a presentation flip; the JVM case asserts the flag push
   and the re-render request, which is the app-side half this change owns. The stylesheet variant itself is the
   native contract §15 already states (`SetStyleFlag` → `LoadStyleInternal`).
+
+## Round 2 — the reviewer's three blocking findings
+
+Review round 1 failed (`evidence/review-round-1-requested.md`, `reviewer-report-1.md` in the item record) with
+three findings. Round 1 pushed the flag itself from the widget, which made the widget a second writer with its
+own record. The corrections replace the writer, not the effect's placement.
+
+**1. The ordering half was exercised by no case.** Round 1 asserted the *content* of `client.styleFlags` after a
+frame had been observed; a push that ran after the first frame passed identically, and the mutation that should
+prove the placement was the only thing the case could catch. Two things were wrong with that reasoning:
+
+- the renderer requests frames **asynchronously**, so native call order can never show when the *request* was
+  made — the round-1 mutation (moving the effect) could not fail the case either, measured 2026-11-04;
+- what the requirement actually protects is the variant the **first frame is rendered under**.
+
+`FakeOSMScoutClient` now records `daylightAtRender` — the flag value in effect at each render — and both variant
+cases assert it before anything else. Mutation: `if (!hadFrame) return@LaunchedEffect` before the push (a push
+that lands only after a frame exists) fails both cases on that assertion
+(`evidence/revert-check-3.2a.log`, `…3.2a-red.xml`: `expected:<[false]> but was:<[null]>`).
+
+**2. The widget was a second writer that could not satisfy the dedupe key.** §15 keys the app-side decision on
+the pair (style name, `daylight`), and a per-writer record cannot see another writer's value: a mini-map mount
+reloaded the whole stylesheet set for a value the client already carried, which drops the tile cache (`§17`) and
+no `map-styles` delta legalised it.
+
+Correction: `MapDaylightApplier` (`app/…/ui/map/MapDaylightApplier.kt`) is one record per client and value, and
+**every phone writer** goes through it — `MapCanvasViewModel.ensureMapStyle`/`pushDaylight` and the widget. It
+records only after `wasLastStyleLoadSuccessful()` returned true, so a rejected reload is retried by the next
+writer, and `force` carries the reasons `MapStyleApplyReason` names (`STARTUP_DB_READY`, `FIRST_RENDERED_FRAME`).
+A stylesheet load records the value it installed, because `loadStyleSheet` hands the load the enabled flags.
+The budget is therefore one reload **per changed value per client**, which is what §15 and `map-styles` already
+state — no exception, no new delta. Mutation: `force = true` at the widget's push fails
+`aClientThatAlreadyCarriesTheVariantIsNotReloaded` (`evidence/revert-check-3.3.log`).
+
+**3. The widget's load path reported nothing.** §15a's "every load path reports the failure once" applies to the
+flag reload too, and `MapStyleLoadReporter` is reachable from `:core`. The widget now reports through
+`rejectedVariantMessage` (one `DiagnosticsLog` entry plus the shared wording) and hands the message to an
+optional `onStyleLoadFailure` sink, which `SearchDialog`/`PoiResultsWithMap` and `LocationDetailsDialog` wire to
+`uiState.snackbarMessage`; with no sink the message is logged. Mutation: reducing the `FAILED` branch to `Unit`
+fails `aRejectedVariantReloadIsReported` (`evidence/revert-check-3.4.log`).
+
+What this costs: three signatures gain the optional sink, and the widget no longer owns a remembered value.
+What it buys: one recorded value per client, so no surface can hold the client at a variant the other surface
+does not expect, and the reload budget is the one §15 states.
+
+**Round 1 claims this retires.** "One extra stylesheet load per mini-map mount" (design, blast radius) is gone —
+measured by the dedupe case. "No signature change" is false now. "Composition order proves the push precedes
+the first frame" is replaced by the first-frame-variant record, because order of *requests* is not observable
+with an asynchronous renderer.
+
+**Mutation of the re-render half** (round 1's other open NOTE): `if (hadFrame) renderer.invalidateStyle()`
+reduced to `if (false && …)` fails `presentationChangeReRendersTheMiniMap` with a render-count timeout
+(`evidence/revert-check-3.2b.log`), so the half task 3.1 left unmutated is now falsified.

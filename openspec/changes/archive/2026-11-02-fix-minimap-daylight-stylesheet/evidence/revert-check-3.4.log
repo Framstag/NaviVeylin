@@ -1,0 +1,4 @@
+# revert-check 3.4 — the rejected-reload report removed (mutation D, 2026-11-04)
+# mutation: MiniMap.kt, the MapDaylightPush.FAILED branch reduced to 'Unit'
+# result: 1 failure — §15a's every-load-path-reports rule is now checked by a case that fails without the report:
+message="java.lang.AssertionError: a rejected variant reload is reported to the embedding surface (spec: map-styles — &quot;Style flag change fails&quot;)"

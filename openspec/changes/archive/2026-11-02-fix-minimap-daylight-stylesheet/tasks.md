@@ -51,3 +51,32 @@ scenario's case is named in the task that lands it.
       outside this change (the base tree exits 0; a copy of this tree with those two change directories removed
       exits 0).
       Parent: the whole delta.
+
+## 6. Round 2 — the reviewer's three blocking findings
+
+See `design.md`, "Round 2", for why each one is additive rather than a re-run.
+
+- [x] 6.1 One app-side record for the `daylight` flag: `MapDaylightApplier` (per client and value, records only
+      after `wasLastStyleLoadSuccessful()`, `force` for the `MapStyleApplyReason` re-push reasons), written by
+      `MapCanvasViewModel.ensureMapStyle`/`pushDaylight` and by `MiniMap`. `loadMapStyle` records the value its
+      load installed. Cases: `app: MapDaylightApplierTest` (7 cases) and `MiniMapComposeTest`
+      "aClientThatAlreadyCarriesTheVariantIsNotReloaded". Revert-check: `force = true` at the widget's push
+      fails that case (`evidence/revert-check-3.3.log`).
+      Parent: "The push SHALL happen once per distinct value" — now per client value, not per widget mount.
+- [x] 6.2 A rejected variant reload is reported once through `MapStyleLoadReporter`, and the message reaches the
+      surface that embeds the widget (`onStyleLoadFailure`, wired to `uiState.snackbarMessage` by both
+      embedders). Case: `MiniMapComposeTest` "aRejectedVariantReloadIsReported". Revert-check: the `FAILED`
+      branch reduced to `Unit` fails it (`evidence/revert-check-3.4.log`).
+      Parent: scenario "Style flag change fails" (§15a).
+- [x] 6.3 The ordering half is exercised by a case that can fail a late push. `FakeOSMScoutClient` records
+      `daylightAtRender` (the flag value in effect at each render), and both variant cases assert it first.
+      Revert-check: `if (!hadFrame) return@LaunchedEffect` fails both on `expected:<[false]> but was:<[null]>`
+      (`evidence/revert-check-3.2a.log`).
+      Parent: "before it requests its first frame".
+- [x] 6.4 The re-render half is mutated too, which round 1's NOTE left open: `if (hadFrame)
+      renderer.invalidateStyle()` reduced to `if (false && …)` fails `presentationChangeReRendersTheMiniMap`
+      (`evidence/revert-check-3.2b.log`). Parent: "it SHALL re-render its own viewport when the value changes".
+- [x] 6.5 `guidelines/MapStyling.md` §15 and §15a name the shared record and the widget as a load path, and the
+      change no longer claims "no guideline text moves". `openspec/changes/archive/…/proposal.md` and
+      `design.md` were corrected where round 1 quoted an unmeasured figure (the `MapRenderer.kt` pointer).
+      Parent: the review's finding 7.

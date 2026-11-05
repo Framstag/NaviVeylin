@@ -42,24 +42,29 @@ forever" (`openspec/specs/backlog-sensors/spec.md:140-159`) — the defect contr
 prescribes by performing none of it. Owning guideline section: `guidelines/BacklogTooling.md` §9 "Checks", the
 hysteresis rule (`guidelines/BacklogTooling.md:28-30`), which the change extends with the refusal clause.
 
-Surface, counted rather than assumed (`grep -c 'escalat'` over the four places the behaviour is asserted):
+Surface, counted rather than assumed (`grep -c 'escalat'` over the places the behaviour is asserted):
 
-- **1 case added, 0 rewritten, 0 fixtures realigned** — `grep -c 'escalat' tools/sensor-cases.sh` = 22 (6 cases
-  name it, this change adds one), and `grep -l 'escalation' tools/sensors/fixtures/*.json | wc -l` = 6 fixture
-  registries already declare `escalation`, read unchanged.
-- The engine holds the rule in 9 lines: `grep -c 'escalat' tools/sensors/run.sh tools/sensors/lib.sh
-  tools/sensors/sensors.json` = 6, 3, 3. The change edits two of the six.
-- The spec states it in 5 lines (`openspec/specs/backlog-sensors/spec.md`), the guideline in 1
-  (`guidelines/BacklogTooling.md` §9), and `guidelines/Backlog.md` in 7 (the write table, unchanged).
+- **3 cases added, 0 rewritten, 0 fixtures realigned** — `grep -c 'escalat' tools/sensor-cases.sh` = 30 (the
+  change adds `run#anEscalationOnASettledIssueFilesANewItem`, `run#aRefusedEscalationPastTheBoundFailsTheRun`
+  and `run#theFiledConditionIsOpenWorkOnTheNextTick`), and `grep -l 'escalation' tools/sensors/fixtures/*.json
+  | wc -l` = 6 fixture registries already declare `escalation`, read unchanged.
+- The engine holds the rule in a handful of lines: `grep -c 'escalat' tools/sensors/run.sh tools/sensors/lib.sh
+  tools/sensors/sensors.json` = 13, 3, 3 — the first count includes the comments the change itself adds. The
+  change edits two functions and one helper call site.
+- The spec states it in the requirement and three scenarios (`openspec/specs/backlog-sensors/spec.md`, 33
+  lines added), the guideline in one clause (`guidelines/BacklogTooling.md` §9, 3 added / 1 removed), and
+  `guidelines/Backlog.md` in 7 mentions of escalation (the write table, unchanged).
 
-This change's own numbers (`git diff --stat -- tools guidelines openspec/changes/fix-settled-escalation-files-an-item`,
-run from the change root): `3 files changed, 72 insertions(+), 8 deletions(-)` over the two production files and
-the guideline. The loop's measurement of the change, quoted from its own block
-(`.pi/issue-loop/items/780/measure-block.txt`): `LOOP-MEASURE-CHANGE
-fix-settled-escalation-files-an-item scenarios=4 cases=4 unnamed=0` — every scenario of the delta names a case
-that exists — and `LOOP-MEASURE-SUITE cases=314 cmd=tools/loop-selftest.sh --list` for the project's declared
-count. The block carries no gate time (`LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory
-carries a time — the gate of this tree has not run`): the gate is the gate child's, not this worker's.
+This change's own numbers (`git diff --stat ec58cb91 -- tools guidelines/BacklogTooling.md
+openspec/specs/backlog-sensors/spec.md`, run from the change root): `4 files changed, 171 insertions(+), 10
+deletions(-)` over the two production files, the case file, the guideline and the shipped spec. The loop's
+measurement of the change, quoted from its own block (`bash tools/loop/measure.sh --base ec58cb91 --change
+2026-11-05-fix-settled-escalation-files-an-item`): `LOOP-MEASURE-CHANGE
+2026-11-05-fix-settled-escalation-files-an-item scenarios=6 cases=6 unnamed=0` — every scenario of the delta
+names a case that exists — and `LOOP-MEASURE-SUITE cases=314 cmd=tools/loop-selftest.sh --list` for the
+project's declared count. The block carries no gate time while the gate of a tree has not run
+(`LOOP-MEASURE-GATE seconds=-`): the gate is the gate child's, and its tally is quoted in
+`evidence/gate-summary.txt`.
 
 ## What Changes
 
@@ -68,8 +73,9 @@ carries a time — the gate of this tree has not run`): the gate is the gate chi
   row's filing bound, failing the row when that bound leaves no filing; `sensors_file` takes the writer's own
   flags after the body, so that filing can pass `--allow-duplicate` (the duplicate is deliberate: the same
   condition, returned after the settled item's fix).
-- `tools/sensor-cases.sh` — `run#anEscalationOnASettledIssueFilesANewItem`, the red case above.
-- `openspec/specs/backlog-sensors/spec.md` — the modified requirement, one added scenario.
+- `tools/sensor-cases.sh` — the three cases above: the red case, the bound-exhausted refusal, and the next
+  tick that meets the filed item.
+- `openspec/specs/backlog-sensors/spec.md` — the modified requirement, three added scenarios.
 - `guidelines/BacklogTooling.md` §9 — the one refusal clause in the hysteresis rule.
 
 ## Impact

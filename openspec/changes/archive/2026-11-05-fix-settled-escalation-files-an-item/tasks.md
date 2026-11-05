@@ -10,6 +10,11 @@
       assertion — runner tally `tests=1 failures=1`, `2026-11-05T07:52:12Z` (evidence:
       `evidence/red-on-HEAD.log` and its tally `evidence/red-on-HEAD.xml`, copied from
       `.pi/issue-loop/items/780/red-case.log`).
+- [x] 1.2 `tools/sensor-cases.sh` — `run#theFiledConditionIsOpenWorkOnTheNextTick`: the tick after the filing
+      meets a tracker carrying the filed item (open) beside the settled one and must annotate the filed item,
+      file no second item and touch no settled state. Verification: the case passes on the fixed tree, and
+      its own mutation (4.2, second mutation) turns it red — a measurement, not an assumption, is what
+      `design.md`'s blast-radius claim now rests on.
 
 ## 2. The fix
 
@@ -24,9 +29,10 @@
 ## 3. The rule's owners
 
 - [x] 3.1 `openspec/changes/fix-settled-escalation-files-an-item/specs/backlog-sensors/spec.md` — the modified
-      requirement and the scenario "A settled issue's escalation files the returned condition", each scenario
-      naming its case. Verification: `bash tools/check-openspec-hygiene.sh` exits 0 and every scenario in the
-      delta names a case that exists in `tools/sensor-cases.sh`.
+      requirement and the scenarios "A settled issue's escalation files the returned condition", "A refused
+      escalation past the row's bound fails the run" and "The filed condition is ordinary work on the next
+      tick", each scenario naming its case. Verification: `bash tools/check-openspec-hygiene.sh` exits 0 and
+      every scenario in the delta names a case that exists in `tools/sensor-cases.sh`.
 - [x] 3.2 `guidelines/BacklogTooling.md` §9 — one clause on the hysteresis rule: a refusal files the returned
       condition, it never reports the escalation. Verification: `grep -c 'refus' guidelines/BacklogTooling.md`
       = 1 in that section and `bash tools/check-rule-routes.sh` still passes.
@@ -36,9 +42,13 @@
 - [x] 4.1 `bash tools/sensor-selftest.sh` — the sensor capability's own suite, all cases green. Verification:
       the suite's own summary line (`sensor-selftest: all <n> cases passed`), captured beside the case's
       evidence; the gate itself is the gate child's and is not run here.
-- [x] 4.2 Revert-check: make `sensors_escalate`'s last command `rm -f …` again (the mutation), confirm task
-      1.1's case fails on the filing assertion, restore, and re-run the case green. Verification: the case's
-      `PASS` line after the restore, with no `REVERT-CHECK MUTATION` left in `tools/sensors/run.sh`.
+- [x] 4.2 Revert-check, two mutations, each targeting one invariant and each named as the edit actually
+      made. (a) `sensors_escalate`'s `return "$code"` replaced by `return 0  # REVERT-CHECK MUTATION`: task
+      1.1's case fails on the filing assertion (`expected '1', got '0'`, the red run's message), restore,
+      case green. (b) `sensors_issue_for_fingerprint`'s `then .[0]` replaced by `then .[-1]  # REVERT-CHECK
+      MUTATION`: task 1.2's case fails on `expected '0', got '1'` (the tick files a second duplicate),
+      restore, case green. Verification: `grep -c 'REVERT-CHECK MUTATION' tools/sensors/run.sh
+      tools/sensors/lib.sh` = 0, 0, and `git status --porcelain` carries only the intended files.
 - [x] 4.3 `bash -n tools/sensors/run.sh` and `bash -n tools/sensor-cases.sh` — no compiled file is touched, so
       the structural check stands in for a build (`guidelines/Build.md` §2, the scope block). Verification: both
       exit 0.

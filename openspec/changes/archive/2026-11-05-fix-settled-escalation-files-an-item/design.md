@@ -58,23 +58,33 @@ reaches the filing path instead of being credited with a write. That is the same
   written by the no-issue branch, which this change does not touch.
 - A later run finds the new item first (`sensors_issue_for_fingerprint` takes the first issue carrying the
   marker and `gh issue list` returns newest first), so the returned condition becomes ordinary open work
-  instead of escalating again.
+  instead of escalating again. That order is measured, not assumed:
+  `run#theFiledConditionIsOpenWorkOnTheNextTick` runs the next tick against a tracker carrying the filed item
+  beside the settled one and asserts that it annotates the open item, files no second item and leaves the
+  settled one untouched.
 - The duplicate sweep does not take the new item back: it closes a duplicate against the older item only when
   that item carries the authorisation label, and a settled item carries none (`guidelines/BacklogTooling.md`
   §9, "Beside the rows").
 
 ## Verification
 
-- `run#anEscalationOnASettledIssueFilesANewItem` — red on the base (`tests=1 failures=1`,
-  `2026-11-05T07:52:12Z`), green after the fix: one file, the same fingerprint, `action=filed`, no `issue
-  edit` against the settled item.
+- `run#aRefusedEscalationPastTheBoundFailsTheRun` — green after the fix: two conditions filed, the settled
+  item untouched, `0` summaries, exit 8 and a report line naming the condition nothing recorded.
+- `run#theFiledConditionIsOpenWorkOnTheNextTick` — green: the tick that meets the filed item annotates it,
+  files nothing, and touches no settled state.
 - `bash tools/sensor-selftest.sh` — the sensor capability's whole suite, which is what the gate owes this
   pathspec (`tools/loop/loop.conf`, `tools/sensors/*|tools/sensor-selftest.sh`); the gate itself is the gate
   child's.
 - Structural check instead of a build: the change touches no compiled file, so `bash -n tools/sensors/run.sh`
   stands in for it.
-- Revert-check: put `rm -f "$bodyfile" "$commentfile"` back as `sensors_escalate`'s last command (the
-  mutation), confirm the new case fails on the filing assertion, restore, and re-run the case green.
+- Revert-check: two mutations, each targeting one invariant the change adds, and the record names the edit
+  actually made rather than a variant of it.
+  1. `sensors_escalate`'s `return "$code"` replaced by `return 0  # REVERT-CHECK MUTATION` — credit a write
+     that did not land: `run#anEscalationOnASettledIssueFilesANewItem` fails on the filing assertion
+     (`expected '1', got '0'`), restore, case green.
+  2. `sensors_issue_for_fingerprint`'s `then .[0]` replaced by `then .[-1]  # REVERT-CHECK MUTATION` — read the
+     oldest item instead of the newest: `run#theFiledConditionIsOpenWorkOnTheNextTick` fails on
+     `expected '0', got '1'` (the tick files a second duplicate), restore, case green.
 
 ## Rollback
 

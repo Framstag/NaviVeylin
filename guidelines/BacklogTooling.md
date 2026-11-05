@@ -27,7 +27,9 @@ Three rules make a check trustworthy rather than noisy:
   fix did not hold.
 - **Rule: hysteresis in both directions.** A flapping condition churns nothing; and past a recurrence bound
   it escalates instead of reopening forever, because a condition that keeps returning is a specification
-  or design problem rather than an implementation one.
+  or design problem rather than an implementation one. An escalation the writer refuses — the item carries a
+  settled state, which is exactly where a returned condition lands — files the returned condition as a new
+  item under the row's filing bound, and is never reported as an escalation that was not written (#780).
 - **Rule: the issue is the measurement history.** Numbers live as comments; nothing is committed, because a
   check must not become a second committer (I12). The previous measurement *is* the baseline, so growth and
   level are both answerable without a store.

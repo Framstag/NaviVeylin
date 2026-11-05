@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --from-git 122cc2f9" tests="316" failures="2" errors="0" time="1012">
+  <system-out>PASS run#childPastItsContextBoundIsBlocked PASS run#theRecordedZeroKeepsTheContextBoundOff loop-selftest: 2 of 316 cases failed</system-out>
+</testsuite>

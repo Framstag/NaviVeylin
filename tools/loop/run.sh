@@ -166,18 +166,17 @@ case "$item_turns_max" in ''|*[!0-9]*) item_turns_max=250 ;; esac
 
 # A bound priced in what a turn costs, not in how many turns there are (issue #760). The turn bound above counts
 # turns, and a turn is a unit of shape rather than of cost: every turn re-reads the whole conversation, so the same
-# turn count costs 40 k or 240 k depending on how far the context has grown — over this project's archive (227 items,
-# 2026-11-03, `tools/loop-spend.py --json`) tokens per item are p50 10.4 M and p90 23.6 M against turns per item p50
-# 140 and p90 273, a 5x spend over a 2x range of turns. The reading that varies already exists
+# turn count costs the archive's median largest context or its maximum (107 669 against 244 764 tokens) depending on
+# how far the context has grown. The reading that varies already exists
 # (`tools/loop/state.sh`'s `child_usage_json`, the largest `input + cacheRead` a turn reported), but only the report
 # reads it, after the item is over. So the run reads it too, where the wall clock and the turn count are already
 # enforced, and takes two decisions from it: a checkpoint line at `LOOP_ITEM_CONTEXT_WARN` (nothing is ended) and an
 # end at `LOOP_ITEM_CONTEXT_MAX`. Measured over the 300 item records of `.pi/issue-loop/run.json` and `runs/*.json`
 # (2026-11-05): the largest context per item is p50 107 669, p75 143 124, p90 174 984, p95 191 815, maximum 244 764.
 # The checkpoint is the p75, recorded exactly as measured, the way the token band records its own; it flags about a
-# quarter of the items and costs one line. The maximum is 200 000 — above the p95 and at the window every provider
-# this project runs sits at, where a turn costs 1.86x the archive's median turn (200 000 / 107 669) — and 10 of the
-# 300 recorded items (3.3 %) reached it. Both are `0` or absent = no bound, the shape `LOOP_MIN_FREE_MIB` and
+# quarter of the items and costs one line. The maximum is 200 000 — above the p95 (191 815), where a turn costs
+# 1.86x the archive's median largest context (200 000 / 107 669) — and 10 of the 300 recorded items (3.3 %) reached
+# it. Both are `0` or absent = no bound, the shape `LOOP_MIN_FREE_MIB` and
 # `LOOP_ITEM_TOKENS_WARN` have, so a project that records neither owes nothing by them (D16).
 item_context_warn="${LOOP_ITEM_CONTEXT_WARN:-0}"
 case "$item_context_warn" in ''|*[!0-9]*) item_context_warn=0 ;; esac
@@ -1148,7 +1147,7 @@ child_turns() { # child_turns <events file> → the `turn_end` lines it holds
 #
 # Only the complete lines appended since the last look are read: `wc -l` is the boundary, and a line still being
 # written carries no newline, so a partial record is never parsed. That is what keeps a once-a-second reading cheap
-# on a stream that runs to megabytes, where a re-parse of the whole file would spend on `jq` what the bound saves on
+# on a stream that grows with the run, where a re-parse of the whole file would spend on `jq` what the bound saves on
 # tokens. A stream that is absent, empty or unreadable is no reading rather than an error, exactly as `child_turns`
 # treats one: a child whose command writes no events stays bounded by its clock and by its turns.
 child_context() { # child_context <events file> <lines already read> → "<largest context in the new lines> <lines read>"
@@ -1922,7 +1921,7 @@ while true; do
             pre_gate_refusal="the run's deadline passed while the pre-gate reviewer was running — the round was cut, not refused, so the change is left for the next run"
           elif [ -n "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ]; then
             pre_gate_refusal_verdict="cut-short"
-            pre_gate_refusal="the run ended the pre-gate reviewer at one of the item's spend bounds (its turns or its context) — the round was cut, not refused, so the change is left for the next run"
+            pre_gate_refusal="the run ended the pre-gate reviewer at one of the item's spend bounds (its turn bound or its context bound) — the round was cut, not refused, so the change is left for the next run"
           elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
             pre_gate_refusal_verdict="cut-short"
             pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
@@ -2267,7 +2266,7 @@ while true; do
       if [ -n "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ]; then
         review_verdict="cut-short"
         outcome="blocked"
-        blocked_reason="the run ended the reviewer of round $round at one of the item's spend bounds (its turns or its context) — the round was cut, not refused, so the change is left for the next run"
+        blocked_reason="the run ended the reviewer of round $round at one of the item's spend bounds (its turn bound or its context bound) — the round was cut, not refused, so the change is left for the next run"
         break
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`

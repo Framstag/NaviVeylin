@@ -94,7 +94,7 @@ still at the base commit" and escalated — two decision slots no reviewer and n
 stopped on two consecutive blocked items 121 s into a 360-minute budget.
 
 - **WHEN** an agent process ends with a zero status, wrote no verdict line, was not ended by the run's own
-  wall-clock or its turn bound, and left the item's tree at the run's base commit
+  wall-clock or one of its spend bounds, and left the item's tree at the run's base commit
 - **THEN** the run records that once as its own stop reason, naming the status, the size of the answer it left and
   the child's own last line, and stops without escalating an item: no item record is written for it, no decision
   label and no hold reach it, and it is left as its owner set it — `status/open` and no `agent/needs-decision` —
@@ -3046,7 +3046,7 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 
 #### Scenario: A round the run cut before the gate is left for the next run
 
-- **WHEN** the round before the gate never answers — cut by the deadline, ended at the item's turn bound, or cut
+- **WHEN** the round before the gate never answers — cut by the deadline, ended at one of the item's spend bounds, or cut
   twice on its way to the file
 - **THEN** the item is recorded `blocked` with that round named as the one before the gate, no gate child is started
   on a diff nobody read, and the round after the gate is not asked either
@@ -3065,3 +3065,27 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 - **THEN** the checklist it prints is the gate child's own prompt and the call names that file, because the run
   defers the gate to that child
 - **Case**: `phase#oneCallPrintsThePhaseState`
+
+### Requirement: The bound on a child is priced in what it spends, not in how many turns it takes
+
+The run SHALL bound a child in what a turn costs, not in how many turns it takes: it SHALL read the largest context the child's stream reported (`input + cacheRead`, or a compaction's `tokensBefore`, whichever is greater) in the wait that enforces the clock and the turn count, SHALL print one checkpoint line at `LOOP_ITEM_CONTEXT_WARN`, and SHALL end it and everything it started at `LOOP_ITEM_CONTEXT_MAX`. Both keys SHALL be recorded values named in the run's header; `0` or no key is no bound.
+
+#### Scenario: A child whose context crosses the recorded bound is ended and named
+
+- **WHEN** a child's stream reports a growing context — 120 000, 155 000, then 210 000 tokens — while
+  `LOOP_ITEM_CONTEXT_MAX` records 200 000 and `LOOP_ITEM_CONTEXT_WARN` records 143 124, and the wall clock still has
+  45 min to run
+- **THEN** the run prints the checkpoint once, naming the recorded 143 124, ends the child's process group, writes
+  `LOOP-TIMEOUT: the child reached the recorded context bound of 200000 tokens (LOOP_ITEM_CONTEXT_MAX) at 210000
+  tokens — the run ended it and everything it started` into the child's transcript with the wall clock's own exit
+  status, records the item `blocked` with that line, and closes nothing
+- **Case**: `run#childPastItsContextBoundIsBlocked`
+
+#### Scenario: A recorded zero keeps the context bound off
+
+- **WHEN** the profile records `LOOP_ITEM_CONTEXT_MAX=0` and `LOOP_ITEM_CONTEXT_WARN=0` and a child's stream reports a
+  210 000-token context before it outlives a two-second wall clock
+- **THEN** the header names the bound as off (`item-context-max=0`), no checkpoint line is printed, the transcript
+  carries only the wall clock's `LOOP-TIMEOUT`, and the item is recorded `blocked` exactly as it was before the bound
+  existed
+- **Case**: `run#theRecordedZeroKeepsTheContextBoundOff`

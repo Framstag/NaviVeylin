@@ -27,7 +27,7 @@ check's "a rule no glob reaches is reported" invariant fires.
 The item files a second observation, that `gate#theMapCoversEveryPipelineStep` fails over
 `tools/loop-selftest.sh --group "$g"`. That half no longer holds: it was closed by `3bdd6783` (issue #781), which
 made the pin strip a `--group <selection>` from both sides before comparing, and the case passes on this change's
-base (`evidence/red-pin-on-base.txt`). One invariant is left holding, so the item stays one change.
+base (`evidence/base-part-1-already-fixed.txt`). One invariant is left holding, so the item stays one change.
 
 ## What Changes
 

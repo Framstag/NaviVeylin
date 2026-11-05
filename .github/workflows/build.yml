@@ -699,9 +699,9 @@ jobs:
 
   # ── the loop's self-test, in legs ──────────────────────────────
   # The suite's pool width is the runner's core count — `LOOP_SELFTEST_JOBS` is empty in the profile, so the driver
-  # takes `nproc`, which is 4 here — and 312 cases therefore cost the sum of their cases over four workers: 17 min
+  # takes `nproc`, which is 4 here — and 315 cases therefore cost the sum of their cases over four workers: 17 min
   # 15 s measured 2026-11-04. The cases are independent (each owns a throwaway repository, a scratch root and a
-  # process group), so the width of the *run* can be several runners. `run` is 114 of the 312 cases and 56 % of the
+  # process group), so the width of the *run* can be several runners. `run` is 114 of the 315 cases and 56 % of the
   # cost, which is why it gets a leg of its own.
   #
   # A leg is the driver invoked once per group, and each invocation's summary states the selection it ran against

@@ -107,10 +107,12 @@ which is the trend this split is measured against. The case that pins it is `run
 fixture's second child starts at 17 056 input tokens, the item's spend is the sum of the two children, and the
 largest context recorded is still the first child's. The repair a refusal buys is split the same way
 (`worker-tail-round2-prompt.md`), because a rework round that paid the tail in-session would cost what the item did.
-The bound this does not move: the item's turn bound (`LOOP_ITEM_TURNS_MAX`) is the **item's**, read over the one event
-stream its children share, so a gate child that spends it leaves the tail none and the item is blocked at the bound
-without its commit — the same shape the reviewer's rounds already had, and the reason the split's own case asserts a
-tail of one turn rather than a long one.
+The bound this split moved: the turn bound was the **item's** (`LOOP_ITEM_TURNS_MAX`), read over the one event stream
+its children share, so a gate child that spent it left the tail none and the item was blocked at the bound without
+its commit — the shape the reviewer's rounds already had, and the reason the split's own case asserts a tail of one
+turn rather than a long one. Since issue #784 each role carries its own key
+(`LOOP_CHILD_TURNS_MAX_WORKER_GATE`, `…_WORKER_TAIL`, `…_REVIEWER`, …), so the tail is bounded by what a tail costs
+and neither the gate's work nor the worker's can spend it.
 
 What a child is started with, and what it therefore re-reads. Its system prompt carries **no project context**:
 the adapter the configured command names starts it with `--no-context-files`, because a child started in the
@@ -291,17 +293,28 @@ amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
-A second bound is **not a clock** (issue #686): `LOOP_ITEM_TURNS_MAX` (250 here, `0` or absent = no bound) ends a
-child that has spent its turns, read from the item's own event stream — one `turn_end` per turn, which the
-adapter already writes — and checked in the same whole second as the two clocks, so the wait costs one `grep` per
-second and not one per look. It exists because the clock is the wrong unit for a child that keeps re-reading:
-cache re-read is **97 %** of what a loop child is charged, so a turn and not an edit is what an item spends, and
-on 2026-10-28 the 35 items past 250 turns held **878 of 1 982 Mtok (44 %)** of the archive's spend at 25.07 Mtok
-each against 1.23 for the 20–50 band. An item that has spent its turns is a decision and not a slower
-convergence: the child is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT: the child reached the
-recorded turn bound of <n> turns`, and the item is recorded `blocked` with that count. The 250 sits just past the
-archive's p75 — turns p50 144, p75 236, p90 285, max 480 — so it escalates 21 % of items, where 200 would
-escalate 37 % and 300 only 7 %.
+A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (110 for the worker, 60 for the
+gate child, 45 for the tail, 55 for a review round and 55 for the round before the gate; `0` or absent = no bound)
+ends a child that has spent **its own role's** turns, read from the item's event stream — one `turn_end` per turn,
+which the adapter already writes — minus the count standing when that child started, and checked in the same whole
+second as the two clocks, so the wait costs one `grep` per second and not one per look. It exists because the clock
+is the wrong unit for a child that keeps re-reading: cache re-read is **97 %** of what a loop child is charged, so a
+turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past 250 turns held **878 of 1 982 Mtok
+(44 %)** of the archive's spend at 25.07 Mtok each against 1.23 for the 20–50 band. A child that has spent its turns
+is a decision and not a slower convergence: it is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT:
+the child reached the recorded turn bound of <n> turns (<KEY> for the <role> role)`, and the item is recorded
+`blocked` with that count.
+
+The bound was the item's first (one count over the stream every child appends to), and that made it decide *which
+phase* was discarded rather than whether the item was converging: measured 2026-11-05 over the ten items that ran
+all five phases (`.pi/issue-loop/items`, per-child `turn_end` counts), #780 spent 80/34/42/41 turns on its worker,
+its round before the gate, its gate and its tail and the round-1 reviewer was ended at 53 of the same 250, and #767's
+round-2 worker got three turns before the item's pot ended it; six of that day's eight blocks were this bound, while
+the two items that closed used 192 and 241 of it. Each value is the same measurement per role, just past that role's
+own p75 — worker p75 104 over the archive's 341 worker sessions, review round p75 40 over 232, the round before the
+gate p75 46, the gate child p75 50 and the tail p75 39 over the ten post-#758 items — so a phase is bounded by its
+own work. The **item's** total is no longer a stop: it is still counted (`metrics.turns`) and reported (the
+`calls:` line), the way the token band is.
 
 The run's own deadline bounds that child as well: the wait reads `run.deadlineEpoch` from the run's state once a
 second — the deadline is a whole-second clock, and reading it on every look would spend the finer granularity's
@@ -346,7 +359,7 @@ respect: a **warning, never a stop**, nothing in the run reads the key, and `0` 
 rather than as `none`. The rule the number implies is in the worker's prompt: independent reads, greps and lookups
 belong in **one** turn, and a path already read is cited rather than opened again. The levers that raise the ratio
 are that rule, `tools/look.sh` (#687) and the session split at the first gate (#688); the **stop** it complements is
-the item turn bound (`LOOP_ITEM_TURNS_MAX`), which ends a child inside one unbounded grind.
+the per-role turn bounds (`LOOP_CHILD_TURNS_MAX_<ROLE>`), which end a child inside one unbounded grind.
 
 **The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
 watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it
@@ -657,7 +670,7 @@ round nobody answered: `#51` carries count 1 as well, and its round 1 was **cut*
 transcript holds `LOOP-TIMEOUT` and no `VERDICT:` at all — which the run read as a refusal until review round 2.
 So the state records the round's verdict (`done --review-verdict`) and four things are told apart and printed: a
 round 1 that passed; a round 1 that refused and whose round 2 passed (in the rate's denominator, in no
-numerator); a round that ended without a verdict (the answer was cut, the run's clock or the item's turn bound
+numerator); a round that ended without a verdict (the answer was cut, the run's clock or its role's turn bound
 ended it, it wrote, or the state predates the field — neither a pass nor a refusal, so in no rate); and an item no
 round ran for (`reviewRounds` 0, which is `never reviewed` and not a refused round). The third figure the issue asked for,
 the landings that reddened `main`, is in neither source the report reads: `state.sh done` keeps a landing's

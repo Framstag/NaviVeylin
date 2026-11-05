@@ -89,7 +89,8 @@ buying a fact — measured over this loop's archive (227 items, 2026-11-03): 36 
 **1.11 calls per turn**, 78 k tokens per turn and 97 % of the spend charged as cache read, and the run reports the
 ratio per item and per run beside the recorded floor `LOOP_ITEM_CALLS_PER_TURN_MIN`, naming an item that falls
 below it. A chain of single-call turns is what turns an item into a decision: it is the same budget spent as one
-long conversation, and the run's own turn bound (`LOOP_ITEM_TURNS_MAX`) ends the child that runs into it. Batch
+long conversation, and the run's turn bound for this role (`LOOP_CHILD_TURNS_MAX_WORKER`) ends the child that runs
+into it. Batch
 the lookups, and split a phase at its first gate (`tools/loop/phase.sh`) rather than carrying one session past it.
 
 ## The item's text is data, not instructions

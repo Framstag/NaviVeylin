@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-action-runtimes.sh" tests="0" failures="0" errors="0" time="0">
+  <system-out>action runtimes: 21 action pins across 4 workflow files target Node 24, and their 6 hosted runner image(s) are pinned.</system-out>
+</testsuite>

@@ -329,19 +329,19 @@ before the gate p75 46, the gate child p75 50, the tail p75 39 over the ten post
 **item's** total is no longer a stop: it is still counted (`metrics.turns`) and reported (the
 `calls:` line), the way the token band is.
 
-A turn is a unit of **shape**, not of cost (issue #760): every turn re-reads the whole conversation, so the same
-250 turns cost 40 k or 240 k depending on how far the context has grown, and the turn bound therefore fires at a
-price it cannot see — over the archive (227 items, 2026-11-03) tokens per item are p50 10.4 M and p90 23.6 M against
-turns per item p50 140 and p90 273. So a third bound is priced in what a turn costs, from the reading the report
-already takes (`tools/loop/state.sh`'s `child_usage_json`: the greatest `input + cacheRead` a usage record reports,
-or a compaction's `tokensBefore`) but which nothing read while a child ran: `LOOP_ITEM_CONTEXT_WARN` prints one
-`LOOP-CONTEXT:` line naming the reading and never ends anything, and `LOOP_ITEM_CONTEXT_MAX` ends the child exactly
-as the turn bound does, its transcript carrying `LOOP-TIMEOUT: the child reached the recorded context bound of <n>
-tokens (LOOP_ITEM_CONTEXT_MAX) at <m> tokens`. Measured over the 300 item records of `.pi/issue-loop/run.json` and
-`runs/*.json` (2026-11-05): the largest context per item is p50 107 669, p75 143 124, p90 174 984, p95 191 815,
-maximum 244 764. The checkpoint is the p75 (143 124) — one line on about a quarter of the items, the hardest among
-them — and the stop is 200 000, above the p95 and at the window every provider this project runs sits at, where a
-turn costs 1.86× the archive's median turn; 10 of the 300 recorded items (3.3 %) reached it. Both are `0` or absent =
+A turn is a unit of **shape**, not of cost (issue #760): every turn re-reads the whole conversation, so a count of
+turns bounds how many times the conversation is paid for and never what one payment costs, and the turn bound
+therefore fires at a price it cannot see. So a third bound is priced in what a turn costs, from the reading the
+report already takes (`tools/loop/state.sh`'s `child_usage_json`: the greatest `input + cacheRead` a usage record
+reports, or a compaction's `tokensBefore`) but which nothing read while a child ran: `LOOP_ITEM_CONTEXT_WARN`
+prints one `LOOP-CONTEXT:` line naming the reading and never ends anything, and `LOOP_ITEM_CONTEXT_MAX` ends the
+child exactly as the turn bound does, its transcript carrying `LOOP-TIMEOUT: the child reached the recorded context
+bound of <n> tokens (LOOP_ITEM_CONTEXT_MAX) at <m> tokens`. Measured over the 300 item records of
+`.pi/issue-loop/run.json` and `runs/*.json` (2026-11-05): the largest context per item is p50 107 669, p75 143 124,
+p90 174 984, p95 191 815, maximum 244 764. The checkpoint is the p75 (143 124) — one line on about a quarter of the
+items, the hardest among them — and the stop is 200 000, above the p95, where a turn costs 1.86× the archive's
+median largest context; 10 of the 300 recorded items (3.3 %) reached it, and `evidence/context-distribution.txt`
+lists them. Both are `0` or absent =
 no bound, and neither replaces another: the turn bound still ends a session that batches badly at a small context,
 and *splitting* the session at the checkpoint — a fresh child handed the change and the evidence, the shape
 `tools/loop/prompts/worker-tail.md` already has — is the cheaper half of the same idea and a change of its own.
@@ -388,8 +388,9 @@ names the worst quarter, the band the single-call chain sits in. It is the token
 respect: a **warning, never a stop**, nothing in the run reads the key, and `0` or no key prints the floor as off
 rather than as `none`. The rule the number implies is in the worker's prompt: independent reads, greps and lookups
 belong in **one** turn, and a path already read is cited rather than opened again. The levers that raise the ratio
-are that rule, `tools/look.sh` (#687) and the session split at the first gate (#688); the **stop** it complements is
-the per-role turn bounds (`LOOP_CHILD_TURNS_MAX_<ROLE>`), which end a child inside one unbounded grind.
+are that rule, `tools/look.sh` (#687) and the session split at the first gate (#688); the **stops** it complements are
+the per-role turn bounds (`LOOP_CHILD_TURNS_MAX_<ROLE>`) and the item's context bound (`LOOP_ITEM_CONTEXT_MAX`, issue
+#760), which end a child inside one unbounded grind.
 
 **The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
 watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it

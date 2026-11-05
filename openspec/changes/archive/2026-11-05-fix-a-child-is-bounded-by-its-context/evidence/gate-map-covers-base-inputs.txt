@@ -1,0 +1,34 @@
+# The failing case's own comparison, run on the base commit's two inputs
+#
+# case_gate_theMapCoversEveryPipelineStep (tools/loop-cases.sh:3721-3757) compares
+#   (a) the bash/sh commands of the workflow's 'Check …' steps in LOOP_GATE_PIPELINE
+#       (.github/workflows/build.yml), against
+#   (b) the command side of LOOP_GATE_SUITES (tools/loop/loop.conf:485).
+# The block below is the case's own awk/sed pipeline, applied to the BASE blobs
+# (git show 122cc2f9:<path>) instead of the working tree. Same code, base inputs.
+
+$ git show 122cc2f9:.github/workflows/build.yml > /tmp/loop-760-base/build.yml
+$ git show 122cc2f9:tools/loop/loop.conf           > /tmp/loop-760-base/loop.conf
+$ awk "<the case's step-command extractor>" /tmp/loop-760-base/build.yml \
+    | sed -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | sort -u > cmds.txt
+$ sed -n 's/^LOOP_GATE_SUITES="\(.*\)"/\1/p' /tmp/loop-760-base/loop.conf \
+    | tr ';' '\n' \
+    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e 's/ --from-git {base}$//' -e '/^$/d' \
+    | sort -u > map.txt
+$ comm -13 map.txt cmds.txt          # the commands the map carries none of
+tools/loop-selftest.sh --group "$g"
+
+$ wc -l cmds.txt map.txt
+43 cmds.txt
+48 map.txt
+
+# The same command the gate printed for the applied tree (evidence/gate.log:592):
+#   the suite map carries none of these commands the pipeline's Check steps run: tools/loop-selftest.sh --group "$g"
+#
+# The workflow blob is identical at the base and at this change's commit:
+$ git rev-parse 122cc2f9:.github/workflows/build.yml HEAD:.github/workflows/build.yml
+6fddab6b8ec9aa4d75f2c936af81d79a1ea4d495
+6fddab6b8ec9aa4d75f2c936af81d79a1ea4d495
+
+# So the case was red on the base commit and is red for the same reason after this
+# change: the workflow's '--group "$g"' leg has no row in the suite map.

@@ -1,0 +1,8 @@
+# the reviewer-round case and the four bound cases on the corrected tree, 2026-11-05T18:19:01Z
+
+PASS run#aReviewerEndedAtItsTurnBoundIsNotARefusal
+
+PASS run#childPastItsContextBoundIsBlocked
+PASS run#theRecordedZeroKeepsTheContextBoundOff
+PASS run#childPastItsTurnBoundIsBlocked
+PASS run#theRecordedZeroKeepsTheTurnBoundOff

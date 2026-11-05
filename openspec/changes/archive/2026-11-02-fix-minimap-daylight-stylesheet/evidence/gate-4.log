@@ -1,0 +1,12 @@
+# Landing gate — 2026-11-04T22:28:40Z on 64ab4bb8 (the tree that lands)
+# command: tools/loop/gate.sh --base aee35ca6fe60bb243fc6d4227d5a50e2675a87c3
+#
+# LOOP-GATE: tests=997 failures=0 errors=0 — every step green, no failing step.
+# JVM half: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache, forced (executed, not FROM-CACHE),
+# 0 failures / 0 errors in every module (gate-4-tallies.txt); both :app flavors ran (BuildEvidence.md §4b).
+# The wall-clock case that reddened three earlier gates (tools/loop-selftest.sh,
+# run#aReviewerEndedAtItsTurnBoundIsNotARefusal, 900 s bound) passed in this run; its three solo passes are
+# quoted in gate-3.log, and the residual is closed by this run rather than carried.
+#
+# Earlier gates are history: gate-3.* measured 629055e3 with that one red step, gate-2.* measured e9a10210,
+# gate.log is round 1's run.

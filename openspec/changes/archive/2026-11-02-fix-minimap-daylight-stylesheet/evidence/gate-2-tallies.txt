@@ -1,0 +1,5 @@
+app/build/test-results/testMobileDebugUnitTest tests=2232 failures=0 errors=0
+app/build/test-results/testAutomotiveDebugUnitTest tests=2232 failures=0 errors=0
+auto/build/test-results/testDebugUnitTest tests=912 failures=0 errors=0
+core/build/test-results/testDebugUnitTest tests=653 failures=0 errors=0
+osmscout-client-java/build/test-results/test tests=112 failures=0 errors=0

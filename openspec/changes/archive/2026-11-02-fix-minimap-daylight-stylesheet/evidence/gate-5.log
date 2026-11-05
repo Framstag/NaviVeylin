@@ -1,0 +1,6 @@
+# Landing gate (merged tree) — 2026-11-05T04:23:46Z on c119f552
+# command: tools/loop/gate.sh --base aee35ca6fe60bb243fc6d4227d5a50e2675a87c3
+# LOOP-GATE: tests=41 failures=0 errors=0 — every step that ran passed, no failing step.
+# The tree is main (aee35ca6) merged into this branch, so the landing is a fast-forward; the JVM half ran
+# forced (BUILD SUCCESSFUL in 6m 34s) and the module tallies are gate-5-tallies.txt.
+# Earlier gates: gate-4.* (the branch before the merge, fully green), gate-3.*, gate-2.*, gate.log.

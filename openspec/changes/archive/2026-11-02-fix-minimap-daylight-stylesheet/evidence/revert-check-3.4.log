@@ -1,0 +1,4 @@
+# revert-check 3.4 — the rejected-reload report removed (re-run on the landing sources, 2026-11-04T22:08:25Z)
+# mutation: MiniMap.kt, the MapDaylightPush.FAILED branch reduced to 'Unit'
+# result: 1 failure:
+message="java.lang.AssertionError: a rejected variant reload is reported once per attempt (spec: map-styles — &quot;Failure is reported once per attempt&quot;) expected:&lt;1&gt; but was:&lt;0&gt;"

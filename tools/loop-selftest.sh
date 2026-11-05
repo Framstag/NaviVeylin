@@ -8,6 +8,7 @@
 #
 # Usage: bash tools/loop-selftest.sh [--list] [--case <group#name|glob>] [--group <group>] [--jobs <n>]
 #                                    [--files <path> ...] [--from-git <base>] [--case-files] [--print-bound]
+#                                    [--times]
 #        A run that may execute more than one case holds this tree's lock; `--list`, `--case-files` and one named
 #        `--case` hold none. `--jobs` bounds how many cases run at once — the value the invocation names, else the
 #        profile's `LOOP_SELFTEST_JOBS`, else the host's CPU count. Every case keeps a process group, a scratch root
@@ -31,6 +32,10 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 list_only=0
 only_case=""
 only_group=""
+# The per-case figure is asked for, never assumed (issue #782): the `PASS` line is read by the mutation harness and by
+# the leftovers cases, so a figure in the middle of it is a change to a contract three callers depend on, for a number
+# a reader needs only while investigating one case. `--times` adds it; nothing else changes.
+print_times=0
 # The file set, kept space-padded (` path path `) so a membership test is one `case` and no array expansion runs
 # under `set -u`, exactly as `tools/loop-mutations.sh` carries its own: `--files` is repeatable and its value may
 # hold several paths, so a caller can pass either shape without a rule. A path is repository-relative, never a
@@ -53,7 +58,8 @@ while [ $# -gt 0 ]; do
     --jobs) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_jobs="${2:-}"; shift 2 ;;
     --case-files) list_declared=1; shift ;;
     --print-bound) print_bound=1; shift ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    --times) print_times=1; shift ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "loop-selftest: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -191,6 +197,13 @@ case_slot_dir=()
 # …and the case's bound: when it started, and the watcher job that enforces it (issue #308).
 case_slot_started=()
 case_slot_watch=()
+# …and the clock the report reads (issue #782): each slot's start in milliseconds, the milliseconds the case that just
+# ended cost (`finish_case` sets it) and the tallies the summary prints — the milliseconds each group's cases cost and
+# how many of them made it. `case_groups_seen` is the order they are printed in: the order the pool first ran them,
+# which is the order of the selection and so of the case file.
+case_slot_started_ms=()
+finished_case_ms=0
+case_groups_seen=""
 # The repository's lock, set only on the way through `selftest_lock_take` that took it (issue #295). Empty
 # until then, and named here rather than beside the function because `on_exit` may run before that line.
 selftest_lock=""
@@ -468,6 +481,37 @@ mkdir -p "$selftest_case_root" || {
   exit 2
 }
 
+# `loop_case_elapsed_ms <start ms>` → the milliseconds between that clock and now. A record that is empty or unreadable
+# is zero rather than a subtraction from the epoch: a case whose start was somehow lost costs nothing it can prove, and a
+# figure of 1.7e12 ms in the summary would be a number the reader trusts (issue #782).
+loop_case_elapsed_ms() { # <start ms or nothing> → milliseconds
+  local start="${1:-}" now
+  case "$start" in ''|*[!0-9]*) printf '0'; return 0 ;; esac
+  now=$(date +%s%3N)
+  case "$now" in ''|*[!0-9]*) printf '0'; return 0 ;; esac
+  [ "$now" -ge "$start" ] || { printf '0'; return 0; }
+  printf '%s' "$(( now - start ))"
+}
+
+# The report the summary owes (issue #782, the change `loop-suite-cost-is-reported`): one line per group carrying what
+# the group cost and how many cases paid it, and one line for the selection. The case file grew 166 → 314 cases in
+# twelve days with the cost of an addition printed nowhere, and this is the place a person reads before adding one.
+#
+# It is **this run's** measurement and never a comparison: the project's own baselines disagree by minutes on the same
+# host (`guidelines/Backlog.recipes.md` §7c, the section `guidelines/Backlog.md` routes the gate's suite to), so a suite
+# that read a stored figure would be a suite whose verdict is about the host. The tenths are there for the same reason
+# the figure is: a case of this suite costs a fraction of a second, and a whole-second line would print `0 s` for a
+# group of them.
+selftest_group_report() {
+  local group ms_var n_var ms
+  for group in ${case_groups_seen:-}; do
+    ms_var="case_ms_$group"
+    n_var="case_n_$group"
+    ms=${!ms_var:-0}
+    printf 'loop-selftest: %s %s cases %s.%s s\n' "$group" "${!n_var:-0}" "$(( ms / 1000 ))" "$(( ms % 1000 / 100 ))"
+  done
+}
+
 start_case() { # <slot> <case name> → the case is running in that slot
   local slot="$1" name="$2" dir
   dir="$selftest_case_root/$slot"
@@ -496,6 +540,10 @@ start_case() { # <slot> <case name> → the case is running in that slot
   # of its own instead: it is a child of the case's subshell and therefore a member of its process group, so
   # `finish_case` ends it with the group, and the case's status never waits for it.
   case_slot_started[slot]=$(date +%s)
+  # The wall clock the report reads is milliseconds, because a case of this suite costs a fraction of a second and a
+  # whole-second record of it would state a zero for every case that passed (issue #782). `%3N` is the clock the run's
+  # own item wall time is taken with (`run.sh`, `wall_ms`); `case_slot_started` stays the bound's token.
+  case_slot_started_ms[slot]=$(date +%s%3N)
   set -m
   ( LOOP_CASE_TMP="$dir/tree"; export LOOP_CASE_TMP
     mkfifo "$dir/stream" 2>/dev/null || exit 1
@@ -547,7 +595,7 @@ start_case() { # <slot> <case name> → the case is running in that slot
 # written by the subshell that ran it, so a case whose subshell the kernel killed records nothing — and a case that
 # recorded nothing is a failure, never a pass.
 finish_case() { # <slot> → the case's own status
-  local slot="$1" dir status
+  local slot="$1" dir status group ms_var n_var
   dir="${case_slot_dir[$slot]}"
   # The bound's watcher first, while the slot directory is still the one it was started for (issue #308): a watcher
   # that outlived its case would otherwise fire into the slot the pool hands to the next one. Its group, not its
@@ -557,7 +605,23 @@ finish_case() { # <slot> → the case's own status
   case_slot_watch[slot]=""
   wait "${case_slot_pid[$slot]}" 2>/dev/null
   case_slot_pid[slot]=""
+  # What the case cost is read before the record is emptied (issue #782): the figure the suite prints for the case, for
+  # its group and for the selection are all this one number, and a suite that reported a re-derived one would be
+  # quoting an estimate. The group's total is the **sum** of its cases' own times, so a pooled run states what the
+  # group's cases did rather than the span they happened to occupy — the two agree at `--jobs 1`, which is the shape
+  # task 3.1 of this change measured `state`, `report` and `prescreen` in.
+  finished_case_ms=$(loop_case_elapsed_ms "${case_slot_started_ms[$slot]:-}")
+  group=${case_slot_name[$slot]}
+  group=${group%%#*}
+  # The tallies are ordinary variables named after the group rather than array elements: `${arr[$key]:-0}` on an array
+  # with no element yet is an unbound-variable error under `set -u`, and the indirect form is the one that starts at zero.
+  ms_var="case_ms_$group"
+  n_var="case_n_$group"
+  printf -v "$ms_var" '%s' "$(( ${!ms_var:-0} + finished_case_ms ))"
+  printf -v "$n_var" '%s' "$(( ${!n_var:-0} + 1 ))"
+  case " $case_groups_seen " in *" $group "*) ;; *) case_groups_seen="$case_groups_seen$group " ;; esac
   case_slot_started[slot]=""
+  case_slot_started_ms[slot]=""
   status=$(cat "$dir/status" 2>/dev/null)
   case "$status" in
     ''|*[!0-9]*) status=1 ;;
@@ -712,6 +776,10 @@ while IFS= read -r _case_name; do
 queued=${#selftest_queue[@]}
 started=0
 running=0
+# The selection's own figure (issue #782): the wall clock of the pool, from the first case started to the last one reaped.
+# `--times` figures come from each case's own record; this one is the suite's, so a reader can price a run without
+# adding up a pool's cases.
+suite_started_ms=$(date +%s%3N)
 while [ "$started" -lt "$queued" ] || [ "$running" -gt 0 ]; do
   while [ "$running" -lt "$workers" ] && [ "$started" -lt "$queued" ]; do
     slot=$(selftest_free_slot) || break
@@ -731,7 +799,13 @@ while [ "$started" -lt "$queued" ] || [ "$running" -gt 0 ]; do
     # watcher ended it is a failure, and the line says which clock answered it.
     bound=$(cat "${case_slot_dir[$slot]}/bound" 2>/dev/null)
     if finish_case "$slot"; then
-      printf 'PASS %s\n' "$case_name"
+      # `--times` is the only shape that adds a figure to the line (issue #782): the mutation harness and the leftovers
+      # cases read `PASS <name>` as a name, and the name stays the field between the two.
+      if [ "$print_times" -eq 1 ]; then
+        printf 'PASS %s (%s ms)\n' "$case_name" "$finished_case_ms"
+      else
+        printf 'PASS %s\n' "$case_name"
+      fi
     else
       failed=$((failed + 1))
       if [ -n "$bound" ]; then
@@ -753,6 +827,8 @@ if [ "$total" -eq 0 ]; then
   exit 0
 fi
 if [ "$failed" -gt 0 ]; then
+  # A red suite states its cost too: the number a person acts on is the one a failing run paid for (issue #782).
+  selftest_group_report
   echo "loop-selftest: $failed of $total cases failed"
   exit 1
 fi
@@ -768,5 +844,6 @@ selection=""
 if [ "$total" -eq 1 ] && [ -n "$only_case" ] && [ -z "$only_group" ] && ! is_glob "$only_case"; then
   exit 0
 fi
-echo "loop-selftest: all $total cases passed (JDK $feature, offline, no token, no sandbox)${selection:+ — selection:$selection}"
+selftest_group_report
+echo "loop-selftest: all $total cases passed (JDK $feature, offline, no token, no sandbox) — $(($(loop_case_elapsed_ms "$suite_started_ms") / 1000)) s${selection:+, selection:$selection}"
 exit 0

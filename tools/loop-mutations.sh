@@ -758,6 +758,13 @@ MUTATIONS=(
   '79.2@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the block that reads the diff before the gate and starts the child that runs it (issue #758)@s|^  if \[ "\$pre_gate" = on \] \&\& \[ "\$worker_exit" -eq 0 \] \&\& \[ "\$worker_write_decides" -eq 0 \]; then$|  if false; then|'
   '79.3@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the findings the refuting round wrote, handed to the child that runs the gate (issue #758)@s|^        if grep -q \x27^VERDICT: FAIL\x27 "\$pre_gate_report" 2>/dev/null \&\& \[ -n "\$blocking" \] \&\& \[ "\$blocking" -gt 0 \]; then$|        if false; then|'
   '79.4@-@tools/loop/run.sh@run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun@the outcome arm a round the run cut records, so a change nobody read is left for the next run instead of closing (issue #758)@s|^  if \[ -n "\$pre_gate_refusal" \]; then$|  if false; then|'
+  # The suite reported what it ran and never what it cost (issue #782, the change `loop-suite-cost-is-reported`). The
+  # case set grew 166 → 314 cases in twelve days with the cost of an addition printed nowhere, so the report itself is
+  # the invariant: the per-group lines the summary owes, and the figure `--times` adds to a passing case's line. Both
+  # mutations leave every count, every name and the exit status standing, so what goes red is the figure and nothing
+  # else.
+  '80.1@-@../loop-selftest.sh@driver#theSummaryNamesWhatEachGroupCost@the per-group report the summary owes — one line per group with its elapsed time and its count (issue #782)@s|^  for group in ${case_groups_seen:-}; do$|  : # the mutation reports no group cost|'
+  '80.2@-@../loop-selftest.sh@driver#theTimesFigureIsAskedForNotAssumed@the figure `--times` adds to a passing case, which no other invocation prints (issue #782)@s|^      if \[ "\$print_times" -eq 1 \]; then$|      if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

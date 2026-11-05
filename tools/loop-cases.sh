@@ -327,6 +327,8 @@ LOOP_SHELL_CASES=(
   'driver#aCeilingTheSuiteFitsInsideChangesNothing'
   'driver#aRunningCasePrintsItsOwnLines'
   'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt'
+  'driver#theSummaryNamesWhatEachGroupCost'
+  'driver#theTimesFigureIsAskedForNotAssumed'
   'driver#aSecondSuiteInOneRepositoryIsRefused'
   'driver#noFixtureFifoIsOpenedWriteOnly'
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
@@ -690,6 +692,8 @@ loop_run_shell_case() {
     'driver#aCeilingTheSuiteFitsInsideChangesNothing') fn=case_driver_aCeilingTheSuiteFitsInsideChangesNothing ;;
     'driver#aRunningCasePrintsItsOwnLines') fn=case_driver_aRunningCasePrintsItsOwnLines ;;
     'driver#aCaseThatLeavesAProcessBehindIsSweptWithIt') fn=case_driver_aCaseThatLeavesAProcessBehindIsSweptWithIt ;;
+    'driver#theSummaryNamesWhatEachGroupCost') fn=case_driver_theSummaryNamesWhatEachGroupCost ;;
+    'driver#theTimesFigureIsAskedForNotAssumed') fn=case_driver_theTimesFigureIsAskedForNotAssumed ;;
     'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
     'driver#noFixtureFifoIsOpenedWriteOnly') fn=case_driver_noFixtureFifoIsOpenedWriteOnly ;;
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
@@ -9814,7 +9818,9 @@ case_driver_aGroupFilterRunsOnlyItsOwnCases() {
   d=$(scratch); driver_selection_probe "$d"; nested="$d/nested"
   out=$(bash "$nested/tools/loop-selftest.sh" --group alpha 2>&1); rc=$?
   assert_eq "0" "$rc" "the group's two cases pass: $out"
-  assert_contains "$out" "— selection: --group alpha" \
+  # The summary names the selection it ran, so a green filtered run never reads like the whole suite (issue #260); the
+  # elapsed figure sits between the flags and it since #782, so the assertion is the selection and not the dash before it.
+  assert_contains "$out" "selection: --group alpha" \
     "and the summary names the selection it ran, so a green filtered run never reads like the whole suite: $out"
   # The pool runs the group's cases at once, so the order they recorded themselves in is the order they finished in:
   # what the filter owes is the set (issue #260).
@@ -10680,6 +10686,85 @@ CASES
     sleep 0.1
   done
   [ "$alive" -eq 0 ] || { kill -9 "$pid" 2>/dev/null; fail "the process the case left behind outlived the suite (pid $pid)"; }
+  return 0
+}
+
+# ── what the suite cost, not only what it ran (issue #782) ─────────────────────────────────────────────────────
+# The case set grew 166 → 314 cases in twelve days (`git show <sha>:tools/loop-cases.sh | grep -c '^case_'`) and the
+# summary stated the count, the JDK feature and the selection — no time at all, so an addition to the set cost its
+# author nothing it could see. These two cases are the report's own contract: that the summary names what each group
+# cost beside how many of its cases paid it, and that a passing case's line keeps the shape three callers read unless
+# the invocation asks for the figure.
+#
+# Both drive a nested copy of the driver with a stub suite of three cases in two groups (`nested_suite`, the shape
+# `driver#aCaseInsideItsBoundKeepsItsOwnVerdict` established): what is asserted is the report, not the cost of running
+# the real 314 cases.
+case_driver_theSummaryNamesWhatEachGroupCost() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d out driver conf status lines alpha
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('alpha#quick' 'alpha#alsoQuick' 'beta#quick')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() { sleep 1; }
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  printf 'LOOP_CASE_MAX_SECONDS=60\n' >> "$conf"
+  # One case at a time, so the group's figure is the sum of its cases' own times and nothing else — the shape a reader
+  # of a group's cost means, and the shape task 3.1 of this change measured the three trimmed groups in.
+  out=$(cd "$d" && LOOP_CONF="$conf" timeout 120 bash "$driver" --jobs 1 2>&1); status=$?
+  assert_eq "0" "$status" "the suite is green: $out"
+  lines=$(printf '%s\n' "$out" | grep -cE '^loop-selftest: (alpha|beta) [0-9]+ cases [0-9]+\.[0-9] s$' || true)
+  assert_eq "2" "$lines" "the summary carries one line per group, each with its elapsed time and its count: $out"
+  assert_contains "$out" "loop-selftest: alpha 2 cases" "the group's line states how many of its cases paid it: $out"
+  assert_contains "$out" "loop-selftest: beta 1 cases" "and so does the other group's: $out"
+  # The counts and the exit status are what they were: a report that moved them would be a change to the line the gate
+  # reads (`.*all N cases passed.*`, `gate.sh`) rather than a figure beside it.
+  assert_contains "$out" "loop-selftest: all 3 cases passed" "the green summary keeps its counts: $out"
+  assert_eq "1" "$(printf '%s\n' "$out" | grep -cE '^loop-selftest: all 3 cases passed \(.*\) — [0-9]+ s$' || true)" \
+    "and the selection's own line names what it cost: $out"
+  # The figure is this run's measurement and not a constant: two cases of a second each are about two seconds of group,
+  # and the decaseconds the line prints are read back rather than assumed.
+  alpha=$(printf '%s\n' "$out" | sed -n 's/^loop-selftest: alpha [0-9][0-9]* cases \([0-9][0-9]*\)\.\([0-9]\) s$/\1\2/p')
+  case "$alpha" in ''|*[!0-9]*) fail "the group's line carries no figure to read: $out" ;; esac
+  [ "$alpha" -ge 15 ] || fail "the group's figure is the two seconds its two cases cost, not a constant: $out"
+  return 0
+}
+
+# A passing case's line is the field three callers read: the mutation harness's records name a case, the leftovers and
+# filter cases parse `PASS <name>` out of a nested suite's output, and a figure in the middle of it would be a change
+# to a contract nobody asked to change. So the figure is asked for — `--times` — and nothing else moves.
+case_driver_theTimesFigureIsAskedForNotAssumed() {
+  # files: tools/issues/ tools/loop-cases.sh tools/loop-selftest.sh tools/loop/
+  local d out driver conf status plain timed names_plain names_timed
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('alpha#quick' 'beta#quick')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() { sleep 1; }
+CASES
+  ) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  printf 'LOOP_CASE_MAX_SECONDS=60\n' >> "$conf"
+  # The invocation the harness makes: no `--times`, and every case's line is its `PASS` and its name and nothing else.
+  plain=$(cd "$d" && LOOP_CONF="$conf" timeout 120 bash "$driver" --jobs 1 2>&1); status=$?
+  assert_eq "0" "$status" "the suite is green without --times: $plain"
+  assert_eq "2" "$(printf '%s\n' "$plain" | grep -cE '^PASS (alpha|beta)#quick$' || true)" \
+    "every case's line is its PASS and its name: $plain"
+  assert_eq "0" "$(printf '%s\n' "$plain" | grep -cE '^PASS .*[0-9]' || true)" \
+    "no figure is printed for an invocation that did not ask for one: $plain"
+  # …and with it, the same names with a figure beside them: milliseconds, because a case of this suite costs a fraction
+  # of a second and a whole-second figure would state a zero for every one of them.
+  timed=$(cd "$d" && LOOP_CONF="$conf" timeout 120 bash "$driver" --jobs 1 --times 2>&1); status=$?
+  assert_eq "0" "$status" "--times is an argument the driver knows: $timed"
+  assert_eq "2" "$(printf '%s\n' "$timed" | grep -cE '^PASS (alpha|beta)#quick \([0-9]+ ms\)$' || true)" \
+    "with --times each passing case's line carries the milliseconds it cost: $timed"
+  names_plain=$(printf '%s\n' "$plain" | sed -n 's/^PASS //p' | sort | tr '\n' ' ')
+  names_timed=$(printf '%s\n' "$timed" | sed -n 's/^PASS \([^ ]*\) .*/\1/p' | sort | tr '\n' ' ')
+  assert_eq "$names_plain" "$names_timed" "the figure is added beside the name, not in front of it: $timed"
   return 0
 }
 

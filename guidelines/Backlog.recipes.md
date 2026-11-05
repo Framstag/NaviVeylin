@@ -458,6 +458,35 @@ next case — which is why the exit trap's `/proc` sweep, one pass over every pr
 made per case and not per suite. The worker count is `--jobs` on the invocation, else `LOOP_SELFTEST_JOBS` in the
 profile, else the host's CPU count; the `PASS`/`FAIL` line per case, the counts, the summary and the exit status are unchanged.
 
+The figure above is a hand measurement, and a hand measurement ages: it was taken at 221 cases on 2026-10-25, and the
+case set was 314 cases by 2026-11-03 (issue #782). The suite states its own cost now, in the place it is paid. Its
+summary carries one line per group — that group's elapsed time, as the sum of its cases' own times, and how many cases
+paid it — and one line for the selection:
+
+```
+loop-selftest: state 23 cases 36.6 s
+loop-selftest: report 20 cases 29.0 s
+loop-selftest: all 314 cases passed (JDK 21, offline, no token, no sandbox) — 469 s, selection: --jobs 4
+```
+
+A passing case's line is unchanged unless the invocation asks for the figure (`--times` adds the milliseconds beside
+the name), because the mutation harness's records and the leftovers cases read that line and name a case in it. The
+gate's tally carries the same figure beside its counts — `LOOP-GATE: tests=… (bash tools/loop-selftest.sh 469s)` — so
+the number lands in the record the run's own check reads. Every one of these figures is **that run's** own measurement
+and is never compared with a stored one: the baselines this document quotes disagree by minutes on the same host, and
+a baseline's disagreement is a disagreement about the host.
+
+The rule the report exists for: **a group's cost is read before a case is added to it**, and a case that buys a whole
+fixture for an assertion another case already makes is merged rather than added. Measured 2026-11-05 (`--group state
+--jobs 1` and `--times`, the shape `--times` was added for): `state` 23 cases 36.6 s, `report` 20 cases 29.0 s,
+`prescreen` 30 cases 32.6 s — 1,1 to 1,6 s a case, and the fixture a case builds (`new_project`: `mkdir`, two copies,
+`git init`, two `git config`s, `add`, `commit`) costs 11 ms of it (probe: those commands five times, 55 ms in total).
+So a case's cost is its assertions and not its setup: the three groups' 73 cases pay 98,2 s of case time, of which
+every fixture they build is 0,8 s — merging all 73 into one case each would save 0,8 % of those three groups and
+nothing at all of the suite's other 241 cases. The group worth looking at is the expensive one — `run`, 114 cases,
+245 s at `--jobs 4`, measured the same day — not the cheap one.
+
+
 One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a
 red gate can belong to the neighbour rather than to the change under test. The driver holds a lease in the root the
 tree resolved — a second invocation that may run more than one case is refused with exit 2, naming the rule, the

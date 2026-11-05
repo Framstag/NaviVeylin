@@ -692,7 +692,15 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
     if ! discard_kept_worktree reset-worktree "$leftovers"; then
       # The repair's refusal ends the run too, and a run whose end is not recorded is the shape of a crash once
       # this process is gone: the report reads `run.stop`, so the refusal is written as the run's own (#787).
-      stop_run "the kept worktree is still not clean after --reset-worktree — nothing was started; the paths it printed are removed by hand"
+      # The reason names the paths the repair printed — the status it left behind, not the one the attempt started
+      # from: a file `reset --hard` did discard is not work a reader still owes, and naming it would put back the
+      # false claim this change exists to end. The console scrolls away, and the reason is what a later report
+      # prints (`Backlog.recipes.md` §7d).
+      remaining=$(git -C "$worktree" status --porcelain)
+      remaining_reason=""
+      [ -z "$remaining" ] ||
+        remaining_reason=" — $(printf '%s' "$remaining" | tr '\n' ';' | sed 's/;$//; s/;/; /g')"
+      stop_run "the kept worktree is still not clean after --reset-worktree${remaining_reason} — nothing was started; the paths it printed are removed by hand"
       bash "$LOOP_DIR/report.sh"
       exit "$LOOP_REFUSE"
     fi

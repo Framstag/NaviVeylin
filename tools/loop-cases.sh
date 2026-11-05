@@ -6864,6 +6864,8 @@ case_run_resetWorktreeNamesTheDirtItCannotDiscard() {
   assert_not_contains "$out" "pre-screen:" "and nothing is started"
   assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "still not clean after --reset-worktree" \
     "the refusal is the run's stop reason, not only a line on the console"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "app/src/main/cpp/libosmscout" \
+    "and the reason names the dirt the refusal printed, so the record outlives the console"
   [ -f "$wt/app/src/main/cpp/libosmscout/leftover.txt" ] || fail "the refusal discarded what it said it could not"
 }
 

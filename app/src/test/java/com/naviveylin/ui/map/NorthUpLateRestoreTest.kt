@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -101,7 +102,7 @@ class NorthUpLateRestoreTest {
 
     @Test
     fun orientationTheUserDidNotChooseIsRestoredFromDisk() = runTest(mainDispatcherRule.dispatcher) {
-        writeSettings(AppSettings(navNorthUp = true, freeFormNorthUp = true))
+        writeSettings(AppSettings(navNorthUp = true, freeFormNorthUp = false))
         startTheViewModel()
 
         completeTheRead()
@@ -110,7 +111,10 @@ class NorthUpLateRestoreTest {
             "an orientation the user did not change is restored from disk",
             viewModel.uiState.value.navNorthUp
         )
-        assertTrue(viewModel.uiState.value.freeFormNorthUp)
+        assertFalse(
+            "a persisted orientation the user did not change must reach the state, not the default",
+            viewModel.uiState.value.freeFormNorthUp
+        )
     }
 
     /**

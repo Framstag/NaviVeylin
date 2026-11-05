@@ -9,9 +9,9 @@ write lands at a time no caller controls: after the constructor, and possibly af
 
 `onSetNavOrientation(true)` (the compass long press, `MapCanvasViewModelFollow.kt:705`) sets `navNorthUp = true`
 and the angle to 0. If the start-up read completes after that, it writes `navNorthUp = false` back. The next fix
-then reads `isNorthUp = false` (`MapCanvasViewModelFollow.kt:1031`), the fix carries no smoothed course (or one the
+then reads `isNorthUp = false` (`MapCanvasViewModelFollow.kt:1032`), the fix carries no smoothed course (or one the
 deadband rejects), and the rotation picks the "follow direction without a valid course" branch — `lastUsedAngle`
-(line 1070) — which is the +90° the user left. That is the observed `expected:<0.0> but
+(line 1072) — which is the +90° the user left. That is the observed `expected:<0.0> but
 was:<1.5707963267948966>`.
 
 ## The single fix
@@ -32,8 +32,8 @@ Why the flag and not a re-read, an await, or a version counter:
 - **A settings version counter** is the same flag with a comparison added, over one field's worth of information.
 
 The alternative the evidence eliminates is "the rotation code is wrong": the north-up branch commits 0.0
-unconditionally (`MapCanvasViewModelFollow.kt:1053-1054`), and it held at the second fix of the failing case
-(`MapCanvasViewModelFollowModeTest.kt:428-437`) — the map was rotated back only after the state said follow
+unconditionally (`MapCanvasViewModelFollow.kt:1055-1056`), and it held at the second fix of the failing case
+(`MapCanvasViewModelFollowModeTest.kt:429-436`) — the map was rotated back only after the state said follow
 direction again.
 
 ## Blast radius
@@ -55,8 +55,8 @@ no-op for its settings file.
 
 `NorthUpLateRestoreTest` reuses the mechanism `DarkModeLateRestoreTest` established: the storage's `ioDispatcher`
 is a `StandardTestDispatcher` over a scheduler the case advances by hand, so "the read completes after the choice"
-is an ordering, not a race (`guidelines/BuildTests.md` §6e: a production `withContext` in a suspend accessor makes
-a virtual-time test non-deterministic unless the test points the seam at its own scheduler).
+is an ordering, not a race — the rule `guidelines/BuildTests.md` §6e states, "a test that must wait drives the
+component's seam and awaits observable state", and the seam it drives is the storage's `ioDispatcher`.
 
 `MapCanvasViewModelFollowModeTest` — the class the CI failure came from — is given the same seam: its storage's
 `ioDispatcher` is the rule's dispatcher, and its `enableFollowDirectionMode` helper drains the read *before* it

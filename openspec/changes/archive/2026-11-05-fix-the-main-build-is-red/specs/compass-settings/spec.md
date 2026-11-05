@@ -18,8 +18,9 @@ from disk.
 
 #### Scenario: An orientation the user did not choose is restored
 
-- **WHEN** the persisted settings carry "North always up" for both modes
+- **WHEN** the persisted settings carry a navigation orientation and a free-form orientation that each differ
+  from its default
 - **AND** the user changes no orientation while the start-up read is open
 - **WHEN** that read completes
-- **THEN** both orientations SHALL be "North always up", read from disk
+- **THEN** each orientation SHALL be the persisted value, read from disk
 - **Case**: `app: NorthUpLateRestoreTest.orientationTheUserDidNotChooseIsRestoredFromDisk`

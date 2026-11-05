@@ -19,9 +19,12 @@
       green with the fix — `:app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest"`
       gives `tests=24 failures=0` (`2026-11-05T09:12:59.979Z`).
 - [x] 6. Re-run both classes after the fix in both flavours. Verify: `tests=2 failures=0` and `tests=24
-      failures=0` on `mobileDebug` (`2026-11-05T09:12:59Z`/`09:13:00Z`), and the same two classes green on
-      `automotiveDebug` (`BUILD SUCCESSFUL`, 2026-11-05T09:1x, copied as
-      `green-automotive-TEST-MapCanvasViewModelFollowModeTest.xml` / `...NorthUpLateRestoreTest.xml`).
-- [x] 7. Run the whole `com.naviveylin.ui.map` package and `AppSettingsTest` — every case that names the
-      orientation state — on `mobileDebug`. Verify: `BUILD SUCCESSFUL` (`--tests "com.naviveylin.ui.map.*" --tests
-      "com.naviveylin.data.AppSettingsTest"`, 2026-11-05T09:15Z).
+      failures=0` on `mobileDebug` (`2026-11-05T09:13:00.192Z`/`09:12:59.979Z`), and the same two classes green
+      on `automotiveDebug` (`tests=2 failures=0` `2026-11-05T09:14:44.508Z`, `tests=24 failures=0`
+      `2026-11-05T09:14:44.337Z`), copied as `green-automotive-TEST-NorthUpLateRestoreTest.xml` /
+      `...MapCanvasViewModelFollowModeTest.xml`.
+- [x] 7. Run the cases that name the orientation state beyond the two changed classes — the rest of
+      `com.naviveylin.ui.map` and `AppSettingsTest` — on `mobileDebug`: `BUILD SUCCESSFUL` (`--tests
+      "com.naviveylin.ui.map.*" --tests "com.naviveylin.data.AppSettingsTest"`, 2026-11-05T09:15Z). That step
+      carries no tally of its own; the classes it covers are measured by the gate run (`tests=458 failures=0`,
+      09:25–09:27, `evidence/gate-summary.txt`).

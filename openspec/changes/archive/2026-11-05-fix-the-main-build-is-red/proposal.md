@@ -28,8 +28,8 @@ The read is a suspension point on the storage's own dispatcher (`SettingsStorage
 choice whenever the IO thread loses the race — which is what a loaded CI runner makes likely. The same class
 already documents the clobber as a workaround in its own helper ("The init settings load overwrites the state with
 persisted values when the test scheduler advances — flush it, then re-apply so the test state sticks",
-`MapCanvasViewModelFollowModeTest.kt:257-269`): the defect was visible in the test's own text and worked around
-rather than fixed.
+`MapCanvasViewModelFollowModeTest.kt:257-269` on the fix's base `ec58cb91`): the defect was visible in the test's
+own text and worked around rather than fixed.
 
 The capability already forbids exactly this for the dark-mode fields — `dark-mode`'s "A user change outranks an
 in-flight settings read", implemented with `darkModePreferenceSetByUser` / `ambientSensitivitySetByUser` /
@@ -58,9 +58,10 @@ surface: 2 cases added (`NorthUpLateRestoreTest`, both in a new class), 1 case r
 no longer re-applies the choice after the drain), 1 fixture realigned (that class's `SettingsStorage` is given the
 test scheduler as its IO seam), 2 production fields guarded — 2 flags added, 2 setters marked, 1 restore site
 guarded. Counted with
-`grep -rln "onSetNavOrientation\|onSetFreeFormOrientation\|navNorthUp\|freeFormNorthUp" app/src/test/java` (6 test
-files name the orientation state; the two changed/added) and `grep -rn "navNorthUp\|freeFormNorthUp" app/src/main/java`
-(2 setters, 1 restore site, the 2 state fields).
+`grep -rln "onSetNavOrientation\|onSetFreeFormOrientation\|navNorthUp\|freeFormNorthUp" app/src/test/java` (7 test
+files name the orientation state — the two changed/added here, plus five untouched) and
+`grep -rn "navNorthUp\|freeFormNorthUp" app/src/main/java/com/naviveylin/ui/map` (46 lines in the package; the
+changed sites among them are 2 setters, 1 restore site and the 2 state fields).
 
 ## What Changes
 
@@ -73,8 +74,8 @@ files name the orientation state; the two changed/added) and `grep -rn "navNorth
   choice" is an ordering the case decides instead of a race: one case for the choice that must survive the read,
   one for the field that must still be restored.
 - `MapCanvasViewModelFollowModeTest` points the storage's IO seam at the test scheduler (the rule
-  `guidelines/BuildTests.md` §6e states for a production `withContext` in a suspend accessor) and drops the
-  flush-then-re-apply workaround its helper carried.
+  `guidelines/BuildTests.md` §6e states — a test that must wait drives the component's seam and awaits observable
+  state — and drops the flush-then-re-apply workaround its helper carried.
 
 **Not changing:** the rotation pipeline, the north-up branch of the follow collector, and every other field the
 start-up read restores. The other unguarded fields are a wider question than this item — a change that guarded all

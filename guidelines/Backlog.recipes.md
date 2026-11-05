@@ -473,7 +473,9 @@ narrowed by a selection that runs fewer of that entry's cases, and `gate#theMapC
 `--group <selection>` from both sides before it compares (`guidelines/Build.md` §3). Measured 2026-11-05 (issue
 #781): `bash tools/loop-selftest.sh --list | cut -d'#' -f1 | sort | uniq -c` counts the three selections above, and
 on 2026-11-04 the whole set at `--jobs 4` took 469 s on a 16-core host with `--group run` 261 s of them (56 %),
-against the 17 min 15 s the same set spends as one step on a four-core runner (run 41810844107).
+against the 17 min 15 s the same set spends as one step on a four-core runner (run 41810844107); the three legs
+of the first green dispatch (2026-11-05, run 42094414229) took 361 s, 416 s and 107 s, so the suite's wall clock in
+the pipeline is the slowest leg's 6 min 56 s rather than the 17 min 15 s the one step spent.
 
 One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a
 red gate can belong to the neighbour rather than to the change under test. The driver holds a lease in the root the

@@ -61,7 +61,7 @@ class MapCanvasViewModelFollowModeTest {
         locationService = LocationService(context)
         viewModel = MapCanvasViewModel(
             viewportStorage = ViewportStorage(context),
-            settingsStorage = SettingsStorage(context),
+            settingsStorage = SettingsStorage(context).also { it.ioDispatcher = mainDispatcherRule.dispatcher },
             assetCopier = AssetCopier(context),
             client = client,
             favoriteRepository = FavoriteRepository(client),
@@ -255,14 +255,13 @@ class MapCanvasViewModelFollowModeTest {
     // --- Bearing smoothing (spec: gps-bearing-smoothing) ---
 
     /**
-     * Enable follow mode with follow-direction (not north-up). The init
-     * settings load overwrites the state with persisted values when the test
-     * scheduler advances — flush it, then re-apply so the test state sticks.
+     * Enable follow mode with follow-direction (not north-up). The start-up read of the persisted
+     * settings runs on the test scheduler, so drain it first and then apply the mode: the orientation
+     * the case sets survives that read even when it lands after the choice
+     * (spec: `compass-settings` — A user orientation choice outranks an in-flight settings read).
      * FREE_DRIVE orientation is the driving orientation (navNorthUp).
      */
     private fun TestScope.enableFollowDirectionMode() {
-        viewModel.onToggleFollowMode(true)
-        viewModel.onSetNavOrientation(false)
         advanceUntilIdle()
         viewModel.onToggleFollowMode(true)
         viewModel.onSetNavOrientation(false)

@@ -470,13 +470,27 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
         } else {
             settings.preferSymbolPoiIcons
         }
+        // The orientations are a suspension-point read like the dark-mode fields above: a compass long
+        // press or a location-options change that landed while this read was in flight wins, and a field
+        // the user did not change is still restored from disk
+        // (spec: `compass-settings` — A user orientation choice outranks an in-flight settings read).
+        val navNorthUp = if (navNorthUpSetByUser) {
+            _uiState.value.navNorthUp
+        } else {
+            settings.navNorthUp
+        }
+        val freeFormNorthUp = if (freeFormNorthUpSetByUser) {
+            _uiState.value.freeFormNorthUp
+        } else {
+            settings.freeFormNorthUp
+        }
         _uiState.value = _uiState.value.copy(
             // followMode is deliberately NOT restored: the app always starts
             // in BROWSE (spec: map-modes — always browse on start); free
             // drive is per-session intent entered via the mode toggle.
             autoZoomEnabled = settings.autoZoomEnabled,
-            freeFormNorthUp = settings.freeFormNorthUp,
-            navNorthUp = settings.navNorthUp,
+            freeFormNorthUp = freeFormNorthUp,
+            navNorthUp = navNorthUp,
             keepScreenOn = settings.keepScreenOn,
             darkModePreference = darkModePreference,
             ambientLightSensitivity = ambientLightSensitivity,

@@ -1,0 +1,25 @@
+# Landing run — the two classes on the merged tree
+
+`main` moved past this change's base (`ec58cb91` → `caf44b92`) and touched the same two production files
+(`MapCanvasViewModel.kt` +13, `MapCanvasViewModelSettings.kt` −83/+…), so the tree the 09:25Z gate measured is not
+the tree that lands. `main` was merged into this branch (clean, no conflict) and the classes were re-run on the
+result:
+
+```
+./gradlew :app:testMobileDebugUnitTest :app:testAutomotiveDebugUnitTest -PforceTests -PjvmTestsOnly \
+  --no-build-cache --tests "com.naviveylin.ui.map.NorthUpLateRestoreTest" \
+  --tests "com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest"
+BUILD SUCCESSFUL in 11m 49s — 139 actionable tasks: 89 executed, 50 up-to-date
+```
+
+- mobileDebug, NorthUpLateRestoreTest — tests="2" failures="0" errors="0" 2026-11-05T19:44:05.094Z
+- mobileDebug, MapCanvasViewModelFollowModeTest — tests="24" failures="0" errors="0" 2026-11-05T19:44:01.833Z
+- automotiveDebug, NorthUpLateRestoreTest — tests="2" failures="0" errors="0" 2026-11-05T19:46:35.031Z
+- automotiveDebug, MapCanvasViewModelFollowModeTest — tests="24" failures="0" errors="0" 2026-11-05T19:46:35.194Z
+
+`-PjvmTestsOnly` is the gate's own step (the two classes are Robolectric unit tests; the pruned task set is what
+`BuildEvidence.md` §4c declares for a JVM-scope run). The guard sits unedited in the merge result
+(`MapCanvasViewModelSettings.kt:477-493`, the two setters at `MapCanvasViewModelFollow.kt:681` / `:707`).
+
+The aggregate — every suite, both flavours — is the CI run this merge triggers on `main`; the two classes above
+and `AppSettingsTest` are the ones this change can affect.

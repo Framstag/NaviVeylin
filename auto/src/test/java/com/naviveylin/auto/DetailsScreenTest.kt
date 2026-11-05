@@ -1,5 +1,6 @@
 package com.naviveylin.auto
 
+import android.app.Application
 import android.content.Context
 import androidx.car.app.AppManager
 import androidx.car.app.ScreenManager
@@ -38,6 +39,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import java.util.Locale
 
 /**
@@ -456,6 +458,26 @@ class DetailsScreenTest {
         assertEquals("Mo-Fr 09:00-18:00", rows[6].texts[0].toString())
         assertEquals("Phone", rows[5].title.toString())
         assertEquals("Website", rows[7].title.toString())
+    }
+
+    @Test
+    fun contactRowsCarryTheirValueAndStartNoIntent() {
+        // Spec: auto-destination-details — Contact rows on the car stay
+        // non-actionable. Same label and value text as the phone dialog; only
+        // the interaction differs, because a Car App Library template cannot
+        // start an activity outside the car app.
+        val rows = buildAttributeList(
+            testCarContext(),
+            lat = 51.5136, lon = 7.4653, address = null,
+            description = description(entry("Contact", "Website", "https://cafe.de"))
+        )
+
+        val websiteRow = rows.first { it.title.toString() == "Website" }
+        assertEquals("https://cafe.de", websiteRow.texts.single().toString())
+        assertNull(
+            "the car's contact row starts no intent",
+            shadowOf(ApplicationProvider.getApplicationContext<Application>()).nextStartedActivity
+        )
     }
 
     @Test

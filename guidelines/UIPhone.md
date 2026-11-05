@@ -31,6 +31,12 @@ Source: spec `enhanced-details-sheet`.
 - **Rule: the details dialog has exactly one primary action.** Exactly one primary (filled "Navigate to"),
   secondary actions outlined ("Show", "Add to Favorites"), destructive error-colored
   ("Remove from Favorites").
+- **Rule: the two `Contact` values are links on the phone.** (spec `enhanced-details-sheet`, change
+  `contact-links-in-details`.) A `Contact/Website` value opens the browser and a `Contact/Phone` value opens
+  the dialer prefilled (`ACTION_DIAL`, never `ACTION_CALL`); each `;`-separated part is its own link. A value
+  the allow-list refuses — `http`/`https` only, three digits minimum — stays plain text, no entry outside the
+  `Contact` section becomes tappable, and a tap no installed app handles shows a transient hint while the
+  dialog stays open. The labels stay the native English keys (their translation is issue #767).
 
 ## 6a. Phone search surface (unified search dialog)
 

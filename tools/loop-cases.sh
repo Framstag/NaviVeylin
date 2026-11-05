@@ -8214,7 +8214,7 @@ case_run_theEndSweepsTheLandedBranchesItMade() {
 # remote arm beside its local one, and that arm's destructive half owes the one reading a shared remote takes: a
 # ref that is the head of an open pull request is somebody's review, and deleting it closes their pull request.
 case_run_theRemoteSweepKeepsAnOpenPullRequest() {
-  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/tooling.json tools/issues/fixtures/
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json tools/issues/fixtures/
   local d p origin out refs slug fetched_tip
   d=$(scratch); p=$(new_project); origin="$d/origin.git"
   git init -q --bare "$origin" >/dev/null 2>&1 || fail "could not create the remote"
@@ -8301,7 +8301,7 @@ case_run_theRemoteSweepKeepsAnOpenPullRequest() {
 # a branch landed during or after the run read as work the base does not have, and the sweep that exists to remove
 # it kept it (issue #763). The base is the fetched `origin/<base branch>`.
 case_run_theSweepComparesAgainstTheFetchedBase() {
-  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/state.sh tools/tooling.json tools/issues/fixtures/
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/issues/fixtures/
   local d p out
   d=$(scratch); p=$(new_project)
   git init -q --bare "$d/origin.git" >/dev/null 2>&1 || fail "could not create the remote"

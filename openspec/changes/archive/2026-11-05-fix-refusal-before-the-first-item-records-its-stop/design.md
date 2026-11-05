@@ -20,14 +20,18 @@ Route the three refusals through the function that already exists:
 - `:721`, the kept worktree a previous run left dirty — `stop_run` naming the refusal and the item the tree's
   branch marker names, before the report it already prints.
 - `:692`, `--reset-worktree` that cannot make the tree clean — `stop_run` in place of `loop_refuse`, then the
-  report and the exit its neighbour at `:721` uses. The repair's own output — what it named, what it could not
-  discard — is unchanged; the case that reads it keeps every assertion.
+  report and the exit its neighbour at `:721` uses. The reason carries the paths the repair printed — the status
+  left behind after both verbs, not the one the attempt started from, since a file the reset did discard is not
+  work a reader still owes. The repair's own output — what it named, what it could not discard — is unchanged;
+  the case that reads it keeps every assertion.
 
 Nothing else moves: the same exit codes (`5`), the same lines on the console, the same order.
 
 ## Blast radius
 
-Three exits in `tools/loop/run.sh`, one case added and two cases given one assertion each. A run that is refused
+Three exits in `tools/loop/run.sh`, one case added and two cases given assertions each —
+`run#dirtyKeptWorktreeIsARecordedRefusal` two, `run#resetWorktreeNamesTheDirtItCannotDiscard` two, the second of
+those added by round 1's correction so the reset arm's reason names the paths its repair printed. A run that is refused
 at any of the three now writes `run.stop`, so `report.sh` prints its end instead of "not stopped — the run is
 still going, or it ended without recording a reason" (`:132`) or, once the pid is gone, "it was killed and
 recorded no stop" (`:120`). Nothing reads `run.stop` for a decision: `state.sh next` reads a run's *own* stop only

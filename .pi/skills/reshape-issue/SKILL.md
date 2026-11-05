@@ -1,6 +1,6 @@
 ---
 name: reshape-issue
-description: Reads the shaping inbox — the open items carrying `agent/needs-shaping`, whose one comment states the run's verdict and the clause behind it — and proposes a reshape for each: either the single mechanism the item lacks or the children it splits into, every proposal naming a `file:line` read in the tree and the cost of taking it. Stops for the owner, writes nothing before the owner chooses, and leaves through `tools/issues/create.sh` and `tools/issues/update.sh`. Use when asked "what is waiting to be shaped", "work the shaping inbox", or when a run has handed an item back with `agent/needs-shaping` and nobody has touched it since.
+description: Reads the shaping inbox — the open items carrying `agent/needs-shaping`, whose one comment states the run's verdict and the clause behind it — and proposes a reshape for each — either the single mechanism the item lacks or the children it splits into, every proposal naming a `file:line` read in the tree and the cost of taking it. Stops for the owner, writes nothing before the owner chooses, and leaves through `tools/issues/create.sh` and `tools/issues/update.sh`. Use when asked "what is waiting to be shaped", "work the shaping inbox", or when a run has handed an item back with `agent/needs-shaping` and nobody has touched it since.
 ---
 
 # Reshape an item the inbox holds

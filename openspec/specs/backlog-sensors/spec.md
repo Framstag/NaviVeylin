@@ -182,6 +182,14 @@ SHALL fail the run rather than report an escalation or a filing the writer did n
   instead of reporting an escalation or a filing that did not happen
 - **Case**: `run#aRefusedEscalationPastTheBoundFailsTheRun`
 
+#### Scenario: The filed condition is ordinary work on the next tick
+
+- **WHEN** a condition was filed as a new item because the escalation of its settled issue was refused, and
+  the next run meets the tracker carrying both items under the one fingerprint
+- **THEN** the run annotates the filed item, files no second item for the same condition, and leaves the
+  settled issue untouched
+- **Case**: `run#theFiledConditionIsOpenWorkOnTheNextTick`
+
 ### Requirement: A check acts only on what it owns
 
 A check SHALL be able to close, reopen or annotate only the issues carrying its own label, and an attempt

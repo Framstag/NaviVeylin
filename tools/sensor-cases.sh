@@ -61,6 +61,7 @@ SENSOR_CASES=(
   'run#escalatesPastKRecurrences'
   'run#anEscalationOnASettledIssueFilesANewItem'
   'run#aRefusedEscalationPastTheBoundFailsTheRun'
+  'run#theFiledConditionIsOpenWorkOnTheNextTick'
   'run#aRowDeclaresItsOwnRecurrenceBound'
   'run#libosmscoutLagReadsThreeOutcomes'
   'run#escalationNeverSetsEligibility'
@@ -152,6 +153,7 @@ sensor_run_case() {
     'run#escalatesPastKRecurrences') case_run_escalatesPastKRecurrences ;;
     'run#anEscalationOnASettledIssueFilesANewItem') case_run_anEscalationOnASettledIssueFilesANewItem ;;
     'run#aRefusedEscalationPastTheBoundFailsTheRun') case_run_aRefusedEscalationPastTheBoundFailsTheRun ;;
+    'run#theFiledConditionIsOpenWorkOnTheNextTick') case_run_theFiledConditionIsOpenWorkOnTheNextTick ;;
     'run#aRowDeclaresItsOwnRecurrenceBound') case_run_aRowDeclaresItsOwnRecurrenceBound ;;
     'run#libosmscoutLagReadsThreeOutcomes') case_run_libosmscoutLagReadsThreeOutcomes ;;
     'run#escalationNeverSetsEligibility') case_run_escalationNeverSetsEligibility ;;
@@ -1712,6 +1714,36 @@ case_run_aRefusedEscalationPastTheBoundFailsTheRun() {
   assert_eq "0" "$(recorded "$log" 'issue edit')" "the settled item is untouched"
   assert_contains "$out" "leaves the condition unrecorded" "the failure names the condition nothing recorded"
   assert_eq "0" "$(grep -c 'action=escalated' <<< "$out")" "no refused escalation is reported as written"
+}
+
+# The filing is only worth the write if the next tick meets it as ordinary work: `sensors_issue_for_fingerprint`
+# takes the first item the tracker lists for the fingerprint, and `gh issue list` answers newest first, so the
+# returned condition annotates the item that was filed for it instead of filing the duplicate again — and the
+# settled item keeps its state, because nothing is written to it (issue #780).
+case_run_theFiledConditionIsOpenWorkOnTheNextTick() {
+  local dir log out fp body open findings
+  dir=$(throwaway_project)
+  log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of case alpha)
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->\n<!-- violation-run: 0 -->' "$fp")
+  open=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- violation-run: 0 -->' "$fp")
+  # The tracker as the next tick finds it: the item the refused escalation filed (#99, open, newest first) and
+  # the settled item that carries the same fingerprint (#98).
+  issues_fixture "$dir" "[
+    $(issue_record 99 OPEN "" fixture-emit "$open" | jq -c '.createdAt = "2026-11-05T08:10:00Z"'),
+    $(issue_record 98 CLOSED COMPLETED fixture-emit "$body" \
+      | jq -c '.labels += [{name: "status/fixed-by"}] | .createdAt = "2026-11-01T09:18:00Z"')
+  ]"
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 5 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" 2>&1)
+  assert_eq "0" "$(condition_creates "$log")" \
+    "the returned condition files no second duplicate while its own item is open: $out"
+  assert_eq "1" "$(recorded "$log" 'issue comment')" "the returned condition is recorded on the open item"
+  assert_eq "1" "$(recorded "$log" 'issue edit 99')" "the open item carries the record the annotation needs"
+  assert_eq "0" "$(recorded "$log" 'issue edit 98')" "the settled item is still untouched"
+  assert_contains "$out" "annotated (still open)" "the next tick reads the filed item as open work: $out"
 }
 
 # A row's own `k` is the bound that decides when reopening stops: the engine already reads it

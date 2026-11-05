@@ -1,0 +1,5 @@
+command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.*" --tests "com.naviveylin.i18n.*" -PforceTests --no-build-cache
+verdict: BUILD SUCCESSFUL in 1m 18s
+scope-run: tests=888 skipped=0 failures=0 errors=0 (files=127)
+timestamps: 2026-11-05T10:15:38.148Z .. 2026-11-05T10:16:52.432Z
+note: the affected packages, not the gate — the gate of this item is deferred to the gate child

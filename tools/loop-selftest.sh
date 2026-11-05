@@ -7,7 +7,8 @@
 # sandbox tool: git is never stubbed, because the git logic is part of what is being tested (D13).
 #
 # Usage: bash tools/loop-selftest.sh [--list] [--case <group#name|glob>] [--group <group>] [--jobs <n>]
-#                                    [--files <path> ...] [--from-git <base>] [--case-files] [--print-bound]
+#                                    [--files <path> ...] [--from-git <base>] [--allow-empty]
+#                                    [--case-files] [--print-bound]
 #        A run that may execute more than one case holds this tree's lock; `--list`, `--case-files` and one named
 #        `--case` hold none. `--jobs` bounds how many cases run at once — the value the invocation names, else the
 #        profile's `LOOP_SELFTEST_JOBS`, else the host's CPU count. Every case keeps a process group, a scratch root
@@ -24,6 +25,14 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 # declaration does not name it. A filter that names nothing is a refusal (exit 2) and never a suite that selected
 # no case and reported success — the rule `tools/loop-mutations.sh` already applies to a file filter.
 #
+# `--allow-empty` is the caller that has said which question it is asking: a CI step handed a real delta expects an
+# empty intersection, because most paths in this repository are declared by no case. With the flag the same file set
+# runs nothing, prints `LOOP-SELFTEST: no case declares the delta` beside the file set it read and the declared set it
+# selected against, and exits 0, so the step is a skip that carries its line rather than a red one. It states
+# emptiness and nothing else: a path the tree does not hold, and a file set no case declares given *without* the
+# flag, are the refusal they are today, because a caller that has not declared that it expects emptiness cannot be
+# told by this driver that emptiness is what it found.
+#
 # The file set is why the suite has a seventh of its usual cost available: a delta that touches one engine script
 # owes the cases that declare it, not 190 cases (issue #276 — a two-file delta paid 723 s). The full set is still
 # owed before a change that owns `tools/loop/**` is archived: a case reaches behaviour through the scripts they
@@ -37,6 +46,8 @@ only_group=""
 # basename, and a filter that names no case is a refusal rather than a suite that ran nothing and reported success.
 only_files=" "
 from_git=""
+# A file set that names no case is a refusal unless the invocation says it expects one; see the header.
+allow_empty=0
 list_declared=0
 # How many cases run at once: the invocation's `--jobs`, else the profile's `LOOP_SELFTEST_JOBS`, else the host's CPU
 # count. Read into this variable here and resolved once the profile is sourced; only the value is checked below, so a
@@ -50,6 +61,7 @@ while [ $# -gt 0 ]; do
     --files) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }
       for _wanted in ${2:-}; do only_files="$only_files$_wanted "; done; shift 2 ;;
     --from-git) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; from_git="${2:-}"; shift 2 ;;
+    --allow-empty) allow_empty=1; shift ;;
     --jobs) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; only_jobs="${2:-}"; shift 2 ;;
     --case-files) list_declared=1; shift ;;
     --print-bound) print_bound=1; shift ;;
@@ -647,8 +659,20 @@ if [ -n "$only_case" ] && [ "$(count_matching "$only_case")" -eq 0 ]; then
 fi
 # The file set is refused on its own, against the whole declared set: a caller who named the wrong script would
 # otherwise read a suite that executed nothing as "the change's cases all held". It is the rule the mutation
-# harness applies to its own `--files`, and the reason the declaration exists.
+# harness applies to its own `--files`, and the reason the declaration exists. The one caller that has declared it
+# expects an empty intersection (`--allow-empty`) is answered with a statement instead: nothing runs, and the line
+# names the file set it read and the declared set it selected against, so the log says which delta was covered by
+# nothing rather than saying nothing at all — a step that skipped silently is the bug this line exists to prevent.
 if [ "$only_files" != " " ] && [ "$(count_files_matching)" -eq 0 ]; then
+  if [ "$allow_empty" -eq 1 ]; then
+    # `only_files` is space-padded at both ends (` path path `), and the line names the file set the way a caller
+    # wrote it.
+    delta="${only_files# }"
+    delta="${delta% }"
+    printf 'LOOP-SELFTEST: no case declares the delta (files: %s) — 0 of %s declared, nothing ran\n' \
+      "$delta" "$(count_matching '*')"
+    exit 0
+  fi
   printf 'loop-selftest: the file set names no case of the %s declared — a run that executes nothing would report success, so this is a refusal (--case-files shows what each case declares)\n' "$(count_matching '*')" >&2
   exit 2
 fi

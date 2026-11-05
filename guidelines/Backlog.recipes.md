@@ -449,7 +449,15 @@ the gate replaces with the base it resolved, and the loop's self-test is run tha
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a
 directory), `tools/loop-selftest.sh --files <path> …` / `--from-git <base>` selects on that declaration, and a file
 set that names no case is refused with exit 2 rather than read as an empty suite — the rule the mutation harness
-has applied to its own records since #235. A delta to the library, the profile, the case file or the driver itself
+has applied to its own records since #235. A caller handed a real delta asks a different question — does this delta
+owe any case? — and its ordinary answer is no: most paths in this repository, application code and capability specs
+among them, are declared by no case, because a case declares the engine scripts it can be reached through. That is
+why the refusal has a third outcome beside it: `--allow-empty` is the caller saying it expects emptiness, and it is
+answered with `LOOP-SELFTEST: no case declares the delta` beside the file set it read and the declared set it
+selected against, nothing run and exit 0, so the step's log says which delta was covered by nothing rather than
+saying nothing. The flag states the intersection and nothing else: without it, a path the tree has and no case
+declares is the refusal it was, and CI's own step passes it (`--allow-empty --from-git <base>`, the pull request's
+base else the pushed branch's `before`, the whole set when that value is the all-zeros SHA). A delta to the library, the profile, the case file or the driver itself
 owes the whole set, and so does the archive: a case reaches behaviour through the scripts it starts, and only a
 hand-run of all of them covers that. Measured 2026-10-23 (issue #276): 190 cases and 723 s were owed for every
 `tools/loop/**` gate run, a delta to `tools/loop/worktree.sh` alone is declared by 31 of them, and a delta to

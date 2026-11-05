@@ -135,7 +135,11 @@ tools (`tools/issues/*` owes the issue tooling's self-test, the tracker sets owe
 --list`), so a step's commands are covered even where no single path reaches all of them;
 `gate#theMapCoversEveryPipelineStep` pins that side against the pipeline the profile names in
 `LOOP_GATE_PIPELINE`, so a step the pipeline gains and the map does not carry fails the loop's own suite and
-names the missing commands. The *path* side: which paths a step's tools read is named by no workflow, so the
+names the missing commands. The two sides are compared on the command both run, so a part the pipeline substitutes
+at run time is dropped from both before the comparison — the `--group <selection>` a leg narrows with, the
+`${{ steps.delta.outputs.args }}` a step is handed the delta it owes as, and the gate's own `--from-git {base}` on
+the map's side — because a substitution is not part of the command the map names, and a leg runs *fewer* of the
+cases the map's broader driver entry runs. The *path* side: which paths a step's tools read is named by no workflow, so the
 reader edges were measured once and are hand-kept, and every measured edge owes the *whole* step whose tool
 reads the path — the pipeline runs the step as a unit and any of its commands can be the one that reddens.
 Measured 2026-10-25, for `Check portability`: `tools/check-portability.sh` opens

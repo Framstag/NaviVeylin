@@ -96,6 +96,9 @@ ISSUES_SHELL_CASES=(
   'shaping#aReshapedItemLeavesTheQueue'
   'shaping#aClosedItemLeavesNoLabel'
   'shaping#anUndeclaredLabelIsRefused'
+  'shaping#theConsumerProposesFromTheItemsOwnStatement'
+  'shaping#theConsumerWritesNothingBeforeTheOwnerChooses'
+  'shaping#theApprovedReshapeLeavesThroughTheExistingWriters'
   'duplicates#dryRunWritesNothing'
   'duplicates#youngerDuplicateIsClosedWithAPointer'
   'duplicates#olderItemSurvives'
@@ -241,6 +244,9 @@ issues_run_shell_case() {
     'shaping#aReshapedItemLeavesTheQueue') case_shaping_aReshapedItemLeavesTheQueue ;;
     'shaping#aClosedItemLeavesNoLabel') case_shaping_aClosedItemLeavesNoLabel ;;
     'shaping#anUndeclaredLabelIsRefused') case_shaping_anUndeclaredLabelIsRefused ;;
+    'shaping#theConsumerProposesFromTheItemsOwnStatement') case_shaping_theConsumerProposesFromTheItemsOwnStatement ;;
+    'shaping#theConsumerWritesNothingBeforeTheOwnerChooses') case_shaping_theConsumerWritesNothingBeforeTheOwnerChooses ;;
+    'shaping#theApprovedReshapeLeavesThroughTheExistingWriters') case_shaping_theApprovedReshapeLeavesThroughTheExistingWriters ;;
     'duplicates#dryRunWritesNothing') case_duplicates_dryRunWritesNothing ;;
     'duplicates#youngerDuplicateIsClosedWithAPointer') case_duplicates_youngerDuplicateIsClosedWithAPointer ;;
     'duplicates#olderItemSurvives') case_duplicates_olderItemSurvives ;;
@@ -1204,6 +1210,54 @@ case_shaping_anUndeclaredLabelIsRefused() {
   assert_contains "$out" "label-opaque" "with the reason code every writer's gate answers"
   assert_eq "0" "$(grep -c 'label create' "$log" || true)" "and no label is created"
   assert_eq "0" "$(grep -c 'issue edit' "$log" || true)" "nor is the item written"
+}
+
+# The inbox's reader is a skill, so its contract is prose — but it is prose with three things a case can hold it
+# to: the verb it reads the queue through and the proposal it owes, the sentence that ends its authority, and the
+# two writers it may leave through. The cases assert the contract, not the judgement (design D4).
+consumer_skill() {
+  printf '%s\n' "$ISSUES_REPO_ROOT/.pi/skills/reshape-issue/SKILL.md"
+}
+
+consumer_skill_body() {
+  local skill
+  skill=$(consumer_skill)
+  [ -f "$skill" ] || fail "the inbox has no reader: ${skill#$ISSUES_REPO_ROOT/} does not exist"
+  cat "$skill"
+}
+
+case_shaping_theConsumerProposesFromTheItemsOwnStatement() {
+  local body
+  body=$(consumer_skill_body)
+  assert_contains "$body" "tools/issues/shaping.sh --json" "the reader takes the queue's own output"
+  assert_contains "$body" "verdict" "and repeats the verdict the item's statement carries"
+  assert_contains "$body" "clause" "beside the clause behind it"
+  assert_contains "$body" "one mechanism" "its first proposal form is the single mechanism the item lacks"
+  assert_contains "$body" "children" "its second is the children the item splits into"
+  assert_contains "$body" "file:line" "every proposal names the pointer read in the tree"
+  assert_contains "$body" "tools/issues/create.sh" "a child is filed by the writer that already exists"
+  assert_contains "$body" "carries no \`cause\` and no \`change\`" "which refuses a finding of neither shape"
+}
+
+case_shaping_theConsumerWritesNothingBeforeTheOwnerChooses() {
+  local body
+  body=$(consumer_skill_body)
+  assert_contains "$body" "It writes nothing before the owner chooses: no label, no comment, no body edit and no child item" \
+    "the sentence that ends the reader's authority before a write, and what it forbids"
+  assert_contains "$body" "agent/needs-shaping" "and names the label the item keeps until then"
+}
+
+case_shaping_theApprovedReshapeLeavesThroughTheExistingWriters() {
+  local body forbidden
+  body=$(consumer_skill_body)
+  assert_contains "$body" "tools/issues/create.sh" "a chosen child is filed by the creator"
+  assert_contains "$body" "tools/issues/update.sh" "and the item's new shape by the updater"
+  assert_contains "$body" "takes the shaping label off" "which is the write that empties the queue"
+  for forbidden in 'gh issue edit' 'gh issue create' 'gh issue close' 'gh issue comment'; do
+    case "$body" in
+      *"$forbidden"*) fail "the reader writes through '$forbidden', a path beside the writers" ;;
+    esac
+  done
 }
 
 case_answer_requiresTheDecisionText() {

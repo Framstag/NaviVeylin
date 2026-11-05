@@ -1,0 +1,5 @@
+# revert-check 3.3 — the dedupe bypassed at the widget (re-run on the landing sources, 2026-11-04T22:07:56Z)
+# mutation: MiniMap.kt, 'MapDaylightApplier.push(client, isDarkPresentation)' -> '..., force = true)'
+# result: 2 failures — a native push per mount for a carried value, and a second push in the cross-writer case:
+message="java.lang.AssertionError: the widget paid no second native push for a value the client already carried expected:&lt;2&gt; but was:&lt;3&gt;"
+message="java.lang.AssertionError: no variant push for a value the client already carries expected:&lt;[]&gt; but was:&lt;[(daylight, false)]&gt;"

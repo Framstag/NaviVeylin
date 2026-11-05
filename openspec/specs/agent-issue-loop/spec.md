@@ -3046,7 +3046,7 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 
 #### Scenario: A round the run cut before the gate is left for the next run
 
-- **WHEN** the round before the gate never answers — cut by the deadline, ended at the item's turn bound, or cut
+- **WHEN** the round before the gate never answers — cut by the deadline, ended at its role's turn bound, or cut
   twice on its way to the file
 - **THEN** the item is recorded `blocked` with that round named as the one before the gate, no gate child is started
   on a diff nobody read, and the round after the gate is not asked either
@@ -3065,3 +3065,26 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 - **THEN** the checklist it prints is the gate child's own prompt and the call names that file, because the run
   defers the gate to that child
 - **Case**: `phase#oneCallPrintsThePhaseState`
+
+### Requirement: A child is bounded by its own role's turns
+
+Each child SHALL be ended when the turns **it** has taken reach the bound its role records, and the item's own
+turn total SHALL NOT end a child. The bound SHALL be read through the child's role, counted from the turns the
+child added to the item's event stream, and named in the transcript with the role and the key — because one count
+over the stream every child appends to decides which phase is discarded, not whether the item is converging.
+
+#### Scenario: A phase's spend does not end the phase after it
+
+- **WHEN** the worker takes ten turns, more than the item's old total but below its own role's bound, and the
+  round after it takes the eight turns its role records
+- **THEN** the worker's transcript carries no `LOOP-TIMEOUT`, the reviewer is ended at its own bound of eight turns
+  with a line naming `LOOP_CHILD_TURNS_MAX_REVIEWER` and its role, and the item is recorded `blocked` with that
+  round marked cut
+- **Case**: `run#eachChildIsBoundedByItsOwnRolesTurns`
+
+#### Scenario: A role whose key is `0` runs unbounded, and the item's total is still reported
+
+- **WHEN** a role's key records `0` and its child takes three turns
+- **THEN** no turn bound ends it, while the item's total is still counted over its children (`metrics.turns`) and
+  printed by the report's `calls:` line beside the calls it was made of
+- **Case**: `run#aRoleWithNoRecordedTurnBoundRunsUnbounded`

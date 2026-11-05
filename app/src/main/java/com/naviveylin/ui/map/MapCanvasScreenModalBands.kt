@@ -158,6 +158,7 @@ internal fun MapCanvasModalBandContent(
             addressBookAvailable = state.addressBookAvailable,
             contactsQuery = addressBookState.query,
             onContactsQueryChanged = { addressBookViewModel.onQueryChanged(it) },
+            onStyleLoadFailure = { viewModel.showSnackbar(it) },
             contactsContent = {
                 AddressBookSearchContent(
                     onResultSelected = { entry ->
@@ -194,6 +195,7 @@ internal fun MapCanvasModalBandContent(
             groupNames = viewModel.getFavoriteGroupNames(),
             currentPosition = if (state.gpsMarkerLat.isNaN()) null else state.gpsMarkerLat to state.gpsMarkerLon,
             isDarkPresentation = state.isDarkPresentation,
+            onStyleLoadFailure = { viewModel.showSnackbar(it) },
             onAddToFavorites = { groupName, favName, isNewGroup ->
                 viewModel.addSelectedToFavorites(groupName, favName, isNewGroup)
             },

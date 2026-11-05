@@ -124,8 +124,11 @@ configuration**, not a rewrite:
 LOOP_AGENT_CMD   how a child is started          on the host  |  inside an isolated environment
 LOOP_GATE_CMD    how this project's gate runs    empty for a project with no build
 LOOP_CHILD_MAX_SECONDS   the floor under one child's run   2700 s (45 min); a longer child is ended and blocked
-LOOP_ITEM_TURNS_MAX      the turns one child may spend    250; counted from the item's event stream, and a child
-                                                       that reaches it is ended and blocked (issue #686), `0` = none
+LOOP_CHILD_TURNS_MAX_<ROLE>  the turns one child may spend    one key per role (`WORKER` 110, `WORKER_GATE` 60,
+                                                       `WORKER_TAIL` 45, `REVIEWER` 55, `REVIEWER_PRE_GATE` 55);
+                                                       counted as the turns that child added to the item's event
+                                                       stream, and a child that reaches its role's bound is ended and
+                                                       blocked (issues #686, #784), `0` = none
 LOOP_ITEM_GATE_SECONDS   what one item's gate owes    3900 s (65 min): two gate rounds and the phases beside them
                                                        (issue #663); a child is given the larger of the two
 LOOP_WORKER_SKILLS   which of this project's skills the worker is told to use

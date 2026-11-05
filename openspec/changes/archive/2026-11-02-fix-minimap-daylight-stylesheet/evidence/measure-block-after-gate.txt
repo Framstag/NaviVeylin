@@ -1,0 +1,96 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=650028bfdf6e652ebd045b4af1be0a90b6c0a481 paths=60 insertions=1727 deletions=8
+LOOP-MEASURE-PATH AGENTS.md
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/MiniMap.kt
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/MiniMapComposeTest.kt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/gate-note.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/measure-block-after-archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/measure-block.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/mutation.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/mutation.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/red-on-HEAD.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/review-round-1-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-entry-document-names-the-skill-paths/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/archive-path-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/archive-path-checks.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/corrections-round-2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gate-round-2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/gen-feature-list-round-2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/measure-block-after-archive.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/measure-block-round-2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/measure-block.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/mutation.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/mutation.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/red-on-HEAD.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/surface.sh
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/surface.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/evidence/why-not-evidence-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-relocation-record-names-its-owners/tasks.md
+LOOP-MEASURE-PATH openspec/specs/documentation-ownership/spec.md
+LOOP-MEASURE-PATH tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-PATH tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-PATH tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=340s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=7s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=353 suites=10
+LOOP-MEASURE-CHANGE fix-minimap-daylight-stylesheet scenarios=3 cases=3 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/focused-4.1/TEST-com.naviveylin.ui.map.LocationDetailsDialogComposeTest.xml tests=17 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/focused-4.1/TEST-com.naviveylin.ui.map.MiniMapComposeTest.xml tests=10 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/focused-4.1/TEST-com.naviveylin.ui.map.MiniMapCurrentPositionPaletteTest.xml tests=3 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/focused-4.1/TEST-com.naviveylin.ui.map.PoiSearchPanelComposeTest.xml tests=22 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/focused-4.1/TEST-com.naviveylin.ui.map.PoiSearchPanelMapComposeTest.xml tests=2 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/focused-4.1/TEST-com.naviveylin.ui.map.SearchDialogFavoriteSearchComposeTest.xml tests=5 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/focused-4.1/TEST-com.naviveylin.ui.map.SearchDialogModeSwitchComposeTest.xml tests=3 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/revert-check-3.1-green.xml tests=10 failures=0
+LOOP-MEASURE-TALLY openspec/changes/fix-minimap-daylight-stylesheet/evidence/revert-check-3.1-red.xml tests=10 failures=3
+LOOP-MEASURE-SURFACE surface: 3 cases added, 0 rewritten, 0 fixtures realigned — `grep -c '@Test' app/src/test/java/com/naviveylin/ui/map/MiniMapComposeTest.kt`
+LOOP-MEASURE-END

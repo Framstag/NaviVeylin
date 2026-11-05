@@ -152,17 +152,32 @@ child_cap() { # → the seconds a child may run
 # bound the child is given, so the header and the `LOOP-TIMEOUT` line that ends it cannot disagree.
 child_max=$(child_cap)
 
-# How many turns one item's children may take before the run ends the one that crosses the bound (issue #686).
-# The wall clock bounds how long a child runs and says nothing about how much it spends being slow to converge:
-# over this project's archive (`.pi/issue-loop/items`, 164 items, 2026-10-28, read by `tools/loop-spend.py`) the
-# turns run p50 144, p75 236, p90 285, max 480, and the 35 items at ≥250 turns hold 878 of 1 982 Mtok — 44 % of
-# everything the archive spent — at 25.07 Mtok each against 1.23 Mtok for the 20–50 band. `cacheRead` is 97 % of
-# that spend and a turn is what re-reads it, which is why the unit is a turn and not an edit. 250 sits just past
-# p75: it escalates 21 % of the archive's items, where 200 would escalate 37 % and 300 only 7 %. The count is
-# read from the item's own event stream (`child_turns`), not from a child's claim. `0` is no bound — the shape
-# `LOOP_MIN_FREE_MIB` and `LOOP_ITEM_TOKENS_WARN` already have — so a project with no such record owes nothing.
-item_turns_max="${LOOP_ITEM_TURNS_MAX:-250}"
-case "$item_turns_max" in ''|*[!0-9]*) item_turns_max=250 ;; esac
+# How many turns a child may take before the run ends it, **per role** (issues #686, #784). The wall clock bounds
+# how long a child runs and says nothing about how much it spends being slow to converge: `cacheRead` is 97 % of
+# the archive's spend, a turn re-reads the whole conversation, and no turn amortises two calls, so a heavy item is
+# a chain of single-call turns at 85–106 k context each. The bound used to be the **item's**, one count over the
+# event stream every child of the item appends to, so the worker, the round before the gate, the gate, the tail and
+# each review round spent from one pot and the last phase inherited the remainder: measured 2026-11-05 over the ten
+# items that ran all the phases, #780 spent 80/34/42/41 turns on its first four children and ended its round-1
+# reviewer at 53 of the same 250, and #767 gave its round-2 worker three. The bound is the **child role's own** now,
+# read through `child_role`, so a phase is bounded by what that phase costs and not by what the phases before it
+# spent. The item's total is still counted and reported — `metrics.turns`, the report's `calls:` line, the band
+# `LOOP_ITEM_TOKENS_WARN` records — and it stops nothing. The count is read from the stream the child appends to
+# (`child_turns`), never from a child's claim. `0` is no bound, and a role this project records no key for has none:
+# a project with no such record owes nothing by it, the shape `LOOP_MIN_FREE_MIB` and `LOOP_ITEM_TOKENS_WARN`
+# already have. The derivation of this project's five values is beside them in `loop.conf`.
+child_turn_bound() { # child_turn_bound <role> → the turns that role may spend; 0 = no bound
+  local role="$1" value
+  value=$(loop_conf_value "LOOP_CHILD_TURNS_MAX_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')")
+  case "$value" in ''|*[!0-9]*) value=0 ;; esac
+  printf '%s\n' "$value"
+}
+# What the header names, so a run can be repeated and audited (D2) and the header and the `LOOP-TIMEOUT` line that
+# ends a child cannot disagree about the bound they apply.
+child_turn_bounds=""
+for role in worker worker-gate worker-tail reviewer reviewer-pre-gate; do
+  child_turn_bounds="${child_turn_bounds:+$child_turn_bounds,}$role:$(child_turn_bound "$role")"
+done
 
 # The host is part of a run's numbers, so the run reads it and names it beside the budget. Both values are
 # recorded (`loop.conf`, `LOOP_MIN_FREE_MIB` and `LOOP_MEMINFO_PATH`) because both are facts about the host and
@@ -198,15 +213,15 @@ free_mib=$(host_free_mib)
 # on part of its work is not the same run as one that does not, and nothing else in the run's own line would say
 # so (`LOOP_AGENT_CMD_<ROLE>` in loop.conf). `-` is the ordinary case: every child through `LOOP_AGENT_CMD`.
 agent_roles="-"
-for role in WORKER WORKER_TAIL REVIEWER; do
+for role in WORKER WORKER_GATE WORKER_TAIL REVIEWER REVIEWER_PRE_GATE; do
   role_value=$(loop_conf_value "LOOP_AGENT_CMD_$role")
   [ -n "$(printf '%s' "$role_value" | tr -d '[:space:]')" ] || continue
   if [ "$agent_roles" = "-" ]; then agent_roles=$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-');
   else agent_roles="$agent_roles,$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-')"; fi
 done
-printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s item-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
+printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
   "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$item_turns_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles"
+  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -1129,13 +1144,18 @@ child_turns() { # child_turns <events file> → the `turn_end` lines it holds
 # line the run's own phases use live in `lib.sh`, so a phase line and a child's line agree on what an elapsed
 # time looks like (issue #191).
 
-# Which role a child plays, derived from the prompt's name — the same three the fixture stub distinguishes
-# (`worker`, `worker-tail`, `reviewer`) and the naming `phase` already carries. The role names a configuration
-# key (`LOOP_AGENT_CMD_<ROLE>`), so a prompt file renamed for a round or a retry cannot move a child to another
-# command: `reviewer-prompt-2-retry.md` and `reviewer-prompt-1.md` are both `reviewer`.
-child_role() { # child_role <prompt-file> → worker | worker-tail | reviewer | <the name itself>
+# Which role a child plays, derived from the prompt's name — the same ones the fixture stub distinguishes
+# (`worker`, `worker-gate`, `worker-tail`, `reviewer`, `reviewer-pre-gate`) and the naming `phase` already carries.
+# The role names two configuration keys — `LOOP_AGENT_CMD_<ROLE>` and `LOOP_CHILD_TURNS_MAX_<ROLE>` — so a prompt file
+# renamed for a round or a retry cannot move a child to another command or under another bound:
+# `reviewer-prompt-2-retry.md` and `reviewer-prompt-1.md` are both `reviewer`. The order of the arms is the rule: a
+# tail and the round before the gate are named before the plain worker and reviewer shapes they also match
+# (issue #784).
+child_role() { # child_role <prompt-file> → worker | worker-gate | worker-tail | reviewer | reviewer-pre-gate
   case "${1##*/}" in
     *-tail*) printf 'worker-tail' ;;
+    *pre-gate*) printf 'reviewer-pre-gate' ;;
+    *gate*) printf 'worker-gate' ;;
     reviewer-*) printf 'reviewer' ;;
     worker-*) printf 'worker' ;;
     *) printf '%s' "$(basename "$1" .md)" ;;
@@ -1148,13 +1168,14 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # spends the whole budget inside one wait and nothing notices (measured 2026-10-19: an item's worker phase
   # ran 83 min that way — issue #203). A child that outlasts the cap is ended together with everything it
   # started and its transcript says so, so the run's ordinary "exited N" path records the item `blocked`.
-  # A third bound lives beside it, the item's turns (`LOOP_ITEM_TURNS_MAX`, issue #686), and it ends the child the
-  # same way: the wall clock says how long an item may run, not how much it spends failing to converge.
+  # A third bound lives beside it, the child's own turns (`LOOP_CHILD_TURNS_MAX_<ROLE>`, issues #686 and #784), and
+  # it ends the child the same way: the wall clock says how long a child may run, not how much it spends failing to
+  # converge, and each role is bounded by what that role costs rather than by what the item has already spent.
   # The working directory is the project and not the worktree on purpose: the project's own tool policy is
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase child_cmd role_key role_cmd stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns
+  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
@@ -1169,9 +1190,16 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # at 25 654 turns, and the reviewer's job is a diff against the item's own checklist. Which model a role runs on
   # is a value this project records, not a fact the engine knows: no script under `tools/loop/` names a model.
   child_cmd="$LOOP_AGENT_CMD"
-  role_key="LOOP_AGENT_CMD_$(child_role "$1" | tr '[:lower:]-' '[:upper:]_')"
+  role=$(child_role "$1")
+  role_key="LOOP_AGENT_CMD_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')"
   role_cmd=$(loop_conf_value "$role_key")
   if [ -n "$(printf '%s' "$role_cmd" | tr -d '[:space:]')" ]; then child_cmd="$role_cmd"; fi
+  # …and the turns this role may spend, read from its own key rather than from one count the whole item shares (#784).
+  turns_max=$(child_turn_bound "$role")
+  # The stream every child of the item appends to already holds what the children before this one spent, so the bound
+  # is read as a **difference**: the count standing here is the baseline and what this child is bounded by is the
+  # turns it adds. Read before the child starts, so a turn it takes between the fork and this line is its own.
+  turns_base=$(child_turns "${LOOP_CHILD_EVENTS:-}")
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
   # carries no other child's test results (issue #253). The **tail** child is the exception and is why this line is
   # not a `worker*` glob (issue #744): it is started *after* the gate wrote those results because the archive it
@@ -1295,12 +1323,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       kill -KILL -"$child" 2>/dev/null || true
       break
     fi
-    # …and the bound that is not a clock (issue #686): an item that has spent its turns is a decision, and one more
-    # turn does not make it converge. It is read from the stream the child appends to and checked in the same whole
-    # second as the two clocks, so the wait costs one `grep` per second and not one per look.
-    if [ "$item_turns_max" -gt 0 ]; then
+    # …and the bound that is not a clock (issues #686, #784): a child that has spent its role's turns is a decision,
+    # and one more turn does not make it converge. It is read from the stream the child appends to and checked in the
+    # same whole second as the two clocks, so the wait costs one `grep` per second and not one per look.
+    if [ "$turns_max" -gt 0 ]; then
       turns=$(child_turns "${LOOP_CHILD_EVENTS:-}")
-      if [ "$turns" -ge "$item_turns_max" ]; then
+      if [ $(( turns - turns_base )) -ge "$turns_max" ]; then
         ended_by=turns
         timed_out=1
         kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
@@ -1332,11 +1360,13 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         "'" "$deadline_at" "$(( $(date +%s) - started ))" >> "$2"
       stop_run "deadline passed at $deadline_at — the child running when it passed was ended"
     elif [ "$ended_by" = turns ]; then
-      # The line the item's block is recorded from, and it says why in the item's own words: the bound, the count
-      # that reached it and the key it is recorded in, so a person reading the blocked item does not have to
-      # re-derive from a clock that had minutes left that the child was ended for what it spent (issue #686).
-      printf 'LOOP-TIMEOUT: the child reached the recorded turn bound of %s turns (LOOP_ITEM_TURNS_MAX) after %s turn(s) — the run ended it and everything it started\n' \
-        "$item_turns_max" "$(child_turns "${LOOP_CHILD_EVENTS:-}")" >> "$2"
+      # The line the item's block is recorded from, and it says why in the item's own words: the bound, the role and the
+      # key it is recorded in, and the count that reached it, so a person reading the blocked item does not have to
+      # re-derive from a clock that had minutes left that the child was ended for what it spent (issue #686), nor
+      # guess which phase had spent the item's pot (issue #784).
+      printf 'LOOP-TIMEOUT: the child reached the recorded turn bound of %s turns (%s for the %s role) after %s turn(s) — the run ended it and everything it started\n' \
+        "$turns_max" "LOOP_CHILD_TURNS_MAX_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')" "$role" \
+        "$(( $(child_turns "${LOOP_CHILD_EVENTS:-}") - turns_base ))" >> "$2"
     else
       printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
     fi
@@ -1836,7 +1866,7 @@ while true; do
             pre_gate_refusal="the run's deadline passed while the pre-gate reviewer was running — the round was cut, not refused, so the change is left for the next run"
           elif [ -n "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ]; then
             pre_gate_refusal_verdict="cut-short"
-            pre_gate_refusal="the run ended the pre-gate reviewer at the item's turn bound — the round was cut, not refused, so the change is left for the next run"
+            pre_gate_refusal="the run ended the pre-gate reviewer at its role's turn bound — the round was cut, not refused, so the change is left for the next run"
           elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
             pre_gate_refusal_verdict="cut-short"
             pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
@@ -2171,16 +2201,16 @@ while true; do
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
         break
       fi
-      # The item's own turn bound ends a child the same way (`LOOP_ITEM_TURNS_MAX`, issue #686), and a round it ended
-      # has no answer to read: the transcript carries `LOOP-TIMEOUT` and no `VERDICT:` line. Reading that silence as
+      # The child's own turn bound ends a child the same way (`LOOP_CHILD_TURNS_MAX_REVIEWER`, issues #686 and #784),
+      # and a round it ended has no answer to read: the transcript carries `LOOP-TIMEOUT` and no `VERDICT:` line. Reading that silence as
       # a refusal named a reviewer that refused nothing and bought a rework worker for it — measured on item #51,
-      # whose round 1 ended at the 250-turn bound and whose record the report would otherwise count as a refusal
+      # whose round 1 ended at the turn bound and whose record the report would otherwise count as a refusal
       # (issue #247, review round 2). The round is cut, as the twice-cut path below records it, so the item waits
       # for the next run and a rate counts it as undecided.
       if [ -n "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ]; then
         review_verdict="cut-short"
         outcome="blocked"
-        blocked_reason="the run ended the reviewer of round $round at the item's turn bound — the round was cut, not refused, so the change is left for the next run"
+        blocked_reason="the run ended the reviewer of round $round at its role's turn bound — the round was cut, not refused, so the change is left for the next run"
         break
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`

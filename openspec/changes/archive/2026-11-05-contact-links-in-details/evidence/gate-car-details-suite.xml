@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.DetailsScreenTest" tests="33" skipped="0" failures="0" errors="0" timestamp="2026-11-05T09:57:37.518Z" hostname="dingens" time="2.185">
+  <properties/>
+  <testcase name="coordinatesRowIsLocaleStableOnAGermanDevice" classname="com.naviveylin.auto.DetailsScreenTest" time="0.114"/>
+  <testcase name="showRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.059"/>
+  <testcase name="titleFallsBackToLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.075"/>
+  <testcase name="saveFavoriteRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.057"/>
+  <testcase name="titleFallsBackToGenericWhenNoCallerNameAndNoAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.038"/>
+  <testcase name="descriptionEntriesKeepNativeOrder" classname="com.naviveylin.auto.DetailsScreenTest" time="0.059"/>
+  <testcase name="noAreaRowWithoutAreaData" classname="com.naviveylin.auto.DetailsScreenTest" time="0.072"/>
+  <testcase name="removeFavoriteRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.076"/>
+  <testcase name="openingHoursShownOnDetailsScreen" classname="com.naviveylin.auto.DetailsScreenTest" time="0.038"/>
+  <testcase name="noRowCapForLongDescriptions" classname="com.naviveylin.auto.DetailsScreenTest" time="0.05"/>
+  <testcase name="titleFallsBackToLabelWhenNoAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.033"/>
+  <testcase name="blankDescriptionEntriesSkipped" classname="com.naviveylin.auto.DetailsScreenTest" time="0.032"/>
+  <testcase name="descriptionEntriesShownAsLabeledRows" classname="com.naviveylin.auto.DetailsScreenTest" time="0.03"/>
+  <testcase name="coordinatesRowAlwaysPresentWithLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.031"/>
+  <testcase name="allDescriptionAttributesShown" classname="com.naviveylin.auto.DetailsScreenTest" time="0.034"/>
+  <testcase name="oneObservationSetPerStartedPeriodAcrossStopAndStart" classname="com.naviveylin.auto.DetailsScreenTest" time="0.11"/>
+  <testcase name="addressShownAsLabeledRow" classname="com.naviveylin.auto.DetailsScreenTest" time="0.043"/>
+  <testcase name="titleShowsObjectName" classname="com.naviveylin.auto.DetailsScreenTest" time="0.038"/>
+  <testcase name="areaFallsBackToPostalArea" classname="com.naviveylin.auto.DetailsScreenTest" time="0.032"/>
+  <testcase name="destinationNameFallsBackToNull" classname="com.naviveylin.auto.DetailsScreenTest" time="0.044"/>
+  <testcase name="contactRowsCarryTheirValueAndStartNoIntent" classname="com.naviveylin.auto.DetailsScreenTest" time="0.055"/>
+  <testcase name="areaFallsBackToDescriptionIsIn" classname="com.naviveylin.auto.DetailsScreenTest" time="0.085"/>
+  <testcase name="titleShowsCallerNameBeforeAddress" classname="com.naviveylin.auto.DetailsScreenTest" time="0.046"/>
+  <testcase name="titleFallsBackToAddressLikeLabel" classname="com.naviveylin.auto.DetailsScreenTest" time="0.055"/>
+  <testcase name="titleFallsBackToAddressWithoutCallerName" classname="com.naviveylin.auto.DetailsScreenTest" time="0.064"/>
+  <testcase name="streetAndAddressEntriesNotDuplicated" classname="com.naviveylin.auto.DetailsScreenTest" time="0.078"/>
+  <testcase name="attributeRowsAreNotClickable" classname="com.naviveylin.auto.DetailsScreenTest" time="0.1"/>
+  <testcase name="aStoppedScreenAppliesNothingAndTheStateArrivesOnStart" classname="com.naviveylin.auto.DetailsScreenTest" time="0.106"/>
+  <testcase name="titleFallsBackToGeneric" classname="com.naviveylin.auto.DetailsScreenTest" time="0.034"/>
+  <testcase name="coordinatesRowMatchesTheNavigationDestinationText" classname="com.naviveylin.auto.DetailsScreenTest" time="0.049"/>
+  <testcase name="navigateRowInvokesCallback" classname="com.naviveylin.auto.DetailsScreenTest" time="0.041"/>
+  <testcase name="aStoppedMapPublishesTheLastDrawnFrameCenter" classname="com.naviveylin.auto.DetailsScreenTest" time="0.357"/>
+  <testcase name="theDegradedMapIsStatedAndAFreshStartClearsIt" classname="com.naviveylin.auto.DetailsScreenTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

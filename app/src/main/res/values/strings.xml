@@ -384,4 +384,7 @@
          coordinate label. Owned by the surface, not by the shared :core resolver
          (spec: i18n-l10n — shared module owns no wording). -->
     <string name="location_title_generic">Location</string>
+    <!-- Shown when no installed app handles a tapped contact link (phone/website row of the
+         details dialog). Transient; the dialog stays open. -->
+    <string name="details_contact_link_unhandled">No app can open this link</string>
 </resources>

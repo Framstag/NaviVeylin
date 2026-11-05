@@ -1,0 +1,8 @@
+# revert-check 3.8 — the forced re-push stops re-rendering (mutation, 2026-11-04T20:35:34Z)
+# mutation: MapCanvasViewModelSettings.kt, 'if (changed || force)' -> 'if (changed)' in pushDaylight.
+# This is the falsification half of the fix the round-2 gate's first run demanded; it is the case that
+# caught it (round 3 review, finding 4c, wanted the artifact rather than the memory of it).
+# command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MapCanvasViewModelViewportRestoreTest"
+# result: 1 failure:
+message="java.lang.AssertionError: first render at default mag: []"
+# green half: restored, forced green (same command) -> tests="6" failures="0"

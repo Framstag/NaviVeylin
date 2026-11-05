@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -14,13 +15,18 @@ import com.framstag.libosmscout.client.FakeOSMScoutClient
 import com.framstag.libosmscout.client.LocationEntry
 import com.framstag.libosmscout.client.ObjectDescription
 import com.naviveylin.R
+import com.naviveylin.core.details.ContactLink
 import com.naviveylin.test.ComposeSandboxRule
+import com.naviveylin.ui.attribution.launchContactLink
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import java.util.Locale
 
 /**
@@ -58,7 +64,8 @@ class LocationDetailsDialogComposeTest {
         client: FakeOSMScoutClient = FakeOSMScoutClient(),
         onShowOnMap: (() -> Unit)? = null,
         onRouteToLocation: (() -> Unit)? = null,
-        onDismiss: () -> Unit = {}
+        onDismiss: () -> Unit = {},
+        onLaunch: ((ContactLink) -> Boolean)? = null
     ) {
         composeRule.setContent {
             LocationDetailsDialog(
@@ -73,7 +80,10 @@ class LocationDetailsDialogComposeTest {
                 onRouteToLocation = onRouteToLocation,
                 onShowOnMap = onShowOnMap,
                 isDarkPresentation = false,
-                onDismiss = onDismiss
+                onDismiss = onDismiss,
+                // Production default when the case does not inject its own
+                // launcher: the real browser/dialer launch into the activity.
+                onLaunch = onLaunch ?: { link -> launchContactLink(composeRule.activity, link) }
             )
         }
         composeRule.waitForIdle()
@@ -252,6 +262,104 @@ class LocationDetailsDialogComposeTest {
         composeRule.onNodeWithContentDescription("Zoom in").assertIsDisplayed()
         composeRule.onNodeWithText("Add to Favorites").assertIsDisplayed()
         composeRule.onNodeWithText("General").assertDoesNotExist()
+    }
+
+    @Test
+    fun websiteValueStartsTheBrowser() {
+        val description = ObjectDescription(
+            listOf(locationEntry("Contact", "Website", "https://cafe.de")),
+            51.5,
+            7.4
+        )
+        launch(entry(), description)
+
+        composeRule.onNodeWithText("https://cafe.de").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        val started = shadowOf(composeRule.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, started?.action)
+        assertEquals("https://cafe.de", started?.data?.toString())
+        // The details dialog stays open after the launch.
+        composeRule.onNodeWithText("Website:").assertIsDisplayed()
+    }
+
+    @Test
+    fun phoneValueOpensTheDialer() {
+        // Spec: a phone value opens the dialer prefilled — ACTION_DIAL, never
+        // ACTION_CALL (no CALL_PHONE permission, no call placed by a row tap).
+        val description = ObjectDescription(
+            listOf(locationEntry("Contact", "Phone", "+49 30 1234567")),
+            51.5,
+            7.4
+        )
+        launch(entry(), description)
+
+        composeRule.onNodeWithText("+49 30 1234567").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        val started = shadowOf(composeRule.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_DIAL, started?.action)
+        assertEquals("tel:+49301234567", started?.data?.toString())
+        composeRule.onNodeWithText("Phone:").assertIsDisplayed()
+    }
+
+    @Test
+    fun aNonContactEntryStaysInert() {
+        // Spec: an entry outside the Contact section stays inert — the URL in a
+        // General/Name value is the title here, and the row stays plain text.
+        val description = ObjectDescription(
+            listOf(locationEntry("General", "Name", "https://cafe.de")),
+            51.5,
+            7.4
+        )
+        launch(entry(), description)
+
+        // Title + row carry the same text; the row is the second node.
+        composeRule.onAllNodesWithText("https://cafe.de").assertCountEquals(2)
+        composeRule.onAllNodesWithText("https://cafe.de")[1].performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertNull(shadowOf(composeRule.activity).nextStartedActivity)
+        composeRule.onNodeWithText("Name:").assertIsDisplayed()
+    }
+
+    @Test
+    fun anUnhandledLinkShowsTheHint() {
+        // Spec: a contact link no app can handle shows the hint and keeps the
+        // dialog open. Robolectric records an intent even with no handler, so
+        // the failure comes through the injected launcher (design D6).
+        val description = ObjectDescription(
+            listOf(locationEntry("Contact", "Website", "https://cafe.de")),
+            51.5,
+            7.4
+        )
+        val hint = composeRule.activity.getString(R.string.details_contact_link_unhandled)
+        launch(entry(), description, onLaunch = { false })
+
+        composeRule.onNodeWithText("https://cafe.de").performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 5000) {
+            composeRule.onAllNodesWithText(hint).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithText(hint).assertIsDisplayed()
+        composeRule.onNodeWithText("Website:").assertIsDisplayed()
+    }
+
+    @Test
+    fun aHandledLinkShowsNoHint() {
+        // Spec: a handled contact link shows no hint.
+        val description = ObjectDescription(
+            listOf(locationEntry("Contact", "Website", "https://cafe.de")),
+            51.5,
+            7.4
+        )
+        val hint = composeRule.activity.getString(R.string.details_contact_link_unhandled)
+        launch(entry(), description, onLaunch = { true })
+
+        composeRule.onNodeWithText("https://cafe.de").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(hint).assertDoesNotExist()
     }
 
     @Test

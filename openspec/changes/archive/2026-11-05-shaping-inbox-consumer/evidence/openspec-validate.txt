@@ -1,0 +1,1 @@
+Change 'shaping-inbox-consumer' is valid

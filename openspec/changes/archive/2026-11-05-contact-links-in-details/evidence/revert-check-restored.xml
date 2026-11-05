@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.core.details.ContactLinksTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-05T09:48:18.235Z" hostname="dingens" time="0.157">
+  <properties/>
+  <testcase name="aMultiValuedTagSplitsIntoOneTargetPerPart" classname="com.naviveylin.core.details.ContactLinksTest" time="0.147"/>
+  <testcase name="anHttpWebsiteValueKeepsItsOwnScheme" classname="com.naviveylin.core.details.ContactLinksTest" time="0.002"/>
+  <testcase name="aPhoneValueBelowThreeDigitsResolvesToNoTarget" classname="com.naviveylin.core.details.ContactLinksTest" time="0.0"/>
+  <testcase name="aNonWebSchemeResolvesToNoTarget" classname="com.naviveylin.core.details.ContactLinksTest" time="0.001"/>
+  <testcase name="aPhoneValueIsNormalisedToDigitsAndOnePlus" classname="com.naviveylin.core.details.ContactLinksTest" time="0.0"/>
+  <testcase name="aNonContactEntryYieldsNoTarget" classname="com.naviveylin.core.details.ContactLinksTest" time="0.001"/>
+  <testcase name="aBareHostGetsHttpsAndIsLinked" classname="com.naviveylin.core.details.ContactLinksTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

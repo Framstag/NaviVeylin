@@ -344,6 +344,8 @@ LOOP_SHELL_CASES=(
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
   'run#childPastItsTurnBoundIsBlocked'
   'run#theRecordedZeroKeepsTheTurnBoundOff'
+  'run#eachChildIsBoundedByItsOwnRolesTurns'
+  'run#aRoleWithNoRecordedTurnBoundRunsUnbounded'
 )
 
 loop_shell_cases() {
@@ -707,6 +709,8 @@ loop_run_shell_case() {
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
     'run#childPastItsTurnBoundIsBlocked') fn=case_run_childPastItsTurnBoundIsBlocked ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
+    'run#eachChildIsBoundedByItsOwnRolesTurns') fn=case_run_eachChildIsBoundedByItsOwnRolesTurns ;;
+    'run#aRoleWithNoRecordedTurnBoundRunsUnbounded') fn=case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -5068,11 +5072,11 @@ case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
-  # The wall clock is an hour, so only the item's turns can end the reviewer, and three turns is that bound.
+  # The wall clock is an hour, so only the reviewer's own turns can end it, and three turns is that bound.
   sed -e 's/^LOOP_CHILD_MAX_SECONDS=.*/LOOP_CHILD_MAX_SECONDS=3600/' \
-      -e 's/^LOOP_ITEM_TURNS_MAX=.*/LOOP_ITEM_TURNS_MAX=3/' "$LOOP_CONF" > "$conf" ||
+      -e 's/^LOOP_CHILD_TURNS_MAX_REVIEWER=.*/LOOP_CHILD_TURNS_MAX_REVIEWER=3/' "$LOOP_CONF" > "$conf" ||
     fail "could not record the two bounds in loop.conf"
-  grep -qx 'LOOP_ITEM_TURNS_MAX=3' "$conf" || fail "this case could not shorten the turn bound in loop.conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_REVIEWER=3' "$conf" || fail "this case could not shorten the reviewer's turn bound in loop.conf"
   # The reviewer takes three turns and then waits. The stream has to exist while the child runs, so its own action
   # writes it — the stub prints `PI_STUB_EVENTS` only after it has been released.
   fixture="$d/events.jsonl"
@@ -11385,8 +11389,9 @@ case_repeat_aBrokenLedgerLeavesTheResultAsReturned() {
 
 # The child's bound was a clock and nothing else (issue #686): over this project's archive the 35 items at ≥250 turns
 # held 878 of 1 982 Mtok — 44 % of everything the archive spent — and every one of them was ended only after 45 min,
-# or not at all. The bound is the recorded `LOOP_ITEM_TURNS_MAX`, counted from the item's own event stream
-# (`items/<n>/events.jsonl`, one `turn_end` per turn) where the wall clock is already enforced. This case does not wait
+# or not at all. The bound is the recorded per-role `LOOP_CHILD_TURNS_MAX_<ROLE>` (here the worker's), counted from the
+# turns that child added to the item's own event stream (`items/<n>/events.jsonl`, one `turn_end` per turn) where the
+# wall clock is already enforced. This case does not wait
 # for the bound: the child appends a fixture stream of three turns and then blocks, and the recorded value is 3, so a
 # tree that reads neither the key nor the stream leaves the run waiting until the case's own bound ends it.
 case_run_childPastItsTurnBoundIsBlocked() {
@@ -11395,10 +11400,10 @@ case_run_childPastItsTurnBoundIsBlocked() {
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
-  # The wall clock keeps its recorded default, so the only bound this case can reach is the turn one: a case that
-  # shortened both would pass on a tree that ended the child for time and never counted a turn.
-  sed -e 's/^LOOP_ITEM_TURNS_MAX=.*/LOOP_ITEM_TURNS_MAX=3/' "$LOOP_CONF" > "$conf" || fail "could not record a small turn bound"
-  grep -qx 'LOOP_ITEM_TURNS_MAX=3' "$conf" || fail "this case could not shorten the turn bound in loop.conf"
+  # The wall clock keeps its recorded default, so the only bound this case can reach is the worker's own turn one: a
+  # case that shortened both would pass on a tree that ended the child for time and never counted a turn.
+  sed -e 's/^LOOP_CHILD_TURNS_MAX_WORKER=.*/LOOP_CHILD_TURNS_MAX_WORKER=3/' "$LOOP_CONF" > "$conf" || fail "could not record a small turn bound"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=3' "$conf" || fail "this case could not shorten the worker's turn bound in loop.conf"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   # The child's own stream, in the shape the adapter keeps: one `turn_end` line per turn, appended to the item's
   # event file the run exported. The stub prints `PI_STUB_EVENTS` only after it has been released, so a stream that
@@ -11438,11 +11443,11 @@ EOF
   exec 8>&-
   out=$(cat "$d/out")
   assert_eq "0" "$status" "a child the run itself ended is not a failed run"
-  assert_contains "$out" "item-turns-max=3" "the run's header names the turn bound it enforces"
+  assert_contains "$out" "child-turns-max=worker:3" "the run's header names the worker's turn bound it enforces"
   assert_contains "$out" "exit 124" "with the wall clock's own status, so the run's 'exited N' path records the block"
   report="$p/.pi/issue-loop/items/21/worker-report.md"
   [ -f "$report" ] || fail "the item kept no transcript of the child the turn bound ended"
-  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns" \
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_WORKER for the worker role)" \
     "the transcript says which bound ended the child, in the child's own words"
   assert_contains "$(cat "$report")" "after 3 turn(s)" "and the count it reached, read from the child's own stream"
   assert_not_contains "$(cat "$report")" "the child exceeded" \
@@ -11456,7 +11461,7 @@ EOF
 }
 
 # The recorded `0` is the switch (issue #686): a project whose children should be bounded by their clock alone — or
-# one whose agent writes no event stream at all — records `LOOP_ITEM_TURNS_MAX=0`, as the memory floor's `0` disables
+# one whose agent writes no event stream at all — records that role's key as `0`, as the memory floor's `0` disables
 # the floor and the token warning's `0` records no band. The child here takes three turns and then outlives the
 # two-second wall clock this case records, so which bound ended it is readable in the transcript: the clock's, never
 # a turn bound that is off.
@@ -11467,9 +11472,9 @@ case_run_theRecordedZeroKeepsTheTurnBoundOff() {
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
   conf_with_child_cap 2 "$conf"
-  sed -e 's/^LOOP_ITEM_TURNS_MAX=.*/LOOP_ITEM_TURNS_MAX=0/' "$conf" > "$conf.zero" || fail "could not record the turn bound off"
+  sed -e 's/^LOOP_CHILD_TURNS_MAX_WORKER=.*/LOOP_CHILD_TURNS_MAX_WORKER=0/' "$conf" > "$conf.zero" || fail "could not record the turn bound off"
   mv "$conf.zero" "$conf"
-  grep -qx 'LOOP_ITEM_TURNS_MAX=0' "$conf" || fail "this case could not record the turn bound off in loop.conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=0' "$conf" || fail "this case could not record the worker's turn bound off in loop.conf"
   export LOOP_CONF="$conf"
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
   # The same fixture stream the bound-on case appends, written by the child's action so the run can see it while the
@@ -11487,12 +11492,148 @@ EOF
   export PI_STUB_ACTION="$action"
   out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
   assert_eq "0" "$status" "a child the run itself ended is not a failed run"
-  assert_contains "$out" "item-turns-max=0" "the run's header says the turn bound is off"
+  assert_contains "$out" "child-turns-max=worker:0" "the run's header says the worker's turn bound is off"
   report="$p/.pi/issue-loop/items/21/worker-report.md"
   [ -f "$report" ] || fail "the item kept no transcript of the child the wall clock ended"
   assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
     "with the bound off, the recorded wall clock is the one that ends the child"
   assert_not_contains "$(cat "$report")" "turn bound" "and no turn bound is named in its transcript"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is recorded blocked, as before"
+  return 0
+}
+
+# The turn bound was the **item's**, one pot every child of the item spent from, so it decided which phase was
+# discarded and the last phase inherited the remainder (issue #784): measured 2026-11-05, #780 spent 80/34/42/41
+# turns on its worker, its round before the gate, its gate and its tail and ended the round-1 reviewer at 53 of the
+# same 250, and #767 gave its round-2 worker three. Each child is bounded by its own role's key now, and the item's
+# old pot is not read at all — this case records one small enough to end the reviewer before its first turn and
+# asserts the reviewer instead reaches its own bound of eight turns while the worker keeps the twenty its role
+# records. A tree that still reads the item's pot ends the reviewer at the item's bound and says so.
+case_run_eachChildIsBoundedByItsOwnRolesTurns() {
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo worker_fixture reviewer_fixture extra action pid i status out state reviewer_report worker_report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy loop.conf"
+  # The keys are appended rather than edited in place: a tree that does not know them yet must still read the item
+  # pot below, which is the only bound it has, and the case then fails on the reviewer's transcript instead of on a
+  # `sed` that found no line to rewrite.
+  {
+    printf 'LOOP_CHILD_TURNS_MAX_WORKER=20\n'
+    printf 'LOOP_CHILD_TURNS_MAX_REVIEWER=8\n'
+    printf 'LOOP_ITEM_TURNS_MAX=10\n'
+  } >> "$conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_REVIEWER=8' "$conf" || fail "this case could not record the reviewer's turn bound"
+  # The worker takes ten turns — the whole of the item pot this case records — and returns; the reviewer takes its
+  # eight and then waits, so the run has to end it at its own bound rather than before it can start.
+  worker_fixture="$d/worker-events.jsonl"
+  for i in $(seq 1 10); do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$worker_fixture"
+  reviewer_fixture="$d/reviewer-events.jsonl"
+  for i in $(seq 1 8); do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$reviewer_fixture"
+  fifo="$d/review.fifo"; mkfifo "$fifo"
+  action="$d/turns.sh"
+  cat > "$action" <<EOF
+case "\${1##*/}" in
+  worker-prompt.md)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$worker_fixture" >> "\$ev"
+    ;;
+  reviewer-prompt-1.md)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$reviewer_fixture" >> "\$ev"
+    : > "$fifo.ready"
+    read -r _ < "$fifo" || true
+    ;;
+ esac
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review on > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the reviewer never started; the run said: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s on a reviewer that had taken 8 turns past a recorded bound of 8"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  state=$(state_file "$p")
+  assert_eq "0" "$status" "a run whose reviewer the role's turn bound ended is not a failed run"
+  assert_contains "$out" "child-turns-max=worker:20" "the header names the worker's own bound"
+  assert_contains "$out" ",reviewer:8," "and the reviewer's beside it"
+  worker_report="$p/.pi/issue-loop/items/21/worker-report.md"
+  reviewer_report="$p/.pi/issue-loop/items/21/reviewer-report-1.md"
+  [ -f "$worker_report" ] || fail "the worker kept no transcript"
+  [ -f "$reviewer_report" ] || fail "the round the turn bound ended kept no transcript"
+  assert_not_contains "$(cat "$worker_report")" "LOOP-TIMEOUT" \
+    "the ten turns the worker spent are its own bound's business, not the item's"
+  assert_contains "$(cat "$reviewer_report")" \
+    "the child reached the recorded turn bound of 8 turns (LOOP_CHILD_TURNS_MAX_REVIEWER for the reviewer role)" \
+    "and the reviewer is ended by its own bound, not by the pot the worker had already spent"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is recorded blocked"
+  assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
+    "and its round is recorded as cut, not as a refusal no reviewer made"
+  return 0
+}
+
+# A role whose key is `0` runs unbounded (issue #784), and the item's total is still counted and reported: the bound
+# is the phase's, so switching one phase's off must not switch another's on, and the item's total is what the
+# report's `calls:` line reads (`metrics.calls`, `metrics.turns`) and what `LOOP_ITEM_TOKENS_WARN` bands — a
+# warning's business, not a stop's. This case records the worker's key as `0` beside an item pot of one turn, which
+# the tree before this change reads and this one does not: the child takes its three turns, the item closes, and the
+# state and the report carry the total of three.
+case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded() {
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fixture action out status state report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy loop.conf"
+  {
+    printf 'LOOP_CHILD_TURNS_MAX_WORKER=0\n'
+    printf 'LOOP_ITEM_TURNS_MAX=1\n'
+  } >> "$conf"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=0' "$conf" || fail "this case could not record the worker's turn bound off"
+  export LOOP_CONF="$conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  fixture="$d/events.jsonl"
+  for i in 1 2 3; do printf '{"type":"turn_end","message":{"role":"assistant"}}\n'; done > "$fixture"
+  # The worker's own action, appended to the stub's own: the tree the stub leaves is what the item's verdict is read
+  # from, so a case that *replaced* the stub's action would block the item for a tree nothing had changed. Only the
+  # worker appends turns — the item's tail child is a role of its own and pays none.
+  action="$d/turn-child.sh"
+  cat > "$action" <<EOF
+case "\${1##*/}" in
+  worker-prompt.md)
+    ev="\${LOOP_CHILD_EVENTS:-}"
+    [ -n "\$ev" ] || exit 1
+    cat "$fixture" >> "\$ev"
+    ;;
+esac
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$(cat "$action")"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
+  assert_eq "0" "$status" "a child no bound ends is not a failed run"
+  assert_contains "$out" "child-turns-max=worker:0" "the run's header says the worker's bound is off"
+  state=$(state_file "$p")
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of its child"
+  assert_not_contains "$(cat "$report")" "turn bound" "no turn bound ended the child"
+  assert_eq "3" "$(jq -r '.items[0].metrics.turns' "$state")" \
+    "the item's total is still counted over its children"
+  assert_eq "0" "$(jq -r '.items[0].metrics.calls' "$state")" "beside the calls it was made of"
+  assert_contains "$out" "0 calls per turn (0 calls / 3 turns)" "and the report names the total it read"
   return 0
 }

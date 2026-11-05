@@ -1,0 +1,6 @@
+# 2026-11-05T10:47:59Z
+# mutation: the stop sentence's subject replaced — 'It writes nothing before the owner chooses' becomes 'It writes only after the owner chooses'
+- touches `tools/issues/shaping.sh`, `decisions.sh` or `answer.sh`: the queue and the decision path are read-only
+  to it
+FAIL shaping#theConsumerWritesNothingBeforeTheOwnerChooses
+mutated-case exit=1

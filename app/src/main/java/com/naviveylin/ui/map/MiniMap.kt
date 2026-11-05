@@ -1,5 +1,6 @@
 package com.naviveylin.ui.map
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -75,6 +76,10 @@ import kotlinx.coroutines.SupervisorJob
  *   current-position marker)
  * @param onViewportChanged optional callback fired after every viewport change
  *   (initial render, pan, zoom) with the widget's center/magnification
+ * @param onStyleLoadFailure optional sink for the message of a rejected stylesheet-variant reload
+ *   (spec: map-styles — "Style flag change fails"). The report itself is written to the diagnostics
+ *   log by `MapStyleLoadReporter` whether or not a sink is given; a surface that shows messages
+ *   passes one, so the user learns that the widget's bitmap is still the other variant.
  */
 @Composable
 fun MiniMap(
@@ -87,9 +92,11 @@ fun MiniMap(
     additionalMarkers: List<Pair<Double, Double>> = emptyList(),
     selectedMarker: Pair<Double, Double>? = null,
     currentPosition: Pair<Double, Double>? = null,
-    onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null
+    onViewportChanged: ((lat: Double, lon: Double, mag: Double) -> Unit)? = null,
+    onStyleLoadFailure: ((String) -> Unit)? = null
 ) {
-    val densityDpi = LocalContext.current.resources.displayMetrics.densityDpi.toDouble()
+    val context = LocalContext.current
+    val densityDpi = context.resources.displayMetrics.densityDpi.toDouble()
     val surfaceColor = MaterialTheme.colorScheme.surface
     val markerColor = MaterialTheme.colorScheme.primary
     val additionalMarkerColor = MaterialTheme.colorScheme.secondary
@@ -108,6 +115,42 @@ fun MiniMap(
     }
 
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+
+    // The bitmap follows the resolved presentation (spec: mini-map — "The mini map renders the
+    // resolved presentation's stylesheet variant"; guidelines/MapStyling.md §15). The push goes
+    // through the shared applier, so this widget is the same value-keyed writer as the main map:
+    // a client that already carries the value costs no native call and no stylesheet reload. It is
+    // made before the size/location effect below requests the first frame, and the widget's own
+    // native-call order is what `darkPresentationPushesTheDarkDaylightFlag` asserts.
+    //
+    // The *re-render* is this widget's own fact, not the push's outcome: on a presentation flip the
+    // main map usually pushes first, so the applier answers UNCHANGED here — and this widget's tile
+    // cache and front buffer are still its own to invalidate. It follows the variant the client
+    // actually carries (`applied`), so a rejected reload cannot mark the other variant as drawn.
+    var renderedDark by remember(renderer) { mutableStateOf(isDarkPresentation) }
+    var appliedDark by remember(renderer) { mutableStateOf(isDarkPresentation) }
+    LaunchedEffect(renderer, isDarkPresentation) {
+        val hadFrame = renderer.frameFlow.value.bitmap != null
+        when (MapDaylightApplier.push(client, isDarkPresentation)) {
+            MapDaylightPush.UNCHANGED, MapDaylightPush.APPLIED, MapDaylightPush.ERROR -> Unit
+            // A rejected variant load is this widget's load path too (guidelines/MapStyling.md
+            // §15a — every load path reports once; spec: map-styles — "Style flag change fails").
+            MapDaylightPush.FAILED ->
+                rejectedVariantMessage(context, client)?.let { message ->
+                    if (onStyleLoadFailure != null) onStyleLoadFailure(message)
+                    else Log.w("MiniMap", message)
+                }
+        }
+        // The palette follows the variant the client carries, not the one that was requested
+        // (guidelines/UI.md §9): after a rejected reload the two differ. The re-render compares the
+        // *requested* value, because that is the value this effect was restarted for; the variant the
+        // bitmap ends up in is the client's, and a rejected reload leaves both unchanged.
+        appliedDark = MapDaylightApplier.applied(client) ?: isDarkPresentation
+        if (renderedDark != isDarkPresentation) {
+            renderedDark = isDarkPresentation
+            if (hadFrame) renderer.invalidateStyle()
+        }
+    }
 
     // Size change or new object location → (re)render. North-locked: angle 0.
     LaunchedEffect(canvasSize, lat, lon, initialMag) {
@@ -235,7 +278,7 @@ fun MiniMap(
             }
 
             // Current-position marker: blue dot with a soft accuracy halo.
-            val markerColors = miniMapMarkerColors(isDarkPresentation)
+            val markerColors = miniMapMarkerColors(appliedDark)
             currentPosition?.let { (clat, clon) ->
                 val (gx, gy) = ProjectionUtils.geoToScreen(
                     clat, clon,

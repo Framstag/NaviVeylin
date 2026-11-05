@@ -2007,9 +2007,11 @@ the run ends, and the stop reason SHALL name that file beside the files.
 
 A case SHALL declare the files it can be affected by in the first line of its body (`# files: <token> …`), and
 the self-test SHALL select on that declaration with `--files <path> …` and `--from-git <base>`. A file set that
-names no case SHALL be refused with exit 2 before any case runs, the selection SHALL be stated against the
-declared set, a core file SHALL owe every case, and a profile's `{base}` SHALL be replaced by the base the gate
-resolved.
+names no case SHALL be refused with exit 2 before any case runs — unless the invocation names `--allow-empty`,
+which SHALL instead run no case, state the file set it read and the declared set it selected against, print
+`LOOP-SELFTEST: no case declares the delta`, and exit 0, so an empty intersection of a real delta is told apart
+from a file set a typo made unresolvable. The selection SHALL be stated against the declared set, a core file
+SHALL owe every case, and a profile's `{base}` SHALL be replaced by the base the gate resolved.
 
 #### Scenario: A file set runs the cases that declare it and no others
 
@@ -2023,6 +2025,13 @@ resolved.
 - **WHEN** `--files` names a path no case declares, and then a path the tree has but no case declares
 - **THEN** the driver exits 2 naming the declared set it could not resolve, and no case has been executed
 - **Case**: `driver#aFileSetThatNamesNoCaseIsRefused`
+
+#### Scenario: An empty intersection is stated when the caller allows it
+
+- **WHEN** a file set no case declares is run twice, once with `--allow-empty` and once without it
+- **THEN** the run with the flag executes no case, prints `LOOP-SELFTEST: no case declares the delta` with the file
+  set it read, and exits 0, while the run without it exits 2 exactly as it does today
+- **Case**: `driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt`
 
 #### Scenario: A core file owes every case
 

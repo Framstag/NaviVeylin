@@ -213,6 +213,7 @@ gated item into the tail, the run's own deadline cuts that item, and it is left 
 item per run, because the deadline ends that child and the run stops right after it. The work it left is kept as
 the leftover patch, the item's state names that patch and the report prints the recovery, and the cut item is not
 escalated as a decision: the clock that ended it is the run's budget, not a finding about the item (issue #674).
+It is recorded `cut` there as well, for the reason the review round's own cut is (§7e, issue #785).
 That holds for every child the item starts — the worker, the rework worker of a refusing round, and the reviewer
 of a review round (the round-1 review of #674 found the reviewer's `LOOP-DEADLINE` line written by `run_child` and
 read by nobody, so a cut round bought a rework worker for a change nobody refused) — and the run takes
@@ -616,6 +617,24 @@ round once more (same prompt and same diff, the answer kept beside the cut attem
 round the run itself ended already says so in its report (`LOOP-TIMEOUT`) and is not retried; two cut answers
 in one round block the item with *the reviewer's report was cut short twice*, and the branch carries no
 review-failure marker, because no reviewer refused that change.
+
+What a bound cut is, and what it is not: a round the run's own bound ended — the run's deadline, or the role's
+turn bound — carries `LOOP-TIMEOUT`/`LOOP-DEADLINE` and no `VERDICT:`, and reading that as a refusal named a
+reviewer that refused nothing and bought a rework worker for it (#247). The round being *cut* was recorded, but the
+**item** was recorded `blocked` and escalated, which is a different fact and was wrong: measured 2026-11-05 on
+#780 — its tail wrote `LOOP-VERDICT: closed`, its gate read `tests=460 failures=0`, `evidence-check.sh` passed, its
+change was archived and its branch held three commits — and review round 1 was ended at the turn bound after 53
+turns, after which the item was recorded `blocked`, given `agent/needs-decision` and `status/on-hold`, and counted
+towards the run's two-blocked stop; #783, #767 and #763 reached the same state the same day. An item the loop's own
+bound cut is therefore recorded **`cut`**, the fifth result beside `done`, `skipped`, `blocked` and `falsified`:
+it writes no decision label, it is named on a line of its own (`cut short by the run's own bound: …`) instead of in
+the blocks, it does not enter the two-blocked streak `state.sh next` stops on, and the run takes no second pass over
+the queue after it, because that pass would re-exclude the item whose branch the cut child had just made (#674's
+rule, one result wider). What the branch carries is the round as a **cut** — `review-round-<n>-cut.md`, with the
+announcement of the same round withdrawn in that commit — so `branch-state` reads `adoptable` rather than
+`review-unanswered`, and the next pre-screen offers the attempt as work the loop finishes instead of as a question
+only its owner can answer. A round the *transport* cut twice is not this: no bound ended it, so it stays a block
+with its reason, because nothing about it says the item is converging.
 
 What the round a corrective refusal buys is handed: a refusal whose every finding is subtractive —
 `LOOP-CORRECTIONS-ONLY: yes` — at the round budget buys one more round (#187), and that round exists to decide

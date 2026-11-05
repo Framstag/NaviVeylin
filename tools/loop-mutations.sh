@@ -639,14 +639,14 @@ MUTATIONS=(
   # per invariant: 68.1 makes the floor follow the most expensive measured item again (the old lower bound's
   # effect), 68.2 escalates the item the deadline cut (the guard never holds), 68.3 drops the patch path
   # from the item's record so the report cannot name the work an ended child left, 68.4 stops reading the
-  # reviewer's own `LOOP-DEADLINE` (a round the clock cut is read as a refusal again), 68.5 lets the second
+  # reviewer's own `LOOP-DEADLINE` (the clock is then read as the turn bound written beside it), 68.5 lets the second
   # pre-screen pass run after a deadline cut, so the report names a decision for the item the clock ended, and 68.6
   # silences the escalation a cap-ended item still owes.
   '68.1@-@tools/loop/state.sh@state#floorIsDerivedFromTheFinishedItemsWallTimes@the floor following the cheapest measured item rather than the most expensive one (issue #674)@s|^      \| (\$w \| min) as \$cheapest$|      \| ($w \| max) as $cheapest|'
   '68.2@-@tools/loop/run.sh@run#childIsEndedAtTheRunsDeadline@the guard that leaves an item the run'"'"'s own deadline cut for the next run instead of escalating it (issue #674)@s|^      if \[ -z "\$deadline_claim" \]; then$|      if true; then|'
   '68.3@-@tools/loop/state.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch path the item'"'"'s record carries, so the report can name the work an ended child left (issue #674)@s|leftover:(if \$lo == "" then null else \$lo end)|leftover:null|'
-  '68.4@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the reviewer'"'"'s own `LOOP-DEADLINE` read, so a round the run'"'"'s clock ended is read as a refusal and buys a rework worker (issue #674)@s|^      reviewer_deadline=.*LOOP-DEADLINE.*$|      reviewer_deadline=""|'
-  '68.5@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674)@s|^    \[ "\$deadline_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
+  '68.4@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the reviewer'"'"'s own `LOOP-DEADLINE` read, so the clock the run ended the round with is read as the turn bound run_child wrote beside it, and the reason names the wrong bound (issue #674)@s|^      reviewer_deadline=.*LOOP-DEADLINE.*$|      reviewer_deadline=""|'
+  '68.5@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674)@s|^    \[ "\$deadline_cut" -eq 0 \] && \[ "\$bound_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
   '68.6@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the escalation a cap-ended item still owes, so a cap the item'"'"'s own clock hit is silent as well (issue #674)@s|^      if \[ -z "\$deadline_claim" \]; then$|      if [ -n "$deadline_claim" ]; then|'
 
   # 69.x — the pre-screen asks the item's text where its fix lands, and the answer is the author's own claim: a
@@ -758,6 +758,17 @@ MUTATIONS=(
   '79.2@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the block that reads the diff before the gate and starts the child that runs it (issue #758)@s|^  if \[ "\$pre_gate" = on \] \&\& \[ "\$worker_exit" -eq 0 \] \&\& \[ "\$worker_write_decides" -eq 0 \]; then$|  if false; then|'
   '79.3@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the findings the refuting round wrote, handed to the child that runs the gate (issue #758)@s|^        if grep -q \x27^VERDICT: FAIL\x27 "\$pre_gate_report" 2>/dev/null \&\& \[ -n "\$blocking" \] \&\& \[ "\$blocking" -gt 0 \]; then$|        if false; then|'
   '79.4@-@tools/loop/run.sh@run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun@the outcome arm a round the run cut records, so a change nobody read is left for the next run instead of closing (issue #758)@s|^  if \[ -n "\$pre_gate_refusal" \]; then$|  if false; then|'
+
+  # 80.x — a round the run's own bound ended is recorded `cut`, not `blocked` (issue #785). Measured 2026-11-05: #780
+  # had a tail that wrote `LOOP-VERDICT: closed`, a gate of `tests=460 failures=0`, an archived change and three
+  # commits on its branch, and its review round 1 was ended at the turn bound after 53 turns — the item was recorded
+  # `blocked`, escalated to a person and counted towards the run's two-blocked stop, as #783, #767 and #763 were the
+  # same day. Three sites, each with the case that owns the shape: the result the cut arm writes, the cut that is
+  # written on the branch so the round is not read as one nobody answered, and the queue's second pass the run skips
+  # after a cut, which would re-exclude the item whose branch the cut child had just made.
+  '80.1@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the result a round the run ended at a bound records, so it is a block its owner owes an answer to (issue #785)@s|--result cut --verdict cut|--result blocked --verdict blocked|'
+  '80.2@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the cut written on the branch, so the round the run ended is read as one nobody answered and the branch as a question only a person can answer (issues #785, #262)@s|^  bash .*record-review-round .*"\$1" cut >&2.*$|  : # the mutation leaves the round announced and unanswered|'
+  '80.3@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the guard that skips the queue second pass after a bound cut an item the run just worked (issue #785)@s|^    \[ "\$deadline_cut" -eq 0 \] && \[ "\$bound_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

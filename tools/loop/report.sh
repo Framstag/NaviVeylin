@@ -68,6 +68,9 @@ closed=$(jq -r '[.items[] | select(.result == "done")] | length' "$state_file")
 misdiagnosed=$(jq -r '[.items[] | select(.result == "falsified")] | length' "$state_file")
 skipped=$(jq -r '[.items[] | select(.result == "skipped")] | length' "$state_file")
 blocked=$(jq -r '[.items[] | select(.result == "blocked")] | length' "$state_file")
+# The item a bound cut is counted apart from one that blocked (issue #785): it spent budget, so the budget left
+# subtracts it, and it is no question — the next run resumes the phase the run's own clock ended.
+cut=$(jq -r '[.items[] | select(.result == "cut")] | length' "$state_file")
 
 printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · review rounds %s · may-close %s · max-decisions %s · base %s)\n\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$items" "$minutes" \
@@ -114,15 +117,15 @@ if is_num "$run_epoch" && is_num "$deadline_epoch"; then
   fi
 fi
 if [ "$owner_gone" -eq 1 ]; then
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$owner_pid"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: the run that wrote this state is gone (pid %s) — it was killed and recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$owner_pid"
 elif [ -n "$spent_min" ]; then
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left %s items / %s min · spent %s min\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" \
-    "$((items - closed - misdiagnosed - skipped - blocked))" "$((minutes - spent_min))" "$spent_min"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left %s items / %s min · spent %s min\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" \
+    "$((items - closed - misdiagnosed - skipped - blocked - cut))" "$((minutes - spent_min))" "$spent_min"
 else
-  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
-    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$deadline_at"
+  printf 'closed %s · mis-diagnosed %s · skipped %s · blocked %s · cut %s · budget left unknown: these numbers belong to another run — its window closed at %s and it recorded no stop\n\n' \
+    "$closed" "$misdiagnosed" "$skipped" "$blocked" "$cut" "$deadline_at"
 fi
 
 printf 'stop: %s\n\n' "$(if [ -n "$stop_reason" ]; then printf '%s' "$stop_reason";
@@ -161,6 +164,10 @@ printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#
 # change `falsified-items-close-in-the-loop`).
 printf 'mis-diagnosed: %s\n' "$(jq -r '[.items[] | select(.result == "falsified") | "#\(.issue) \(.metrics.rootCause // "")"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# The items a bound cut are named apart from the blocks, in the reader's own language: a round the run ended at
+# its own bound asked nobody a question, so the line says which phase was cut and what the next run resumes
+# (issue #785). Empty for a run with none, exactly as the other named lists are.
+printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut") | "#\(.issue) \(.metrics.reviewVerdict // "-")\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the

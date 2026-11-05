@@ -2100,7 +2100,9 @@ the clock that cut it is the run's budget, not a finding, so no decision label i
 left for the next run. That holds for every child an item starts — its worker, the rework worker a refusing round
 starts, and the reviewer of a review round — and the run SHALL take no further pass over the queue once the
 deadline has ended one, because a pass that admitted work the spent budget cannot pay would name a decision about
-the item the clock cut. A child the item's own wall-clock cap ended is unchanged and is escalated.
+the item the clock cut. A child the item's own wall-clock cap ended is unchanged and is escalated. An item whose
+**review round** a bound ended — the deadline, or the role's turn bound — SHALL be recorded `cut` rather than
+`blocked`, and the run SHALL take no further pass over the queue after it either, for the same reason.
 
 #### Scenario: A worker the cap ends leaves the branch at the base
 
@@ -2145,7 +2147,7 @@ item was escalated with the other blocks.
 
 - **WHEN** the run's deadline passes while the reviewer of a review round is running, and the run ends that child
 - **THEN** the round is recorded as cut rather than refused — the transcript's `LOOP-DEADLINE` line is read, no
-  retry and no rework worker is started for it, and the item is recorded `blocked` with no decision label and no
+  retry and no rework worker is started for it, and the item is recorded `cut` with no decision label and no
   entry in the report's decision list, exactly as the item whose worker the same clock ended
 - **Case**: `run#reviewerEndedAtTheRunsDeadlineIsNotADecision`
 
@@ -3048,8 +3050,9 @@ that wrote it, so a finding a reader can make from the diff is not paid for by a
 
 - **WHEN** the round before the gate never answers — cut by the deadline, ended at its role's turn bound, or cut
   twice on its way to the file
-- **THEN** the item is recorded `blocked` with that round named as the one before the gate, no gate child is started
-  on a diff nobody read, and the round after the gate is not asked either
+- **THEN** the item is recorded `cut` when a bound the run enforces ended that round and `blocked` when the
+  transport did, with that round named as the one before the gate, no gate child is started on a diff nobody read,
+  and the round after the gate is not asked either
 - **Case**: `run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun`
 
 #### Scenario: A change child that ran the gate itself is read as it always was
@@ -3078,7 +3081,7 @@ over the stream every child appends to decides which phase is discarded, not whe
 - **WHEN** the worker takes ten turns, more than the item's old total but below its own role's bound, and the
   round after it takes the eight turns its role records
 - **THEN** the worker's transcript carries no `LOOP-TIMEOUT`, the reviewer is ended at its own bound of eight turns
-  with a line naming `LOOP_CHILD_TURNS_MAX_REVIEWER` and its role, and the item is recorded `blocked` with that
+  with a line naming `LOOP_CHILD_TURNS_MAX_REVIEWER` and its role, and the item is recorded `cut` with that
   round marked cut
 - **Case**: `run#eachChildIsBoundedByItsOwnRolesTurns`
 
@@ -3088,3 +3091,27 @@ over the stream every child appends to decides which phase is discarded, not whe
 - **THEN** no turn bound ends it, while the item's total is still counted over its children (`metrics.turns`) and
   printed by the report's `calls:` line beside the calls it was made of
 - **Case**: `run#aRoleWithNoRecordedTurnBoundRunsUnbounded`
+
+### Requirement: An item the run's own bound cut is recorded `cut`, not `blocked`
+
+An item whose review round the run ended at a bound it enforces — the run's deadline or the child's role's turn
+bound — SHALL be recorded `cut`: no decision label, no entry in the two-blocked streak `state.sh next` stops on,
+and a line of its own in the report. The round SHALL be written on the branch as a cut with its announcement
+withdrawn, so the attempt stays work the loop finishes rather than a question only its owner can answer.
+
+#### Scenario: A round the turn bound ended leaves no decision behind
+
+- **WHEN** an item's tail writes `LOOP-VERDICT: closed`, its gate answered and its change is archived, and the run
+  then ends review round 1 at the reviewer's role's turn bound
+- **THEN** the item is recorded `cut` with its round marked cut, no `agent/needs-decision` label is written for it
+  and the report's decision list does not hold it, the branch carries `review-round-1-cut.md` and no
+  `review-round-1-requested.md`, and `branch-state` reads `adoptable` — work the next run finishes, not a question
+  only its owner can answer
+- **Case**: `run#aReviewerEndedAtItsTurnBoundIsNotARefusal`
+
+#### Scenario: Two consecutive cuts do not stop the run
+
+- **WHEN** two items in a row are recorded `cut` and the queue still holds a candidate
+- **THEN** `state.sh next` hands out that candidate, a block that follows a cut is the first block of its own pair,
+  and two blocks in a row still stop the run
+- **Case**: `state#nextHonoursEveryStopCondition`

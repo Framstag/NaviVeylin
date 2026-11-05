@@ -450,6 +450,13 @@ leftover_patch=""
 # finding about the item, so the run takes no further pass over the queue: a second pre-screen after it excluded the
 # item whose branch the cut run had just made, and the report named a decision the clock — not the item — had asked.
 deadline_cut=0
+# …and whether the run's own bound ended a **review round** of an item it worked (issue #785), which has the same
+# consequence for the same reason: the round was cut rather than refused, so the item is left for the next run, and
+# the pass the emptied queue would buy would read the branch the cut child left as a decision about that item. The
+# measured shape is #780, whose tail wrote `LOOP-VERDICT: closed`, whose gate was `tests=460 failures=0` and whose
+# round 1 ended at the turn bound: the run then excluded the item and its report asked its owner a question nobody
+# had put to it.
+bound_cut=0
 # The one ignored directory `keep_leftovers` copies into that patch instead of only naming it (issue #308). Empty
 # means no ignored path is copied; the profile's key is the project fact, the engine keeps none of its own.
 record_dir="${LOOP_UNTRACKED_RECORD_DIR:-}"
@@ -1527,15 +1534,27 @@ render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-
     "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
 }
 
+# A review round the run's own bound ended is written on the branch as a **cut**, and the announcement of the same
+# round is withdrawn in that one commit (issue #785): the branch is what a later run reads, and a round nobody
+# answered beside a round the loop itself ended asks a person a question the loop already answered. Nothing is
+# written for an item whose tree carries no archived change (`$change` empty) — there is no change to write against.
+record_cut_round() { # <round>
+  [ -n "${change:-}" ] || return 0
+  bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$1" cut >&2 ||
+    printf 'run: the cut of review round %s could not be recorded on the branch — a later run may read %s as a round nobody answered\n' \
+      "$1" "$change" >&2
+}
+
 # ── the item loop ───────────────────────────────────────────────────────────────────────────────
 
 queue_passes=1
 while true; do
   if [ "$(jq -r '.queue | length' "$LOOP_STATE_FILE")" -eq 0 ] && [ "$queue_passes" -lt 2 ] &&
-    [ "$deadline_cut" -eq 0 ]; then
+    [ "$deadline_cut" -eq 0 ] && [ "$bound_cut" -eq 0 ]; then
     # A queue that emptied mid-run gets one more pass, never a third (SKILL.md, "Pre-screen the backlog") — but not
-    # after the run's own deadline ended a child: the budget is spent, the pass can admit nothing the run could work,
-    # and its verdict on the item whose branch the cut child had just made reads as a decision about that item.
+    # after the run's own deadline ended a child, nor after its own bound ended a review round of the item it last
+    # worked (issue #785): the pass can admit nothing the run could work either way, and its verdict on the item whose
+    # branch the cut child had just made reads as a decision about that item.
     queue_passes=$((queue_passes + 1))
     bash "$LOOP_DIR/prescreen.sh" >&2 || true
     escalate_prescreen_decisions
@@ -1807,6 +1826,11 @@ while true; do
   # not run is not re-run, and a round before a gate that has already run has nothing to read.
   pre_gate_refusal=""
   pre_gate_refusal_verdict=""
+  # Whether the round that never finished was ended by a **bound** — the run's own deadline or the reviewer's role's
+  # turn bound — rather than by the transport (issue #785). A bound's round is a cut, and a cut is not the item's: it
+  # is recorded `cut`, escalated to nobody and resumed by the next run, where a report the transport cut twice is a
+  # block the owner is asked about.
+  pre_gate_cut=0
   if [ "$pre_gate" = on ] && [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ]; then
     change_diff_ready=$(report_field "$gate_report" LOOP-DIFF-READY)
     change_gate_claim=$(report_field "$gate_report" LOOP-GATE)
@@ -1862,9 +1886,11 @@ while true; do
           fi
           if [ -n "$pre_gate_deadline" ]; then
             deadline_claim="$pre_gate_deadline"
+            pre_gate_cut=1
             pre_gate_refusal_verdict="deadline"
             pre_gate_refusal="the run's deadline passed while the pre-gate reviewer was running — the round was cut, not refused, so the change is left for the next run"
           elif [ -n "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ]; then
+            pre_gate_cut=1
             pre_gate_refusal_verdict="cut-short"
             pre_gate_refusal="the run ended the pre-gate reviewer at its role's turn bound — the round was cut, not refused, so the change is left for the next run"
           elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
@@ -2101,6 +2127,10 @@ while true; do
   elif [ "$cited_evidence" -eq 1 ] && [ "$carried" -eq 0 ]; then
     outcome="blocked"; blocked_reason="the change cites a test result but carries no evidence in its own evidence/ directory"
   fi
+  # …and a round the run's own bound ended is not a block at all (issue #785): the item's own work finished, its gate
+  # is green and its change is archived, so what is left is the phase the bound cut and the next run resumes it. The
+  # reason the refusal above recorded is kept word for word — it is what the report and the state's own table print.
+  if [ "$pre_gate_cut" -eq 1 ]; then outcome="cut"; fi
 
   review_rounds=0
   review_verdict="${pre_gate_refusal_verdict:-off}"
@@ -2197,7 +2227,8 @@ while true; do
       if [ -n "$reviewer_deadline" ]; then
         deadline_claim="$reviewer_deadline"
         review_verdict="deadline"
-        outcome="blocked"
+        outcome="cut"
+        record_cut_round "$round"
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
         break
       fi
@@ -2209,7 +2240,8 @@ while true; do
       # for the next run and a rate counts it as undecided.
       if [ -n "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ]; then
         review_verdict="cut-short"
-        outcome="blocked"
+        outcome="cut"
+        record_cut_round "$round"
         blocked_reason="the run ended the reviewer of round $round at its role's turn bound — the round was cut, not refused, so the change is left for the next run"
         break
       fi
@@ -2492,6 +2524,32 @@ $review_notes_text"
         --root-cause "$root_cause" --red-test "$red_test" --note "skipped by the worker" \
         --events "$events_file" --decision-label "$escalated_label" --review-verdict "$review_verdict" >/dev/null
       ;;
+    cut)
+      # The round the run's own bound ended (issue #785): the item's work finished — its change is archived, its gate
+      # answered and its branch carries the commits — and the phase that did not finish is the one the next run
+      # resumes. Nothing here writes a decision label: a person owes this item no answer, and a block recorded as one
+      # spent a decision slot and an evening on #780, #783, #767 and #763 on 2026-11-05. `state.sh done --result cut`
+      # keeps it out of the two-blocked streak `next` stops on, so a run of bound-ended rounds ends on its budget
+      # rather than on its own bounds.
+      label_failures=""
+      loop_labels unpick "$issue" >&2 || label_failures="unpick"
+      # The queue's own pass is not taken after this item: the branch it leaves carries the commits the run made, and a
+      # pre-screen asking about them would name the item the run has just recorded — with a question the run answered.
+      bound_cut=1
+      cut_note="${blocked_reason:-the run ended the phase at a bound}"
+      if [ -n "$leftover_patch" ]; then
+        cut_note="$cut_note · its work is kept at $leftover_patch"
+      fi
+      if [ -n "$label_failures" ]; then
+        cut_note="$cut_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"
+      fi
+      loop_state done "$issue" --result cut --verdict cut --change "$change_claim" \
+        --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
+        --root-cause "$root_cause" --red-test "$red_test" --note "$cut_note" \
+        --events "$events_file" --leftover "$leftover_patch" \
+        --label-failures "$label_failures" \
+        --review-verdict "$review_verdict" >/dev/null
+      ;;
     *)
       # A label write the tracker refuses is a fact of the run, not a swallow (issue #279): measured
       # 2026-10-23T11:38Z, a run recorded item #260 blocked with `escalatedLabel: ""` while its six neighbours
@@ -2557,6 +2615,9 @@ question the item asked; a retry costs another attempt, and an abandonment remov
   esac
   detail="${change:-$blocked_reason}"
   if [ "$outcome" = skipped ]; then detail="${skip_verdict:-unspecified}"; fi
+  # A cut names the phase the run ended rather than the change it left: the change is the same one the item's branch
+  # carries either way, and what a reader of the line has to tell apart is a cut from a block (issue #785).
+  if [ "$outcome" = cut ]; then detail="${blocked_reason:-cut at a bound}"; fi
   printf 'item #%s: %s (%s) · %ss · %s review round(s)\n' "$issue" "$outcome" "$detail" "$wall" "$review_rounds"
   in_progress=""
 

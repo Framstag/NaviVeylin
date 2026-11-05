@@ -1060,6 +1060,27 @@ case_state_nextHonoursEveryStopCondition() {
   assert_eq "3" "$status" "two consecutive blocked items stop the run"
   assert_contains "$out" "two consecutive" "the reason is named"
 
+  # 4b. a round the run's own bound ended is not a block (issue #785): it is a phase the next run resumes, so it
+  # neither stops the run nor counts towards the streak — the pair a stop is read from holds two **blocks**, and a
+  # block that follows a cut is the first of its own pair.
+  p=$(new_project)
+  init_state "$p" 6 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3},{"issue":24,"class":"bug","verdict":"eligible","rank":4},{"issue":25,"class":"bug","verdict":"eligible","rank":5}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result cut --verdict cut >/dev/null
+  run_state "$p" done 22 --result cut --verdict cut >/dev/null
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "two consecutive cuts do not stop the run"
+  assert_eq "23" "$out" "the next candidate stands behind them"
+  run_state "$p" done 23 --result blocked --verdict blocked >/dev/null
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "a block after a cut is the first of its own pair, not the second of the cut's"
+  assert_eq "24" "$out" "so the queue still hands out the next candidate"
+  run_state "$p" done 24 --result blocked --verdict blocked >/dev/null
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "two blocks in a row still stop the run"
+  assert_contains "$out" "two consecutive" "with the reason named"
+
   # 5. less time left than the next item's floor
   p=$(new_project)
   init_state "$p" 3 30
@@ -5050,7 +5071,7 @@ case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision() {
   [ ! -f "$retry" ] || fail "a retry was started past the deadline, for a round the clock ended rather than the transport"
   rework="$p/.pi/issue-loop/items/21/worker-prompt-round2.md"
   [ ! -f "$rework" ] || fail "the cut round was read as a refusal and bought a rework worker"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
   assert_contains "$(jq -r '.items[0].note' "$state")" "deadline passed while the reviewer" \
     "and the reason on the item names the clock and the child it ended"
   assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
@@ -5061,14 +5082,21 @@ case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision() {
     "the run records the deadline as its stop reason"
 }
 
-# A round the item's own turn bound ended has no answer to read: its transcript carries `LOOP-TIMEOUT` and no
+# A round the reviewer's own turn bound ended has no answer to read: its transcript carries `LOOP-TIMEOUT` and no
 # `VERDICT:` line, and reading that silence as a refusal named a reviewer that refused nothing and bought a rework
 # worker for it — measured on item #51, whose round 1 ended at the 250-turn bound while the record said
-# `blocked`/`reviewRounds 1` (issue #247, review round 2). The round is cut: the item is blocked, no worker is
-# started for it, and the state records the verdict a rate counts as undecided rather than as a refused round.
+# `blocked`/`reviewRounds 1` (issue #247, review round 2). The round is cut: no worker is started for it, and the
+# state records the verdict a rate counts as undecided rather than as a refused round.
+#
+# The item is then recorded `cut`, not `blocked` (issue #785). A round the run's own bound ended is a phase the next
+# run resumes, not a finding about the item: the change is archived, the gate answered and the branch carries the
+# commits, so a `blocked` item spent a decision slot and a person's evening on #780, #783, #767 and #763 on
+# 2026-11-05 — each of them with a green gate and a `LOOP-VERDICT: closed` tail behind it. What the cut leaves on the
+# branch is a **cut** round, not an announcement nobody answered, so `branch-state` reads the attempt as work the
+# loop finishes rather than as `review-unanswered`, a question only its owner can answer.
 case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal() {
-  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p conf fifo fixture action pid i status out state review_report retry rework
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/report.sh tools/loop/run.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out state review_report retry rework branch tree
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
@@ -5125,10 +5153,27 @@ EOF
   [ ! -f "$retry" ] || fail "a round the run's own bound ended was retried as if the transport had cut it"
   rework="$p/.pi/issue-loop/items/21/worker-prompt-round2.md"
   [ ! -f "$rework" ] || fail "the cut round was read as a refusal and bought a rework worker"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" \
+    "the item is recorded cut, not blocked: its work finished and the round the run ended is nobody's question"
   assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
     "and its record carries the cut, not a refusal no reviewer made"
   assert_contains "$(jq -r '.items[0].note' "$state")" "turn bound" "the reason on the item names the bound"
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
+    "a cut round writes no decision label on the item"
+  assert_contains "$out" "decisions the owner owes: none" "and the report asks the owner no question about it"
+  assert_contains "$out" "cut short by the run's own bound: #21 cut-short" \
+    "the report names the item the run's bound cut, beside the blocks it did not cause"
+  # The branch is what the next run reads, and the round the run ended is written on it as a cut: the announcement
+  # the run itself withdrew, and a state the pre-screen offers as work the loop finishes rather than as a decision
+  # a person owes (#262's `review-unanswered` is the branch of a round nobody graded, which this is not).
+  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
+  [ -n "$branch" ] || fail "the item's branch is not there to be read"
+  tree=$(git -C "$p" ls-tree -r --name-only "$branch")
+  assert_contains "$tree" "review-round-1-cut.md" "the round the bound ended is recorded on the branch as a cut"
+  assert_not_contains "$tree" "review-round-1-requested.md" \
+    "and its announcement is withdrawn: the run made both statements, so it may not leave them contradicting"
+  assert_eq "adoptable" "$(run_worktree "$p" branch-state 21 "$branch" 2>/dev/null | cut -f1)" \
+    "the branch reads as work the next run can finish, not as a round nobody answered"
   assert_contains "$out" "review: - · no round of this run ended in a verdict · 1 undecided · 0 never reviewed" \
     "the run's own rate counts the cut round as undecided, never as a refused round"
 }
@@ -11582,7 +11627,7 @@ EOF
   assert_contains "$(cat "$reviewer_report")" \
     "the child reached the recorded turn bound of 8 turns (LOOP_CHILD_TURNS_MAX_REVIEWER for the reviewer role)" \
     "and the reviewer is ended by its own bound, not by the pot the worker had already spent"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "the item is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the item is recorded cut"
   assert_eq "cut-short" "$(jq -r '.items[0].metrics.reviewVerdict' "$state")" \
     "and its round is recorded as cut, not as a refusal no reviewer made"
   return 0

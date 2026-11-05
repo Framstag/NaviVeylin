@@ -24,7 +24,7 @@
 #   worktree.sh merge-item <issue> <branch>
 #   worktree.sh release-branch <branch>
 #   worktree.sh prune-landed [--apply]
-#   worktree.sh record-review-round <issue> <change> <round> requested|passed
+#   worktree.sh record-review-round <issue> <change> <round> requested|passed|cut
 #   worktree.sh record-review-failure <issue> <change> <round>
 #   worktree.sh head
 #   worktree.sh status
@@ -398,21 +398,28 @@ carried_verification() { # <branch> <base> <change> → the evidence it carries,
 #
 #   review-round-<n>-requested.md   the run announced the round; no answer arrived yet
 #   review-round-<n>-passed.md      the round answered, and the change passed it
+#   review-round-<n>-cut.md         the run ended the round at a bound it records, so no answer was owed
+#                                   and none arrived either (issue #785)
 #   review-failed-round-<n>.md      the round answered, and it refused the change (#185)
 #
 # A round that carries an answer reads as that answer, and a refusal outranks a pass if a branch ever carries
-# both: the reading is the conservative one, as an old-shaped review never passes.
-carried_review_state() { # <branch> <change> → "<round> <passed|failed|requested>", or nothing
+# both: the reading is the conservative one, as an old-shaped review never passes. A round the run itself cut is
+# **not** an unanswered one — the run announced it and the run ended it, before any reviewer could answer — so it
+# is read as its own value (issue #785): `blocked` for a round nobody refused spent a decision slot and a person's
+# evening on #780, #783, #767 and #763 on 2026-11-05, whose changes were archived, gated green and cut at a bound.
+carried_review_state() { # <branch> <change> → "<round> <passed|failed|requested|cut>", or nothing
   local branch="$1" change="$2" files round
   files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null) || return 0
   round=$(printf '%s\n' "$files" |
     sed -n -e 's#.*/review-failed-round-\([0-9][0-9]*\)\.md$#\1#p' \
       -e 's#.*/review-round-\([0-9][0-9]*\)-requested\.md$#\1#p' \
+      -e 's#.*/review-round-\([0-9][0-9]*\)-cut\.md$#\1#p' \
       -e 's#.*/review-round-\([0-9][0-9]*\)-passed\.md$#\1#p' |
     sort -n | tail -1)
   [ -n "$round" ] || return 0
   case "$files" in *"/review-failed-round-$round.md"*) printf '%s failed\n' "$round"; return 0 ;; esac
   case "$files" in *"/review-round-$round-passed.md"*) printf '%s passed\n' "$round"; return 0 ;; esac
+  case "$files" in *"/review-round-$round-cut.md"*) printf '%s cut\n' "$round"; return 0 ;; esac
   printf '%s requested\n' "$round"
 }
 
@@ -421,7 +428,8 @@ carried_review_state() { # <branch> <change> → "<round> <passed|failed|request
 # `start-item` may only set aside what carries nothing of its own (#232).
 #
 #   adoptable          one archived change of its own, a green verification, no reviewer's refusal, and no
-#                      review round left unanswered
+#                      review round left unanswered and unread — a round the run itself cut asks nobody anything
+#                      (issue #785), so it does not make the branch a person's
 #   review-refused     the same, and the reviewer refused it — the owner's (#185)
 #   review-unanswered  the same, and the last review round was announced and never answered — the owner's (#262)
 #   archived-not-green the change is there and never verified — the owner's (#176)
@@ -545,15 +553,17 @@ $dirty"
 }
 
 # The run's record of a review round, written onto the item's branch: the *announcement* before the reviewer
-# starts, and the answer when it arrives (#262). The branch is what a later run reads — the item's own directory
-# (`.pi/issue-loop/items/<n>/`) is machine-local and is gone or unreadable to it — so a reviewer that is killed
-# mid-answer has to leave a round that says "never answered" rather than no trace at all.
-cmd_record_review_round() { # <issue> <change> <round> <requested|passed>
+# starts, the answer when it arrives (#262), and — when the run's own bound ended the round — the cut that says so
+# (#785). The branch is what a later run reads — the item's own directory (`.pi/issue-loop/items/<n>/`) is
+# machine-local and is gone or unreadable to it — so a reviewer that is killed mid-answer has to leave a round that
+# says "never answered" rather than no trace at all, and a round the run cut has to say that instead of reading as
+# one nobody ever asked.
+cmd_record_review_round() { # <issue> <change> <round> <requested|passed|cut>
   local issue="$1" change="$2" round="$3" what="${4:-}" dir file who_name who_email
-  case "$issue" in ''|*[!0-9]*) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed" ;; esac
+  case "$issue" in ''|*[!0-9]*) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut" ;; esac
   [ -n "$change" ] && [ -n "$round" ] ||
-    loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed"
-  case "$what" in requested|passed) ;; *) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed" ;; esac
+    loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut"
+  case "$what" in requested|passed|cut) ;; *) loop_die "record-review-round: usage: worktree.sh record-review-round <issue> <change> <round> requested|passed|cut" ;; esac
   [ -d "$worktree" ] || loop_die "record-review-round: no worktree at $worktree"
   [ -d "$worktree/openspec/changes/archive/$change" ] ||
     loop_refuse "record-review-round: $change is not an archived change in the worktree"
@@ -568,6 +578,22 @@ cmd_record_review_round() { # <issue> <change> <round> <requested|passed>
       printf 'can see: a round whose answer never arrives must not read like a round that passed, and this file\n'
       printf 'is the only record that the round existed at all.\n'
     } > "$file" || loop_die "record-review-round: could not write $file"
+  elif [ "$what" = cut ]; then
+    # The announcement is withdrawn in the same commit that records the cut: the run made both statements, so a
+    # branch that carried "nobody answered round n" beside "the run ended round n at its bound" would ask a person
+    # about a round the loop itself ended. What the round found is then simply nothing — no reviewer graded it.
+    {
+      printf 'The run ended review round %s of this change at a bound it records, before the reviewer answered.\n\n' "$round"
+      printf 'Recorded by the run for issue #%s at %s, on the item branch: the round was cut, not refused, and no\n' \
+        "$issue" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf 'reviewer graded this change. The transcript of the round the run ended names the bound — the role%s\n' \
+        "'"
+      printf 'turn bound or the run%s own deadline — in the item directory this run recorded.\n' "'"
+    } > "$file" || loop_die "record-review-round: could not write $file"
+    if [ -f "$dir/review-round-$round-requested.md" ]; then
+      gitw rm -q -- "$dir/review-round-$round-requested.md" >&2 ||
+        loop_die "record-review-round: could not withdraw the announcement of round $round"
+    fi
   else
     {
       printf 'The reviewer passed this change in review round %s.\n\n' "$round"

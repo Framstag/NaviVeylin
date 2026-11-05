@@ -35,7 +35,7 @@
 #   state.sh record-change-copy <issue> --change <name> --source <path> --files N --bytes N
 #                         # the change the item names, copied into its worktree at its start (`worktree.sh`)
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
-#   state.sh done <issue> --result done|skipped|blocked|falsified [--verdict V] [--change C] [--note TEXT]
+#   state.sh done <issue> --result done|skipped|blocked|falsified|cut [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL] [--leftover PATH] [--label-failures <transition>…]
@@ -258,7 +258,7 @@ cmd_show() {
       "budget   \($r.items) items / \($r.minutes) min · \($r.items - (.items | length)) left · deadline \($r.deadlineAt) · \((($r.deadlineEpoch - now) / 60 | floor)) min left\(if $r.deadlineEpoch <= now then " · EXPIRED" else "" end)",
       "flags    review \($r.review) · review rounds \($r.maxReviewRounds // "?") · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
       "stop     \($r.stop.reason // (if $gone != "" then $gone else "not stopped — the run is still going, or it ended without recording a reason" end))",
-      "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \($r.items)",
+      "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",
       "excluded \(.excluded | length): \([.excluded[] | "#\(.issue) \(.reason)"] | join(" · "))",
       "",
@@ -271,6 +271,9 @@ cmd_show() {
 cmd_next() {
   require_state
   local reason
+  # The streak a run stops on counts **blocks**, never cuts (issue #785): a round the run's own bound ended is a
+  # phase the next run resumes, not a question a person owes, so an item recorded `cut` is no more a stop than one
+  # that closed, and two cuts in a row say nothing about the queue.
   reason=$(jq -r '
     (.run) as $r
     | (.items | length) as $done
@@ -470,7 +473,13 @@ cmd_done() {
     esac
   done
   case "$issue" in ''|*[!0-9]*) loop_die "done: usage: state.sh done <issue> --result done|skipped|blocked|falsified" ;; esac
-  case "$result" in done|skipped|blocked|falsified) ;; *) loop_die "done: --result must be done|skipped|blocked|falsified" ;; esac
+  # `cut` is the fifth result, and it is not a shade of `blocked` (issue #785): a round the run's own bound ended
+  # — the item's wall clock, the child's role's turns, or the run's deadline — is a phase a later run resumes,
+  # not a finding about the item, so it carries no decision label, is not escalated and is not counted by the
+  # two-blocked streak a run stops on. Measured 2026-11-05: #780's tail wrote `LOOP-VERDICT: closed`, its gate was
+  # `tests=460 failures=0`, its change was archived, and review round 1 was cut at the turn bound — the item was
+  # recorded `blocked` and escalated, as #783, #767 and #763 were the same day.
+  case "$result" in done|skipped|blocked|falsified|cut) ;; *) loop_die "done: --result must be done|skipped|blocked|falsified|cut" ;; esac
   # The mechanism a block stopped on is a closed vocabulary, not a second place to write prose (issue #280: a
   # refusing review round and a base that would not take the branch both reached the record as the one word
   # `blocked`, so 198.8 M of refusing rounds could only be told from one 22.9 M merge refusal by reading the note).
@@ -502,7 +511,7 @@ cmd_done() {
     ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write) ;;
     *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write" ;;
   esac
-  [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; else printf 'unspecified'; fi)
+  [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; elif [ "$result" = cut ]; then printf 'cut'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading
   # the tracker; an item with no queue entry (a resumed run) falls back to the empty string.
   # `--decision-label` is the label the run's escalation *wrote* on the item — not the verdict the worker
@@ -721,7 +730,7 @@ cmd_report() {
   tokens_warn=$(loop_conf_value LOOP_ITEM_TOKENS_WARN)
   case "$tokens_warn" in ''|*[!0-9]*) tokens_warn=0 ;; esac
   jq -r --argjson over "$tokens_warn" '
-    "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
+    "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
     "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls |",
     "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",

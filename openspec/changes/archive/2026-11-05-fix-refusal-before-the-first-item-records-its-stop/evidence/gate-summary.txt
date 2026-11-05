@@ -1,0 +1,29 @@
+# Gate, one run, 2026-11-05
+
+Change root `/home/tim/projects/NaviVeylin/.pi/worktrees/loop`, base `62ab008d`, tree as this change leaves it.
+`./tools/loop/gate.sh` was run once, by the gate child, on the final tree: exit 0, 18:52 wall. It was not run
+again — the result below is that run's own last line, quoted.
+
+```
+LOOP-GATE: tests=906 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 281s, tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d 408s, bash tools/loop-mutations.sh --check 2s, tools/loop-mutations-selftest.sh 238s, tools/sensor-selftest.sh 76s, tools/sensor-mutations.sh --list 0s, tools/check-compose-sandbox-rule.sh 1s, tools/check-compose-sandbox-rule-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 0s, tools/check-portability-selftest.sh 22s, tools/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issue-tooling-selftest.sh 89s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s)
+```
+
+`gate.log` is that run's console stream. The 26 per-step tallies it printed are beside it in this directory,
+one `.xml` per step, named after the command that printed it.
+
+The two legs that carry tests, as the gate's own tallies state them:
+
+```
+<testsuite name="tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d" tests="319" failures="0" errors="0" time="408">
+<testsuite name="./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache" tests="0" failures="0" errors="0" time="281">
+```
+
+The first is the file this change's cases live in, and it carries this change's red case green: line 596 of
+`gate.log` is `PASS run#theDecisionCapRecordsItsStopReason`, one of the 319 the suite reports at line 1161 of the
+same log, and the tally above is the suite's own. The gate line's own
+`tests=906 failures=0 errors=0` is the total it computed across its steps; the second tally above keeps the
+build leg's `BUILD SUCCESSFUL` in its `system-out` and counts no test case of its own.
+
+The red case this change answers for was measured before the fix, on HEAD, and its tally is
+`red-on-HEAD-run-theDecisionCapRecordsItsStopReason.xml` (`tests=1 failures=1`) — a case-level run, and the
+`tests=1` there is the one case, not the suite.

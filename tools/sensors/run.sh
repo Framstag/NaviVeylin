@@ -538,7 +538,6 @@ sensors_outcome_violation() { # <row> <id> <finding> <issues> <baseline>
     # when that bound leaves no room does the row fail, because a condition nothing records is the silence
     # this branch used to report as an escalation (issue #780).
     if [ "$SENSORS_FILED" -ge "$SENSORS_MAX_FILINGS" ]; then
-      SENSORS_UNFILED=$(jq -c --argjson f "$finding" '. + [$f]' <<< "$SENSORS_UNFILED")
       sensors_fail_row "$id" \
         "the escalation of #$number was refused (status $status) and the row's bound of $SENSORS_MAX_FILINGS new items leaves the condition unrecorded"
       return 0

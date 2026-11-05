@@ -60,6 +60,7 @@ SENSOR_CASES=(
   'run#hysteresisCountersSurviveARestart'
   'run#escalatesPastKRecurrences'
   'run#anEscalationOnASettledIssueFilesANewItem'
+  'run#aRefusedEscalationPastTheBoundFailsTheRun'
   'run#aRowDeclaresItsOwnRecurrenceBound'
   'run#libosmscoutLagReadsThreeOutcomes'
   'run#escalationNeverSetsEligibility'
@@ -150,6 +151,7 @@ sensor_run_case() {
     'run#hysteresisCountersSurviveARestart') case_run_hysteresisCountersSurviveARestart ;;
     'run#escalatesPastKRecurrences') case_run_escalatesPastKRecurrences ;;
     'run#anEscalationOnASettledIssueFilesANewItem') case_run_anEscalationOnASettledIssueFilesANewItem ;;
+    'run#aRefusedEscalationPastTheBoundFailsTheRun') case_run_aRefusedEscalationPastTheBoundFailsTheRun ;;
     'run#aRowDeclaresItsOwnRecurrenceBound') case_run_aRowDeclaresItsOwnRecurrenceBound ;;
     'run#libosmscoutLagReadsThreeOutcomes') case_run_libosmscoutLagReadsThreeOutcomes ;;
     'run#escalationNeverSetsEligibility') case_run_escalationNeverSetsEligibility ;;
@@ -1679,6 +1681,37 @@ case_run_anEscalationOnASettledIssueFilesANewItem() {
   assert_eq "1" "$(recorded "$log" "$fp")" "the new item carries the condition's own fingerprint"
   assert_contains "$out" "action=filed" \
     "the run reports the item it filed, not an escalation the tooling refused: $out"
+  assert_eq "0" "$(grep -c 'action=escalated' <<< "$out")" \
+    "the refused escalation is not reported as written: $out"
+}
+
+# A refused escalation spends the same filing bound as any other filing, and a bound already spent leaves it
+# nowhere to write: the run fails so the tick is red, rather than filing the condition under an item the run
+# would have had to invent or reporting an escalation the writer refused (issue #780).
+case_run_aRefusedEscalationPastTheBoundFailsTheRun() {
+  local dir log out fp body findings status
+  dir=$(throwaway_project "$(fixture registry-bounded.json)")
+  log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of case alpha)
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->\n<!-- violation-run: 0 -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 98 CLOSED COMPLETED fixture-emit "$body" \
+    | jq -c '.labels += [{name: "status/fixed-by"}]')]"
+  # The registry's bound is two, and these two conditions have no issue: filing them spends it before the
+  # settled escalation is met.
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 5 case bravo)" \
+    "$(finding violation 4 case charlie)" \
+    "$(finding violation 5 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" 2>&1)
+  status=$?
+  assert_eq "8" "$status" "a refused escalation with no bound left fails the run: $out"
+  assert_eq "2" "$(condition_creates "$log")" "the two conditions the bound allowed are filed"
+  assert_eq "0" "$(summary_creates "$log")" "a failed run writes no summary"
+  assert_eq "0" "$(recorded "$log" 'issue edit')" "the settled item is untouched"
+  assert_contains "$out" "leaves the condition unrecorded" "the failure names the condition nothing recorded"
+  assert_eq "0" "$(grep -c 'action=escalated' <<< "$out")" "no refused escalation is reported as written"
 }
 
 # A row's own `k` is the bound that decides when reopening stops: the engine already reads it

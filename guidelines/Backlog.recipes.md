@@ -581,13 +581,19 @@ never deletes a remote ref, so `git branch --list` cannot see it and every sweep
 `gh api repos/Framstag/NaviVeylin/branches` listed 16 `fix/*` heads beside `main`, and `git merge-base --is-ancestor
 origin/<b> origin/main` held for 10 of them — and the loop's own adoption, a `merge:` commit on the base, left
 `origin/fix/issue-728-…` standing (#763). The remote arm's candidates are the names the local arm owns, resolved on
-the remote, so a ref the loop never made is never a candidate; its base is the fetched `origin/<base branch>`,
+the remote — the two patterns are fetched (with `--prune`) before they are read, so the tips judged are the published
+ones and not this clone's cache of the last fetch: read from the cache, a head somebody advanced meanwhile was judged
+landed at its stale tip and deleted with the commits it had gained since, unattended, on a shared remote. So a ref
+the loop never made is never a candidate, and a head the base does not carry stays whatever this clone last fetched;
+its base is the fetched `origin/<base branch>`,
 because `run.base` is the pin the run started on and a branch that landed while the run was open is unlanded against
 it — that reading kept a fully landed branch with `carries work the base does not have` (#727, #763). Before it
 deletes anything on a shared remote it takes the one reading nobody else can make: `gh pr list` says which heads are
 open pull requests, and a branch that is somebody's review stays. A forge that cannot be read keeps **every** remote
 ref: an outage is not a forge with no pull requests. This is the loop's first unattended destructive write to a
-shared remote, so the delete is the remote's own `git push origin --delete`, which a protected branch refuses.
+shared remote, so the delete is the remote's own `git push origin --delete`, which a protected branch refuses, and it
+carries a `--force-with-lease` for the tip the ref was judged at — a ref that moved between the read and the delete
+is kept, not removed with whatever it gained.
 
 
 ## §7e Leftovers, the report and the queue

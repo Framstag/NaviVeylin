@@ -412,8 +412,19 @@ loop_own_branches() { # <repo> → one branch per line
 # work and released its local branch (issue #763: every sweep enumerated `loop_own_branches`, a local namespace, and
 # a landed `fix/issue-728-…` head stayed on the remote for ever). The pattern is the local one with the remote's
 # prefix, so a ref the loop never names is never a candidate for the sweep that deletes it.
+#
+# Resolved on the remote means read from the remote *now*, not from this clone's cache of it: `git branch -r` names
+# the tips of the last fetch, and the sweep deletes the ref the remote holds, so a head somebody advanced after that
+# fetch was judged landed at its stale tip and removed with the commits it had gained since — on a shared remote,
+# unattended, against the requirement that only a ref whose patches the base holds goes. So the two candidate
+# patterns are fetched first (the same two, so nothing else becomes a candidate) with `--prune`, which also stops a
+# ref the sweep already deleted from being named again. A fetch that cannot run — no remote, an offline clone —
+# leaves the cache as it is, and the delete's lease (in `cmd_prune_landed`) is what keeps a moved ref then.
 loop_remote_branches() { # <repo> [<remote>] → one `<remote>/<branch>` per line
   local remote="${2:-origin}"
+  git -C "$1" fetch --quiet --prune "$remote" \
+    "+refs/heads/fix/issue-*:refs/remotes/$remote/fix/issue-*" \
+    "+refs/heads/loop-*:refs/remotes/$remote/loop-*" >/dev/null 2>&1
   git -C "$1" branch -r --list "$remote/fix/issue-*" "$remote/loop-*" --format='%(refname:short)' 2>/dev/null
 }
 

@@ -698,7 +698,7 @@ branch_is_landed() { # <branch> <base> → 0 when the base carries every patch t
 # branches it named, and every refusal is a branch that stays. Two arms, because a branch the loop published is a
 # remote ref no local namespace holds (issue #763), and both are compared against the base the remote publishes.
 cmd_prune_landed() {
-  local apply=0 base remote held remote_refs branch ref pr_heads="" pr_unread=0 extra=""
+  local apply=0 base remote held remote_refs branch ref tip pr_heads="" pr_unread=0 extra=""
   local kept_work=0 kept_checked=0 kept_refused=0 kept_pr=0 kept_unread=0 removed=0
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -745,6 +745,9 @@ cmd_prune_landed() {
   while IFS= read -r ref; do
     [ -n "$ref" ] || continue
     branch=${ref#"$remote"/}
+    # The tip this ref was judged at, and the lease the delete below carries: the candidates were read a moment
+    # ago, and this is a shared remote — a ref that moved since must not be removed with the commits it gained.
+    tip=$(gitr rev-parse --verify --quiet "refs/remotes/$remote/$branch" 2>/dev/null) || tip=""
     if [ "$pr_unread" -eq 1 ]; then
       printf 'kept %s — the open pull requests could not be read\n' "$ref"
       kept_unread=$((kept_unread + 1))
@@ -773,9 +776,10 @@ cmd_prune_landed() {
       continue
     fi
     if [ "$apply" -eq 1 ]; then
-      # The remote's own delete, never a forced refspec: the remote keeps a protected branch, and a ref it no longer
-      # holds needs no removal from here.
-      gitr push --quiet "$remote" --delete "$branch" >/dev/null 2>&1 ||
+      # The remote's own delete, never a forced refspec: the remote keeps a protected branch. The lease pins the
+      # delete to the tip the judgement was made on (`--force-with-lease` refuses a ref that moved), and a ref it no
+      # longer holds needs no removal from here.
+      gitr push --quiet --force-with-lease="refs/heads/$branch:$tip" "$remote" --delete "$branch" >/dev/null 2>&1 ||
         { printf 'kept %s — could not be removed\n' "$ref"; kept_work=$((kept_work + 1)); continue; }
       printf 'removed %s (its patches are in the base)\n' "$ref"
     else

@@ -8215,7 +8215,7 @@ case_run_theEndSweepsTheLandedBranchesItMade() {
 # ref that is the head of an open pull request is somebody's review, and deleting it closes their pull request.
 case_run_theRemoteSweepKeepsAnOpenPullRequest() {
   # files: tools/loop/worktree.sh tools/loop/lib.sh tools/tooling.json tools/issues/fixtures/
-  local d p origin out refs slug
+  local d p origin out refs slug fetched_tip
   d=$(scratch); p=$(new_project); origin="$d/origin.git"
   git init -q --bare "$origin" >/dev/null 2>&1 || fail "could not create the remote"
   git -C "$p" remote add origin "$origin" >/dev/null 2>&1 || fail "could not add the remote"
@@ -8255,6 +8255,46 @@ case_run_theRemoteSweepKeepsAnOpenPullRequest() {
   out=$(GH_STUB_DIR="$d/gh" run_worktree "$p" prune-landed --apply 2>&1) || fail "the sweep failed: $out"
   assert_contains "$out" "removed origin/fix/issue-1-landed" "the landed head is named as removed"
   assert_eq "fix/issue-1-open" "$(sweep_remote_heads)" "the sweep removed the head of somebody's open pull request"
+
+  # A head somebody advanced on the remote after this clone's last fetch. The candidates are resolved on the remote,
+  # not in this clone's cache of it, so the tip judged is the published one: the base carries the patches of the tip
+  # this clone last fetched and none of the commits added since, so the ref carries work the base does not have and
+  # stays. Read from the cache, it would be judged landed at the stale tip and deleted with the commits it gained
+  # since — unattended, on a shared remote, against the requirement that only a ref the base carries goes.
+  git -C "$p" switch -c fix/issue-1-advanced >/dev/null 2>&1 || fail "could not create the advanced branch"
+  printf 'the advanced fix\n' > "$p/advanced.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the advanced one (#1)" >/dev/null 2>&1 || fail "could not commit the advanced branch"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to the base"
+  git -C "$p" merge --ff-only fix/issue-1-advanced >/dev/null 2>&1 || fail "could not merge the advanced branch"
+  git -C "$p" push -q origin main "fix/issue-1-advanced" >/dev/null 2>&1 || fail "could not publish the advanced branch"
+  fetched_tip=$(git -C "$p" rev-parse "refs/remotes/origin/fix/issue-1-advanced") ||
+    fail "could not read the fetched tip of the advanced branch"
+  # Somebody's later commit, published on the same head, after that fetch.
+  git -C "$p" switch fix/issue-1-advanced >/dev/null 2>&1 || fail "could not check out the advanced branch"
+  printf 'a newer tip\n' > "$p/newer.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: a newer tip (#1)" >/dev/null 2>&1 || fail "could not commit the newer tip"
+  git -C "$p" push -q origin "fix/issue-1-advanced" >/dev/null 2>&1 || fail "could not advance the published head"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to the base"
+  git -C "$p" branch -D fix/issue-1-advanced >/dev/null 2>&1 || fail "could not drop the local copy of the advanced branch"
+  git -C "$p" update-ref "refs/remotes/origin/fix/issue-1-advanced" "$fetched_tip" ||
+    fail "could not put the cache back to the tip last fetched"
+
+  out=$(GH_STUB_DIR="$d/gh" run_worktree "$p" prune-landed 2>&1) || fail "the sweep failed on an advanced head: $out"
+  assert_contains "$out" "kept origin/fix/issue-1-advanced — carries work the base does not have" \
+    "the sweep judged a remotely advanced head at the tip this clone last fetched"
+  assert_contains "$out" "kept origin/fix/issue-1-open — the head of an open pull request" \
+    "the sweep lost the pull request's head beside an advanced one"
+  assert_eq "fix/issue-1-advanced fix/issue-1-open" "$(sweep_remote_heads)" \
+    "the read-only sweep deleted a remote ref beside an advanced head"
+
+  out=$(GH_STUB_DIR="$d/gh" run_worktree "$p" prune-landed --apply 2>&1) ||
+    fail "the apply sweep failed on an advanced head: $out"
+  assert_contains "$out" "kept origin/fix/issue-1-advanced — carries work the base does not have" \
+    "the sweep removed a head the remote had advanced"
+  assert_eq "fix/issue-1-advanced fix/issue-1-open" "$(sweep_remote_heads)" \
+    "the sweep deleted a head the remote had advanced"
 }
 
 # The base the sweep compared against was the pin the run started on — a frozen `run.base` from the run state — so

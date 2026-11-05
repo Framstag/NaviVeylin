@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issue-tooling-selftest.sh" tests="158" skipped="0" failures="0" errors="0" timestamp="2026-11-05T10:49:29Z">
+  <system-out>all 158 cases passed (JDK 27, offline, no token, HEAD 46f1889c, tools b13e7e05d445)</system-out>
+</testsuite>

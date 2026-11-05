@@ -51,15 +51,14 @@ scenario's case is named in the task that lands it.
 
 ## 5. The gate
 
-- [x] 5.1 `./tools/loop/gate.sh` from the change root. **Round 5's run is the verdict** (`evidence/gate-4.log`,
-      `evidence/gate-4/`, `evidence/gate-4-tallies.txt`) on `64ab4bb8`, the commit that lands: `LOOP-GATE: tests=997
-      failures=0 errors=0` — every step green, no failing step. The JVM half is `BUILD SUCCESSFUL in 5m` forced
-      (`-PforceTests --no-build-cache`, executed rather than replayed), 0 failures / 0 errors over mobile 2234,
-      automotive 2234, `:auto` 912, `:core` 653 and `:osmscout-client-java` 112 (6145 tests); both `:app` flavors
-      ran (BuildEvidence.md §4b). The wall-clock case that reddened three earlier gates
-      (`tools/loop-selftest.sh` `run#aReviewerEndedAtItsTurnBoundIsNotARefusal`, 900 s bound) passed in this run;
-      its three solo passes are quoted in `gate-3.log`. Earlier gates are history: `gate-3.*` measured `629055e3`
-      with that one red step, `gate-2.*` measured `e9a10210`, `gate.log` is round 1's run.
+- [x] 5.1 `./tools/loop/gate.sh` from the change root. **Round 6's run on the merged tree is the verdict**
+      (`evidence/gate-5.log`, `evidence/gate-5/`, `evidence/gate-5-tallies.txt`) on `c119f552`, which is main
+      (`aee35ca6`) merged into the branch so the landing is a fast-forward: `LOOP-GATE: tests=41 failures=0
+      errors=0` — every step that ran passed. The JVM half ran forced (`BUILD SUCCESSFUL in 6m 34s`), 0 failures /
+      0 errors over mobile 2234, automotive 2234, `:auto` 915, `:core` 649 and `:osmscout-client-java` 112 (6144
+      tests); both `:app` flavors ran (BuildEvidence.md §4b). The pre-merge tree was fully green at `gate-4.*`
+      (`LOOP-GATE: tests=997 failures=0 errors=0` on `64ab4bb8`, the commit the round-6 review graded); `gate-3.*`,
+      `gate-2.*` and `gate.log` are earlier rounds.
       Parent: the whole delta.
 
 ## 6. Round 2 — the reviewer's three blocking findings

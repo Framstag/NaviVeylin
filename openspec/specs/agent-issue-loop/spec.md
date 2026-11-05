@@ -2664,8 +2664,10 @@ A kept worktree that `create` switches to a new base SHALL be left with the conf
 ### Requirement: The run's end sweeps the branches it made
 
 When a run ends it SHALL remove every branch the loop names whose patches the base already holds, unless a
-worktree holds it or the change it carries has a reviewer's refusal. It SHALL keep and name the branches that
-still carry work, and SHALL print what it removed and what it kept.
+worktree holds it or the change it carries has a reviewer's refusal. It SHALL sweep those names on the remote as
+well as locally, against the fetched `origin/<base branch>`, and SHALL keep and name a remote ref that is the head
+of an open pull request — every remote ref when the open pull requests cannot be read. It SHALL print what it
+removed and what it kept.
 
 #### Scenario: A landed branch no longer outlives the run that made it
 
@@ -2674,6 +2676,20 @@ still carry work, and SHALL print what it removed and what it kept.
 - **THEN** the run removes that branch, keeps and names a branch that still carries work, a branch a worktree
   holds, and a branch whose archived change carries a reviewer's refusal, and prints the number it removed
 - **Case**: `run#theEndSweepsTheLandedBranchesItMade`
+
+#### Scenario: A landed head is swept on the remote, never a pull request's
+
+- **WHEN** a run ends and a branch the loop published carries no patch the fetched `origin/<base branch>` lacks
+- **THEN** the run removes that remote ref at the tip the remote publishes, keeps and names a ref that is the head
+  of an open pull request, and keeps every remote ref when the open pull requests cannot be read
+- **Case**: `run#theRemoteSweepKeepsAnOpenPullRequest`
+
+#### Scenario: The base the sweep judges against is the published one
+
+- **WHEN** a branch landed on the base after the run recorded the commit it started on
+- **THEN** the sweep compares against the fetched `origin/<base branch>` and removes that branch, so a branch
+  landed during or after the run is not kept as work the base does not have
+- **Case**: `run#theSweepComparesAgainstTheFetchedBase`
 
 ### Requirement: A stale skip asks its own question
 
@@ -3115,3 +3131,31 @@ withdrawn, so the attempt stays work the loop finishes rather than a question on
 - **THEN** `state.sh next` hands out that candidate, a block that follows a cut is the first block of its own pair,
   and two blocks in a row still stop the run
 - **Case**: `state#nextHonoursEveryStopCondition`
+
+### Requirement: The suite runs as legs on separate runners, and a leg is its own verdict
+
+The self-test SHALL be runnable as several independent legs on separate runners, each leg the cases of one group
+selection, so the suite's wall clock is bounded by its slowest leg rather than by one runner's core count. A leg
+SHALL state the selection it ran against the declared set in its own summary and SHALL keep its repository and its
+scratch root to itself, and the workflow SHALL take a leg's own exit status as a verdict of the run.
+
+#### Scenario: A leg runs the cases of its own selection
+
+- **WHEN** the suite is invoked with a group selection and a declared set larger than that group
+- **THEN** only that group's cases run, the summary counts them against the declared set, and no case of another
+  group prints a line
+- **Case**: `driver#aGroupFilterRunsOnlyItsOwnCases`
+
+#### Scenario: Two legs do not contend for the suite's lease
+
+- **WHEN** two legs of one suite run at the same moment, each in its own checkout
+- **THEN** neither refuses the other, because the lease is per repository and a leg's repository is its own — the
+  state `driver#aSecondSuiteInOneRepositoryIsRefused` separates
+- **Case**: none — the property is a leg's checkout, which is the workflow's; the lease's own case states the rule
+  it rests on
+
+#### Scenario: A red leg fails the run
+
+- **WHEN** one leg fails a case and the other legs pass
+- **THEN** the run is red and names the leg, exactly as one red case in a single-leg suite does today
+- **Case**: none — a workflow's verdict is the host's; it is read from the dispatch run that recorded the leg split

@@ -472,6 +472,25 @@ next case — which is why the exit trap's `/proc` sweep, one pass over every pr
 made per case and not per suite. The worker count is `--jobs` on the invocation, else `LOOP_SELFTEST_JOBS` in the
 profile, else the host's CPU count; the `PASS`/`FAIL` line per case, the counts, the summary and the exit status are unchanged.
 
+The suite's wall clock was the runner's core count and nothing the suite did could shorten it, so the pipeline runs it
+as **legs** (issue #781): `.github/workflows/build.yml`'s `loop-suite` job is a matrix of three, `fail-fast: false`,
+and a leg is the driver invoked once per group of its own selection — `run` (114 cases),
+`prescreen gate state worktree report driver` (138) and the remaining thirteen groups (62) — on its own
+`ubuntu-24.04` runner with `contents: read` and no SDK. The driver's `--group` stayed a single value: a leg loops over
+its groups in one step, so its log carries one summary per invocation and each names its own selection. A leg owes
+what any invocation of the suite owes — its summary counts its cases against the declared set, so a leg that silently
+covered less is visible in its own log, and the leg's exit status is a verdict of the run, so one red leg reddens the
+run exactly as one red case did when the suite was one step — and the whole set is still owed before a change that
+owns `tools/loop/**` is archived: a leg bounds what a push that owes the suite pays, it does not narrow what the
+archive owes. A leg needs no pair of its own in the profile's suite map: it runs the driver the map already carries,
+narrowed by a selection that runs fewer of that entry's cases, and `gate#theMapCoversEveryPipelineStep` strips the
+`--group <selection>` from both sides before it compares (`guidelines/Build.md` §3). Measured 2026-11-05 (issue
+#781): `bash tools/loop-selftest.sh --list | cut -d'#' -f1 | sort | uniq -c` counts the three selections above, and
+on 2026-11-04 the whole set at `--jobs 4` took 469 s on a 16-core host with `--group run` 261 s of them (56 %),
+against the 17 min 15 s the same set spends as one step on a four-core runner (run 41810844107); the three legs
+of the first green dispatch (2026-11-05, run 42094414229) took 361 s, 416 s and 107 s, so the suite's wall clock in
+the pipeline is the slowest leg's 6 min 56 s rather than the 17 min 15 s the one step spent.
+
 One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a
 red gate can belong to the neighbour rather than to the change under test. The driver holds a lease in the root the
 tree resolved — a second invocation that may run more than one case is refused with exit 2, naming the rule, the
@@ -588,6 +607,26 @@ worktree holds, a branch that still carries unlanded work, and a branch whose ch
 rest, and without `--apply` it removes nothing at all. The manual command that answers "what has the loop left behind" (`tools/loop/loop-clean.sh`) removes the
 same landed branches together with the scratch paths. Measured 2026-10-27 on the tree that carried #239: 28
 branches were leftovers, 12 of them `loop-*` run branches, and the run's end removed none of them.
+
+The sweep has **two arms**, and both read the base the remote publishes. A branch the loop published is in no local
+namespace: the run merges the work on the base and drops the branch it committed, while the push that published it
+never deletes a remote ref, so `git branch --list` cannot see it and every sweep missed it. Measured 2026-11-03:
+`gh api repos/Framstag/NaviVeylin/branches` listed 16 `fix/*` heads beside `main`, and `git merge-base --is-ancestor
+origin/<b> origin/main` held for 10 of them — and the loop's own adoption, a `merge:` commit on the base, left
+`origin/fix/issue-728-…` standing (#763). The remote arm's candidates are the names the local arm owns, resolved on
+the remote — the two patterns are fetched (with `--prune`) before they are read, so the tips judged are the published
+ones and not this clone's cache of the last fetch: read from the cache, a head somebody advanced meanwhile was judged
+landed at its stale tip and deleted with the commits it had gained since, unattended, on a shared remote. So a ref
+the loop never made is never a candidate, and a head the base does not carry stays whatever this clone last fetched;
+its base is the fetched `origin/<base branch>`,
+because `run.base` is the pin the run started on and a branch that landed while the run was open is unlanded against
+it — that reading kept a fully landed branch with `carries work the base does not have` (#727, #763). Before it
+deletes anything on a shared remote it takes the one reading nobody else can make: `gh pr list` says which heads are
+open pull requests, and a branch that is somebody's review stays. A forge that cannot be read keeps **every** remote
+ref: an outage is not a forge with no pull requests. This is the loop's first unattended destructive write to a
+shared remote, so the delete is the remote's own `git push origin --delete`, which a protected branch refuses, and it
+carries a `--force-with-lease` for the tip the ref was judged at — a ref that moved between the read and the delete
+is kept, not removed with whatever it gained.
 
 
 ## §7e Leftovers, the report and the queue

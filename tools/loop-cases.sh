@@ -215,6 +215,8 @@ LOOP_SHELL_CASES=(
   'run#mergesItsCommittedBranchBeforeClosing'
   'run#aMergedBranchIsRemoved'
   'run#theEndSweepsTheLandedBranchesItMade'
+  'run#theRemoteSweepKeepsAnOpenPullRequest'
+  'run#theSweepComparesAgainstTheFetchedBase'
   'run#theBaseAdvancesWithEveryMerge'
   'run#staleTestResultsAreNotThisChildsGate'
   'run#doesNotCloseOnAMergeTheBaseCannotTake'
@@ -581,6 +583,8 @@ loop_run_shell_case() {
     'run#mergesItsCommittedBranchBeforeClosing') fn=case_run_mergesItsCommittedBranchBeforeClosing ;;
     'run#aMergedBranchIsRemoved') fn=case_run_aMergedBranchIsRemoved ;;
     'run#theEndSweepsTheLandedBranchesItMade') fn=case_run_theEndSweepsTheLandedBranchesItMade ;;
+    'run#theRemoteSweepKeepsAnOpenPullRequest') fn=case_run_theRemoteSweepKeepsAnOpenPullRequest ;;
+    'run#theSweepComparesAgainstTheFetchedBase') fn=case_run_theSweepComparesAgainstTheFetchedBase ;;
     'run#theBaseAdvancesWithEveryMerge') fn=case_run_theBaseAdvancesWithEveryMerge ;;
     'run#staleTestResultsAreNotThisChildsGate') fn=case_run_staleTestResultsAreNotThisChildsGate ;;
     'run#doesNotCloseOnAMergeTheBaseCannotTake') fn=case_run_doesNotCloseOnAMergeTheBaseCannotTake ;;
@@ -3738,10 +3742,14 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
 # `gate#aPathACheckReadsOwesThatStepsCommandSet`, and the residual both pins cannot see is a step added later
 # (with the reader edges it brings); the comments in `loop.conf` and `guidelines/Build.md` §3 state it. A profile
 # that names no pipeline cannot be pinned and says so — a new step escapes until someone adds it, the cost the
-# map's owner accepted over running every step for every item.
+# map's owner accepted over running every step for every item. A step that runs a script the map carries with a
+# *selection* the pipeline varies is that entry, not a new command: the loop's suite runs as one leg per group
+# selection (`--group run`, issue #781), and a leg runs fewer of the cases the map's own driver entry runs, so
+# the pin strips a `--group <selection>` from both sides before comparing, and a selection the map does not cover
+# any other way still names its script as missing.
 case_gate_theMapCoversEveryPipelineStep() {
   # files: tools/loop/loop.conf .github/workflows/build.yml
-  local conf pipeline cmds map missing
+  local conf pipeline cmds map missing strip
   conf="$LOOP_ENGINE/loop.conf"
   # The key is recorded even when it is empty, like `LOOP_GATE_CMD`: a profile that names no pipeline has to say
   # so, or "the map is a copy with no alarm" is a state nobody reading the file can see.
@@ -3756,6 +3764,9 @@ case_gate_theMapCoversEveryPipelineStep() {
   # The commands a check step runs: a step named `Check …` is a check (a publish step writes the tree and is not
   # one), and its commands are the `bash <path> …` lines it runs — inline after `run:` or one per line inside a
   # `run: |` block. A trailing `|| { … }` is the workflow's own error handling, not part of the command.
+  # The narrowing the gate appends is not part of the pipeline's command, and neither is a selection the pipeline
+  # varies per leg: both are stripped from the map's values and the pipeline's commands before they are compared.
+  strip='s/ --from-git {base}$//; s/ --group [^ ]*$//'
   cmds=$(awk '
     /^[[:space:]]*- name:/ { name=$0; sub(/^[[:space:]]*- name:[[:space:]]*/, "", name); incheck=(name ~ /^Check /); next }
     incheck {
@@ -3766,12 +3777,10 @@ case_gate_theMapCoversEveryPipelineStep() {
         sub(/^[[:space:]]*/, "", line); sub(/[[:space:]]*[|&;].*$/, "", line); print line
       }
     }' "$LOOP_PROJECT_ROOT/$pipeline" \
-    | sed -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | sort -u)
+    | sed -e 's/^bash //' -e 's/^sh //' -e "$strip" -e '/^$/d' | sort -u)
   [ -n "$cmds" ] || fail "the pipeline at $pipeline names no shell gate command: the pin would pass over nothing"
-  # The gate's own `--from-git {base}` narrowing is not part of the pipeline command, so the pin strips it before
-  # comparing: the map names the command the pipeline runs, with the gate's filter appended.
   map=$(sed -n 's/^LOOP_GATE_SUITES="\(.*\)"/\1/p' "$conf" | tr ';' '\n' \
-    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e 's/ --from-git {base}$//' -e '/^$/d' | sort -u)
+    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e "$strip" -e '/^$/d' | sort -u)
   [ -n "$map" ] || fail "the profile's suite map is empty"
   missing=$(comm -13 <(printf '%s\n' "$map") <(printf '%s\n' "$cmds"))
   [ -z "$missing" ] || fail "the suite map carries none of these commands the pipeline's Check steps run: $(printf '%s' "$missing" | tr '\n' ' ')"
@@ -8252,6 +8261,123 @@ case_run_theEndSweepsTheLandedBranchesItMade() {
   assert_contains "$out" "landed branch(es) removed" "the run's end says what it swept"
   [ -z "$(git -C "$p" branch --list 'loop-*' --format='%(refname:short)')" ] ||
     fail "the run's own branch is a leftover once its work is in the base: $(git -C "$p" branch --list 'loop-*' --format='%(refname:short)') — output: $out"
+}
+
+# A head branch the loop published is in no local namespace, so every sweep missed it: `prune-landed` enumerated
+# `git branch --list`, and the loop's only push publishes and never deletes (issue #763). The ref sweep gains a
+# remote arm beside its local one, and that arm's destructive half owes the one reading a shared remote takes: a
+# ref that is the head of an open pull request is somebody's review, and deleting it closes their pull request.
+case_run_theRemoteSweepKeepsAnOpenPullRequest() {
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json tools/issues/fixtures/
+  local d p origin out refs slug fetched_tip
+  d=$(scratch); p=$(new_project); origin="$d/origin.git"
+  git init -q --bare "$origin" >/dev/null 2>&1 || fail "could not create the remote"
+  git -C "$p" remote add origin "$origin" >/dev/null 2>&1 || fail "could not add the remote"
+  # Two published heads whose patches are in the base, neither of them a local branch any more: the residue the
+  # loop's own path leaves — it publishes, the work is adopted on the base, and the local copy goes.
+  for slug in landed open; do
+    git -C "$p" switch -c "fix/issue-1-$slug" >/dev/null 2>&1 || fail "could not create the $slug branch"
+    printf 'the %s fix\n' "$slug" > "$p/$slug.txt"
+    git -C "$p" add -A >/dev/null 2>&1
+    git -C "$p" commit -qm "fix: the $slug one (#1)" >/dev/null 2>&1 || fail "could not commit the $slug branch"
+    git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to the base"
+    git -C "$p" merge --ff-only "fix/issue-1-$slug" >/dev/null 2>&1 || fail "could not merge the $slug branch"
+    git -C "$p" push -q origin main "fix/issue-1-$slug" >/dev/null 2>&1 || fail "could not publish the $slug branch"
+    git -C "$p" branch -D "fix/issue-1-$slug" >/dev/null 2>&1 || fail "could not drop the local copy of the $slug branch"
+  done
+  # `fix/issue-1-open` is the head of an open pull request, read through the forge seam the loop already uses.
+  mkdir -p "$d/gh" || fail "could not make the forge fixture directory"
+  printf '[{"number":7,"headRefName":"fix/issue-1-open","state":"OPEN"}]\n' > "$d/gh/prs.json" ||
+    fail "could not write the pull-request fixture"
+  sweep_remote_heads() { git -C "$origin" for-each-ref --format='%(refname:short)' 'refs/heads/fix/*' | sort | paste -sd' ' -; }
+
+  # A person's sweep stays a dry run: it names both refs, keeps the pull request's, and deletes nothing.
+  out=$(GH_STUB_DIR="$d/gh" run_worktree "$p" prune-landed 2>&1) || fail "the read-only sweep failed: $out"
+  assert_contains "$out" "would remove origin/fix/issue-1-landed" "the read-only sweep names the landed head"
+  assert_contains "$out" "kept origin/fix/issue-1-open — the head of an open pull request" \
+    "the read-only sweep keeps the ref somebody's pull request is"
+  assert_eq "fix/issue-1-landed fix/issue-1-open" "$(sweep_remote_heads)" "the read-only sweep deleted a remote ref"
+
+  # A forge that cannot be read is not a forge with no pull requests: an unattended `--apply` deletes nothing.
+  out=$(GH_STUB_DIR="$d/gh" GH_STUB_READ_FAIL="pr list" run_worktree "$p" prune-landed --apply 2>&1) ||
+    fail "the sweep failed on an unreadable forge: $out"
+  assert_contains "$out" "kept origin/fix/issue-1-landed — the open pull requests could not be read" \
+    "an unreadable forge keeps every remote ref and names why"
+  assert_eq "fix/issue-1-landed fix/issue-1-open" "$(sweep_remote_heads)" "a ref was deleted on a forge nobody could read"
+
+  # `--apply` deletes the landed head and keeps the pull request's.
+  out=$(GH_STUB_DIR="$d/gh" run_worktree "$p" prune-landed --apply 2>&1) || fail "the sweep failed: $out"
+  assert_contains "$out" "removed origin/fix/issue-1-landed" "the landed head is named as removed"
+  assert_eq "fix/issue-1-open" "$(sweep_remote_heads)" "the sweep removed the head of somebody's open pull request"
+
+  # A head somebody advanced on the remote after this clone's last fetch. The candidates are resolved on the remote,
+  # not in this clone's cache of it, so the tip judged is the published one: the base carries the patches of the tip
+  # this clone last fetched and none of the commits added since, so the ref carries work the base does not have and
+  # stays. Read from the cache, it would be judged landed at the stale tip and deleted with the commits it gained
+  # since — unattended, on a shared remote, against the requirement that only a ref the base carries goes.
+  git -C "$p" switch -c fix/issue-1-advanced >/dev/null 2>&1 || fail "could not create the advanced branch"
+  printf 'the advanced fix\n' > "$p/advanced.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the advanced one (#1)" >/dev/null 2>&1 || fail "could not commit the advanced branch"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to the base"
+  git -C "$p" merge --ff-only fix/issue-1-advanced >/dev/null 2>&1 || fail "could not merge the advanced branch"
+  git -C "$p" push -q origin main "fix/issue-1-advanced" >/dev/null 2>&1 || fail "could not publish the advanced branch"
+  fetched_tip=$(git -C "$p" rev-parse "refs/remotes/origin/fix/issue-1-advanced") ||
+    fail "could not read the fetched tip of the advanced branch"
+  # Somebody's later commit, published on the same head, after that fetch.
+  git -C "$p" switch fix/issue-1-advanced >/dev/null 2>&1 || fail "could not check out the advanced branch"
+  printf 'a newer tip\n' > "$p/newer.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: a newer tip (#1)" >/dev/null 2>&1 || fail "could not commit the newer tip"
+  git -C "$p" push -q origin "fix/issue-1-advanced" >/dev/null 2>&1 || fail "could not advance the published head"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to the base"
+  git -C "$p" branch -D fix/issue-1-advanced >/dev/null 2>&1 || fail "could not drop the local copy of the advanced branch"
+  git -C "$p" update-ref "refs/remotes/origin/fix/issue-1-advanced" "$fetched_tip" ||
+    fail "could not put the cache back to the tip last fetched"
+
+  out=$(GH_STUB_DIR="$d/gh" run_worktree "$p" prune-landed 2>&1) || fail "the sweep failed on an advanced head: $out"
+  assert_contains "$out" "kept origin/fix/issue-1-advanced — carries work the base does not have" \
+    "the sweep judged a remotely advanced head at the tip this clone last fetched"
+  assert_contains "$out" "kept origin/fix/issue-1-open — the head of an open pull request" \
+    "the sweep lost the pull request's head beside an advanced one"
+  assert_eq "fix/issue-1-advanced fix/issue-1-open" "$(sweep_remote_heads)" \
+    "the read-only sweep deleted a remote ref beside an advanced head"
+
+  out=$(GH_STUB_DIR="$d/gh" run_worktree "$p" prune-landed --apply 2>&1) ||
+    fail "the apply sweep failed on an advanced head: $out"
+  assert_contains "$out" "kept origin/fix/issue-1-advanced — carries work the base does not have" \
+    "the sweep removed a head the remote had advanced"
+  assert_eq "fix/issue-1-advanced fix/issue-1-open" "$(sweep_remote_heads)" \
+    "the sweep deleted a head the remote had advanced"
+}
+
+# The base the sweep compared against was the pin the run started on — a frozen `run.base` from the run state — so
+# a branch landed during or after the run read as work the base does not have, and the sweep that exists to remove
+# it kept it (issue #763). The base is the fetched `origin/<base branch>`.
+case_run_theSweepComparesAgainstTheFetchedBase() {
+  # files: tools/loop/worktree.sh tools/loop/lib.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json tools/issues/fixtures/
+  local d p out
+  d=$(scratch); p=$(new_project)
+  git init -q --bare "$d/origin.git" >/dev/null 2>&1 || fail "could not create the remote"
+  git -C "$p" remote add origin "$d/origin.git" >/dev/null 2>&1 || fail "could not add the remote"
+  git -C "$p" push -q origin main >/dev/null 2>&1 || fail "could not publish the base"
+  # The run records the pin it started on.
+  init_state "$p" 1 90
+  # A branch that lands on the base after that pin.
+  git -C "$p" switch -c fix/issue-2-later >/dev/null 2>&1 || fail "could not create the branch"
+  printf 'the later fix\n' > "$p/later.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: landed after the run began (#2)" >/dev/null 2>&1 || fail "could not commit the branch"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not switch back to the base"
+  git -C "$p" merge --ff-only fix/issue-2-later >/dev/null 2>&1 || fail "could not merge the branch"
+  git -C "$p" push -q origin main >/dev/null 2>&1 || fail "could not publish the advanced base"
+  mkdir -p "$d/gh" || fail "could not make the forge fixture directory"
+  printf '[]\n' > "$d/gh/prs.json" || fail "could not write the pull-request fixture"
+
+  out=$(GH_STUB_DIR="$d/gh" run_worktree "$p" prune-landed --apply 2>&1) || fail "the sweep failed: $out"
+  assert_contains "$out" "removed fix/issue-2-later" "a branch the run's own pin predates is swept"
+  assert_not_contains "$out" "carries work the base does not have" \
+    "the sweep does not compare against the pin the run started on"
 }
 
 # A branch the loop made is a leftover like any other: the one command that answers "what has the loop left

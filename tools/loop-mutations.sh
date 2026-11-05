@@ -168,6 +168,10 @@ MUTATIONS=(
   # 13.16 is the pre-flight that catches the same failure at a run's start (measured 2026-10-28): a base pinning a commit no
   # clone this host reads is refused before the pre-screen is paid for, with the push that publishes it named.
   '13.16@-@tools/loop/worktree.sh@run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen@the pre-flight refusing a base pin no clone this host holds@s|^  \[ -n "\$path" \] && \[ -f "\$LOOP_ROOT/.gitmodules" \] \|\| return 0$|  return 0|'
+  # 13.17 is the remote arm's destructive half (issue #763): the sweep now deletes a ref on a shared remote, and the
+  # one reading nobody else can make is which head is an open pull request — deleting it closes a review. The case's
+  # first assertion after the read-only sweep is the one that fails: the ref the pull request is disappeared.
+  '13.17@-@tools/loop/worktree.sh@run#theRemoteSweepKeepsAnOpenPullRequest@the refusal that keeps the head of an open pull request@s|^    case " \$pr_heads " in$|    case "" in|'
     # 13.6 was the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers. The lock is taken before the
   # kept worktree is read now, so a live run is refused at the lock and never reaches that check; the invariant
   # the record still owns is the refusal itself: a live owner'"'"'s lock is a refusal, not a takeover.
@@ -313,7 +317,7 @@ MUTATIONS=(
   # breaks that step is green in the run and red in the pipeline, which is the shape that reddened `main` on
   # 2026-10-21. A profile whose map is one long quoted line can only be mutated in place, so the expressions delete
   # a pair from the copy the case reads. The labels are 54.x because 40.x is another change's (`run#aCorrectiveRoundIsHandedTheCorrections`).
-  '54.1@-@tools/loop/loop.conf@gate#theMapCoversEveryPipelineStep@the pair that carries the build-inputs step in the map (issue #242)@s#tools/build-inputs\*|tools/build-inputs-selftest.sh;##'
+  '54.1@-@tools/loop/loop.conf@gate#theMapCoversEveryPipelineStep@the pair that carries the build-inputs step in the map (issue #242; the second expression added 2026-11-05, issue #781, because the reader edge of #289 carries the same command)@s#tools/build-inputs\*|tools/build-inputs-selftest.sh;##;;s#tools/sensors/sensors.json|tools/build-inputs-selftest.sh;##'
   # 54.2 — the gate owes that step's check for a path the step reads (issue #242): without the pair the plan answers
   # `nothing owed` and exits 0 for a delta the pipeline refuses.
   '54.2@-@tools/loop/loop.conf@gate#aPipelineCheckIsOwedByItsPaths@the pair that owes the check over a path the step reads (issue #242)@s#tools/build-inputs\*|tools/build-inputs.sh --check;##'
@@ -336,6 +340,10 @@ MUTATIONS=(
   '54.8@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes one command of that step besides its self-test (issue #289)@s#tools/loop/\*|tools/mutate.sh --mutations tools/status-mutations.json --list;##'
   '54.9@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes the portability check for the profile it reads (issue #289)@s#tools/tooling.json|tools/check-portability.sh;##'
   '54.10@-@tools/loop/loop.conf@gate#aPathACheckReadsOwesThatStepsCommandSet@the pair that owes the build-inputs step for the registry it reads (issue #289)@s#tools/sensors/sensors.json|tools/build-inputs.sh --check;##'
+  # 54.11 — a leg's group selection is the map's own driver entry with a narrowing appended (issue #781): without
+  # the strip, the suite the pipeline runs as three legs names the driver as a command the map does not carry, so
+  # the loop's suite is red for a landing the pipeline would accept.
+  '54.11@-@../loop-cases.sh@gate#theMapCoversEveryPipelineStep@the strip that reads a leg'"'"'s group selection as the driver'"'"'s own entry (issue #781)@s|^  strip=.*$|  strip='"'"'s/ --from-git {base}$//'"'"'|'
   # 41.x — the lock that keeps one run per repository, taken before the run writes anything (measured
   # 2026-10-22: the run that started at 19:34 replaced the state of the run that started at 18:46, merged
   # that run's unfinished item into main and closed it, and was refused at the lock two minutes into a
@@ -412,7 +420,7 @@ MUTATIONS=(
   # be established with a stopwatch and a `ps`. One mutation per invariant: the group filter, the refusal of a
   # filter that names nothing, the duration in the gate's record.
   '49.1@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the group filter that keeps a suite from running the cases of another group (2026-10-23)@s|^  if \[ -n "\$only_group" \] && ! matches "\$case_name" "\$only_group#\*"; then continue; fi$|  : # the mutation runs every case the suite declares|'
-  '49.2@-@../loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23)@s|^  printf .%s. "\$n"$|  printf .%s. 1|'
+  '49.2@-@../loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23; anchored 2026-11-05, issue #781: an unanchored expression took the nproc fallback instead of the counter)@/^count_matching() {/,/^}/s|^  printf .%s. "\$n"$|  printf .%s. 1|'
   '49.3@-@tools/loop/gate.sh@gate#theSummaryNamesWhatEachSuiteCost@the wall clock the gate records beside the suite that spent it (2026-10-23)@s|^  took=\$((SECONDS - t0))$|  took=0|'
   '49.4@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the summary that names the selection a filtered run made (2026-10-23, review round 1 P1)@s|^\[ -n "\$only_group" \] && selection=" --group \$only_group"$|: # the mutation names no selection|'
   # 50.x — a compiled path is read by the tree it sits in, and not by what its name ends in (issue #273). The rule

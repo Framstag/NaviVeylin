@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.NorthUpLateRestoreTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-05T09:25:59.811Z" hostname="dingens" time="11.051">
+  <properties/>
+  <testcase name="northUpChosenWhileTheReadIsOpenSurvivesTheRead" classname="com.naviveylin.ui.map.NorthUpLateRestoreTest" time="10.274"/>
+  <testcase name="orientationTheUserDidNotChooseIsRestoredFromDisk" classname="com.naviveylin.ui.map.NorthUpLateRestoreTest" time="0.159"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

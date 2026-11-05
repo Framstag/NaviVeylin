@@ -1,0 +1,41 @@
+# Gate record — fix-the-main-build-is-red (#783)
+
+Run once by the item's gate child in the worktree carrying the fix; not re-run.
+
+```
+LOOP-GATE: tests=458 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 288s, …)
+```
+
+The `tests=458` aggregate is the gate script's own count, printed from the run's console output; it has no tally
+XML of its own, and the per-class tallies below (`tests="0"` wrapper plus 52 across four classes) do not sum to it.
+
+The gradle step's own tallies, copied here beside this record:
+
+- gate-TEST-mobile-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0" 2026-11-05T09:25:59.811Z
+- gate-TEST-automotive-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0" 2026-11-05T09:25:11.959Z
+- gate-TEST-mobile-MapCanvasViewModelFollowModeTest.xml — tests="24" skipped="0" failures="0" errors="0" 2026-11-05T09:27:21.635Z
+- gate-TEST-automotive-MapCanvasViewModelFollowModeTest.xml — tests="24" skipped="0" failures="0" errors="0" 2026-11-05T09:25:20.046Z
+- gate-TEST-summary-gradlew.xml — BUILD SUCCESSFUL in 4m 47s (the gate step's summary tally)
+
+The red case this change answers for, taken on the fix's base `ec58cb91`:
+
+- red-TEST-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="1" errors="0" 2026-11-05T09:12:23.151Z
+  (`northUpChosenWhileTheReadIsOpenSurvivesTheRead`: "the persisted follow-direction value must not replace the orientation the user just chose")
+
+Green after the fix:
+
+- green-TEST-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0" 2026-11-05T09:13:00.192Z
+- green-TEST-MapCanvasViewModelFollowModeTest.xml — tests="24" skipped="0" failures="0" errors="0" 2026-11-05T09:12:59.979Z
+- green-automotive-TEST-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0" 2026-11-05T09:14:44.508Z
+- green-automotive-TEST-MapCanvasViewModelFollowModeTest.xml — tests="24" skipped="0" failures="0" errors="0" 2026-11-05T09:14:44.337Z
+
+## The correction round's falsification
+
+Taken while the review round's finding was answered, before the gate run; copied here from the run's own record
+so the revert-check does not depend on a directory outside the change.
+
+- green-discriminating-TEST-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0"
+  2026-11-05T09:22:38.373Z (the corrected fixture, both cases green)
+- red-freeFormRestoreRemoved-TEST-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="1" errors="0"
+  2026-11-05T09:22:59.326Z (`orientationTheUserDidNotChooseIsRestoredFromDisk`: "a persisted orientation the user
+  did not change must reach the state, not the default" — the free-form guard removed, restored before the gate)

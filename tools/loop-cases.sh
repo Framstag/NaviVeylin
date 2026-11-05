@@ -3721,10 +3721,14 @@ case_gate_theDeltaSelectsTheSuitesItTouches() {
 # `gate#aPathACheckReadsOwesThatStepsCommandSet`, and the residual both pins cannot see is a step added later
 # (with the reader edges it brings); the comments in `loop.conf` and `guidelines/Build.md` §3 state it. A profile
 # that names no pipeline cannot be pinned and says so — a new step escapes until someone adds it, the cost the
-# map's owner accepted over running every step for every item.
+# map's owner accepted over running every step for every item. A step that runs a script the map carries with a
+# *selection* the pipeline varies is that entry, not a new command: the loop's suite runs as one leg per group
+# selection (`--group run`, issue #781), and a leg runs fewer of the cases the map's own driver entry runs, so
+# the pin strips a `--group <selection>` from both sides before comparing, and a selection the map does not cover
+# any other way still names its script as missing.
 case_gate_theMapCoversEveryPipelineStep() {
   # files: tools/loop/loop.conf .github/workflows/build.yml
-  local conf pipeline cmds map missing
+  local conf pipeline cmds map missing strip
   conf="$LOOP_ENGINE/loop.conf"
   # The key is recorded even when it is empty, like `LOOP_GATE_CMD`: a profile that names no pipeline has to say
   # so, or "the map is a copy with no alarm" is a state nobody reading the file can see.
@@ -3739,6 +3743,9 @@ case_gate_theMapCoversEveryPipelineStep() {
   # The commands a check step runs: a step named `Check …` is a check (a publish step writes the tree and is not
   # one), and its commands are the `bash <path> …` lines it runs — inline after `run:` or one per line inside a
   # `run: |` block. A trailing `|| { … }` is the workflow's own error handling, not part of the command.
+  # The narrowing the gate appends is not part of the pipeline's command, and neither is a selection the pipeline
+  # varies per leg: both are stripped from the map's values and the pipeline's commands before they are compared.
+  strip='s/ --from-git {base}$//; s/ --group [^ ]*$//'
   cmds=$(awk '
     /^[[:space:]]*- name:/ { name=$0; sub(/^[[:space:]]*- name:[[:space:]]*/, "", name); incheck=(name ~ /^Check /); next }
     incheck {
@@ -3749,12 +3756,10 @@ case_gate_theMapCoversEveryPipelineStep() {
         sub(/^[[:space:]]*/, "", line); sub(/[[:space:]]*[|&;].*$/, "", line); print line
       }
     }' "$LOOP_PROJECT_ROOT/$pipeline" \
-    | sed -e 's/^bash //' -e 's/^sh //' -e '/^$/d' | sort -u)
+    | sed -e 's/^bash //' -e 's/^sh //' -e "$strip" -e '/^$/d' | sort -u)
   [ -n "$cmds" ] || fail "the pipeline at $pipeline names no shell gate command: the pin would pass over nothing"
-  # The gate's own `--from-git {base}` narrowing is not part of the pipeline command, so the pin strips it before
-  # comparing: the map names the command the pipeline runs, with the gate's filter appended.
   map=$(sed -n 's/^LOOP_GATE_SUITES="\(.*\)"/\1/p' "$conf" | tr ';' '\n' \
-    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e 's/ --from-git {base}$//' -e '/^$/d' | sort -u)
+    | sed -e 's/^[^|]*|//' -e 's/^bash //' -e 's/^sh //' -e "$strip" -e '/^$/d' | sort -u)
   [ -n "$map" ] || fail "the profile's suite map is empty"
   missing=$(comm -13 <(printf '%s\n' "$map") <(printf '%s\n' "$cmds"))
   [ -z "$missing" ] || fail "the suite map carries none of these commands the pipeline's Check steps run: $(printf '%s' "$missing" | tr '\n' ' ')"

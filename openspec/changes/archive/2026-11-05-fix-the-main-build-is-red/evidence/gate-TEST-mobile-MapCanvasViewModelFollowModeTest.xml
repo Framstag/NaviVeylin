@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-11-05T09:27:21.635Z" hostname="dingens" time="0.42">
+  <properties/>
+  <testcase name="onManualRotationAccumulatesAngle" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.017"/>
+  <testcase name="searchResultSelectionDisablesFollowModeAndCenters" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.018"/>
+  <testcase name="theFollowRenderThrottleBoundaryIsDecidedByInjectedTime" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.019"/>
+  <testcase name="largeSmoothedBearingChangeRotatesMap" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.019"/>
+  <testcase name="onToggleFollowModeSetsFollowMode" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.017"/>
+  <testcase name="onManualRotationDisengagesFollowModeAndNorthUp" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.017"/>
+  <testcase name="gpsLocationTracksRawFixInFollowMode" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.018"/>
+  <testcase name="returningToFollowDirectionKeepsTheLastDrivingAngle" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.02"/>
+  <testcase name="followModeDefaultsToFalse" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.014"/>
+  <testcase name="disengageFollowModeClearsFollowMode" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.017"/>
+  <testcase name="northUpStaysAtZeroOverConsecutiveHeadingChanges" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.019"/>
+  <testcase name="followDirectionKeepsTheLastAngleWithoutABearing" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.019"/>
+  <testcase name="smallSmoothedBearingChangeWithinDeadbandDoesNotRotateMap" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.017"/>
+  <testcase name="mapRotationFollowsSmoothedBearingNotMarkerBearing" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.02"/>
+  <testcase name="gpsLocationTracksRawFixWithoutFollowMode" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.019"/>
+  <testcase name="togglingToNorthUpWhileDrivingStopsFurtherRotation" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.022"/>
+  <testcase name="onToggleFollowModeFalseClearsFollowMode" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.019"/>
+  <testcase name="recenterButtonHiddenWhenDriveActiveAndNoGps" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.014"/>
+  <testcase name="recenterButtonHiddenWhenDriveActive" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.014"/>
+  <testcase name="recenterButtonHiddenWhenNoGpsFix" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.012"/>
+  <testcase name="recenterButtonVisibleWhenBrowseNotCenteredAndGpsGood" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.013"/>
+  <testcase name="gpsLocationClearedOnNullLocation" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.018"/>
+  <testcase name="markerBearingUpdatesOnEveryFixWithoutRender" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.018"/>
+  <testcase name="reengagingFollowModeKeepsManualAngleAndNorthUpCleared" classname="com.naviveylin.ui.map.MapCanvasViewModelFollowModeTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

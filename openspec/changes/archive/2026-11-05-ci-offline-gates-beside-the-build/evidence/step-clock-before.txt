@@ -1,0 +1,43 @@
+The base run's step clock, read 2026-11-04 with:
+
+    gh run view 41810844107 --repo Framstag/NaviVeylin --json jobs \
+      | jq -r '.jobs[0].steps[] | "\(.number) \(.startedAt) \(.completedAt) \(.name)"'
+
+  1 09:56:17 09:56:18 Set up job
+  2 09:56:18 09:56:23 Checkout with submodules
+  3 09:56:23 09:56:24 Set up JDK 21
+  4 09:56:24 09:56:24 Write local.properties
+  5 09:56:24 09:56:24 Check libosmscout Android-free outside Android/
+  6 09:56:24 09:56:24 Check OpenSpec artifact hygiene
+  7 09:56:24 09:56:27 Check capability classification
+  8 09:56:27 09:56:46 Check feature-list tooling
+  9 09:56:46 09:56:58 Check documentation routes
+ 10 09:56:58 09:57:02 Check the rule routes
+ 11 09:57:02 09:59:47 Check issue tooling
+ 12 09:59:47 09:59:51 Check issue metadata
+ 13 09:59:51 10:17:06 Check agent issue loop
+ 14 10:17:06 10:17:07 Check loop spend analyser
+ 15 10:17:07 10:17:08 Check backlog references
+ 16 10:17:08 10:18:59 Check sensor tooling
+ 17 10:18:59 10:19:00 Check the build inputs
+ 18 10:19:00 10:19:36 Check portability
+ 19 10:19:36 10:19:57 Check stale citation resolver
+ 20 10:19:57 10:19:57 Check action runtimes
+ 21 10:19:57 10:19:57 Check the vcpkg cache probe
+ 22 10:19:57 10:19:59 Check sonar workflow
+ 23 10:19:59 10:20:00 Check Compose sandbox rule
+ 24 10:20:00 10:20:00 Check daemon JVM criteria
+ 25 10:20:00 10:20:09 Cache Android SDK
+ 26 10:20:09 10:20:09 Install Android SDK
+ 27 10:20:09 10:22:00 Check the JVM-only test graph
+ 28 10:22:00 10:22:19 Check the dex gate's producer
+ 29 10:22:19 10:22:50 Install host build dependencies
+ 30 10:22:50 10:22:51 Clone vcpkg (pinned commit)
+ 31 10:22:51 10:22:51 Bootstrap vcpkg
+ 32 10:22:51 10:22:54 Configure NuGet source for vcpkg binary cache
+ 33 10:22:54 10:22:55 Probe the vcpkg binary cache
+ 34 10:22:55 11:20:05 Install vcpkg dependencies
+ ...
+
+Steps 6–24 are the offline gates: 09:56:24 → 10:20:00, i.e. 23 min 36 s in front of the step the build waits
+for (34, `Install vcpkg dependencies`, 57 min 10 s). Step 27 needs the SDK and is not one of them.

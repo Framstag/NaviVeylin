@@ -690,7 +690,11 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
   if [ "$reset_worktree" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
     printf 'reset-worktree: discarding what a previous run left in %s:\n' "$worktree"
     if ! discard_kept_worktree reset-worktree "$leftovers"; then
-      loop_refuse "the kept worktree is still not clean after --reset-worktree — nothing was started; the paths above are removed by hand"
+      # The repair's refusal ends the run too, and a run whose end is not recorded is the shape of a crash once
+      # this process is gone: the report reads `run.stop`, so the refusal is written as the run's own (#787).
+      stop_run "the kept worktree is still not clean after --reset-worktree — nothing was started; the paths it printed are removed by hand"
+      bash "$LOOP_DIR/report.sh"
+      exit "$LOOP_REFUSE"
     fi
   elif [ "$dry_run" -eq 0 ] && submodule_only_dirt "$leftovers" && place_submodule_pin; then
     # The module on another pin is not work, so the repair above is not owed to it and no flag is needed to take
@@ -718,6 +722,9 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
         --note "the kept worktree was not clean — a previous run left work behind" \
         --decision-label "$escalated_label" >/dev/null
     fi
+    # The refusal is the run's end as well as the item's: the report reads `run.stop`, and an empty one prints a
+    # killed process rather than this refusal once the run that wrote it is gone (#787).
+    stop_run "the kept worktree is not clean — a previous run left work behind${owner_item:+, and the leftovers belong to #$owner_item} (repair: --reset-worktree discards them, and names them before it does)"
     bash "$LOOP_DIR/report.sh"
     exit "$LOOP_REFUSE"
   fi
@@ -750,12 +757,24 @@ if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   # merely carry the label. Read here rather than above: on the path a run normally takes it costs no read.
   labelled_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
     jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
+  # The list is read once and used twice: printed for the console the caller watches, and carried in the reason,
+  # because a refusal is the run's own record and the console scrolls away (issue #787). Both counts and the list
+  # come from reads this arm already paid for.
+  decision_list=$(loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
+    jq -r --arg label "$decision_label" \
+      '.[] | select([.labels[].name] | index($label)) | "#\(.number) \(.title)"')
   printf 'refusing to start: %s of the %s item(s) that await a decision are candidates, and the cap is %s\n' \
     "$open_decisions" "${labelled_decisions:-$open_decisions}" "$max_decisions"
-  loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
-    jq -r --arg label "$decision_label" \
-      '.[] | select([.labels[].name] | index($label)) | "  #\(.number) \(.title)"'
+  [ -z "$decision_list" ] || printf '%s\n' "$decision_list" | sed 's/^/  /'
   printf 'nothing new is produced while decisions accumulate — decide these first\n'
+  # A refusal that leaves without recording itself is the shape of a crash once this process is gone: `report.sh`
+  # reads `run.stop`, and an empty one prints "it was killed and recorded no stop" — the arm #227 repaired on the
+  # pre-screen's path (#787).
+  decision_reason=""
+  [ -z "$decision_list" ] ||
+    decision_reason=" — $(printf '%s' "$decision_list" | tr '\n' ';' | sed 's/;$//; s/;/; /g')"
+  stop_run "the decision cap refuses the start: $open_decisions of the ${labelled_decisions:-$open_decisions} item(s) that await a decision are candidates, and the cap is $max_decisions$decision_reason"
+  bash "$LOOP_DIR/report.sh"
   exit "$LOOP_REFUSE"
 fi
 

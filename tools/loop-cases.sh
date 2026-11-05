@@ -144,6 +144,7 @@ LOOP_SHELL_CASES=(
   'run#falsificationWithAChangedTreeIsBlocked'
   'run#decisionCapRefusesToStart'
   'run#decisionCapCountsOnlyCandidates'
+  'run#theDecisionCapRecordsItsStopReason'
   'run#aFailedPreScreenRecordsItsStopReason'
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
@@ -513,6 +514,7 @@ loop_run_shell_case() {
     'run#falsificationWithAChangedTreeIsBlocked') fn=case_run_falsificationWithAChangedTreeIsBlocked ;;
     'run#decisionCapRefusesToStart') fn=case_run_decisionCapRefusesToStart ;;
     'run#decisionCapCountsOnlyCandidates') fn=case_run_decisionCapCountsOnlyCandidates ;;
+    'run#theDecisionCapRecordsItsStopReason') fn=case_run_theDecisionCapRecordsItsStopReason ;;
     'run#aFailedPreScreenRecordsItsStopReason') fn=case_run_aFailedPreScreenRecordsItsStopReason ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
@@ -3703,6 +3705,37 @@ case_run_decisionCapCountsOnlyCandidates() {
   assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" "and it is the only item the run spent"
 }
 
+# The cap that refuses a run is a refusal, and a refusal records why the run ended: this arm printed its two
+# counts and the candidates and then left through a bare `exit`, so `run.stop` stayed empty and `report.sh` read
+# the state as a process that was killed — "budget left unknown: … it was killed and recorded no stop" — once
+# the pid was gone. The pre-screen arm was repaired the same way (#227); this is the arm that was left behind
+# (#787). The reason carries the two counts the refusal compared and the decisions it printed, because the
+# record is the only thing a later reader of a refusal has.
+case_run_theDecisionCapRecordsItsStopReason() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status f reason
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario decisions)
+  stub_success "$d"
+
+  out=$(run_loop "$p" --items 1 --minutes 90 --max-decisions 3 2>&1); status=$?
+  assert_eq "5" "$status" "three candidate decisions reach a cap of three"
+  f=$(state_file "$p")
+  reason=$(jq -r '.run.stop.reason // ""' "$f")
+  assert_contains "$reason" "3 of the 3 item(s) that await a decision are candidates, and the cap is 3" \
+    "the refusal is the run's stop reason, naming both counts it compared: $out"
+  assert_contains "$reason" "#41" "and one of the decisions it printed"
+  assert_contains "$reason" "#43" "all of them"
+  assert_contains "$out" "stop: the decision cap refuses the start" "the end is announced as the run's own stop"
+
+  # What a later reader has is the record, read after this run's process is gone: a state whose `run.stop` is
+  # empty is the shape of a crash, so the report prints the refusal it now holds and neither of those sentences.
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "stop: the decision cap refuses the start" "the report prints the recorded refusal"
+  assert_not_contains "$out" "recorded no stop" "not the shape of a run that recorded nothing"
+  assert_not_contains "$out" "it was killed" "and not the sentence a killed process leaves"
+}
+
 # A run that ends because the pre-screen could not reach a verdict records that reason. Before 2026-10-27 the `*)`
 # arm of the pre-screen verdict was a bare `exit "$prescreen_status"`: the lock came off through the EXIT trap while
 # `run.stop` stayed empty, so the state file then read "the run that wrote this state is gone — its process is not
@@ -6658,6 +6691,8 @@ case_run_dirtyKeptWorktreeIsARecordedRefusal() {
   assert_eq "21" "$(jq -r '.items[0].issue' "$(state_file "$p")")" "the refusal is recorded as an item"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "and it is blocked"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not clean" "with the refusal as its reason"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "the kept worktree is not clean" \
+    "and the refusal is the run's own stop reason, so the report names it instead of a killed process"
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "agent/needs-decision" "the leftovers are escalated to a person"
   assert_contains "$log" "fix/issue-21-" "with the branch as evidence"
@@ -6825,6 +6860,8 @@ case_run_resetWorktreeNamesTheDirtItCannotDiscard() {
   assert_contains "$out" "app/src/main/cpp/libosmscout" "naming what is left"
   assert_not_contains "$out" "is clean again" "never announcing a clean tree"
   assert_not_contains "$out" "pre-screen:" "and nothing is started"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "still not clean after --reset-worktree" \
+    "the refusal is the run's stop reason, not only a line on the console"
   [ -f "$wt/app/src/main/cpp/libosmscout/leftover.txt" ] || fail "the refusal discarded what it said it could not"
 }
 

@@ -1,0 +1,6 @@
+# the routing check at the change's base feff2198, 2026-11-05T20:28:43Z
+$ bash tools/check-rule-routes.sh
+::error file=tools/doc-routes.json::the rule "the two `Contact` values are links on the phone." in UIPhone.md is reached by no glob — a rule no change is told to obey
+check-rule-routes: 0 glob(s) match no tracked path, 1 rule(s) are reached by no glob, 0 rule(s) state no name
+check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match
+exit=1

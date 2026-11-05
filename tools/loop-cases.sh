@@ -350,6 +350,8 @@ LOOP_SHELL_CASES=(
   'run#theRecordedZeroKeepsTheTurnBoundOff'
   'run#eachChildIsBoundedByItsOwnRolesTurns'
   'run#aRoleWithNoRecordedTurnBoundRunsUnbounded'
+  'run#childPastItsContextBoundIsBlocked'
+  'run#theRecordedZeroKeepsTheContextBoundOff'
 )
 
 loop_shell_cases() {
@@ -719,6 +721,8 @@ loop_run_shell_case() {
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
     'run#eachChildIsBoundedByItsOwnRolesTurns') fn=case_run_eachChildIsBoundedByItsOwnRolesTurns ;;
     'run#aRoleWithNoRecordedTurnBoundRunsUnbounded') fn=case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded ;;
+    'run#childPastItsContextBoundIsBlocked') fn=case_run_childPastItsContextBoundIsBlocked ;;
+    'run#theRecordedZeroKeepsTheContextBoundOff') fn=case_run_theRecordedZeroKeepsTheContextBoundOff ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
   "$fn"
@@ -11910,5 +11914,143 @@ EOF
     "the item's total is still counted over its children"
   assert_eq "0" "$(jq -r '.items[0].metrics.calls' "$state")" "beside the calls it was made of"
   assert_contains "$out" "0 calls per turn (0 calls / 3 turns)" "and the report names the total it read"
+  return 0
+}
+# A turn is not a unit of cost (issue #760): every turn re-reads the whole conversation, so the same turn count
+# costs 40 k or 240 k depending on how far the context has grown, and the turn bound above therefore fires at a
+# price it cannot see. Over this project's 300 recorded items (`.pi/issue-loop/run.json` and `runs/*.json`,
+# 2026-11-05, `jq -r '.items[]?.metrics.context'` over both and one `sort -n | awk`): the largest context per item
+# is p50 107 669, p75 143 124, p90 174 984, p95 191 815, maximum 244 764 — a child at 200 000 pays 1.86x the
+# archive's median turn for every turn it still takes. The bound is the recorded `LOOP_ITEM_CONTEXT_MAX`, read from
+# the usage records the child's own stream carries, in the same whole second as the wall clock. This case does not
+# wait for it: the child appends a fixture stream whose context grows past the recorded value and then blocks, so a
+# tree that reads neither the key nor the stream leaves the run waiting until the case's own bound ends it.
+case_run_childPastItsContextBoundIsBlocked() {
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  # The wall clock keeps its recorded default, so the only bound this case can reach is the context one. Both values
+  # are written into the copied profile rather than shortened from it, exactly as the turn bound's own case records
+  # its `3`: the recorded policy is `loop.conf`'s, and the case asserts the engine enforces what the profile says.
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$LOOP_CONF" > "$conf" ||
+    fail "could not copy loop.conf"
+  printf 'LOOP_ITEM_CONTEXT_MAX=200000\nLOOP_ITEM_CONTEXT_WARN=143124\n' >> "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=200000' "$conf" || fail "this case could not record the context bound in loop.conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The child's own stream, in the shape the adapter keeps: one usage record per streamed update and one `turn_end`
+  # per turn, with one turn carrying the usage on its own `turn_end` so both shapes the bound reads are exercised.
+  # The context grows 120 000 → 155 000 → 210 000, so the checkpoint and the bound are both crossed while the child
+  # still runs.
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"turn_end","message":{"role":"assistant"},"usage":{"input":120000,"output":10,"cacheRead":0,"cacheWrite":0}}
+{"type":"message_update","usage":{"input":135000,"output":10,"cacheRead":20000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant"}}
+{"type":"message_update","usage":{"input":170000,"output":10,"cacheRead":40000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant"}}
+JSON
+  action="$d/context-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  # The child blocks on the fifo and is never released: without the context bound the run is still waiting on it
+  # long after the case's own bound, which is what makes this case red on the tree before the fix.
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  # The case holds the fifo's writer side for its whole life, so a child that is released never blocks and never
+  # finds a writer behind it. 60 s is the case's own margin on a host that need not be free (issue #308).
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting after 60 s on a child whose context had grown to 210 000 tokens past a recorded bound of 200 000"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  assert_contains "$out" "item-context-max=200000" "the run's header names the context bound it enforces"
+  assert_contains "$out" "LOOP-CONTEXT:" "and the checkpoint the run can take for free is taken once"
+  assert_contains "$out" "LOOP_ITEM_CONTEXT_WARN records 143124" "naming the recorded checkpoint, not a number of its own"
+  assert_contains "$out" "exit 124" "with the wall clock's own status, so the run's 'exited N' path records the block"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child the context bound ended"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child reached the recorded context bound of 200000 tokens" \
+    "the transcript says which bound ended the child, in the child's own words"
+  assert_contains "$(cat "$report")" "at 210000 tokens" "and the reading it reached, from the child's own stream"
+  assert_not_contains "$(cat "$report")" "the child exceeded" \
+    "the wall clock took no part in it — the recorded one still had 45 min to run"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child crossed the bound is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "context bound of 200000 tokens" \
+    "and the reason on the item carries the reading, not only the exit status"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+  return 0
+}
+
+# The recorded `0` is the switch here too (issue #760): a project whose children should be bounded by their turns
+# and their clock alone records `LOOP_ITEM_CONTEXT_MAX=0`, as the turn bound's `0` disables that one and the token
+# warning's `0` records no band. The child here grows its context past the bound the other case records and then
+# outlives the two-second wall clock this case records, so which bound ended it is readable in the transcript: the
+# clock's, never a context bound that is off.
+case_run_theRecordedZeroKeepsTheContextBoundOff() {
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fixture action out status report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  conf_with_child_cap 2 "$conf"
+  sed -e '/^LOOP_ITEM_CONTEXT_MAX=/d' -e '/^LOOP_ITEM_CONTEXT_WARN=/d' "$conf" > "$conf.zero" ||
+    fail "could not record the context bound off"
+  printf 'LOOP_ITEM_CONTEXT_MAX=0\nLOOP_ITEM_CONTEXT_WARN=0\n' >> "$conf.zero"
+  mv "$conf.zero" "$conf"
+  grep -qx 'LOOP_ITEM_CONTEXT_MAX=0' "$conf" || fail "this case could not record the context bound off in loop.conf"
+  export LOOP_CONF="$conf"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  # The same fixture stream the bound-on case appends, written by the child's action so the run can see it while the
+  # child still runs: with the bound off it must change nothing about how the child ends.
+  fixture="$d/events.jsonl"
+  cat > "$fixture" <<'JSON'
+{"type":"message_update","usage":{"input":170000,"output":10,"cacheRead":40000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant"}}
+{"type":"message_update","usage":{"input":170000,"output":10,"cacheRead":40000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant"}}
+{"type":"message_update","usage":{"input":170000,"output":10,"cacheRead":40000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant"}}
+JSON
+  action="$d/context-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+sleep 5
+EOF
+  export PI_STUB_ACTION="$action"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1); status=$?
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  assert_contains "$out" "item-context-max=0" "the run's header says the context bound is off"
+  assert_not_contains "$out" "LOOP-CONTEXT:" "and the checkpoint is off with it"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child the wall clock ended"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
+    "with the bound off, the recorded wall clock is the one that ends the child"
+  assert_not_contains "$(cat "$report")" "context bound" "and no context bound is named in its transcript"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is recorded blocked, as before"
   return 0
 }

@@ -180,6 +180,26 @@ for role in worker worker-gate worker-tail reviewer reviewer-pre-gate; do
   child_turn_bounds="${child_turn_bounds:+$child_turn_bounds,}$role:$(child_turn_bound "$role")"
 done
 
+# A bound priced in what a turn costs, not in how many turns there are (issue #760). The turn bound above counts
+# turns, and a turn is a unit of shape rather than of cost: every turn re-reads the whole conversation, so the same
+# turn count costs 40 k or 240 k depending on how far the context has grown — over this project's archive (227 items,
+# 2026-11-03, `tools/loop-spend.py --json`) tokens per item are p50 10.4 M and p90 23.6 M against turns per item p50
+# 140 and p90 273, a 5x spend over a 2x range of turns. The reading that varies already exists
+# (`tools/loop/state.sh`'s `child_usage_json`, the largest `input + cacheRead` a turn reported), but only the report
+# reads it, after the item is over. So the run reads it too, where the wall clock and the turn count are already
+# enforced, and takes two decisions from it: a checkpoint line at `LOOP_ITEM_CONTEXT_WARN` (nothing is ended) and an
+# end at `LOOP_ITEM_CONTEXT_MAX`. Measured over the 300 item records of `.pi/issue-loop/run.json` and `runs/*.json`
+# (2026-11-05): the largest context per item is p50 107 669, p75 143 124, p90 174 984, p95 191 815, maximum 244 764.
+# The checkpoint is the p75, recorded exactly as measured, the way the token band records its own; it flags about a
+# quarter of the items and costs one line. The maximum is 200 000 — above the p95 and at the window every provider
+# this project runs sits at, where a turn costs 1.86x the archive's median turn (200 000 / 107 669) — and 10 of the
+# 300 recorded items (3.3 %) reached it. Both are `0` or absent = no bound, the shape `LOOP_MIN_FREE_MIB` and
+# `LOOP_ITEM_TOKENS_WARN` have, so a project that records neither owes nothing by them (D16).
+item_context_warn="${LOOP_ITEM_CONTEXT_WARN:-0}"
+case "$item_context_warn" in ''|*[!0-9]*) item_context_warn=0 ;; esac
+item_context_max="${LOOP_ITEM_CONTEXT_MAX:-0}"
+case "$item_context_max" in ''|*[!0-9]*) item_context_max=0 ;; esac
+
 # The host is part of a run's numbers, so the run reads it and names it beside the budget. Both values are
 # recorded (`loop.conf`, `LOOP_MIN_FREE_MIB` and `LOOP_MEMINFO_PATH`) because both are facts about the host and
 # neither is a fact about a phase (D16). Measured 2026-10-19 (issue #209): item #126's gate found 194 MB free
@@ -220,9 +240,9 @@ for role in WORKER WORKER_GATE WORKER_TAIL REVIEWER REVIEWER_PRE_GATE; do
   if [ "$agent_roles" = "-" ]; then agent_roles=$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-');
   else agent_roles="$agent_roles,$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-')"; fi
 done
-printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
+printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s item-context-warn=%s item-context-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
   "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles"
+  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$item_context_warn" "$item_context_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -1174,6 +1194,38 @@ child_turns() { # child_turns <events file> → the `turn_end` lines it holds
   printf '%s\n' "$n"
 }
 
+# The size of the conversation the child is paying for (issue #760), read from the same stream as the turn count and
+# in the same whole second. A turn is not a unit of cost — every turn re-reads the whole context — so the reading
+# that says what a further turn will cost is the largest one the stream has reported: `input + cacheRead` of a usage
+# record (cumulative within a response, so the peak is what the window had to hold) or a `compaction_end`'s
+# `tokensBefore` (the size it had to hold before it shrank), whichever is greater. It is the number
+# `state.sh`'s `child_usage_json` takes for the report, taken while the child still runs.
+#
+# Only the complete lines appended since the last look are read: `wc -l` is the boundary, and a line still being
+# written carries no newline, so a partial record is never parsed. That is what keeps a once-a-second reading cheap
+# on a stream that runs to megabytes, where a re-parse of the whole file would spend on `jq` what the bound saves on
+# tokens. A stream that is absent, empty or unreadable is no reading rather than an error, exactly as `child_turns`
+# treats one: a child whose command writes no events stays bounded by its clock and by its turns.
+child_context() { # child_context <events file> <lines already read> → "<largest context in the new lines> <lines read>"
+  local f="${1:-}" done_lines="${2:-0}" total blob max
+  [ -n "$f" ] && [ -f "$f" ] || { printf '0 0\n'; return 0; }
+  total=$(wc -l < "$f" 2>/dev/null) || true
+  case "$total" in ''|*[!0-9]*) total=0 ;; esac
+  case "$done_lines" in ''|*[!0-9]*) done_lines=0 ;; esac
+  [ "$total" -ge "$done_lines" ] || done_lines=0
+  max=0
+  if [ "$total" -gt "$done_lines" ]; then
+    blob=$(tail -n +$((done_lines + 1)) "$f" 2>/dev/null | head -n $((total - done_lines)) | jq -s -c '
+      (([.[] | select(.type == "message_update" or .type == "turn_end") | .usage? | select(type == "object")
+          | ((.input // 0) + (.cacheRead // 0))] | max) // 0) as $turn
+      | (([.[] | select(.type == "compaction_end") | (.result?.tokensBefore? // empty) | numbers] | max) // 0) as $compacted
+      | [$turn, $compacted] | max' 2>/dev/null) || blob=""
+    case "$blob" in ''|*[!0-9]*) blob=0 ;; esac
+    max=$blob
+  fi
+  printf '%s %s\n' "$max" "$total"
+}
+
 # A child's own stream is silent by construction: the adapter the configured agent command names keeps the
 # child's event stream for the report (`LOOP_CHILD_EVENTS`) and prints its answer once it has exited (measured
 # 2026-10-19: on a pipe nothing appears until then), so a run used to print `pick #N` and then nothing for the
@@ -1215,7 +1267,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns
+  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_read ctx_new
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
@@ -1377,6 +1429,33 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         break
       fi
     fi
+    # …and the bound priced in what a turn costs rather than in how many there are (issue #760), read from the same
+    # stream and in the same whole second as the turn count, so the wait pays one `wc` and one `jq` over the *new*
+    # lines per second. The checkpoint costs one line and decides nothing: it names the reading so a session that
+    # could split at its gate knows it is worth more than the turns it saves. The recorded maximum ends the child,
+    # because past it every further turn costs several times the first and that is a decision, not a slower
+    # convergence. Both are off at `0`, which is why the whole block is skipped when neither key is recorded.
+    if [ "$item_context_warn" -gt 0 ] || [ "$item_context_max" -gt 0 ]; then
+      ctx_read=$(child_context "${LOOP_CHILD_EVENTS:-}" "$ctx_lines")
+      ctx_new=${ctx_read%% *}
+      ctx_lines=${ctx_read##* }
+      case "$ctx_new" in ''|*[!0-9]*) ctx_new=0 ;; esac
+      case "$ctx_lines" in ''|*[!0-9]*) ctx_lines=0 ;; esac
+      if [ "$ctx_new" -gt "$ctx_max" ]; then ctx_max=$ctx_new; fi
+      if [ "$item_context_warn" -gt 0 ] && [ "$ctx_warned" -eq 0 ] && [ "$ctx_max" -ge "$item_context_warn" ]; then
+        ctx_warned=1
+        printf 'LOOP-CONTEXT: the child\047s context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, so a session split at the next gate is the cheaper half of this bound\n' \
+          "$ctx_max" "$item_context_warn"
+      fi
+      if [ "$item_context_max" -gt 0 ] && [ "$ctx_max" -ge "$item_context_max" ]; then
+        ended_by=context
+        timed_out=1
+        kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+        sleep 1
+        kill -KILL -"$child" 2>/dev/null || true
+        break
+      fi
+    fi
     sleep "$poll"
   done
   rc=0
@@ -1407,6 +1486,13 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       printf 'LOOP-TIMEOUT: the child reached the recorded turn bound of %s turns (%s for the %s role) after %s turn(s) — the run ended it and everything it started\n' \
         "$turns_max" "LOOP_CHILD_TURNS_MAX_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')" "$role" \
         "$(( $(child_turns "${LOOP_CHILD_EVENTS:-}") - turns_base ))" >> "$2"
+    elif [ "$ended_by" = context ]; then
+      # The reading the bound took, in the transcript the item is blocked on (issue #760), for the reason the turn
+      # bound's line carries its count: a person reading the blocked item must not have to re-derive from an exit
+      # status, on a clock with minutes left, which number ended the child. `LOOP-TIMEOUT` is the line the run reads
+      # as its own timeout, so the reviewer-round and pre-gate paths that already read a cut transcript keep working.
+      printf 'LOOP-TIMEOUT: the child reached the recorded context bound of %s tokens (LOOP_ITEM_CONTEXT_MAX) at %s tokens — the run ended it and everything it started\n' \
+        "$item_context_max" "$ctx_max" >> "$2"
     else
       printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
     fi
@@ -1925,7 +2011,7 @@ while true; do
           elif [ -n "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ]; then
             pre_gate_cut=1
             pre_gate_refusal_verdict="cut-short"
-            pre_gate_refusal="the run ended the pre-gate reviewer at its role's turn bound — the round was cut, not refused, so the change is left for the next run"
+            pre_gate_refusal="the run ended the pre-gate reviewer at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run"
           elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
             pre_gate_refusal_verdict="cut-short"
             pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
@@ -2270,17 +2356,18 @@ while true; do
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
         break
       fi
-      # The child's own turn bound ends a child the same way (`LOOP_CHILD_TURNS_MAX_REVIEWER`, issues #686 and #784),
-      # and a round it ended has no answer to read: the transcript carries `LOOP-TIMEOUT` and no `VERDICT:` line. Reading that silence as
+      # The child's own turn bound ends a child the same way (`LOOP_CHILD_TURNS_MAX_<ROLE>`, issues #686 and #784), and
+      # so does the item's context bound (`LOOP_ITEM_CONTEXT_MAX`, issue #760), and a round they ended has no answer to
+      # read: the transcript carries `LOOP-TIMEOUT` and no `VERDICT:` line. Reading that silence as
       # a refusal named a reviewer that refused nothing and bought a rework worker for it — measured on item #51,
-      # whose round 1 ended at the turn bound and whose record the report would otherwise count as a refusal
+      # whose round 1 ended at the turn bound (250 turns then) and whose record the report would otherwise count as a refusal
       # (issue #247, review round 2). The round is cut, as the twice-cut path below records it, so the item waits
       # for the next run and a rate counts it as undecided.
       if [ -n "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ]; then
         review_verdict="cut-short"
         outcome="cut"
         record_cut_round "$round"
-        blocked_reason="the run ended the reviewer of round $round at its role's turn bound — the round was cut, not refused, so the change is left for the next run"
+        blocked_reason="the run ended the reviewer of round $round at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run"
         break
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`

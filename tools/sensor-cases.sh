@@ -59,6 +59,7 @@ SENSOR_CASES=(
   'run#hysteresisBothDirections'
   'run#hysteresisCountersSurviveARestart'
   'run#escalatesPastKRecurrences'
+  'run#anEscalationOnASettledIssueFilesANewItem'
   'run#aRowDeclaresItsOwnRecurrenceBound'
   'run#libosmscoutLagReadsThreeOutcomes'
   'run#escalationNeverSetsEligibility'
@@ -148,6 +149,7 @@ sensor_run_case() {
     'run#hysteresisBothDirections') case_run_hysteresisBothDirections ;;
     'run#hysteresisCountersSurviveARestart') case_run_hysteresisCountersSurviveARestart ;;
     'run#escalatesPastKRecurrences') case_run_escalatesPastKRecurrences ;;
+    'run#anEscalationOnASettledIssueFilesANewItem') case_run_anEscalationOnASettledIssueFilesANewItem ;;
     'run#aRowDeclaresItsOwnRecurrenceBound') case_run_aRowDeclaresItsOwnRecurrenceBound ;;
     'run#libosmscoutLagReadsThreeOutcomes') case_run_libosmscoutLagReadsThreeOutcomes ;;
     'run#escalationNeverSetsEligibility') case_run_escalationNeverSetsEligibility ;;
@@ -1653,6 +1655,30 @@ case_run_escalatesPastKRecurrences() {
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
     sensor_engine run.sh --only fixture-emit --apply --input "$findings" --registry "$(fixture registry.json)" 2>&1)
   assert_eq "0" "$(recorded "$log" 'issue reopen')" "no fourth reopen happens"
+}
+
+# An escalation lands on the issue the condition's fingerprint identifies, and that issue is usually the one
+# whose fix did not hold: closed with the profile's settled state, which a routine write may not displace. The
+# escalation's label pair is refused there, and the condition returned after a fix that did not hold is a new
+# fact — so it is filed as a new item instead of being reported as an escalation the writer never made (issue
+# #780). The fixture is a closed `fixed-by` issue, the shape a returned condition lands on in the tracker.
+case_run_anEscalationOnASettledIssueFilesANewItem() {
+  local dir log out fp body findings
+  dir=$(throwaway_project)
+  log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of case alpha)
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->\n<!-- violation-run: 0 -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 98 CLOSED COMPLETED fixture-emit "$body" \
+    | jq -c '.labels += [{name: "status/fixed-by"}]')]"
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 5 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" 2>&1)
+  assert_eq "0" "$(recorded "$log" 'issue edit')" "the escalation does not displace a settled state"
+  assert_eq "1" "$(condition_creates "$log")" "the returned condition is filed as a new item: $out"
+  assert_eq "1" "$(recorded "$log" "$fp")" "the new item carries the condition's own fingerprint"
+  assert_contains "$out" "action=filed" \
+    "the run reports the item it filed, not an escalation the tooling refused: $out"
 }
 
 # A row's own `k` is the bound that decides when reopening stops: the engine already reads it

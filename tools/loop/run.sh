@@ -723,8 +723,13 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
         --decision-label "$escalated_label" >/dev/null
     fi
     # The refusal is the run's end as well as the item's: the report reads `run.stop`, and an empty one prints a
-    # killed process rather than this refusal once the run that wrote it is gone (#787).
-    stop_run "the kept worktree is not clean — a previous run left work behind${owner_item:+, and the leftovers belong to #$owner_item} (repair: --reset-worktree discards them, and names them before it does)"
+    # killed process rather than this refusal once the run that wrote it is gone (#787). The reason names the files
+    # the refusal printed, as the cap arm names its list — the console scrolls away, and the reason is what a later
+    # report prints (`Backlog.recipes.md` §7d).
+    leftover_reason=""
+    [ -z "$leftovers" ] ||
+      leftover_reason=" — $(printf '%s' "$leftovers" | tr '\n' ';' | sed 's/;$//; s/;/; /g')"
+    stop_run "the kept worktree is not clean — a previous run left work behind${leftover_reason}${owner_item:+, and the leftovers belong to #$owner_item} (repair: --reset-worktree discards them, and names them before it does)"
     bash "$LOOP_DIR/report.sh"
     exit "$LOOP_REFUSE"
   fi

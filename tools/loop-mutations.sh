@@ -111,6 +111,10 @@ MUTATIONS=(
   '9.9@-@tools/loop/run.sh@state#agentCommandIsTheOnlyIndirection@the single agent-command indirection@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$LOOP_ROOT" \&\& pi --print "$1"; printf|'
   '9.10@-@tools/loop/run.sh@run#reviewerWriteInvalidatesTheRound@the reviewer read-only comparison@s|^      if \[ "$read_only" = "on" \] && \[ "$before" != "$after" \]; then|      if false; then|'
   '9.11@-@tools/loop/prompts/worker.md@state#projectKeysAreReadFromLoopConf@the project facts living in loop.conf@s|{{WORKER_SKILLS}}|openspec-propose openspec-apply-change build-app run-tests revert-check|'
+  # 9.12 is issue #787's invariant: the cap's refusal written as the run's own stop reason. The record removes the
+  # `stop_run` call and leaves the arm's console text in place, so the case fails on the reason it reads out of
+  # `run.stop` — not on the refusal firing, which 9.6 owns.
+  '9.12@-@tools/loop/run.sh@run#theDecisionCapRecordsItsStopReason@the cap'"'"'s refusal written as the run'"'"'s stop reason@s|^  stop_run "the decision cap refuses the start: |  : "the decision cap refuses the start: |'
   '12.1@-@tools/loop/worktree.sh@run#commitsWithoutAnAmbientIdentity@the commit is attributed to the run'"'"'s own identity@s|-c user.name="\$who_name" -c user.email="\$who_email" ||'
   '12.2@-@tools/loop/run.sh@run#childStartsInTheProjectRoot@the child started in the project, where the project'"'"'s own policy is resolved@s|^  ( cd "$LOOP_ROOT" \&\& $child_cmd "$1"; printf|  ( cd "$worktree" \&\& $child_cmd "$1"; printf|'
   '12.3@-@tools/loop/run.sh@run#childWriteOutsideTheWorktreeIsNoted@the run recording a child write left outside the worktree@s|^    outside_write_line "$before" "$after" >> "$2"$|    : # the mutation carries the write instead|'

@@ -633,6 +633,15 @@ sufficient to continue after an interrupt without repeating work already done.
   previous branches alone
 - **Case**: `run#dirtyKeptWorktreeIsARecordedRefusal`, `run#resetWorktreeDiscardsWhatItNames`, `state#secondRunRefusesWithExit5`
 
+#### Scenario: A refused start is the run's own recorded end
+
+- **WHEN** a run ends at one of its refusals before the first item — a kept worktree it may not clean, the repair
+  `--reset-worktree` that cannot clean it, or the decision cap — and that refusal never reached an item it works
+- **THEN** the refusal is written as the run's stop reason, naming what the refusal printed, so a report read after
+  that run's process is gone prints the refusal and not "it was killed and recorded no stop" (#787)
+- **Case**: `run#dirtyKeptWorktreeIsARecordedRefusal`, `run#resetWorktreeNamesTheDirtItCannotDiscard`,
+  `run#theDecisionCapRecordsItsStopReason`
+
 #### Scenario: A skipped item leaves no item looking in progress
 
 - **WHEN** an item ends with a skip verdict
@@ -665,8 +674,11 @@ both the decision label and the loop's opt-in, so a decision parked by removing 
 
 - **WHEN** the number of candidate items awaiting a decision reaches the cap
 - **THEN** the run refuses to start, prints those items and states the count it compared, so nothing new is
-  produced while decisions accumulate
-- **Case**: `run#decisionCapRefusesToStart`, `run#decisionCapCountsOnlyCandidates`
+  produced while decisions accumulate, and records that refusal as the run's own stop reason — naming both counts
+  it compared and the items it printed — so a later report prints the refusal instead of the sentence a killed
+  process leaves (#787)
+- **Case**: `run#decisionCapRefusesToStart`, `run#decisionCapCountsOnlyCandidates`,
+  `run#theDecisionCapRecordsItsStopReason`
 
 #### Scenario: An item needing a decision is escalated, not abandoned
 

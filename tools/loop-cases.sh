@@ -6693,6 +6693,8 @@ case_run_dirtyKeptWorktreeIsARecordedRefusal() {
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not clean" "with the refusal as its reason"
   assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "the kept worktree is not clean" \
     "and the refusal is the run's own stop reason, so the report names it instead of a killed process"
+  assert_contains "$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")" "leftover.txt" \
+    "and the stop reason names the files the refusal printed"
   log=$(cat "$GH_STUB_RECORD")
   assert_contains "$log" "agent/needs-decision" "the leftovers are escalated to a person"
   assert_contains "$log" "fix/issue-21-" "with the branch as evidence"

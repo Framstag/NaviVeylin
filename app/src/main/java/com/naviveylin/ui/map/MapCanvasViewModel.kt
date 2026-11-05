@@ -445,6 +445,18 @@ class MapCanvasViewModel @Inject constructor(
     internal var ambientSensitivitySetByUser = false
 
     /**
+     * Set once the user chooses the navigation orientation in this session; the start-up settings load
+     * then leaves it alone, for the same reason as [darkModePreferenceSetByUser]. Without it a read
+     * that resumes after the compass long press restored the persisted follow-direction value and the
+     * next fix rotated the map back to the last heading-up angle
+     * (spec: `compass-settings` — A user orientation choice outranks an in-flight settings read).
+     */
+    internal var navNorthUpSetByUser = false
+
+    /** Set once the user chooses the free-form orientation in this session; see [navNorthUpSetByUser]. */
+    internal var freeFormNorthUpSetByUser = false
+
+    /**
      * The phone places search's request lifecycle: debounce, the minimum query length, supersede
      * and abandon, shared with the other surfaces (spec: `search-request-lifecycle`). A request is
      * a call of [SearchGate.request], so a repeated query text is a new request and still runs

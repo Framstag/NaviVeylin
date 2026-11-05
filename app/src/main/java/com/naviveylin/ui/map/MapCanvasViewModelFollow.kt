@@ -678,6 +678,7 @@ fun MapCanvasViewModel.renderFollowFrameAt(lat: Double, lon: Double) {
 
 /** Set free-form orientation: true = north-up, false = follow direction. */
 fun MapCanvasViewModel.onSetFreeFormOrientation(northUp: Boolean) {
+    freeFormNorthUpSetByUser = true
     _uiState.value = _uiState.value.copy(freeFormNorthUp = northUp)
     // Apply immediately: if north-up, reset angle; if follow-direction, use current bearing
     if (northUp) {
@@ -703,6 +704,7 @@ fun MapCanvasViewModel.onSetFreeFormOrientation(northUp: Boolean) {
 
 /** Set navigation orientation: true = north-up, false = follow direction. */
 fun MapCanvasViewModel.onSetNavOrientation(northUp: Boolean) {
+    navNorthUpSetByUser = true
     _uiState.value = _uiState.value.copy(navNorthUp = northUp)
     // Apply immediately
     if (northUp) {

@@ -25,7 +25,7 @@ data class ContactLink(val kind: LinkKind, val display: String, val target: Stri
  * crosses the bridge, the constant name stays native).
  *
  * Pure string work on purpose: the rules are unit-testable without Robolectric
- * and the car screen reads the same classifier (design D1).
+ * (design D1).
  *
  * - A value carrying several `;`-separated parts is split, each part resolved
  *   independently (design D7 — OSM's `website`/`phone` tags are multi-valued).

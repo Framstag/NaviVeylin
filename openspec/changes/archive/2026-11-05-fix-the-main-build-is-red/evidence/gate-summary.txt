@@ -1,0 +1,27 @@
+# Gate record — fix-the-main-build-is-red (#783)
+
+Run once by the item's gate child in the worktree carrying the fix; not re-run.
+
+```
+LOOP-GATE: tests=458 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 288s, …)
+```
+
+The gradle step's own tallies, copied here beside this record:
+
+- gate-TEST-mobile-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0" 2026-11-05T09:25:59.811Z
+- gate-TEST-automotive-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0" 2026-11-05T09:25:11.959Z
+- gate-TEST-mobile-MapCanvasViewModelFollowModeTest.xml — tests="24" skipped="0" failures="0" errors="0" 2026-11-05T09:27:21.635Z
+- gate-TEST-automotive-MapCanvasViewModelFollowModeTest.xml — tests="24" skipped="0" failures="0" errors="0" 2026-11-05T09:25:20.046Z
+- gate-TEST-summary-gradlew.xml — BUILD SUCCESSFUL in 4m 47s (the gate step's summary tally)
+
+The red case this change answers for, taken on the fix's base `ec58cb91`:
+
+- red-TEST-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="1" errors="0" 2026-11-05T09:12:23.151Z
+  (`northUpChosenWhileTheReadIsOpenSurvivesTheRead`: "the persisted follow-direction value must not replace the orientation the user just chose")
+
+Green after the fix:
+
+- green-TEST-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0" 2026-11-05T09:13:00.192Z
+- green-TEST-MapCanvasViewModelFollowModeTest.xml — tests="24" skipped="0" failures="0" errors="0" 2026-11-05T09:12:59.979Z
+- green-automotive-TEST-NorthUpLateRestoreTest.xml — tests="2" skipped="0" failures="0" errors="0" 2026-11-05T09:14:44.508Z
+- green-automotive-TEST-MapCanvasViewModelFollowModeTest.xml — tests="24" skipped="0" failures="0" errors="0" 2026-11-05T09:14:44.337Z

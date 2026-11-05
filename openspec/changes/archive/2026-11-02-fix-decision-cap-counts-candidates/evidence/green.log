@@ -1,0 +1,8 @@
+PASS run#decisionCapCountsOnlyCandidates
+PASS run#decisionCapRefusesToStart
+PASS run#theShapingInboxDoesNotCountAgainstTheCeiling
+PASS run#awaitingDecisionIsNotEscalatedAgain
+PASS prescreen#aHoldWithNoDecisionIsNotADecision
+PASS labels#closeRemovesTheDecisionLabel
+PASS mutation#everyDeclaredRecordApplies
+PASS mutation#aStaleRecordIsNamed

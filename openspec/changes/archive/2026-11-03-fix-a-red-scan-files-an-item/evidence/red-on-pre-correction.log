@@ -1,0 +1,41 @@
+# red on the pre-correction revision 18748b88 (the state review round 1 read) — the corrections' own cases
+# 2026-11-03T19:44:26Z
+# the cases and the structural check are the change's own; every production file is that revision's
+
+# bash tools/sensor-selftest.sh --case sensors#aFailedScanIsItsOwnCondition
+# 2026-11-03T19:44:26Z
+  the record the scan publishes is the row's input: expected 'scan-result.json', got 'app/build/scan-result.json'
+FAIL sensors#aFailedScanIsItsOwnCondition
+exit=1
+
+# bash tools/sensor-selftest.sh --case sensors#aGreenScanClearsItsCondition
+# 2026-11-03T19:44:29Z
+  a green scan with nothing recorded still reports a clear: {"row":"broken-scan","fingerprint":"-","verdict":"error","measurement":"malformed finding: field:step(missing)","issue":null,"action":"posted nothing, the run fails"}
+{"row":"broken-scan","fingerprint":"-","verdict":"error","measurement":"the command printed no finding","issue":null,"action":"posted nothing, the run fails"}
+sensors: 2 finding(s) reported an error — nothing was written for them and the run fails: '"verdict":"clear"' not found in: {"row":"broken-scan","fingerprint":"-","verdict":"error","measurement":"malformed finding: field:step(missing)","issue":null,"action":"posted nothing, the run fails"}
+{"row":"broken-scan","fingerprint":"-","verdict":"error","measurement":"the command printed no finding","issue":null,"action":"posted nothing, the run fails"}
+sensors: 2 finding(s) reported an error — nothing was written for them and the run fails
+FAIL sensors#aGreenScanClearsItsCondition
+exit=1
+
+# bash tools/sensor-selftest.sh --case workflow#theScanRecordIsFetchedBeforeItsRowRuns
+# 2026-11-03T19:44:35Z
+PASS workflow#theScanRecordIsFetchedBeforeItsRowRuns
+exit=0
+
+# bash tools/build-inputs-selftest.sh --case inputs#theScanRecordIsTheScanPipelinesOwn
+# 2026-11-03T19:44:38Z
+  the row declares the path the scan publishes: expected 'app/build/scan-result.json', got ''
+FAIL inputs#theScanRecordIsTheScanPipelinesOwn
+exit=1
+
+# bash tools/check-sonar-workflow-selftest.sh --case sonar-workflow#theRecordIsPublishedOnEveryOutcome
+# 2026-11-03T19:44:38Z
+ok: sonar-workflow#theRecordIsPublishedOnEveryOutcome
+exit=0
+
+# bash tools/check-sonar-workflow-selftest.sh --case sonar-workflow#theRecordPathIsTheUploadsOwn
+# 2026-11-03T19:44:38Z
+FAIL: sonar-workflow#theRecordPathIsTheUploadsOwn (the report does not name 'not the row's')
+       ::error file=.github/workflows/sonar.yml,line=159::the row declares 'app/build/scan-result.json' with a directory, but a single explicit upload path is archived under its basename and unpacked at the workspace root — declare the record at the path the upload root can carry (spec backlog-sensors, 'A pipeline outside the build publishes its own record')
+exit=1

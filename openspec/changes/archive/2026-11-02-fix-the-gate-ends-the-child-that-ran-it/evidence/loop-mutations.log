@@ -1,0 +1,10 @@
+loop-mutations: selected 2 of 226 records (labels: 76.1 76.2)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.kcFZi8
+RED    76.1  run#childUsageIsRecordedPerItem   (the tail child the gate line starts, and the item spend as the sum of two children (issue #744))
+       2026-11-03T05:41:34Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261103-054129')
+restore 76.1 run#childUsageIsRecordedPerItem green again
+RED    76.2  run#aRedGateIsBlockedByTheTail   (the outcome arm that takes a blocked verdict as the tail reported it, with the gate line (issue #744))
+       2026-11-03T05:41:55Z — a red gate blocks the item: expected 'blocked', got 'done'
+restore 76.2 run#aRedGateIsBlockedByTheTail green again
+
+red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0

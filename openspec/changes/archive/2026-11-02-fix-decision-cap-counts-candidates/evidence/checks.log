@@ -1,0 +1,39 @@
+=== openspec validate --strict ===
+Change 'fix-decision-cap-counts-candidates' is valid
+
+=== check-change-readiness ===
+LOOP-CHANGE-READY: ok
+
+=== check-openspec-hygiene ===
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 1 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0
+
+=== check-doc-routes ===
+check-doc-routes: all 329 section references resolve, all 4 skill references resolve
+exit=0
+
+=== check-rule-routes ===
+check-rule-routes: every glob matches the tree and all 577 named rule(s) are reached
+exit=0
+
+=== loop-selftest --group driver ===
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#theSuiteRunsItsCasesInAPool
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+loop-selftest: all 18 cases passed (JDK 27, offline, no token, no sandbox) — selection: --group driver

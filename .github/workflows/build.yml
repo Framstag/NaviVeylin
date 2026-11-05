@@ -29,7 +29,12 @@ env:
   # self-heals). The old files provider + actions/cache keyed on the
   # manifest hash restored stale archives that vcpkg rejected and never
   # re-saved on a cache hit — a full rebuild on every run.
-  VCPKG_BINARY_SOURCES: clear;nuget,https://nuget.pkg.github.com/Framstag/index.json,readwrite
+  #
+  # VCPKG_BINARY_SOURCES is set on the install step, from the probe's outcome
+  # (see "Probe the vcpkg binary cache"): the cache's client is nuget.exe under
+  # mono, whose TLS handshake failed on the ubuntu-26.04 image, and vcpkg treats
+  # a cache failure as non-fatal — so the failure used to cost 62 minutes of
+  # failed pushes instead of an error (issue #761, measured 2026-11-03).
   VCPKG_NUGET_REPOSITORY: https://nuget.pkg.github.com/Framstag/index.json
   ANDROID_HOME: ${{ github.workspace }}/android-sdk
   ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
@@ -41,7 +46,10 @@ env:
 jobs:
   build:
     name: Build debug APK (all ABIs)
-    runs-on: ubuntu-latest
+    # A released image, never `ubuntu-latest`: the cache's client is part of the
+    # image, and the 26.04 image broke it (issue #761). A pin is a value this
+    # repository bumps on purpose; the label is one GitHub bumps for it.
+    runs-on: ubuntu-24.04
     # packages: write lets the GITHUB_TOKEN push/restore vcpkg binary
     # packages to the GitHub Packages NuGet feed; actions: write is needed
     # by the actions/cache entries for the Android SDK and Gradle caches.
@@ -307,6 +315,25 @@ jobs:
           bash tools/check-action-runtimes.sh
           bash tools/check-action-runtimes-selftest.sh
 
+      # ── the vcpkg binary cache's transport ─────────────────────
+      # The cache is reached through nuget.exe under mono, and vcpkg treats a cache failure as non-fatal, so a
+      # dead transport is silent and expensive (62 minutes of failed pushes on the ubuntu-26.04 image, issue
+      # #761). The probe that refuses to pay it is checked here; its two verdicts, the missing client and the
+      # absence of anything sensitive are cases. Text files and stubs only: no network, no token.
+      - name: Check the vcpkg cache probe
+        run: bash tools/ci-vcpkg-cache-selftest.sh
+
+      # ── sonar workflow ─────────────────────────────────────────
+      # The scan is a workflow of its own that runs from `main` only, and its boundary — what the analysis
+      # measures as this repository's code — is a property file rather than an inference. Nothing else reads
+      # either one: a `pull_request` trigger or a dropped exclusion parses and the run stays green, so the
+      # triggers, the runtime guard, the scanner pin and the exclusion groups are checked here
+      # (spec `sonar-analysis`, change `integrate-sonar-analysis`). Text files only: no build, no token.
+      - name: Check sonar workflow
+        run: |
+          bash tools/check-sonar-workflow.sh
+          bash tools/check-sonar-workflow-selftest.sh
+
       # ── Compose sandbox rule ───────────────────────────────────
       # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
       # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has
@@ -459,9 +486,24 @@ jobs:
             -ConfigFile "$HOME/.config/NuGet/NuGet.Config" \
             -Source "https://nuget.pkg.github.com/Framstag/index.json"
 
+      # The cache's client is nuget.exe under mono, whose TLS handshake to
+      # nuget.pkg.github.com failed on the ubuntu-26.04 image (issue #761). vcpkg
+      # treats a cache failure as non-fatal, so without this probe a dead
+      # transport is silent and costs ~60 minutes of failed pushes. Its outcome
+      # decides whether the install relies on the cache at all.
+      - name: Probe the vcpkg binary cache
+        id: cache
+        continue-on-error: true
+        run: bash tools/ci-vcpkg-cache.sh --probe
+
       # Installs all deps for the 3 Android triplets; compiled packages
-      # come from / are stored in the NuGet binary cache.
+      # come from / are stored in the NuGet binary cache — when the probe above
+      # reached the feed. A dead transport selects `clear`, so the ports build
+      # from source and nothing is pushed (one warning line instead of 99
+      # failing pushes).
       - name: Install vcpkg dependencies
+        env:
+          VCPKG_BINARY_SOURCES: ${{ steps.cache.outcome == 'success' && 'clear;nuget,https://nuget.pkg.github.com/Framstag/index.json,readwrite' || 'clear' }}
         run: ./setup-vcpkg.sh
 
       # setup-vcpkg.sh tolerates per-package failures (|| echo) — fail the

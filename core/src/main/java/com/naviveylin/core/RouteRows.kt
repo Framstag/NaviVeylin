@@ -57,12 +57,12 @@ const val MIN_ROW_LEG_METERS = 20.0
  * The row-merge window in metres: a street-name change restated by the manoeuvre that follows within
  * this distance is folded into that manoeuvre's row instead of earning its own.
  *
- * The number is the bound live guidance announces with ([HINT_WINDOW_METERS], the native
- * `osmscout::client::RouteStepBuilder::NextNextWindowMeters`), so "close" means one thing app-wide.
- * It stays a second named constant rather than a reused one: the announcement bound and the row-layout
- * rule answer different questions, and a divergence between them needs a measured reason.
+ * The number is the bound live guidance announces with (`osmscout::client::RouteStepBuilder::NextNextWindowMeters`),
+ * so "close" means one thing app-wide. It stays a named constant of this file rather than a reused one:
+ * the announcement bound (owned by the native step builder) and the row-layout rule answer different
+ * questions, and a divergence between them needs a measured reason.
  */
-const val ROW_MERGE_WINDOW_METERS = HINT_WINDOW_METERS
+const val ROW_MERGE_WINDOW_METERS = 200.0
 
 /**
  * Derive a route list's rows from the route's structured steps

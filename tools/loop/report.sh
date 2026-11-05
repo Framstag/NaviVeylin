@@ -7,12 +7,14 @@
 #
 # It answers the three questions a finished run has to answer on its own (#208): which items were handled
 # and how each ended (the table, with the item's own reason when the outcome is not a closure), what each
-# one cost (the table's `wall`, `tools`, `tokens` and `context` columns — the last three summed from the
-# child's own event stream, `-` where nothing was reported — and the run-level `spent`), and what the caller
-# must now do — the named action list at the end, built from the state and from git, never from a count.
+# one cost (the table's `wall`, `tools`, `tokens`, `context` and `calls` columns — the middle three summed from the
+# child's own event stream, the last a ratio of two of them, `-` where nothing was reported — and the run-level
+# `spent`), and what the caller must now do — the named action list at the end, built from the state and from git,
+# never from a count.
 #
 # Beside those three, and about the loop rather than about one run, it says whether the loop is getting better
-# (#247): the review round-1 pass rate and the item wall median, minimum and maximum, totalled from the same
+# (#247): the review round-1 pass rate, the item wall median, minimum and maximum, and — since issue #757 — the
+# run's tool calls per turn beside the items below the recorded floor, totalled from the same
 # state, and the one figure that state does not hold — the landings that reddened `main` — named where it lives
 # rather than fetched, because the report reads the state and git and never the tracker.
 #
@@ -220,7 +222,22 @@ printf 'state: %s\n' "$state_file"
 # answer was cut, the run's clock ended it, it wrote, or the state predates the field), and an item no round ran
 # for. A round that ended without a verdict is neither a refusal nor a pass, so it is named apart and is in no
 # rate; a refused round 1 is a refusal even when it is also the last round the item got.
-trend=$(jq -r '
+#
+# The third figure the trend prints is the shape the spend was made in (issue #757): an item tool calls per
+# turn. Every cost in this loop is turns times context, so a session that spent its budget in a chain of
+# single-call turns is the defect no other line of the report can show — the archive reads 36 825 calls in
+# 33 183 turns (1.11 per turn) at 78 k tokens a turn and 97 % cache read, and halving the calls per turn is worth
+# about a third of it. The rate is derived from the two counts the state records (`metrics.calls`,
+# `metrics.turns`), and an item below the floor `LOOP_ITEM_CALLS_PER_TURN_MIN` records is named beside the run
+# own rate, the way the token line names an item above its band. It is a **warning, never a stop**: nothing in the
+# run reads the key, and `0` — or a configuration that records no key at all — prints the floor as off rather than
+# as `none`, which would read as a measurement nobody made.
+# A value that is not a decimal number is no floor, and it is refused here rather than handed to jq: `--argjson` on a
+# malformed value fails the whole program, and a report whose `calls:` line silently disappears is worse than one
+# that says the floor is off. `1.` and `.` are refused; a leading zero (`05`) is read as 5, as jq reads it.
+calls_floor=$(loop_conf_value LOOP_ITEM_CALLS_PER_TURN_MIN)
+printf '%s' "$calls_floor" | grep -Eq '^[0-9]+(\.[0-9]+)?$' || calls_floor=0
+trend=$(jq -r --argjson floor "$calls_floor" '
   def median:
     if length == 0 then null
     elif (length % 2) == 1 then .[(length / 2) | floor]
@@ -241,7 +258,30 @@ trend=$(jq -r '
       else "\($first | length)/\($decided | length) first rounds passed · \($undecided | length) undecided · \($never | length) never reviewed" end ) as $review
   | ( if ($walls | length) == 0 then "- · no item recorded a wall time"
       else "median \(($walls | median) | round) s (min \(($walls[0]) | round), max \(($walls[-1]) | round)) · \($walls | length) items" end ) as $wall
-  | "  review: \($review)\n  wall:   \($wall)"
+  | ([.items[]
+      | select((.metrics.calls // null) != null and (.metrics.turns // 0) > 0)
+      | {i: .issue, c: .metrics.calls, t: .metrics.turns,
+         r: ((.metrics.calls / .metrics.turns) * 100 | round | . / 100)}]) as $calls
+  | ( if ($calls | length) == 0 then
+        # A state written before this figure existed records tokens for its items and no counts, and a dash with
+        # the wrong reason would read as a run of items that answered without a tool — the distinction the review
+        # rate dash already makes between "nobody measured" and "this state predates the field".
+        if ([.items[] | select(.metrics.tokens != null)] | length) > 0
+          then "- · this state records no calls or turns — it was written before the report read them"
+          else "- · no item recorded a turn" end
+      else ([$calls[].c] | add) as $tc
+        | ([$calls[].t] | add) as $tt
+        | (((($tc / $tt) * 100) | round | . / 100)) as $ratio
+        | ( if $floor > 0
+              then ([$calls[] | select(.r < $floor) | "#\(.i) \(.r)"]) as $below
+                | "\($ratio) calls per turn (\($tc) calls / \($tt) turns) · "
+                  + (if ($below | length) == 0
+                       then "none below the recorded floor of \($floor) per turn"
+                       else "below the recorded floor of \($floor) per turn: \($below | join(" · "))" end)
+              else "\($ratio) calls per turn (\($tc) calls / \($tt) turns) · floor off — LOOP_ITEM_CALLS_PER_TURN_MIN records \($floor), so no item is flagged"
+              end )
+      end ) as $callline
+  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"

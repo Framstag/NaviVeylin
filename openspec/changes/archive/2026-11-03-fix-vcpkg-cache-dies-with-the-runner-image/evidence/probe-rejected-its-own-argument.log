@@ -1,0 +1,25 @@
+# The probe rejected its own argument, and the cache was switched off on a working runner
+#
+# Read from PR #762's own workflow run (run 41700415740, job's log via
+# `gh api --allow-escape-sequences repos/Framstag/NaviVeylin/actions/jobs/<id>/logs`):
+#
+# 2026-11-03T19:30:12.4667740Z ##[warning]ci-vcpkg-cache: the feed
+#   https://nuget.pkg.github.com/Framstag/index.json did not answer (1):   at NuGet.CommandLine.Program.MainCore …
+# 2026-11-03T19:30:12.4732465Z   VCPKG_BINARY_SOURCES: clear
+#
+# and the install that followed built every port:
+#
+# 2026-11-03T19:30:14Z The following packages will be built and installed:
+#   marisa-trie:arm64-android@0.3.1 …, vcpkg-cmake:x64-linux, vcpkg-cmake-config:x64-linux, …
+#
+# Two defects, both in the probe:
+#
+#   1. It asked `nuget list -Source <url> -Take 1 -NonInteractive`, and `-Take` is an option of `search`, not of
+#      `list` — so the client exited 1 with "Unknown option: -Take" and a stack frame, whatever the feed's state.
+#   2. It quoted the *last* line of the client's output as the diagnosis, and every NuGet failure ends in a stack
+#      frame ("at NuGet.CommandLine.Program.MainCore"), so the warning named no cause at all.
+#
+# The consequence: on a runner where the cache works, the probe reported a dead feed, `VCPKG_BINARY_SOURCES`
+# became `clear`, and the install compiled all ports from source — the probe cost the very minutes it exists to
+# save. The fix is the invocation the client has (`list -Source <url> -NonInteractive`) and the first line that
+# names a cause, with a case for the rejected argument (`vcpkg-cache#aRejectedArgumentIsNotReadAsADeadFeed`).

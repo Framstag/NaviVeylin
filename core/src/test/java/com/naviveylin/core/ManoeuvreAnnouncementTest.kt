@@ -10,11 +10,11 @@ import org.junit.Test
 
 /**
  * The step a guidance surface announces (spec: `next-turn-overlay` — Turn type icon, "Next next" hint;
- * change `route-steps-live-guidance`).
+ * spec: `osmscout-jni` — Live guidance publishes route steps).
  *
- * The engine publishes one step per described route node, facts-only nodes included; measured on device
- * 2026-10-28, the overlay announced such a node ("0 m" + a street name, straight-ahead glyph) while the
- * real turn was 31 m ahead.
+ * Live guidance publishes the manoeuvre ahead — the first manoeuvre after the position, never a
+ * described route node — and its `nextNext` is the following manoeuvre within the close-manoeuvre
+ * window. The surface copies that record and derives neither row; the native builder owns both.
  */
 class ManoeuvreAnnouncementTest {
 
@@ -37,140 +37,65 @@ class ManoeuvreAnnouncementTest {
     }
 
     @Test
-    fun `a manoeuvre is announced as a copy of the published step`() {
+    fun `the announced manoeuvre is a copy of the published step`() {
         val published = step(RouteStep.Kind.TURN, 500.0, remaining = 120.0, turn = TurnType.LEFT)
 
-        val announced = guidanceStep(published, emptyList())
+        val announced = guidanceStep(published)
 
         assertNotSame("the announced record is a copy, never the engine's state", published, announced)
         // Everything a guidance surface reads survives the copy.
         assertEquals(RouteStep.Kind.TURN, announced.kind)
         assertEquals(TurnType.LEFT, announced.turn)
         assertEquals(120.0, announced.remainingDistance!!, 1e-6)
+        assertEquals(500.0, announced.distanceFromStart, 1e-6)
         // A surface that mutates the announced record cannot reach the engine's published state.
         announced.nextNext = step(RouteStep.Kind.TARGET, 900.0)
         assertNull(published.nextNext)
     }
 
     @Test
-    fun `a facts-only node announces the next manoeuvre, not itself`() {
-        val route = listOf(
-            step(RouteStep.Kind.TURN, 400.0, turn = TurnType.LEFT, name = "Start Street"),
-            step(RouteStep.Kind.INFORMATIVE, 500.0, name = "Hauptstraße"),
-            step(RouteStep.Kind.TURN, 531.0, turn = TurnType.SLIGHTLY_RIGHT, name = "Zielweg"),
-            step(RouteStep.Kind.TARGET, 900.0)
-        )
-        // The engine published the facts-only node; the vehicle sits at 500 - 0 m from it.
-        val published = step(RouteStep.Kind.INFORMATIVE, 500.0, remaining = 0.0, name = "Hauptstraße")
+    fun `the published step's own hint is announced unchanged`() {
+        // The shape live guidance publishes: the roundabout entry at 1000 m, the leave at 1035 m as
+        // the following manoeuvre, with the exit ordinal the route takes.
+        val published = step(
+            RouteStep.Kind.ROUNDABOUT_ENTER, 1000.0, remaining = 100.0, name = "Kreisverkehr"
+        ).apply {
+            nextNext = step(
+                RouteStep.Kind.ROUNDABOUT_LEAVE, 1035.0, name = "Bahnhofstraße", exit = 2
+            )
+        }
 
-        val announced = guidanceStep(published, route)
-
-        assertNotSame(published, announced)
-        assertEquals(RouteStep.Kind.TURN, announced.kind)
-        assertEquals(TurnType.SLIGHTLY_RIGHT, announced.turn)
-        assertEquals("Zielweg", announced.name.name)
-        // The distance is the manoeuvre's, measured from the vehicle's position (31 m ahead).
-        assertEquals(31.0, announced.remainingDistance!!, 1e-6)
-    }
-
-    @Test
-    fun `the distance shrinks with the vehicle's progress through the node`() {
-        val route = listOf(
-            step(RouteStep.Kind.INFORMATIVE, 500.0),
-            step(RouteStep.Kind.TURN, 600.0, turn = TurnType.RIGHT)
-        )
-
-        // The vehicle has driven 450 m of the 500 m to the published node, so the turn is 150 m ahead.
-        val published = step(RouteStep.Kind.INFORMATIVE, 500.0, remaining = 50.0)
-
-        assertEquals(150.0, guidanceStep(published, route).remainingDistance!!, 1e-6)
-    }
-
-    @Test
-    fun `the following manoeuvre within the window is the hint`() {
-        val route = listOf(
-            step(RouteStep.Kind.TURN, 500.0, turn = TurnType.LEFT, name = "Hauptstraße"),
-            step(RouteStep.Kind.TURN, 535.0, turn = TurnType.RIGHT, name = "Zielweg"),
-            step(RouteStep.Kind.TARGET, 900.0)
-        )
-        val published = step(RouteStep.Kind.INFORMATIVE, 500.0, remaining = 0.0)
-
-        val announced = guidanceStep(published, route)
-
-        assertEquals(RouteStep.Kind.TURN, announced.kind)
-        val hint = announced.nextNext
-        assertNotNull("the announced manoeuvre carries its following manoeuvre", hint)
-        assertEquals(RouteStep.Kind.TURN, hint!!.kind)
-        assertEquals(TurnType.RIGHT, hint.turn)
-        assertEquals("Zielweg", hint.name.name)
-        // The row's distance is the gap between the two manoeuvres, not a node's gap.
-        assertEquals(35.0, announced.nextNextGapMeters, 1e-6)
-    }
-
-    @Test
-    fun `a following manoeuvre beyond the window is not shown`() {
-        val route = listOf(
-            step(RouteStep.Kind.TURN, 500.0, turn = TurnType.LEFT),
-            step(RouteStep.Kind.TURN, 750.0, turn = TurnType.RIGHT)
-        )
-        val published = step(RouteStep.Kind.INFORMATIVE, 500.0, remaining = 0.0)
-
-        assertNull("a 250 m gap is not a hint", guidanceStep(published, route).nextNext)
-    }
-
-    @Test
-    fun `a facts-only node between the manoeuvres is not the hint`() {
-        // The engine's step list carries one step per described route node, so the entry after the
-        // announced manoeuvre is normally a name/way-type node (census: steps=501, rows=34).
-        val route = listOf(
-            step(RouteStep.Kind.TURN, 500.0, turn = TurnType.LEFT),
-            step(RouteStep.Kind.INFORMATIVE, 530.0, name = "Hauptstraße"),
-            step(RouteStep.Kind.TURN, 535.0, turn = TurnType.RIGHT, name = "Zielweg")
-        )
-        val published = step(RouteStep.Kind.INFORMATIVE, 500.0, remaining = 0.0)
-
-        val announced = guidanceStep(published, route)
-
-        val hint = announced.nextNext
-        assertNotNull("the following manoeuvre is the hint", hint)
-        assertEquals(RouteStep.Kind.TURN, hint!!.kind)
-        assertEquals("Zielweg", hint.name.name)
-        assertEquals(35.0, announced.nextNextGapMeters, 1e-6)
-    }
-
-    @Test
-    fun `the roundabout exit is the hint before the ring is entered`() {
-        // The reported defect: approaching a roundabout the row showed the entry and no exit, and the
-        // ordinal only appeared once the ring was entered.
-        val route = listOf(
-            step(RouteStep.Kind.ROUNDABOUT_ENTER, 1000.0, name = "Kreisverkehr"),
-            step(RouteStep.Kind.INFORMATIVE, 1010.0, name = "Ringstraße"),
-            step(RouteStep.Kind.ROUNDABOUT_LEAVE, 1035.0, name = "Bahnhofstraße", exit = 2),
-            step(RouteStep.Kind.INFORMATIVE, 1050.0)
-        )
-        val published = step(RouteStep.Kind.INFORMATIVE, 1000.0, remaining = 0.0)
-
-        val announced = guidanceStep(published, route)
+        val announced = guidanceStep(published)
 
         assertEquals(RouteStep.Kind.ROUNDABOUT_ENTER, announced.kind)
         val hint = announced.nextNext
-        assertNotNull("the exit is announced before the ring is entered", hint)
+        assertNotNull("the engine's hint reaches the surface", hint)
         assertEquals(RouteStep.Kind.ROUNDABOUT_LEAVE, hint!!.kind)
         assertEquals(2, hint.roundaboutLeave.exitCountTaken.toInt())
-        assertEquals(35.0, announced.nextNextGapMeters, 1e-6)
+        assertEquals("the row's distance is the gap between the manoeuvres", 35.0, announced.nextNextGapMeters, 1e-6)
     }
 
     @Test
-    fun `no manoeuvre ahead keeps the published fields and drops the node hint`() {
-        val route = listOf(step(RouteStep.Kind.INFORMATIVE, 500.0))
-        val published = step(RouteStep.Kind.INFORMATIVE, 500.0, remaining = 10.0)
-        // The engine's own record may carry the next described route node as its hint; the surface shows none.
-        published.nextNext = step(RouteStep.Kind.INFORMATIVE, 510.0, name = "Hauptstraße")
+    fun `a step without a following manoeuvre announces no hint`() {
+        val published = step(RouteStep.Kind.TURN, 500.0, remaining = 80.0, turn = TurnType.RIGHT)
 
-        val announced = guidanceStep(published, route)
+        assertNull(guidanceStep(published).nextNext)
+    }
 
-        assertNotSame("the announced record is a copy, never the engine's state", published, announced)
-        assertEquals(500.0, announced.distanceFromStart, 1e-6)
-        assertNull("a route node is never the hint", announced.nextNext)
+    @Test
+    fun `the car's unbounded next manoeuvre steps over described nodes`() {
+        // The host's next-step row is not bounded by the phone's 200 m window (spec:
+        // auto/navigation-view — Next-next turn shown when present), so it walks the list.
+        val route = listOf(
+            step(RouteStep.Kind.TURN, 500.0, turn = TurnType.LEFT),
+            step(RouteStep.Kind.INFORMATIVE, 530.0, name = "Hauptstraße"),
+            step(RouteStep.Kind.TURN, 750.0, turn = TurnType.RIGHT, name = "Zielweg")
+        )
+
+        val next = nextManoeuvreFrom(route, route[0])
+
+        assertNotNull(next)
+        assertEquals(RouteStep.Kind.TURN, next!!.kind)
+        assertEquals("Zielweg", next.name.name)
     }
 }

@@ -148,6 +148,19 @@
       "fingerprint": { "fields": ["job", "case"] }
     },
     {
+      "id": "broken-scan",
+      "cmd": "tools/sensors/conditions/broken-scan.sh",
+      "cron": "30 */2 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "input": "scan-result.json",
+      "fingerprint": { "fields": ["job", "step"] }
+    },
+    {
       "id": "pr-conflicts",
       "cmd": "tools/sensors/conditions/pr-conflicts.sh",
       "cron": "30 */4 * * *",

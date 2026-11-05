@@ -1,0 +1,5 @@
+# 2026-11-03T20:32:22Z
+# command: bash tools/check-rule-routes.sh   (this change's checker, in a detached worktree of origin/main 26a28cca)
+::error file=tools/doc-routes.json::the rule "a rejected trip update re-arms publishing" in DesignCrossVariant.md is reached by no glob — a rule no change is told to obey
+check-rule-routes: 0 glob(s) match no tracked path, 1 rule(s) are reached by no glob, 0 rule(s) state no name
+# exit=1

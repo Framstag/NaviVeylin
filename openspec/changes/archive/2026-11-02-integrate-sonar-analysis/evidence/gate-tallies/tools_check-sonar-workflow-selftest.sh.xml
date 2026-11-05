@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-sonar-workflow-selftest.sh" tests="8" failures="0" errors="0" time="0">
+  <system-out>ok: sonar-workflow#theGateIsNotWaitedFor ok: sonar-workflow#theScanStepIsNotContinueOnError check-sonar-workflow-selftest: all 8 cases passed (the repository's own scan files, no build, no network)</system-out>
+</testsuite>

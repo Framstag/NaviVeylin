@@ -1,0 +1,3 @@
+$ tools/check-doc-routes.sh --sizes | grep -E "DesignCrossVariant\.md .(8a|8b) "
+check-doc-routes: section-cost DesignCrossVariant.md §8a 10540 bytes 128 lines routed
+check-doc-routes: section-cost DesignCrossVariant.md §8b 3038 bytes 34 lines routed

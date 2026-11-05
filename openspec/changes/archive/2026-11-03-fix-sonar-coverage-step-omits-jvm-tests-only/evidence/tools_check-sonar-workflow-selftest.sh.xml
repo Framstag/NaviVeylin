@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-sonar-workflow-selftest.sh" tests="9" failures="0" errors="0" time="1">
+  <system-out>ok: sonar-workflow#theScanStepIsNotContinueOnError ok: sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag check-sonar-workflow-selftest: all 9 cases passed (the repository's own scan files, no build, no network)</system-out>
+</testsuite>

@@ -15,8 +15,9 @@
 # Usage: tools/loop/phase.sh <phase>
 #
 #   <phase>   one of `prescreen A B C D E F` — the set `tools/loop/state.sh step` records a step against. The phase's
-#             checklist is its own section of `tools/loop/prompts/worker.md`, printed as it stands (one home for it); a
-#             phase the prompt carries no section for says so instead of inventing one.
+#             checklist is its own section of the prompt of the child that performs it — `tools/loop/prompts/worker.md`
+#             for A–D, `worker-gate.md` for E, `worker-tail.md` for F — printed as it stands (one home for it); a phase
+#             no prompt carries a section for says so instead of inventing one.
 #
 #   Read live from the item's worktree: the branch, HEAD and the base the run recorded, the commits ahead of and
 #   behind that base, and the paths the tree has dirty. Read from the item's event stream: the last `LOOP-GATE:` line
@@ -83,6 +84,15 @@ trap 'rm -rf "$temp"' EXIT
 body="$temp/body"
 
 prompt="$here/prompts/worker.md"
+# Phase F's checklist is the tail child's own prompt, because that phase is a second child (issue #744): the run
+# starts it from the gate block, so the prompt that states it is the one the tail process is handed, and a phase
+# whose checklist lived in the child that has already ended would be a checklist nobody reads. Phase E is the gate
+# child's for the same reason (issue #758): the run defers the gate to that child, so the section that states it is
+# the one that child is started from.
+case "$phase" in
+  E) prompt="$here/prompts/worker-gate.md" ;;
+  F) prompt="$here/prompts/worker-tail.md" ;;
+esac
 # The phase's own section: its heading and everything under it, up to the prompt's next second-level heading, with the
 # blank lines its end carries trimmed — the checklist is read from the one file that states it, never copied here.
 section=""

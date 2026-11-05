@@ -73,7 +73,7 @@ what a row listing pull requests needs — a secret without it reports that row 
 identity that files an item is a **concrete allowlisted person**, because the gate's author condition is the
 only attributable one (§5, I2).
 
-The declared rows and what each measures — `broken-main`, `stale-citations`, `metadata-invariant`, `hotspot`,
+The declared rows and what each measures — `broken-main`, `broken-scan`, `stale-citations`, `metadata-invariant`, `hotspot`,
 `source-size`, `routed-section-size`, `entry-document-size` and `loop-spend` — are `guidelines/BacklogTooling.recipes.md` §9.
 
 ## 10. Portability
@@ -97,7 +97,9 @@ read-only constant for the authorisation label is asserted as the single excepti
 
 The rows' file inputs are the one thing a second project adapts beside its configuration: the *producer*
 (`tools/build-inputs.sh`) knows which paths this project's rows declare and how to derive them from its
-own build outputs, and the *fetcher* (`tools/fetch-build-inputs.sh`) knows the name of its build workflow.
+own build outputs, and the *fetcher* (`tools/fetch-build-inputs.sh`) knows the name of its build workflow —
+and, since the scan is a pipeline of its own, the name of that workflow and of the artifact it publishes too
+(issue #751).
 The checks' runner, the guards and the registry's `input` fields are unchanged — a row declares the path,
 the producer's manifest is what proves that path exists, and the artifact carries the declared tree as it is
 declared.

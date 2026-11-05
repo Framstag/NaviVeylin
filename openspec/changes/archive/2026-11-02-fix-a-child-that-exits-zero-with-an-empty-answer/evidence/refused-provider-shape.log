@@ -1,0 +1,21 @@
+# the shape of 2026-11-01T23:30:01Z, read from the records the run left (issue #742)
+# taken 2026-11-02T19:04:37Z in /home/tim/projects/NaviVeylin
+
+$ jq -r 'select(.type=="turn_end") | .message.stopReason' .pi/issue-loop/items/739/events.jsonl | sort | uniq -c
+      4 error
+
+$ wc -c .pi/issue-loop/items/739/worker-report.md .pi/issue-loop/items/740/worker-report.md
+0 .pi/issue-loop/items/739/worker-report.md
+0 .pi/issue-loop/items/740/worker-report.md
+0 insgesamt
+
+$ jq -r '.items[] | "\(.issue) piExit=\(.metrics.piExit) result=\(.result) escalated=\(.escalatedLabel) note=\(.note)"' .pi/issue-loop/runs/2026-11-01T23:30:01Z.json
+740 piExit=0 result=blocked escalated=agent/needs-decision note=reported success but the tree is still at the base commit — nothing was committed
+739 piExit=0 result=blocked escalated=agent/needs-decision note=reported success but the tree is still at the base commit — nothing was committed
+
+$ jq -r '.run | {minutes, stop: .stop.reason, startedAt, deadlineAt} | tostring' .pi/issue-loop/runs/2026-11-01T23:30:01Z.json
+{"minutes":360,"stop":"two consecutive items ended blocked","startedAt":"2026-11-01T23:30:01Z","deadlineAt":"2026-11-02T05:30:01Z"}
+
+$ jq -r '[.items[].at] | (.[0]), (.[-1])' .pi/issue-loop/runs/2026-11-01T23:30:01Z.json
+2026-11-01T23:31:30Z
+2026-11-01T23:32:02Z

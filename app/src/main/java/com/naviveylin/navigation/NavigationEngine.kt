@@ -1044,7 +1044,7 @@ class NavigationEngine @Inject constructor(
 
             override fun onNextRouteStep(step: RouteStep) {
                 scope.launch(Dispatchers.Main) {
-                    val announced = guidanceStep(step, _state.value.steps)
+                    val announced = guidanceStep(step)
                     val idx = nextStepIndex(
                         _state.value.steps,
                         _state.value.currentStepIndex,
@@ -1068,7 +1068,7 @@ class NavigationEngine @Inject constructor(
                     ) }
                     if (steps.isNotEmpty()) {
                         val list = steps.toList()
-                        _state.update { it.copy(nextStep = guidanceStep(list[0], list)) }
+                        _state.update { it.copy(nextStep = guidanceStep(list[0])) }
                     }
                 }
             }

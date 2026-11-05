@@ -142,7 +142,9 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   arrive with 0 eligible items.
 
 Five rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
-that query (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
+the *candidates* in it — the items that carry both the decision label and the loop's opt-in, so a decision parked
+by removing `agent/eligible` (the owner's "not yet") never spends a slot that stops work on the ones they can
+answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
 
 - **Rule: an answer reaches the next worker's package.** The answer is a comment, and the item's body still states
   the question it settled — so nothing but the package can carry it: the run asks the tracker for the item's

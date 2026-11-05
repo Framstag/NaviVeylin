@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-sonar-workflow.sh" tests="0" failures="0" errors="0" time="1">
+  <system-out>sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.</system-out>
+</testsuite>

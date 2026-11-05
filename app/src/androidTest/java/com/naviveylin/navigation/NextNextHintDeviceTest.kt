@@ -12,7 +12,6 @@ import com.framstag.libosmscout.client.RouteCallback
 import com.framstag.libosmscout.client.RouteEntry
 import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.RoutingProfile
-import com.naviveylin.core.HINT_WINDOW_METERS
 import com.naviveylin.core.guidanceStep
 import com.naviveylin.core.nextNextGapMeters
 import java.io.File
@@ -21,7 +20,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -39,12 +37,11 @@ import org.junit.runner.RunWith
  * route's own vertices, and feeds each published (step list, step ahead) pair through the app's own
  * `core/guidanceStep`.
  *
- * Both lines are logged per observation, which is also the evidence the tracker finding about the native
- * record rests on:
+ * Both lines are logged per observation, which is also the evidence the native record rests on:
  *
- * - `rbt:` of the **published** step — the native record's own hint, expected to be a plain node
- *   (`hintExit=0`),
- * - `rbt:` of the **announced** step — the app-derived hint, which must name the exit (`hintExit=N`).
+ * - `rbt:` of the **published** step — the native record's own manoeuvre ahead, which must be the
+ *   roundabout entry, never a described route node,
+ * - `rbt:` of its nested hint — the following manoeuvre, which must name the exit (`hintExit=N`).
  */
 @RunWith(AndroidJUnit4::class)
 class NextNextHintDeviceTest {
@@ -183,8 +180,7 @@ class NextNextHintDeviceTest {
                             continue
                         }
                         val native = published.next.get() ?: continue
-                        val steps = published.list.get()
-                        val announced = guidanceStep(native, steps)
+                        val announced = guidanceStep(native)
                         if (announced.kind != RouteStep.Kind.ROUNDABOUT_ENTER) continue
 
                         val hint = announced.nextNext
@@ -217,7 +213,7 @@ class NextNextHintDeviceTest {
             )
 
             // Every approach the drive produced must announce the exit, inside the window, with its
-            // ordinal — and the native record's own hint must be the plain node this change bypasses.
+            // ordinal — published by the native step builder itself.
             for (observation in observations) {
                 assertEquals(
                     "the hint of the approach to ${observation.candidate} is the roundabout leave",
@@ -231,15 +227,19 @@ class NextNextHintDeviceTest {
                     "the gap is inside the hint window (${observation.gapMeters} m of $HINT_WINDOW_METERS)",
                     observation.gapMeters > 0.0 && observation.gapMeters <= HINT_WINDOW_METERS
                 )
-                assertNotNull(
-                    "the announced approach is the roundabout entry",
-                    observation.announced.kind
+                assertEquals(
+                    "the announced approach is the roundabout entry the engine published",
+                    RouteStep.Kind.ROUNDABOUT_ENTER, observation.announced.kind
+                )
+                assertEquals(
+                    "the announced record's hint is the engine's own hint",
+                    observation.nativeHintKind, observation.hintKind
+                )
+                assertEquals(
+                    "the engine's hint carries the exit ordinal",
+                    observation.nativeHintExit, observation.hintExit
                 )
             }
-            assertEquals(
-                "the native record's own hint is a plain route node, not the manoeuvre",
-                0, observations.count { it.nativeHintKind == RouteStep.Kind.ROUNDABOUT_LEAVE }
-            )
             Log.i(TAG, "approach count=${observations.size} all=${observations.map { it.hintExit }}")
         } finally {
             client.close()
@@ -248,5 +248,8 @@ class NextNextHintDeviceTest {
 
     private companion object {
         const val TAG = "NextNextHintDevice"
+
+        /** `osmscout::client::RouteStepBuilder::NextNextWindowMeters`, the one owner of the window. */
+        const val HINT_WINDOW_METERS = 200.0
     }
 }

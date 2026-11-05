@@ -1,0 +1,6 @@
+# base: the parent commit 5e2de33e (a detached worktree of it, this case copied in); run: 2026-11-03T21:52:05Z, before the fix
+report#anItemBelowTheCallsPerTurnFloorIsNamed|   the item's tool calls are counted from its event stream: expected '6', got 'null'
+--- report#anItemBelowTheCallsPerTurnFloorIsNamed[0] (exit 1)
+  the item's tool calls are counted from its event stream: expected '6', got 'null'
+FAIL report#anItemBelowTheCallsPerTurnFloorIsNamed
+loop-selftest: 1 of 1 cases failed

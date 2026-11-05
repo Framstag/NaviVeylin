@@ -70,18 +70,36 @@ gate had been written for want of that number (issue #663).
 
 #### Scenario: A child that never started is the run's fault, not the item's
 
-A non-zero status alone cannot tell a child whose argv the environment refused from a child that worked the
+A status alone cannot tell a child whose argv the environment refused from a child that worked the
 item and failed: on 2026-10-20 both children of that run died in under 4 s with the same 35-byte complaint,
 and the run recorded two items `blocked`, escalated both with `agent/needs-decision` and `status/on-hold`, and
 stopped on "two consecutive items ended blocked" 3 minutes into an 8 h budget — two questions nobody had asked, and two
-of the run's three decision slots (issue #212).
+of the run's three decision slots (issue #212). The status is not the test, because a provider refuses a call
+without touching the child's argv: that shape ends with a zero status and an answer of nothing (issue #742).
 
 - **WHEN** an agent process ends with a non-zero status, wrote no verdict line, was not ended by the run's own
   wall-clock, and left the item's tree at the run's base commit
-- **THEN** the run records that once as its own stop reason, naming the child's own last line, and stops
-  without escalating an item: no item record is written for it, no decision label and no hold reach it, and it
-  is left as its owner set it — `status/open` and no `agent/needs-decision` — because no part of it was read
+- **THEN** the run records that once as its own stop reason, naming the child's own last line and the size of the
+  answer it left, and stops without escalating an item: no item record is written for it, no decision label and
+  no hold reach it, and it is left as its owner set it — `status/open` and no `agent/needs-decision` — because no
+  part of it was read
 - **Case**: `run#childThatNeverStartedIsTheRunsFault`
+
+#### Scenario: A child whose answer arrived empty is the run's fault too
+
+A provider that refuses every request leaves a child that exits 0 with nothing to say, and the run read that as
+success: measured 2026-11-01T23:30:01Z (issue #742), two items of one run each left a 0-byte report and had every
+`turn_end` event on `stopReason: error`, and each was recorded `blocked` on "reported success but the tree is
+still at the base commit" and escalated — two decision slots no reviewer and no worker asked for, and the run
+stopped on two consecutive blocked items 121 s into a 360-minute budget.
+
+- **WHEN** an agent process ends with a zero status, wrote no verdict line, was not ended by the run's own
+  wall-clock or its turn bound, and left the item's tree at the run's base commit
+- **THEN** the run records that once as its own stop reason, naming the status, the size of the answer it left and
+  the child's own last line, and stops without escalating an item: no item record is written for it, no decision
+  label and no hold reach it, and it is left as its owner set it — `status/open` and no `agent/needs-decision` —
+  because no part of it was read
+- **Case**: `run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault`
 
 #### Scenario: A run is recorded
 
@@ -638,15 +656,17 @@ sufficient to continue after an interrupt without repeating work already done.
 
 ### Requirement: A pile of open decisions stops the run
 
-The run SHALL refuse to start when more items awaiting a person's decision are open than the configured
-cap allows, and SHALL report them instead of producing more work.
+The run SHALL refuse to start when more candidate items awaiting a person's decision are open than the configured
+cap allows, and SHALL report them instead of producing more work. An item is a candidate only when it carries
+both the decision label and the loop's opt-in, so a decision parked by removing `agent/eligible` SHALL NOT count
+(#745).
 
 #### Scenario: The cap is reached
 
-- **WHEN** the number of open items awaiting a decision reaches the cap
-- **THEN** the run refuses to start and prints those items, so nothing new is produced while decisions
-  accumulate
-- **Case**: `run#decisionCapRefusesToStart`
+- **WHEN** the number of candidate items awaiting a decision reaches the cap
+- **THEN** the run refuses to start, prints those items and states the count it compared, so nothing new is
+  produced while decisions accumulate
+- **Case**: `run#decisionCapRefusesToStart`, `run#decisionCapCountsOnlyCandidates`
 
 #### Scenario: An item needing a decision is escalated, not abandoned
 
@@ -705,9 +725,11 @@ writes the decision label beside the hold, as the requirement "A stale skip asks
 #### Scenario: The cap counts the questions a person can answer
 
 - **WHEN** the run counts the open decisions before it starts
-- **THEN** only items carrying the decision label are counted, so an item nobody asked a question about cannot
-  stop a run
-- **Case**: `run#decisionCapRefusesToStart`, `prescreen#aHoldWithNoDecisionIsNotADecision`
+- **THEN** only items that carry the decision label **and** the loop's opt-in are counted, so an item nobody
+  asked a question about — and an item a person parked by removing `agent/eligible` — cannot stop a run, while
+  the refusal still states how many items carry the label beside the count it compared
+- **Case**: `run#decisionCapCountsOnlyCandidates`, `run#decisionCapRefusesToStart`,
+  `prescreen#aHoldWithNoDecisionIsNotADecision`
 
 ### Requirement: The run's mechanics are the project's configuration, not its code
 
@@ -2928,3 +2950,118 @@ be what prevents a second consume.
 - **WHEN** a change's source directory is still present and the item that consumed it carries the settled state
 - **THEN** the run does not select that item again, and the leftover is only disk hygiene
 - **Case**: `prescreen#aClosedItemIsNotSelected`
+
+### Requirement: The gate ends the child that ran it, and a fresh child writes the archive
+
+The worker phase of a gated item SHALL be two fresh children. The first SHALL end when it reports its gate line, and
+a second SHALL carry the gate's result, the change's `tasks.md` and the gate's own output into the evidence and
+archive phases, so the tail is charged the project's baseline once instead of the first child's context per turn. An
+item's recorded spend SHALL be the sum of its children's streams.
+
+#### Scenario: The gate line ends the child that ran the gate
+
+- **WHEN** an item's first child reports a `LOOP-GATE` line and was not ended by the run's own clocks
+- **THEN** that child's session ends there, a second fresh child is started for the evidence and archive phases, and
+  the run reads the item's verdict, change, gate line and decision from the second child's report — while a first
+  child that reports `skipped`, `blocked`, `falsified` or no line at all starts no second child, because there is no
+  archive to write
+- **Case**: `run#childUsageIsRecordedPerItem`, `run#falsifiedSkipClosesWithItsMeasurement`
+
+#### Scenario: The tail starts at the baseline, and the item pays for both children
+
+- **WHEN** an item's two children each wrote an event stream
+- **THEN** the item's recorded tokens, tools and cost are the sum of the two streams, and the largest context it
+  records is the largest single session's — the second child's first turn is charged the project's baseline, not the
+  context the first child had reached
+- **Case**: `run#childUsageIsRecordedPerItem`
+
+#### Scenario: The tail is handed the gate, the tasks and the gate's own output
+
+- **WHEN** the second child is started
+- **THEN** its prompt names the gate line the first child reported, the change and the `tasks.md` it planned, the root
+  cause and red test the first child established, and a bounded extract of the gate it ran — the first child's own
+  tool output, where the gate printed, and its closing answer after it — so it re-derives none of them and reads no
+  path twice
+- **Case**: `run#childUsageIsRecordedPerItem`
+
+#### Scenario: A gate that did not pass is the tail's verdict, and the item is blocked with it
+
+- **WHEN** the tail child finds that the gate did not pass on the change's own paths
+- **THEN** it archives nothing and reports `blocked` with the gate line and the failing output it was handed, and the
+  run records the item `blocked` with that verdict and the gate's own numbers in its reason — never as "no archived
+  change appears in the run's diff", which is the opposite of what the tail reported and drops what the next attempt
+  needs
+- **Case**: `run#aRedGateIsBlockedByTheTail`
+
+#### Scenario: The rework of a refusing round is split the same way
+
+- **WHEN** a review round refuses a change and the repair worker the round buys reports its gate line
+- **THEN** that worker ends there too and a fresh child carries its archive, because a repair round that paid the tail
+  in-session would cost what the item did
+- **Case**: `run#aBlockingRefusalStillTakesTheRoundTwoPath`
+
+#### Scenario: A phase's checklist is the prompt of the child that is handed the phase
+
+- **WHEN** the phase state is printed for a phase a second process performs
+- **THEN** the checklist it prints is that process's own prompt section, and the call names the file it read it
+  from, rather than a section of a prompt whose child has already ended
+- **Case**: `phase#oneCallPrintsThePhaseState`
+
+### Requirement: A report reports the shape a run spent its budget in
+
+The report printed what an item cost and nothing about the shape it spent it in, so a session that made one tool call per turn read exactly like one that batched its independent reads (issue #757). It SHALL derive each item's calls per turn from the counts its event stream records, print the run's rate, and name the items below a recorded floor — a floor that SHALL only ever warn.
+
+#### Scenario: An item below the recorded floor is named, and one above it is not
+
+- **WHEN** an item's event stream records 6 calls in 2 turns and another's records 2 calls in 4 turns, and `LOOP_ITEM_CALLS_PER_TURN_MIN` records a floor between them
+- **THEN** the trend prints the run's own rate with the two counts it came from (`1.33 calls per turn (8 calls / 6 turns)`) and names the item below the floor with its own ratio (`#22 0.5`) while the item above it is not named, the table's last column reads `3` and `0.5`, a floor of `0` prints as off and names no item, an item that recorded no turn prints `-` with its reason, a state written before the two counts existed says so rather than naming a run of items that answered without a tool, and both items keep the outcome their work earned
+- **Case**: `report#anItemBelowTheCallsPerTurnFloorIsNamed`
+
+### Requirement: The diff is read before the gate, and a fresh child runs the one gate
+
+An item's gate SHALL be run by a child of its own, after the diff has been read by a reviewer that is not the child
+that wrote it, so a finding a reader can make from the diff is not paid for by a gate and a second full pass.
+
+#### Scenario: The round is read before the gate child is started
+
+- **WHEN** a run with the pre-gate review on reads a change child that ended at the diff (`LOOP-DIFF-READY`) and left
+  no gate line
+- **THEN** the run commits that diff, starts a reviewer on it, and starts the gate child only after that round
+  answered — the reviewer's round is observable before the gate is reached, and the item still spends one gate child
+- **Case**: `run#thePreGateReviewRunsBeforeTheGate`
+
+#### Scenario: The findings reach the child that runs the gate
+
+- **WHEN** the round before the gate refuses the diff with a blocking finding
+- **THEN** the findings are appended to the gate child's prompt, which applies them in one pass before running the
+  gate, and no rework worker is started for them because the item was not refused
+- **Case**: `run#thePreGateReviewRunsBeforeTheGate`
+
+#### Scenario: The round before the gate costs no round of the budget
+
+- **WHEN** the round before the gate refuses the diff and the item's change then passes the round after the gate
+- **THEN** the item records one review round, because `--max-review-rounds` bounds the rounds after the gate and the
+  round before it refuses nothing
+- **Case**: `run#thePreGateReviewRunsBeforeTheGate`
+
+#### Scenario: A round the run cut before the gate is left for the next run
+
+- **WHEN** the round before the gate never answers — cut by the deadline, ended at the item's turn bound, or cut
+  twice on its way to the file
+- **THEN** the item is recorded `blocked` with that round named as the one before the gate, no gate child is started
+  on a diff nobody read, and the round after the gate is not asked either
+- **Case**: `run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun`
+
+#### Scenario: A change child that ran the gate itself is read as it always was
+
+- **WHEN** the change child's report carries a gate line and no `LOOP-DIFF-READY`
+- **THEN** the run starts no round before the gate and no gate child, because a gate the run did not run is not
+  re-run and a round before a gate that has already run has nothing to read
+- **Case**: `run#childUsageIsRecordedPerItem`, `run#announcesAndRecordsTheReviewRound`
+
+#### Scenario: A phase's checklist is the prompt of the child that performs it
+
+- **WHEN** the phase state is printed for phase E
+- **THEN** the checklist it prints is the gate child's own prompt and the call names that file, because the run
+  defers the gate to that child
+- **Case**: `phase#oneCallPrintsThePhaseState`

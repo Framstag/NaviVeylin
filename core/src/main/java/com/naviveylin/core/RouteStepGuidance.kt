@@ -4,9 +4,10 @@ import com.framstag.libosmscout.client.RouteStep
 
 /**
  * Whether a step describes **facts only** — a max speed, lanes, a way type, a POI, a via section — rather
- * than a driving decision. The engine's walk publishes one step per described route node, so such a node
- * reaches the live path too; a guidance surface must not announce it (spec: `osmscout-jni` — Live guidance
- * publishes route steps; the same rule the route list applies).
+ * than a driving decision. The route's step list publishes one step per described route node, so such a
+ * node reaches a list consumer; a guidance surface must not announce it (spec: `osmscout-jni` — Live
+ * guidance publishes route steps; the same rule the route list applies). Live guidance itself publishes
+ * the next manoeuvre, never a facts-only node.
  */
 fun isDataOnly(step: RouteStep): Boolean = when (step.kind) {
     RouteStep.Kind.INFORMATIVE, RouteStep.Kind.UNKNOWN -> true
@@ -22,17 +23,6 @@ fun isDataOnly(manoeuvre: Manoeuvre): Boolean = when (manoeuvre.kind) {
     RouteStep.Kind.INFORMATIVE, RouteStep.Kind.UNKNOWN -> true
     else -> false
 }
-
-/**
- * Distance between two manoeuvres up to which the following one is announced as the "next next" hint
- * (spec: `next-turn-overlay` — "Next next" hint).
- *
- * The bound is the one live guidance was built with: the pre-step-model instruction builder carried the
- * same 200 m as `CloseHintDistance`, and `osmscout::client::RouteStepBuilder::NextNextWindowMeters` still
- * names it. This constant is the *announcement's* bound, read by the surface that shows the row; the
- * native record's own `nextNext` is not read by a guidance surface (see [guidanceStep]).
- */
-const val HINT_WINDOW_METERS = 200.0
 
 /**
  * The first manoeuvre of [route] that lies strictly after [step], or `null` when none does
@@ -53,56 +43,18 @@ fun nextManoeuvreFrom(route: List<RouteStep>, step: RouteStep): RouteStep? =
     }
 
 /**
- * [nextManoeuvreFrom], bounded by [HINT_WINDOW_METERS]: the manoeuvre the overlay announces as its second
- * row, or `null` when the following one is further away than the window
- * (spec: `next-turn-overlay` — "Next next" hint).
+ * The step a guidance surface announces: a copy of the step live guidance published
+ * (spec: `next-turn-overlay` — Turn type icon, "Next next" hint).
+ *
+ * The engine publishes the manoeuvre ahead itself (spec: `osmscout-jni` — Live guidance publishes route
+ * steps): the step is the first manoeuvre after the position, never a described route node, and its
+ * `nextNext` is the following manoeuvre when that lies within the close-manoeuvre window. Both rows a
+ * surface shows therefore come from the record, and no Kotlin code re-derives either — the window has
+ * one owner, `osmscout::client::RouteStepBuilder::NextNextWindowMeters`.
+ *
+ * The returned record is always a copy, so a surface can never mutate the engine's published state.
  */
-fun nextManoeuvreAfter(route: List<RouteStep>, step: RouteStep): RouteStep? =
-    nextManoeuvreFrom(route, step)
-        ?.takeIf { it.distanceFromStart - step.distanceFromStart <= HINT_WINDOW_METERS }
-
-/**
- * The step a guidance surface should announce, resolved from the step the engine published
- * (spec: `next-turn-overlay` — Turn type icon, "Next next" hint; change `route-steps-live-guidance`).
- *
- * The engine publishes the next *described route node*, which is often a facts-only node: measured on
- * device 2026-10-28, the overlay then read "0 m" plus a street name with a straight-ahead arrow while the
- * real turn was 31 m away and demoted to the hint row. When [published] is such a node, this returns the
- * route's next manoeuvre **with the distance recomputed from the vehicle's progress**, so the wording, the
- * glyph and the number all describe the manoeuvre ahead.
- *
- * The announced record's second row is the **following manoeuvre of [route]**, bounded by
- * [HINT_WINDOW_METERS] — never `published.nextNext`, which live guidance fills with the next collected
- * route node (a plain node a few metres ahead, carrying no roundabout exit). Without this, a roundabout's
- * exit ordinal reached the display only after the ring had been entered (change
- * `fix-following-manoeuvre-hint`).
- *
- * The returned record is always a copy, so a surface can never mutate the engine's published state, and its
- * `nextNext` is always this function's result (or `null`, when no manoeuvre follows within the window) — a
- * node hint cannot reach a display, not even on the fallback path where no manoeuvre of the list is known.
- */
-fun guidanceStep(published: RouteStep, route: List<RouteStep>): RouteStep {
-    val manoeuvre = if (!isDataOnly(published)) published else route.firstOrNull {
-        !isDataOnly(it) && it.distanceFromStart >= published.distanceFromStart
-    } ?: return copyForGuidance(published).also { it.nextNext = null }
-
-    val announced = copyForGuidance(manoeuvre)
-
-    if (manoeuvre === published) {
-        // A live manoeuvre keeps the progress it arrived with; only the hint is re-derived.
-        announced.nextNext = nextManoeuvreAfter(route, announced)
-        return announced
-    }
-
-    // The progress the published step reports, or the route start when it carries none (a route list
-    // entry has no progress: its remaining distance is the whole way from the start).
-    val positionMeters =
-        published.distanceFromStart - (published.remainingMeters ?: published.distanceFromStart)
-    announced.remainingDistance = (manoeuvre.distanceFromStart - positionMeters).coerceAtLeast(0.0)
-    announced.remainingTime = null
-    announced.nextNext = nextManoeuvreAfter(route, announced)
-    return announced
-}
+fun guidanceStep(published: RouteStep): RouteStep = copyForGuidance(published)
 
 /**
  * A fresh record with every field of [step], because the copy replaces the published record on the live

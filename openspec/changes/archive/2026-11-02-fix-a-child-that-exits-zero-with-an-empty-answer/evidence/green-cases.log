@@ -1,0 +1,3 @@
+PASS run#childThatNeverStartedIsTheRunsFault
+PASS run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case *hildThat*

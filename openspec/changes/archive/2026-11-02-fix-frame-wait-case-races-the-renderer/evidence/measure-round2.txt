@@ -1,0 +1,40 @@
+# Round 2 (issue #743 corrections-only pass): the pathspec moved — the change is archived, the case's
+# assertion is strict, and evidence/repeat-runs.txt is new — so the block was taken again, once.
+# Command: ./tools/loop/measure.sh --change 2026-11-02-fix-frame-wait-case-races-the-renderer
+# Taken: 2026-11-02, after the correction runs in evidence/repeat-runs.txt.
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=741603aaab8efc1382ea5859cfec38a548459272 paths=17 insertions=490 deletions=18
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/AutoMapRendererFrameWaitTest.kt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/case-repeat.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/class.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/clock-race-diagnostic.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/gate.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/measure-round2.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/mutation.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/red-case.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/repeat-runs.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/second-watchdog-diagnostic.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/specs/auto-map-renderer/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/tasks.md
+LOOP-MEASURE-PATH openspec/specs/auto-map-renderer/spec.md
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-SUITE cases=305 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE 2026-11-02-fix-frame-wait-case-races-the-renderer scenarios=5 cases=5 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/case-repeat.xml tests=1 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/class.xml tests=7 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/mutation.xml tests=1 failures=1
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-02-fix-frame-wait-case-races-the-renderer/evidence/red-case.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 1 case rewritten, 0 cases added, 2 production read sites unchanged, 0 fixtures realigned — `grep -rn "frameWaitClock" --include=*.kt auto/src` and `grep -rn "frameWaitJob" --include=*.kt auto/src/test`
+LOOP-MEASURE-END

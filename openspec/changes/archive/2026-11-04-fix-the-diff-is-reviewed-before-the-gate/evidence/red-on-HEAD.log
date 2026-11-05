@@ -1,0 +1,14 @@
+# The red case on the base, before the fix
+
+base: 944f1803 (main, the merge this change is written against)
+engine: the base's own tools/loop/, prompts and loop.conf; only tools/loop-cases.sh taken from the change
+command: bash tools/loop-selftest.sh --case 'run#thePreGateReviewRunsBeforeTheGate'
+date: 2026-11-04T05:56:05Z
+
+```
+run#thePreGateReviewRunsBeforeTheGate|   the round is read before the gate child is started: expected 'review gate', got ''
+--- run#thePreGateReviewRunsBeforeTheGate[0] (exit 1)
+  the round is read before the gate child is started: expected 'review gate', got ''
+FAIL run#thePreGateReviewRunsBeforeTheGate
+loop-selftest: 1 of 1 cases failed
+```

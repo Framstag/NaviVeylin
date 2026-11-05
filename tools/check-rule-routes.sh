@@ -8,22 +8,33 @@
 # rather than against the sections the change's own artifacts choose, and a change may *add* a section to its
 # set by naming it.
 #
-# Two invariants make the map hard to rot, and both are refusals here rather than a reviewer's note:
+# Four invariants make the map hard to rot, and all four are refusals here rather than a reviewer's note:
 #
 #   * a glob that matches no tracked path — a package or module rename orphans the rules a reader is told to
 #     read, and nothing else would say so;
 #   * a named rule under `guidelines/` that no glob reaches — every rule has a reader before it has a
-#     violation.
+#     violation;
+#   * a normative document under `guidelines/` that no glob matches — a document no glob names derives
+#     nothing for its own edits, which is how six documents were silently orphaned when a route split renamed
+#     their coverage away (#733);
+#   * a route whose glob sits under `guidelines/` and carries a document its glob does not match — a
+#     document's route names that document, so an entry about a document the glob never reaches is the same
+#     orphan one level down.
+#
+# The last two read one fact from either end — a document is reached, and the route that claims it matches it —
+# because a named rule being reached says nothing about *which* path derives it: `guidelines/MapCar.md`'s rules
+# were all reached, under `app/src/main/java/**`, while no glob matched a `MapCar.md` edit at all.
 #
 # Modes:
-#   (default)            check both invariants over the tree; exit 1 on either
+#   (default)            check all four invariants over the tree; exit 1 on any
 #   --list               print the map: one line per section and per rule, with the glob that derives it
 #   --diff <range>       print the reading set for the paths a git range touched; with `--change <dir>` also
 #                        report the derived sections the change's artifacts do not name (the set may only
 #                        grow, never shrink)
 #
 # Reads text files only: no build, no device, no token, no network. Exit 0 when every glob matches a tracked
-# path and every named rule is reached, 1 when one is not, 2 on a usage or layout error.
+# path, every named rule is reached, every normative document is named by a glob and every `guidelines/` route
+# carries only the documents its glob matches; 1 when one of the four is not; 2 on a usage or layout error.
 #
 # Usage: check-rule-routes.sh [--root <dir>] [--list] [--diff <range> [--change <dir>]]
 set -uo pipefail
@@ -38,7 +49,7 @@ while [ $# -gt 0 ]; do
     --list) mode="list"; shift ;;
     --diff) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; mode="diff"; range="${2:-}"; shift 2 ;;
     --change) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; change_dir="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,32p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,36p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) printf 'check-rule-routes: unknown argument %s\n' "$1" >&2; exit 2 ;;
   esac
 done
@@ -171,7 +182,7 @@ if [ "$mode" = "diff" ]; then
   exit 0
 fi
 
-# --------------------------------------------------------------------------------- the two invariants
+# --------------------------------------------------------------------------------- the four invariants
 
 tracked_paths > "$tmp/tracked"
 [ -s "$tmp/tracked" ] || { printf 'check-rule-routes: the tree holds no path — nothing to match a glob against\n' >&2; exit 2; }
@@ -216,8 +227,49 @@ while IFS=$'\t' read -r doc name; do
   rule_fail=$((rule_fail + 1))
 done < "$tmp/allrules"
 
-if [ "$glob_fail" -gt 0 ] || [ "$rule_fail" -gt 0 ] || [ "$unnamed_rules" -gt 0 ]; then
+# The documents a route's own entries name: the `<Doc>.md` prefix of every section and rule it carries.
+route_documents() { # $1 = one route object → one document name per line
+  jq -r '[.sections[]?, .rules[]?] | .[]?' <<< "$1" | sed -nE 's/^([A-Za-z0-9_-]+)\.md .*/\1/p' | sort -u
+}
+
+# The map's globs, one per line.
+route_globs() { jq -r '.routes[].glob' "$map_path"; }
+
+# (3) every normative document is matched by at least one glob. A document no glob names is read by no
+# change of its own — its rules are reached only through some other path's route, so the check above stays
+# green while the document itself derives nothing.
+doc_fail=0
+while IFS= read -r doc; do
+  [ -n "$doc" ] || continue
+  named_glob=0
+  while IFS= read -r glob; do
+    [ -n "$glob" ] || continue
+    glob_match "guidelines/$doc.md" "$glob" && { named_glob=1; break; }
+  done < <(route_globs)
+  if [ "$named_glob" -eq 0 ]; then
+    printf '::error file=%s::no glob matches guidelines/%s.md — a normative document no glob names derives nothing for its own edits, so its rules are read only by whatever other path happens to route them\n' "$map_rel" "$doc"
+    doc_fail=$((doc_fail + 1))
+  fi
+done < <(base_documents)
+
+# (4) a route whose glob sits under `guidelines/` carries only documents its glob matches.
+route_fail=0
+while IFS= read -r route; do
+  [ -n "$route" ] || continue
+  glob=$(jq -r '.glob' <<< "$route")
+  case "$glob" in guidelines/*) ;; *) continue ;; esac
+  while IFS= read -r doc; do
+    [ -n "$doc" ] || continue
+    glob_match "guidelines/$doc.md" "$glob" && continue
+    printf '::error file=%s::the glob %s carries a %s.md entry it does not match — a guideline route names the document whose sections and rules it carries\n' "$map_rel" "$glob" "$doc"
+    route_fail=$((route_fail + 1))
+  done < <(route_documents "$route")
+done < <(jq -c '.routes[]' "$map_path")
+
+if [ "$glob_fail" -gt 0 ] || [ "$rule_fail" -gt 0 ] || [ "$unnamed_rules" -gt 0 ] ||
+   [ "$doc_fail" -gt 0 ] || [ "$route_fail" -gt 0 ]; then
   printf 'check-rule-routes: %d glob(s) match no tracked path, %d rule(s) are reached by no glob, %d rule(s) state no name\n' "$glob_fail" "$rule_fail" "$unnamed_rules"
+  printf 'check-rule-routes: %d document(s) are matched by no glob, %d guideline route(s) carry a document their glob does not match\n' "$doc_fail" "$route_fail"
   exit 1
 fi
 printf 'check-rule-routes: every glob matches the tree and all %s named rule(s) are reached\n' \

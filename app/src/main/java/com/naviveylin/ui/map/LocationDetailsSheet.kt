@@ -311,8 +311,16 @@ fun LocationDetailsDialog(
                                 ) {
                                     currentSubsection = descEntry.subsectionKey
                                     subsectionIndex = if (descEntry.hasIndex) descEntry.index else -1
+                                    // The word and its ordinal index are one translatable string, read
+                                    // through positional arguments so a translator can reorder them
+                                    // (`UI.md` §10, "positional format args are used so translators can
+                                    // reorder"); the ordinal itself stays data, taken from the entry.
                                     val subsectionLabel = if (subsectionIndex >= 0) {
-                                        "${descriptionLabel(descEntry.subsectionKey)} $subsectionIndex"
+                                        stringResource(
+                                            R.string.description_subsection_index,
+                                            descriptionLabel(descEntry.subsectionKey),
+                                            subsectionIndex
+                                        )
                                     } else {
                                         descriptionLabel(descEntry.subsectionKey)
                                     }

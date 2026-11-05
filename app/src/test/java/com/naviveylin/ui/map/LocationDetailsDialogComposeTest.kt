@@ -448,6 +448,31 @@ class LocationDetailsDialogComposeTest {
     }
 
     @Test
+    fun englishDeviceKeepsTheNativeDescriptionWords() {
+        // Spec: i18n-l10n — An English device keeps the native words. The
+        // English value of every mapped key is the key itself, so the section
+        // header and both label rows read exactly as before the fix — and they
+        // are read through the resources, not through the raw key.
+        // The rows' click behaviour is a different contract, asserted by its own
+        // cases under its own conditions: phoneValueOpensTheDialer (a tel: value)
+        // and websiteValueStartsTheBrowser (an http/https value).
+        val description = ObjectDescription(
+            listOf(
+                locationEntry("Contact", "Phone", "+49 30 1234567"),
+                locationEntry("Contact", "Website", "https://cafe.de")
+            ),
+            51.5,
+            7.4
+        )
+        launch(entry(), description)
+
+        // Section header and the two label rows, all three through the resources
+        composeRule.onNodeWithText("Contact").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Phone:").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Website:").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun germanDeviceTranslatesDescriptionSectionsAndLabels() {
         // Spec: i18n-l10n — Native description labels are localized at the
         // frontend. The native vocabulary crosses the boundary as values only

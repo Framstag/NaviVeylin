@@ -1,106 +1,34 @@
-LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
-LOOP-MEASURE base=aee35ca6fe60bb243fc6d4227d5a50e2675a87c3 paths=93 insertions=5306 deletions=697
-LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/attribution/OsmAttributionOverlay.kt
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/767/tools/loop/loop.conf
+LOOP-MEASURE base=46f1889c53dc5eb0039a6793960f9671f4656b73 paths=26 insertions=1072 deletions=5
 LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/DescriptionLabels.kt
 LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/LocationDetailsSheet.kt
 LOOP-MEASURE-PATH app/src/main/res/values-de/strings.xml
 LOOP-MEASURE-PATH app/src/main/res/values/strings.xml
 LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/LocationDetailsDialogComposeTest.kt
-LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/DetailsScreenTest.kt
-LOOP-MEASURE-PATH core/src/main/java/com/naviveylin/core/details/ContactLinks.kt
-LOOP-MEASURE-PATH core/src/test/java/com/naviveylin/core/details/ContactLinksTest.kt
-LOOP-MEASURE-PATH .github/workflows/build.yml
-LOOP-MEASURE-PATH .github/workflows/sensors.yml
-LOOP-MEASURE-PATH guidelines/BacklogTooling.md
-LOOP-MEASURE-PATH guidelines/BacklogTooling.recipes.md
-LOOP-MEASURE-PATH guidelines/Build.md
 LOOP-MEASURE-PATH guidelines/UIPhone.md
 LOOP-MEASURE-PATH guidelines/UI.why.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/design.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/gate.log
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/gate-summary.txt
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/red-on-HEAD.log
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/red-on-HEAD.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/review-round-1-passed.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/review-round-1-requested.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/sensor-suite.log
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_build-inputs-mutations.sh_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_build-inputs-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_build-inputs.sh_--check.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-action-runtimes-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-action-runtimes.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-doc-routes-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-doc-routes.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-portability-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-portability.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-sonar-workflow-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-sonar-workflow.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_check-todo-references.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_ci-vcpkg-cache-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_issues_check-metadata.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_issues_metadata-mutations.sh_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_issue-tooling-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_mutate-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_sensor-mutations.sh_--list.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_sensor-selftest.full.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/evidence/tools_sensor-selftest.sh.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/.openspec.yaml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/proposal.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/specs/backlog-sensors/spec.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-04-sensor-libosmscout-drift/tasks.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/design.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/car-details-suite.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/change-readiness.txt
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/contact-links-suite.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/details-dialog-suite.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/focused-suites.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/gate-build-tally.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/gate-car-details-suite.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/gate-contact-links-suite.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/gate-details-dialog-suite.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/gate.log
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/gate.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/lint-mobile-debug.txt
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/openspec-validate.txt
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/red-on-HEAD.log
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/red-on-HEAD.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/revert-check.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/revert-check-mutated.log
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/revert-check-mutated.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/revert-check-restored.log
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/revert-check-restored.xml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/review-round-1-passed.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/evidence/review-round-1-requested.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/.openspec.yaml
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/proposal.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/specs/auto-destination-details/spec.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/specs/enhanced-details-sheet/spec.md
-LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-contact-links-in-details/tasks.md
-LOOP-MEASURE-PATH openspec/specs/auto-destination-details/spec.md
-LOOP-MEASURE-PATH openspec/specs/backlog-sensors/spec.md
-LOOP-MEASURE-PATH openspec/specs/enhanced-details-sheet/spec.md
-LOOP-MEASURE-PATH tools/feature-list/specs.json
-LOOP-MEASURE-PATH tools/sensor-cases.sh
-LOOP-MEASURE-PATH tools/sensors/fixtures/curl
-LOOP-MEASURE-PATH tools/sensors/fixtures/registry-row-bound.json
-LOOP-MEASURE-PATH tools/sensors/lib.sh
-LOOP-MEASURE-PATH tools/sensors/metrics/libosmscout-lag.sh
-LOOP-MEASURE-PATH tools/sensors/sensors.json
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/description-labels.tsv
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/revert-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/review-failed-round-1.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/scope-run.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-applied-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-gradlew-test.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-red-head-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/specs/i18n-l10n/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/tasks.md
+LOOP-MEASURE-PATH openspec/specs/i18n-l10n/spec.md
 LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
-LOOP-MEASURE-CHECK tools/sensor-selftest.sh
-LOOP-MEASURE-CHECK tools/sensor-mutations.sh --list
-LOOP-MEASURE-CHECK tools/check-action-runtimes.sh
-LOOP-MEASURE-CHECK tools/check-action-runtimes-selftest.sh
 LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
 LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
-LOOP-MEASURE-CHECK tools/gen-feature-list-selftest.sh
 LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
 LOOP-MEASURE-CHECK tools/check-doc-routes.sh
 LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
@@ -108,29 +36,25 @@ LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.
 LOOP-MEASURE-CHECK tools/check-todo-references.sh
 LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
 LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
-LOOP-MEASURE-CHECK tools/check-portability.sh
-LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
-LOOP-MEASURE-CHECK tools/mutate-selftest.sh
-LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
-LOOP-MEASURE-CHECK tools/build-inputs-selftest.sh
-LOOP-MEASURE-CHECK tools/build-inputs.sh --check
-LOOP-MEASURE-CHECK tools/build-inputs-mutations.sh --list
-LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
-LOOP-MEASURE-CHECK tools/issues/metadata-mutations.sh --list
-LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
-LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
-LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
-LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
-LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
-LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
-LOOP-MEASURE-CHECK tools/check-sonar-workflow.sh
-LOOP-MEASURE-CHECK tools/check-sonar-workflow-selftest.sh
-LOOP-MEASURE-CHECK tools/ci-vcpkg-cache-selftest.sh
 LOOP-MEASURE-SUITE cases=314 cmd=tools/loop-selftest.sh --list
-LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
-LOOP-MEASURE-CHANGE fix-details-description-labels scenarios=4 cases=4 unnamed=0
-LOOP-MEASURE-TALLY openspec/changes/fix-details-description-labels/evidence/TEST-green-applied-LocationDetailsDialogComposeTest.xml tests=24 failures=0
-LOOP-MEASURE-TALLY openspec/changes/fix-details-description-labels/evidence/TEST-green-GermanTranslationCompletenessTest.xml tests=2 failures=0
-LOOP-MEASURE-TALLY openspec/changes/fix-details-description-labels/evidence/TEST-red-head-LocationDetailsDialogComposeTest.xml tests=24 failures=1
-LOOP-MEASURE-SURFACE none — the proposal carries no surface: line
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=415s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule-selftest.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-compose-sandbox-rule.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=11s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-GATE seconds=434 suites=10
+LOOP-MEASURE-CHANGE 2026-11-05-fix-details-description-labels scenarios=4 cases=4 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-applied-LocationDetailsDialogComposeTest.xml tests=24 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-GermanTranslationCompletenessTest.xml tests=2 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-LocationDetailsDialogComposeTest.xml tests=25 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-GermanTranslationCompletenessTest.xml tests=2 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-LocationDetailsDialogComposeTest.xml tests=25 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-GermanTranslationCompletenessTest.xml tests=2 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-red-head-LocationDetailsDialogComposeTest.xml tests=24 failures=1
+LOOP-MEASURE-SURFACE surface: 4 call sites in 1 file, 75 resource entries × 2 locales (74 `description_label_*` plus
 LOOP-MEASURE-END

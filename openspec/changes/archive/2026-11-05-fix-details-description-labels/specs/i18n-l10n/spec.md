@@ -23,8 +23,10 @@ render as that key.
 - **WHEN** the device locale is English and the details dialog shows the `Contact` rows
 - **THEN** the section header SHALL read `Contact` and the label rows `Phone:` and `Website:` — the English value of
   a mapped key is the key itself, so the English rendering is unchanged
-- **Case**: `LocationDetailsDialogComposeTest.phoneValueOpensTheDialer` (asserts the `Phone:` row under the default
-  locale)
+- **Case**: `LocationDetailsDialogComposeTest.englishDeviceKeepsTheNativeDescriptionWords` (asserts the
+  `Contact` header and the `Phone:` and `Website:` label rows under the default locale; a row's click behaviour is
+  its own scenario's — `phoneValueOpensTheDialer` for a `tel:` value, `websiteValueStartsTheBrowser` for an
+  `http`/`https` value — and is not claimed here)
 
 #### Scenario: A key the table does not carry
 

@@ -1,0 +1,13 @@
+gate — one run on the change's final tree, 2026-11-05
+
+LOOP-GATE: tests=41 failures=0 errors=0 (./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 415s, tools/check-compose-sandbox-rule.sh 0s, tools/check-compose-sandbox-rule-selftest.sh 1s, bash tools/gen-feature-list.sh --check-classification 4s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 11s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 1s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s)
+
+The compiled step's own per-suite tallies, copied beside this file (the step's summary line is Gradle's
+'BUILD SUCCESSFUL', which carries no case count — the suites do):
+
+  TEST-green-gate-automotive-GermanTranslationCompletenessTest.xml       tests=2 failures=0 errors=0 timestamp=2026-11-05T21:24:20.366Z
+  TEST-green-gate-automotive-LocationDetailsDialogComposeTest.xml        tests=25 failures=0 errors=0 timestamp=2026-11-05T21:25:01.851Z
+  TEST-green-gate-mobile-GermanTranslationCompletenessTest.xml           tests=2 failures=0 errors=0 timestamp=2026-11-05T21:20:41.557Z
+  TEST-green-gate-mobile-LocationDetailsDialogComposeTest.xml            tests=25 failures=0 errors=0 timestamp=2026-11-05T21:21:33.903Z
+
+Both flavors ran the changed class: :app:testMobileDebugUnitTest and :app:testAutomotiveDebugUnitTest.

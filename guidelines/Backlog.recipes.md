@@ -458,6 +458,23 @@ next case — which is why the exit trap's `/proc` sweep, one pass over every pr
 made per case and not per suite. The worker count is `--jobs` on the invocation, else `LOOP_SELFTEST_JOBS` in the
 profile, else the host's CPU count; the `PASS`/`FAIL` line per case, the counts, the summary and the exit status are unchanged.
 
+The suite's wall clock was the runner's core count and nothing the suite did could shorten it, so the pipeline runs it
+as **legs** (issue #781): `.github/workflows/build.yml`'s `loop-suite` job is a matrix of three, `fail-fast: false`,
+and a leg is the driver invoked once per group of its own selection — `run` (114 cases),
+`prescreen gate state worktree report driver` (138) and the remaining thirteen groups (62) — on its own
+`ubuntu-24.04` runner with `contents: read` and no SDK. The driver's `--group` stayed a single value: a leg loops over
+its groups in one step, so its log carries one summary per invocation and each names its own selection. A leg owes
+what any invocation of the suite owes — its summary counts its cases against the declared set, so a leg that silently
+covered less is visible in its own log, and the leg's exit status is a verdict of the run, so one red leg reddens the
+run exactly as one red case did when the suite was one step — and the whole set is still owed before a change that
+owns `tools/loop/**` is archived: a leg bounds what a push that owes the suite pays, it does not narrow what the
+archive owes. A leg needs no pair of its own in the profile's suite map: it runs the driver the map already carries,
+narrowed by a selection that runs fewer of that entry's cases, and `gate#theMapCoversEveryPipelineStep` strips the
+`--group <selection>` from both sides before it compares (`guidelines/Build.md` §3). Measured 2026-11-05 (issue
+#781): `bash tools/loop-selftest.sh --list | cut -d'#' -f1 | sort | uniq -c` counts the three selections above, and
+on 2026-11-04 the whole set at `--jobs 4` took 469 s on a 16-core host with `--group run` 261 s of them (56 %),
+against the 17 min 15 s the same set spends as one step on a four-core runner (run 41810844107).
+
 One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a
 red gate can belong to the neighbour rather than to the change under test. The driver holds a lease in the root the
 tree resolved — a second invocation that may run more than one case is refused with exit 2, naming the rule, the

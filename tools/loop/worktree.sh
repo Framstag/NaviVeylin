@@ -622,6 +622,22 @@ prune_base() {
   printf '%s\n' "$base"
 }
 
+# The base the ref sweep compares against, and the reason it is not `prune_base`'s answer: `run.base` is the commit
+# the run started on, so a branch that landed while the run was open is not landed in it, and the sweep kept a fully
+# landed branch with the note "carries work the base does not have" (issue #763, the second reading recorded on
+# #727). The published base is fetched first, and a project with no remote falls back to the recorded one — the
+# sweep is offline-skippable, never silently comparing against a pin it could not refresh.
+sweep_base() {
+  local branch
+  branch=$(loop_base_ref)
+  if gitr fetch --quiet origin "$branch" >/dev/null 2>&1; then
+    gitr rev-parse --verify --quiet "origin/$branch" && return 0
+  fi
+  printf 'worktree: no published %s could be fetched — the sweep compares against the base the run recorded\n' \
+    "$branch" >&2
+  prune_base
+}
+
 # The archived changes a branch adds, one directory name per line. The branch's own change is what the refusal for
 # a refused review reads, and what must be on the base before a branch can be called landed on that reading.
 branch_added_changes() { # <branch> <base> → one change name per line
@@ -634,20 +650,21 @@ branch_added_changes() { # <branch> <base> → one change name per line
 # A reviewer's refusal is its owner's verdict (#185), not a leftover: the branch stays even when its patch is in the
 # base. The marker is read from the change the branch's tip commit adds: `record-review-failure` writes it last, so
 # it is the tip's own diff even after a fast-forward put the branch in the base, where a diff against the base can
-# no longer say what the branch added.
-branch_carries_refused_review() { # <branch>
-  local branch="$1" issue subject change
+# no longer say what the branch added. The name it is parsed from is the second argument when the rev is a remote
+# ref (`origin/fix/issue-3-refused`), because the sweep reads both arms with the same refusal.
+branch_carries_refused_review() { # <rev> [<branch name>] → 0 when the change the rev carries was refused
+  local rev="$1" branch="${2:-$1}" issue subject change
   case "$branch" in fix/issue-*) ;; *) return 1 ;; esac
   issue=${branch#fix/issue-}
   issue=${issue%%-*}
   case "$issue" in ''|*[!0-9]*) return 1 ;; esac
-  subject=$(gitr log -1 --format=%s "$branch" 2>/dev/null)
+  subject=$(gitr log -1 --format=%s "$rev" 2>/dev/null)
   case "$subject" in *"(#$issue)"*) ;; *) return 1 ;; esac
   while IFS= read -r change; do
     [ -n "$change" ] || continue
-    gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
+    gitr ls-tree -r --name-only "$rev" -- "openspec/changes/archive/$change/evidence" 2>/dev/null |
       grep -Eq 'review-failed-round-[0-9][0-9]*\.md$' && return 0
-  done <<< "$(gitr diff-tree --no-commit-id --name-only -r --diff-filter=A "$branch" -- openspec/changes/archive 2>/dev/null |
+  done <<< "$(gitr diff-tree --no-commit-id --name-only -r --diff-filter=A "$rev" -- openspec/changes/archive 2>/dev/null |
     awk -F/ 'NF > 3 { print $4 }' | sort -u)"
   return 1
 }
@@ -678,17 +695,25 @@ branch_is_landed() { # <branch> <base> → 0 when the base carries every patch t
 
 # The ref sweep at the run's end, and the command a person can repeat. It is deliberately narrower than
 # `loop-clean.sh`: it touches refs only, never a tree, a scratch path or a process. `--apply` deletes exactly the
-# branches it named, and every refusal is a branch that stays.
+# branches it named, and every refusal is a branch that stays. Two arms, because a branch the loop published is a
+# remote ref no local namespace holds (issue #763), and both are compared against the base the remote publishes.
 cmd_prune_landed() {
-  local apply=0 base held branch kept_work=0 kept_checked=0 kept_refused=0 removed=0
+  local apply=0 base remote held remote_refs branch ref pr_heads="" pr_unread=0 extra=""
+  local kept_work=0 kept_checked=0 kept_refused=0 kept_pr=0 kept_unread=0 removed=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --apply) apply=1; shift ;;
       *) loop_die "prune-landed: unknown argument $1" ;;
     esac
   done
-  base=$(prune_base) || loop_die "prune-landed: no base to compare against — run 'state.sh init' or name the base branch"
+  base=$(sweep_base) || loop_die "prune-landed: no base to compare against — run 'state.sh init' or name the base branch"
   held=$(loop_worktree_branches "$LOOP_ROOT" | tr '\n' ' ')
+  # The remote arm's candidates, and the one reading a shared remote owes before anything on it can be deleted: a
+  # ref that is the head of an open pull request is somebody's review, and an unreadable forge is not a forge with
+  # no pull requests.
+  remote=origin
+  remote_refs=$(loop_remote_branches "$LOOP_ROOT" "$remote")
+  [ -z "$remote_refs" ] || pr_heads=$(loop_open_pull_request_heads) || pr_unread=1
   while IFS= read -r branch; do
     [ -n "$branch" ] || continue
     case " $held " in
@@ -717,14 +742,58 @@ cmd_prune_landed() {
     fi
     removed=$((removed + 1))
   done <<< "$(loop_own_branches "$LOOP_ROOT")"
-  if [ "$removed" -eq 0 ] && [ "$kept_work" -eq 0 ] && [ "$kept_checked" -eq 0 ] && [ "$kept_refused" -eq 0 ]; then
+  while IFS= read -r ref; do
+    [ -n "$ref" ] || continue
+    branch=${ref#"$remote"/}
+    if [ "$pr_unread" -eq 1 ]; then
+      printf 'kept %s — the open pull requests could not be read\n' "$ref"
+      kept_unread=$((kept_unread + 1))
+      continue
+    fi
+    case " $pr_heads " in
+      *" $branch "*)
+        printf 'kept %s — the head of an open pull request\n' "$ref"
+        kept_pr=$((kept_pr + 1))
+        continue ;;
+    esac
+    case " $held " in
+      *" $branch "*)
+        printf 'kept %s — checked out\n' "$ref"
+        kept_checked=$((kept_checked + 1))
+        continue ;;
+    esac
+    if branch_carries_refused_review "$ref" "$branch"; then
+      printf 'kept %s — the reviewer refused it\n' "$ref"
+      kept_refused=$((kept_refused + 1))
+      continue
+    fi
+    if ! branch_is_landed "$ref" "$base"; then
+      printf 'kept %s — carries work the base does not have\n' "$ref"
+      kept_work=$((kept_work + 1))
+      continue
+    fi
+    if [ "$apply" -eq 1 ]; then
+      # The remote's own delete, never a forced refspec: the remote keeps a protected branch, and a ref it no longer
+      # holds needs no removal from here.
+      gitr push --quiet "$remote" --delete "$branch" >/dev/null 2>&1 ||
+        { printf 'kept %s — could not be removed\n' "$ref"; kept_work=$((kept_work + 1)); continue; }
+      printf 'removed %s (its patches are in the base)\n' "$ref"
+    else
+      printf 'would remove %s (its patches are in the base)\n' "$ref"
+    fi
+    removed=$((removed + 1))
+  done <<< "$remote_refs"
+  [ "$kept_pr" -eq 0 ] || extra="$extra · $kept_pr kept (an open pull request)"
+  [ "$kept_unread" -eq 0 ] || extra="$extra · $kept_unread kept (the open pull requests could not be read)"
+  if [ "$removed" -eq 0 ] && [ "$kept_work" -eq 0 ] && [ "$kept_checked" -eq 0 ] && [ "$kept_refused" -eq 0 ] &&
+     [ "$kept_pr" -eq 0 ] && [ "$kept_unread" -eq 0 ]; then
     printf 'worktree: no branch of the loop to prune\n'
   elif [ "$apply" -eq 1 ]; then
-    printf 'worktree: %s landed branch(es) removed · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)\n' \
-      "$removed" "$kept_work" "$kept_checked" "$kept_refused"
+    printf 'worktree: %s landed branch(es) removed · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)%s\n' \
+      "$removed" "$kept_work" "$kept_checked" "$kept_refused" "$extra"
   else
-    printf 'worktree: would remove %s landed branch(es) · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)\n' \
-      "$removed" "$kept_work" "$kept_checked" "$kept_refused"
+    printf 'worktree: would remove %s landed branch(es) · %s kept (carries work the base does not) · %s kept (checked out) · %s kept (the reviewer refused it)%s\n' \
+      "$removed" "$kept_work" "$kept_checked" "$kept_refused" "$extra"
   fi
 }
 

@@ -168,6 +168,10 @@ MUTATIONS=(
   # 13.16 is the pre-flight that catches the same failure at a run's start (measured 2026-10-28): a base pinning a commit no
   # clone this host reads is refused before the pre-screen is paid for, with the push that publishes it named.
   '13.16@-@tools/loop/worktree.sh@run#aPinNoCloneHoldsIsRefusedBeforeThePrescreen@the pre-flight refusing a base pin no clone this host holds@s|^  \[ -n "\$path" \] && \[ -f "\$LOOP_ROOT/.gitmodules" \] \|\| return 0$|  return 0|'
+  # 13.17 is the remote arm's destructive half (issue #763): the sweep now deletes a ref on a shared remote, and the
+  # one reading nobody else can make is which head is an open pull request — deleting it closes a review. The case's
+  # first assertion after the read-only sweep is the one that fails: the ref the pull request is disappeared.
+  '13.17@-@tools/loop/worktree.sh@run#theRemoteSweepKeepsAnOpenPullRequest@the refusal that keeps the head of an open pull request@s|^    case " \$pr_heads " in$|    case "" in|'
     # 13.6 was the lock telling a live run'"'"'s tree from a previous run'"'"'s leftovers. The lock is taken before the
   # kept worktree is read now, so a live run is refused at the lock and never reaches that check; the invariant
   # the record still owns is the refusal itself: a live owner'"'"'s lock is a refusal, not a takeover.

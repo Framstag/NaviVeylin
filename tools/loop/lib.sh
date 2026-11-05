@@ -408,6 +408,15 @@ loop_own_branches() { # <repo> → one branch per line
   git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
 }
 
+# The same set resolved on the remote, which is where a branch the loop published lives after the run merged its
+# work and released its local branch (issue #763: every sweep enumerated `loop_own_branches`, a local namespace, and
+# a landed `fix/issue-728-…` head stayed on the remote for ever). The pattern is the local one with the remote's
+# prefix, so a ref the loop never names is never a candidate for the sweep that deletes it.
+loop_remote_branches() { # <repo> [<remote>] → one `<remote>/<branch>` per line
+  local remote="${2:-origin}"
+  git -C "$1" branch -r --list "$remote/fix/issue-*" "$remote/loop-*" --format='%(refname:short)' 2>/dev/null
+}
+
 # The branches a worktree holds: git refuses to delete one of them, so every deletion asks this first.
 loop_worktree_branches() { # <repo> → one branch per line
   git -C "$1" worktree list --porcelain 2>/dev/null | sed -n 's|^branch refs/heads/||p'
@@ -440,6 +449,18 @@ loop_issue_json() {
   [ "$status" -eq 0 ] || cat "$errfile" >&2
   rm -f "$errfile"
   return "$status"
+}
+
+# The head branch of every open pull request, one per line. Read through the forge this loop already asks about the
+# tracker (`loop_issue_json` beside it), because nothing else knows whether a branch is somebody's open review — and
+# the sweep that deletes a remote ref must not delete that one (issue #763). No `--state`: `gh pr list` answers the
+# open pull requests without it, and the status namespace's own word is the project's to declare, not this engine's
+# (`tools/sensors/conditions/pr-conflicts.sh` reads it the same way). Returns 1 when the forge cannot be read: an
+# outage is not a forge with no pull requests, and the caller keeps every ref rather than deciding so.
+loop_open_pull_request_heads() {
+  local out
+  out=$(gh pr list --limit 200 --json headRefName 2>/dev/null) || return 1
+  printf '%s\n' "$out" | jq -r '.[].headRefName // empty' 2>/dev/null || return 1
 }
 
 loop_issue_tool() { # run one of the tooling's scripts

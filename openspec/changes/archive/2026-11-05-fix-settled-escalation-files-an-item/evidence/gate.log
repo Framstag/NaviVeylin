@@ -1,4 +1,7 @@
-LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+# gate, round-2 tree, base ec58cb91
+# start 2026-11-05T20:04:45Z
+
+LOOP-GATE-PROFILE: /home/tim/projects/NaviVeylin/.pi/worktrees/780/tools/loop/loop.conf
 LOOP-GATE-STEP-BOUND: 1800s per step — a step that reaches it is ended, named and counted as an error
 gate: tools/sensor-selftest.sh
 PASS guard#eachCheckHasItsOwnReason
@@ -49,6 +52,7 @@ PASS run#hysteresisCountersSurviveARestart
 PASS run#escalatesPastKRecurrences
 PASS run#anEscalationOnASettledIssueFilesANewItem
 PASS run#aRefusedEscalationPastTheBoundFailsTheRun
+PASS run#theFiledConditionIsOpenWorkOnTheNextTick
 PASS run#aRowDeclaresItsOwnRecurrenceBound
 PASS run#libosmscoutLagReadsThreeOutcomes
 PASS run#escalationNeverSetsEligibility
@@ -84,8 +88,8 @@ PASS sensors#engineNamesNoProjectValue
 PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
 PASS sensors#loopSpendRow
 PASS sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing
-sensor-selftest: all 83 cases passed (JDK 27, offline, no token)
-gate: tools/sensor-selftest.sh — 69s
+sensor-selftest: all 84 cases passed (JDK 27, offline, no token)
+gate: tools/sensor-selftest.sh — 452s
 gate: tools/sensor-mutations.sh --list
 8.1 guard#refusesOffMain — HEAD is the remote main branch (tools/sensors/guard.sh)
 8.2 workflow#onlyTwoTriggers — the trigger cap — schedule and dispatch only (.github/workflows/sensors.yml)
@@ -123,155 +127,6 @@ gate: tools/sensor-mutations.sh --list
 3.1 sensors#documentSizeRow — a normative document past the row bound is a violation (design D4) (tools/sensors/metrics/doc-context.sh)
 3.2 layers#aFigureInANormativeDocumentIsACondition — a measured figure inside a normative document is a condition (documentation-ownership, "A normative document carries no rationale and no procedure") (tools/sensors/metrics/doc-context.sh)
 gate: tools/sensor-mutations.sh --list — 0s
-gate: tools/check-action-runtimes.sh
-action runtimes: 21 action pins across 4 workflow files target Node 24, and their 6 hosted runner image(s) are pinned.
-gate: tools/check-action-runtimes.sh — 0s
-gate: tools/check-action-runtimes-selftest.sh
-ok: action-runtimes#theRepositorysOwnPinsPass — this repository's workflows pin a Node 24 major
-ok: pins at or above the Node 24 floor pass
-ok: a Node 20 upload-artifact pin fails
-ok: a Node 20 checkout pin fails
-ok: a subpath of a recorded action resolves to the action's floor
-ok: action-runtimes#anActionWithNoRecordedRuntimeFails — an action with no recorded runtime fails
-ok: an unverifiable ref fails
-ok: a container action and a local action are skipped
-ok: runtimes#aHostedRunnerImageIsPinned — released runner images pass
-ok: runtimes#aHostedRunnerImageIsPinned — an ubuntu-latest label is reported
-ok: runtimes#aHostedRunnerImageIsPinned — the report names the file and line
-ok: runtimes#aHostedRunnerImageIsPinned — every hosted -latest label is reported
-ok: runtimes#aHostedRunnerImageIsPinned — an expression and self-hosted are skipped
-ok: a workflow with no action pin passes
-ok: a tree with no workflow directory is a layout error
-check-action-runtimes-selftest: all 15 cases passed (offline, no token, no build)
-gate: tools/check-action-runtimes-selftest.sh — 0s
-gate: tools/gen-feature-list-selftest.sh
-ok   keys: one per requirement of every shipped spec
-ok   keys: a nested spec id is enumerated too
-ok   keys: derived as <spec id>#<requirement name>
-ok   keys: an in-flight change contributes no key
-ok   keys: every shipped spec is classified
-ok   keys: the surface a spec is classified for is reported
-ok   delta: a prose-only edit is not a change
-ok   delta: a prose-only edit does not dirty an area
-ok   delta: a requirement text edit is a change
-ok   delta: a requirement text edit dirties its area
-ok   delta: an added requirement is an addition
-ok   delta: the spec's other keys are unchanged
-ok   gate: an unclassified shipped spec id fails the run
-ok   gate: an unclassified spec id writes no document
-ok   gate: a stale classification entry does not fail the run
-ok   gate: a stale entry is reported
-ok   gate: the stale entry is named
-ok   gate: a capability an open change introduces must be classified
-ok   gate: the unclassified open capability is named
-ok   gate: the open change that owes the line is named
-ok   gate: an archived change's delta is not read
-ok   gate: a classified delta passes before it ships
-ok   gate: a delta-only classification leaves nothing unclassified
-ok   gate: a delta-only classification is reported as stale, not as a failure
-ok   gate: a surface outside the vocabulary fails the run
-ok   gate: the unknown surface is named
-ok   gate: a user-visible spec with no renderable surface fails
-ok   gate: not exactly one car-only area fails the run
-ok   gate: an unknown area id fails the run
-ok   snapshot: the requested version is recorded
-ok   snapshot: every key carries a digest
-ok   snapshot: no requirement text is recorded, only a digest
-ok   snapshot: no earlier snapshot is reported
-ok   snapshot: the baseline is the most recent earlier snapshot
-ok   report: a no-op run is visibly a no-op
-ok   snapshot: versions order as the release format orders them (-1 < -10 < -2)
-ok   report: a one-spec change is visibly one change
-ok   report: the whole fixture set is indexed
-ok   catalogue: every user-visible area is named
-ok   catalogue: an area holding only internal capabilities gets no heading
-ok   catalogue: the car-only area is rendered under its own heading
-ok   catalogue: an internal capability is absent
-ok   catalogue: a nested internal spec is absent
-ok   catalogue: the surface tag follows the shortlist, not every user-visible spec
-ok   catalogue: the car-only area states the car surface
-ok   catalogue: the car-only area states the car surface
-ok   catalogue: a dual-surface capability tags both surfaces
-ok   catalogue: a dual-surface capability appears once
-ok   catalogue: a capability outside the shortlist is absent
-ok   catalogue: a capability outside the shortlist is absent
-ok   catalogue: a shortlisted-away capability is not published
-ok   catalogue: no generation timestamp
-ok   catalogue: no generation timestamp
-ok   catalogue: every entry carries a marker
-ok   catalogue: every entry leads with a bold keyword
-ok   catalogue: the report states what it published
-ok   catalogue: the report states what it published
-ok   catalogue: mechanical assembly works with no model available
-ok   catalogue: the mechanical mode names the capability
-ok   gates: a well-sourced section passes
-ok   gates: an entry with no key fails the run
-ok   gates: the keyless entry is named
-ok   gates: an invented figure fails the run
-ok   gates: the invented figure is named
-ok   gates: a figure taken from a cited spec passes
-ok   gates: a sourced figure is accepted
-ok   gates: an unsourced word is reported and the run stays green
-ok   gates: the unsourced word is named
-ok   gates: the report does not stand in for the figure gate
-ok   gates: a fully sourced bullet is not reported
-ok   gates: the word report's cap is declared by the tool
-ok   gates: the word report shows no more than its cap in one area
-ok   gates: the word report counts the candidates it did not show
-ok   gates: the word report names the rarest word first
-ok   gates: a key citing a spec that does not exist fails the run
-ok   gates: a key citing an internal spec fails the run
-ok   gates: an unreached selling point fails the run
-ok   gates: the unreached selling point is named
-ok   gates: an entry with no bold keyword fails the run
-ok   gates: the missing keyword is named
-ok   gates: a keyword longer than six words fails the run
-ok   gates: the over-long keyword is named with its length
-ok   gates: a keyword word the cited specs lack fails the run
-ok   gates: the invented keyword word is named
-ok   gates: a well-formed entry passes the keyword gates
-ok   gates: a capitalised stopword in a keyword is accepted
-ok   shortlist: a capability outside the shortlist fails the run
-ok   shortlist: the unlisted spec is named
-ok   shortlist: an entry spanning two selling points fails the run
-ok   shortlist: the spanning entry is named
-ok   length: an over-long paragraph fails the run
-ok   length: the paragraph and its length are named
-ok   length: a short paragraph passes
-ok   length: a mechanical catalogue entry is composed inside the bound
-ok   length: the baseline run for the release note is green
-ok   length: a mechanical release-note entry is composed inside the bound
-ok   regeneration: nothing changed means no dirty area
-ok   regeneration: two runs produce the same file
-ok   regeneration: an instruction change dirties every area
-ok   regeneration: a merged capability survives
-ok   notes: the first run writes no entry
-ok   notes: the first run says the baseline was established
-ok   notes: one entry per version carrying a change
-ok   notes: the entry names its version
-ok   notes: the changed capability appears
-ok   notes: the entry is grouped by feature area
-ok   notes: re-running a version leaves one entry
-ok   notes: re-running a version replaces its entry byte for byte
-ok   notes: an internal-only change writes no entry
-ok   notes: the empty-release verdict is reported
-ok   notes: an internal-only change still reports the delta
-ok   notes: a renamed requirement is a change, not a removal
-ok   notes: the rename is reported in the run report
-ok   notes: a rename is not published as a removal
-ok   notes: the renamed version still gets an entry
-ok   notes: a deleted requirement is published as a removal
-ok   notes: a spec leaving the shipped set is reported in the run report
-ok   notes: a departed spec is not published as a change
-ok   notes: the changed set is reproducible with no model
-ok   version: a run without a version fails with a usage error
-ok   version: a run without a version writes nothing
-ok   version: the version-state file is never read
-ok   version: the run works where the version-state file is absent
-
-gen-feature-list-selftest: 119 passed, 0 failed
-gen-feature-list-selftest: all 119 cases passed
-gate: tools/gen-feature-list-selftest.sh — 13s
 gate: bash tools/gen-feature-list.sh --check-classification
 gen-feature-list: stale classification entry for a spec that no longer exists:
   auto/off-route-indicator
@@ -283,14 +138,14 @@ gen-feature-list: stale classification entry for a spec that no longer exists:
 specs read: 183
 classified: 189
 unclassified: 0
-delta spec ids: 4
+delta spec ids: 0
 stale: 6
 car-only areas: 1
 highlights: 19
-gate: bash tools/gen-feature-list.sh --check-classification — 3s
+gate: bash tools/gen-feature-list.sh --check-classification — 13s
 gate: tools/check-doc-routes.sh
 check-doc-routes: all 329 section references resolve, all 4 skill references resolve
-gate: tools/check-doc-routes.sh — 1s
+gate: tools/check-doc-routes.sh — 3s
 gate: tools/check-doc-routes-selftest.sh
 PASS  routes#everyReferenceResolves — a map where every reference resolves (exit 0)
 PASS  routes#aDanglingSectionNumberIsReported — a dangling section number fails naming the reference (exit 1)
@@ -331,7 +186,9 @@ PASS  routed-read#range — a range a row states is the span of the lettered sec
 PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both
 PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case
 check-doc-routes-selftest: all 34 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
-gate: tools/check-doc-routes-selftest.sh — 7s
+PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case
+check-doc-routes-selftest: all 34 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+gate: tools/check-doc-routes-selftest.sh — 27s
 gate: tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
 # tools/check-doc-routes-mutations.json — 11 mutation(s), case command: bash tools/check-doc-routes-selftest.sh --case {case}
 skill-path	routes#aSkillPathThatNoLongerResolvesIsReported	a documented skill path is resolved against the skills the tree carries, so a renamed or deleted skill fails the check instead of a run that needs it
@@ -361,11 +218,11 @@ check-todo-references: excluded, and why:
   tools/issues/core/TodoSections.java                      that grammar
   Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
 check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
-check-todo-references: 66 citation(s) resolve through the recorded table; 8432 file(s) excluded by the allowlist above
-gate: tools/check-todo-references.sh — 1s
+check-todo-references: 66 citation(s) resolve through the recorded table; 8475 file(s) excluded by the allowlist above
+gate: tools/check-todo-references.sh — 4s
 gate: tools/check-openspec-hygiene.sh
 Every capability spec states its Purpose.
-OpenSpec artifacts are consistent: 4 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 0 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
 gate: tools/check-openspec-hygiene.sh — 0s
 gate: tools/check-openspec-hygiene-selftest.sh
 check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)
@@ -454,7 +311,7 @@ check-portability: excluded, printed so the proof names its own scope:
 check-portability: the documented exception — the label that authorises work is declared read-only, once:
   tools/loop/lib.sh:64:LOOP_AUTHORISATION_LABEL="agent/eligible"
 check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)
-gate: tools/check-portability.sh — 1s
+gate: tools/check-portability.sh — 2s
 gate: tools/check-portability-selftest.sh
 PASS portability#plantedRepoNameFails
 PASS portability#plantedCategoryFails
@@ -487,7 +344,7 @@ PASS porting#recipeDoesNotAssumeOurBuild
 PASS porting#namesTheAdaptationPoint
 PASS porting#statesTheCopyCost
 check-portability-selftest: all 29 cases passed (JDK 27, offline, no token, no Gradle)
-gate: tools/check-portability-selftest.sh — 21s
+gate: tools/check-portability-selftest.sh — 87s
 gate: tools/mutate-selftest.sh
 PASS  a real mutation exits 0
 PASS  the transcript reports the red run
@@ -501,10 +358,10 @@ PASS  a mutation the case does not notice exits 1
 PASS  STAYS-GREEN is reported
 PASS  the toy tree is pristine after the unnoticed mutation
 PASS  a record for a missing file exits 1
+PASS  a record for a missing file exits 1
 PASS  MUTATION-FILE-MISSING is reported
 PASS  --list exits 0
 PASS  --list names the label, the case and the reason
-PASS  --only selecting no mutation exits 2
 PASS  --only selecting no mutation exits 2
 PASS  the portability set lists cleanly
 PASS  the portability set lists every record it declares
@@ -513,10 +370,15 @@ PASS  the portability set declares 5.2
 PASS  the portability set declares 5.3
 PASS  the portability set declares 5.3b
 PASS  the portability set declares 5.4
+PASS  the portability set declares 5.4
 PASS  the portability set declares 5.5
+PASS  the portability set declares 5.6
 PASS  the portability set declares 5.6
 PASS  the portability set declares 5.7
 PASS  the portability set declares 6.1
+PASS  the portability set declares 6.1
+PASS  the portability set declares 6.2
+PASS  the portability set declares 6.3
 PASS  the portability set declares 6.2
 PASS  the portability set declares 6.3
 PASS  the portability set declares 6.4
@@ -528,12 +390,16 @@ PASS  the portability set declares 7.2
 PASS  the portability set names the check's own self-test as its gate
 
 mutate-selftest: 36 passed, 0 failed
-gate: tools/mutate-selftest.sh — 0s
+PASS  the portability set names the check's own self-test as its gate
+
+mutate-selftest: 36 passed, 0 failed
+gate: tools/mutate-selftest.sh — 1s
 gate: tools/mutate.sh --mutations tools/portability-mutations.json --list
 # tools/portability-mutations.json — 17 mutation(s), case command: bash tools/check-portability-selftest.sh --case {case}
 5.1	portability#valueSetIsReadNotHardCoded	the value set is read from the profile, not hard-coded
 5.2	portability#excludesTheAdapterAndFixtures	the source adapter is excluded from the engine set
 5.3	discovery#fromASubdirectory	the profile is resolved from the working tree, not from $HOME
+5.3b	discovery#fromAWorktree	…and a linked worktree resolves its own profile, not one read from $HOME (the same mutation, the task's second case)
 5.3b	discovery#fromAWorktree	…and a linked worktree resolves its own profile, not one read from $HOME (the same mutation, the task's second case)
 5.4	discovery#ignoresGithubRepositoryEnv	GITHUB_REPOSITORY does not override the working tree
 5.5	foreign#profileDiffersFromOurs	the synthetic project's repository differs from this one
@@ -544,61 +410,11 @@ gate: tools/mutate.sh --mutations tools/portability-mutations.json --list
 6.3	portability#authorisationLabelIsTheOneException	the reserved label is asserted as the one read-only exception, not tolerated
 6.4	preconditions#refusesOutsideAGitTree	the suite refuses when its root is not a git working tree
 6.5	preconditions#refusesUnderMachineLocalState	the suite refuses when its root is machine-local state
-6.5	preconditions#refusesUnderMachineLocalState	the suite refuses when its root is machine-local state
 6.6	preconditions#runsInALinkedWorkingTree	a linked working tree under `.pi/` is a checkout and runs the suite, so the loop's gate may run it in the change root (issue #289)
 6.7	preconditions#refusesUnderMachineLocalState	a `.pi/` checkout is accepted only when it is this project's own, i.e. it carries the fixture the suite reads (issue #289)
 7.1	foreign#fixtureDeclaresEveryBudgetDefault	a budget default the engine reads is declared by the fixture's configuration, not left to the host's (issue #290)
 7.2	foreign#baseBranchIsTheFixturesConfiguration	the foreign project's base branch is its own configuration value, not the engine's default (issue #303)
 gate: tools/mutate.sh --mutations tools/portability-mutations.json --list — 1s
-gate: tools/build-inputs-selftest.sh
-PASS workflow#tickMinutesCoverTheRegistryCrons
-PASS inputs#manifestIsTheProducerSet
-PASS inputs#refusesADeclaredInputWithNoProducer
-PASS inputs#writesTheGateTimingRecord
-PASS inputs#convertsPerModuleCoverage
-PASS inputs#splitsTheJavaModulesCoverageByProvenance
-PASS inputs#resultRecordShapes
-PASS inputs#aRedBuildStillCarriesTheResultRecord
-PASS inputs#fetchRestoresTheDeclaredPaths
-PASS inputs#reportsTheRunsConclusion
-PASS inputs#refusesAnotherCommitsRecord
-PASS inputs#noRecordExitsThree
-PASS inputs#theScanRecordIsTheScanPipelinesOwn
-13 cases, 0 failed
-gate: tools/build-inputs-selftest.sh — 0s
-gate: tools/build-inputs.sh --check
-build-inputs: every declared input has a producer (5 rows checked)
-gate: tools/build-inputs.sh --check — 0s
-gate: tools/build-inputs-mutations.sh --list
-5.1 inputs#manifestIsTheProducerSet — the manifest is the set of paths the producer writes (tools/build-inputs.sh)
-5.2 inputs#refusesADeclaredInputWithNoProducer — a declared input outside the manifest is refused (tools/build-inputs.sh)
-5.3 inputs#convertsPerModuleCoverage — the module percentage is the report's own counter, not the first one in the document (tools/build-inputs.sh)
-5.4 inputs#resultRecordShapes — the result record is written for every build, green or red (tools/build-inputs.sh)
-5.5 inputs#refusesAnotherCommitsRecord — the record is the commit's own (tools/fetch-build-inputs.sh)
-5.6 inputs#noRecordExitsThree — an absent record is not ready, and not a failed check (tools/fetch-build-inputs.sh)
-5.7 workflow#tickMinutesCoverTheRegistryCrons — the tick's minutes cover the registry's (.github/workflows/sensors.yml)
-5.8 sensor:workflow#onlyTwoTriggers — the workflow's own token never writes to the tracker (.github/workflows/sensors.yml)
-5.9 sensor:sensors#brokenMainGreenReportsClear — a condition row with nothing to report still reports its outcome (tools/sensors/conditions/broken-main.sh)
-5.10 sensor:sensors#prConflictsNothingReportsClear — the same duty on the pull-request row (tools/sensors/conditions/pr-conflicts.sh)
-5.11 sensor:workflow#onlyTwoTriggers — every tracker write waits for the record (.github/workflows/sensors.yml)
-5.12 sensor:workflow#onlyTwoTriggers — the dispatch apply is compared as the boolean it is declared to be (.github/workflows/sensors.yml)
-5.13 inputs#reportsTheRunsConclusion — the conclusion the caller gates its rows on is the run's own (tools/fetch-build-inputs.sh)
-5.14 inputs#splitsTheJavaModulesCoverageByProvenance — the vendored provenance is read from its own report, not from the module's own one (tools/build-inputs.sh)
-gate: tools/build-inputs-mutations.sh --list — 0s
-gate: tools/issues/check-metadata.sh
-check-metadata: 0 issue(s) checked · 0 violation(s)
-gate: tools/issues/check-metadata.sh — 0s
-gate: tools/issues/metadata-mutations.sh --list
-basis-drops-labels               the basis must move when a kind label changes (task 8.1, D3)
-basis-hashes-the-raw-body        a reflowed body must not move the basis (task 8.2, D3)
-basis-drops-the-anchor-flag      the basis must move when the cited code goes away (task 8.3, D3)
-basis-carries-the-run-timestamp  a repeated run with nothing changed must score nothing (task 8.4, D3, D9)
-band-edge-leaves-a-hole          every score the model can produce falls in exactly one band (task 8.5, D2)
-classify-writes-the-opt-in       the pass cannot write the automation opt-in (task 8.6, D7)
-the-writer-skips-the-marker      no band label is written or removed without the body that leaves the pair intact (task 8.7, D1; the write gate of #671)
-settled-record-not-checked       an item whose body keeps a settled state must carry a settled label, or the displaced state is invisible (#683)
-shape-key-not-written            the shape a finding is filed in is written through the body record's one writer, so the reader that looks for the key finds it (backlog-source-of-truth, "The shape, and the change a tier-B finding names, are recorded in the body")
-gate: tools/issues/metadata-mutations.sh --list — 1s
 gate: tools/issue-tooling-selftest.sh
 PASS Profile#everySectionIsPresent
 PASS Taxonomy#vocabulariesAreClosed
@@ -662,7 +478,6 @@ PASS close#requiresReasonAndEvidence
 stub gh: recorded `gh issue edit`
 stub gh: recorded `gh issue edit`
 PASS close#recordsStateReason
-PASS close#refusesOnPolicyFailure
 PASS close#refusesOnPolicyFailure
 PASS close#notPlannedNeedsNoOptIn
 PASS list#filtersByEachCriterion
@@ -758,8 +573,8 @@ PASS check#aDisplacedSettledStateIsReported
 PASS check#unrankedIsNotAViolation
 PASS check#selfCheckIsGreen
 PASS prioritise#recordsOutgrowOneArgument
-issue-tooling-selftest: all 155 cases passed (JDK 27, offline, no token, HEAD 8e4050e4, tools f03bd6aa5c4b, 2026-11-05T08:03:25Z)
-gate: tools/issue-tooling-selftest.sh — 85s
+issue-tooling-selftest: all 155 cases passed (JDK 27, offline, no token, HEAD 7f0089ca, tools e3b0c44298fc, 2026-11-05T20:18:48Z)
+gate: tools/issue-tooling-selftest.sh — 252s
 gate: tools/mutate.sh --mutations tools/status-mutations.json --list
 # tools/status-mutations.json — 6 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
 5.1	update#statusReplacesTheOldStatus	the displaced state labels being read from the item, so the add and the removals ride one edit
@@ -782,44 +597,19 @@ A1.2	close#writesTheSettledStatus	a person's not-planned decision recording the 
 A1.3	close#keepsTheItemOpenWhenTheStateCannotBeWritten	a rejected label write exiting 0, so the caller proceeds from a state the tracker does not carry
 A1.4	close#refusesAProfileThatNamesNoSettledState	a half-adapted profile being refused instead of silently recording the fix state
 A1.5	update#commentOnlyReportsNoStatusWrite	the `already carries` note being printed only by a call that named a state (#182)
-gate: tools/mutate.sh --mutations tools/close-mutations.json --list — 1s
+gate: tools/mutate.sh --mutations tools/close-mutations.json --list — 0s
 gate: tools/mutate.sh --mutations tools/duplicates-mutations.json --list
 # tools/duplicates-mutations.json — 4 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
 D1	duplicates#olderItemSurvives	the survivor is the older item: the number is immutable, labels and body length are not
 D2	duplicates#unauthorisedDuplicateIsCommentedNotClosed	the authorisation label is never widened to make the rule fire
 D3	duplicates#landedCandidateIsPrintedNotClosed	the candidate list is one commit away from every item, which is why it acts on none
 D4	duplicates#aMarkedDuplicateIsNotCommentedTwice	a duplicate nobody may close is commented once, not on every scheduled tick
-gate: tools/mutate.sh --mutations tools/duplicates-mutations.json --list — 0s
+gate: tools/mutate.sh --mutations tools/duplicates-mutations.json --list — 1s
 gate: tools/mutate.sh --mutations tools/decision-question-mutations.json --list
 # tools/decision-question-mutations.json — 2 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
 A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
 A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
 gate: tools/mutate.sh --mutations tools/decision-question-mutations.json --list — 0s
-gate: tools/check-sonar-workflow.sh
-sonar workflow: main-only triggers with a runtime guard, and a boundary of 5 modules (app,auto,core,buildSrc,osmscout-client-java) with 17 exclusion groups.
-gate: tools/check-sonar-workflow.sh — 0s
-gate: tools/check-sonar-workflow-selftest.sh
-ok: sonar-workflow#theNativeTreeIsExcluded
-ok: sonar-workflow#generatedCodeIsExcluded
-ok: sonar-workflow#theTriggerSetIsPushAndDispatch
-ok: sonar-workflow#aPullRequestTriggerIsReported
-ok: sonar-workflow#theDispatchIsGuardedToMain
-ok: sonar-workflow#theVendoredReportIsNotListed
-ok: sonar-workflow#theGateIsNotWaitedFor
-ok: sonar-workflow#theScanStepIsNotContinueOnError
-ok: sonar-workflow#theRecordIsPublishedOnEveryOutcome
-ok: sonar-workflow#theRecordPathIsTheUploadsOwn
-ok: sonar-workflow#theCoverageStepCarriesTheJvmOnlyFlag
-check-sonar-workflow-selftest: all 11 cases passed (the repository's own scan files, no build, no network)
-gate: tools/check-sonar-workflow-selftest.sh — 1s
-gate: tools/ci-vcpkg-cache-selftest.sh
-PASS  vcpkg-cache#anAnsweringFeedIsReported — a client that answers makes the probe print the source the job should use (exit 0)
-PASS  vcpkg-cache#aRefusingFeedIsReportedAndDisablesTheCache — a refusing client is reported with its own message (exit 1)
-PASS  vcpkg-cache#aRefusingFeedIsReportedAndDisablesTheCache — …and the same refusal names what the install does instead (exit 1)
-PASS  vcpkg-cache#aRefusingFeedIsReportedAndDisablesTheCache — …and names the measured cost of relying on it (exit 1)
-PASS  vcpkg-cache#aMissingClientIsReported — a client that does not exist is named rather than surfacing as a shell error (exit 1)
-PASS  vcpkg-cache#aRejectedArgumentIsNotReadAsADeadFeed — a client rejecting the probe's arguments is reported with that line, not as a dead feed (exit 1)
-PASS  vcpkg-cache#theProbePrintsNothingSensitive — the probe's line carries no credential and no coordinate (exit 0)
-ci-vcpkg-cache-selftest: all 7 cases passed (throwaway stubs, no network)
-gate: tools/ci-vcpkg-cache-selftest.sh — 0s
-LOOP-GATE: tests=460 failures=0 errors=0 (tools/sensor-selftest.sh 69s, tools/sensor-mutations.sh --list 0s, tools/check-action-runtimes.sh 0s, tools/check-action-runtimes-selftest.sh 0s, tools/gen-feature-list-selftest.sh 13s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 21s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 1s, tools/build-inputs-selftest.sh 0s, tools/build-inputs.sh --check 0s, tools/build-inputs-mutations.sh --list 0s, tools/issues/check-metadata.sh 0s, tools/issues/metadata-mutations.sh --list 1s, tools/issue-tooling-selftest.sh 85s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 1s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s, tools/check-sonar-workflow.sh 0s, tools/check-sonar-workflow-selftest.sh 1s, tools/ci-vcpkg-cache-selftest.sh 0s)
+LOOP-GATE: tests=309 failures=0 errors=0 (tools/sensor-selftest.sh 452s, tools/sensor-mutations.sh --list 0s, bash tools/gen-feature-list.sh --check-classification 13s, tools/check-doc-routes.sh 3s, tools/check-doc-routes-selftest.sh 27s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 4s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 2s, tools/check-portability-selftest.sh 87s, tools/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/portability-mutations.json --list 1s, tools/issue-tooling-selftest.sh 252s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 1s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s)
+
+# end   2026-11-05T20:18:49Z (exit 0)

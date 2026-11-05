@@ -6,11 +6,9 @@
 
 A check SHALL stop reopening past a declared number of recurrences and SHALL mark the issue as awaiting a
 person's decision, because a condition that keeps returning is a specification or design problem. When the
-issue that carries the condition cannot be marked — the writer refuses to displace a state the profile
-declares settled, which is where a returned condition lands when it was closed as fixed once — the check SHALL
-file the returned condition as a new item, under the same bound on the items one run of it may file, and SHALL
-NOT report the escalation as written (issue #780). When that bound leaves no room for the filing, the check
-SHALL fail the run rather than report an escalation or a filing the writer did not make.
+writer refuses that mark — the item carries a state the profile declares settled, which is where a returned
+condition lands — the check SHALL file the returned condition as a new item and SHALL NOT report the
+escalation as written (issue #780).
 
 #### Scenario: The recurrence bound is reached
 

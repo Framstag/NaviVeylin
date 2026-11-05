@@ -1,0 +1,41 @@
+# Revert-check, both mutations, taken on the round-2 tree (2026-11-05T19:30:42Z)
+# tree: 7f0089ca
+
+## Mutation 1 — `sensors_escalate` returns `0` instead of the writer's status (credit a write that did not land)
+
+$ 2026-11-05T19:30:47Z
+grep -n 'REVERT-CHECK MUTATION' tools/sensors/run.sh
+470:  return 0  # REVERT-CHECK MUTATION
+
+$ bash tools/sensor-selftest.sh --case 'run#anEscalationOnASettledIssueFilesANewItem'   # 2026-11-05T19:30:47Z
+  the returned condition is filed as a new item: status-settled: #98 carries status/fixed-by, a settled state of the project profile — pass --displace-settled to name the transition
+fixture-emit: fingerprint=48a09a835ee92d32ebcf0d2132fdfc6048aa30639ce1644360e52f3086ddbc51 verdict=violation measurement=5 issue=98 action=escalated (past 3 recurrences): expected '1', got '0'
+FAIL run#anEscalationOnASettledIssueFilesANewItem
+
+restore: `return "$code"` back in place.
+$ grep -c 'REVERT-CHECK MUTATION' tools/sensors/run.sh   # 2026-11-05T19:30:57Z
+0
+
+$ bash tools/sensor-selftest.sh --case 'run#anEscalationOnASettledIssueFilesANewItem'   # 2026-11-05T19:30:57Z
+PASS run#anEscalationOnASettledIssueFilesANewItem
+
+## Mutation 2 — `sensors_issue_for_fingerprint` reads the oldest item instead of the newest (a duplicate every tick)
+
+$ 2026-11-05T19:31:09Z
+grep -n 'REVERT-CHECK MUTATION' tools/sensors/lib.sh
+468:    '[.[]? | select((.body // "") | contains($marker))] | if length > 0 then .[-1] else empty end' <<< "$1" # REVERT-CHECK MUTATION
+
+$ bash tools/sensor-selftest.sh --case 'run#theFiledConditionIsOpenWorkOnTheNextTick'   # 2026-11-05T19:31:09Z
+https://example.invalid/Framstag/NaviVeylin/issues/1
+filed as an exempt finding — exempt from the shape: sensor fixture-emit is its cause
+fixture-emit: fingerprint=48a09a835ee92d32ebcf0d2132fdfc6048aa30639ce1644360e52f3086ddbc51 verdict=violation measurement=5 issue=- action=filed (the escalation of #98 was refused: its state is settled): expected '0', got '1'
+FAIL run#theFiledConditionIsOpenWorkOnTheNextTick
+
+restore: `then .[0]` back in place.
+$ grep -c 'REVERT-CHECK MUTATION' tools/sensors/lib.sh   # 2026-11-05T19:31:25Z
+0
+
+$ git status --porcelain tools/sensors/lib.sh   # 2026-11-05T19:31:25Z (empty: the file is as committed)
+
+$ bash tools/sensor-selftest.sh --case 'run#theFiledConditionIsOpenWorkOnTheNextTick'   # 2026-11-05T19:31:25Z
+PASS run#theFiledConditionIsOpenWorkOnTheNextTick

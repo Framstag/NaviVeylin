@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/mutate-selftest.sh" tests="0" failures="0" errors="0" time="0">
+<testsuite name="tools/mutate-selftest.sh" tests="0" failures="0" errors="0" time="1">
   <system-out>PASS  the portability set names the check's own self-test as its gate  mutate-selftest: 36 passed, 0 failed</system-out>
 </testsuite>

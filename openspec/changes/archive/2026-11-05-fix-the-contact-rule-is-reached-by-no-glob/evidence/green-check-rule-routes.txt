@@ -1,0 +1,4 @@
+# the routing check with the fix, feff2198 + working tree, 2026-11-05T20:29:05Z
+$ bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 579 named rule(s) are reached
+exit=0

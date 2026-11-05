@@ -1,0 +1,51 @@
+The split, asserted on the tree rather than described (2026-11-04, after the workflow edit):
+
+    $ yq '.jobs | keys' .github/workflows/build.yml
+    [ "build", "gates", "loop-suite" ]
+
+    $ yq -r '.jobs | to_entries[] | "\(.key): \(.value.steps | length) steps"' .github/workflows/build.yml
+    build: 29 steps
+    gates: 20 steps
+    loop-suite: 4 steps
+
+    # nothing moved out of the tree, only out of the build's job:
+    $ comm -23 <(yq -r '.jobs.build.steps[].name' <base>) <(yq -r '.jobs[].steps[].name' <after>)
+    Check agent issue loop                      # became the matrix job's step, one leg per group selection
+
+    $ comm -13 <(yq -r '.jobs.build.steps[].name' <base>) <(yq -r '.jobs[].steps[].name' <after>)
+    Check agent issue loop (${{ matrix.leg }})
+    Check loop mutations harness (${{ matrix.leg }})
+    Checkout with submodules                    # the two new jobs check out for themselves
+    Checkout with submodules
+    Set up JDK 21
+    Set up JDK 21
+
+The gates job's twenty steps are the eighteen offline checks plus its own checkout and JDK. It carries
+`runs-on: ubuntu-24.04` and `permissions: contents: read` and no cache, no SDK, no vcpkg.
+
+The gate this tree owes for the delta, run by hand (2026-11-04):
+
+    tools/check-openspec-hygiene.sh                 rc=0
+    tools/check-openspec-hygiene-selftest.sh        rc=0 (7 cases)
+    tools/gen-feature-list.sh --check-classification rc=0
+    tools/gen-feature-list-selftest.sh              rc=0 (119 cases)
+    tools/check-doc-routes.sh                       rc=0 (329 references)
+    tools/check-doc-routes-selftest.sh              rc=0 (34 cases)
+    tools/check-rule-routes.sh                      rc=0 (578 named rules)
+    tools/check-rule-routes-selftest.sh             rc=0 (13 cases)
+    tools/issue-tooling-selftest.sh                 rc=0
+    tools/issues/check-metadata.sh                  rc=0
+    tools/loop-spend-selftest.sh                    rc=0 (23 cases)
+    tools/check-todo-references.sh                  rc=0 (66 citations)
+    tools/sensor-selftest.sh                        rc=0
+    tools/build-inputs.sh --check                   rc=0
+    tools/check-portability.sh                      rc=0
+    tools/check-portability-selftest.sh             rc=0
+    tools/resolve-stale-selftest.sh                 rc=0
+    tools/check-action-runtimes.sh                  rc=0 (21 pins, 4 workflow files)
+    tools/check-sonar-workflow.sh                   rc=0
+    tools/check-compose-sandbox-rule.sh             rc=0 (+ its self-test)
+    tools/mutate-selftest.sh                        rc=0
+    bash tools/loop-selftest.sh                     rc=0 — all 314 cases passed, 792 s
+
+The suite is run in full because cases read `.github/workflows/build.yml` itself.

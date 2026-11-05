@@ -1,0 +1,35 @@
+The whole set in one invocation, run by hand in the change worktree while three other loop runs shared the host
+(2026-11-05, `.pi/worktrees/781` at `2f53b645`, `time bash tools/loop-selftest.sh`: 33 min 45 s wall at 215 % CPU —
+the pool was 16 workers and the host carried three other suites):
+
+    loop-selftest: 4 of 314 cases failed
+    rc=1
+
+The four are `run#` cases that wait on a wall clock rather than assert a value, and each reports the same sentence:
+
+    FAIL run#detachedProcessInTheWorktreeIsEndedByTheCap
+    --- run#theWaitEndsWhenTheChildDoes[12] (exit 1)
+      the run was still waiting after 20 s on a child that outlasted its 2 s cap
+    FAIL run#treeOfAChildTheCapEndedIsNotCommitted
+    --- run#theWaitEndsWhenTheChildDoes[13] (exit 1)
+      the run was still waiting after 20 s on a child that outlasted its 2 s cap
+    FAIL run#treeOfACapEndedChildIsKeptAsAPatch
+    FAIL run#theWorkersOwnShellWriteIsRecordedAndNotPlaced
+
+None of them is a case this change touches (`gate#theMapCoversEveryPipelineStep` and the mutation harness are the
+two), and none of them declares `tools/loop-cases.sh`, `tools/loop-mutations.sh` or a guideline among its files —
+`run#` cases reach the run's own child, and a 2 s cap read on a host running four suites at 215 % CPU is the
+measurement they flake on, not the change.
+
+The whole set on the host, from the dispatched run: the three legs of
+[42094414229](https://github.com/Framstag/NaviVeylin/actions/runs/42094414229) name all twenty groups and every
+one of them reports `all N cases passed` — 114 (`run`), 138 (the six tooling groups) and 62 (the rest) = 314:
+
+    $ gh api .../actions/jobs/<run leg>/logs | grep 'loop-selftest:'
+    loop-selftest: all 114 cases passed (JDK 21, offline, no token, no sandbox) — selection: --group run
+    loop-selftest: all 30 cases passed (JDK 21, offline, no token, no sandbox) — selection: --group prescreen
+    loop-selftest: all 23 cases passed (JDK 21, offline, no token, no sandbox) — selection: --group gate
+    … one line per group of the leg's selection, 62 cases over the rest's thirteen groups
+
+That is why the archive owes the whole set here rather than a narrowing: the legs are the suite, and the suite
+was green.

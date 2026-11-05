@@ -126,6 +126,10 @@ LOOP_GATE_CMD    how this project's gate runs    empty for a project with no bui
 LOOP_CHILD_MAX_SECONDS   the floor under one child's run   2700 s (45 min); a longer child is ended and blocked
 LOOP_ITEM_TURNS_MAX      the turns one child may spend    250; counted from the item's event stream, and a child
                                                        that reaches it is ended and blocked (issue #686), `0` = none
+LOOP_ITEM_CONTEXT_WARN   the context a child's turn costs    143124; one `LOOP-CONTEXT:` line when the child
+                                                       crosses it, and nothing is ended (issue #760), `0` = none
+LOOP_ITEM_CONTEXT_MAX    the context that ends a child    200000; the largest `input + cacheRead` a turn reported,
+                                                       read while the child runs, `0` = none (issue #760)
 LOOP_ITEM_GATE_SECONDS   what one item's gate owes    3900 s (65 min): two gate rounds and the phases beside them
                                                        (issue #663); a child is given the larger of the two
 LOOP_WORKER_SKILLS   which of this project's skills the worker is told to use

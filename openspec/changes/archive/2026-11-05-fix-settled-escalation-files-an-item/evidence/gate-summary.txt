@@ -1,0 +1,12 @@
+# Gate, one run, 2026-11-05
+# change root /home/tim/projects/NaviVeylin/.pi/worktrees/loop, base ec58cb91177f2d1c4621b87cdd26a9c7fced5117
+# The gate's own tally is the 30 JUnit-shaped files in this directory (tests=460, failures=0, errors=0); the
+# tallies are also the ones under .pi/issue-loop/items/780/gate-tally/ where the gate wrote them.
+# The full suite run behind tools_sensor-selftest.sh.xml is all 83 cases (69s, JDK 27, offline, no token);
+# tools/issue-tooling-selftest.sh.xml carries all 155 cases (85s). No compiled path changed.
+# The pre-gate suite log this change cites is sensor-suite.log (82 cases, 2026-11-05T07:56:11Z); the gate's later
+# run carries 83 because the gate applied the review's two cases before running.
+# The red the change answers for, measured on the base before tools/sensors/run.sh returned the writer's code:
+#   run#anEscalationOnASettledIssueFilesANewItem fails on HEAD — XML tests=1 failures=1 (2026-11-05T07:52:12Z)
+#   evidence/red-on-HEAD.xml and evidence/red-on-HEAD.log
+LOOP-GATE: tests=460 failures=0 errors=0 (tools/sensor-selftest.sh 69s, tools/sensor-mutations.sh --list 0s, tools/check-action-runtimes.sh 0s, tools/check-action-runtimes-selftest.sh 0s, tools/gen-feature-list-selftest.sh 13s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 7s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 21s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 1s, tools/build-inputs-selftest.sh 0s, tools/build-inputs.sh --check 0s, tools/build-inputs-mutations.sh --list 0s, tools/issues/check-metadata.sh 0s, tools/issues/metadata-mutations.sh --list 1s, tools/issue-tooling-selftest.sh 85s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 1s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s, tools/check-sonar-workflow.sh 0s, tools/check-sonar-workflow-selftest.sh 1s, tools/ci-vcpkg-cache-selftest.sh 0s)

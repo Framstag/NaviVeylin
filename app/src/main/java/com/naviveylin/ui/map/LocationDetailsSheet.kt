@@ -295,7 +295,7 @@ fun LocationDetailsDialog(
                         for ((sectionKey, sectionEntries) in sections) {
                             // Section header
                             Text(
-                                text = sectionKey,
+                                text = descriptionLabel(sectionKey),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
@@ -312,9 +312,9 @@ fun LocationDetailsDialog(
                                     currentSubsection = descEntry.subsectionKey
                                     subsectionIndex = if (descEntry.hasIndex) descEntry.index else -1
                                     val subsectionLabel = if (subsectionIndex >= 0) {
-                                        "$currentSubsection $subsectionIndex"
+                                        "${descriptionLabel(descEntry.subsectionKey)} $subsectionIndex"
                                     } else {
-                                        currentSubsection
+                                        descriptionLabel(descEntry.subsectionKey)
                                     }
                                     Text(
                                         text = subsectionLabel,
@@ -335,7 +335,7 @@ fun LocationDetailsDialog(
                                         .padding(vertical = 1.dp)
                                 ) {
                                     Text(
-                                        text = descEntry.labelKey + ":",
+                                        text = descriptionLabel(descEntry.labelKey) + ":",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.width(120.dp)

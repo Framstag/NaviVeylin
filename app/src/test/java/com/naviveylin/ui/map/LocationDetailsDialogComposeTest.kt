@@ -446,4 +446,62 @@ class LocationDetailsDialogComposeTest {
             Locale.setDefault(previous)
         }
     }
+
+    @Test
+    fun germanDeviceTranslatesDescriptionSectionsAndLabels() {
+        // Spec: i18n-l10n — Native description labels are localized at the
+        // frontend. The native vocabulary crosses the boundary as values only
+        // ("Contact", "Phone", "Website", "Lanes", "MaxSpeed"), so a German
+        // device must read the German words and never the raw keys.
+        val description = ObjectDescription(
+            listOf(
+                locationEntry("Way", "MaxSpeed", "50").apply { subsectionKey = "Lanes" },
+                locationEntry("Contact", "Phone", "+49 30 1234567"),
+                locationEntry("Contact", "Website", "https://cafe.de")
+            ),
+            51.5,
+            7.4
+        )
+        RuntimeEnvironment.setQualifiers("de")
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+
+            launch(entry(), description)
+
+            // Section header, subsection header and label row
+            composeRule.onNodeWithText("Kontakt").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Spuren").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Telefon:").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Webseite:").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Höchstgeschwindigkeit:").performScrollTo()
+                .assertIsDisplayed()
+            // The raw native keys are gone
+            composeRule.onNodeWithText("Contact").assertDoesNotExist()
+            composeRule.onNodeWithText("Lanes").assertDoesNotExist()
+            composeRule.onNodeWithText("Phone:").assertDoesNotExist()
+            composeRule.onNodeWithText("Website:").assertDoesNotExist()
+            composeRule.onNodeWithText("MaxSpeed:").assertDoesNotExist()
+        } finally {
+            Locale.setDefault(previous)
+        }
+    }
+
+    @Test
+    fun anUnmappedDescriptionKeyKeepsTheNativeKey() {
+        // Spec: i18n-l10n — Native description labels are localized at the
+        // frontend, scenario "A key the table does not carry". The surface owns
+        // no wording of its own for a key it does not know, so it renders the
+        // key — it never drops the row and never invents a translation.
+        val description = ObjectDescription(
+            listOf(locationEntry("MysterySection", "UnmappedKey", "some value")),
+            51.5,
+            7.4
+        )
+        launch(entry(), description)
+
+        composeRule.onNodeWithText("MysterySection").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("UnmappedKey:").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("some value").performScrollTo().assertIsDisplayed()
+    }
 }

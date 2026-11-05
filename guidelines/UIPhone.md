@@ -36,7 +36,16 @@ Source: spec `enhanced-details-sheet`.
   the dialer prefilled (`ACTION_DIAL`, never `ACTION_CALL`); each `;`-separated part is its own link. A value
   the allow-list refuses — `http`/`https` only, three digits minimum — stays plain text, no entry outside the
   `Contact` section becomes tappable, and a tap no installed app handles shows a transient hint while the
-  dialog stays open. The labels stay the native English keys (their translation is issue #767).
+  dialog stays open.
+- **Rule: the rows' words come from the surface's resources.** (spec `i18n-l10n` — Native description labels are
+  localized at the frontend; change `fix-details-description-labels`.) The native description vocabulary crosses the
+  boundary as values only (`"Contact"`, `"Phone"`, `"Website"`, `"Lanes"`, …), so `ui/map/DescriptionLabels.kt`
+  maps that value to `R.string.description_label_*` — keyed on the raw key, never on text a row has already
+  rendered — and the section header, the subsection header and the label row read it through `descriptionLabel(...)`.
+  A key the table does not carry renders as itself: the surface has no word of its own for it, and a row never
+  disappears. English is unchanged by construction, because the English value of each key is the key. The car's
+  identical rows still print the raw key — the parity follow-up, since `:auto` keeps its own `res/` rather than a
+  copy of this table.
 
 ## 6a. Phone search surface (unified search dialog)
 

@@ -29,7 +29,8 @@ Three rules make a check trustworthy rather than noisy:
   it escalates instead of reopening forever, because a condition that keeps returning is a specification
   or design problem rather than an implementation one. An escalation the writer refuses — the item carries a
   settled state, which is exactly where a returned condition lands — files the returned condition as a new
-  item under the row's filing bound, and is never reported as an escalation that was not written (#780).
+  item under the row's filing bound, and is never reported as an escalation that was not written (#780); where
+  that bound leaves no room for the filing, the run fails instead, naming the condition nothing recorded.
 - **Rule: the issue is the measurement history.** Numbers live as comments; nothing is committed, because a
   check must not become a second committer (I12). The previous measurement *is* the baseline, so growth and
   level are both answerable without a store.
@@ -42,7 +43,8 @@ Three rules make a check trustworthy rather than noisy:
   and it carries no measurement marker, so it never reads as one of the row's measurements — and the first run
   that leaves nothing over closes it, while a run in which a finding failed closes nothing and a closure a person
   made is annotated instead of reopened. An annotation, a reopen and a comment spend nothing of the bound: none of
-  them makes the tracker grow.
+  them makes the tracker grow. A refused escalation whose filing the bound leaves no room for writes no summary
+  either: a failed run writes none, and it fails naming the condition nothing recorded (#780).
 
 - **Rule: a row's first exercise is reported, not spent.** A row's first exercise is the one run whose blast radius
   nobody has seen, and the state is already printed: the report calls it `stale row=<id> no measurement on record`.

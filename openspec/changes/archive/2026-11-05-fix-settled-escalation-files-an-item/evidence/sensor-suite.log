@@ -1,3 +1,5 @@
+# sensor capability suite, round-2 tree
+# start 2026-11-05T19:31:34Z
 PASS guard#eachCheckHasItsOwnReason
 PASS guard#refusesOffMain
 PASS guard#refusesARowWithoutThresholdOrConsecutive
@@ -45,6 +47,8 @@ PASS run#hysteresisBothDirections
 PASS run#hysteresisCountersSurviveARestart
 PASS run#escalatesPastKRecurrences
 PASS run#anEscalationOnASettledIssueFilesANewItem
+PASS run#aRefusedEscalationPastTheBoundFailsTheRun
+PASS run#theFiledConditionIsOpenWorkOnTheNextTick
 PASS run#aRowDeclaresItsOwnRecurrenceBound
 PASS run#libosmscoutLagReadsThreeOutcomes
 PASS run#escalationNeverSetsEligibility
@@ -80,4 +84,5 @@ PASS sensors#engineNamesNoProjectValue
 PASS sensors#theDocumentedCredentialCoversEveryDeclaredRow
 PASS sensors#loopSpendRow
 PASS sensors#loopSpendReportsItsAbsenceWithoutFilingOrClosing
-sensor-selftest: all 82 cases passed (JDK 27, offline, no token)
+sensor-selftest: all 84 cases passed (JDK 27, offline, no token)
+# end   2026-11-05T19:37:00Z (exit 0)

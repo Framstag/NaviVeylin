@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tools/ci-vcpkg-cache-selftest.sh" tests="7" failures="0" errors="0" time="0">
-  <system-out>PASS  vcpkg-cache#aRejectedArgumentIsNotReadAsADeadFeed — a client rejecting the probe's arguments is reported with that line, not as a dead feed (exit 1) PASS  vcpkg-cache#theProbePrintsNothingSensitive — the probe's line carries no credential and no coordinate (exit 0) ci-vcpkg-cache-selftest: all 7 cases passed (throwaway stubs, no network)</system-out>
-</testsuite>

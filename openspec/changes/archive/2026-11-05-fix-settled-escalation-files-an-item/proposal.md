@@ -59,12 +59,11 @@ This change's own numbers (`git diff --stat ec58cb91 -- tools guidelines/Backlog
 openspec/specs/backlog-sensors/spec.md`, run from the change root): `4 files changed, 171 insertions(+), 10
 deletions(-)` over the two production files, the case file, the guideline and the shipped spec. The loop's
 measurement of the change, quoted from its own block (`bash tools/loop/measure.sh --base ec58cb91 --change
-2026-11-05-fix-settled-escalation-files-an-item`): `LOOP-MEASURE-CHANGE
+2026-11-05-fix-settled-escalation-files-an-item`, kept as `evidence/measure.txt`): `LOOP-MEASURE-CHANGE
 2026-11-05-fix-settled-escalation-files-an-item scenarios=6 cases=6 unnamed=0` — every scenario of the delta
-names a case that exists — and `LOOP-MEASURE-SUITE cases=314 cmd=tools/loop-selftest.sh --list` for the
-project's declared count. The block carries no gate time while the gate of a tree has not run
-(`LOOP-MEASURE-GATE seconds=-`): the gate is the gate child's, and its tally is quoted in
-`evidence/gate-summary.txt`.
+names a case that exists — `LOOP-MEASURE-SUITE cases=314 cmd=tools/loop-selftest.sh --list` for the project's
+declared count, and `LOOP-MEASURE-GATE seconds=843 suites=19` for the gate this tree carries; the verdict
+itself is `evidence/gate-summary.txt`.
 
 ## What Changes
 
@@ -75,7 +74,8 @@ project's declared count. The block carries no gate time while the gate of a tre
   condition, returned after the settled item's fix).
 - `tools/sensor-cases.sh` — the three cases above: the red case, the bound-exhausted refusal, and the next
   tick that meets the filed item.
-- `openspec/specs/backlog-sensors/spec.md` — the modified requirement, three added scenarios.
+- `openspec/specs/backlog-sensors/spec.md` — the modified requirement, a `- **Case**:` line on each of the
+  three scenarios the delta carries, and three added scenarios.
 - `guidelines/BacklogTooling.md` §9 — the one refusal clause in the hysteresis rule.
 
 ## Impact

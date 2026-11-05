@@ -68,23 +68,31 @@ reaches the filing path instead of being credited with a write. That is the same
 
 ## Verification
 
+Every line below is a run's own output, kept in `evidence/` beside the tree it was taken on.
+
+- `run#anEscalationOnASettledIssueFilesANewItem` — red on the base (`tests=1 failures=1`,
+  `2026-11-05T07:52:12Z`, `evidence/red-on-HEAD.log`), green in the suite (`evidence/sensor-suite.log`) and in
+  the gate (`evidence/gate-summary.txt`).
 - `run#aRefusedEscalationPastTheBoundFailsTheRun` — green after the fix: two conditions filed, the settled
   item untouched, `0` summaries, exit 8 and a report line naming the condition nothing recorded.
 - `run#theFiledConditionIsOpenWorkOnTheNextTick` — green: the tick that meets the filed item annotates it,
-  files nothing, and touches no settled state.
-- `bash tools/sensor-selftest.sh` — the sensor capability's whole suite, which is what the gate owes this
-  pathspec (`tools/loop/loop.conf`, `tools/sensors/*|tools/sensor-selftest.sh`); the gate itself is the gate
-  child's.
+  files nothing, and touches no settled state (`PASS`, `evidence/sensor-suite.log`, suite
+  `2026-11-05T19:31:34Z–19:37:00Z`).
+- `bash tools/sensor-selftest.sh` — the sensor capability's whole suite, all 84 cases, which is what the gate
+  owes this pathspec (`tools/loop/loop.conf`, `tools/sensors/*|tools/sensor-selftest.sh`); the suite's own log
+  is `evidence/sensor-suite.log` and the gate's verdict is `evidence/gate-summary.txt`.
 - Structural check instead of a build: the change touches no compiled file, so `bash -n tools/sensors/run.sh`
   stands in for it.
 - Revert-check: two mutations, each targeting one invariant the change adds, and the record names the edit
-  actually made rather than a variant of it.
+  actually made rather than a variant of it. `evidence/revert-check.log` carries each mutated line, the `FAIL`
+  line, the restore and the green re-run.
   1. `sensors_escalate`'s `return "$code"` replaced by `return 0  # REVERT-CHECK MUTATION` — credit a write
-     that did not land: `run#anEscalationOnASettledIssueFilesANewItem` fails on the filing assertion
-     (`expected '1', got '0'`), restore, case green.
+     that did not land: `run#anEscalationOnASettledIssueFilesANewItem` fails on the filing assertion at
+     `2026-11-05T19:30:47Z` (`expected '1', got '0'`), restore, case green at `19:30:57Z`.
   2. `sensors_issue_for_fingerprint`'s `then .[0]` replaced by `then .[-1]  # REVERT-CHECK MUTATION` — read the
-     oldest item instead of the newest: `run#theFiledConditionIsOpenWorkOnTheNextTick` fails on
-     `expected '0', got '1'` (the tick files a second duplicate), restore, case green.
+     oldest item instead of the newest: `run#theFiledConditionIsOpenWorkOnTheNextTick` fails at
+     `2026-11-05T19:31:09Z` on `expected '0', got '1'` (the tick files a second duplicate), restore, case green
+     at `19:31:25Z`.
 
 ## Rollback
 

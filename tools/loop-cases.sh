@@ -33,6 +33,7 @@ LOOP_SHELL_CASES=(
   'state#initAndShowRoundTrips'
   'state#nextHonoursEveryStopCondition'
   'state#aBlockAtTheRunsBoundIsNoRefusal'
+  'state#theStreakIsTheRecordedCount'
   'state#floorIsDerivedFromTheFinishedItemsWallTimes'
   'state#floorWithNoHistoryIsTheConfiguredMinimum'
   'state#secondRunRefusesWithExit5'
@@ -414,6 +415,7 @@ loop_run_shell_case() {
     'state#initAndShowRoundTrips') fn=case_state_initAndShowRoundTrips ;;
     'state#nextHonoursEveryStopCondition') fn=case_state_nextHonoursEveryStopCondition ;;
     'state#aBlockAtTheRunsBoundIsNoRefusal') fn=case_state_aBlockAtTheRunsBoundIsNoRefusal ;;
+    'state#theStreakIsTheRecordedCount') fn=case_state_theStreakIsTheRecordedCount ;;
     'state#floorIsDerivedFromTheFinishedItemsWallTimes') fn=case_state_floorIsDerivedFromTheFinishedItemsWallTimes ;;
     'state#floorWithNoHistoryIsTheConfiguredMinimum') fn=case_state_floorWithNoHistoryIsTheConfiguredMinimum ;;
     'state#secondRunRefusesWithExit5') fn=case_state_secondRunRefusesWithExit5 ;;
@@ -1044,8 +1046,15 @@ case_state_initAndShowRoundTrips() {
 }
 
 case_state_nextHonoursEveryStopCondition() {
-  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
-  local p sf out status
+  # files: tools/loop/state.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local p sf out status d conf
+  # The streak this case reads is the pair, whatever the project records (issue #804): what it asserts is the
+  # mechanism — a refusal counted, a cut not — and a case that took today's value would stop testing the pair the
+  # day the project raised it. The recorded value has its own case (`state#theStreakIsTheRecordedCount`).
+  d=$(scratch); conf="$d/loop.conf"
+  sed -e 's/^LOOP_REFUSAL_STREAK_STOP=.*/LOOP_REFUSAL_STREAK_STOP=2/' "$LOOP_CONF" > "$conf" ||
+    fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
 
   p=$(new_project); sf=$(state_file "$p")
   # the only condition under which the run may continue
@@ -1090,7 +1099,7 @@ case_state_nextHonoursEveryStopCondition() {
   run_state "$p" done 22 --result blocked --verdict blocked >/dev/null
   out=$(run_state "$p" next 2>&1); status=$?
   assert_eq "3" "$status" "two consecutive blocked items stop the run"
-  assert_contains "$out" "two consecutive" "the reason is named"
+  assert_contains "$out" "2 consecutive" "the reason is named"
 
   # 4b. a round the run's own bound ended is not a block (issue #785): it is a phase the next run resumes, so it
   # neither stops the run nor counts towards the streak — the pair a stop is read from holds two **blocks**, and a
@@ -1111,7 +1120,7 @@ case_state_nextHonoursEveryStopCondition() {
   run_state "$p" done 24 --result blocked --verdict blocked >/dev/null
   out=$(run_state "$p" next 2>&1); status=$?
   assert_eq "3" "$status" "two blocks in a row still stop the run"
-  assert_contains "$out" "two consecutive" "with the reason named"
+  assert_contains "$out" "2 consecutive" "with the reason named"
 
   # 5. less time left than the next item's floor
   p=$(new_project)
@@ -1130,8 +1139,14 @@ case_state_nextHonoursEveryStopCondition() {
 # at exactly 110 turns. The pair therefore holds refusals only, and a state written before the mechanism existed
 # (two `blocked` items and no `stopReason`) still stops the run, which is the reading it always had.
 case_state_aBlockAtTheRunsBoundIsNoRefusal() {
-  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
-  local p out status
+  # files: tools/loop/state.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local p out status d conf
+  # The pair, for the reason `state#nextHonoursEveryStopCondition` pins it: this case is about which block may sit
+  # in the streak, not about how long the streak is (issue #804).
+  d=$(scratch); conf="$d/loop.conf"
+  sed -e 's/^LOOP_REFUSAL_STREAK_STOP=.*/LOOP_REFUSAL_STREAK_STOP=2/' "$LOOP_CONF" > "$conf" ||
+    fail "could not write the loop configuration"
+  export LOOP_CONF="$conf"
   p=$(new_project)
   init_state "$p" 8 90
   printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3},{"issue":24,"class":"bug","verdict":"eligible","rank":4},{"issue":25,"class":"bug","verdict":"eligible","rank":5}]' |
@@ -1153,7 +1168,7 @@ case_state_aBlockAtTheRunsBoundIsNoRefusal() {
   run_state "$p" done 24 --result blocked --verdict blocked >/dev/null || fail "done #24 failed"
   out=$(run_state "$p" next 2>&1); status=$?
   assert_eq "3" "$status" "two refusals in a row stop the run"
-  assert_contains "$out" "two consecutive refusals ended blocked" "and the reason says which pair it read"
+  assert_contains "$out" "2 consecutive refusals ended blocked" "and the reason names the count it read"
   # A state a run wrote before the mechanism existed carries two `blocked` items and no `stopReason` at all: the
   # reading it always had is the reading it keeps, so a field that arrived later turns no block into work.
   p=$(new_project)
@@ -1165,7 +1180,39 @@ case_state_aBlockAtTheRunsBoundIsNoRefusal() {
   assert_eq "" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" "an older record carries no mechanism"
   out=$(run_state "$p" next 2>&1); status=$?
   assert_eq "3" "$status" "and its two blocks still stop the run, as they always did"
-  assert_contains "$out" "two consecutive refusals" "with the same reason"
+  assert_contains "$out" "2 consecutive refusals" "with the same reason"
+}
+
+# The streak is the run's own recorded count, not the pair the engine shipped with (issue #804). A pair is the
+# shortest evidence a prediction can rest on, and over 2026-11-05/06 it was the one thing that ended eight of twelve
+# runs with 55–90 % of their budget unused; a project that knows its refusals are one item's bad luck, not its tree's
+# state, raises the count and the run keeps working. The case writes a count of its own — one the configuration does
+# not carry would satisfy an assertion read from today's value and still be wrong.
+case_state_theStreakIsTheRecordedCount() {
+  # files: tools/loop/state.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf out status
+  d=$(scratch); p=$(new_project)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_REFUSAL_STREAK_STOP=.*/LOOP_REFUSAL_STREAK_STOP=4/' "$LOOP_CONF" > "$conf" ||
+    fail "could not write the loop configuration"
+  grep -qx 'LOOP_REFUSAL_STREAK_STOP=4' "$conf" || fail "this case could not set the streak in loop.conf"
+  export LOOP_CONF="$conf"
+  init_state "$p" 8 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3},{"issue":24,"class":"bug","verdict":"eligible","rank":4},{"issue":25,"class":"bug","verdict":"eligible","rank":5},{"issue":26,"class":"bug","verdict":"eligible","rank":6}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked >/dev/null || fail "done #21 failed"
+  run_state "$p" done 22 --result blocked --verdict blocked >/dev/null || fail "done #22 failed"
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "0" "$status" "the pair the engine shipped with does not stop a run on four"
+  assert_eq "23" "$out" "the queue hands out the next candidate"
+  run_state "$p" done 23 --result blocked --verdict blocked >/dev/null || fail "done #23 failed"
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "0" "$status" "and three refusals are still short of four"
+  assert_eq "24" "$out" "with the fourth candidate handed out"
+  run_state "$p" done 24 --result blocked --verdict blocked >/dev/null || fail "done #24 failed"
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "four refusals in a row stop the run"
+  assert_contains "$out" "4 consecutive refusals ended blocked" "and the reason names the count the configuration records"
 }
 
 # The floor a caller is refused by is the run's own measurement (issue #206): the cheapest wall time of the

@@ -13,11 +13,12 @@
 # run is still restartable, but not silently.
 #
 # `next` exits 3 whenever the run may not start another item, and that exit code — not a caller's
-# arithmetic — is the authority on whether an item may start: the item cap, the deadline, an empty
-# queue, two consecutive refusals, or a remaining time below the next item's floor, which is
-# derived from the cheapest wall time this run recorded for a finished item; `LOOP_ITEM_FLOOR_MINUTES`
-# is the whole floor of a run with no such measurement (design D5, invariant 3). A block the run's own bound
-# caused is not a refusal and holds no pair (issue #786): what the pair is read for is the prediction that the
+# arithmetic — is the authority on whether an item may start: the item cap, the deadline, an empty queue, the
+# recorded streak of consecutive refusals (`LOOP_REFUSAL_STREAK_STOP`, two when a project records none), or a
+# remaining time below the next item's floor, which is derived from the cheapest wall time this run recorded for a
+# finished item; `LOOP_ITEM_FLOOR_MINUTES` is the whole floor of a run with no such measurement (design D5,
+# invariant 3). A block the run's own bound caused is not a refusal and holds no pair (issue #786): what the pair
+# is read for is the prediction that the
 # next item fails the same way, and a bound says nothing about the next item, which starts a fresh worker on a
 # fresh tree. Exit 5 is a refusal that
 # must not be retried inside the same reasoning: the lock is held, or the base has moved (design D12, D4).
@@ -62,6 +63,12 @@ STATE_DIR=""
 RUNS_DIR=""
 LOCK_FILE=""
 FLOOR_MINUTES=45
+# How many consecutive refusals a run stops on. The pair was the engine's own constant until issue #804: a refusal
+# predicts the next item's failure (the same gate, the same provider, the same tree), but two is a prediction made
+# from the shortest possible evidence — measured 2026-11-05/06, eight of twelve runs stopped on the pair with 55–90 %
+# of their budget unused. The value is recorded (`LOOP_REFUSAL_STREAK_STOP`) rather than fixed here, so a run against
+# a flaky provider can be told to try longer, and `2` remains the default for a project that records nothing.
+STREAK_STOP=2
 
 # `init` and `lock` resolve the project; every other command needs the state file to already exist, and
 # resolves the same way so `LOOP_STATE_FILE` from an explicit environment wins in the self-test.
@@ -74,6 +81,8 @@ state_resolve() {
   STATE_FILE="$LOOP_STATE_FILE"
   FLOOR_MINUTES=$(loop_conf_value LOOP_ITEM_FLOOR_MINUTES)
   FLOOR_MINUTES="${FLOOR_MINUTES:-45}"
+  STREAK_STOP=$(loop_conf_value LOOP_REFUSAL_STREAK_STOP)
+  case "$STREAK_STOP" in ''|*[!0-9]*|0) STREAK_STOP=2 ;; esac
   STATE_DIR=$(dirname "$STATE_FILE")
   LOCK_FILE="$STATE_DIR/lock"
   # Where `init` keeps the state it replaces. Empty means `runs/` beside the state file — derived from the
@@ -281,18 +290,19 @@ cmd_next() {
   # (issues #785, #786): a round the run's own bound ended is a phase the next run resumes, so an item recorded
   # `cut` is no more a stop than one that closed, and a worker or gate child ended at its role's turn bound (or at
   # the child clock) is recorded `blocked` with `stopReason: bound` — the same prediction, none of it about the
-  # next item. What the pair is read for is that a refusal predicts the next item's failure — the same gate, the
-  # same provider, the same tree — so only a refusal may sit in a pair. Measured 2026-11-05: five of six runs
-  # stopped on this streak, 758 of 3211 budgeted minutes used across them, and six of that day's eight blocks were
-  # bound cuts (issue #786).
-  reason=$(jq -r '
+  # next item. What the streak is read for is that a refusal predicts the next item's failure — the same gate, the
+  # same provider, the same tree — so only a refusal may sit in it. Measured 2026-11-05: five of six runs stopped
+  # on this streak, 758 of 3211 budgeted minutes used across them, and six of that day's eight blocks were bound
+  # cuts (issue #786). The count is the recorded one (`LOOP_REFUSAL_STREAK_STOP`, issue #804) and not the pair this
+  # line used to hardcode, and the reason names the count it read — a stop of four must not be read as one of two.
+  reason=$(jq -r --argjson streak "$STREAK_STOP" '
     (.run) as $r
     | (.items | length) as $done
     | if $done >= $r.items then "item cap reached (\($done)/\($r.items))"
       elif now >= $r.deadlineEpoch then "deadline passed at \($r.deadlineAt)"
       elif (.queue | length) == 0 then "queue empty"
-      elif ([.items[-2:][] | select(.result == "blocked" and (.stopReason // "") != "bound")] | length) == 2
-        then "two consecutive refusals ended blocked"
+      elif ([.items[-$streak:][] | select(.result == "blocked" and (.stopReason // "") != "bound")] | length) == $streak
+        then "\($streak) consecutive refusals ended blocked"
       else "" end
   ' "$STATE_FILE")
   if [ -z "$reason" ]; then

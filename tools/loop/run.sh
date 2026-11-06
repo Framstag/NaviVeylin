@@ -6,11 +6,11 @@
 # get a prepared work package and a working directory, and nothing else — not a budget, not a queue, not
 # a tracker credential, and never a decision about whether an item closed (design D2, D3, D7, D12).
 #
-# A script cannot ask, so every budget is a flag whose default is recorded in `loop.conf`, and the run
-# stops on its own authority: the item cap, the deadline, an empty queue, two consecutive refusals, or a
-# remaining time the next item cannot be paid for. The stop conditions are `state.sh next`'s, so the
-# run never does its own budget arithmetic (invariant 3). A block the run's own bound caused is not a
-# refusal and holds no pair (issue #786).
+# A script cannot ask, so every budget is a flag whose default is recorded in `loop.conf`, and the run stops on
+# its own authority: the item cap, the deadline, an empty queue, the recorded streak of consecutive refusals
+# (`LOOP_REFUSAL_STREAK_STOP`, issue #804), or a remaining time the next item cannot be paid for. The stop
+# conditions are `state.sh next`'s, so the run never does its own budget arithmetic (invariant 3). A block the
+# run's own bound caused is not a refusal and holds no pair (issue #786).
 #
 # Exit: 0 the run ended (including "nothing eligible"), 2 usage/malformed input, 3 stop (unauthorised
 #       identity, or nothing eligible), 5 refuse (another run holds the lock, the decision cap is

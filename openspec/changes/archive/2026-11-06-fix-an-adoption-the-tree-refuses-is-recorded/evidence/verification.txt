@@ -1,0 +1,85 @@
+Verification — fix-an-adoption-the-tree-refuses-is-recorded (issue #794)
+
+Base: ed509ee4b1f7746f271a4768ecb2be930d98e3a9 (`run.base` of the change root)
+Gate: run once, by the run's gate child of this item (2026-11-06T12:20Z), and not re-run here — §6 below carries its line
+      and `evidence/gate-tally.txt`, `evidence/gate-tallies/` and `evidence/gate.log` carry its per-step tallies.
+
+1. The red case, on the base (production code unmodified)
+   $ bash tools/loop-selftest.sh --case 'run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable'
+   2026-11-06T11:48:55Z
+   run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable|   the refusal is recorded as the item's mechanism: expected 'unmergeable', got 'null'
+   FAIL run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable
+   loop-selftest: 1 of 1 cases failed
+   2026-11-06T11:48:59Z
+   evidence/red-on-HEAD.log, evidence/red-on-HEAD.xml (tests=1 failures=1 errors=0 time=4)
+
+2. Green on the change, focused set (evidence/green-on-change.log, 2026-11-06T11:53:24Z → 11:54:09Z)
+   PASS run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable
+   PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion
+   PASS run#doesNotMergeAnAttemptWithoutAGreenVerification      (the boundary: an inadmissible branch keeps its decision)
+   PASS run#mergesAFinishedAttemptAndClosesTheItem              (the success path is untouched)
+   PASS run#doesNotCloseOnAMergeTheBaseCannotTake               (the run's own merge refusal keeps its block and escalation)
+   PASS run#awaitingDecisionIsNotEscalatedAgain                 (the pre-screen's own decisions are still escalated)
+   PASS prescreen#aFinishedAttemptBranchIsADecision
+   PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+   PASS report#aVerdictAloneIsNoEscalation
+   PASS driver#everyCaseDeclaresTheFilesItCanReach               (the two new cases' first-line declarations)
+   and, after `state.sh queue` was made to carry the record over a second pre-screen (same window,
+   2026-11-06T11:53:24Z → 11:54:09Z):
+   PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion      (carry-over assertion)
+   PASS state#nextHonoursEveryStopCondition
+   PASS state#initAndShowRoundTrips
+   PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+   PASS prescreen#ranksBugsFirstAndKeepsFeatures
+   PASS prescreen#aBlockedAttemptBranchIsWork
+   PASS prescreen#deviceItemIsAVerdictNotWork
+   PASS run#leftoverBranchIsRecordedNotDropped
+   PASS report#escalatedSkipNamesTheLabelWritten
+   PASS report#failedReviewEscalationIsNamed
+
+3. The mutation the change owes
+   $ bash tools/loop-mutations.sh --only 86.1
+   loop-mutations: selected 1 of 249 records (labels: 86.1)
+   RED    86.1  run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable   (...)
+          2026-11-06T11:51:29Z — the refusal is recorded as the item's mechanism: expected 'unmergeable', got 'null'
+   restore 86.1 run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable green again
+   red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+
+   $ bash tools/loop-mutations.sh --check --files tools/loop/run.sh
+   loop-mutations: selected 96 of 249 records (files: tools/loop/run.sh)
+   loop-mutations: all 96 cases passed — every selected record applies to the file it names
+
+   $ bash tools/loop-mutations.sh --check --files tools/loop/state.sh
+   loop-mutations: selected 15 of 249 records (files: tools/loop/state.sh)
+   loop-mutations: all 15 cases passed — every selected record applies to the file it names
+
+4. The change's own numbers (`./tools/loop/measure.sh --change fix-an-adoption-the-tree-refuses-is-recorded`)
+   LOOP-MEASURE-SUITE cases=330 cmd=tools/loop-selftest.sh --list
+   LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+   LOOP-MEASURE-CHANGE fix-an-adoption-the-tree-refuses-is-recorded scenarios=3 cases=3 unnamed=0
+   LOOP-MEASURE-TALLY openspec/changes/fix-an-adoption-the-tree-refuses-is-recorded/evidence/red-on-HEAD.xml tests=1 failures=1 time=4s
+   LOOP-MEASURE-CHECK tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach  (the gate's first step, run first: green)
+
+5. The paths the diff touches
+   tools/loop/run.sh · tools/loop/state.sh · tools/loop/report.sh · tools/loop-cases.sh ·
+   tools/loop-mutations.sh · guidelines/Backlog.recipes.md:586 "Refusals, records and the landing" ·
+   openspec/changes/fix-an-adoption-the-tree-refuses-is-recorded/{proposal.md,design.md,tasks.md,specs,evidence}
+
+6. The gate (quoted from the gate child; the tail did not run it)
+   LOOP-GATE: tests=925 failures=0 errors=0 (tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach,
+   ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache, tools/loop-selftest.sh --from-git
+   b114e2d04b9f643949358ac4a5db606666dd4d1d, tools/loop-mutations.sh --check, tools/loop-mutations-selftest.sh,
+   tools/sensor-selftest.sh, tools/sensor-mutations.sh --list, tools/check-compose-sandbox-rule.sh,
+   tools/check-compose-sandbox-rule-selftest.sh, tools/gen-feature-list.sh --check-classification,
+   tools/check-doc-routes.sh, tools/check-doc-routes-selftest.sh, tools/mutate.sh --mutations
+   tools/check-doc-routes-mutations.json --list, tools/check-todo-references.sh, tools/check-openspec-hygiene.sh,
+   tools/check-openspec-hygiene-selftest.sh, tools/check-portability.sh, tools/check-portability-selftest.sh,
+   tools/mutate-selftest.sh, tools/mutate.sh --mutations tools/portability-mutations.json --list,
+   tools/issue-tooling-selftest.sh, tools/mutate.sh --mutations tools/status-mutations.json --list,
+   tools/mutate.sh --mutations tools/create-mutations.json --list, tools/mutate.sh --mutations
+   tools/close-mutations.json --list, tools/mutate.sh --mutations tools/duplicates-mutations.json --list,
+   tools/mutate.sh --mutations tools/decision-question-mutations.json --list)
+   The gate's own tallies sum to that line: `evidence/gate-tallies/*.xml` carry tests=925 failures=0 errors=0
+   over the 26 steps, and its loop-suite step (`tools/loop-selftest.sh --from-git
+   b114e2d04b9f643949358ac4a5db606666dd4d1d`, tests=330 failures=0) is the suite the new case runs in.
+   The red half is this change's own XML: `evidence/red-on-HEAD.xml`, tests=1 failures=1 errors=0.

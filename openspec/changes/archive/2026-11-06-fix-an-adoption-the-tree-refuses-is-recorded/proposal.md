@@ -4,7 +4,7 @@
 
 Issue **#794**. `adopt_finished_exclusions` (`tools/loop/run.sh:397`) hands each excluded branch to
 `adopt_finished_attempt` and discards the result — before this change,
-`adopt_finished_attempt "$issue" "$branch" >&2 || true` (`tools/loop/run.sh:406` on the base) — while the
+`adopt_finished_attempt "$issue" "$branch" >&2 || true` (`tools/loop/run.sh:395` on the base, `:406` on the change) — while the
 pre-screen has already written that branch as the run's decision verdict
 (`prescreen.sh:382`, `.excluded[] | select(.verdict == needs-decision) | .evidence = fix/issue-…`). Whatever
 `adopt-item` refused for is therefore escalated two steps later by `escalate_prescreen_decisions`
@@ -32,7 +32,10 @@ owner answered the item's only real question (2026-11-05T18:59Z) and 1 h after a
 2026-11-05-fix-a-child-is-bounded-by-its-context` the whole time. The adoption had failed because the project
 tree was not clean; the 2026-11-06 replay was refused again, this time by a real conflict —
 `git cherry-pick 9a98f616` conflicting in `guidelines/BacklogTooling.md`, `tools/loop-cases.sh`,
-`tools/loop/loop.conf`, `tools/loop/run.sh`. Two of that run's ten decision slots went this way (#760, #788).
+`tools/loop/loop.conf`, `tools/loop/run.sh`. The item's own text records #788 beside it as one "whose adoption would
+have failed for the same class of reason" — a hypothesis, not a second measured refusal — so the measured count is
+one of that run's ten decision slots, and the second is the shape the run would have reached had the adoption been
+read.
 
 **The red case, on the base `ed509ee4`** (`bash tools/loop-selftest.sh --case
 'run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable'`):
@@ -51,24 +54,30 @@ excluded branch passes every input `adopt-item` decides on and whose project tre
 and it asserts what the pre-screen's `needs-decision` verdict currently hides: no `agent/needs-decision` write, no
 close, the item's own record carrying `unmergeable` and the refusal's text, and the branch still the evidence.
 
-**Owning requirement:** `openspec/specs/agent-issue-loop/spec.md`, **added** — "An adoption the tree refuses is
-recorded as `unmergeable`, not escalated" — because the requirement that owns the branch ("Version control
-belongs to the run's script, not to the agent", `:306`) already draws the line this change keeps: a branch that is
-*not admissible for adoption* "SHALL be refused and escalated as a decision" (`:313`), and this change says what an
-admissible branch's own refusal is instead. Nothing in the shipped spec contradicts it, so no requirement is
-modified and no shipped scenario is carried over.
+**Owning requirements:** `openspec/specs/agent-issue-loop/spec.md` — **two modified, one added**. The shipped
+requirement that owns the branch, "Version control belongs to the run's script, not to the agent", read "a branch
+whose attempt **finished** … SHALL be merged and its item closed by the run, or, when it is not admissible for
+adoption, SHALL be refused and escalated as a decision", and its scenario "A finished attempt's branch is merged and
+its item closed" said merging is what happens to such a branch: both are unconditional for a branch the tree
+refuses, so both are amended with the refusal's own outcome — recorded `unmergeable` beside the exclusion, no
+decision label, no item record, the item still work. "A block records the mechanism that stopped it" said a
+mechanism belongs to a block and one on any other result is refused; the exclusion this change writes one on is now
+its one named second home, and no other mechanism has one. The requirement this change **adds** is "An adoption the
+tree refuses is recorded as `unmergeable`, not escalated": its own three scenarios, and the report line and the
+carry-over a second pre-screen owes it.
 
 **Owning guideline section:** `guidelines/Backlog.recipes.md`:586 "Refusals, records and the landing",
 the paragraph that says what a branch the run may adopt carries (`:640`) — the adoption's two refusals are named
 there beside the branch's evidence, and the run's own report line that prints them comes from `state.sh report`
 and `report.sh`, which this change edits rather than re-states.
 
-surface: 2 cases added, 0 rewritten, 0 fixtures realigned, 1 requirement added (3 scenarios) — counted with
-`bash tools/loop-selftest.sh --list | wc -l` (330 on the change), `grep -c '^#### Scenario'
-openspec/specs/agent-issue-loop/spec.md` (326) and `grep -c '^case_run_' tools/loop-cases.sh` (124) — 3 engine
-sites changed (`run.sh`'s exclusion loop and its escalation predicate, `state.sh`'s new `adoption-refused` writer
-and its excluded line, `report.sh`'s two decision predicates and its excluded line), 1 guideline section, and 1
-record of `tools/loop-mutations.sh` (86.1, added for the new record; the base's highest id is 85.2).
+surface: 2 cases added, 0 rewritten, 0 fixtures realigned, 2 requirements modified (18 shipped scenarios carried
+over, one of them added) and 1 requirement added (3 scenarios) — counted with `bash tools/loop-selftest.sh --list |
+wc -l` (330), `grep -c '^#### Scenario' openspec/specs/agent-issue-loop/spec.md` (330) and `grep -c '^case_run_'
+tools/loop-cases.sh` (125); the delta carries 21 scenarios, each naming one case — 3 engine files changed
+(`run.sh` 5 hunks, `state.sh` 6, `report.sh` 4, `git diff -U0 ed509ee4 d1e83c26 -- tools/loop/` reads 15 of the 22
+under `tools/`), 1 guideline section, and 1 record of `tools/loop-mutations.sh` (86.1, added for the new record; the
+base's highest id is 85.2).
 
 ## What Changes
 
@@ -95,8 +104,8 @@ record of `tools/loop-mutations.sh` (86.1, added for the new record; the base's 
 
 ## What this does not do
 
-- It does not touch the start-time path (`run.sh:1784`): an item that is already being picked has an item record,
-  and a refusal there is a block that is escalated, as the run's own merge refusal is (`run.sh:2586`).
+- It does not touch the start-time path (`run.sh:1807`, `:1784` on the base): an item that is already being picked
+  has an item record, and a refusal there is a block that is escalated, as the run's own merge refusal is (`run.sh:2586`).
 - It does not reclassify a branch: `branch-state`'s vocabulary and `adopt-item`'s refusals are unchanged, and no
   new refusal word is added to `worktree.sh`.
 - It does not retry the adoption inside the run that refused it: the dirt that refused the merge is still there,

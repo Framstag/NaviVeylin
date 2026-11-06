@@ -24,8 +24,10 @@ Gate: run once, by the run's gate child of this item (2026-11-06T12:20Z), and no
    PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
    PASS report#aVerdictAloneIsNoEscalation
    PASS driver#everyCaseDeclaresTheFilesItCanReach               (the two new cases' first-line declarations)
-   and, after `state.sh queue` was made to carry the record over a second pre-screen (same window,
-   2026-11-06T11:53:24Z → 11:54:09Z):
+   and, once `state.sh queue` was carrying the record over a second pre-screen, ten more. Those ten are not in
+   `green-on-change.log` — the file's window holds the ten above and no more — so they are cited from the gate's
+   loop-suite step instead (`evidence/gate-tallies/tools_loop-selftest.sh_--from-git_b114e2d04b9f643949358ac4a5db606666dd4d1d.xml`,
+   tests=330 failures=0, 2026-11-06T12:05Z–12:19Z), which ran the whole suite:
    PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion      (carry-over assertion)
    PASS state#nextHonoursEveryStopCondition
    PASS state#initAndShowRoundTrips
@@ -56,7 +58,8 @@ Gate: run once, by the run's gate child of this item (2026-11-06T12:20Z), and no
 4. The change's own numbers (`./tools/loop/measure.sh --change fix-an-adoption-the-tree-refuses-is-recorded`)
    LOOP-MEASURE-SUITE cases=330 cmd=tools/loop-selftest.sh --list
    LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
-   LOOP-MEASURE-CHANGE fix-an-adoption-the-tree-refuses-is-recorded scenarios=3 cases=3 unnamed=0
+   LOOP-MEASURE-CHANGE 2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded scenarios=21 cases=21 unnamed=0
+   (the round-2 reading; before the correction round this line read scenarios=3 cases=3)
    LOOP-MEASURE-TALLY openspec/changes/fix-an-adoption-the-tree-refuses-is-recorded/evidence/red-on-HEAD.xml tests=1 failures=1 time=4s
    LOOP-MEASURE-CHECK tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach  (the gate's first step, run first: green)
 
@@ -83,3 +86,34 @@ Gate: run once, by the run's gate child of this item (2026-11-06T12:20Z), and no
    over the 26 steps, and its loop-suite step (`tools/loop-selftest.sh --from-git
    b114e2d04b9f643949358ac4a5db606666dd4d1d`, tests=330 failures=0) is the suite the new case runs in.
    The red half is this change's own XML: `evidence/red-on-HEAD.xml`, tests=1 failures=1 errors=0.
+
+7. Correction round 2 (review round 1's blocking finding: the delta was ADDED where two shipped requirements are
+   contradicted, and the mechanism vocabulary named no home for `unmergeable` on an exclusion)
+   The delta now carries `## MODIFIED Requirements` for "Version control belongs to the run's script, not to the
+   agent" (its merge-and-close scenario amended with the refusal's own outcome) and for "A block records the
+   mechanism that stopped it" (the exclusion named as the word's one second home, with a scenario naming
+   `state#anAdoptionRefusalIsRecordedBesideTheExclusion`), and `openspec/specs/agent-issue-loop/spec.md` was
+   re-merged from those sections. No production file was touched and no case was added or changed; the gate was
+   nonetheless run once, as the run's configuration states it, and it is quoted in §8. The checks that owe this
+   delta's own text are the spec artifacts', and their output is `evidence/round-2-corrections.txt`:
+     $ python3 /tmp/delta-verify.py   →   3 requirements, 3 MATCH, scenarios=21 case lines=21, none unnamed,
+                                         spec scenarios: 330
+     $ ./tools/check-openspec-hygiene.sh   → rc=0
+     $ ./tools/check-doc-routes.sh         → rc=0 (all 329 section references resolve)
+     $ ./tools/check-rule-routes.sh --diff ed509ee4b1f7746f271a4768ecb2be930d98e3a9   → rc=0
+     $ ./tools/loop/measure.sh --change 2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded
+       LOOP-MEASURE-SUITE cases=330 cmd=tools/loop-selftest.sh --list
+       LOOP-MEASURE-CHANGE 2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded scenarios=21 cases=21 unnamed=0
+   The pointer and number defects the same review noted in passing are corrected where they were written: the
+   proposal's reproduced counts (`330` / `125`), its `run.sh:395` on the base, the `#788` claim cut to what the item
+   records, and the surface line's file-and-hunk count; the second batch of `PASS` lines in §2 cites the gate tally
+   that carries it.
+
+8. The gate of correction round 2 — run once, in the change root, after the correction (`evidence/gate-round-2.txt`
+   quotes it in full and `evidence/gate-tallies-round2/` holds the 26 tallies it left)
+   LOOP-GATE: tests=925 failures=0 errors=0 (tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 10s,
+   ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 259s, tools/loop-selftest.sh --from-git
+   b114e2d04b9f643949358ac4a5db606666dd4d1d 420s, bash tools/loop-mutations.sh --check 2s,
+   tools/loop-mutations-selftest.sh 245s, tools/sensor-selftest.sh 77s, … — the full list is in the file)
+   The tallies sum to the same line: `tests=925 failures=0` over 26 files, read from their `tests=` / `failures=`
+   attributes. The loop-suite step `tests=330 failures=0` is the suite the three delta scenarios' cases run in.

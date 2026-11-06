@@ -48,3 +48,30 @@ pointers.
     ok   C5 file:line: 310 resolved and in range, 14 unresolved or ambiguous
     ----
     evidence-check: PASS
+
+## Third run, phase F of the tail (correction round 2, the change already under `openspec/changes/archive/`)
+
+The change was archived in round 1, so the check has to be given the change's absolute path: the archived mode
+(`*/openspec/changes/archive/*`) is what makes C1/C2 report-only, and a relative path silently reads as a live
+change. From the change root:
+
+    $ bash tools/loop/evidence-check.sh "$PWD/openspec/changes/archive/2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded" --root .
+    note archived change: C1/C2 are report-only (archived artifacts keep their historical §-citations and a later run may have overwritten their XML); C3/C4/C5 stay strict
+    ok   C1 §references: 3 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 4 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 311 resolved and in range, 236 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+
+The 236 unresolved `file:line` citations are bare basenames (`run.sh:395`, `state.sh:294`, …) that the tree-wide
+basename search cannot single out because the vendored libosmscout CI keeps a `run.sh` of its own; each resolves
+against `tools/loop/<name>` and none points past the end of that file, so the count is the check's ambiguity
+report and not a dangling claim.
+
+What the run before this one reported, and what this one changed: the two `tests=925 failures=0` quotes had no XML
+carrier (both gates' own tallies sum to that number, but the gate prints the sum and writes only per-step files),
+so C2 reported two DRIFTs. `evidence/gate-round-2-sum.xml` now carries the sum — the 26 tallies' attributes copied
+unchanged, labelled in the file as derived and not a run — and `evidence/gate-round-2.txt` says so beside the
+quote. Nothing was re-run.

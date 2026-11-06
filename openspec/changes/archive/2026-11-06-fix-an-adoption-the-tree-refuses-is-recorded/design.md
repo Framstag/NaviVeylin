@@ -40,8 +40,10 @@ and the branch — the evidence — is left where the next pre-screen finds it.
 The item's text offers both shapes ("recorded as the item's mechanism `unmergeable` (or as a block whose reason is
 the refusal, and no decision label)"). A block is the wrong one, eliminated by the tree's own rules:
 
-- `state.sh` refuses a mechanism on anything but a block (`state.sh:512`), so a block record is the only place a
-  `stopReason` fits — and a block is what `state.sh next` reads the two-blocked streak from
+- `state.sh` refuses a mechanism on an item record that is not a block (`state.sh done --stop-reason`), which is
+  why the exclusion's mechanism is written by a command of its own instead of through `done`; the shipped
+  vocabulary requirement now names that exclusion as the mechanism's one second home, so the word has one place
+  beside the block and no free field. A block is also what `state.sh next` reads the two-blocked streak from
   (`state.sh:294`). An adoption the tree refused says nothing about the *next* item, and the item's own text
   asks for exactly that: "the two-block streak counts it only if the item's own worker finishes" — no worker ran.
 - The run's own merge refusal is a different fact and keeps its block (`run.sh:2609`, case
@@ -69,7 +71,10 @@ the only distinction the run needs: is anything *on the branch* the owner's, or 
   and `queue` carrying it over when a second pre-screen rewrites the exclusions.
 - `tools/loop/report.sh`: the same `select` in the decision count and in the decision list, and the mechanism on
   the "excluded before any work" line.
-- `openspec/specs/agent-issue-loop/spec.md`: one requirement added, no shipped one modified.
+- `openspec/specs/agent-issue-loop/spec.md`: one requirement added, and two shipped requirements modified —
+  "Version control belongs to the run's script, not to the agent" with its merge-and-close scenario, and "A block
+  records the mechanism that stopped it" — because the shipped text is unconditional for a finished branch the
+  tree refuses, and because the mechanism now has a home on the exclusion.
 - `guidelines/Backlog.recipes.md`:586 (and `:725`'s excluded line) state the new record.
 - `tools/loop-mutations.sh`: one record (86.1) for the new write, so the invariant has the case that fails when
   the record is dropped.

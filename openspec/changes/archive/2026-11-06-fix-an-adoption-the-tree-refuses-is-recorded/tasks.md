@@ -56,3 +56,34 @@ contract.
 - [x] 4.2 `tools/loop-mutations.sh` record 86.1 drops the record the exclusion loop writes and names the new case.
       Verify: `bash tools/loop-mutations.sh --check --files tools/loop/run.sh` green, and the record run red/green
       with the case.
+
+## 5. Review round 1's blocking finding — the delta's kind
+
+- [x] 5.1 The delta carries `## MODIFIED Requirements` for the two shipped requirements the change contradicts:
+      "Version control belongs to the run's script, not to the agent" — the finished branch's clause and its
+      scenario "A finished attempt's branch is merged and its item closed" now carry the refusal's own outcome —
+      and "A block records the mechanism that stopped it", which names the pre-screen's exclusion as the one
+      second home of `unmergeable` and gains the scenario naming
+      `state#anAdoptionRefusalIsRecordedBesideTheExclusion`. The 17 shipped scenarios are restated with them, so
+      every requirement the archive carries and the delta names are one text. Verify: the requirement sections of
+      the delta and of `openspec/specs/agent-issue-loop/spec.md` compare byte for byte — `3 MATCH` from the probe
+      in `evidence/round-2-corrections.txt` §1.
+- [x] 5.2 `openspec/specs/agent-issue-loop/spec.md` is re-merged from those sections — no requirement left saying
+      an admissible finished branch is merged and closed unconditionally. Verify: `tools/check-openspec-hygiene.sh`
+      rc=0, `tools/check-doc-routes.sh` rc=0 (all 329 section references resolve) and
+      `tools/check-rule-routes.sh --diff ed509ee4b1f7746f271a4768ecb2be930d98e3a9` rc=0 —
+      `evidence/round-2-corrections.txt` §2.
+- [x] 5.3 The claims that were false are deleted or cut to what was measured: `proposal.md` no longer says "Nothing
+      in the shipped spec contradicts it", its surface numbers are the commands' current output (330 / 125, the
+      delta's 21 scenarios and 21 cases), the base pointer is `run.sh:395`, `#788` is the item's hypothesis and not
+      a second measured refusal, and `design.md`'s blast radius and vocabulary argument name the two modified
+      requirements. Verify: `./tools/loop/measure.sh --change
+      2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded` reads `scenarios=21 cases=21 unnamed=0` beside
+      `LOOP-MEASURE-SUITE cases=330` — `evidence/round-2-corrections.txt` §3.
+- [x] 5.4 The second batch of `PASS` lines the round-1 review could not find in `green-on-change.log` now cites the
+      gate tally that carries it. Verify: the file it names carries `tests=330 failures=0`, and the log it no longer
+      claims holds exactly the ten lines it has.
+- [x] 5.5 The gate, run once after the correction because the run's configuration states it for this round: no case
+      was added and none changed, so its numbers are the change's own. Verify: `LOOP-GATE: tests=925 failures=0
+      errors=0`, whose 26 tallies sum to the same `tests=925 failures=0` — `evidence/gate-round-2.txt` and
+      `evidence/gate-tallies-round2/`.

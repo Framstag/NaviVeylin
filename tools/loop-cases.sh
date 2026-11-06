@@ -190,6 +190,8 @@ LOOP_SHELL_CASES=(
   'run#theChildCapIsNeverBelowWhatOneItemsGateOwes'
   'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes'
   'run#childIsEndedAtTheRunsDeadline'
+  'run#aVanishedWriterEndsTheWait'
+  'run#aSlowChildIsNotMistakenForAVanishedWriter'
   'run#reviewerEndedAtTheRunsDeadlineIsNotADecision'
   'run#aReviewerEndedAtItsTurnBoundIsNotARefusal'
   'run#detachedProcessInTheWorktreeIsEndedByTheCap'
@@ -562,6 +564,8 @@ loop_run_shell_case() {
     'run#theChildCapIsNeverBelowWhatOneItemsGateOwes') fn=case_run_theChildCapIsNeverBelowWhatOneItemsGateOwes ;;
     'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes') fn=case_state_theItemFloorIsOnlyBelowWhatOneItemsGateOwes ;;
     'run#childIsEndedAtTheRunsDeadline') fn=case_run_childIsEndedAtTheRunsDeadline ;;
+    'run#aVanishedWriterEndsTheWait') fn=case_run_aVanishedWriterEndsTheWait ;;
+    'run#aSlowChildIsNotMistakenForAVanishedWriter') fn=case_run_aSlowChildIsNotMistakenForAVanishedWriter ;;
     'run#reviewerEndedAtTheRunsDeadlineIsNotADecision') fn=case_run_reviewerEndedAtTheRunsDeadlineIsNotADecision ;;
     'run#aReviewerEndedAtItsTurnBoundIsNotARefusal') fn=case_run_aReviewerEndedAtItsTurnBoundIsNotARefusal ;;
     'run#detachedProcessInTheWorktreeIsEndedByTheCap') fn=case_run_detachedProcessInTheWorktreeIsEndedByTheCap ;;
@@ -5116,6 +5120,145 @@ case_run_childIsEndedAtTheRunsDeadline() {
     "and the report asks the owner no question about the item cut at the deadline"
   assert_contains "$(jq -r '.run.stop.reason // ""' "$state")" "deadline passed at" \
     "the run records the deadline as its stop reason"
+}
+
+# A child's own record is the one event the wait ends on, and nothing in that wait asks whether the writer that
+# would write it still exists (issue #795). A writer killed before it wrote one — the session that owned the run
+# died and the run was reparented to `systemd --user` — is then waited for until the child's wall clock, which is
+# 45 minutes of a run that neither works nor stops: measured 2026-11-06, item #793 sat in that poll 17 minutes into
+# a 600-minute budget, with its lock still held and its item still `agent/in-progress`, and had nobody looked the
+# cap would have blocked the item for a dead child and the lock would have refused every run after it. The wait
+# reads the pid of its own writer as **one more** condition, and only while the record is absent.
+case_run_aVanishedWriterEndsTheWait() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo pid i status out report state pgid
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # An hour of child clock, so only the writer's own liveness can end this wait: every other clock the wait reads
+  # is out of reach of a case.
+  conf="$d/loop.conf"
+  conf_with_child_cap 3600 "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=3600' "$conf" || fail "this case could not lengthen the child cap in loop.conf"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  export SLOW_FIFO="$fifo" SLOW_PGID="$d/child.pgid"
+  # The child writes down the process group `set -m` made of the run's own subshell — the subshell *is* the writer
+  # of the completion record, and its group is the only handle on it a case has — and then blocks on the fifo. The
+  # case kills that group while the child is still working, so the writer dies before the record is written: that is
+  # the shape a killed session leaves, and it is not the child's own exit. Only the change child blocks; the gate
+  # child and the tail are answered at once, which is the shape `stub_per_item_worker` already gives a case.
+  stub_per_item_worker "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' '
+    printf "%s\n" "$(ps -o pgid= -p $$ | tr -d " ")" > "$SLOW_PGID"
+    : > "$SLOW_FIFO.ready"
+    read -r _ < "$SLOW_FIFO" || true
+'
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started; the run said: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  wait_for_stub_child "$d/child.pgid" || true
+  [ -e "$d/child.pgid" ] || fail "the stub child never recorded the group it was started in"
+  pgid=$(tr -cd '0-9' < "$d/child.pgid")
+  [ -n "$pgid" ] || fail "the stub child wrote no process group"
+  kill -KILL -- -"$pgid" 2>/dev/null || fail "this case could not kill the group the child's writer lives in"
+  # 60 s is a bound on this case, not on the run: the wait looks once a second and a pid bash has reaped answers
+  # `kill -0` with nothing, so the run ends itself a second or two after its writer died.
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting 60 s after the writer of its child's record was killed"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a wait the run itself ended is not a failed run"
+  assert_contains "$out" "loop: worker-prompt finished in" "the wait is reported as finished, not abandoned"
+  assert_contains "$out" "exit 124" "with the timeout's own status, distinct from a child's failure"
+  state=$(state_file "$p")
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child whose writer vanished"
+  assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child's writer" \
+    "the transcript names the writer that vanished as the reason the wait ended"
+  assert_contains "$(cat "$report")" "vanished before it wrote its completion record" \
+    "and says what it was gone before doing"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" \
+    "an item whose child's writer vanished is recorded blocked"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "vanished before it wrote its completion record" \
+    "and the reason on the item names the vanished writer"
+  # The run ended this child, so the mechanism is the bound and not a finding about the item (issue #786): the
+  # item is left for the next run, and the next run's pre-screen is what takes it up again.
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$state")" \
+    "a vanished writer is a bound the run enforced, not a refusal of the change"
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$state")" \
+    "and is not escalated as a decision, because a bound asks nobody a question"
+  assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "no decision label is written for an item whose writer vanished"
+}
+
+# …and the other half of that condition is the one #227 paid for: a poll that believes the child gone blocks for
+# ever behind a `wait`, and a child that is merely slow must never be read as one whose writer vanished. The stub
+# here is alive and has written nothing, which is what a worker reading its package looks like; the run keeps
+# waiting, and the case releases it and lets the run finish.
+case_run_aSlowChildIsNotMistakenForAVanishedWriter() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo pid i status out report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  conf_with_child_cap 3600 "$conf"
+  grep -qx 'LOOP_CHILD_MAX_SECONDS=3600' "$conf" || fail "this case could not lengthen the child cap in loop.conf"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  export SLOW_FIFO="$fifo"
+  # The change child is alive and has written nothing — a worker reading its package looks exactly like this — and
+  # then does the item's work once the case releases it. The gate child and the tail answer at once, so the item
+  # closes and the run ends by itself; what the case is about is only what happened in the five seconds before.
+  stub_per_item_worker "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' '
+    : > "$SLOW_FIFO.ready"
+    read -r _ < "$SLOW_FIFO" || true
+    change=openspec/changes/archive/2026-01-01-fix-demo
+    mkdir -p "$change/evidence" app/build/test-results/test
+    printf "archived\n" > "$change/proposal.md"
+    printf "<testsuite tests=\"1\" failures=\"0\"></testsuite>\n" > app/build/test-results/test/TEST-demo.xml
+    cp app/build/test-results/test/TEST-demo.xml "$change/evidence/TEST-demo.xml"
+    printf "the fix\n" > demo-fix.txt
+'
+  set -m
+  ( export LOOP_CONF="$conf"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started; the run said: $(cat "$d/out")"
+  exec 8<> "$fifo"
+  # The case's own wait, not the run's: the wait looks once a second, so five seconds of a live child that has
+  # written nothing is five looks at a child that is there. What the case asserts is that not one of them ended it.
+  for i in $(seq 1 50); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  kill -0 "$pid" 2>/dev/null ||
+    fail "the run stopped on a live child that had not finished yet; it said: $(cat "$d/out")"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  assert_not_contains "$(cat "$report" 2>/dev/null || true)" "vanished" \
+    "a live child that is merely slow is never read as one whose writer vanished"
+  printf 'go\n' >&8 2>/dev/null || true
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run did not finish after the slow child answered"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a run whose live child answered at last is not a failed run"
+  assert_contains "$out" "loop: worker-prompt finished in" "the wait ends on the record the child wrote itself"
+  assert_not_contains "$out" "exit 124" "and not at the run's own timeout"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "the item the slow child finished is the item the run recorded"
 }
 
 # The item's worker is not the only child the run's clock can end (issue #674): the deadline is consulted while a

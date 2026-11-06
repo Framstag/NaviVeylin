@@ -1456,6 +1456,20 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         break
       fi
     fi
+    # …and the one condition that is not a bound at all (issue #795): the record this wait ends on is written by
+    # this shell's own subshell, so a `kill -0` on that pid is the only reading that tells a child still working
+    # from a child whose writer was killed before it wrote the record. It is taken only while the record is absent,
+    # and used only to end the wait: what #227 measured was a poll that believed a child gone — a pid the shell had
+    # already reaped answers nothing, and a `wait` on it returns no status — so this reading never waits on the pid.
+    # Measured 2026-11-06: the run started at 06:27:14Z was reparented to `systemd --user` when the session that
+    # owned it died, sat in this poll 17 minutes into a 600-minute budget with its lock still held and its item still
+    # `agent/in-progress`, and the cap would have ended the wait at 45 minutes — an item blocked for a dead child,
+    # and a lock that would have refused every run after it.
+    if [ ! -e "$status_file" ] && ! kill -0 "$child" 2>/dev/null; then
+      ended_by=writer
+      timed_out=1
+      break
+    fi
     sleep "$poll"
   done
   rc=0
@@ -1493,6 +1507,13 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       # as its own timeout, so the reviewer-round and pre-gate paths that already read a cut transcript keep working.
       printf 'LOOP-TIMEOUT: the child reached the recorded context bound of %s tokens (LOOP_ITEM_CONTEXT_MAX) at %s tokens — the run ended it and everything it started\n' \
         "$item_context_max" "$ctx_max" >> "$2"
+    elif [ "$ended_by" = writer ]; then
+      # The event this wait ends on can only be written by a process that is running, so a writer that is gone is
+      # the reason the wait ended — and the item's note must not read as a clock that fired (issue #795). The line
+      # is the one the run reads as its own timeout, which is what records the item `blocked` with `bound` as its
+      # mechanism instead of an escalation nobody asked for.
+      printf 'LOOP-TIMEOUT: the child\047s writer (pid %s) vanished before it wrote its completion record — the run ended the wait\n' \
+        "$child" >> "$2"
     else
       printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
     fi

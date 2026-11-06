@@ -789,6 +789,14 @@ MUTATIONS=(
   # with three of six items ended at exactly 110 turns.
   '81.1@-@tools/loop/run.sh@run#childPastItsTurnBoundIsBlocked@the mechanism a block a turn bound caused records, so a bound reads as a refusal (issue #786)@s|^    if \[ "\$last_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then stop_reason="bound"; fi$|    : # the mutation records no mechanism|'
   '81.2@-@tools/loop/state.sh@state#aBlockAtTheRunsBoundIsNoRefusal@the streak read from refusals only, so two bound blocks stop a run whose queue and clock are untouched (issue #786)@s|select(.result == "blocked" and (.stopReason // "") != "bound")|select(.result == "blocked")|'
+
+  # 82.x — a wait whose writer vanished ends on that fact, not on a clock (issue #795). Measured 2026-11-06: a run
+  # started at 06:27:14Z was reparented to `systemd --user` when the session that owned it died, and it sat in the
+  # poll for its child's completion record with a single `sleep 0.05`, its lock still held and item #793 still
+  # `agent/in-progress`; found 17 minutes in, and the child cap would have ended the wait at 45 minutes with an item
+  # blocked for a dead child. The mutation drops the liveness reading, so the case sees the wait the tree's poll was
+  # — ended by a clock 3 600 s away — and nothing else changes: the record and every clock are untouched.
+  '82.1@-@tools/loop/run.sh@run#aVanishedWriterEndsTheWait@the liveness of the subshell that writes the child record, so a writer that vanished is waited for until a clock (issue #795)@s|^    if \[ ! -e "\$status_file" \] && ! kill -0 "\$child" 2>/dev/null; then$|    if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

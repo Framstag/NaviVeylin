@@ -294,6 +294,18 @@ amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
+…and the wait that ends on the child's own record reads **one condition that is not a bound** (issue #795): the
+record is written by the run's own subshell, so a `kill -0` on that pid is the only reading that tells a child still
+working from a child whose writer was killed before it wrote one. It is taken only while the record is absent, and used
+only to end the wait — this poll never `wait`s on the pid, which is the shape #227 measured (a poll that believed a
+child gone and then blocked for ever behind a `wait`). Measured 2026-11-06: the run started at 06:27:14Z was
+reparented to `systemd --user` when the session that owned it died, and it sat in that poll 17 minutes into a
+600-minute budget with its lock still held and item #793 still `agent/in-progress`; the cap would have ended the wait
+at 45 minutes, an item blocked for a dead child and a lock that would have refused every run after it. The transcript
+names what happened (`LOOP-TIMEOUT: the child's writer (pid <n>) vanished before it wrote its completion record`), the
+item is recorded `blocked` with `bound` as its mechanism, and a child that is merely slow is waited for exactly as it
+was.
+
 A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (170 for the worker, 80 for the
 gate child, 65 for the tail, 75 for a review round and 75 for the round before the gate; `0` or absent = no bound)
 ends a child that has spent **its own role's** turns, read from the item's event stream — one `turn_end` per turn,

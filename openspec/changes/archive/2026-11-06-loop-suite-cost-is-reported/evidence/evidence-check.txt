@@ -1,0 +1,54 @@
+# evidence-check — what the pointer check reported, and what was corrected
+
+Every line is a command's own output; the command is above it.
+
+## First run, as the tail found the change
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/loop-suite-cost-is-reported --root .
+    FAIL C1 dangling §7 ... (six times)
+    ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 224 resolved and in range, 0 unresolved or ambiguous
+    evidence-check: FAIL (6)
+
+C2–C5 were green: no quoted tally, no `/tmp` pointer, no surviving mutation marker, every `file:line` resolving.
+
+## What the six were
+
+    $ grep -rn '§7' openspec/changes/loop-suite-cost-is-reported
+    ./proposal.md:20:... 2026-10-25, `guidelines/Backlog.md` §7c), against 312 cases paying **17 min 15 s** on the
+    ./proposal.md:49:- **`guidelines/Backlog.recipes.md`** §7c — the paragraph that states the suite's cost gains the report
+    ./proposal.md:55:  on the same host (`guidelines/Backlog.md` §7c: 8m25s, 9m46s, 5m45s for the same gate), so the report
+    ./design.md:42:  spent 30 minutes at 194 MB free RAM (`guidelines/Backlog.md` §7c, the measurement behind `LOOP_MIN_FREE_MIB`).
+    ./design.md:48:  is what a person and the gate read. `guidelines/Backlog.md` §7c already states that a suite's numbers
+    ./tasks.md:58:      `guidelines/Backlog.recipes.md` §7c states the rule with these numbers.
+
+Each was a **guideline section**, not a backlog `§`-issue: `guidelines/Backlog.md` §7c "The gate and its suite"
+(`:276`, the routing stub) and `guidelines/Backlog.recipes.md` §7c "The gate and its suite" (`:458`, the body).
+The check's pattern is `§[0-9]\+` (`tools/loop/evidence-check.sh:68`), so it read the `§7` inside `§7c` as a
+citation of the migration's `§ → issue` numbering, where no row 7 exists — two namespaces the check does not
+tell apart. The class is pre-existing at this base and outside this change: the same run over two open sibling
+changes reports it too —
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/loop-suite-legs-across-runners --root .
+    4    # lines: FAIL C1 dangling §7
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-remote-heads-are-swept --root .
+    5    # lines: FAIL C1 dangling §7
+
+## The correction
+
+The six citations were repointed at the same sections by line, keeping the files the review of this item asked
+for (`Backlog.recipes.md` named as the file the paragraph is in) and dropping the `§` that the check misreads:
+`guidelines/Backlog.md`:276 "The gate and its suite" and `guidelines/Backlog.recipes.md`:458 "The gate and its
+suite". No claim, figure or observation changed — only the form of the six pointers.
+
+## Second run, after the correction
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/loop-suite-cost-is-reported --root .
+    ok   C1 §references: 0 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 0 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 224 resolved and in range, 0 unresolved or ambiguous
+    evidence-check: PASS

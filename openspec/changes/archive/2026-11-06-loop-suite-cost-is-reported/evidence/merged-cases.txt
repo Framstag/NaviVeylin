@@ -1,0 +1,11 @@
+# merged-cases.txt — the mapping task 3.3 records
+
+No case was merged, so the mapping is empty: no old name has a new one, nothing was re-pointed in
+`tools/loop-mutations.sh`, and no case name disappeared from `tools/loop-cases.sh`.
+
+`bash tools/loop-selftest.sh --list | wc -l` and the mutation set are therefore unchanged by task 3, which changed no
+file: `bash tools/loop-mutations.sh --check` reports every one of its records applies to the file it names, and the
+three groups of task 3.1 are green with the case counts they had before (`evidence/groups-before.txt`, the runs' own
+summary lines).
+
+The measurement that decided this is `evidence/trim.txt`.

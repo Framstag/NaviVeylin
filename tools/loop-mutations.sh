@@ -651,11 +651,11 @@ MUTATIONS=(
   # pre-screen pass run after a deadline cut, so the report names a decision for the item the clock ended, and 68.6
   # silences the escalation a cap-ended item still owes.
   '68.1@-@tools/loop/state.sh@state#floorIsDerivedFromTheFinishedItemsWallTimes@the floor following the cheapest measured item rather than the most expensive one (issue #674)@s|^      \| (\$w \| min) as \$cheapest$|      \| ($w \| max) as $cheapest|'
-  '68.2@-@tools/loop/run.sh@run#childIsEndedAtTheRunsDeadline@the guard that leaves an item the run'"'"'s own deadline cut for the next run instead of escalating it (issue #674)@s|^      if \[ -z "\$deadline_claim" \]; then$|      if true; then|'
+  '68.2@-@tools/loop/run.sh@run#childIsEndedAtTheRunsDeadline@the guard that leaves an item the run'"'"'s own deadline cut for the next run instead of escalating it (issue #674)@s|^      if \[ -z "\$deadline_claim" \] && \[ "\$stop_reason" != bound \]; then$|      if true; then|'
   '68.3@-@tools/loop/state.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch path the item'"'"'s record carries, so the report can name the work an ended child left (issue #674)@s|leftover:(if \$lo == "" then null else \$lo end)|leftover:null|'
   '68.4@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the reviewer'"'"'s own `LOOP-DEADLINE` read, so the clock the run ended the round with is read as the turn bound run_child wrote beside it, and the reason names the wrong bound (issue #674)@s|^      reviewer_deadline=.*LOOP-DEADLINE.*$|      reviewer_deadline=""|'
   '68.5@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674)@s|^    \[ "\$deadline_cut" -eq 0 \] && \[ "\$bound_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
-  '68.6@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the escalation a cap-ended item still owes, so a cap the item'"'"'s own clock hit is silent as well (issue #674)@s|^      if \[ -z "\$deadline_claim" \]; then$|      if [ -n "$deadline_claim" ]; then|'
+  '68.6@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the bound a cap-ended item records as no escalation, so a child clock the item reached spends a decision slot and holds a pair a run stops on (issues #674, #786)@s|^      if \[ -z "\$deadline_claim" \] && \[ "\$stop_reason" != bound \]; then$|      if [ -z "$deadline_claim" ]; then|'
 
   # 69.x — the pre-screen asks the item's text where its fix lands, and the answer is the author's own claim: a
   # line beginning `The fix lands in the submodule` (#314). Measured 2026-10-26 on the adoption run: the path in a
@@ -777,6 +777,14 @@ MUTATIONS=(
   '80.1@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the result a round the run ended at a bound records, so it is a block its owner owes an answer to (issue #785)@s|--result cut --verdict cut|--result blocked --verdict blocked|'
   '80.2@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the cut written on the branch, so the round the run ended is read as one nobody answered and the branch as a question only a person can answer (issues #785, #262)@s|^  bash .*record-review-round .*"\$1" cut >&2.*$|  : # the mutation leaves the round announced and unanswered|'
   '80.3@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the guard that skips the queue second pass after a bound cut an item the run just worked (issue #785)@s|^    \[ "\$deadline_cut" -eq 0 \] && \[ "\$bound_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
+  # 81.x — a block the run's own bound caused is no refusal (issue #786): the mechanism itself (81.1) and the streak
+  # `next` stops a run on (81.2). The third site — the escalation such a block no longer writes — is the guard 68.6
+  # already owns, widened from the deadline alone, and `run#childPastItsTurnBoundIsBlocked` asserts the same absence
+  # through the label stub's record. Measured 2026-11-05: five of six runs stopped on the streak with 758 of 3 211
+  # budgeted minutes used, and the first run carrying the per-role turn bounds ended after 156 of its 480 minutes
+  # with three of six items ended at exactly 110 turns.
+  '81.1@-@tools/loop/run.sh@run#childPastItsTurnBoundIsBlocked@the mechanism a block a turn bound caused records, so a bound reads as a refusal (issue #786)@s|^    if \[ "\$last_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then stop_reason="bound"; fi$|    : # the mutation records no mechanism|'
+  '81.2@-@tools/loop/state.sh@state#aBlockAtTheRunsBoundIsNoRefusal@the streak read from refusals only, so two bound blocks stop a run whose queue and clock are untouched (issue #786)@s|select(.result == "blocked" and (.stopReason // "") != "bound")|select(.result == "blocked")|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

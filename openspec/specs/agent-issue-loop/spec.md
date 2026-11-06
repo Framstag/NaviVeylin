@@ -2296,10 +2296,10 @@ no claim about when the base moved.
 ### Requirement: A block records the mechanism that stopped it
 
 An item recorded `blocked` SHALL carry the mechanism that stopped it, from a closed vocabulary — `refused` when a
-review round refused the change, `unmergeable` when the base would not take the branch — and a block neither
-mechanism caused SHALL carry none. A value outside the vocabulary, and a mechanism on a result that is not a
-block, SHALL be a usage error before anything is written, so a mechanism's spend is totalled without the note's
-prose.
+review round refused the change, `unmergeable` when the base would not take the branch, `bound` when the run ended
+a child at a bound it enforces — and a block none caused SHALL carry none. A value outside the vocabulary, and one
+on a result that is not a block, SHALL be a usage error before anything is written, so a mechanism's spend is
+totalled without the note's prose.
 
 #### Scenario: The refusing round is named
 
@@ -2313,10 +2313,18 @@ prose.
 - **THEN** the item's record carries `unmergeable`, beside the note that names the branch
 - **Case**: `run#doesNotCloseOnAMergeTheBaseCannotTake`
 
+#### Scenario: A block the run's own bound caused is named as one
+
+- **WHEN** a child of the item reaches its role's turn bound, or outlives the child clock, and the run ends it
+- **THEN** the item is recorded `blocked` with `bound` as its stop reason, its note says the attempt is left for the
+  next run rather than asked about, and no decision label is written for it — the item is work the next run resumes,
+  so it spends no decision slot and stays eligible
+- **Case**: `run#childPastItsTurnBoundIsBlocked`
+
 #### Scenario: A mechanism outside the vocabulary is refused
 
-- **WHEN** a stop reason is given that is neither `refused` nor `unmergeable`, or a stop reason is given for a
-  result that is not a block
+- **WHEN** a stop reason is given that is neither `refused` nor `unmergeable` nor `bound`, or a stop reason is given
+  for a result that is not a block
 - **THEN** the record is refused as a usage error and the state is not written, so the field cannot turn into a
   second prose channel
 - **Case**: `state#aBlockedItemNamesTheMechanismThatStoppedIt`
@@ -3111,7 +3119,7 @@ over the stream every child appends to decides which phase is discarded, not whe
 ### Requirement: An item the run's own bound cut is recorded `cut`, not `blocked`
 
 An item whose review round the run ended at a bound it enforces — the run's deadline or the child's role's turn
-bound — SHALL be recorded `cut`: no decision label, no entry in the two-blocked streak `state.sh next` stops on,
+bound — SHALL be recorded `cut`: no decision label, no entry in the streak of refusals `state.sh next` stops on,
 and a line of its own in the report. The round SHALL be written on the branch as a cut with its announcement
 withdrawn, so the attempt stays work the loop finishes rather than a question only its owner can answer.
 
@@ -3131,6 +3139,17 @@ withdrawn, so the attempt stays work the loop finishes rather than a question on
 - **THEN** `state.sh next` hands out that candidate, a block that follows a cut is the first block of its own pair,
   and two blocks in a row still stop the run
 - **Case**: `state#nextHonoursEveryStopCondition`
+
+#### Scenario: A block at a bound holds no pair
+
+- **WHEN** two items in a row are recorded `blocked` with `bound` as their stop reason, and the queue still holds a
+  candidate
+- **THEN** `state.sh next` hands out that candidate, because what the pair is read for is a refusal's prediction
+  about the next item — the same gate, the same provider, the same tree — and a bound predicts nothing about an
+  item that starts a fresh worker on a fresh tree; a refusal after a bound cuts is the first block of its own pair,
+  and a state written before the mechanism existed, whose two `blocked` items carry no stop reason, still stops the
+  run as it always did
+- **Case**: `state#aBlockAtTheRunsBoundIsNoRefusal`
 
 ### Requirement: The suite runs as legs on separate runners, and a leg is its own verdict
 

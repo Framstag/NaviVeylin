@@ -87,7 +87,7 @@ printf '**agent-issue-loop — %s** (budget %s items / %s min · review %s · re
 is_num() { case "${1:-}" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 
 # Why the run ended is one of its numbers now: `next` names the condition (item cap, deadline, empty queue,
-# two consecutive blocked items, the remaining-time floor) and the run records it, so the report and the state
+# two consecutive refusals, the remaining-time floor) and the run records it, so the report and the state
 # file cannot disagree about the end (#184). A run that has not stopped says so, because the report can be
 # printed while it is still going.
 stop_reason=$(jq -r '.run.stop.reason // ""' "$state_file")
@@ -166,8 +166,10 @@ printf 'mis-diagnosed: %s\n' "$(jq -r '[.items[] | select(.result == "falsified"
 printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The items a bound cut are named apart from the blocks, in the reader's own language: a round the run ended at
 # its own bound asked nobody a question, so the line says which phase was cut and what the next run resumes
-# (issue #785). Empty for a run with none, exactly as the other named lists are.
-printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut") | "#\(.issue) \(.metrics.reviewVerdict // "-")\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+# (issue #785). A **block** the run's own bound caused is named on the same line (issue #786): its result is
+# `blocked` because the item's tree was left mid-phase, but its mechanism is `bound`, so it asked the owner
+# nothing either and the next run resumes it. Empty for a run with none, exactly as the other named lists are.
+printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut" or (.result == "blocked" and (.stopReason // "") == "bound")) | "#\(.issue) \(if .result == "cut" then (.metrics.reviewVerdict // "-") else "blocked at a bound" end)\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the

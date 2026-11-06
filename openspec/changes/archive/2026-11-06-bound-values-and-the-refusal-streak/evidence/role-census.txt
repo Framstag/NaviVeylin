@@ -1,0 +1,8 @@
+== archive: 245 of 245 items
+role                    n     p50     p75     p90  max
+reviewer              234    31.0    40.0    52.7  107
+reviewer-pre-gate      12    40.0    53.2    54.9   55
+worker                346    77.5   104.0   138.5  219
+worker-gate            11    37.0    47.5    67.0   71
+worker-tail            20    27.5    37.5    43.4   60
+item total            245   148.0   236.0   271.0  481

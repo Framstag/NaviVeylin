@@ -294,27 +294,39 @@ amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
-A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (110 for the worker, 60 for the
-gate child, 45 for the tail, 55 for a review round and 55 for the round before the gate; `0` or absent = no bound)
+A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (170 for the worker, 80 for the
+gate child, 65 for the tail, 75 for a review round and 75 for the round before the gate; `0` or absent = no bound)
 ends a child that has spent **its own role's** turns, read from the item's event stream — one `turn_end` per turn,
 which the adapter already writes — minus the count standing when that child started, and checked in the same whole
 second as the two clocks, so the wait costs one `grep` per second and not one per look. It exists because the clock
 is the wrong unit for a child that keeps re-reading: cache re-read is **97 %** of what a loop child is charged, so a
 turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past 250 turns held **878 of 1 982 Mtok
 (44 %)** of the archive's spend at 25.07 Mtok each against 1.23 for the 20–50 band. A child that has spent its turns
-is a decision and not a slower convergence: it is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT:
+is a runaway and not a slower convergence: it is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT:
 the child reached the recorded turn bound of <n> turns (<KEY> for the <role> role)`, and the item is recorded
-`blocked` with that count.
+`blocked` with that count and `bound` as its mechanism — so no decision label is written for it, and `state.sh next`
+never reads it as a refusal (issue #786).
+
+**Where a stop bound sits** (measured 2026-11-06, issue #786): each value is the archive's own p95 or above, per
+role — worker 170 (p50 77.5, p90 138.5, p95 161.8, max 219 over 346 sessions), gate 80 (p95 69, max 71 over 11),
+tail 65 (p95 56.2, max 60 over 20), review round 75 (p95 57.7, p99 68 over 234), the round before the gate 75 (n=12,
+max 55, every session censored). The first values sat at the **p75 of a twelve-session sample**, and the first run
+that used them ended three of its six items' workers at exactly 110 turns after 4.5–12 min, each leaving a 4–6 k-line
+patch behind, and stopped on the streak with 324 of its 480 minutes unused; over the whole archive **77 of 346 worker
+sessions (22 %) sit at or over 110**, which is what a stop bound at p75 buys. A bound above the population costs one
+runaway child (~18 Mtok at the measured 106 k tokens a turn), and the token band is what flags that item; the cost a
+bound at p75 pays is the item that was working.
 
 The bound was the item's first (one count over the stream every child appends to), and that made it decide *which
 phase* was discarded rather than whether the item was converging: measured 2026-11-05 over the ten items that ran
 all five phases (`.pi/issue-loop/items`, per-child `turn_end` counts), #780 spent 80/34/42/41 turns on its worker,
 its round before the gate, its gate and its tail and the round-1 reviewer was ended at 53 of the same 250, and #767's
 round-2 worker got three turns before the item's pot ended it; six of that day's eight blocks were this bound, while
-the two items that closed used 192 and 241 of it. Each value is the same measurement per role, just past that role's
-own p75 — worker p75 104 over the archive's 341 worker sessions, review round p75 40 over 232, the round before the
-gate p75 46, the gate child p75 50 and the tail p75 39 over the ten post-#758 items — so a phase is bounded by its
-own work. The **item's** total is no longer a stop: it is still counted (`metrics.turns`) and reported (the
+the two items that closed used 192 and 241 of it. Each value is the same measurement per role, so a phase is
+bounded by its own work; the p95 rule stated above replaced the first per-role numbers, which were that
+population's p75 (worker p75 104 over the archive's 341 worker sessions, review round p75 40 over 232, the round
+before the gate p75 46, the gate child p75 50, the tail p75 39 over the ten post-#758 items). The
+**item's** total is no longer a stop: it is still counted (`metrics.turns`) and reported (the
 `calls:` line), the way the token band is.
 
 The run's own deadline bounds that child as well: the wait reads `run.deadlineEpoch` from the run's state once a
@@ -674,6 +686,17 @@ announcement of the same round withdrawn in that commit — so `branch-state` re
 `review-unanswered`, and the next pre-screen offers the attempt as work the loop finishes instead of as a question
 only its owner can answer. A round the *transport* cut twice is not this: no bound ended it, so it stays a block
 with its reason, because nothing about it says the item is converging.
+
+A **block** the run's own bound caused is the same fact one result over (issue #786): the item's tree was left
+mid-phase, so its result stays `blocked` and its tree is kept exactly as the child left it, but its mechanism is
+`bound` — the third value of the vocabulary beside `refused` and `unmergeable`. That one word is what makes such a
+block a thing the next run resumes rather than a question: no decision label is written (so it spends none of the
+decision ceiling), the note says the attempt waits for the next run, and `state.sh next` never reads it as a refusal,
+because a refusal predicts the next item's failure — the same gate, the same provider, the same tree — and a bound
+predicts nothing about an item that starts a fresh worker on a fresh tree. Measured 2026-11-05: five of six runs
+stopped on the two-block streak with 758 of 3 211 budgeted minutes used, six of that day's eight blocks were bound
+cuts, and the first run carrying the per-role turn bounds ended after 156 of its 480 minutes with three of six items
+ended at exactly 110 turns.
 
 What the round a corrective refusal buys is handed: a refusal whose every finding is subtractive —
 `LOOP-CORRECTIONS-ONLY: yes` — at the round budget buys one more round (#187), and that round exists to decide

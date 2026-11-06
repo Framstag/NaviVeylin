@@ -14,9 +14,12 @@
 #
 # `next` exits 3 whenever the run may not start another item, and that exit code — not a caller's
 # arithmetic — is the authority on whether an item may start: the item cap, the deadline, an empty
-# queue, two consecutive blocked items, or a remaining time below the next item's floor, which is
+# queue, two consecutive refusals, or a remaining time below the next item's floor, which is
 # derived from the cheapest wall time this run recorded for a finished item; `LOOP_ITEM_FLOOR_MINUTES`
-# is the whole floor of a run with no such measurement (design D5, invariant 3). Exit 5 is a refusal that
+# is the whole floor of a run with no such measurement (design D5, invariant 3). A block the run's own bound
+# caused is not a refusal and holds no pair (issue #786): what the pair is read for is the prediction that the
+# next item fails the same way, and a bound says nothing about the next item, which starts a fresh worker on a
+# fresh tree. Exit 5 is a refusal that
 # must not be retried inside the same reasoning: the lock is held, or the base has moved (design D12, D4).
 #
 # Exit: 0 ok, 2 usage, 3 stop, 5 refuse.
@@ -39,7 +42,7 @@
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL] [--leftover PATH] [--label-failures <transition>…]
-#                         [--stop-reason refused|unmergeable]
+#                         [--stop-reason refused|unmergeable|bound]
 #                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
 #                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
 #   state.sh score-landings             # read the pipeline run each landing's own commit caused, once per landing
@@ -271,16 +274,22 @@ cmd_show() {
 cmd_next() {
   require_state
   local reason
-  # The streak a run stops on counts **blocks**, never cuts (issue #785): a round the run's own bound ended is a
-  # phase the next run resumes, not a question a person owes, so an item recorded `cut` is no more a stop than one
-  # that closed, and two cuts in a row say nothing about the queue.
+  # The streak a run stops on counts **refusals**, never cuts and never a block the run's own bound caused
+  # (issues #785, #786): a round the run's own bound ended is a phase the next run resumes, so an item recorded
+  # `cut` is no more a stop than one that closed, and a worker or gate child ended at its role's turn bound (or at
+  # the child clock) is recorded `blocked` with `stopReason: bound` — the same prediction, none of it about the
+  # next item. What the pair is read for is that a refusal predicts the next item's failure — the same gate, the
+  # same provider, the same tree — so only a refusal may sit in a pair. Measured 2026-11-05: five of six runs
+  # stopped on this streak, 758 of 3211 budgeted minutes used across them, and six of that day's eight blocks were
+  # bound cuts (issue #786).
   reason=$(jq -r '
     (.run) as $r
     | (.items | length) as $done
     | if $done >= $r.items then "item cap reached (\($done)/\($r.items))"
       elif now >= $r.deadlineEpoch then "deadline passed at \($r.deadlineAt)"
       elif (.queue | length) == 0 then "queue empty"
-      elif ([.items[-2:][] | select(.result == "blocked")] | length) == 2 then "two consecutive items ended blocked"
+      elif ([.items[-2:][] | select(.result == "blocked" and (.stopReason // "") != "bound")] | length) == 2
+        then "two consecutive refusals ended blocked"
       else "" end
   ' "$STATE_FILE")
   if [ -z "$reason" ]; then
@@ -484,9 +493,12 @@ cmd_done() {
   # refusing review round and a base that would not take the branch both reached the record as the one word
   # `blocked`, so 198.8 M of refusing rounds could only be told from one 22.9 M merge refusal by reading the note).
   # A mechanism on anything but a block would double-count the item as two kinds of stop, so it is refused too.
+  # `bound` is the third value (issue #786): the run ended a child of the item at a bound it enforces — the child's
+  # role's turns or the child clock — which is work the next run resumes and not a finding about the item, so it is
+  # the one mechanism `next` never reads as a refusal.
   case "$stop_reason" in
-    ""|refused|unmergeable) ;;
-    *) loop_die "done: --stop-reason must be refused or unmergeable" ;;
+    ""|refused|unmergeable|bound) ;;
+    *) loop_die "done: --stop-reason must be refused, unmergeable or bound" ;;
   esac
   [ -z "$stop_reason" ] || [ "$result" = blocked ] ||
     loop_die "done: --stop-reason belongs to a blocked item, and this one is recorded $result"

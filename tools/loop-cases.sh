@@ -32,6 +32,7 @@ set -uo pipefail
 LOOP_SHELL_CASES=(
   'state#initAndShowRoundTrips'
   'state#nextHonoursEveryStopCondition'
+  'state#aBlockAtTheRunsBoundIsNoRefusal'
   'state#floorIsDerivedFromTheFinishedItemsWallTimes'
   'state#floorWithNoHistoryIsTheConfiguredMinimum'
   'state#secondRunRefusesWithExit5'
@@ -399,6 +400,7 @@ loop_run_shell_case() {
   case "$1" in
     'state#initAndShowRoundTrips') fn=case_state_initAndShowRoundTrips ;;
     'state#nextHonoursEveryStopCondition') fn=case_state_nextHonoursEveryStopCondition ;;
+    'state#aBlockAtTheRunsBoundIsNoRefusal') fn=case_state_aBlockAtTheRunsBoundIsNoRefusal ;;
     'state#floorIsDerivedFromTheFinishedItemsWallTimes') fn=case_state_floorIsDerivedFromTheFinishedItemsWallTimes ;;
     'state#floorWithNoHistoryIsTheConfiguredMinimum') fn=case_state_floorWithNoHistoryIsTheConfiguredMinimum ;;
     'state#secondRunRefusesWithExit5') fn=case_state_secondRunRefusesWithExit5 ;;
@@ -1094,6 +1096,52 @@ case_state_nextHonoursEveryStopCondition() {
   assert_contains "$out" "floor" "the floor is named"
 }
 
+# The streak a run stops on is read for one prediction: a **refusal** predicts the next item's failure — the same
+# gate, the same provider, the same tree — and a block the run's own bound caused predicts nothing, because the next
+# item starts a fresh worker on a fresh tree (issue #786). Measured 2026-11-05: five of six runs stopped on the
+# streak with 758 of 3 211 budgeted minutes used, and six of that day's eight blocks were bound cuts — the first run
+# that carried the per-role turn bounds ended after 156 of its 480 minutes, with three of six items' workers ended
+# at exactly 110 turns. The pair therefore holds refusals only, and a state written before the mechanism existed
+# (two `blocked` items and no `stopReason`) still stops the run, which is the reading it always had.
+case_state_aBlockAtTheRunsBoundIsNoRefusal() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out status
+  p=$(new_project)
+  init_state "$p" 8 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3},{"issue":24,"class":"bug","verdict":"eligible","rank":4},{"issue":25,"class":"bug","verdict":"eligible","rank":5}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked --stop-reason bound >/dev/null || fail "done #21 failed"
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "a block the run's own bound caused does not stop the run"
+  assert_eq "22" "$out" "the queue hands out the next candidate"
+  run_state "$p" done 22 --result blocked --verdict blocked --stop-reason bound >/dev/null || fail "done #22 failed"
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "and two of them in a row are no pair either"
+  assert_eq "23" "$out" "because a bound says nothing about the item behind it"
+  # A refusal is what holds a pair — and it holds it with another refusal, not with a bound: the refusal after two
+  # bound cuts is the first of its own pair, so one refusal never stops a run on its own.
+  run_state "$p" done 23 --result blocked --verdict blocked --stop-reason refused >/dev/null || fail "done #23 failed"
+  out=$(run_state "$p" next); status=$?
+  assert_eq "0" "$status" "one refusal does not stop the run"
+  assert_eq "24" "$out" "its own pair has not started"
+  run_state "$p" done 24 --result blocked --verdict blocked >/dev/null || fail "done #24 failed"
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "two refusals in a row stop the run"
+  assert_contains "$out" "two consecutive refusals ended blocked" "and the reason says which pair it read"
+  # A state a run wrote before the mechanism existed carries two `blocked` items and no `stopReason` at all: the
+  # reading it always had is the reading it keeps, so a field that arrived later turns no block into work.
+  p=$(new_project)
+  init_state "$p" 5 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2},{"issue":23,"class":"bug","verdict":"eligible","rank":3}]' |
+    run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result blocked --verdict blocked >/dev/null || fail "done #21 failed"
+  run_state "$p" done 22 --result blocked --verdict blocked >/dev/null || fail "done #22 failed"
+  assert_eq "" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" "an older record carries no mechanism"
+  out=$(run_state "$p" next 2>&1); status=$?
+  assert_eq "3" "$status" "and its two blocks still stop the run, as they always did"
+  assert_contains "$out" "two consecutive refusals" "with the same reason"
+}
+
 # The floor a caller is refused by is the run's own measurement (issue #206): the cheapest wall time of the
 # items this run has finished, times the spread the measurements show (1.5). Both numbers the refusal compared
 # are named, so an operator can see whether the floor is honest. The configured minimum is not a lower bound of
@@ -1534,15 +1582,15 @@ case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
   local p f out status
   p=$(new_project)
   init_state "$p" 3 90
-  run_state "$p" done 21 --result blocked --verdict blocked --stop-reason refused >/dev/null ||
-    fail "a blocked item recording a refusing round was refused"
+  run_state "$p" done 21 --result blocked --verdict blocked --stop-reason bound >/dev/null ||
+    fail "a blocked item recording a bound the run enforces was refused"
   run_state "$p" done 22 --result blocked --verdict blocked --stop-reason unmergeable >/dev/null ||
     fail "a blocked item recording an unmergeable base was refused"
   run_state "$p" done 23 --result blocked --verdict blocked >/dev/null ||
     fail "a block neither mechanism caused is still a block"
   f=$(state_file "$p")
-  assert_eq "refused" "$(jq -r '.items[] | select(.issue == 21) | .stopReason' "$f")" \
-    "the refusing round is recorded as its own mechanism"
+  assert_eq "bound" "$(jq -r '.items[] | select(.issue == 21) | .stopReason' "$f")" \
+    "a block the run's own bound caused records the mechanism of its own (issue #786)"
   assert_eq "unmergeable" "$(jq -r '.items[] | select(.issue == 22) | .stopReason' "$f")" \
     "and a base that refused the merge as the other"
   assert_eq "" "$(jq -r '.items[] | select(.issue == 23) | .stopReason // ""' "$f")" \
@@ -1554,7 +1602,7 @@ case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
   before=$(cat "$f")
   out=$(run_state "$p" done 23 --result blocked --verdict blocked --stop-reason abandoned 2>&1); status=$?
   assert_eq "2" "$status" "a mechanism outside the vocabulary is a usage error"
-  assert_contains "$out" "refused or unmergeable" "and the refusal names the two the record accepts"
+  assert_contains "$out" "refused, unmergeable or bound" "and the refusal names the three the record accepts"
   assert_eq "$before" "$(cat "$f")" "and the state is not written, so the field cannot become prose"
   out=$(run_state "$p" done 23 --result done --verdict closed --stop-reason refused 2>&1); status=$?
   assert_eq "2" "$status" "a stop reason belongs to a block, not to a closure"
@@ -4948,10 +4996,17 @@ case_run_childOutlastingTheWallClockIsBlocked() {
     "and the reason on the item names the cap that ended it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
   # The item's own wall-clock cap is not the run's deadline (issue #674): the cap ended a child whose item was
-  # started and worked, so the block is a finding about the item and it is escalated as a decision. The sentence
-  # that says a cap-ended child is unchanged had no case asserting it, which round 1's review read as unproven.
-  assert_eq "agent/needs-decision" "$(jq -r '.items[0].escalatedLabel // ""' "$(state_file "$p")")" \
-    "and an item its own child's wall-clock cap ended is still escalated as a decision"
+  # started and worked. It is still a bound the run enforces, and not a finding about the item (issue #786): the
+  # item's tree was left mid-phase, its work is kept beside it and its branch is still at the base, so the next run
+  # resumes it — the block records `bound` as its mechanism, writes no decision label and spends no decision slot,
+  # which is what the pair `state.sh next` stops a run on reads. Measured 2026-11-05: six of one day's eight blocks
+  # were bound cuts (three of them this clock, #781, #744, #740), and five of six runs stopped on that pair.
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
+    "an item its own child's wall-clock cap ended records the bound as its mechanism"
+  assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$(state_file "$p")")" \
+    "and is not escalated as a decision, because a bound asks nobody a question"
+  assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "no decision label is written for a cap-ended item"
 }
 
 # The child cap is not the only clock a child can outlive (issue #227): the run's deadline is consulted between
@@ -11627,6 +11682,14 @@ EOF
     "an item whose child crossed the bound is recorded blocked"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "turn bound of 3 turns" \
     "and the reason on the item carries the count, not only the exit status"
+  # …and the block says *why* it is no question (issue #786): the mechanism is `bound`, so `next` never reads it as
+  # a refusal, no decision label is written for it, and the record itself says the attempt waits for the next run.
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
+    "the block records the run's own bound as its mechanism"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "left for the next run rather than asked about" \
+    "and says the attempt is left for the next run"
+  assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "no decision label is written for an item the run's own bound ended"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
   return 0
 }

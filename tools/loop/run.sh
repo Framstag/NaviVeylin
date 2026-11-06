@@ -7,9 +7,10 @@
 # a tracker credential, and never a decision about whether an item closed (design D2, D3, D7, D12).
 #
 # A script cannot ask, so every budget is a flag whose default is recorded in `loop.conf`, and the run
-# stops on its own authority: the item cap, the deadline, an empty queue, two consecutive blocked items,
-# or a remaining time the next item cannot be paid for. The stop conditions are `state.sh next`'s, so the
-# run never does its own budget arithmetic (invariant 3).
+# stops on its own authority: the item cap, the deadline, an empty queue, two consecutive refusals, or a
+# remaining time the next item cannot be paid for. The stop conditions are `state.sh next`'s, so the
+# run never does its own budget arithmetic (invariant 3). A block the run's own bound caused is not a
+# refusal and holds no pair (issue #786).
 #
 # Exit: 0 the run ended (including "nothing eligible"), 2 usage/malformed input, 3 stop (unauthorised
 #       identity, or nothing eligible), 5 refuse (another run holds the lock, the decision cap is
@@ -2102,6 +2103,11 @@ while true; do
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
     # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
     if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
+    # …and the mechanism is `bound`, not a refusal (issue #786): the run ended this child at a bound it enforces, so
+    # nothing about the item was measured and the next item's failure is not predicted by this one's. That one word
+    # is what `state.sh next` reads to keep such a block out of the pair it stops a run on, and what the block's
+    # own escalation below reads to write no decision label.
+    if [ "$last_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$timeout_claim" ]; then stop_reason="bound"; fi
   elif outside_write_decides; then
     outcome="blocked"; blocked_reason="the $last_child wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
   elif [ "$verdict_claim" = "skipped" ] && [ "${skip_verdict:-}" = "falsified" ] \
@@ -2569,7 +2575,7 @@ $review_notes_text"
       # The block's escalation carries the decision itself, not only the news that one is needed: the reviewer
       # already answered the question when it wrote its report, so the owner reads the options and the
       # recommendation instead of re-deriving them (#186).
-      if [ -z "$deadline_claim" ]; then
+      if [ -z "$deadline_claim" ] && [ "$stop_reason" != bound ]; then
         escalation_reason="${blocked_reason:-the item was blocked}"
         decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
         if [ -n "$decision_field" ]; then
@@ -2597,6 +2603,12 @@ question the item asked; a retry costs another attempt, and an abandonment remov
       # The item's own reason carries the failure too, so the state's own table (`state.sh report`) names an item
       # whose decision was never written, and not only the report's action list does.
       blocked_note="${blocked_reason:-the item was blocked}"
+      # …and a block the run's own bound caused says what happens to it instead, because no decision label was
+      # written for it (issue #786): the item is work the next run resumes, and a reader of the state must not have
+      # to derive that from the absence of a label.
+      if [ "$stop_reason" = bound ]; then
+        blocked_note="$blocked_note · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about"
+      fi
       # The work an ended child left is named in the item's own record, not only in its transcript: a clock-cut
       # item writes no comment on the tracker, so the state and the report are the only places a caller reads it.
       if [ -n "$leftover_patch" ]; then

@@ -140,6 +140,13 @@ caller_jobs="${LOOP_SELFTEST_JOBS:-}"
 source "$LOOP_CONF"
 LOOP_SELFTEST_JOBS="${LOOP_SELFTEST_JOBS:-$caller_jobs}"
 
+# A case never inherits the caller's own event stream (issue #756). `run.sh` exports `LOOP_CHILD_EVENTS` for every
+# process of an item, so a suite started from a child would hand each of its cases that child's stream — and the gate
+# counts the full runs of itself that were started in the session it is running in, which would make the *caller's*
+# gate runs count against a case that runs the gate of its own. A case that wants a stream writes its own or passes
+# one to `run.sh`, and a case that inherits the run's would be measuring the run and not the engine.
+unset LOOP_CHILD_EVENTS
+
 # How many cases run at once (issue #260). The value is the invocation's `--jobs`, else the profile's
 # `LOOP_SELFTEST_JOBS`, else the host's CPU count — a host that cannot answer is a pool of one, never a suite that
 # runs nothing.

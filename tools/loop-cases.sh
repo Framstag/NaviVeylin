@@ -169,6 +169,7 @@ LOOP_SHELL_CASES=(
   'gate#aModuleResourceOwesTheBuild'
   'gate#theGateNamesTheProfileItRead'
   'gate#theChildReadsTheProfileOfTheTreeItWorksIn'
+  'gate#aThirdFullRunInOneSessionIsRefused'
   'mutation#everyDeclaredRecordApplies'
   'mutation#aStaleRecordIsNamed'
   'measure#namesTheOwedChecksInOneBlock'
@@ -549,6 +550,7 @@ loop_run_shell_case() {
     'gate#aModuleResourceOwesTheBuild') fn=case_gate_aModuleResourceOwesTheBuild ;;
     'gate#theGateNamesTheProfileItRead') fn=case_gate_theGateNamesTheProfileItRead ;;
     'gate#theChildReadsTheProfileOfTheTreeItWorksIn') fn=case_gate_theChildReadsTheProfileOfTheTreeItWorksIn ;;
+    'gate#aThirdFullRunInOneSessionIsRefused') fn=case_gate_aThirdFullRunInOneSessionIsRefused ;;
     'mutation#everyDeclaredRecordApplies') fn=case_mutation_everyDeclaredRecordApplies ;;
     'mutation#aStaleRecordIsNamed') fn=case_mutation_aStaleRecordIsNamed ;;
     'measure#namesTheOwedChecksInOneBlock') fn=case_measure_namesTheOwedChecksInOneBlock ;;
@@ -10619,6 +10621,84 @@ case_gate_theGateNamesTheProfileItRead() {
   assert_contains "$out" "LOOP-GATE-PROFILE: $LOOP_ENGINE/loop.conf" \
     "a gate reads the profile beside its own engine by default: $out"
   assert_not_contains "$out" "pinned" "and does not call its own profile a pinned one: $out"
+  return 0
+}
+
+# The gate is the loop's most expensive single action and the only one a child runs rather than the run, so nothing
+# bounded how many times one child could pay for it: measured 2026-11-03 over the archive's 227 items and 558 child
+# sessions (`.pi/issue-loop/items/*/events.jsonl`, durations from each `tool_execution_end`), the gate was started
+# 910 times and spent 35.1 h — 60 % of all tool wall clock — 245 sessions ran it at all, and **117 of those (48 %)
+# ran it three or more times** (#670 44 times in 174 turns). A full round is 600–1 100 s, so a run can spend its
+# whole budget on gate rounds and never reach the review (issue #756).
+#
+# The count is a run's own record: the gate writes one line per full run beside the child's event stream
+# (`<events>.gate-runs`) and reads the lines that carry the id of the session it is running in, because the stream
+# carries every child the item has had and the counts have to be a child's. Reading the stream's own tool calls
+# instead was the first shape of this rule and it does not hold: a command that merely *mentions* the gate's file
+# cannot be told from one that runs it, and a child working on the gate was refused its first run.
+# The third full run is refused with the command the delta owes instead, because a second full round repeats the
+# suites the first one already passed.
+case_gate_aThirdFullRunInOneSessionIsRefused() {
+  # files: tools/loop/gate.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base events out status i
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_CONF" "$conf" || fail "could not copy the loop configuration"
+  # One cheap step and nothing else: the delta must owe exactly one command, so that "the scoped command" is a line
+  # a reader can point at, and the gate must cost seconds twice over.
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=\n'
+    printf 'LOOP_GATE_FIRST_STEPS=\n'
+    printf 'LOOP_GATE_SUITES="notes/*|true"\n'
+    printf 'LOOP_GATE_TALLY_DIR=\n'
+    printf 'LOOP_GATE_RUNS_MAX=2\n'
+  } >> "$conf"
+  grep -qx 'LOOP_GATE_RUNS_MAX=2' "$conf" || fail "this case could not record the run bound it measures"
+  mkdir -p "$p/notes" && printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a note' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  # The stream a child's adapter keeps, in the one fact the gate reads from it: the child's own session id. The runs
+  # themselves are recorded by the gate that made them, so what this case drives is the real thing three times.
+  events="$d/events.jsonl"
+  printf '{"type":"session","version":"3","id":"01a1a18a","cwd":"%s"}\n' "$p" > "$events"
+  one_run() { ( cd "$p" && LOOP_CONF="$conf" LOOP_CHILD_EVENTS="$events" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 ); }
+
+  # A first and a second full run are measurements: each runs the step the delta owes and leaves its own record.
+  for i in 1 2; do
+    out=$(one_run); status=$?
+    assert_eq "0" "$status" "full run $i of the gate in one child measures the step the delta owes: $out"
+    assert_not_contains "$out" "LOOP-GATE-REFUSED" "and nothing refuses it: $out"
+    assert_contains "$out" "LOOP-GATE: " "it reports the gate's own verdict: $out"
+  done
+
+  # The third is refused: it names the runs already made, names the bound, and prints the command the delta owes
+  # instead of running it.
+  out=$(one_run); status=$?
+  assert_eq "3" "$status" "the third full run in one child is refused, with the refusal's own status: $out"
+  assert_contains "$out" "LOOP-GATE-REFUSED: 2 full runs of this gate" "the refusal says how many it counted: $out"
+  assert_contains "$out" "LOOP_GATE_RUNS_MAX=2" "and names the recorded bound it counted against: $out"
+  assert_contains "$out" "earlier run: gate.sh --base $base" "it names the runs already made: $out"
+  assert_contains "$out" "scoped: true" "and the command the delta owes instead of a third full round: $out"
+  assert_not_contains "$out" "LOOP-GATE: tests=" "the refused run measured nothing and claims no verdict: $out"
+  assert_eq "2" "$(grep -c '' "$events.gate-runs")" \
+    "and only the two measurements were recorded, never the run that was refused"
+
+  # `--plan` runs no step, so it is not a run: it is never refused and never counted — it is the answer a refused run
+  # is handed.
+  out=$( cd "$p" && LOOP_CONF="$conf" LOOP_CHILD_EVENTS="$events" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  status=$?
+  assert_eq "0" "$status" "a plan is not a run and is not refused: $out"
+  assert_eq "true" "$out" "and it prints the command the delta owes, which is what a refused run is handed"
+  assert_eq "2" "$(grep -c '' "$events.gate-runs")" "a plan leaves no record: it measured nothing"
+
+  # The record carries the child it was made in: the run's own phase split gives the gate child its first full run, so
+  # a new `session` line in the stream starts the count at nothing.
+  printf '{"type":"session","version":"3","id":"01a1a18b"}\n' >> "$events"
+  out=$(one_run); status=$?
+  assert_eq "0" "$status" "the runs a previous child made are not charged to this one: $out"
+  assert_not_contains "$out" "LOOP-GATE-REFUSED" "so a child that has not run this gate is not refused: $out"
   return 0
 }
 

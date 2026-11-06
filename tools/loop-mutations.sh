@@ -818,6 +818,12 @@ MUTATIONS=(
   # 12 h after its owner had answered the only question it had. The mutation drops the record the exclusion loop
   # writes, so the refusal is back to a line on the terminal and the item is back to a spent decision slot.
   '86.1@-@tools/loop/run.sh@run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable@the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794)@s|^    loop_state adoption-refused "\$issue" --reason "\$adoption_refusal" >/dev/null \|\|$|    true \|\||'
+
+  # 87.x — a child pays for the full gate only the number of times the profile records (issue #756). Measured
+  # 2026-11-03 over the archive's 227 items and 558 child sessions: the gate was started 910 times and spent 35.1 h,
+  # 60 % of all tool wall clock, and 117 of the 245 sessions that ran it at all (48 %) ran it three or more times. The
+  # mutation drops the comparison the refusal hangs on, so a third full run in one child is measured again.
+  '87.1@-@tools/loop/gate.sh@gate#aThirdFullRunInOneSessionIsRefused@the refusal of a full gate run past the number the profile records, so a child cannot pay for the same suites three times (issue #756)@s|^    if \[ "\$count" -ge "\$runs_max" \]; then$|    if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

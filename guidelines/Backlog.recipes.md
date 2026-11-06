@@ -487,6 +487,23 @@ to itself, because a child works in the worktree and runs that tree's own engine
 where the tree's own profile owed five shell checks and no build, and it carried no pin at all, so the round-3
 reviewer could only refuse the round and the repair was a hand-pinned re-run.
 
+A child may pay for the full gate only the number of times the profile records: `tools/loop/gate.sh` leaves one
+**record per full run it starts** beside the stream the child's adapter keeps (`<events>.gate-runs`), under the
+`LOOP_CHILD_EVENTS` the run exports, and counts the records that carry the id of the session it is running in, so a
+run that would exceed `LOOP_GATE_RUNS_MAX` is refused with exit `3` instead of run — it names every run already
+started, names the bound, and prints `scoped: <command>` for every command the delta owes, which is `--plan`'s own
+list, so the child is handed a scoped step rather than a third full round that repeats suites the first one already
+passed. The count is the child's and not the item's because the session id is: the stream holds every child the item
+has had, and the run's own phase split gives the gate child its first full run. The signal is produced by the run it
+counts, and not read out of the stream's own tool calls: a command that *mentions* the gate's file — the `grep` and
+`sed` a child working on the gate runs over it — cannot be told from one that runs it, and a count read that way
+refused 8 of the 25 `gate#*` cases their first run (this change's first shape, 2026-11-06).
+Measured 2026-11-03 over the archive's 227 items and 558 child sessions (`.pi/issue-loop/items/*/events.jsonl`,
+durations from each `tool_execution_end`): the gate was started **910 times and spent 35.1 h** — 60 % of all tool
+wall clock — 245 sessions ran it at all, and **117 of those (48 %) ran it three or more times** (#670 44 times in
+174 turns, #116 39 times in 152). A full round is 600–1 100 s, so a 480-minute run could spend its budget on gate
+rounds and never reach the review (issue #756).
+
 A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
 the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a

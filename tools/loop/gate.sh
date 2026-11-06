@@ -24,12 +24,19 @@
 # invented.
 #
 # Exit: 0 everything that ran passed (or nothing was owed); 1 something failed, and the line names which; 2 usage
-# or a base this tree cannot resolve.
+# or a base this tree cannot resolve; 3 this child has already spent the full runs the profile records, so this one
+# was refused and measured nothing (neither a red nor a green).
+#
+# A gate is a measurement, and a measurement is taken once: see `runs_max` below and the refusal it arms.
 #
 # Usage: gate.sh [--base <sha>] [--plan] [--quiet]
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# What this run was asked to do, for the record it leaves behind (issue #756). The parser below shifts the arguments
+# away, so the line is taken here: the engine names its own script and never a project's gate command (D16,
+# `tools/check-portability.sh`), and the arguments are what tells a reader which run it was.
+gate_argv="${BASH_SOURCE[0]##*/}${*:+ $*}"
 # shellcheck source=tools/loop/lib.sh
 source "$here/lib.sh"
 
@@ -69,6 +76,33 @@ case "$step_max" in ''|*[!0-9]*|0) step_max=1800 ;; esac
 # first step starts, so a log that ends without a verdict still says which one it was under.
 step_recorded=$step_max
 step_max=$(loop_bound_under_ceiling "$step_max")
+
+# How many *full* runs of this gate the child that started it may spend (issue #756). The gate is the loop's only
+# expensive action that a child runs rather than the run, so the run's one bound on a child — `child_turns`, which
+# counts `turn_end` lines — cannot see it: measured 2026-11-03 over the archive's 227 items and 558 child sessions,
+# the gate was started **910 times and spent 35.1 h** (60 % of all tool wall clock), and **117 of the 245 sessions
+# that ran it at all — 48 % — ran it three or more times**. A second *full* round repeats the suites the first one
+# already passed, and each round is 10–19 minutes of the item's end. Unrecorded or `0` is no bound, the rule every
+# other bound in the profile follows — the engine names no project value of its own (D16).
+runs_max=$(loop_conf_value LOOP_GATE_RUNS_MAX)
+case "$runs_max" in ''|*[!0-9]*) runs_max=0 ;; esac
+
+# A run leaves its own record, and the record is what the count is read from. Reading the child's event stream instead
+# was the first shape of this rule and it does not hold: that stream carries every command the child ran, and a command
+# that *mentions* this file — a `grep` over it, a `sed` of it, a read of it — cannot be told from one that runs it, so a
+# child working on the gate would be refused its first run (measured on this change's own gate selection: 8 of 25
+# `gate#*` cases refused a first run, issue #756 review round 1). What the stream is needed for is the child's
+# identity: the adapter writes one `session` line per child, and a record line that carries another session's id was
+# another child's run — so each child of an item starts at zero, which is what the run's own phase split needs.
+runs_record=""
+session_key=""
+session_key_of() { # session_key_of <events file> → the id of the last `session` line, or nothing
+  local f=${1:-} line
+  [ -n "$f" ] && [ -f "$f" ] || return 0
+  line=$(grep -E '"type": *"session"' "$f" 2>/dev/null | tail -1)
+  [ -n "$line" ] || return 0
+  printf '%s' "$line" | jq -r '.id // empty' 2>/dev/null
+}
 
 say() { [ "$quiet" -eq 1 ] || printf '%s\n' "$*"; }
 
@@ -201,6 +235,36 @@ fi
 if [ "$plan" -eq 1 ]; then
   printf '%s\n' "$owed"
   exit 0
+fi
+
+# The refusal: a child that has already spent the runs its profile records is handed the commands its delta owes
+# instead of a further full round. `--plan`'s list is that command set, so the refusal prints what that call prints
+# — a scoped step, not a whole gate — and writes no `LOOP-GATE:` line, because a refused run measured nothing and a
+# caller reading the log has to be able to tell that from a green one. The record is written only when this run is
+# going to measure something: a refusal and a `--plan` call spend nothing and leave the file alone, and a run that is
+# counted is a run the child paid for whether or not its suites passed.
+if [ "$runs_max" -gt 0 ] && [ -n "${LOOP_CHILD_EVENTS:-}" ]; then
+  session_key=$(session_key_of "$LOOP_CHILD_EVENTS")
+  if [ -n "$session_key" ]; then
+    # Beside the stream, and named after it: the record belongs to the same directory the run keeps an item's stream in,
+    # and it is one directory the run already owns and sweeps. A child's session is the only thing that separates one
+    # child's runs from the next's, so a line without a session is another child's and is not counted.
+    runs_record="$LOOP_CHILD_EVENTS.gate-runs"
+    earlier=$(awk -F'\t' -v k="$session_key" '$1 == k { print $2 }' "$runs_record" 2>/dev/null) || true
+    count=$(printf '%s\n' "$earlier" | grep -c . || true)
+    case "$count" in ''|*[!0-9]*) count=0 ;; esac
+    if [ "$count" -ge "$runs_max" ]; then
+      printf 'LOOP-GATE-REFUSED: %s full runs of this gate were already started in this child (LOOP_GATE_RUNS_MAX=%s) — a further full run is not a measurement:\n' \
+        "$count" "$runs_max"
+      printf '%s\n' "$earlier" | while IFS= read -r cmd; do
+        [ -n "$cmd" ] && printf '  earlier run: %s\n' "$cmd"
+      done
+      printf 'run the command this delta owes instead:\n'
+      printf '%s\n' "$owed" | sed 's/^/  scoped: /'
+      exit 3
+    fi
+    printf '%s\t%s\n' "$session_key" "$gate_argv" >> "$runs_record" 2>/dev/null || true
+  fi
 fi
 
 cases=0

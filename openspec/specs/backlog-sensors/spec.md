@@ -306,13 +306,18 @@ the row that lists them — and guarded so that two runs cannot act at once.
 
 ### Requirement: The issues carry the measurement history
 
-A check's measurements SHALL be recorded on the issue as comments, and no measurement SHALL be stored in the repository, so the issue's own timeline is the baseline a later measurement is compared against. A filing SHALL carry its marker in the issue's body too, and the newest marker an issue carries — a comment's, or a filing's dated by the issue's own creation — SHALL be the measurement the report prints and the one a later measurement is compared against.
+A check's measurements SHALL be recorded on the issue as comments, and no measurement SHALL be stored in the
+repository, so the issue's own timeline is the baseline a later measurement is compared against where the row's
+comparison is a multiple of the previous one; a row that bounds absolutely SHALL read its bound from its own
+declaration and quote no baseline. A filing SHALL carry its marker in the issue's body too, and the newest marker
+an issue carries — a comment's, or a filing's dated by the issue's own creation — SHALL be the measurement the
+report prints and the one a later measurement is compared against.
 
 #### Scenario: The baseline is the previous measurement
 
-- **WHEN** a check compares a measurement against its bound
+- **WHEN** a row that compares as a multiple of its previous measurement compares a measurement against its bound
 - **THEN** the earlier number it quotes is the one from the issue's own record, not a separate store
-- **Case**: `sensors#buildDurationRow`
+- **Case**: `run#aFilingSetsTheBaseline`
 
 #### Scenario: Nothing is committed by a check
 
@@ -700,3 +705,27 @@ A row MAY declare its own recurrence bound, and a row whose condition returns as
 - **WHEN** a row declares a bound of zero, or one that is not a count
 - **THEN** the registry is refused with a reason naming that row and that field
 - **Case**: `lib#aRowBoundIsACount`
+
+### Requirement: A row that measures a pipeline reads the run's own job and step wall times
+
+A row whose subject is the build pipeline SHALL measure the wall time of the pipeline's jobs, from a record the
+checks' own fetcher publishes for the commit under test, and SHALL bound that wall time absolutely rather than as
+a multiple of the previous measurement — so a step outside the build's own invocation is inside the row's
+measurement, and a growth of it files a condition without waiting for a run to be worse than the run before.
+
+#### Scenario: A step outside the build files, while the build is flat
+
+- **WHEN** a job's steps that run the build are unchanged and a step outside that build is an hour longer, so the
+  job's own wall time crosses the bound the row declares
+- **THEN** the row measures the job's wall time, files one condition whose identity is that job, and its claim
+  names the step that grew
+- **Case**: `sensors#buildDurationCoversThePipeline`
+
+#### Scenario: The record belongs to the run the fetcher restored
+
+- **WHEN** the checks' fetcher restores the build record of the commit under test and is asked for the job
+  timings
+- **THEN** it writes every job's and every step's wall time for that run, carrying the run's identifier and the
+  commit, and a fetch that did not ask for the record writes none — so the record can never answer with another
+  pipeline's jobs
+- **Case**: `inputs#theFetcherPublishesTheJobTimings`

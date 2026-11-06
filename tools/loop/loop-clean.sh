@@ -308,6 +308,62 @@ else
     | [.key, (.value.source // "")] | @tsv' "$LOOP_STATE_FILE" 2>/dev/null)
 fi
 
+# ── the item directories the run kept ─────────────────────────────────────────────────────────────
+# The largest thing the loop keeps is the item directories beside its state: one per item, holding that item's event
+# stream, its package and its reports, and nothing reported them (issue #802; measured 2026-11-06, `.pi/issue-loop/`
+# held 3.6 GB over 264 item directories, one event file 63 MiB). They are a leftover like the others, and `--apply` is
+# still the only path that removes one — but they are also the loop's evidence, so a directory is released only when
+# two readings agree: nothing inside it has been written for `LOOP_ITEM_ARCHIVE_DAYS`, and no open issue still cites
+# it. Whether an issue is open is read from the run's own record, offline: an item whose result is `done` and whose
+# closure happened (`metrics.closed: yes`) is one the tracker closed, and anything else — no record, another result,
+# a landing the run was not allowed to close — is kept and named with that reason. A state file that cannot be read
+# keeps every directory, the same answer an unreadable base gets from the branch arm.
+items_root="$(dirname "$LOOP_STATE_FILE")/items"
+archive_days=$(loop_conf_value LOOP_ITEM_ARCHIVE_DAYS)
+case "$archive_days" in ''|*[!0-9]*) archive_days=0 ;; esac
+say "loop-clean: item directories under ${items_root#"$LOOP_ROOT"/} that no open issue cites, older than ${archive_days} days"
+if [ "$archive_days" -eq 0 ]; then
+  say "  kept every item — LOOP_ITEM_ARCHIVE_DAYS records no retention, so no item directory is released"
+  kept=$((kept + 1))
+elif [ ! -d "$items_root" ]; then
+  say "  none — no item directory at ${items_root#"$LOOP_ROOT"/}"
+else
+  while IFS= read -r item_path; do
+    [ -n "$item_path" ] || continue
+    item_n=${item_path##*/}
+    case "$item_n" in ''|*[!0-9]*) continue ;; esac
+    if [ -n "$(find "$item_path" -mmin -$(( archive_days * 1440 )) 2>/dev/null)" ]; then
+      say "  kept items/$item_n — written within ${archive_days} days, an open issue may still cite it"
+      kept=$((kept + 1))
+      continue
+    fi
+    cited=$(jq -r --arg n "$item_n" '
+      [ .items[]? | select((.issue | tostring) == $n)
+        | ((.result // "") == "done" and ((.metrics.closed // "no") == "yes")) ]
+      | if length == 0 then "unreadable" else (if any then "landed" else "cited" end) end' \
+      "$LOOP_STATE_FILE" 2>/dev/null)
+    case "$cited" in
+      landed) ;;
+      cited)
+        say "  kept items/$item_n — the issue it belongs to is not closed, so it still cites the directory"
+        kept=$((kept + 1))
+        continue ;;
+      *)
+        say "  kept items/$item_n — the run state does not record what became of its issue"
+        kept=$((kept + 1))
+        continue ;;
+    esac
+    size=$(loop_bytes_of "$item_path")
+    if [ "$apply" -eq 1 ]; then
+      rm -rf -- "$item_path" || { say "  could not remove items/$item_n"; continue; }
+      say "  removed items/$item_n ($size B) — landed and closed, and older than any open issue cites"
+    else
+      say "  would remove items/$item_n ($size B) — landed and closed, and older than any open issue cites"
+    fi
+    paths=$((paths + 1)); bytes=$((bytes + size))
+  done <<< "$(find "$items_root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)"
+fi
+
 if [ "$paths" -eq 0 ] && [ "$procs" -eq 0 ] && [ "$branches" -eq 0 ]; then
   printf 'loop-clean: nothing to remove — %s path(s) kept\n' "$kept"
   exit 0

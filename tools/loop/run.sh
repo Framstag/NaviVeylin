@@ -1231,12 +1231,18 @@ clear_stale_test_results() {
 # 1.05–1.16 tool calls per turn are amortised over. A stream that is absent, empty or unreadable is no count
 # rather than an error: a child whose command writes no events is bounded by its clock alone, as it was before,
 # and a count this wait cannot take never ends a child.
-child_turns() { # child_turns <events file> → the `turn_end` lines it holds
-  local n
+child_turns() { # child_turns <events file> → the `turn_end` lines it holds, plus the turns a rotation dropped
+  local n r
   [ -n "${1:-}" ] && [ -f "$1" ] || { printf '0\n'; return 0; }
   n=$(grep -cE '"type": *"turn_end"' "$1" 2>/dev/null) || true
   case "$n" in ''|*[!0-9]*) n=0 ;; esac
-  printf '%s\n' "$n"
+  # A rotated stream no longer holds the turns it dropped, and the count a bound compares against must not fall when
+  # the writer rotates (issue #802): the record the adapter writes first carries them, cumulative, so a reader adds
+  # what the stream says it dropped to what it still holds.
+  r=$(sed -n 's/.*"type": *"stream_rotation".*"dropped_turn_ends": *\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null |
+    awk '{ sum += $1 } END { printf "%d", sum + 0 }')
+  case "$r" in ''|*[!0-9]*) r=0 ;; esac
+  printf '%s\n' "$(( n + r ))"
 }
 
 # The size of the conversation the child is paying for (issue #760), read from the same stream as the turn count and

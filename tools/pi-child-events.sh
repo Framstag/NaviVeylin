@@ -25,6 +25,10 @@
 #   LOOP_CHILD_EVENTS  the file the event lines are appended to; `run.sh` exports one per item so the item's
 #                      children are summed and read as one spend. Unset or empty: the stream is still read and
 #                      the answer still printed, and nothing is kept — a child started by hand.
+#   LOOP_CHILD_EVENTS_MAX_BYTES  the size past which the kept stream is rotated; unset or empty reads
+#                      `LOOP_CHILD_EVENTS_MAX_BYTES` from `tools/loop/loop.conf`, and `0` keeps every line (issue
+#                      #802). The value is read here rather than by `run.sh` for the reason the tool-result bound is:
+#                      the adapter is the one writer of the stream, and a hand-started child gets the same bound.
 #
 # Exit: the child's own status, so the run's "the worker process exited N" path keeps its meaning.
 set -uo pipefail
@@ -90,6 +94,19 @@ fi
 prompt="${!#}"        # the last argument
 cmd=("${@:1:$#-1}")   # …and everything before it starts the child
 
+# How large the kept stream may grow before its oldest events are dropped (issue #802). Measured 2026-11-06 over
+# this archive: 254 `events.jsonl` files held 3 483 MiB — p50 11.84 MiB, p90 29.88 MiB, one 63.47 MiB — and the file
+# grows for the item's whole life with no bound anywhere in this path: `LOOP_TOOL_RESULT_MAX_CHARS` bounds a result
+# the child sees, not the line that is kept. A bound above the median item's *whole* history leaves an ordinary item
+# its stream untouched and caps only the tail that makes the archive gigabytes (census:
+# `evidence/archive-census.py`). `0`, or a project that records no key, is no bound.
+events_bound=${LOOP_CHILD_EVENTS_MAX_BYTES:-}
+if [ -z "$events_bound" ]; then
+  events_bound=$(sed -n 's/^LOOP_CHILD_EVENTS_MAX_BYTES=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
+    "$here/loop/loop.conf" 2>/dev/null | tail -1)
+fi
+case "$events_bound" in ''|*[!0-9]*) events_bound=0 ;; esac
+
 events="${LOOP_CHILD_EVENTS:-}"
 if [ -n "$events" ]; then
   mkdir -p "$(dirname "$events")" || {
@@ -108,13 +125,53 @@ fi
 answer_file=$(mktemp) || { printf 'pi-child-events: cannot create a temporary file\n' >&2; exit 2; }
 trap 'rm -f "$answer_file"' EXIT
 
+# Rotate the kept stream rather than let it grow without bound: the newest half of the lines stays, the oldest half
+# is dropped, and the drop is *recorded* as the first line so a reader can tell a rotated stream from a short one and
+# add the turns it no longer holds — `run.sh`'s `child_turns` does, which is what keeps a child's turn bound counting
+# from zero after a rotation. The record's `dropped_turn_ends` is cumulative: the record it replaces is dropped with
+# the events it counted, so the count it carried is added to the one being dropped. Called only when the stream has
+# outgrown its bound, so the `wc`/`grep` here are paid once per rotation and never per event.
+rotate_events() { # rotate_events <file> — drop the oldest half of the lines and record the drop
+  local f="$1" lines keep drop turns prev rec tmp total
+  lines=$(wc -l < "$f" 2>/dev/null) || true
+  case "$lines" in ''|*[!0-9]*) lines=0 ;; esac
+  # One line is the line just written: there is nothing older to drop, and dropping it would lose the newest event.
+  [ "$lines" -ge 2 ] || return 0
+  keep=$(( lines / 2 ))
+  drop=$(( lines - keep ))
+  turns=$(head -n "$drop" "$f" 2>/dev/null | grep -cE '"type": *"turn_end"') || true
+  case "$turns" in ''|*[!0-9]*) turns=0 ;; esac
+  prev=$(head -n 1 "$f" 2>/dev/null | sed -n 's/.*"dropped_turn_ends": *\([0-9][0-9]*\).*/\1/p')
+  case "$prev" in ''|*[!0-9]*) prev=0 ;; esac
+  total=$(head -n "$drop" "$f" 2>/dev/null | wc -c | tr -d ' ') || total=0
+  case "$total" in ''|*[!0-9]*) total=0 ;; esac
+  rec=$(printf '{"type":"stream_rotation","dropped_lines":%s,"dropped_bytes":%s,"dropped_turn_ends":%s,"at":"%s"}' \
+    "$drop" "$total" "$(( turns + prev ))" "$(date -u +%Y-%m-%dT%H:%M:%SZ)")
+  tmp="$f.rotating.$$"
+  { printf '%s\n' "$rec"; tail -n "+$(( drop + 1 ))" "$f"; } > "$tmp" && mv -- "$tmp" "$f"
+  kept_bytes=$(wc -c < "$f" 2>/dev/null) || kept_bytes=0
+  case "$kept_bytes" in ''|*[!0-9]*) kept_bytes=0 ;; esac
+}
+
 # The stream is read line by line. A line that is a JSON object is one event and is kept; anything else is the
 # command's own text — an agent that ignores the mode flag prints its answer as plain text — and is passed
 # through, so such a command still answers the loop and a project needs no second code path to keep working.
+kept_bytes=0
 "${cmd[@]}" "${extension[@]}" "${policy[@]}" "${mode[@]}" "${context[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     '{'*)
-      [ -z "$events" ] || printf '%s\n' "$line" >> "$events"
+      if [ -n "$events" ]; then
+        printf '%s\n' "$line" >> "$events"
+        # The bound is kept in a counter rather than re-read from the file: `wc` per event would cost the writer a
+        # process per line, and the rotation is triggered a whole half-stream later anyway. The counter counts
+        # characters, so a stream of multibyte text can pass the bound by the width of the lines it carries before
+        # the rotation trims it to half; it is a bound on growth, and after each rotation the count restarts from the
+        # size `wc` reports, not from the estimate.
+        if [ "$events_bound" -gt 0 ]; then
+          kept_bytes=$(( kept_bytes + ${#line} + 1 ))
+          [ "$kept_bytes" -le "$events_bound" ] || rotate_events "$events"
+        fi
+      fi
       # The authoritative final text is the last completed assistant message (`message_end`, not the
       # delta-only `message_update`), and only that is the answer the loop parses.
       case "$line" in

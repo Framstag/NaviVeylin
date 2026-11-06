@@ -327,7 +327,16 @@ A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<RO
 gate child, 65 for the tail, 75 for a review round and 75 for the round before the gate; `0` or absent = no bound)
 ends a child that has spent **its own role's** turns, read from the item's event stream — one `turn_end` per turn,
 which the adapter already writes — minus the count standing when that child started, and checked in the same whole
-second as the two clocks, so the wait costs one `grep` per second and not one per look. It exists because the clock
+second as the two clocks, so the wait costs one `grep` per second and not one per look. That stream is **bounded**
+now (issue #802): `LOOP_CHILD_EVENTS_MAX_BYTES` (16 MiB on this project) is the size past which `tools/pi-child-events.sh`
+drops the oldest half of the lines and writes a `stream_rotation` record first — the lines, the bytes and a cumulative
+`dropped_turn_ends` — because the file grew for the item's whole life and was re-read whole by this bound every
+second. Measured 2026-11-06 over this archive (`evidence/archive-census.py` in the change
+`fix-an-item-stream-is-bounded-and-reported`): 254 streams held **3 483 MiB**, p50 11.84 MiB, p90 29.88 MiB, one
+63.47 MiB, and a 16 MiB bound leaves 2 573 MiB — above the median item's whole history, so an ordinary item is not
+rotated at all. The count adds what the record says was dropped to what the stream still holds, so a rotation cannot
+fall a child's count back to zero; `state.sh`'s usage sum still reads the stream that remains, which is the price of a
+bounded file and not a second reading of it. It exists because the clock
 is the wrong unit for a child that keeps re-reading: cache re-read is **97 %** of what a loop child is charged, so a
 turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past 250 turns held **878 of 1 982 Mtok
 (44 %)** of the archive's spend at 25.07 Mtok each against 1.23 for the 20–50 band. A child that has spent its turns
@@ -776,6 +785,18 @@ tree is released afterwards: the next run finds the branch landed and removes it
 branch a live tree stands on. A directory under `.pi/worktrees/` that git does not know as a worktree is not read at
 all — removing it would need the refusals `loop_scratch_remove` owns for the build paths, and that is a second rule
 for a second case.
+
+The report also answers for the **item directories**, the largest thing the loop keeps and the one no arm named: one
+directory per item holding that item's event stream, its package, its reports and its leftover patch. Measured
+2026-11-06 (issue #802): `.pi/issue-loop/` held 3.6 GB over 264 item directories, one event file 63 MB, and
+`loop-clean`'s arms were the kept worktree's build paths, the scratch trees, the branches, the worktrees and the
+change sources — none of them this. They are also the loop's evidence, so a directory is released only when two
+readings agree: nothing inside it has been written for `LOOP_ITEM_ARCHIVE_DAYS` (14 days here, which released 105
+directories and 1 411 MiB on the day it was measured and nothing younger), **and** the run's own state records the
+item `done` with `metrics.closed: yes` — the offline reading of "the tracker closed it". No record, another result,
+or a landing the run was not allowed to close is an issue still open and still citing its directory, so it is kept and
+named with that reason. `--apply` removes exactly what the report named, a state file that cannot be read keeps every
+directory, and a `0` retention is the switch that releases none.
 
 What it does with an answer that arrived cut: the report a review round is decided from is the file the child's
 answer reached, and what reaches that file can be short. On 2026-10-20 an item's round-2 report stopped

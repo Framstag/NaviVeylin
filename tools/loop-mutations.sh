@@ -832,6 +832,15 @@ MUTATIONS=(
   '87.5@-@../look.sh@look#aPathScopesTheWalkToIt@the first line naming what the walk covered, so a scoped answer reads as a tree-wide one (issue #796)@s|^  where="\$root/\$target"$|  where="$root"|'
   '87.6@-@../look.sh@look#aPathScopesTheWalkToIt@the refusal that keeps a scope inside the tree, so `--path ../outside.md` reads the tree'"'"'s parent (issue #796)@s|^    \*/\.\./\*) printf |    */../*) : # |'
   '88.1@-@tools/loop/lib.sh@worktree#aSetAsideBranchWhosePatchesLandedIsRemoved@the set-aside namespace among the branches a sweep enumerates, so a branch the run set aside is invisible to both removal paths again (issue #803)@s|loop/leftover/\*|loop/leftover-never/\*|'
+
+  # 89.x — an item's kept stream is bounded and reported (issue #802). Measured 2026-11-06 over this archive: 254 event
+  # streams held 3 483 MiB (p50 11.84, p90 29.88, max 63.47 MiB), and no cleanup arm named the 3 563 MiB of item
+  # directories. Four invariants: the writer rotates at its bound, the turn count survives a rotation, the report's age
+  # gate, and the report's reading of whether an issue still cites the directory.
+  '89.1@-@../pi-child-events.sh@adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded@the bound the writer rotates at, so the stream of every item is appended for its whole life again (issue #802)@s#^          \[ "$kept_bytes" -le "$events_bound" \] || rotate_events "$events"$#          :#'
+  '89.2@-@tools/loop/run.sh@run#aRotatedStreamStillCountsTheTurnsItDropped@the turns a rotated stream records added to the ones it still holds, so a child bound falls back to zero whenever the writer rotates (issue #802)@s#"$(( n + r ))"#"$n"#'
+  '89.3@-@tools/loop/loop-clean.sh@clean#reportsAnAgedItemDirectory@the age gate that keeps an item directory an open issue may still cite, so a directory written a minute ago is released (issue #802)@s#-mmin -$(( archive_days \* 1440 ))#-mmin -0#'
+  '89.4@-@tools/loop/loop-clean.sh@clean#reportsAnAgedItemDirectory@the run state reading of a landed and closed item, so a landed item is released whatever its issue still cites (issue #802)@s#(.metrics.closed // "no") == "yes"#(true)#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

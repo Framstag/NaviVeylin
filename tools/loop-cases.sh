@@ -285,6 +285,7 @@ LOOP_SHELL_CASES=(
   'adapter#theChildIsStartedWithoutContextFiles'
   'adapter#theChildIsStartedWithTheResultBound'
   'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
+  'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded'
   'trim#aResultAboveTheBoundIsTrimmedAndNamed'
   'trim#aResultUnderTheBoundIsHandedOverWhole'
   'trim#theTrimIsRecorded'
@@ -316,6 +317,7 @@ LOOP_SHELL_CASES=(
   'report#landingsAreTheStoredNumber'
   'clean#interruptedSuiteRemovesItsScratchTree'
   'clean#reportsWithoutApplyAndRemovesWithIt'
+  'clean#reportsAnAgedItemDirectory'
   'clean#sweepsOnlyWhatIsInTheBase'
   'clean#interruptedSuiteEndsItsProcessGroup'
   'clean#reportsAndEndsAProcessLeftInAScratchTree'
@@ -361,6 +363,7 @@ LOOP_SHELL_CASES=(
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
   'run#childPastItsTurnBoundIsBlocked'
+  'run#aRotatedStreamStillCountsTheTurnsItDropped'
   'run#theRecordedZeroKeepsTheTurnBoundOff'
   'run#eachChildIsBoundedByItsOwnRolesTurns'
   'run#aRoleWithNoRecordedTurnBoundRunsUnbounded'
@@ -671,6 +674,7 @@ loop_run_shell_case() {
     'adapter#theChildIsStartedWithoutContextFiles') fn=case_adapter_theChildIsStartedWithoutContextFiles ;;
     'adapter#theChildIsStartedWithTheResultBound') fn=case_adapter_theChildIsStartedWithTheResultBound ;;
     'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
+    'adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded') fn=case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded ;;
     'trim#aResultAboveTheBoundIsTrimmedAndNamed') fn=case_trim_aResultAboveTheBoundIsTrimmedAndNamed ;;
     'trim#aResultUnderTheBoundIsHandedOverWhole') fn=case_trim_aResultUnderTheBoundIsHandedOverWhole ;;
     'trim#theTrimIsRecorded') fn=case_trim_theTrimIsRecorded ;;
@@ -705,6 +709,7 @@ loop_run_shell_case() {
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
     'clean#interruptedSuiteRemovesItsScratchTree') fn=case_clean_interruptedSuiteRemovesItsScratchTree ;;
     'clean#reportsWithoutApplyAndRemovesWithIt') fn=case_clean_reportsWithoutApplyAndRemovesWithIt ;;
+    'clean#reportsAnAgedItemDirectory') fn=case_clean_reportsAnAgedItemDirectory ;;
     'clean#sweepsOnlyWhatIsInTheBase') fn=case_clean_sweepsOnlyWhatIsInTheBase ;;
     'clean#interruptedSuiteEndsItsProcessGroup') fn=case_clean_interruptedSuiteEndsItsProcessGroup ;;
     'clean#reportsAndEndsAProcessLeftInAScratchTree') fn=case_clean_reportsAndEndsAProcessLeftInAScratchTree ;;
@@ -746,6 +751,7 @@ loop_run_shell_case() {
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
     'run#childPastItsTurnBoundIsBlocked') fn=case_run_childPastItsTurnBoundIsBlocked ;;
+    'run#aRotatedStreamStillCountsTheTurnsItDropped') fn=case_run_aRotatedStreamStillCountsTheTurnsItDropped ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
     'run#eachChildIsBoundedByItsOwnRolesTurns') fn=case_run_eachChildIsBoundedByItsOwnRolesTurns ;;
     'run#aRoleWithNoRecordedTurnBoundRunsUnbounded') fn=case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded ;;
@@ -8473,6 +8479,61 @@ case_adapter_theChildIsStartedWithItsToolDirectoryOnPath() {
   return 0
 }
 
+# What the adapter keeps is bounded (issue #802). The stream it writes grew for the item's whole life and across
+# attempts, with no bound of any kind — measured 2026-11-06, 254 streams held 3 483 MiB and one file 63 MiB — so a
+# stream past `LOOP_CHILD_EVENTS_MAX_BYTES` drops its oldest half and records the drop: the first line says how many
+# lines, bytes and `turn_end`s went, and the newest event survives. A reader that counts turns adds what the record
+# says it dropped (`run.sh`'s `child_turns` does), which is the invariant the `run#` case beside this group drives
+# through a child.
+case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded() {
+  # files: tools/pi-child-events.sh
+  local d prompt emitter f short kept dropped size
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  emitter="$d/emitter.sh"
+  cat > "$emitter" <<'EMITTER'
+#!/usr/bin/env bash
+i=0
+while [ "$i" -lt 40 ]; do
+  i=$((i + 1))
+  printf '{"type":"turn_end","n":%s,"pad":"%s"}\n' "$i" "0000000000000000000000000000000000000000000000000000000000000000"
+done
+printf '{"type":"message_end","message":{"role":"assistant","content":"OK"}}\n'
+EMITTER
+  f="$d/events.jsonl"
+  LOOP_CHILD_EVENTS="$f" LOOP_CHILD_EVENTS_MAX_BYTES=2048 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$emitter" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  [ -s "$f" ] || fail "the adapter kept no stream: $(head -3 "$d/out")"
+  assert_eq "stream_rotation" "$(head -n 1 "$f" | jq -r '.type // ""' 2>/dev/null)" \
+    "the stream's first line records the rotation"
+  assert_eq "message_end" "$(tail -n 1 "$f" | jq -r '.type // ""' 2>/dev/null)" \
+    "the newest event survives the rotation"
+  assert_eq "1" "$(grep -c '"type":"stream_rotation"' "$f" || true)" \
+    "one record stands for every rotation the stream went through"
+  dropped=$(head -n 1 "$f" | jq -r '.dropped_turn_ends // 0')
+  kept=$(grep -c '"type":"turn_end"' "$f" || true)
+  [ "$dropped" -gt 0 ] || fail "the record says it dropped no turn, on a stream that held 40: $dropped"
+  assert_eq "40" "$(( dropped + kept ))" \
+    "what the record dropped plus what the stream still holds is every turn the child took"
+  size=$(wc -c < "$f")
+  [ "$size" -le 4096 ] || fail "the kept stream is not bounded by the recorded 2048 B: $size B"
+
+  # A stream under the bound is kept whole and carries no record: the bound is a bound on the tail, not a rewrite of
+  # every item's history (the recorded value is above the median item's whole stream).
+  short="$d/short.jsonl"
+  LOOP_CHILD_EVENTS="$short" LOOP_CHILD_EVENTS_MAX_BYTES=1048576 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$emitter" "$prompt" </dev/null >"$d/out-short" 2>&1 ||
+    fail "the adapter exited non-zero under the bound: $(head -3 "$d/out-short")"
+  assert_eq "0" "$(grep -c '"type":"stream_rotation"' "$short" || true)" \
+    "a stream under its bound is not rotated"
+  assert_eq "40" "$(grep -c '"type":"turn_end"' "$short" || true)" \
+    "and keeps every line it was given"
+  return 0
+}
+
 # The child is started in the project, so the agent would turn the `AGENTS.md` it discovers there into a
 # `project_context` section of its system prompt — 25 624 of the 33 088 characters of the system prompt on the
 # stream of one item (probe `sections-probe.py`), re-read on every turn of a child whose whole work is one
@@ -9796,6 +9857,70 @@ case_clean_reportsWithoutApplyAndRemovesWithIt() {
 
   out=$(run_clean "$p" --apply) || fail "the second --apply failed: $out"
   assert_contains "$out" "nothing to remove" "a second run is a no-op"
+}
+
+# The item directories are the loop's largest leftover: one per item, holding the stream every child of it appended to,
+# and no arm of this report named them (issue #802; measured 2026-11-06, `.pi/issue-loop/` held 3.6 GB over 264 of
+# them). They are also the loop's evidence, so a directory is released only when nothing inside it has been written
+# for `LOOP_ITEM_ARCHIVE_DAYS` **and** the run recorded the item landed and its issue closed — an item whose issue is
+# still open, or whose landing the run was not allowed to close, is kept and named. `--apply` is still the only path
+# that removes one, and a `0` retention releases nothing.
+case_clean_reportsAnAgedItemDirectory() {
+  # files: tools/loop/loop-clean.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p sf items conf out n1 n2
+  p=$(new_project)
+  init_state "$p" 1 90
+  sf=$(state_file "$p")
+  items="$p/.pi/issue-loop/items"
+  mkdir -p "$items/41" "$items/42" "$items/43" "$items/44"
+  head -c 4096 /dev/zero > "$items/41/events.jsonl"
+  head -c 2048 /dev/zero > "$items/42/events.jsonl"
+  head -c 1024 /dev/zero > "$items/43/events.jsonl"
+  head -c 512 /dev/zero > "$items/44/events.jsonl"
+  touch -d '40 days ago' "$items/41/events.jsonl" "$items/41" \
+                            "$items/42/events.jsonl" "$items/42" \
+                            "$items/43/events.jsonl" "$items/43"
+  # The state is the reading the arm asks: 41 landed and closed, 42 landed but the issue could not be closed, 43 never
+  # landed, 44 landed and closed but written a minute ago.
+  jq '.items = [
+    {"issue": 41, "result": "done", "metrics": {"closed": "yes"}},
+    {"issue": 42, "result": "done", "metrics": {"closed": "no"}},
+    {"issue": 43, "result": "blocked", "metrics": {"closed": "no"}},
+    {"issue": 44, "result": "done", "metrics": {"closed": "yes"}}]' "$sf" > "$sf.new" &&
+    mv "$sf.new" "$sf" || fail "could not record the four items in the run's state"
+
+  # A retention of `0` is the switch: the arm reports and removes nothing.
+  conf="$p/loop-off.conf"
+  # The line is written whether or not the configuration already carries it, so the case fails on the arm's behaviour
+  # and never on a key its own tree has not recorded yet.
+  { sed 's/^LOOP_ITEM_ARCHIVE_DAYS=.*/LOOP_ITEM_ARCHIVE_DAYS=0/' "$LOOP_CONF"; printf 'LOOP_ITEM_ARCHIVE_DAYS=0\n'; } > "$conf" ||
+    fail "could not record the retention off"
+  grep -qx 'LOOP_ITEM_ARCHIVE_DAYS=0' "$conf" || fail "this case could not switch the retention off in loop.conf"
+  out=$(LOOP_CONF="$conf" run_clean "$p" --apply) || fail "loop-clean failed with the retention off: $out"
+  assert_contains "$out" "kept every item" "a 0 retention releases nothing"
+  [ -d "$items/41" ] || fail "a 0 retention removed an item directory"
+
+  out=$(run_clean "$p") || fail "loop-clean failed: $out"
+  assert_contains "$out" "would remove items/41" "the landed, closed and aged item is reported"
+  assert_contains "$out" "kept items/42 — the issue it belongs to is not closed" \
+    "an item whose issue is still open is kept and named"
+  assert_contains "$out" "kept items/43" "and one that never landed is kept too"
+  assert_contains "$out" "kept items/44 — written within 14 days" "a freshly written item is kept by its age"
+  assert_not_contains "$out" "would remove items/42" "a kept item is never named as removable"
+  [ -d "$items/41" ] || fail "the report removed an item directory without --apply"
+  n1=$(printf '%s\n' "$out" | sed -n 's/^loop-clean: would remove [0-9][0-9]* path(s), \([0-9][0-9]*\) B.*/\1/p' | head -1)
+  [ -n "$n1" ] || fail "the report names no total: $out"
+  [ "$n1" -ge 4096 ] || fail "the report undercounts the item directory it would remove: $n1 B"
+
+  out=$(run_clean "$p" --apply) || fail "loop-clean --apply failed: $out"
+  assert_contains "$out" "removed items/41" "--apply removes the item it reported"
+  [ ! -e "$items/41" ] || fail "the aged, landed item directory survived --apply"
+  [ -d "$items/42" ] || fail "--apply removed an item whose issue is still open"
+  [ -d "$items/43" ] || fail "--apply removed an item that never landed"
+  [ -d "$items/44" ] || fail "--apply removed an item younger than the retention"
+  n2=$(printf '%s\n' "$out" | sed -n 's/^loop-clean: removed [0-9][0-9]* path(s), \([0-9][0-9]*\) B.*/\1/p' | head -1)
+  [ "$n1" -le "$n2" ] || fail "--apply removed less than the report named: $n1 B reported, $n2 B removed"
+  return 0
 }
 
 # ------------------------------------------------------------- cases: the change an item names (`agent-issue-loop`)
@@ -12425,6 +12550,63 @@ EOF
   assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
     "no decision label is written for an item the run's own bound ended"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+  return 0
+}
+
+# A rotated stream must keep counting (issue #802): the adapter drops the oldest half of the lines and records how
+# many turns went with them, and a turn bound that read only the lines still present would fall back to zero every
+# time the writer rotated — the child that had already spent its turns would run on. The stream here holds one
+# `turn_end` line and a record that says two were dropped: a bound of three is reached, and on the tree before the
+# fix the run waits on a child that has taken one turn for ever.
+case_run_aRotatedStreamStillCountsTheTurnsItDropped() {
+  # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p conf fifo fixture action pid i status out report
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  conf="$d/loop.conf"
+  sed -e 's/^LOOP_CHILD_TURNS_MAX_WORKER=.*/LOOP_CHILD_TURNS_MAX_WORKER=3/' "$LOOP_CONF" > "$conf" ||
+    fail "could not record a small turn bound"
+  grep -qx 'LOOP_CHILD_TURNS_MAX_WORKER=3' "$conf" || fail "this case could not shorten the worker's turn bound"
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS'
+  fixture="$d/events.jsonl"
+  printf '%s\n' '{"type":"stream_rotation","dropped_lines":12,"dropped_bytes":1200,"dropped_turn_ends":2,"at":"2026-01-01T00:00:00Z"}' > "$fixture"
+  printf '%s\n' '{"type":"turn_end","message":{"role":"assistant"}}' >> "$fixture"
+  action="$d/turn-child.sh"
+  cat > "$action" <<EOF
+#!/usr/bin/env bash
+ev="\${LOOP_CHILD_EVENTS:-}"
+[ -n "\$ev" ] || exit 1
+cat "$fixture" >> "\$ev"
+EOF
+  export PI_STUB_ACTION="$action"
+  fifo="$d/wait.fifo"; mkfifo "$fifo"
+  set -m
+  ( export LOOP_CONF="$conf" PI_STUB_WAIT="$fifo"
+    run_loop "$p" --items 1 --minutes 90 --review off > "$d/out" 2>&1 ) &
+  pid=$!
+  set +m
+  wait_for_stub_child "$fifo.ready" || true
+  [ -e "$fifo.ready" ] || fail "the stub child never started"
+  exec 8<> "$fifo"
+  for i in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    printf 'go\n' >&8 2>/dev/null || true
+    wait "$pid" 2>/dev/null
+    exec 8>&-
+    fail "the run was still waiting on a child whose stream records 2 dropped turns and holds 1, past a bound of 3"
+  fi
+  wait "$pid"; status=$?
+  exec 8>&-
+  out=$(cat "$d/out")
+  assert_eq "0" "$status" "a child the run itself ended is not a failed run"
+  report="$p/.pi/issue-loop/items/21/worker-report.md"
+  [ -f "$report" ] || fail "the item kept no transcript of the child the turn bound ended"
+  assert_contains "$(cat "$report")" "after 3 turn(s)" \
+    "the count the bound reached includes the turns the rotated stream no longer holds"
+  assert_contains "$(cat "$report")" "turn bound of 3 turns" "and the transcript names the bound it reached"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child crossed the bound is recorded blocked"
   return 0
 }
 

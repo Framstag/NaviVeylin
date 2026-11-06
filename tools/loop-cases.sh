@@ -8487,7 +8487,7 @@ case_adapter_theChildIsStartedWithItsToolDirectoryOnPath() {
 # through a child.
 case_adapter_theKeptStreamIsBoundedAndItsRotationIsRecorded() {
   # files: tools/pi-child-events.sh
-  local d prompt emitter f short kept dropped size
+  local d prompt emitter f short aged kept dropped size aged_before aged_after line
   [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
   d=$(scratch)
   prompt="$d/prompt.md"
@@ -8518,8 +8518,30 @@ EMITTER
   [ "$dropped" -gt 0 ] || fail "the record says it dropped no turn, on a stream that held 40: $dropped"
   assert_eq "40" "$(( dropped + kept ))" \
     "what the record dropped plus what the stream still holds is every turn the child took"
+  # The stream is bounded at its bound, not at twice it: the file may pass the count by the one line that pushed it
+  # over before the rotation ran, and by nothing else.
+  line=$(bash "$emitter" </dev/null | LC_ALL=C awk '{ if (length($0) > n) n = length($0) } END { print n + 0 }')
   size=$(wc -c < "$f")
-  [ "$size" -le 4096 ] || fail "the kept stream is not bounded by the recorded 2048 B: $size B"
+  [ "$size" -le "$(( 2048 + line + 1 ))" ] || fail "the kept stream is not bounded by the recorded 2048 B plus one line: $size B"
+
+  # A stream that was *already* past its bound when the child started is rotated by the first event appended to it:
+  # the count is seeded from the file's own size, so a child that appends less than a bound still brings an aged file
+  # down. Without the seed the bound only ever caps what one child adds, and a file that outgrew its bound — the
+  # archive's largest stream, 63.47 MiB — stays whole for the item's whole life, which is the defect this case is for.
+  aged="$d/aged.jsonl"
+  bash "$emitter" </dev/null > "$aged"
+  aged_before=$(wc -c < "$aged")
+  [ "$aged_before" -gt 2048 ] || fail "the stream written before the child is not past the bound: $aged_before B"
+  LOOP_CHILD_EVENTS="$aged" LOOP_CHILD_EVENTS_MAX_BYTES=2048 \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$emitter" "$prompt" </dev/null >"$d/out-aged" 2>&1 ||
+    fail "the adapter exited non-zero on a stream already past its bound: $(head -3 "$d/out-aged")"
+  assert_eq "stream_rotation" "$(head -n 1 "$aged" | jq -r '.type // ""' 2>/dev/null)" \
+    "a stream already past its bound is rotated by the first event appended to it"
+  assert_eq "message_end" "$(tail -n 1 "$aged" | jq -r '.type // ""' 2>/dev/null)" \
+    "and the newest event survives that rotation"
+  aged_after=$(wc -c < "$aged")
+  [ "$aged_after" -lt "$aged_before" ] || fail "the child left the aged stream as large as it found it: $aged_before B → $aged_after B"
+  [ "$aged_after" -le "$(( 2048 + line + 1 ))" ] || fail "the aged stream is not bounded after the child appended to it: $aged_after B"
 
   # A stream under the bound is kept whole and carries no record: the bound is a bound on the tail, not a rewrite of
   # every item's history (the recorded value is above the median item's whole stream).

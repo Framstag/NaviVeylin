@@ -156,7 +156,16 @@ rotate_events() { # rotate_events <file> — drop the oldest half of the lines a
 # The stream is read line by line. A line that is a JSON object is one event and is kept; anything else is the
 # command's own text — an agent that ignores the mode flag prints its answer as plain text — and is passed
 # through, so such a command still answers the loop and a project needs no second code path to keep working.
+#
+# The count starts from what the stream already holds, not from zero: the file is one per item and outlives every
+# child that appends to it, so a stream that was already past its bound when this child started — an item kept from
+# an earlier run, or one written before the bound existed — must be rotated by the first event appended to it, not
+# only once *this* child has added a bound's worth of its own. One `wc` per child, paid here and never per event.
 kept_bytes=0
+if [ -n "$events" ] && [ -f "$events" ]; then
+  kept_bytes=$(wc -c < "$events" 2>/dev/null) || kept_bytes=0
+  case "$kept_bytes" in ''|*[!0-9]*) kept_bytes=0 ;; esac
+fi
 "${cmd[@]}" "${extension[@]}" "${policy[@]}" "${mode[@]}" "${context[@]}" "$prompt" | while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     '{'*)

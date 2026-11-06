@@ -1025,10 +1025,12 @@ The tooling SHALL have one entry point that answers what the loop left on disk a
 `--apply` it SHALL name every path it would remove with its size and remove nothing, with `--apply` it SHALL
 remove exactly those paths, and a second run SHALL find nothing. It SHALL remove the recorded build paths of a
 worktree, the branches whose patches the base already holds, the worktrees under the loop's own tree that the run
-does not keep, and the scratch trees old enough that no suite can be writing into them — in **both** the scratch
-root the invocation resolves and the one the kept worktree resolves — and it SHALL NOT touch a worktree's tracked
-or untracked source. A worktree it keeps SHALL be named with the reason it is kept: uncommitted changes, or a commit
-the base does not carry.
+does not keep, the scratch trees old enough that no suite can be writing into them — in **both** the scratch
+root the invocation resolves and the one the kept worktree resolves — and the item directories no open issue still
+cites, and it SHALL NOT touch a worktree's tracked or untracked source. A worktree it keeps SHALL be named with the
+reason it is kept: uncommitted changes, or a commit the base does not carry. An item directory SHALL be released
+only when nothing inside it has been written for `LOOP_ITEM_ARCHIVE_DAYS` **and** the run recorded the item landed
+and its issue closed, and SHALL be kept and named with that reason otherwise; a `0` retention SHALL release none.
 
 #### Scenario: The report removes nothing
 
@@ -1083,6 +1085,14 @@ the base does not carry.
 - **THEN** the report prints one heading for that root, lists each scratch tree once and counts its bytes once — a
   tree is never listed or counted twice
 - **Case**: `clean#worktreeDotSweepsTheOneRootOnce`
+
+#### Scenario: An item directory is reported by its age and by what its issue still says
+
+- **WHEN** the report runs over item directories older than `LOOP_ITEM_ARCHIVE_DAYS`, one whose item landed and was
+  closed, one whose item landed but could not be closed, one whose item never landed, and one written a minute ago
+- **THEN** the landed and closed directory is named with its size and removed only with `--apply`, the other three
+  are kept and named with the reason, and a `0` retention releases nothing
+- **Case**: `clean#reportsAnAgedItemDirectory`
 
 ### Requirement: A suite ended by a signal ends the case it was in, and its processes
 
@@ -3434,3 +3444,38 @@ document, and every phase prompt SHALL name that wrapper rather than a shell com
 - **THEN** it names the wrapper's scoped call and not the shell `grep` the policy that every child is started with
   refuses
 - **Case**: `prompt#thePhasePromptsCarryTheirOwnRoute`
+
+### Requirement: An item's kept event stream is bounded
+
+The adapter that keeps a child's event stream SHALL bound the file it appends to at `LOOP_CHILD_EVENTS_MAX_BYTES`.
+When the file outgrows its bound the oldest events SHALL be dropped and the newest event SHALL survive. `0`, or a
+project that records no key, SHALL keep every line.
+
+#### Scenario: A stream past its bound is rotated and the rotation is recorded
+
+- **WHEN** a child writes more events than `LOOP_CHILD_EVENTS_MAX_BYTES` allows
+- **THEN** the file stops growing, its first line is a `stream_rotation` record naming the lines, bytes and
+  `turn_end` events that were dropped, the newest event is still the last line, and the dropped plus the remaining
+  turns are every turn the child took
+- **Case**: `adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded`
+
+#### Scenario: A stream under its bound is kept whole
+
+- **WHEN** a child writes fewer events than the bound allows
+- **THEN** every line is kept and no rotation record is written
+- **Case**: `adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded`
+
+### Requirement: The count a rotation reports never falls
+
+A rotation SHALL be recorded in the stream itself — how many lines, how many bytes and how many `turn_end` events
+went — so a reader can tell a rotated stream from a short one. The count of turns a stream reports SHALL NOT fall
+when the writer rotates: the turn bound a child is ended by SHALL count the turns the record says were dropped as
+well as the ones the stream still holds.
+
+#### Scenario: A rotated stream still counts the turns it dropped
+
+- **WHEN** the run bounds a child's turns and the child's stream carries a rotation record plus the turns still
+  present, and their sum reaches that bound
+- **THEN** the run ends the child at the recorded bound, its transcript names the count it reached, and the item is
+  recorded `blocked` with the run's own bound as the mechanism
+- **Case**: `run#aRotatedStreamStillCountsTheTurnsItDropped`

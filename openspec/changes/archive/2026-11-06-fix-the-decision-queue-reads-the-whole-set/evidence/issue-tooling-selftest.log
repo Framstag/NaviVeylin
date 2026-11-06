@@ -1,0 +1,4 @@
+2026-11-06T19:46:18Z
+PASS prioritise#recordsOutgrowOneArgument
+issue-tooling-selftest: all 160 cases passed (JDK 27, offline, no token, HEAD 2e59e48a, tools cf3c05060f81, 2026-11-06T19:47:46Z)
+2026-11-06T19:47:46Z

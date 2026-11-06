@@ -309,10 +309,12 @@ The run SHALL create and manage the working tree and the branch of each item its
 item SHALL be able to invoke version control on its own behalf. A previous attempt's branch SHALL be decided by
 what it *carries*, read by **patch identity** and not by ancestry — the run lands work as `fix: … (#N)`, so such
 a branch is not an ancestor of the base: a branch whose attempt **finished** — one archived change of its own,
-added by a commit that names its issue — SHALL be merged and its item closed by the run, or, when it is not
-admissible for adoption, SHALL be refused and escalated as a decision; a branch that carries commits and no
-archived change of its own SHALL NOT be a decision: its commits SHALL be kept under a name the run gives them
-and the item SHALL be worked.
+added by a commit that names its issue — SHALL be merged and its item closed by the run; when that branch's own
+evidence is not admissible for adoption it SHALL be refused and escalated as a decision; and when its evidence
+admits it but the project tree, the base or the replay refuses the merge, it SHALL be refused and recorded as the
+item's mechanism `unmergeable` beside the pre-screen's exclusion, with no decision label and no item record, so
+the item stays queued work the next run retries; a branch that carries commits and no archived change of its own
+SHALL NOT be a decision: its commits SHALL be kept under a name the run gives them and the item SHALL be worked.
 
 #### Scenario: One working tree per run
 
@@ -379,8 +381,12 @@ and the item SHALL be worked.
   green — learned either when the item starts or when the pre-screen records the branch as an exclusion
 - **THEN** the branch's commits are merged onto the base, the base the run recorded advances to the merge, the
   item is closed with the branch, its commits and the evidence it was checked for named in the run's own record
-  and report, and no budget slot is spent on a fresh attempt — so a finished attempt is not treated as a blocked
-  one, and a change another item's commit added does not make this branch adoptable
+  and report, and no budget slot is spent on a fresh attempt; when the tree the merge would land in, the base or
+  the replay refuses it, nothing is merged and nothing is closed, the refusal is recorded as the item's mechanism
+  `unmergeable` beside its exclusion with the refusal's own text and no decision label written for it, and the
+  branch stays the evidence — so a finished attempt is not treated as a blocked one, an attempt whose merge the
+  tree refuses is work the next run retries rather than a question only its owner can answer, and a change
+  another item's commit added does not make this branch adoptable
 - **Case**: `run#mergesAFinishedAttemptAndClosesTheItem`
 
 #### Scenario: A change another item's commit added does not make the branch adoptable
@@ -2309,9 +2315,12 @@ no claim about when the base moved.
 
 An item recorded `blocked` SHALL carry the mechanism that stopped it, from a closed vocabulary — `refused` when a
 review round refused the change, `unmergeable` when the base would not take the branch, `bound` when the run ended
-a child at a bound it enforces — and a block none caused SHALL carry none. A value outside the vocabulary, and one
-on a result that is not a block, SHALL be a usage error before anything is written, so a mechanism's spend is
-totalled without the note's prose.
+a child at a bound it enforces — and a block none caused SHALL carry none. The vocabulary SHALL carry one second
+home: `unmergeable` SHALL be written beside the pre-screen's exclusion of an item whose admissible finished branch
+the project tree, the base or the replay refused to merge, with the refusal's own text, and no other mechanism
+SHALL be written on a result that is not a block. A value outside the vocabulary, and one on any other result than
+a block or that exclusion, SHALL be refused before anything is written, so a mechanism's spend is totalled without
+the note's prose.
 
 #### Scenario: The refusing round is named
 
@@ -2347,6 +2356,16 @@ totalled without the note's prose.
 - **THEN** each row carries the mechanism its block stopped on, or `-` when it carries none, in a column of its
   own, so a mechanism's spend is totalled from the table
 - **Case**: `report#wallTimeAndReasonInTheTable`
+
+#### Scenario: The tree's refusal of an adoption is named on the exclusion
+
+- **WHEN** the run records an adoption's refusal on an item the pre-screen excluded, and is asked to record one
+  for an issue that is not one of the run's exclusions
+- **THEN** the exclusion carries `unmergeable` beside the refusal's own text while its verdict, its reason and the
+  branch stay as the pre-screen read them, and the second request exits with the refusal naming that the issue is
+  not one exclusion of this run and leaves the state unwritten — so the mechanism's second home is the exclusion
+  and not a free field
+- **Case**: `state#anAdoptionRefusalIsRecordedBesideTheExclusion`
 
 ### Requirement: The self-test runs its cases in a bounded pool, and what a case leaves ends with it
 

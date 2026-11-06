@@ -50,8 +50,8 @@ with: each is what the process you are started in refuses, before any rule of th
   `git checkout`, `git apply` and `git worktree` come back refused, because the approval they need is one an
   unattended process can never be asked for.
 - **No inline code.** `python3 -c`, `python3 <<'EOF'` and a `$( … )` substitution are refused. A number is
-  taken by the command the tree already carries — `tools/loop/measure.sh`, the suite a change names, a `tools/*.sh` —
-  or by `awk` over the output such a command printed.
+  taken by a command the tree already carries — the project's measuring command, the suite a change names, a
+  `tools/*.sh` — or by `awk` over the output such a command printed.
 - **An edit needs the text as it stands now.** A body read twenty turns ago comes back `could not find the exact
   text`, or `found N occurrences` when the text is not unique: read the range once with `ctx_read` immediately before
   the edit, or edit with `ctx_patch`, whose hash refuses with a conflict instead of writing the wrong text.

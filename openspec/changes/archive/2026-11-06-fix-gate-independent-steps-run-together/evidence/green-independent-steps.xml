@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case gate#independentStepsRunTogether" tests="1" failures="0" errors="0" time="10">
+  <system-out>PASS gate#independentStepsRunTogether
+loop-selftest: all 1 case passed — the gate's wall clock was inside the case's 7 s bound for three 3 s steps</system-out>
+</testsuite>

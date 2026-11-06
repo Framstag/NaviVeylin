@@ -1,0 +1,11 @@
+ guidelines/Backlog.recipes.md  |  7 ++++++-
+ tools/loop-cases.sh            | 34 ++++++++++++++++++++++++++++++++++
+ tools/loop-mutations.sh        |  7 ++++++-
+ tools/loop/prompts/reviewer.md |  3 +++
+ tools/loop/run.sh              | 32 +++++++++++++++++++++++++++-----
+ 5 files changed, 76 insertions(+), 7 deletions(-)
+ M guidelines/Backlog.recipes.md
+ M tools/loop-cases.sh
+ M tools/loop-mutations.sh
+ M tools/loop/prompts/reviewer.md
+ M tools/loop/run.sh

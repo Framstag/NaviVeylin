@@ -57,7 +57,7 @@ while [ $# -gt 0 ]; do
     --worktree) need_value "$@"; tree_arg="${2:-}"; shift 2 ;;
     --apply) apply=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,44p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,45p' "$0"; exit 0 ;;
     *) loop_die "loop-clean: unknown argument $1" ;;
   esac
 done

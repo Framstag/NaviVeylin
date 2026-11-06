@@ -2050,6 +2050,9 @@ while true; do
   # is recorded `cut`, escalated to nobody and resumed by the next run, where a report the transport cut twice is a
   # block the owner is asked about.
   pre_gate_cut=0
+  # Whether the change child claimed a change and left the tree at the run's base — a reading taken before the child
+  # that would run the gate, so that nothing is paid for afterwards (issue #797). Empty for every other shape.
+  empty_tree_reading=""
   if [ "$pre_gate" = on ] && [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ]; then
     change_diff_ready=$(report_field "$gate_report" LOOP-DIFF-READY)
     change_gate_claim=$(report_field "$gate_report" LOOP-GATE)
@@ -2062,6 +2065,18 @@ while true; do
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
       head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
       progress commit "the change child stopped at the diff — HEAD ${head_now:0:12} (base ${base:0:12})"
+      # …and a child that stopped at the diff and left the tree at the run's base committed nothing (issue #797). The
+      # outcome block's own arm names that reading and keeps its place as the invariant; what must not happen is
+      # everything that arm would be paid for first — the reviewer, the gate child and the tail — on a tree there is
+      # nothing to read, run a gate on or archive. Measured 2026-11-06 (`runs/2026-11-06T11:44:21Z.json`): a gate phase
+      # is 20–22 min of a 40–50 min item, and eight items over the archive learned their tree was at the base only after
+      # one was paid. A child that answered the diff marker did read the item, so what this leaves is the item's own
+      # block and not the run's "could not start" stop that the same empty tree beside an answer with nothing in it is.
+      if [ "$head_now" = "$base" ]; then
+        empty_tree_reading="the item ends at this reading, before any gate child: the change child stopped at the diff and the tree is still at the base commit, so nothing was committed"
+        loop_state step A --name empty-tree --status ok --note "$empty_tree_reading" >/dev/null 2>&1 || true
+        progress note "$empty_tree_reading"
+      fi
       if [ "$head_now" != "$base" ]; then
         # The round's diff, its file and the pathspec are the post-gate round's own: one reviewer contract, one diff.
         review_exclude_spec=$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)
@@ -2170,7 +2185,7 @@ while true; do
   # tree the item never changed. `closed` is the one verdict that does not settle it here, because it is the shape a
   # report written against the older one-child contract carries; the tail then verifies the archive the same way.
   first_verdict=$(report_field "$gate_report" LOOP-VERDICT)
-  if [ -z "$pre_gate_refusal" ] && [ "$gate_exit" -eq 0 ] && [ "$gate_write_decides" -eq 0 ] &&
+  if [ -z "$pre_gate_refusal" ] && [ -z "$empty_tree_reading" ] && [ "$gate_exit" -eq 0 ] && [ "$gate_write_decides" -eq 0 ] &&
     { [ -z "$first_verdict" ] || [ "$first_verdict" = closed ]; } &&
     [ -z "$(report_field "$gate_report" LOOP-TIMEOUT)" ] &&
     [ -z "$(report_field "$gate_report" LOOP-DEADLINE)" ]; then
@@ -2250,7 +2265,10 @@ while true; do
   # decision slots no reviewer and no worker asked for, and the run stopped on two consecutive blocked items 125 s
   # into a 360-minute budget. A status of 0 beside an answer that carries no verdict and a tree still at the base is
   # the same "no part of it was read", so the evidence decides this line and the status is only quoted in it.
-  if [ -z "$verdict_claim" ] && [ -z "$timeout_claim" ] && [ "$head_now" = "$base" ]; then
+  # A child that stopped at the diff is not this arm's (issue #797): it answered the item — the diff marker is its own
+  # claim that there is work — so a tree at the base beside that answer is the item's block, read at the diff and named
+  # below, not the run's stop. Only an answer with nothing of its own in it still says no part of the item was read.
+  if [ -z "$verdict_claim" ] && [ -z "$timeout_claim" ] && [ -z "$empty_tree_reading" ] && [ "$head_now" = "$base" ]; then
     child_words=$(last_line "$final_report")
     # How much answer there was, in the transcript the stop is recorded from: 0 B is the shape a refused provider
     # leaves, and it is what tells a reader of the stop reason why the run did not ask the item's owner anything.

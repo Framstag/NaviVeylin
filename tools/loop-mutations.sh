@@ -247,8 +247,8 @@ MUTATIONS=(
   # and stops it on "two consecutive items ended blocked" (measured 2026-10-20, issue #212). Two shapes assert it,
   # because the status is not what the classification may read: an adapter that refused the child's argv leaves
   # exit 1 and a complaint (#212), a provider that refused every call leaves exit 0 and a 0-byte answer (#742).
-  '27.1@-@tools/loop/run.sh@run#childThatNeverStartedIsTheRunsFault@the classification that keeps a child which never started off the item (issue #212)@s|^  if \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
-  '27.2@-@tools/loop/run.sh@run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault@the same classification read from the answer rather than the status (issue #742)@s|^  if \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
+  '27.1@-@tools/loop/run.sh@run#childThatNeverStartedIsTheRunsFault@the classification that keeps a child which never started off the item (issue #212)@s|^  if \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ -z "\$empty_tree_reading" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
+  '27.2@-@tools/loop/run.sh@run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault@the same classification read from the answer rather than the status (issue #742)@s|^  if \[ -z "\$verdict_claim" \] && \[ -z "\$timeout_claim" \] && \[ -z "\$empty_tree_reading" \] && \[ "\$head_now" = "\$base" \]; then$|  if false; then|'
   # 27.x — the process group a layer of the loop started, and the process the leftover report reads (issue #213).
   # The group kill is implemented once, in `lib.sh`, because the suite and the run must not drift on *how* they
   # end what they started (D16): 28.1 is that one implementation, 28.3 is the run's call site.
@@ -740,7 +740,7 @@ MUTATIONS=(
   # were charged after the first `LOOP-GATE` line. The condition below is the one line that decides whether the tail
   # child exists at all, so a tail made unreachable puts the item's whole derivation back into the archive phase — and
   # the case that owns it counts the children (`run#childUsageIsRecordedPerItem`), which one child cannot satisfy.
-  '76.1@-@tools/loop/run.sh@run#childUsageIsRecordedPerItem@the tail child the gate line starts, and the item spend as the sum of two children (issue #744)@s|^  if \[ -z "\$pre_gate_refusal" \] \&\& \[ "\$gate_exit" -eq 0 \] \&\& \[ "\$gate_write_decides" -eq 0 \] \&\&$|  if [ -z "$pre_gate_refusal" ] \&\& [ "$gate_exit" -eq 0 ] \&\& [ "$gate_write_decides" -eq 99 ] \&\&|'
+  '76.1@-@tools/loop/run.sh@run#childUsageIsRecordedPerItem@the tail child the gate line starts, and the item spend as the sum of two children (issue #744)@s|^  if \[ -z "\$pre_gate_refusal" \] \&\& \[ -z "\$empty_tree_reading" \] \&\& \[ "\$gate_exit" -eq 0 \] \&\& \[ "\$gate_write_decides" -eq 0 \] \&\&$|  if [ -z "$pre_gate_refusal" ] \&\& [ "$gate_exit" -eq 0 ] \&\& [ "$gate_write_decides" -eq 99 ] \&\&|'
   # 76.2 — the arm that records a red gate as the tail reported it (issue #744, review round 1). Without it the item
   # falls to "no archived change appears in the run's diff", which is the opposite of what the tail said and drops the
   # gate's own numbers; the case asks the reason for the gate's line and for the absence of that sentence.
@@ -841,6 +841,13 @@ MUTATIONS=(
   '89.2@-@tools/loop/run.sh@run#aRotatedStreamStillCountsTheTurnsItDropped@the turns a rotated stream records added to the ones it still holds, so a child bound falls back to zero whenever the writer rotates (issue #802)@s#"$(( n + r ))"#"$n"#'
   '89.3@-@tools/loop/loop-clean.sh@clean#reportsAnAgedItemDirectory@the age gate that keeps an item directory an open issue may still cite, so a directory written a minute ago is released (issue #802)@s#-mmin -$(( archive_days \* 1440 ))#-mmin -0#'
   '89.4@-@tools/loop/loop-clean.sh@clean#reportsAnAgedItemDirectory@the run state reading of a landed and closed item, so a landed item is released whatever its issue still cites (issue #802)@s#(.metrics.closed // "no") == "yes"#(true)#'
+  # 91.1 is issue #797's invariant: the empty tree read at the diff, before the child that would run the gate. Without
+  # it the run commits the change child's nothing, starts the tail anyway, and reads its own "could not start" stop on
+  # the tail's empty answer — the item is not even recorded, and the gate phase the reading would have refused is what
+  # eight records over the archive paid for (2026-10-23 #260 at 1 915 s, 2026-10-27 #319 at 1 422 s, 2026-11-03 #721 at
+  # 916 s). The sed removes the reading alone: the outcome block's arm 9.5 owns still blocks the item, so the case this
+  # record names fails on the children it asserts nobody started.
+  '91.1@-@tools/loop/run.sh@run#anEmptyTreeIsRefusedBeforeTheGateChild@the reading that refuses an empty tree before the child that would run the gate, so nothing follows a child that committed nothing (issue #797)@s|^      if \[ "$head_now" = "$base" \]; then|      if false; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

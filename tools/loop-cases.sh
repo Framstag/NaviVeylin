@@ -186,6 +186,7 @@ LOOP_SHELL_CASES=(
   'prompt#workerIsHandedTheMeasureBlock'
   'run#oneItemOrderIsFixed'
   'run#childClaimWithoutCommitIsBlocked'
+  'run#anEmptyTreeIsRefusedBeforeTheGateChild'
   'run#blockedItemIsEscalatedWithItsReason'
   'run#aFailedEscalationWriteIsNamed'
   'run#aFailedUnpickIsNamed'
@@ -580,6 +581,7 @@ loop_run_shell_case() {
     'prompt#workerIsHandedTheMeasureBlock') fn=case_prompt_workerIsHandedTheMeasureBlock ;;
     'run#oneItemOrderIsFixed') fn=case_run_oneItemOrderIsFixed ;;
     'run#childClaimWithoutCommitIsBlocked') fn=case_run_childClaimWithoutCommitIsBlocked ;;
+    'run#anEmptyTreeIsRefusedBeforeTheGateChild') fn=case_run_anEmptyTreeIsRefusedBeforeTheGateChild ;;
     'run#blockedItemIsEscalatedWithItsReason') fn=case_run_blockedItemIsEscalatedWithItsReason ;;
     'run#aFailedEscalationWriteIsNamed') fn=case_run_aFailedEscalationWriteIsNamed ;;
     'run#aFailedUnpickIsNamed') fn=case_run_aFailedUnpickIsNamed ;;
@@ -5039,6 +5041,52 @@ case_run_childClaimWithoutCommitIsBlocked() {
   assert_eq "1" "$(jq -r '.items | length' "$(state_file "$p")")" "the item was recorded"
   assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "a claim without a commit is blocked"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "base commit" "the reason names what was missing"
+  assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "the item was not closed"
+}
+
+# The same claim read where the run can still refuse what follows it (issue #797). The outcome block's arm names an empty
+# tree and stays there as the invariant, but it is the *last* thing the run reads: eight records over the archive (seven
+# issues, #91 twice) were recorded `blocked` on it, and every one of them learned it after the item's most expensive phase
+# had been paid — a gate phase is 20–22 min of a 40–50 min item (measured 2026-11-06, `runs/2026-11-06T11:44:21Z.json`).
+# With the gate deferred to a child of its own (issue #758) the run holds the child's answer and the tree *before* that
+# child starts, so an answer that claims a change beside a tree still at the base is refused there: no reviewer, no gate
+# child, no tail, and the item blocked on the reason that arm writes anyway.
+case_run_anEmptyTreeIsRefusedBeforeTheGateChild() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out prompts item state
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The change child answers the shape a deferred gate is read from — the diff marker and no verdict — and leaves the
+  # tree exactly as it found it, which is the whole of what a child that committed nothing leaves behind.
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS'
+  printf '#!/usr/bin/env bash\n: # this child claims the change and leaves the tree exactly as it found it\n' \
+    > "$d/worker-action.sh"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
+  state=$(state_file "$p")
+  item=$(find "$p/.pi/issue-loop/items" -mindepth 1 -maxdepth 1 -type d | head -1)
+  # The item is recorded at all: a run that ends on its own stop writes none, and that is a different fault (the arm
+  # `run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault` owns) — so it is named here with the run's own last words.
+  assert_eq "1" "$(jq -r '.items | length' "$state")" \
+    "the item is recorded — the run said: $(printf '%s' "$out" | grep '^stop:' | tail -1)"
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" "a claim with nothing committed is blocked"
+  assert_contains "$(jq -r '.items[0].note' "$state")" \
+    "reported success but the tree is still at the base commit — nothing was committed" \
+    "and the reason is the one the outcome block's arm already writes"
+  # …and it is stated as the item's block, not as the run's own stop: a child that answered the diff marker read the
+  # item, so nothing here is "no part of it was read".
+  assert_not_contains "$out" "could not start" "the answer is not read as a child that never started"
+  # One child and no more: the reviewer and the gate child the split would start, and the tail the gate's own line would
+  # start, are exactly what the reading refuses.
+  prompts=$(grep '^prompt:' "$PI_STUB_LOG" | awk '{print $2}')
+  assert_eq "worker-prompt.md" "$(printf '%s' "$prompts")" "the change child is the only child the run starts"
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "empty-tree")] | length' "$state")" \
+    "the reading that ended the item is recorded as a step of its own"
+  assert_contains "$(jq -r '[.steps[] | select(.name == "empty-tree") | .note] | join(" | ")' "$state")" \
+    "before any gate child" "and the step says the item ended at that reading"
+  assert_eq "0" "$(jq -r '[.steps[] | select(.name == "pre-gate-review" or .name == "worker-gate" or .name == "worker-tail")] | length' "$state")" \
+    "no round, no gate child and no tail is started for a tree there is nothing to read, run a gate on or archive"
+  [ ! -e "$item/worker-gate-report.md" ] || fail "a gate child ran for a tree at the base"
+  [ ! -e "$item/worker-tail-report.md" ] || fail "a tail ran for a tree at the base"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "the item was not closed"
 }
 

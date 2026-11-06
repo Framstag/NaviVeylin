@@ -658,6 +658,19 @@ into an 8 h budget — two questions nobody had asked, and two of its three deci
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
 commit, the second its branch, which is what a later pass escalates.
 
+What it does with a tree the child claims and did not commit: the reading that needs no child at all is the item's
+HEAD against the run's base, so it is taken where the run itself makes the commit — the child the gate is deferred to
+stops at the diff, the run commits that tree and reads the HEAD it just made, and a HEAD still at the base ends the
+item there (`tools/loop/run.sh:2075`). Nothing follows that reading: the reviewer and the gate child are already
+guarded on the same HEAD, the tail is guarded on it too, and the item is recorded `blocked` on "reported success but
+the tree is still at the base commit — nothing was committed" — the reason the outcome block's own arm writes, kept
+there as the invariant rather than written twice. It is not the never-started stop above: a child that answered the
+diff marker did read the item, and its own claim is what says so. Measured 2026-11-06 (issue #797): eight records over
+the archive carried that reason, each read after every child of its item had been paid for (1 915 s for #260, 1 422 s
+for #319, 916 s for #721), and with the gate deferred the same tree beside an answer that claims a diff left no item
+record at all — the tail's empty answer was read as "the child could not start".
+`run#anEmptyTreeIsRefusedBeforeTheGateChild` is the case, and `tools/loop-mutations.sh` 91.1 the record that keeps it.
+
 What it does with a start the worktree refuses: a tree that is not clean is the *previous* item's unfinished work
 — `start-item` refuses it, because committing over it would attribute two changes to one branch — so the run
 attributes the refusal before it ends on it. The worktree's own branch marker names the item whose branch the tree

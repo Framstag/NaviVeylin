@@ -237,14 +237,18 @@ Source: specs `navigation-ongoing-notification` (changes `background-navigation-
 - **Rule: labels and guidance wording are shared.** One formatter produces the phone text and the car
   hint, and the manoeuvre instruction uses the same wording as the on-screen next-turn display. The car
   MAY use car-only text roles through `CarAppExtender` (the instruction its primary text, the
-  distance/arrival its secondary), while the phone notification keeps the destination name first —
+  distance, arrival time and, for a motorway enter or change, the signposted destination its
+  secondary), while the phone notification keeps the destination name first —
   a rendering difference from one content source, not a second set of strings.
 - **Rule: NAVIGATION content is destination, manoeuvre, distance, arrival and the stop action.** The
   notification carries the destination name (or the neutral "Navigation active" when unknown), the
   manoeuvre instruction in the same wording as the on-screen next-turn display, the distance-to-turn,
   arrival/remaining time and remaining distance, and the "Stop Navigation" action (the same label as
   the on-screen stop button, `UIPhoneMap.md` §7b). The car hint shows the instruction, the
-  distance-to-turn with the arrival time, the manoeuvre arrow as large icon and the same stop action.
+  distance-to-turn with the arrival time, the manoeuvre arrow as large icon and the same stop action;
+  for a motorway enter or change that carries a destination record its secondary text also carries the
+  signposted destination, worded by the same `:core` function as the phone overlay's second line
+  (`auto-navigation-hints` — The car hint names the signposted destination).
 - **Rule: a known zero distance is not an unknown distance.** The distance-to-turn SHALL render a
   **known zero** as `0 m`, while a distance that is absent or `NaN` renders `--` — on the phone
   notification's stats line and the car hint's secondary text alike.

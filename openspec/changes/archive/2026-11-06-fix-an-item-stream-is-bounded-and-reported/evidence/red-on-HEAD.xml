@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally the self-test printed on the base tree (HEAD 007ac561, the engine change absent and only the three new
+     cases added) for the three cases this change adds: the shell runner writes no JUnit XML, so this file is the
+     carrier of the number the change quotes (tests=3 failures=3), kept beside evidence/red-on-HEAD.log,
+     evidence/red-on-HEAD-clean.log and evidence/green-on-change.log so the claim has both halves. The selection was
+     each case by name, run from `.pi/tmp/head-802` — a copy of the base's `tools/` with only loop-cases.sh taken from
+     the change, because a worktree copy cannot be reset in this session (git's own writes are refused). -->
+<testsuite name="tools/loop-selftest.sh (clean#reportsAnAgedItemDirectory, adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded, run#aRotatedStreamStillCountsTheTurnsItDropped; HEAD 007ac561)" tests="3" failures="3" errors="0" time="69.00">
+  <testcase name="clean#reportsAnAgedItemDirectory" classname="loop-selftest">
+    <failure message="the arm for the item directories is absent">a 0 retention releases nothing: 'kept every item' not found in: loop-clean: no worktree at …/repo/.pi/worktrees/loop — no build output of the loop's to remove</failure>
+  </testcase>
+  <testcase name="adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded" classname="loop-selftest">
+    <failure message="the stream has no bound and writes no rotation record">the stream's first line records the rotation: expected 'stream_rotation', got 'turn_end'</failure>
+  </testcase>
+  <testcase name="run#aRotatedStreamStillCountsTheTurnsItDropped" classname="loop-selftest">
+    <failure message="a rotated stream's dropped turns are not counted, so the bound never fires">the run was still waiting on a child whose stream records 2 dropped turns and holds 1, past a bound of 3</failure>
+  </testcase>
+  <system-out>2026-11-06T18:48:07Z FAIL clean#reportsAnAgedItemDirectory
+FAIL adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded
+FAIL run#aRotatedStreamStillCountsTheTurnsItDropped
+loop-selftest: 1 of 1 cases failed (each case run on its own)
+2026-11-06T18:49:24Z</system-out>
+</testsuite>

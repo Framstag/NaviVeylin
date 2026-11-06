@@ -803,6 +803,14 @@ MUTATIONS=(
   # transport had cut. Without the un-fencing, the same report is a cut answer again.
   '83.1@-@tools/loop/run.sh@run#aFencedClosingBlockIsACompleteAnswer@the fence taken off a closing line before the report is judged complete (issue #793)@s#^  report_lines "\$1" | grep -qE "\$2" 2>/dev/null$#  grep -qE "\$2" "\$1" 2>/dev/null#'
   '84.1@-@tools/loop/gate.sh@gate#theDeclarationCaseIsOwedFirst@the cheap step the gate owes before its suites and its build, so a declaration one path token short is found at the end of the gate again (issue #792)@s|^owe_pairs "\$first_steps"$|: # the mutation leaves the cheap step to the end|'
+
+  # 85.x — the suite states what it cost (issue #782). Measured 2026-11-06 in the change root: `tools/loop-selftest.sh
+  # --list` declares 326 cases, and each addition to that set was reviewed for what it asserts and by nobody for what
+  # it costs, because the summary named the count, the JDK and the selection and nothing about time. Two sites: the
+  # per-group time a case's end is charged to, and the `--times` gate that keeps the figure off a `PASS` line two
+  # callers parse.
+  '85.1@-@../loop-selftest.sh@driver#theSummaryNamesWhatEachGroupCost@the group figure a finished case is charged to, so the summary states a measured time and not a constant (issue #782)@s|^  group_ms\[\$case_group\]=\$(( \${group_ms\[\$case_group\]:-0} + elapsed ))$|  group_ms[$case_group]=0|'
+  '85.2@-@../loop-selftest.sh@driver#theTimesFigureIsAskedForNotAssumed@the gate that keeps the per-case figure off a `PASS` line nobody asked for it on (issue #782)@s|^      if \[ "\$times" -eq 1 \]; then$|      if [ 1 -eq 1 ]; then|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

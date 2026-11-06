@@ -546,6 +546,27 @@ against the 17 min 15 s the same set spends as one step on a four-core runner (r
 of the first green dispatch (2026-11-05, run 42094414229) took 361 s, 416 s and 107 s, so the suite's wall clock in
 the pipeline is the slowest leg's 6 min 56 s rather than the 17 min 15 s the one step spent.
 
+The suite states what it cost, and that figure is what a case is priced against (issue #782). Before this the summary
+named its case count, its JDK feature and its selection and nothing about time: a case's start was recorded only to
+stop its bound's watcher and was cleared when the case ended, so a group's cost existed only as the difference
+between two step durations a person read in the CI log. Now every invocation that prints a summary prints one line per
+group it executed — that group's case count and the sum of its cases' own elapsed times — and its summary line carries
+the selection's own wall clock beside the counts and the selection:
+`loop-selftest: state 24 cases 39.47 s` and `loop-selftest: all 24 cases passed (JDK 27, offline, no token, no
+sandbox) — 54.96 s, selection: --group state` (measured 2026-11-06 at base `0fb7a80`, `--group state --jobs 1`). A
+group's figure is a sum where the selection's is a wall clock, so the two differ by the pool's parallelism — `driver`
+paid 98.87 s of case time in 32.28 s of wall clock at `--jobs 4` the same day — and neither is compared with a stored
+number: a baseline's disagreement is a disagreement about the host, not a verdict on the change. `--times` adds the
+figure to a `PASS` line when it is asked for and never otherwise, because the mutation harness and the leftovers cases
+invoke the driver with one named `--case` and parse what that shape prints.
+
+**Read a group's cost before adding a case to it**, and price a trim against what a case costs and not against what its
+fixture looks like it costs: the three groups the plan blamed for paying a prepared project per case (`state` 24,
+`report` 20, `prescreen` 30 — 74 cases, 101.97 s of case time, 1.38 s a case) pay 13 ms of that for
+`new_project` — 0.8–1.2 % of a case — so a merge of all 74 into one per fixture would have saved 0.95 s of their
+101.97 s. The measurement is `openspec/changes/loop-suite-cost-is-reported/evidence/trim.txt`, and the report is what
+lets a later trim aim at the group that pays.
+
 One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a
 red gate can belong to the neighbour rather than to the change under test. The driver holds a lease in the root the
 tree resolved — a second invocation that may run more than one case is refused with exit 2, naming the rule, the

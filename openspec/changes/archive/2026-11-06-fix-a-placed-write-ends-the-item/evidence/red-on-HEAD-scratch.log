@@ -1,0 +1,7 @@
+cmd: bash tools/loop-selftest.sh --case run#aChildIsGivenOneScratchDirectory
+date: 2026-11-06T22:05:25Z  base: 54373f19c58ba66cc7b26d8c452372f82ca1317b
+run#aChildIsGivenOneScratchDirectory|   the worker's prompt names no scratch directory
+--- run#aChildIsGivenOneScratchDirectory[0] (exit 1)
+  the worker's prompt names no scratch directory
+FAIL run#aChildIsGivenOneScratchDirectory
+loop-selftest: 1 of 1 cases failed

@@ -10,7 +10,12 @@
 #   gh api user --jq .login                       -> $GH_STUB_DIR/login.txt
 #   gh repo view --json nameWithOwner [--jq …]    -> $GH_STUB_DIR/repo.txt
 #   gh label list --json …                        -> $GH_STUB_DIR/labels.json
-#   gh issue list [--state …] --json …            -> $GH_STUB_DIR/issues.json
+#   gh issue list [--state …] --json …            -> $GH_STUB_DIR/issues.json, filtered by the state and the labels
+#                                                    the caller names and, when the fixture holds more items than
+#                                                    `--limit`, sliced newest-created first — the order the real CLI
+#                                                    answers in, which is why a caller's window can miss the oldest
+#                                                    items (issue #805). A fixture smaller than its window is served
+#                                                    whole and in its own order.
 #   gh issue view <n> --json …                    -> issue <n> of $GH_STUB_DIR/issues.json, carrying only the
 #                                                    fields named after --json (as the real CLI does, so a
 #                                                    reader that forgets a field is red here)
@@ -24,6 +29,14 @@
 #   gh api repos/<owner>/<name>/actions/runs/<id>/jobs [--paginate] [--jq …]
 #                                                -> $GH_STUB_DIR/jobs.json (the run's jobs and their steps,
 #                                                    each with started_at/completed_at as the real API gives them)
+#   gh api graphql -f query=… -f label=… [--jq …]
+#                                                -> the count of $GH_STUB_DIR/issues.json's items carrying the
+#                                                    label the query passes, as `{data:{repository:{issues:
+#                                                    {totalCount: N}}}}` — the count the decision queue scopes
+#                                                    its window by (issue #805). A query is answered only when it
+#                                                    names `totalCount`, one label and the fixture's repository,
+#                                                    so a count of a set the fixtures do not describe is refused
+#                                                    rather than answered as zero.
 #   gh run download <id> --name … --dir …         -> copies $GH_STUB_DIR/artifact/<id>/ into --dir, so a
 #                                                    scenario decides what an artifact contains
 #
@@ -36,7 +49,8 @@
 # Env: GH_STUB_DIR (fixture directory, default: this file's directory), GH_STUB_RECORD (write log),
 #      GH_STUB_FAIL (a substring of an invocation the stub must refuse, so a case can watch what a writer does
 #      when `gh` itself fails mid-sequence — matched against the invocation as `gh <group> <sub> …`, so
-#      `issue edit` is precise and `edit` is not).
+#      `issue edit` is precise and `edit` is not), GH_STUB_COUNT_LAG (a number the graphql count answers short of the
+#      fixture's own items — items filed between a count and the read, the race a caller's self-check is for).
 set -uo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -159,6 +173,49 @@ group="$1"; shift
 
 case "$group" in
   api)
+    # The count read: `gh api graphql -f query=… -f label=… [--jq …]`. A count is what lets a caller scope a read by
+    # the set the tracker reports rather than by a number it picked, so the fixtures answer it from their own items —
+    # all states, as the query's `states: [OPEN, CLOSED]` asks — and refuse a query they do not describe (#805).
+    if [ "${1:-}" = "graphql" ]; then
+      shift
+      query=""; jq_filter=""; label=""; owner=""; name=""
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --jq) jq_filter="${2:-}"; shift 2 ;;
+          -f) case "${2:-}" in
+                query=*) query="${2#query=}" ;;
+                label=*) label="${2#label=}" ;;
+                owner=*) owner="${2#owner=}" ;;
+                name=*) name="${2#name=}" ;;
+                *) refuse "api graphql -f ${2:-}" ;;
+              esac; shift 2 ;;
+          --paginate) shift ;;
+          *) refuse "api graphql $*" ;;
+        esac
+      done
+      case "$query" in *totalCount*) ;; *) refuse "api graphql — the query names no totalCount" ;; esac
+      [ -n "$label" ] || refuse "api graphql — the query carries no label to count"
+      need_file repo.txt
+      fixture_repo=$(tr -d '\n' < "$(fixture_path repo.txt)")
+      [ "$owner" = "${fixture_repo%%/*}" ] && [ "$name" = "${fixture_repo#*/}" ] ||
+        refuse "api graphql — the query names ${owner:-no owner}/${name:-no name}, the fixtures hold $fixture_repo"
+      need_file issues.json
+      total=$(jq --arg label "$label" '[ .[]
+        | select([(.labels // [])[] | if type == "string" then . else .name end] | index($label) != null)
+      ] | length' "$(fixture_path issues.json)")
+      # A count that lags the list (`GH_STUB_COUNT_LAG`): items filed between the count and the read, which is the
+      # race the queue's full-window refusal exists for.
+      case "${GH_STUB_COUNT_LAG:-}" in
+        ''|*[!0-9]*) ;;
+        *) total=$((total - GH_STUB_COUNT_LAG)); [ "$total" -ge 0 ] || total=0 ;;
+      esac
+      if [ -n "$jq_filter" ]; then
+        jq -n --argjson total "$total" '{data: {repository: {issues: {totalCount: $total}}}} | '"$jq_filter"
+      else
+        jq -nc --argjson total "$total" '{data: {repository: {issues: {totalCount: $total}}}}'
+      fi
+      exit 0
+    fi
     if [ "${1:-}" != "user" ]; then
       path="${1:-}"; shift || true
       case "$path" in
@@ -244,15 +301,36 @@ case "$group" in
     sub="${1:-}"; shift || true
     case "$sub" in
       list)
+        state=""; limit=""; labels=()
         while [ $# -gt 0 ]; do
           case "$1" in
-            --state|--limit|--json) shift 2 ;;
+            --state) state="${2:-}"; shift 2 ;;
+            --label) labels+=("${2:-}"); shift 2 ;;
+            --limit) limit="${2:-}"; shift 2 ;;
+            --json) shift 2 ;;
             --paginate) shift ;;
             *) refuse "issue list $*" ;;
           esac
         done
+        case "$limit" in ''|*[!0-9]*) [ -z "$limit" ] || refuse "issue list --limit $limit" ;; esac
+        labels_json=$(printf '%s\n' ${labels[@]+"${labels[@]}"} | jq -Rs 'split("\n") | map(select(. != ""))')
         need_file issues.json
-        cat "$(fixture_path issues.json)"
+        jq --arg state "$state" --argjson limit "${limit:-999999999}" --argjson labels "$labels_json" '
+          [ .[]
+            | select(($state == "" or $state == "all")
+                     or ($state == "open" and (.state // "OPEN") != "CLOSED")
+                     or ($state == "closed" and (.state // "OPEN") == "CLOSED"))
+            | . as $issue
+            | select(($labels | length) == 0
+                     or ([($issue.labels // [])[] | if type == "string" then . else .name end] as $held
+                         | ($labels | map(. as $want | ($held | index($want)) != null) | all)))
+          ]
+          # A window over an order, and both are read: the real CLI answers newest-created first, so a caller whose
+          # window is smaller than the tracker never sees the oldest items. Slicing only when the fixture is longer
+          # than the window keeps a fixture smaller than its window served whole and in its own order.
+          | if length > $limit
+            then (sort_by([(.createdAt // ""), (.number // 0)]) | reverse | .[0:$limit])
+            else . end' "$(fixture_path issues.json)"
         ;;
       view)
         number="${1:-}"; shift || true

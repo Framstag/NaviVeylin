@@ -87,6 +87,8 @@ ISSUES_SHELL_CASES=(
   'decisions#listsTheQueueAndItsQuestions'
   'decisions#theQuestionIsNotTheVerdictWord'
   'decisions#emptyQueueIsNotAnError'
+  'decisions#theOldestQueuedItemIsListed'
+  'decisions#aReadThatCannotCoverTheSetIsRefused'
   'shaping#theQueuePrintsTheVerdictAndClause'
   'shaping#anItemWithNoStatementIsNamed'
   'shaping#anEmptyQueueExitsZero'
@@ -235,6 +237,8 @@ issues_run_shell_case() {
     'decisions#listsTheQueueAndItsQuestions') case_decisions_listsTheQueueAndItsQuestions ;;
     'decisions#theQuestionIsNotTheVerdictWord') case_decisions_theQuestionIsNotTheVerdictWord ;;
     'decisions#emptyQueueIsNotAnError') case_decisions_emptyQueueIsNotAnError ;;
+    'decisions#theOldestQueuedItemIsListed') case_decisions_theOldestQueuedItemIsListed ;;
+    'decisions#aReadThatCannotCoverTheSetIsRefused') case_decisions_aReadThatCannotCoverTheSetIsRefused ;;
     'shaping#theQueuePrintsTheVerdictAndClause') case_shaping_theQueuePrintsTheVerdictAndClause ;;
     'shaping#anItemWithNoStatementIsNamed') case_shaping_anItemWithNoStatementIsNamed ;;
     'shaping#anEmptyQueueExitsZero') case_shaping_anEmptyQueueExitsZero ;;
@@ -1088,6 +1092,71 @@ case_decisions_emptyQueueIsNotAnError() {
   out=$(run_tool decisions.sh 2>&1); status=$?
   assert_eq "0" "$status" "an empty queue is not a failure"
   assert_contains "$out" "no item awaits a decision" "and it says so"
+}
+
+# The label the queue is a query over, read from the profile as `decisions.sh` resolves it (one separator between
+# the namespace and the role's value), so a case names no project value of its own.
+decision_label() {
+  local separator
+  separator=$(jq -r '.namespaceSeparator // "/"' "$(profile_path)")
+  printf 'agent%s%s\n' "${separator:-/}" "$(jq -r '.roles.decisionAgent' "$(profile_path)")"
+}
+
+# A tracker of `<total>` issues, the ones the remaining arguments name carrying the decision label and the
+# escalation comment the queue prints. The numbers rise with `createdAt`, so the newest-first order a `gh` list
+# answers in is the numbers reversed: the oldest item sits at the far end of it, outside any window smaller than
+# the tracker.
+decision_tracker() { # <dir> <total> <labelled number>…
+  local dir="$1" total="$2"; shift 2
+  jq -n --argjson total "$total" \
+        --argjson labelled "$(printf '%s\n' "$@" | jq -R . | jq -s 'map(tonumber)')" \
+        --arg label "$(decision_label)" '
+    [ range(1; $total + 1) as $n
+      | {number: $n,
+         title: "fixture item \($n)",
+         state: "OPEN",
+         createdAt: "2026-01-01T00:00:00Z",
+         updatedAt: "2026-01-01T00:00:00Z",
+         body: "- **Observed** ✗: fixture claim about \($n).",
+         author: {login: "Framstag"},
+         labels: ([{name: "class/bug"}, {name: "status/on-hold"}, {name: "agent/eligible"}]
+                  + (if ($labelled | index($n)) != null then [{name: $label}] else [] end)),
+         comments: (if ($labelled | index($n)) != null
+                    then [{author: {login: "Framstag"}, createdAt: "2026-01-01T00:00:00Z",
+                           body: "needs-decision\n\n**The decision:** merge the two rows into one"}]
+                    else [] end)}]' > "$dir/issues.json"
+}
+
+# A tracker bigger than the window the queue used to ask for — 400 issues (#805). The oldest labelled item is #1, so
+# a read of the 400 newest never sees it; the case asserts it is listed, and that the queue says which set it read.
+case_decisions_theOldestQueuedItemIsListed() {
+  local d out status
+  d=$(scratch); decision_tracker "$d" 405 1 405
+  export GH_STUB_DIR="$d"
+  out=$(run_tool decisions.sh 2>&1); status=$?
+  assert_eq "0" "$status" "the queue is a read: $out"
+  assert_contains "$out" "#1  **The decision:** merge the two rows into one" \
+    "the oldest item that awaits a decision is listed, not only the newest page of the tracker"
+  assert_contains "$out" "#405  **The decision:** merge the two rows into one" "with the newest one beside it"
+  assert_contains "$out" "2 item(s) await a decision" "the count is the labelled set's, not a window's"
+  assert_contains "$out" "read from the 2 item(s) the tracker counts carrying $(decision_label)" \
+    "the queue states the set it read"
+}
+
+# A read the tracker overran — items filed between the count and the list: the window comes back full, so the queue
+# must refuse, because a count printed over a set it could not cover is the defect — items awaiting a decision read as
+# fewer than they are (#805).
+case_decisions_aReadThatCannotCoverTheSetIsRefused() {
+  local d out status
+  d=$(scratch); decision_tracker "$d" 3 1 2
+  export GH_STUB_DIR="$d"
+  export GH_STUB_COUNT_LAG=1
+  out=$(run_tool decisions.sh 2>&1); status=$?
+  assert_eq "3" "$status" "a set the read could not cover is a refusal: $out"
+  assert_contains "$out" "1 item(s) carrying $(decision_label)" "the refusal names the set the tracker counted"
+  assert_contains "$out" "came back full at 2" "and the read it got instead"
+  assert_eq "0" "$(printf '%s\n' "$out" | grep -c 'await a decision' || true)" \
+    "no count is printed over a set it did not cover"
 }
 
 # --- the shaping inbox: what a run handed back to a person, and the queue that shows it -----------------------

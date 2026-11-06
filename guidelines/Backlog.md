@@ -141,7 +141,7 @@ Two consequences worth stating plainly, because both were load-bearing decisions
   three write paths plus the other label flags to prove no route sets it. The import is also asserted to
   arrive with 0 eligible items.
 
-Five rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
+Six rules keep the decision queue answerable, because it is a query over one label and the run's ceiling counts
 the *candidates* in it — the items that carry both the decision label and the loop's opt-in, so a decision parked
 by removing `agent/eligible` (the owner's "not yet") never spends a slot that stops work on the ones they can
 answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
@@ -171,6 +171,13 @@ answer (#745) (`tools/issues/decisions.sh`, `LOOP_MAX_DECISIONS_DEFAULT`):
   settled state a decision not to act records, with the measurement as the comment — under the same `--may-close`
   permission a fix closure rides, and only after the review read the claim. A falsification whose tree moved
   during the review is a change, so it is escalated instead (openspec change `falsified-items-close-in-the-loop`).
+- **Rule: the queue reads the whole labelled set, and refuses one it could not cover.** The queue is a query over a
+  label, so the set it must read is the items carrying that label — not a fixed number of the tracker's newest
+  items, which is a window that the tracker outgrows: the 400 `decisions.sh` asked for left the 53 oldest items of a
+  453-item tracker unread, three of them awaiting a decision, while the count printed said how many it had seen
+  (#805). `tools/issues/decisions.sh` counts the labelled population first (`gh api graphql` `totalCount`), asks the
+  list for a window one item larger than the count, and refuses with exit 3 when the read comes back full — a read
+  the tracker overran — printing the set its count was taken over instead of a count over a set it could not cover.
 
 **The shaping inbox is a third state, and it is neither a hold nor a decision.** Four of the run's verdicts say
 that the item's *shape* is wrong rather than that a question is open — `needs-diagnosis`, `unspecifiable`,

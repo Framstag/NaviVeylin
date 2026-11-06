@@ -96,7 +96,10 @@ Guidelines: `guidelines/UI.md` §8d "Cross-variant map presentation" is the sect
 variants must word alike, and the wording rule itself is the spec `turn-instruction-localization`.
 `guidelines/UIPhoneMap.md` §8 owns the overlay's *sizing* and stays as it is, and its "Phone overlay layering
 (the band stack)" section the same — a longer second line must fit both unchanged, which the design's risk
-note covers. No guideline section states the card's content wording, so no guideline needs an edit; `tools/check-doc-routes.sh` and the spec gates
-keep that claim honest at archive time. That the map data can carry the tag at all is a fact of the import
+note covers. The card's content wording is owned by `guidelines/UIPhone.md` §18 "Ongoing navigation
+notification (background driving)": its rules "NAVIGATION content is destination, manoeuvre, distance, arrival
+and the stop action" and "labels and guidance wording are shared" gain the destination clause of the car
+hint's secondary text, stated there and referenced from the spec (`documentation-ownership` "A concern has one
+owning document"); `tools/check-doc-routes.sh` and the spec gates keep that claim honest at archive time. That the map data can carry the tag at all is a fact of the import
 path (`stylesheets/motorways.ost` lists the `Destination` feature for `highway_motorway`,
 `highway_motorway_link` and the trunk types), not a rule this change alters.

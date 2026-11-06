@@ -10,15 +10,17 @@
       measures is `turn-instruction-localization` "A motorway manoeuvre names the signposted destination".)
 - [ ] 1.2 Record the census line on device for a motorway route that changes motorways, using the `ROUTE route
       census:` recipe in `guidelines/Build.md` §10k; quote `motorway`, `motorway_dest` and `dest_empty` in the
-      change's evidence note. Verify: the three numbers are recorded, and the wording task group below is only
-      started when `motorway_dest > 0` (a zero count means the record sits elsewhere and D3/D5 are re-read before
-      the label rule lands).
+      change's evidence note. Verify: the three numbers are recorded; a zero count means the record sits
+      elsewhere and D3/D5 are re-read before the label rule is believed, while an unattended child lands the
+      wording on the unit proof below and leaves this measurement owed on hardware.
 
       **Not run in this child** — no device is attached to an unattended loop child, so no real motorway
       route was read. The counters themselves are unit-proven (`RoutePanelDiagnosticsTest`
-      "the census counts the motorway manoeuvres that carry a destination"), and the wording is gated on the
-      record's presence, so a route without the tag keeps today's text byte for byte: the measurement is the
-      one step of this change that still has to be taken on hardware.
+      "the census counts the motorway manoeuvres that carry a destination"), so the wording lands on that unit
+      proof and this measurement is the one step of this change that still has to be taken on hardware. Two
+      surfaces do not keep today's text byte for byte, and the specs declare both: the overlay's second line
+      moves from `displayName ?: motorwayTo` to `leadsOnto`, so a step that names both now shows the motorway,
+      and the car panel's target street is set from `leadsOnto` where it was set from `displayName` only.
 
 ## 2. Project the destination onto the manoeuvre
 
@@ -111,9 +113,19 @@
       sun.security.ssl.NamedGroup$SupportedGroups`, raised on the class's region-list fetch), a case this change
       does not touch and that three archived changes of this tree already carry red. Attributed, not repaired,
       so this box stays unchecked: `evidence/evidence.md`, parts 1 and 2.
-- [x] 6.3 Check the documentation the change touches: `README.md`, `AGENTS.md` and the routed guideline sections
-      are unchanged by this behaviour (the wording rule is the spec, not a guideline), and record that check.
+- [x] 6.3 Check the documentation the change touches: `README.md` and `AGENTS.md` are unchanged by this
+      behaviour, and the routed guideline section that owns the car hint's content — `guidelines/UIPhone.md`
+      §18 "Ongoing navigation notification (background driving)" — gains the destination clause in its rules
+      "NAVIGATION content is destination, manoeuvre, distance, arrival and the stop action" and "labels and
+      guidance wording are shared", the wording rule itself staying the spec.
       Verify: `tools/check-doc-routes.sh` and the structural doc gates report as before.
+
+      **Correction round 2** — the review found this box ticked on a false statement ("the routed guideline
+      sections are unchanged"). The section is now updated (§18, both rules) and the proposal's "no guideline
+      section states the card's content wording" claim is corrected. Structural check on this round:
+      `tools/check-doc-routes.sh` — all 329 section references resolve; `tools/check-openspec-hygiene.sh` —
+      artifacts consistent; `tools/check-rule-routes.sh --diff b6fc68eac37f5a4006a13160f62377798a9df572` —
+      exit 0.
 
 ## 7. The car hint's secondary text (issue #806)
 

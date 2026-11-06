@@ -6369,6 +6369,9 @@ case_run_aWriterTheRunCanPlaceBlocksTheItem() {
   assert_eq "1" "$(jq -r '[.steps[] | select(.name == "outside-write")] | length' "$(state_file "$p")")" \
     "the reading that ended the item is recorded as a step of its own"
   assert_contains "$(jq -r '[.steps[] | select(.name == "outside-write") | .note] | join(" | ")' "$(state_file "$p")")" \
+    "attributed to this child" \
+    "and the step names the child the process was tied to, which is what the requirement asks the note for"
+  assert_contains "$(jq -r '[.steps[] | select(.name == "outside-write") | .note] | join(" | ")' "$(state_file "$p")")" \
     "before any gate child" "and the step says the item ended at that reading"
   assert_eq "0" "$(jq -r '[.steps[] | select(.name == "worker-gate" or .name == "pre-gate-review")] | length' "$(state_file "$p")")" \
     "no pre-gate round and no gate child is started for an item a placed write already ended"
@@ -8003,6 +8006,15 @@ esac"
     "a first round is handed the change, not a correction range"
   assert_contains "$(cat "$first")" "review-1.diff" "and it names its own diff"
   assert_not_contains "$(cat "$first")" "{{" "and every placeholder in it is substituted too"
+  # …and the round-2 worker the refusal bought (item #800's round-1 review): the prompt is rendered from
+  # `prompts/worker.md` a second time, at a site of its own, and `loop_render` substitutes only the pairs it is
+  # handed — so a pair that site forgets is a literal `{{SCRATCH_DIR}}` handed to a child that was told to write
+  # there rather than in the change root.
+  rework="$p/.pi/issue-loop/items/21/worker-prompt-round2.md"
+  [ -f "$rework" ] || fail "the rework worker was started with no prompt"
+  assert_not_contains "$(cat "$rework")" "{{" "every placeholder in the round-2 worker's prompt is substituted"
+  assert_contains "$(cat "$rework")" "items/21/scratch" \
+    "and the scratch directory it may write in is the path the run created, not a literal"
 }
 
 # A refusal is a refusal only when something the change depends on is contradicted. A report that grades every

@@ -212,7 +212,8 @@ not about who wrote it.
 A placement is **recorded where it is read**: the step is recorded beside the reading that took it, in the branch
 that runs before the gate, and no pre-gate reviewer, gate child or tail is started for it, because a gate result
 about a change standing in a tree the run cannot vouch for is not evidence (#800 — the six items of 2026-10-20 to
-2026-10-23 each paid a whole item *and* its gate for that reading). The item's `blocked` result and the reason for
+2026-10-23 each paid a whole item *and* the gate the worker runs itself (`prompts/gate-own.md`) for that reading).
+The item's `blocked` result and the reason for
 that shape are written by the outcome block, from the same reading.
 
 And a child has one place beside its change to write. Every child is started in the project's own tree, so a write

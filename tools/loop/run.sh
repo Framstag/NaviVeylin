@@ -1992,6 +1992,7 @@ while true; do
   # The gate child's own difference in the project's tree is read here, before the tail overwrites the reading: it
   # is a fact about that child, and a tail child that then writes nothing would otherwise erase it (#285's note).
   worker_write_note="$outside_write_note"
+  worker_write_attributed="$outside_write_attributed"
   worker_write_decides=0
   outside_write_decides && worker_write_decides=1
   # A write the run can place decides the item **where it is read** (issue #800): recorded here, beside the reading
@@ -2000,13 +2001,18 @@ while true; do
   # the gate child's and the tail child's are recorded under names of their own further down.
   if [ -n "$worker_write_note" ]; then
     if [ "$worker_write_decides" -eq 1 ]; then
-      loop_state step A --name outside-write --status ok \
-        --note "the item ends at this reading, before any gate child: $worker_write_note" >/dev/null 2>&1 || true
-      progress note "the item ends at this reading, before any gate child: $worker_write_note"
+      write_step_note="the item ends at this reading, before any gate child: $worker_write_note"
     else
-      loop_state step A --name outside-write --status ok --note "$worker_write_note" >/dev/null 2>&1 || true
-      progress note "$worker_write_note"
+      write_step_note="$worker_write_note"
     fi
+    # The step carries the attribution the outcome block's reason already carries, because the requirement this
+    # reading owes names the child the process was placed in and the step is where a reader looks it up: the pids
+    # are the reading's, taken while the child ran (issue #800, review round 1).
+    if [ -n "$worker_write_attributed" ]; then
+      write_step_note="$write_step_note (attributed to this child: $worker_write_attributed)"
+    fi
+    loop_state step A --name outside-write --status ok --note "$write_step_note" >/dev/null 2>&1 || true
+    progress note "$write_step_note"
   fi
   # The child that ran the gate, and the report its result is read from: the item's change child, unless the run
   # deferred the gate to a child of its own below (issue #758).
@@ -2511,6 +2517,7 @@ while true; do
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
         "GATE_STEP=$(gate_step_text off)" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+        "SCRATCH_DIR=$scratch_dir" \
         "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
         "CLASS=$class" "PROPOSE_CLASS=$propose_class"
       printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \

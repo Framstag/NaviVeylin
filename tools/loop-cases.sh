@@ -165,6 +165,7 @@ LOOP_SHELL_CASES=(
   'gate#theSummaryNamesWhatEachSuiteCost'
   'gate#independentStepsRunTogether'
   'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours'
+  'gate#aPooledWavePrintsEachStepWholeWhenItEnds'
   'driver#aGroupFilterRunsOnlyItsOwnCases'
   'driver#aFilterThatNamesNoCaseRefuses'
   'driver#theListIsFilteredTheSameWayASuiteRunIs'
@@ -556,6 +557,7 @@ loop_run_shell_case() {
     'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
     'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
     'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours') fn=case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours ;;
+    'gate#aPooledWavePrintsEachStepWholeWhenItEnds') fn=case_gate_aPooledWavePrintsEachStepWholeWhenItEnds ;;
     'driver#aGroupFilterRunsOnlyItsOwnCases') fn=case_driver_aGroupFilterRunsOnlyItsOwnCases ;;
     'driver#aFilterThatNamesNoCaseRefuses') fn=case_driver_aFilterThatNamesNoCaseRefuses ;;
     'driver#theListIsFilteredTheSameWayASuiteRunIs') fn=case_driver_theListIsFilteredTheSameWayASuiteRunIs ;;
@@ -4647,6 +4649,82 @@ SUITE
   done
   ok_cases=$(printf '%s\n' "$out" | grep -c 'notes: all 1 cases passed' || true)
   assert_eq "2" "$ok_cases" "each passing step's own line reached the console, once each: $out"
+  return 0
+}
+
+# A wave of several steps prints each step's output whole when the wave ends, and nothing of it while the wave runs
+# (issue #801). Two writers on one console interleave their bytes, and the `gate: <command>` … `— <n>s` block is what
+# a reader — and the attributing tool beside the engine — attributes a failure and its step from, so the pooled path
+# buffers each step in the file that step owns and prints it under its own header once the wave has drained, in the
+# profile's order. A wave of one still streams its lines as it writes them (issue #269); the narrower stream a wave
+# of several gets is stated in this change's delta, `## MODIFIED Requirements` — "The gate streams a suite's output
+# while it runs".
+case_gate_aPooledWavePrintsEachStepWholeWhenItEnds() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base log pid out s started a_line b_line block
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|./suite-a;notes/*|./suite-b"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_POOL_JOBS=2\n'
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=30\n'
+  } >> "$conf"
+  # Two suites that share nothing, each printing a line at once and then working for 3 s: a live console carries
+  # that line while the suite runs, and a buffered one carries it only once both steps of the wave have ended. Each
+  # step also leaves a marker of its own, so the case knows a running wave when it sees one.
+  for s in a b; do
+    cat > "$p/suite-$s" <<SUITE
+printf 'first-$s: the suite starts\n'
+: > "$d/started-$s"
+sleep 3
+printf 'last-$s: the suite ends\n'
+printf 'notes: all 1 cases passed\n'
+SUITE
+    chmod +x "$p/suite-$s"
+  done
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  log="$d/gate.log"
+  ( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" ) > "$log" 2>&1 &
+  pid=$!
+  # Both steps are running — each wrote its own marker after printing its first line — so a live console would
+  # already carry those lines. The wait has a bound of its own (30 s): a gate that never started the wave fails
+  # here rather than reading an empty log as a pass.
+  started=0
+  for _ in $(seq 600); do
+    if [ -e "$d/started-a" ] && [ -e "$d/started-b" ]; then started=1; break; fi
+    sleep 0.05
+  done
+  [ "$started" -eq 1 ] || fail "the two suites of the wave never started together: $(cat "$log")"
+  out=$(cat "$log")
+  assert_not_contains "$out" 'first-a: the suite starts' \
+    "no step of a wave reaches the console while the wave runs: $out"
+  assert_not_contains "$out" 'first-b: the suite starts' \
+    "and the step beside it does not either: $out"
+  wait "$pid" || fail "the gate failed: $(cat "$log")"
+  out=$(cat "$log")
+  # Each step's bytes are its own and together: the line it wrote first, the line it wrote last and its summary sit
+  # between its own header and its own duration line, and the block that opens first is the profile's first command.
+  a_line=$(printf '%s\n' "$out" | grep -n '^gate: \./suite-a' | head -1 | cut -d: -f1)
+  b_line=$(printf '%s\n' "$out" | grep -n '^gate: \./suite-b' | head -1 | cut -d: -f1)
+  [ -n "$a_line" ] && [ -n "$b_line" ] || fail "each step of the wave is announced on its own header: $out"
+  [ "$a_line" -lt "$b_line" ] || fail "the blocks keep the profile's order: $out"
+  block=$(printf '%s\n' "$out" | sed -n "${a_line},$((b_line - 1))p")
+  assert_contains "$block" 'first-a: the suite starts' "the first step's own early line is in its own block: $block"
+  assert_contains "$block" 'last-a: the suite ends' "with the line it printed later: $block"
+  assert_contains "$block" 'notes: all 1 cases passed' "and its summary: $block"
+  assert_not_contains "$block" 'first-b' "the step beside it does not print inside it: $block"
+  block=$(printf '%s\n' "$out" | sed -n "${b_line},\$p")
+  assert_contains "$block" 'first-b: the suite starts' "the second step's block is whole as well: $block"
+  assert_contains "$block" 'last-b: the suite ends' "with both of its lines: $block"
+  assert_contains "$out" 'LOOP-GATE: tests=2 failures=0' "and the verdict is the sum of the two steps: $out"
   return 0
 }
 

@@ -67,6 +67,43 @@ class ManeuverFromStepTest {
     }
 
     @Test
+    fun `a motorway change step carries its signposted destination`() {
+        // The signposted destination is the one record that tells two branches of a motorway fork
+        // apart, so the manoeuvre projection has to carry it (spec: `turn-instruction-localization`
+        // — A motorway manoeuvre names the signposted destination).
+        val change = step(RouteStep.Kind.MOTORWAY_CHANGE).apply {
+            motorwayChange = RouteStep.MotorwayChange().apply {
+                from = RouteStep.Name("", "A3")
+                to = RouteStep.Name("", "A8")
+                move = TurnType.RIGHT
+            }
+            destination = "München"
+        }
+        val withoutRecord = step(RouteStep.Kind.MOTORWAY_CHANGE).apply {
+            motorwayChange = RouteStep.MotorwayChange().apply {
+                from = RouteStep.Name("", "A3")
+                to = RouteStep.Name("", "A8")
+            }
+        }
+
+        assertEquals("München", manoeuvreFromStep(change).destination)
+        assertNull("a step without the record carries no destination", manoeuvreFromStep(withoutRecord).destination)
+    }
+
+    @Test
+    fun `the manoeuvre carries the first segment of a multi-value destination`() {
+        // A ramp sign lists several destinations; the manoeuvre words the first block only
+        // (design D4), and a whitespace-only record is no record at all.
+        val multi = step(RouteStep.Kind.MOTORWAY_CHANGE).apply {
+            destination = "München;Garmisch-Partenkirchen"
+        }
+        val blank = step(RouteStep.Kind.MOTORWAY_CHANGE).apply { destination = "   " }
+
+        assertEquals("München", manoeuvreFromStep(multi).destination)
+        assertNull(manoeuvreFromStep(blank).destination)
+    }
+
+    @Test
     fun `a roundabout leave carries its ordinal and its circulation direction`() {
         val leave = step(RouteStep.Kind.ROUNDABOUT_LEAVE).apply {
             roundaboutLeave = RouteStep.RoundaboutLeave().apply {

@@ -1,6 +1,7 @@
 package com.naviveylin.service
 
 import com.naviveylin.test.stepOf
+import com.framstag.libosmscout.client.RouteStep
 import com.framstag.libosmscout.client.TurnType
 import com.naviveylin.core.NavigationState
 import com.naviveylin.core.R
@@ -26,6 +27,8 @@ class CarHintContentTest {
             R.string.nav_turn_left -> "Turn left"
             R.string.nav_turn_right -> "Turn right"
             R.string.nav_straight_on -> "Straight on"
+            R.string.nav_keep_right -> "Keep right"
+            R.string.nav_towards -> "towards ${args[0]}"
             R.string.nav_start -> "Start"
             R.string.nav_hint_neutral -> "Navigation active"
             R.string.nav_hint_distance_eta -> "${args[0]} · ${args[1]}"
@@ -40,6 +43,18 @@ class CarHintContentTest {
         shortDescription: String = "Turn left",
         distanceTo: Double = 250.0
     ) = stepOf(distanceTo, turnType, streetName, description, shortDescription)
+
+    /** A motorway change onto the A8, the manoeuvre a signposted destination exists for. */
+    private fun motorwayChange(destination: String? = "München") = RouteStep().apply {
+        kind = RouteStep.Kind.MOTORWAY_CHANGE
+        remainingDistance = 450.0
+        motorwayChange = RouteStep.MotorwayChange().apply {
+            from = RouteStep.Name("", "A3")
+            to = RouteStep.Name("", "A8")
+            move = TurnType.RIGHT
+        }
+        this.destination = destination
+    }
 
     @Test
     fun instructionIsThePrimaryCarText() {
@@ -78,6 +93,42 @@ class CarHintContentTest {
 
         assertEquals("Turn left", hint?.title)
         assertTrue("no street composition expected", hint?.title?.contains("into") == false)
+    }
+
+    @Test
+    fun aMotorwayChangesSecondaryTextCarriesTheSignpostedDestination() {
+        // The hint's primary text stays the manoeuvre; the destination joins the secondary text so a
+        // motorway fork stops reading as two identical "Keep right" hints (spec:
+        // `auto-navigation-hints` — The car hint names the signposted destination).
+        val state = NavigationState(
+            isNavigating = true,
+            nextStep = motorwayChange(destination = "München"),
+            etaMillis = 1_700_000_000_000L
+        )
+
+        val hint = NavigationNotificationContentFormatter.carHint(
+            state, resolver, etaClock = { "14:32" }, locale = Locale.US
+        )
+
+        assertEquals("Keep right", hint?.title)
+        assertEquals("450 m · 14:32 · A8 towards München", hint?.text)
+    }
+
+    @Test
+    fun aMotorwayChangeWithoutADestinationKeepsTodaysSecondaryText() {
+        // Every other hint is byte-identical to what it showed before the clause existed.
+        val state = NavigationState(
+            isNavigating = true,
+            nextStep = motorwayChange(destination = null),
+            etaMillis = 1_700_000_000_000L
+        )
+
+        val hint = NavigationNotificationContentFormatter.carHint(
+            state, resolver, etaClock = { "14:32" }, locale = Locale.US
+        )
+
+        assertEquals("Keep right", hint?.title)
+        assertEquals("450 m · 14:32", hint?.text)
     }
 
     @Test

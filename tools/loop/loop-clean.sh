@@ -27,6 +27,12 @@
 # tree and ended with `--apply`. A process inside a tree that is kept belongs to a live suite and is never
 # signalled.
 #
+# The loop's own trees are leftovers too. The run keeps one worktree, so a tree beside it — under the directory that
+# one lives in — is named by nothing at all, and this report had no arm for it (measured 2026-11-06, issue #803:
+# `.pi/worktrees/` held ten directories and one of them was the run's). A tree is judged by what it *holds*, the
+# reading a branch gets one level down: uncommitted changes, or a HEAD the base does not carry, keep it and are named
+# as the reason; anything else is named with its size and removed with `--apply`.
+#
 # Exit: 0 nothing to do, or done; 2 usage or an unusable configuration.
 #
 # Usage:
@@ -50,7 +56,7 @@ while [ $# -gt 0 ]; do
     --worktree) need_value "$@"; tree_arg="${2:-}"; shift 2 ;;
     --apply) apply=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,38p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,44p' "$0"; exit 0 ;;
     *) loop_die "loop-clean: unknown argument $1" ;;
   esac
 done
@@ -211,6 +217,53 @@ else
     branches=$((branches + 1))
   done <<< "$(loop_own_branches "$LOOP_ROOT")"
 fi
+
+# ── the worktrees no run keeps ─────────────────────────────────────────────────────────────────────
+# The run keeps one tree (`LOOP_WORKTREE`), so a worktree under the directory that one lives in is named by nothing
+# at all — not the configuration, not a state field, not a branch marker — and no arm reported it: the per-item trees
+# of the runs that kept one tree per item accumulated unmeasured (issue #803; measured 2026-11-06, `.pi/worktrees/`
+# held ten directories and the run's tree was one of them). A tree is a leftover by what it *holds*, the same
+# reading a branch gets one level down: uncommitted changes, or a HEAD the base does not carry, are somebody's work
+# and the tree is kept and named with that reason; anything else is what `--apply` removes. This arm runs after the
+# branches, so a branch a tree nobody keeps holds is judged by the arm above first — the tree is released here and
+# the branch is the next run's to remove, not this one's read of a tree it just deleted.
+wt_root=$(dirname "$LOOP_WORKTREE")
+say "loop-clean: worktrees under ${wt_root#"$LOOP_ROOT"/} that the run does not keep"
+wt_base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$(loop_base_ref)" 2>/dev/null || true)
+while IFS= read -r wt_path; do
+  [ -n "$wt_path" ] || continue
+  case "$wt_path" in
+    "$wt_root"/?*) ;;
+    *) continue ;;
+  esac
+  loop_same_dir "$wt_path" "$LOOP_WORKTREE" && continue
+  loop_same_dir "$wt_path" "$tree" && continue
+  wt_rel="${wt_path#"$LOOP_ROOT"/}"
+  wt_dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null)
+  if [ -n "$wt_dirty" ]; then
+    say "  kept $wt_rel — $(printf '%s\n' "$wt_dirty" | grep -c .) uncommitted path(s), somebody is working in it"
+    kept=$((kept + 1))
+    continue
+  fi
+  wt_head=$(git -C "$wt_path" rev-parse --verify --quiet HEAD 2>/dev/null || true)
+  if [ -n "$wt_base" ] && [ -n "$wt_head" ] &&
+     ! git -C "$LOOP_ROOT" merge-base --is-ancestor "$wt_head" "$wt_base" 2>/dev/null; then
+    wt_ahead=$(git -C "$LOOP_ROOT" rev-list --count "$wt_base..$wt_head" 2>/dev/null || true)
+    case "$wt_ahead" in ''|*[!0-9]*) wt_ahead=1 ;; esac
+    say "  kept $wt_rel — $wt_ahead commit(s) the base does not have"
+    kept=$((kept + 1))
+    continue
+  fi
+  wt_size=$(loop_bytes_of "$wt_path")
+  if [ "$apply" -eq 1 ]; then
+    git -C "$LOOP_ROOT" worktree remove --force "$wt_path" >/dev/null 2>&1 ||
+      { say "  could not remove $wt_rel"; continue; }
+    say "  removed $wt_rel ($wt_size B) — no run keeps it"
+  else
+    say "  would remove $wt_rel ($wt_size B) — no run keeps it"
+  fi
+  paths=$((paths + 1)); bytes=$((bytes + wt_size))
+done <<< "$(git -C "$LOOP_ROOT" worktree list --porcelain 2>/dev/null | sed -n 's|^worktree ||p')"
 
 # ── the change an item consumed, in the project's own tree ─────────────────────────────────────────
 # The run writes nothing in the project's tree, so what remains of a prepared change after its item landed is the

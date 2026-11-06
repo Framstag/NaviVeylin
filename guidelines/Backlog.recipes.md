@@ -718,6 +718,19 @@ rest, and without `--apply` it removes nothing at all. The manual command that a
 same landed branches together with the scratch paths. Measured 2026-10-27 on the tree that carried #239: 28
 branches were leftovers, 12 of them `loop-*` run branches, and the run's end removed none of them.
 
+The candidate set is the **names the loop makes**, and one of those names is a thing set aside rather than a thing
+in flight: `start-item` renames a blocked attempt's branch to `loop/leftover/issue-<n>-<slug>-<utc>` so the attempt's
+commits stay reachable while the item is worked again. That namespace was in no pattern either path enumerated
+(`loop_own_branches`, `git branch --list 'fix/issue-*' 'loop-*'`), so a set-aside branch was not *kept* by the rule
+that protects unreviewed work — it was invisible to it, and one whose work had landed by hand stayed for ever.
+Measured 2026-11-06 (issue #803): eight set-aside branches on this tree, one to three commits each, and neither
+`prune-landed` nor `loop-clean.sh` named one of them. It is a candidate now, judged by the same four readings as
+every other branch: patch identity removes a set-aside branch whose work the base carries, and a branch whose
+patches the base does not have is kept and named as work the base does not have. No disposition record is read
+beside it — the branch's own name carries the issue, the slug and the UTC it was set aside, and what was missing was
+a reader of that name. The remote arm's two patterns stay two: a blocked attempt's branch is renamed locally and
+never published.
+
 The sweep has **two arms**, and both read the base the remote publishes. A branch the loop published is in no local
 namespace: the run merges the work on the base and drops the branch it committed, while the push that published it
 never deletes a remote ref, so `git branch --list` cannot see it and every sweep missed it. Measured 2026-11-03:
@@ -749,6 +762,20 @@ process evidence apply to both, so a tree a live suite is writing into stays kep
 2026-10-23: 305 MB in four `loop-selftest.*` trees and four `run.sh` poll loops under `.pi/worktrees/loop/.pi/tmp`,
 three of the trees past the threshold and three of the runs past their budget, and the report printed its heading with
 no entry at all.
+
+The report also answers for the **trees** the loop made and stopped keeping. The run keeps one worktree —
+`LOOP_WORKTREE`, `$LOOP_ROOT/.pi/worktrees/loop` — and the trees of the runs that kept one per item are named by
+nothing: not the configuration, not a state field, not a branch marker, so no arm reported them. Measured 2026-11-06
+(issue #803): `.pi/worktrees/` held ten directories, the run's own and nine beside it, four of them still registered
+with git. The arm walks the worktrees git knows, under that directory only, skips the one the run keeps and the one
+the invocation was pointed at, and judges each of the rest by what it holds — the reading a branch gets one level
+down: uncommitted changes, or a HEAD the base does not carry, keep the tree and are named as the reason it is kept,
+and anything else is named with its size and removed with `git worktree remove --force` only under `--apply`. It
+runs after the branch arm, so a landed branch that a tree nobody keeps holds is judged as checked out first and the
+tree is released afterwards: the next run finds the branch landed and removes it, rather than this one deleting a
+branch a live tree stands on. A directory under `.pi/worktrees/` that git does not know as a worktree is not read at
+all — removing it would need the refusals `loop_scratch_remove` owns for the build paths, and that is a second rule
+for a second case.
 
 What it does with an answer that arrived cut: the report a review round is decided from is the file the child's
 answer reached, and what reaches that file can be short. On 2026-10-20 an item's round-2 report stopped

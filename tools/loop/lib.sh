@@ -402,16 +402,26 @@ loop_unlanded_commits() { # <repo> <base> <branch>
   return 0
 }
 
-# The branches the loop names: one per item it worked and one per run for its worktree. The same set the
-# report lists, so a reader and the sweep ask about the same branches.
+# The branches the loop names: one per item it worked, one per run for its worktree, and one per blocked attempt it
+# set aside. The same set the report lists, so a reader and the sweep ask about the same branches. The third
+# namespace is not work in progress — it is a previous attempt's only copy — and what protects it is the reading
+# every other branch gets (patch identity, never ancestry): the branch is swept once the base carries its patches
+# and kept, and named, while it does not. Without it a set-aside branch was enumerated by nothing at all, so one
+# whose work had landed by hand stayed for ever (issue #803; measured 2026-11-06, eight set-aside branches of one
+# to three commits each, and neither removal path named one of them).
 loop_own_branches() { # <repo> → one branch per line
-  git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
+  {
+    git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
+    git -C "$1" branch --list 'loop/leftover/*' --format='%(refname:short)' 2>/dev/null
+  }
 }
 
 # The same set resolved on the remote, which is where a branch the loop published lives after the run merged its
 # work and released its local branch (issue #763: every sweep enumerated `loop_own_branches`, a local namespace, and
 # a landed `fix/issue-728-…` head stayed on the remote for ever). The pattern is the local one with the remote's
-# prefix, so a ref the loop never names is never a candidate for the sweep that deletes it.
+# prefix, so a ref the loop never names is never a candidate for the sweep that deletes it. A branch in the
+# set-aside namespace is local by construction — a blocked attempt's branch is renamed, never published — so it is
+# no arm's remote candidate and the two patterns below stay the two.
 #
 # Resolved on the remote means read from the remote *now*, not from this clone's cache of it: `git branch -r` names
 # the tips of the last fetch, and the sweep deletes the ref the remote holds, so a head somebody advanced after that

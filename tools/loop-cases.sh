@@ -104,6 +104,8 @@ LOOP_SHELL_CASES=(
   'worktree#refusesToMergeIntoATreeOffTheBaseBranch'
   'worktree#theNamedChangeIsCopiedIntoTheItem'
   'worktree#aMissingChangeRefusesTheItem'
+  'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved'
+  'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved'
   'prescreen#aTierAItemPassesUnchanged'
   'prescreen#aChangeThatIsNoLongerReadyIsRefused'
   'prescreen#aClosedItemIsNotSelected'
@@ -321,6 +323,7 @@ LOOP_SHELL_CASES=(
   'clean#worktreeDotSweepsTheOneRootOnce'
   'clean#endsARunWhoseTreeIsAlreadyDeleted'
   'clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft'
+  'clean#reportsAWorktreeNoRunKeeps'
   'run#interruptedRunEndsTheChildItStarted'
   'usage#bareValueFlagAtTheEndOfArgvIsAUsageError'
   'usage#bareValueFlagDoesNotSwallowTheNextFlag'
@@ -487,6 +490,8 @@ loop_run_shell_case() {
     'worktree#refusesToMergeIntoATreeOffTheBaseBranch') fn=case_worktree_refusesToMergeIntoATreeOffTheBaseBranch ;;
     'worktree#theNamedChangeIsCopiedIntoTheItem') fn=case_worktree_theNamedChangeIsCopiedIntoTheItem ;;
     'worktree#aMissingChangeRefusesTheItem') fn=case_worktree_aMissingChangeRefusesTheItem ;;
+    'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved') fn=case_worktree_aSetAsideBranchWhosePatchesLandedIsRemoved ;;
+    'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved') fn=case_worktree_aSetAsideBranchThatCarriesWorkIsNamedNotRemoved ;;
     'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
     'prescreen#aChangeThatIsNoLongerReadyIsRefused') fn=case_prescreen_aChangeThatIsNoLongerReadyIsRefused ;;
     'prescreen#aClosedItemIsNotSelected') fn=case_prescreen_aClosedItemIsNotSelected ;;
@@ -707,6 +712,7 @@ loop_run_shell_case() {
     'clean#worktreeDotSweepsTheOneRootOnce') fn=case_clean_worktreeDotSweepsTheOneRootOnce ;;
     'clean#endsARunWhoseTreeIsAlreadyDeleted') fn=case_clean_endsARunWhoseTreeIsAlreadyDeleted ;;
     'clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft') fn=case_clean_suiteThatEndsNormallyEndsTheProcessItsCaseLeft ;;
+    'clean#reportsAWorktreeNoRunKeeps') fn=case_clean_reportsAWorktreeNoRunKeeps ;;
     'run#interruptedRunEndsTheChildItStarted') fn=case_run_interruptedRunEndsTheChildItStarted ;;
     'driver#aCaseThatAsksForNoCoreCompilesNothing') fn=case_driver_aCaseThatAsksForNoCoreCompilesNothing ;;
     'driver#aCaseThatAsksForTheCoreGetsItOrRefuses') fn=case_driver_aCaseThatAsksForTheCoreGetsItOrRefuses ;;
@@ -2771,6 +2777,60 @@ case_worktree_setsAsideABlockedAttemptAndStartsFresh() {
     "the commits are kept under the name the run gives them"
   assert_eq "$base" "$(git -C "$p" rev-parse fix/issue-21-demo)" \
     "and the item's own branch was recreated from the base"
+}
+
+# A branch the run set aside is a previous attempt's only copy, and what protects it is the reading every other
+# branch gets — patch identity, never ancestry. Nothing enumerated the set-aside namespace, so a set-aside branch
+# whose work had landed by hand stayed for ever: measured 2026-11-06, eight such branches of one to four commits
+# each, and neither removal path named one of them (issue #803).
+case_worktree_aSetAsideBranchWhosePatchesLandedIsRemoved() {
+  # files: tools/loop/lib.sh tools/loop/worktree.sh tools/loop/loop-clean.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p set_aside out
+  p=$(new_project)
+  landed_branch "$p" 21 demo >/dev/null || fail "could not land the attempt's patch"
+  # the run's recorded base is the base the sweep reads: it is taken after the landing, so the patch the base
+  # carries is the one this case is about (the sweep compares against the base the run recorded, not an older pin)
+  init_state "$p" 1 90
+  set_aside="loop/leftover/issue-21-demo-20260101T000000Z"
+  git -C "$p" branch "$set_aside" fix/issue-21-demo >/dev/null 2>&1 || fail "could not set the attempt aside"
+
+  out=$(run_worktree "$p" prune-landed 2>&1) || fail "the read-only sweep failed: $out"
+  assert_contains "$out" "would remove $set_aside" "a set-aside branch whose patches are in the base is swept"
+  out=$(run_clean "$p" 2>&1) || fail "the cleanup report failed: $out"
+  assert_contains "$out" "would remove $set_aside" "and the cleanup command names the same branch as removable"
+  git -C "$p" rev-parse --verify --quiet "refs/heads/$set_aside" >/dev/null ||
+    fail "a read-only run removed the set-aside branch"
+
+  out=$(run_worktree "$p" prune-landed --apply 2>&1) || fail "the sweep failed: $out"
+  assert_contains "$out" "removed $set_aside" "the sweep removes it with --apply"
+  git -C "$p" rev-parse --verify --quiet "refs/heads/$set_aside" >/dev/null 2>&1 &&
+    fail "the set-aside branch whose patches the base holds survived the sweep"
+}
+
+# The other half of the same reading: a set-aside branch whose patches the base does not have is the attempt's
+# only copy, so both removal paths keep it — and name it, which is what nothing did before. The attempt's own
+# branch is deleted here, so the set-aside ref is the only thing that reaches its commit.
+case_worktree_aSetAsideBranchThatCarriesWorkIsNamedNotRemoved() {
+  # files: tools/loop/lib.sh tools/loop/worktree.sh tools/loop/loop-clean.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p set_aside out
+  p=$(new_project)
+  init_state "$p" 1 90
+  git -C "$p" switch -c fix/issue-22-work >/dev/null 2>&1 || fail "could not create the attempt's branch"
+  printf 'the blocked attempt\n' > "$p/attempt.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: the blocked attempt (#22)" >/dev/null 2>&1 || fail "could not commit the attempt"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
+  set_aside="loop/leftover/issue-22-work-20260101T000000Z"
+  git -C "$p" branch "$set_aside" fix/issue-22-work >/dev/null 2>&1 || fail "could not set the attempt aside"
+  git -C "$p" branch -D fix/issue-22-work >/dev/null 2>&1 || fail "could not drop the attempt's own branch"
+
+  out=$(run_worktree "$p" prune-landed --apply 2>&1) || fail "the sweep failed: $out"
+  assert_contains "$out" "kept $set_aside — carries work the base does not have" \
+    "the sweep keeps a set-aside branch that carries work, and names why"
+  out=$(run_clean "$p" --apply 2>&1) || fail "the cleanup failed: $out"
+  assert_contains "$out" "kept $set_aside" "the cleanup command names it too"
+  git -C "$p" rev-parse --verify --quiet "refs/heads/$set_aside" >/dev/null ||
+    fail "a set-aside branch carrying unreviewed work was removed"
 }
 
 # `carried_change` asks which archived change the branch is *credited* with. A stale branch inherits the files
@@ -8929,6 +8989,38 @@ case_clean_sweepsOnlyWhatIsInTheBase() {
     fail "the branch that carries work was removed"
   git -C "$p" rev-parse --verify --quiet refs/heads/fix/issue-3-held >/dev/null ||
     fail "the branch a worktree holds was removed"
+}
+
+# The run keeps one worktree, and a tree under `.pi/worktrees/` that no configuration, no state field and no branch
+# marker names is named by nothing at all — the report had no arm for it, which is how the per-item trees of the
+# runs that kept one tree per item accumulated unmeasured (issue #803; measured 2026-11-06, `.pi/worktrees/` held
+# ten directories and one of them was the run's). A tree is a leftover by what it *holds*, the same reading a
+# branch gets one level down: uncommitted changes are somebody's work and keep the tree, and everything else is
+# `--apply`'s — which the report names and never removes without it.
+case_clean_reportsAWorktreeNoRunKeeps() {
+  # files: tools/loop/loop-clean.sh tools/loop/worktree.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p kept leftover dirty out
+  p=$(new_project)
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  kept="$p/.pi/worktrees/loop"
+  leftover="$p/.pi/worktrees/767"
+  dirty="$p/.pi/worktrees/779"
+  git -C "$p" worktree add -b item-767 "$leftover" main >/dev/null 2>&1 || fail "could not add the unnamed worktree"
+  git -C "$p" worktree add -b item-779 "$dirty" main >/dev/null 2>&1 || fail "could not add the second unnamed worktree"
+  printf 'work nobody committed\n' > "$dirty/attempt.txt"
+
+  out=$(run_clean "$p" 2>&1) || fail "the report failed: $out"
+  assert_contains "$out" "${leftover#"$p"/}" "the report names the tree no run keeps"
+  assert_contains "$out" "${dirty#"$p"/}" "and the tree somebody is working in"
+  [ -d "$leftover" ] || fail "the report removed a worktree without --apply"
+  [ -d "$dirty" ] || fail "the report removed the tree somebody is working in"
+
+  out=$(run_clean "$p" --apply 2>&1) || fail "the cleanup failed: $out"
+  [ ! -e "$leftover" ] || fail "--apply kept the tree no run keeps"
+  [ -d "$dirty" ] || fail "--apply removed a tree with uncommitted work"
+  assert_contains "$out" "uncommitted" "the tree it keeps is named with the reason it is kept"
+  [ -d "$kept" ] || fail "--apply removed the run's own worktree"
 }
 
 # The report's branch list is a flat list of names, and a name says nothing: the reader cannot tell the

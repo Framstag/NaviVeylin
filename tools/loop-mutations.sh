@@ -831,6 +831,7 @@ MUTATIONS=(
   '87.4@-@../../AGENTS.md@prompt#thePhasePromptsCarryTheirOwnRoute@the call the document map names for a section list, so the prompts route a child into the same refused recipe one document further on (issue #796)@s|the complete section list of any file is `tools/look.sh .\^## . --path guidelines/<file>.md`|the complete section list of any file is `grep -n '"'"'^## '"'"' guidelines/<file>.md`|'
   '87.5@-@../look.sh@look#aPathScopesTheWalkToIt@the first line naming what the walk covered, so a scoped answer reads as a tree-wide one (issue #796)@s|^  where="\$root/\$target"$|  where="$root"|'
   '87.6@-@../look.sh@look#aPathScopesTheWalkToIt@the refusal that keeps a scope inside the tree, so `--path ../outside.md` reads the tree'"'"'s parent (issue #796)@s|^    \*/\.\./\*) printf |    */../*) : # |'
+  '88.1@-@tools/loop/lib.sh@worktree#aSetAsideBranchWhosePatchesLandedIsRemoved@the set-aside namespace among the branches a sweep enumerates, so a branch the run set aside is invisible to both removal paths again (issue #803)@s|loop/leftover/\*|loop/leftover-never/\*|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

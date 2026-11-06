@@ -575,7 +575,8 @@ cmd_done() {
                            closed:$closed, rootCause:$rc, redTest:$rt,
                            tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
                            tokens:$usage.tokens, cost:$usage.cost,
-                           context:$usage.context}}]
+                           context:$usage.context,
+                           phases:$usage.phases, roles:$usage.roles, afterGate:$usage.afterGate}}]
       else
         .items | map(if .issue == $i then
           .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
@@ -688,7 +689,28 @@ num_or_null() {
 #
 # A stream that holds none of these records — a plain-text command, or another agent's format — yields six
 # nulls, so the engine reads a child's dialect without depending on it.
-child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context}
+#
+# Where and as whom the spend happened are three more figures (issue #759), and they are read from the same lines:
+# a run that paid two thirds of its clock inside `gate.sh` and a run that paid it reading printed the same shapes in
+# the report, so the number was printed beside nothing it could be judged against (measured over 227 items,
+# 2026-11-03: 89.6 h, model 30.1 h, `gate.sh` 35.1 h, the loop's own self-tests 11.6 h; 1 581 of 2 591 Mtok spent
+# after the item's first gate, reviewer 402 Mtok against the worker's 2 168).
+#
+#   * **`phases`** — the model time is the sum of the turns' own `durationMs`, the gate the sum of the
+#     `tool_execution_end` durations whose call's command runs `gate.sh` or `gradlew` (the expression
+#     `tools/loop-spend.py` calls `GATE_RE`, beside it here), and every other tool's durations are the third bucket.
+#     The three are disjoint — a turn's duration is the model response, the tool's duration the execution that
+#     follows it — so they add up to the clock the item's children spent working;
+#   * **`roles`** — each `session` record opens one child's stream and its first `user` message is the prompt file
+#     the run handed it, which is the only thing in the stream that names the role. The path does: `worker-tail` is
+#     the tail, `reviewer` the reviewer, everything else a worker. Read from the prompt's *words* (the rule
+#     `tools/loop-spend.py` uses) the tail folds into the worker, because its prompt is `worker-tail-prompt.md`;
+#   * **`afterGate`** — over the sessions that ran a gate, the tokens of the turns from the first gate turn on and
+#     those sessions' own tokens, so a share has both halves in the record.
+#
+# Each is null where nothing was measured, never zero: a stream with no `session` record has no role split, one with
+# no `durationMs` no phase figure, and one that ran no gate no position to split at.
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,afterGate}
   local events="${1:-}" blob=""
   if [ -n "$events" ] && [ -f "$events" ]; then
     blob=$(jq -s -c '
@@ -698,8 +720,54 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
           elif $e.type == "turn_end" then ((if .cur != null then .done = (.done + [.cur]) else . end) | .cur = null)
           else . end)
         | if .cur != null then (.done + [.cur]) else .done end;
+      # The session is the phase, and a turn is where its spend and its clock are: the usage it ended on (the rule
+      # `turns` keeps), its own `durationMs`, and the calls it made — the last is what a tool duration is
+      # attributed by, because `tool_execution_end` names its call and carries no command of its own.
+      def tok: if . == null then 0
+               else ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0)) end;
+      def is_gate: (((. // "") | tostring) | test("gate\\.sh|gradlew "));
+      def calls_of: [((. // [])[] | select(.type == "toolCall")
+                      | {id: (.id // ""), gate: (((.arguments?.command? // "") | tostring) | is_gate)})];
+      def sessions:
+        reduce .[] as $e ({cur:null, done:[]};
+          if $e.type == "session" then
+            (if .cur != null then .done = (.done + [.cur]) else . end)
+            | .cur = {prompt:null, usage:null, turns:[]}
+          elif .cur == null then .
+          elif $e.type == "message_start" and (($e.message.role? // "") == "user") and (.cur.prompt == null) then
+            .cur.prompt = (($e.message.content // "")
+              | if type == "array" then (map(.text? // "") | join("")) else tostring end)
+          elif $e.type == "message_update" and (($e.usage? // null) | type) == "object" then
+            .cur.usage = $e.usage
+          elif $e.type == "turn_end" then
+            (($e.message // {}) as $m
+             | .cur.turns = (.cur.turns + [{usage: (.cur.usage // ($m.usage? // null)),
+                                            ms: ($m.durationMs? // 0),
+                                            calls: ($m.content | calls_of)}])
+             | .cur.usage = null)
+          else . end)
+        | (if .cur != null then (.done + [.cur]) else .done end);
       . as $all
       | ($all | turns) as $t
+      | ($all | sessions) as $ses
+      | ([$all[] | select(.type == "turn_end") | (.message.durationMs? // 0)] | add // 0) as $modelMs
+      | (reduce ($all[] | select(.type == "turn_end") | (.message.content // [])[]
+                 | select(.type == "toolCall" and (((.arguments?.command? // "") | tostring) | is_gate))
+                 | (.id // "")) as $i ({}; .[$i] = true)) as $gateIds
+      | ([$all[] | select(.type == "tool_execution_end")]) as $ends
+      | ([$ends[] | select($gateIds[(.toolCallId // "")] // false) | (.durationMs? // 0)] | add // 0) as $gateMs
+      | ([$ends[] | select(($gateIds[(.toolCallId // "")] // false) | not) | (.durationMs? // 0)] | add // 0) as $otherMs
+      | (reduce ($ses[] | {role: ((.prompt // "") | ascii_downcase
+                                  | if test("worker-tail") then "tail"
+                                    elif test("reviewer") then "reviewer"
+                                    else "worker" end),
+                           tok: ([.turns[] | .usage | tok] | add // 0)}) as $s
+           ({worker:null, reviewer:null, tail:null};
+            .[$s.role] = (if $s.tok > 0 then (((.[$s.role]) // 0) + $s.tok) else .[$s.role] end))) as $roles
+      | ([$ses[] | ([.turns[] | any(.calls[]?; .gate)] | index(true)) as $g
+           | select($g != null)
+           | {after: ([.turns[$g:][] | .usage | tok] | add // 0),
+              total: ([.turns[] | .usage | tok] | add // 0)}]) as $gated
       | ([$all[] | select(.type == "tool_execution_end") | (.toolName? // empty) | strings]
          | group_by(.) | map({key: .[0], value: length}) | from_entries) as $tools
       | ([$all[] | select(.type == "tool_execution_end")] | length) as $calls
@@ -725,11 +793,18 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
             else ([$t[] | (.cost?.total? // 0)] | add) as $c
                  | if $c > 0 then $c else null end
             end),
-         context: (if $context > 0 then $context else null end)}' "$events" 2>/dev/null) || blob=""
+         context: (if $context > 0 then $context else null end),
+         phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
+                  else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
+         roles: (if ([$roles[] | select(. != null)] | length) == 0 then null else $roles end),
+         afterGate: (if ($gated | length) == 0 then null
+                     else {tokens: ([$gated[].after] | add // 0),
+                           total: ([$gated[].total] | add // 0),
+                           sessions: ($gated | length)} end)}' "$events" 2>/dev/null) || blob=""
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"afterGate":null}' ;;
   esac
 }
 

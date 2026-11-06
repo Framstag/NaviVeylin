@@ -306,6 +306,8 @@ LOOP_SHELL_CASES=(
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
+  'report#theSpendIsSplitByPhaseRoleAndGate'
+  'report#aStreamWithoutDurationsPrintsDash'
   'report#trendFiguresFromState'
   'report#noRoundOrWallPrintsDashNotZero'
   'report#landingsAreTheStoredNumber'
@@ -689,6 +691,8 @@ loop_run_shell_case() {
     'report#emptyRunSaysNone') fn=case_report_emptyRunSaysNone ;;
     'report#anItemOverTheTokenBoundIsFlagged') fn=case_report_anItemOverTheTokenBoundIsFlagged ;;
     'report#anItemBelowTheCallsPerTurnFloorIsNamed') fn=case_report_anItemBelowTheCallsPerTurnFloorIsNamed ;;
+    'report#theSpendIsSplitByPhaseRoleAndGate') fn=case_report_theSpendIsSplitByPhaseRoleAndGate ;;
+    'report#aStreamWithoutDurationsPrintsDash') fn=case_report_aStreamWithoutDurationsPrintsDash ;;
     'report#trendFiguresFromState') fn=case_report_trendFiguresFromState ;;
     'report#noRoundOrWallPrintsDashNotZero') fn=case_report_noRoundOrWallPrintsDashNotZero ;;
     'report#landingsAreTheStoredNumber') fn=case_report_landingsAreTheStoredNumber ;;
@@ -9357,6 +9361,127 @@ JSONL
   out=$(run_report "$p") || fail "the report failed for a state written before the figure existed"
   assert_contains "$out" "calls:  - · this state records no calls or turns — it was written before the report read them" \
     "a state that predates the two counts says so, instead of naming a run of items that answered without a tool"
+}
+
+# The report totalled a run's spend and never said which phase spent it (issue #759): a run that paid two thirds
+# of its clock inside `gate.sh` and a run that paid it reading printed the same shapes, which is the defect
+# `LOOP_ITEM_TOKENS_WARN` was added to cure one level down (#662) — the number was printed beside nothing it could
+# be judged against. The three figures the trend now carries are read from what the item's own stream records: the
+# children's `turn_end` durations (the model time), the `tool_execution_end` durations of the calls that ran the
+# gate and of every other tool, the tokens of each session split by the role its prompt names, and the share of
+# them spent from the turn that first ran a gate. The stream below is one item: a worker that reads, runs the gate
+# and answers, a reviewer that reads once and a tail that answers — 7 500 ms of model time, 5 000 ms in the gate,
+# 300 ms in the one read, 6 + 1 + 1 Mtok by role and 5 of the worker's 6 Mtok after its first gate.
+case_report_theSpendIsSplitByPhaseRoleAndGate() {
+  # files: tools/loop/gate.sh tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend phases_line roles_line gate_line
+  d=$(scratch); p=$(new_project)
+  cat > "$d/split.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[{"type":"toolCall","id":"c1","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"ctx_read","durationMs":300,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":3000000,"cacheWrite":0},"durationMs":2000,"content":[{"type":"toolCall","id":"c2","name":"ctx_shell","arguments":{"command":"./tools/loop/gate.sh"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c2","toolName":"ctx_shell","durationMs":5000,"isError":false}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":2000000,"cacheWrite":0},"durationMs":3000,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s2"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/reviewer-prompt-1.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":500,"content":[]},"toolResults":[]}
+{"type":"session","version":3,"id":"s3"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/21/worker-tail-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 21 --result done --verdict closed --wall 42 --events "$d/split.jsonl" >/dev/null
+  f=$(state_file "$p")
+  # The split is recorded where the money is spent — in the item's own stream, at the moment its record is written —
+  # so the report derives the three lines from the state and never from a stream it would have to find again.
+  assert_eq "7500" "$(jq -r '.items[0].metrics.phases.modelMs' "$f")" \
+    "the model time is the sum of the children's own turn durations"
+  assert_eq "5000" "$(jq -r '.items[0].metrics.phases.gateMs' "$f")" \
+    "the gate time is the durations of the calls that ran the gate, not of every tool"
+  assert_eq "300" "$(jq -r '.items[0].metrics.phases.otherMs' "$f")" "and every other tool is the third bucket"
+  assert_eq "6000000" "$(jq -r '.items[0].metrics.roles.worker' "$f")" \
+    "the tokens are split by the role each session's prompt names"
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roles.reviewer' "$f")" "the reviewer's own session is told apart"
+  assert_eq "1000000" "$(jq -r '.items[0].metrics.roles.tail' "$f")" \
+    "and so is the tail's, which a role read from the word 'reviewer' alone would fold into the worker's"
+  assert_eq "5000000" "$(jq -r '.items[0].metrics.afterGate.tokens' "$f")" \
+    "the share after the first gate counts the turns from the gate on, in the sessions that ran one"
+  assert_eq "6000000" "$(jq -r '.items[0].metrics.afterGate.total' "$f")" \
+    "against those sessions' own tokens, not against every session of the item"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  phases_line=$(printf '%s\n' "$trend" | grep '^  phases:' || true)
+  [ -n "$phases_line" ] || fail "the trend printed no phases line"
+  assert_contains "$phases_line" "model 7.5 s · gate 5 s · other 0.3 s · 12.8 s over 1 item" \
+    "the trend splits the run's clock by the phase that spent it, and totals it"
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  [ -n "$roles_line" ] || fail "the trend printed no roles line"
+  assert_contains "$roles_line" "worker 6 Mtok · reviewer 1 Mtok · tail 1 Mtok · 8 Mtok over 1 item" \
+    "and its tokens by the role that spent them, with the figure each one is a share of"
+  gate_line=$(printf '%s\n' "$trend" | grep '^  after the first gate:' || true)
+  [ -n "$gate_line" ] || fail "the trend printed no after-the-gate line"
+  assert_contains "$gate_line" "83 % — 5 of 6 Mtok, from the first gate of 1 session" \
+    "and the share of the item's tokens spent after its first gate, with the two numbers it is a share of"
+}
+
+# A figure nobody measured prints `-` with its reason, never a zero that reads as a measurement — the rule the
+# spend columns keep (`report#zeroUsagePrintsDashNotZero`), applied to the three figures above: a stream that
+# records no duration and no usage measures none of them, and a state written before the split existed says so
+# rather than naming a run whose phases all cost nothing.
+case_report_aStreamWithoutDurationsPrintsDash() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out trend phases_line roles_line gate_line
+  d=$(scratch); p=$(new_project)
+  # A stream of the shape a provider or a harness that reports nothing leaves: turns and calls, no duration, no
+  # usage, no gate.
+  cat > "$d/bare.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/31/worker-prompt.md"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"c1","name":"ctx_read","arguments":{"path":"a"}}]},"toolResults":[]}
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"ctx_read","isError":false}
+JSONL
+  init_state "$p" 1 90
+  printf '[{"issue":31,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  run_state "$p" done 31 --result done --verdict closed --wall 42 --events "$d/bare.jsonl" >/dev/null
+  f=$(state_file "$p")
+  assert_eq "null" "$(jq -r '.items[0].metrics.phases' "$f")" "a stream that reports no duration records no phase figure"
+  assert_eq "null" "$(jq -r '.items[0].metrics.roles' "$f")" "and no role figure either"
+  out=$(run_report "$p") || fail "the report failed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  phases_line=$(printf '%s\n' "$trend" | grep '^  phases:' || true)
+  assert_contains "$phases_line" "- · no item recorded a phase duration" \
+    "the trend prints a dash and its reason, not three zeros"
+  assert_not_contains "$phases_line" "0 s" "a phase nobody measured is not printed as a zero"
+  roles_line=$(printf '%s\n' "$trend" | grep '^  roles:' || true)
+  assert_contains "$roles_line" "- · no item recorded a session role" "and the same for the role split"
+  gate_line=$(printf '%s\n' "$trend" | grep '^  after the first gate:' || true)
+  assert_contains "$gate_line" "- · no item of this run ran a gate in its stream" \
+    "and for the share a gate nobody ran has no position to split at"
+  assert_not_contains "$gate_line" "%" "no percentage is invented over a zero"
+  # A state written before the split was recorded holds the tokens and no phase figure, and says so rather than
+  # naming a run whose phases each cost nothing — the distinction the calls line already makes.
+  run_state "$p" stop "the case ended the run between its states" >/dev/null
+  init_state "$p" 1 90
+  printf '[{"issue":41,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  cat > "$d/used.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"s1"}
+{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"/items/41/worker-prompt.md"}]}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0}}
+{"type":"turn_end","message":{"role":"assistant","usage":{"input":0,"output":0,"cacheRead":1000000,"cacheWrite":0},"durationMs":1000,"content":[]},"toolResults":[]}
+JSONL
+  run_state "$p" done 41 --result done --verdict closed --events "$d/used.jsonl" >/dev/null
+  f=$(state_file "$p")
+  jq 'del(.stateDigest) | (.items[] | .metrics.phases) = null | (.items[] | .metrics.roles) = null
+      | (.items[] | .metrics.afterGate) = null' "$f" > "$f.old" && mv "$f.old" "$f"
+  out=$(run_report "$p") || fail "the report failed for a state written before the split existed"
+  trend=$(printf '%s\n' "$out" | sed -n "/^trend /,/^  landings:/p")
+  assert_contains "$trend" "phases: - · this state records no phase durations — it was written before the report read them" \
+    "a state that predates the split says so, instead of naming a run whose phases cost nothing"
+  assert_contains "$trend" "after the first gate: - · this state records no gate share — it was written before the report read one" \
+    "and the same for the share after the gate"
 }
 
 # Whether the loop is getting more often right is not a question one run's rows answer: a run that cost what the

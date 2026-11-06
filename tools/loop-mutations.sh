@@ -818,6 +818,15 @@ MUTATIONS=(
   # 12 h after its owner had answered the only question it had. The mutation drops the record the exclusion loop
   # writes, so the refusal is back to a line on the terminal and the item is back to a spent decision slot.
   '86.1@-@tools/loop/run.sh@run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable@the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794)@s|^    loop_state adoption-refused "\$issue" --reason "\$adoption_refusal" >/dev/null \|\|$|    true \|\||'
+
+  # 87.x — the report splits the run.s spend where it was spent (issue #759). Measured over 227 items (2026-11-03):
+  # 89.6 h spent, model 30.1 h, `gate.sh` 35.1 h and the loop.s own self-tests 11.6 h, and 1 581 of 2 591 Mtok
+  # (61 %) spent after the item.s first gate — three splits no report carried, readable only by summing the raw
+  # event streams by hand. Three sites, one recording and two lines: the phase figures the state records, the gate
+  # bucket the trend totals, and the numerator of the share after the first gate.
+  '87.1@-@tools/loop/state.sh@report#theSpendIsSplitByPhaseRoleAndGate@the phase split the item.s stream records, so no phase the trend totals has a duration (issue #759)@s|else {modelMs: \$modelMs, gateMs: \$gateMs, otherMs: \$otherMs} end)|else {modelMs: 0, gateMs: 0, otherMs: 0} end)|'
+  '87.2@-@tools/loop/report.sh@report#theSpendIsSplitByPhaseRoleAndGate@the gate bucket the trend totals, so the phase that costs the most is printed as one that cost nothing (issue #759)@s#{n: "gate", ms: (\[$phs\[\].gateMs\] | add)}#{n: "gate", ms: 0}#'
+  '87.3@-@tools/loop/report.sh@report#theSpendIsSplitByPhaseRoleAndGate@the numerator of the share spent after an item.s first gate, pinned to a constant so every run reads as fully after its gate (issue #759)@s#(((\$a / \$tot) \* 100)#((1 \* 100)#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -18,6 +18,12 @@
 # state, and the one figure that state does not hold — the landings that reddened `main` — named where it lives
 # rather than fetched, because the report reads the state and git and never the tracker.
 #
+# Since issue #759 it also says where the spend went: the clock split by the phase that spent it (the model time,
+# the gate, every other tool), the tokens split by the role that spent them (worker, reviewer, tail), and the share
+# of the tokens spent after an item's first gate. All three are read from the state, which records them when the
+# item's stream is read — a run that paid two thirds of its clock inside `gate.sh` and one that paid it reading
+# printed the same shapes before this line existed.
+#
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is
 # the run in place, exactly as before.
@@ -255,6 +261,14 @@ trend=$(jq -r --argjson floor "$calls_floor" '
     else ((.[(length / 2) - 1] + .[length / 2]) / 2)
     end;
   def decided: . == "PASS" or . == "NOTES" or . == "FAIL" or . == "round2-ended";
+  # Three figures about where the spend went (issue #759), each a count the state records: a duration in
+  # milliseconds, printed in seconds below an hour and in hours above it, and a token count printed in Mtok to the
+  # one decimal the per-item columns are read at.
+  def dur: (. / 1000) | if . >= 3600 then ((. / 3600 * 10 | round) / 10 | "\(.) h")
+                       else ((. * 10 | round) / 10 | "\(.) s") end;
+  def mtok_n: ((. / 1000000 * 10 | round) / 10);
+  def mtok: (. | mtok_n | "\(.) Mtok");
+  def items_n: if . == 1 then "1 item" else "\(.) items" end;
   ([.items[] | {v: (.metrics.reviewVerdict // ""), r: (.metrics.reviewRounds // 0)}]) as $it
   | ([.items[] | .metrics.wallSeconds | select(. != null)] | sort) as $walls
   | [$it[] | select(.v | decided)] as $decided
@@ -292,7 +306,57 @@ trend=$(jq -r --argjson floor "$calls_floor" '
               else "\($ratio) calls per turn (\($tc) calls / \($tt) turns) · floor off — LOOP_ITEM_CALLS_PER_TURN_MIN records \($floor), so no item is flagged"
               end )
       end ) as $callline
-  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)"
+  # Where the clock and the tokens went (issue #759). Each figure is a sum over the items whose state holds it, so
+  # the line names how many items it is over — a rate over 3 items and one over 227 are not the same claim. A bucket
+  # nobody spent time in is left out of the phase line rather than printed as `0 s`, because a zero there reads as a
+  # measurement that was made; the line below says when no gate ran at all.
+  | ([.items[] | .metrics.phases | select(. != null)]) as $phs
+  | ([.items[] | .metrics.roles | select(. != null)]) as $rol
+  | ([.items[] | .metrics.afterGate | select(. != null)]) as $gt
+  # What a state written before this figure existed holds instead: some spend and no split at all. That is a
+  # different answer from a run whose items measured nothing, the distinction the calls line already makes.
+  | ([.items[] | select(.metrics.tokens != null or (.metrics.roles // null) != null)] | length) as $hasSpend
+  | ([.items[] | select((.metrics.phases // null) != null or (.metrics.roles // null) != null)] | length) as $splitAny
+  | ( if ($phs | length) == 0 then
+        (if $hasSpend > 0
+          then "- · this state records no phase durations — it was written before the report read them"
+          else "- · no item recorded a phase duration" end)
+      else ([{n: "model", ms: ([$phs[].modelMs] | add)},
+             {n: "gate", ms: ([$phs[].gateMs] | add)},
+             {n: "other", ms: ([$phs[].otherMs] | add)}]
+            | map(select(.ms > 0))) as $b
+        | ([$b[].ms] | add) as $total
+        | if ($b | length) == 1 then "\($b[0].n) \($b[0].ms | dur) over \($phs | length | items_n)"
+          else "\($b | map("\(.n) \(.ms | dur)") | join(" · ")) · \($total | dur) over \($phs | length | items_n)"
+          end
+      end ) as $phaseline
+  | ( if ($rol | length) == 0 then
+        (if $hasSpend > 0
+          then "- · this state records no role split — it was written before the report read one"
+          else "- · no item recorded a session role" end)
+      else (["worker", "reviewer", "tail"]
+            | map(. as $r | {role: $r, tok: ([$rol[] | .[$r] | select(. != null)] | add)})
+            | map(select(.tok != null))) as $by
+        | if ($by | length) == 0 then "- · no item recorded a session that reported tokens"
+          elif ($by | length) == 1 then "\($by[0].role) \($by[0].tok | mtok) over \($rol | length | items_n)"
+          else "\($by | map("\(.role) \(.tok | mtok)") | join(" · ")) · \(([$by[].tok] | add) | mtok) over \($rol | length | items_n)"
+          end
+      end ) as $roleline
+  # The share after the first gate has both halves in the state (`tokens` and `total`, over the sessions that ran a
+  # gate), so the line prints the percentage with the two numbers it is a percentage of — the rule the review rate
+  # keeps for its own figures.
+  | ( if ($gt | length) == 0 then
+        (if $splitAny == 0 and $hasSpend > 0
+          then "- · this state records no gate share — it was written before the report read one"
+          else "- · no item of this run ran a gate in its stream" end)
+      else ([$gt[].tokens] | add // 0) as $a
+        | ([$gt[].total] | add // 0) as $tot
+        | ([$gt[].sessions] | add // 0) as $n
+        | if $tot == 0 then "- · the items that ran a gate reported no tokens"
+          else "\((($a / $tot) * 100) | round) % — \($a | mtok_n) of \($tot | mtok_n) Mtok, from the first gate of \($n) session\(if $n == 1 then "" else "s" end)"
+          end
+      end ) as $gateline
+  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"

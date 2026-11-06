@@ -898,8 +898,29 @@ push_branch() { # push_branch <branch>
     printf 'run: the push of %s failed — its commits stay in the run tree, not on the remote\n' "$1" >&2
 }
 
+# A report's own lines, with the fence a child may have put around its closing block taken off. A reviewer copies the
+# closing block out of the prompt that shows it as a code block, and writes it as inline code — `` `LOOP-BLOCKING: 3` ``
+# on one line and `` `VERDICT: FAIL` `` on the next — which is the same line, so one backtick at each end is removed
+# before any field is read. Measured 2026-11-06 on item #788: both of its pre-gate reports ended exactly that way, each
+# with the adapter's newline, and the run read a complete refusal as an answer the transport had cut (issue #793).
+report_lines() { # report_lines <file>
+  sed -e 's/^`//' -e 's/`$//' "$1" 2>/dev/null
+}
+
 report_field() { # report_field <file> <FIELD>
-  sed -n "s/^${2}: //p" "$1" 2>/dev/null | tail -1
+  report_lines "$1" | sed -n "s/^${2}: //p" | tail -1
+}
+
+# The word on the verdict line, and nothing else about it: the fence a child may have written around the line is not a
+# cut answer, so every reader of `VERDICT:` reads the line where it stands (#793). A report that states no verdict
+# prints nothing, which is the reading each caller already had for a report that never carried the line.
+report_verdict() { # report_verdict <file> → PASS, FAIL, or empty
+  local value
+  value=$(report_field "$1" VERDICT)
+  case "$value" in
+    PASS*) printf 'PASS\n' ;;
+    FAIL*) printf 'FAIL\n' ;;
+  esac
 }
 
 # The child's own last words, when it wrote no report line: a process that never got to work the item prints a
@@ -913,11 +934,12 @@ last_line() { # last_line <file>
 # prompt asks for its closing line last (the reviewer's `VERDICT:`, after the count it licenses). An answer that
 # ends mid-word, or carries no closing line at all, was cut on its way to the file. Measured 2026-10-20: a
 # round-2 report ended `… and the post-restore gre` while its own text recorded all seven scenarios PASS, and the
-# run read the absence as a refusal, took another worker round and escalated work that had passed.
+# run read the absence as a refusal, took another worker round and escalated work that had passed. The fence a child
+# may have put around that closing line is not a fact about its arrival: the line is read where it stands (#793).
 answer_complete() { # answer_complete <report file> <closing-line regex>
   [ -s "$1" ] || return 1
   [ -z "$(tail -c 1 "$1" 2>/dev/null)" ] || return 1
-  grep -qE "$2" "$1" 2>/dev/null
+  report_lines "$1" | grep -qE "$2" 2>/dev/null
 }
 
 # The reviewer's severity count, and nothing else about its prose (#205). A report may say `VERDICT: FAIL` and
@@ -2045,7 +2067,7 @@ while true; do
         # notes are recorded, and a report with no count line at all refuses nothing.
         blocking=$(blocking_count "$pre_gate_report")
         pre_gate_findings=""
-        if grep -q '^VERDICT: FAIL' "$pre_gate_report" 2>/dev/null && [ -n "$blocking" ] && [ "$blocking" -gt 0 ]; then
+        if [ "$(report_verdict "$pre_gate_report")" = FAIL ] && [ -n "$blocking" ] && [ "$blocking" -gt 0 ]; then
           pre_gate_findings="$pre_gate_report"
         fi
         loop_state step A --name pre-gate-review --status ok \
@@ -2396,7 +2418,7 @@ while true; do
       # a pass whose notes are recorded — the findings are wording, pointers and naming, which cost the change
       # no round. A report with no count line keeps today's reading, so an old-shaped review never passes.
       blocking=$(blocking_count "$reviewer_report")
-      if grep -q '^VERDICT: PASS' "$reviewer_report" 2>/dev/null &&
+      if [ "$(report_verdict "$reviewer_report")" = PASS ] &&
         { [ -z "$blocking" ] || [ "$blocking" -eq 0 ]; }; then
         review_verdict="PASS"
       elif [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then

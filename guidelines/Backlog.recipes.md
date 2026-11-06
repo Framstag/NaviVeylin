@@ -692,7 +692,12 @@ nothing was wrong with the work (#224). The **shape** of the answer decides it, 
 prints exactly one newline after every answer it hands the run, and the prompt asks for a `VERDICT: PASS|FAIL`
 line in the report's closing block, so a report that carries no `VERDICT:` line — or one whose last byte is not
 the adapter's newline — is an **incomplete child answer**. The missing line is what caught the measured
-incident; the missing newline covers a report that was never handed over whole. The run says so, asks the same
+incident; the missing newline covers a report that was never handed over whole. The line is read where it stands,
+fence or no fence: a reviewer that writes its closing block as inline code — `` `LOOP-BLOCKING: 3` `` then
+`` `VERDICT: FAIL` `` — wrote the line its prompt asked for, so one backtick at each end is taken off before the
+answer is judged, and both the completeness reading and the count are the ones inside the fence (#793; measured
+2026-11-06, both of item #788's pre-gate reports ended that way and a complete refusal was escalated as no
+reviewer having refused the change). The run says so, asks the same
 round once more (same prompt and same diff, the answer kept beside the cut attempt as
 `reviewer-report-<n>-retry.md`) and decides on the answer that arrived. A
 round the run itself ended already says so in its report (`LOOP-TIMEOUT`) and is not retried; two cut answers

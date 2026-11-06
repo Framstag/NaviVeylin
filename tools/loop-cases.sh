@@ -258,6 +258,7 @@ LOOP_SHELL_CASES=(
   'run#aBlockingRefusalStillTakesTheRoundTwoPath'
   'run#aCutReportIsRetriedInsteadOfRefused'
   'run#aReportCutTwiceBlocksAsTheTransportsFault'
+  'run#aFencedClosingBlockIsACompleteAnswer'
   'run#escalationCarriesTheDecision'
   'run#mayCloseNoLeavesTheIssueOpen'
   'run#metricsRecordedPerItem'
@@ -632,6 +633,7 @@ loop_run_shell_case() {
     'run#aBlockingRefusalStillTakesTheRoundTwoPath') fn=case_run_aBlockingRefusalStillTakesTheRoundTwoPath ;;
     'run#aCutReportIsRetriedInsteadOfRefused') fn=case_run_aCutReportIsRetriedInsteadOfRefused ;;
     'run#aReportCutTwiceBlocksAsTheTransportsFault') fn=case_run_aReportCutTwiceBlocksAsTheTransportsFault ;;
+    'run#aFencedClosingBlockIsACompleteAnswer') fn=case_run_aFencedClosingBlockIsACompleteAnswer ;;
     'run#escalationCarriesTheDecision') fn=case_run_escalationCarriesTheDecision ;;
     'run#mayCloseNoLeavesTheIssueOpen') fn=case_run_mayCloseNoLeavesTheIssueOpen ;;
     'run#metricsRecordedPerItem') fn=case_run_metricsRecordedPerItem ;;
@@ -7641,6 +7643,38 @@ ACTION
     fail "a second worker round was taken for an answer that never arrived"
   [ -z "$(find "$p/.pi/worktrees/loop/openspec/changes" -name 'review-failed-round-*.md' 2>/dev/null)" ] ||
     fail "a review-failure marker was written for a round no reviewer decided"
+}
+
+# A closing block a reviewer writes as inline code is a complete answer (#793). Measured 2026-11-06 on item #788:
+# both of that item's pre-gate reports ended `` `LOOP-BLOCKING: 3` `` then `` `VERDICT: FAIL` ``, each with its own
+# closing backtick and the adapter's newline, and the run read both as cut answers — it recorded the item `blocked`
+# and escalated "the round's answer never arrived, so no reviewer refused this change" while the report in hand
+# carried three blocking findings. So the closing line is read where it stands, fence or no fence: the answer is
+# complete, and the count inside the fence is the count the round is decided by.
+case_run_aFencedClosingBlockIsACompleteAnswer() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p f out log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # A refusal that blocks nothing, written the way item #788's round wrote it: the closing block in inline code.
+  stub_write "$d" "$STUB_WORKER_REPORT" 'BLOCKING: none — every task the change claims done names the case that holds it
+NOTE: the design cites the guideline section by paragraph rather than by its heading
+`LOOP-BLOCKING: 0`
+`VERDICT: FAIL`'
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  f=$(state_file "$p")
+  assert_not_contains "$out" "answer was cut short" "a fenced closing block is not an answer the transport cut"
+  [ ! -f "$p/.pi/issue-loop/items/21/reviewer-prompt-1-retry.md" ] ||
+    fail "the round was asked again although its answer arrived whole"
+  assert_eq "1" "$(jq -r '.items[0].metrics.reviewRounds' "$f")" "the round is read once, as the round it is"
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" "the count inside the fence is the count that decides it"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$f")" "so a fenced refusal with a zero count closes the item"
+  assert_contains "$(jq -r '.items[0].note' "$f")" "cites the guideline section by paragraph" \
+    "and the note beside the fenced block reaches the item"
+  assert_eq "3" "$(grep -c '^invocation' "$PI_STUB_LOG")" \
+    "the worker's two children and one reviewer, and no retry child"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_not_contains "$log" "agent/needs-decision" "no decision is asked for about work that passed"
 }
 
 # The escalation is what a person reads, so it carries the decision the reviewer already worked out: the

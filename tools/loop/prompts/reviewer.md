@@ -117,6 +117,9 @@ LOOP-BLOCKING: <n>
 VERDICT: PASS|FAIL
 ```
 
+Write those two lines last, plain or as inline code (`` `VERDICT: FAIL` ``): the run reads the line where it
+stands, fence or no fence, and the last line of the answer is what tells it the answer arrived whole.
+
 `<n>` is a decimal count of the `BLOCKING:` lines above. `VERDICT: PASS` **only** when `<n>` is 0; `VERDICT: FAIL`
 only when it is not. The run reads the count first, so a verdict that disagrees with it is read by its count —
 and a report with no `LOOP-BLOCKING:` line at all is read as a refusal, because a run cannot tell an old review

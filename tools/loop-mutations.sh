@@ -768,7 +768,7 @@ MUTATIONS=(
   # the hand-off of the findings to that child, and the outcome arm a round the run cut records.
   '79.1@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the section `worker.md` is handed, so the change child is told which end its session has (issue #758)@s|^  if \[ "\${1:-off}" = on \]; then cat "\$LOOP_DIR/prompts/gate-deferred.md"; else cat "\$LOOP_DIR/prompts/gate-own.md"; fi$|  if false; then cat "$LOOP_DIR/prompts/gate-deferred.md"; else cat "$LOOP_DIR/prompts/gate-own.md"; fi|'
   '79.2@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the block that reads the diff before the gate and starts the child that runs it (issue #758)@s|^  if \[ "\$pre_gate" = on \] \&\& \[ "\$worker_exit" -eq 0 \] \&\& \[ "\$worker_write_decides" -eq 0 \]; then$|  if false; then|'
-  '79.3@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the findings the refuting round wrote, handed to the child that runs the gate (issue #758)@s|^        if grep -q \x27^VERDICT: FAIL\x27 "\$pre_gate_report" 2>/dev/null \&\& \[ -n "\$blocking" \] \&\& \[ "\$blocking" -gt 0 \]; then$|        if false; then|'
+  '79.3@-@tools/loop/run.sh@run#thePreGateReviewRunsBeforeTheGate@the findings the refuting round wrote, handed to the child that runs the gate (issue #758; the reading moved to the verdict reader with issue #793)@s|^        if \[ "\$(report_verdict "\$pre_gate_report")" = FAIL \] && \[ -n "\$blocking" \] && \[ "\$blocking" -gt 0 \]; then$|        if false; then|'
   '79.4@-@tools/loop/run.sh@run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun@the outcome arm a round the run cut records, so a change nobody read is left for the next run instead of closing (issue #758)@s|^  if \[ -n "\$pre_gate_refusal" \]; then$|  if false; then|'
 
   # 80.x — a round the run's own bound ended is recorded `cut`, not `blocked` (issue #785). Measured 2026-11-05: #780
@@ -797,6 +797,11 @@ MUTATIONS=(
   # blocked for a dead child. The mutation drops the liveness reading, so the case sees the wait the tree's poll was
   # — ended by a clock 3 600 s away — and nothing else changes: the record and every clock are untouched.
   '82.1@-@tools/loop/run.sh@run#aVanishedWriterEndsTheWait@the liveness of the subshell that writes the child record, so a writer that vanished is waited for until a clock (issue #795)@s|^    if \[ ! -e "\$status_file" \] && ! kill -0 "\$child" 2>/dev/null; then$|    if false; then|'
+  # 83.x — a closing block a reviewer fenced as inline code is a complete answer (issue #793). Measured 2026-11-06 on
+  # item #788: both of its pre-gate reports ended `LOOP-BLOCKING: 3` then `VERDICT: FAIL`, each line wrapped in
+  # backticks and the file ending on the adapter's newline, and the run read two complete refusals as answers the
+  # transport had cut. Without the un-fencing, the same report is a cut answer again.
+  '83.1@-@tools/loop/run.sh@run#aFencedClosingBlockIsACompleteAnswer@the fence taken off a closing line before the report is judged complete (issue #793)@s#^  report_lines "\$1" | grep -qE "\$2" 2>/dev/null$#  grep -qE "\$2" "\$1" 2>/dev/null#'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

@@ -564,7 +564,8 @@ invoke the driver with one named `--case` and parse what that shape prints.
 fixture looks like it costs: the three groups the plan blamed for paying a prepared project per case (`state` 24,
 `report` 20, `prescreen` 30 — 74 cases, 101.97 s of case time, 1.38 s a case) pay 13 ms of that for
 `new_project` — 0.8–1.2 % of a case — so a merge of all 74 into one per fixture would have saved 0.95 s of their
-101.97 s. The measurement is `openspec/changes/loop-suite-cost-is-reported/evidence/trim.txt`, and the report is what
+101.97 s. The measurement is
+`openspec/changes/archive/2026-11-06-loop-suite-cost-is-reported/evidence/trim.txt`, and the report is what
 lets a later trim aim at the group that pays.
 
 One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a

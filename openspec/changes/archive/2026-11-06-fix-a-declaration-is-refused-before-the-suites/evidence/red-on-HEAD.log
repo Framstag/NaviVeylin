@@ -1,0 +1,10 @@
+2026-11-06T08:10:54Z
+gate#theDeclarationCaseIsOwedFirst|   a delta that writes a case owes the case that reads the declaration: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+gate#theDeclarationCaseIsOwedFirst| tools/loop-selftest.sh --from-git 5b7fbb8a9d31a5ff895cca03fe4e94ab799671dd
+--- gate#theDeclarationCaseIsOwedFirst[0] (exit 1)
+  a delta that writes a case owes the case that reads the declaration: ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+tools/loop-selftest.sh --from-git 5b7fbb8a9d31a5ff895cca03fe4e94ab799671dd
+FAIL gate#theDeclarationCaseIsOwedFirst
+loop-selftest: 1 of 1 cases failed
+status=1
+2026-11-06T08:10:55Z

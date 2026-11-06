@@ -1,0 +1,6 @@
+gate: ./tools/loop/gate.sh (change root /home/tim/projects/NaviVeylin/.pi/worktrees/loop, HEAD dd252a86, base 560edf23)
+findings applied: none — pre-gate review found no blocking finding
+result: passed — tests=918 failures=0 errors=0 across 26 suite tallies
+copies: gate.log (full console), gate-tallies/ (JUnit tallies from app/build/test-results/loop-gate)
+sum check: 26 tallies sum to tests=918 failures=0 errors=0, matching the gate's own LOOP-GATE line
+tree after gate: `git status --short` empty — the gate left nothing behind

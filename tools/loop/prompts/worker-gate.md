@@ -48,7 +48,7 @@ with: each is what the process you are started in refuses, before any rule of th
   red-on-HEAD proof is taken against, so `git commit` and `git add` are no step of yours — and `git stash`,
   `git checkout`, `git apply` and `git worktree` come back refused, because the approval they need is one an
   unattended process can never be asked for.
-- **No inline code.** `python3 -c`, `python3 <<'EOF'`, `node -e` and a `$( … )` substitution are refused. A number is
+- **No inline code.** `python3 -c`, `python3 <<'EOF'` and a `$( … )` substitution are refused. A number is
   taken by the command the tree already carries — `tools/loop/measure.sh`, the suite a change names, a `tools/*.sh` —
   or by `awk` over the output such a command printed.
 - **An edit needs the text as it stands now.** A body read twenty turns ago comes back `could not find the exact

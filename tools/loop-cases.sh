@@ -3557,19 +3557,20 @@ case_prompt_thePhasePromptNamesWhatItsShellRefuses() {
   text=$(cat "$prompt")
   assert_contains "$text" 'What your own shell and tools refuse' "the worker's prompt names what its own shell refuses"
   assert_contains "$text" 'stage nothing' "and that the commit is the run's and no step of the child's"
-  assert_contains "$text" 'git stash' "and the git calls the approval it can never be given refuses"
-  assert_contains "$text" 'inline code' "and that no inline code runs"
+  assert_contains "$text" 'git stash' "and one git call the approval it can never be given refuses"
+  assert_contains "$text" 'inline code' "and that the block names inline code as refused"
   assert_contains "$text" 'ctx_patch' "and the edit call whose hash refuses instead of a body read twenty turns ago"
   assert_contains "$text" 'tools/look.sh' "and the one call that answers a tree question"
 
-  # The skeletons a child is handed are three, and the block belongs in each: a block in one of them leaves the other
-  # two children learning the same four refusals by being refused.
+  # A child can be handed one of three skeletons, and each has to state the block's heading: one without it leaves
+  # that child with no block at all. The block's own text is asserted once, against the rendered `worker.md` prompt
+  # (`$text`) above — not per skeleton, so a differing bullet in `worker-gate.md` is not held here.
   for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/worker-tail.md"; do
     [ -f "$f" ] || fail "no prompt skeleton at $f"
-    assert_contains "$(cat "$f")" 'What your own shell and tools refuse' "$(basename "$f") carries the block the child needs"
+    assert_contains "$(cat "$f")" 'What your own shell and tools refuse' "$(basename "$f") states the block's heading"
   done
 
-  # The verb list is not a second copy of the policy's: it is read out of the module, and every verb that module
+  # The case keeps no second copy of the policy's verb list: it is read out of the module, and every verb that module
   # carries has to be named in the block. A policy that gains a verb, or a prompt that drops one, fails here instead
   # of in a run.
   rule="$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs"

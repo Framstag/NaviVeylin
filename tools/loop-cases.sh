@@ -139,6 +139,7 @@ LOOP_SHELL_CASES=(
   'prompt#packageIsAFileAndNotInlined'
   'prompt#inlineInjectionCannotReachTheInstructionPosition'
   'prompt#thePhasePromptsCarryTheirOwnRoute'
+  'prompt#thePhasePromptNamesWhatItsShellRefuses'
   'run#preflightRefusalStopsBeforeAnyWork'
   'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen'
   'run#blockedItemAsksItsOwnQuestion'
@@ -532,6 +533,7 @@ loop_run_shell_case() {
     'prompt#packageIsAFileAndNotInlined') fn=case_prompt_packageIsAFileAndNotInlined ;;
     'prompt#inlineInjectionCannotReachTheInstructionPosition') fn=case_prompt_inlineInjectionCannotReachTheInstructionPosition ;;
     'prompt#thePhasePromptsCarryTheirOwnRoute') fn=case_prompt_thePhasePromptsCarryTheirOwnRoute ;;
+    'prompt#thePhasePromptNamesWhatItsShellRefuses') fn=case_prompt_thePhasePromptNamesWhatItsShellRefuses ;;
     'run#preflightRefusalStopsBeforeAnyWork') fn=case_run_preflightRefusalStopsBeforeAnyWork ;;
     'run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen') fn=case_run_aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen ;;
     'run#blockedItemAsksItsOwnQuestion') fn=case_run_blockedItemAsksItsOwnQuestion ;;
@@ -3534,6 +3536,52 @@ case_prompt_thePhasePromptsCarryTheirOwnRoute() {
       [ -e "$LOOP_PROJECT_ROOT/$tok" ] ||
         fail "$(basename "$f") names $tok, which the project root does not hold"
     done
+  done
+  return 0
+}
+
+# Issue #799: a child learned what its own shell and tools refuse by being refused — 55 of one day's 161 tool errors
+# were 17 approvals no unattended process can be asked for (`git stash` 6, `git apply` 3, `git checkout` 2, `git add`
+# 2, `git worktree` 1, and 3 for a path outside the working directory), 16 refusals of inline code (13 `python3 <<`,
+# 1 `python3 -c`, 2 command substitutions) and 22 `edit` calls rejected for text that had moved or was not unique.
+# The block belongs where the project's context files would have been — in the phase prompt, once — and the verbs it
+# names are the policy's own list, read out of `REFUSED_VERBS`, so a verb the policy gains is a case that fails rather
+# than a child that learns it by being refused (#687 is that policy, #796 the recipe one section up).
+case_prompt_thePhasePromptNamesWhatItsShellRefuses() {
+  # files: tools/loop/prompts/ tools/pi-shell-refusal.mjs tools/look.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p prompt text f rule probe verbs v
+  d=$(scratch); p=$(new_project)
+  run_one_item "$p" "$d" >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  text=$(cat "$prompt")
+  assert_contains "$text" 'What your own shell and tools refuse' "the worker's prompt names what its own shell refuses"
+  assert_contains "$text" 'stage nothing' "and that the commit is the run's and no step of the child's"
+  assert_contains "$text" 'git stash' "and the git calls the approval it can never be given refuses"
+  assert_contains "$text" 'inline code' "and that no inline code runs"
+  assert_contains "$text" 'ctx_patch' "and the edit call whose hash refuses instead of a body read twenty turns ago"
+  assert_contains "$text" 'tools/look.sh' "and the one call that answers a tree question"
+
+  # The skeletons a child is handed are three, and the block belongs in each: a block in one of them leaves the other
+  # two children learning the same four refusals by being refused.
+  for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/worker-tail.md"; do
+    [ -f "$f" ] || fail "no prompt skeleton at $f"
+    assert_contains "$(cat "$f")" 'What your own shell and tools refuse' "$(basename "$f") carries the block the child needs"
+  done
+
+  # The verb list is not a second copy of the policy's: it is read out of the module, and every verb that module
+  # carries has to be named in the block. A policy that gains a verb, or a prompt that drops one, fails here instead
+  # of in a run.
+  rule="$LOOP_PROJECT_ROOT/tools/pi-shell-refusal.mjs"
+  [ -f "$rule" ] || fail "nothing refuses a shell tree search: tools/pi-shell-refusal.mjs is not in the tree (issue #687)"
+  probe="$d/policy.mjs"
+  printf '%s\n' 'import { pathToFileURL } from "node:url";' \
+    'const mod = await import(pathToFileURL(process.env.RULE).href);' \
+    'console.log((mod.REFUSED_VERBS || []).join(" "));' > "$probe"
+  verbs=$(RULE="$rule" node "$probe" 2>&1) || fail "the policy's own verb list could not be read: $verbs"
+  [ -n "$verbs" ] || fail "tools/pi-shell-refusal.mjs exports no REFUSED_VERBS to keep the prompt's list beside"
+  for v in $verbs; do
+    assert_contains "$text" "\`$v\`" "the block names the verb the policy refuses, in the policy's own spelling: $v"
   done
   return 0
 }

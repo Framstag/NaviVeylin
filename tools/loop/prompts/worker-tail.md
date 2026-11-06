@@ -40,6 +40,26 @@ Your system prompt carries **no project context**, so what `AGENTS.md` would hav
 - The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you are finishing
   is in the change root, and the evidence it cites is versioned in that change's `evidence/`.
 
+## What your own shell and tools refuse
+
+None of the four families below is a question you can ask and none of them is a rule of this project to be argued
+with: each is what the process you are started in refuses, before any rule of this tree can matter (issue #799).
+
+- **You commit nothing and stage nothing.** The run commits, and the branch the item descends from is the base a
+  red-on-HEAD proof is taken against, so `git commit` and `git add` are no step of yours — and `git stash`,
+  `git checkout`, `git apply` and `git worktree` come back refused, because the approval they need is one an
+  unattended process can never be asked for.
+- **No inline code.** `python3 -c`, `python3 <<'EOF'`, `node -e` and a `$( … )` substitution are refused. A number is
+  taken by the command the tree already carries — `tools/loop/measure.sh`, the suite a change names, a `tools/*.sh` —
+  or by `awk` over the output such a command printed.
+- **An edit needs the text as it stands now.** A body read twenty turns ago comes back `could not find the exact
+  text`, or `found N occurrences` when the text is not unique: read the range once with `ctx_read` immediately before
+  the edit, or edit with `ctx_patch`, whose hash refuses with a conflict instead of writing the wrong text.
+- **A shell search of the tree is refused**: the verbs `grep`, `cat`, `head`, `tail`, `ls`, `find`, `wc` and `awk`
+  over the tree are `tools/look.sh` (a pattern over the whole tree), `ctx_read` (one file, or a range of it) and
+  `ctx_ls` (a directory). A range read (`sed -n 'N,Mp'`, `tail -n`) and a filter of another command's output are not
+  refused.
+
 ## Phase F — evidence and archive
 
 The gate's result decides which half of this phase you run, and there is no third one:

@@ -186,7 +186,7 @@ LOOP_SHELL_CASES=(
   'run#headerNamesTheLiveView'
   'run#prescreenAnnouncesItselfBeforeItReturns'
   'run#everyPhaseBoundaryIsPrinted'
-  'run#childOutlastingTheWallClockIsBlocked'
+  'run#childOutlastingTheWallClockIsCut'
   'run#theChildCapIsNeverBelowWhatOneItemsGateOwes'
   'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes'
   'run#childIsEndedAtTheRunsDeadline'
@@ -346,7 +346,7 @@ LOOP_SHELL_CASES=(
   'repeat#aRepeatAfterAnEditIsHandedOverWhole'
   'repeat#theRecordedZeroKeepsTheRepeatRuleOff'
   'repeat#aBrokenLedgerLeavesTheResultAsReturned'
-  'run#childPastItsTurnBoundIsBlocked'
+  'run#childPastItsTurnBoundIsCut'
   'run#theRecordedZeroKeepsTheTurnBoundOff'
   'run#eachChildIsBoundedByItsOwnRolesTurns'
   'run#aRoleWithNoRecordedTurnBoundRunsUnbounded'
@@ -556,7 +556,7 @@ loop_run_shell_case() {
     'run#headerNamesTheLiveView') fn=case_run_headerNamesTheLiveView ;;
     'run#prescreenAnnouncesItselfBeforeItReturns') fn=case_run_prescreenAnnouncesItselfBeforeItReturns ;;
     'run#everyPhaseBoundaryIsPrinted') fn=case_run_everyPhaseBoundaryIsPrinted ;;
-    'run#childOutlastingTheWallClockIsBlocked') fn=case_run_childOutlastingTheWallClockIsBlocked ;;
+    'run#childOutlastingTheWallClockIsCut') fn=case_run_childOutlastingTheWallClockIsCut ;;
     'run#theChildCapIsNeverBelowWhatOneItemsGateOwes') fn=case_run_theChildCapIsNeverBelowWhatOneItemsGateOwes ;;
     'state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes') fn=case_state_theItemFloorIsOnlyBelowWhatOneItemsGateOwes ;;
     'run#childIsEndedAtTheRunsDeadline') fn=case_run_childIsEndedAtTheRunsDeadline ;;
@@ -715,7 +715,7 @@ loop_run_shell_case() {
     'repeat#aRepeatAfterAnEditIsHandedOverWhole') fn=case_repeat_aRepeatAfterAnEditIsHandedOverWhole ;;
     'repeat#theRecordedZeroKeepsTheRepeatRuleOff') fn=case_repeat_theRecordedZeroKeepsTheRepeatRuleOff ;;
     'repeat#aBrokenLedgerLeavesTheResultAsReturned') fn=case_repeat_aBrokenLedgerLeavesTheResultAsReturned ;;
-    'run#childPastItsTurnBoundIsBlocked') fn=case_run_childPastItsTurnBoundIsBlocked ;;
+    'run#childPastItsTurnBoundIsCut') fn=case_run_childPastItsTurnBoundIsCut ;;
     'run#theRecordedZeroKeepsTheTurnBoundOff') fn=case_run_theRecordedZeroKeepsTheTurnBoundOff ;;
     'run#eachChildIsBoundedByItsOwnRolesTurns') fn=case_run_eachChildIsBoundedByItsOwnRolesTurns ;;
     'run#aRoleWithNoRecordedTurnBoundRunsUnbounded') fn=case_run_aRoleWithNoRecordedTurnBoundRunsUnbounded ;;
@@ -4972,9 +4972,10 @@ case_state_theItemFloorIsOnlyBelowWhatOneItemsGateOwes() {
 # between items, so a hung gate could spend the whole budget inside one `wait` (measured 2026-10-19: item
 # #126's worker phase ran 83 min that way, and its retry died inside the same module that had taken 30 min).
 # The cap is a recorded value; the run ends the child and everything the child started, the transcript carries
-# the one line that says so, and the item is recorded `blocked` with that transcript instead of spending the
-# run's clock (issue #203).
-case_run_childOutlastingTheWallClockIsBlocked() {
+# the one line that says so, and the item is recorded with that transcript instead of spending the run's clock
+# (issue #203). The result is `cut`, not `blocked` (issue #790): the cap is a bound the run enforces on its own
+# child, so what it leaves is a phase the next run resumes rather than a finding about the item.
+case_run_childOutlastingTheWallClockIsCut() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo pid i status out report
   d=$(scratch); p=$(new_project)
@@ -5023,19 +5024,25 @@ case_run_childOutlastingTheWallClockIsBlocked() {
   [ -f "$report" ] || fail "the item kept no transcript of the child that was ended"
   assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
     "the report carries the one machine-readable line that says the child was ended"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
-    "an item whose child was ended is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child was ended is recorded cut, not blocked"
+  assert_eq "cut" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "and its verdict is the cut too, which is what a reader counts"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "exceeded 2 s" \
     "and the reason on the item names the cap that ended it"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
   # The item's own wall-clock cap is not the run's deadline (issue #674): the cap ended a child whose item was
-  # started and worked. It is still a bound the run enforces, and not a finding about the item (issue #786): the
-  # item's tree was left mid-phase, its work is kept beside it and its branch is still at the base, so the next run
-  # resumes it — the block records `bound` as its mechanism, writes no decision label and spends no decision slot,
-  # which is what the pair `state.sh next` stops a run on reads. Measured 2026-11-05: six of one day's eight blocks
-  # were bound cuts (three of them this clock, #781, #744, #740), and five of six runs stopped on that pair.
+  # started and worked. It is still a bound the run enforces, and not a finding about the item (issues #786,
+  # #790): the item's tree was left mid-phase, its work is kept beside it and its branch is still at the base, so
+  # the next run resumes it — the record says `cut`, carrying `bound` as the mechanism that cut it, writes no
+  # decision label and spends no decision slot, and the report names it on the run's own bound line rather than in
+  # the block tally. Measured 2026-11-05: six of one day's eight blocks were bound cuts (three of them this clock,
+  # #781, #744, #740), and five of six runs stopped on that pair.
   assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
     "an item its own child's wall-clock cap ended records the bound as its mechanism"
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" \
+    "left for the next run rather than asked about" \
+    "and says the attempt is the next run's to resume"
   assert_eq "" "$(jq -r '.items[0].escalatedLabel // ""' "$(state_file "$p")")" \
     "and is not escalated as a decision, because a bound asks nobody a question"
   assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
@@ -5099,8 +5106,8 @@ case_run_childIsEndedAtTheRunsDeadline() {
   assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded" \
     "and still carries the machine-readable line the run reads as its own timeout"
   assert_not_contains "$(cat "$report")" "3600 s" "the cap is not the bound that ended it"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" \
-    "an item whose child was ended is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" \
+    "an item whose child was ended is recorded cut, not blocked (issue #790)"
   assert_contains "$(jq -r '.items[0].note' "$state")" "exceeded" \
     "and the reason on the item names the bound that ended it"
   # The clock that ended it is the run's, not the item's (issue #674): the item is left for the next run, so the
@@ -5409,8 +5416,12 @@ case_run_treeOfAChildTheCapEndedIsNotCommitted() {
   [ -f "$report" ] || fail "the item kept no transcript of the child that was ended"
   assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
     "the report carries the line that says the run ended the child"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
-    "an item whose child was ended by the cap is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child was ended by the cap is recorded cut, not blocked"
+  # The work the ended child left is named in the item's own record (issue #790): the patch is where the next
+  # run's reader finds it, and the item is a phase to resume rather than a question to answer.
+  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "its work is kept at" \
+    "and the cut names the patch the child's leftover work was written to"
   # The run's own line is part of the contract, not only the branch: a person reads the log to learn that the
   # commit was skipped rather than made, so the sentence the requirement states is asserted here too.
   assert_contains "$out" "end-item skipped" \
@@ -11660,8 +11671,9 @@ case_repeat_aBrokenLedgerLeavesTheResultAsReturned() {
 # turns that child added to the item's own event stream (`items/<n>/events.jsonl`, one `turn_end` per turn) where the
 # wall clock is already enforced. This case does not wait
 # for the bound: the child appends a fixture stream of three turns and then blocks, and the recorded value is 3, so a
-# tree that reads neither the key nor the stream leaves the run waiting until the case's own bound ends it.
-case_run_childPastItsTurnBoundIsBlocked() {
+# tree that reads neither the key nor the stream leaves the run waiting until the case's own bound ends it. The item
+# is recorded `cut`, not `blocked` (issue #790): the bound is the run's own and ends a phase, not the item.
+case_run_childPastItsTurnBoundIsCut() {
   # files: tools/loop/fixtures/pi tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p conf fifo fixture action pid i status out report
   d=$(scratch); p=$(new_project)
@@ -11711,7 +11723,7 @@ EOF
   out=$(cat "$d/out")
   assert_eq "0" "$status" "a child the run itself ended is not a failed run"
   assert_contains "$out" "child-turns-max=worker:3" "the run's header names the worker's turn bound it enforces"
-  assert_contains "$out" "exit 124" "with the wall clock's own status, so the run's 'exited N' path records the block"
+  assert_contains "$out" "exit 124" "with the wall clock's own status, so the run's 'exited N' path records the cut"
   report="$p/.pi/issue-loop/items/21/worker-report.md"
   [ -f "$report" ] || fail "the item kept no transcript of the child the turn bound ended"
   assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_WORKER for the worker role)" \
@@ -11719,19 +11731,27 @@ EOF
   assert_contains "$(cat "$report")" "after 3 turn(s)" "and the count it reached, read from the child's own stream"
   assert_not_contains "$(cat "$report")" "the child exceeded" \
     "the wall clock took no part in it — the recorded one still had 45 min to run"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
-    "an item whose child crossed the bound is recorded blocked"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "an item whose child crossed the bound is recorded cut, not blocked (issue #790)"
+  assert_eq "cut" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" \
+    "and its verdict is the cut too, which is what the run's own report counts"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "turn bound of 3 turns" \
     "and the reason on the item carries the count, not only the exit status"
-  # …and the block says *why* it is no question (issue #786): the mechanism is `bound`, so `next` never reads it as
-  # a refusal, no decision label is written for it, and the record itself says the attempt waits for the next run.
+  # …and the cut says *why* it is no question (issues #786, #790): the mechanism is `bound`, so `next` never reads it
+  # as a refusal, no decision label is written for it, and the record itself says the attempt waits for the next run.
   assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$(state_file "$p")")" \
-    "the block records the run's own bound as its mechanism"
+    "the cut records the run's own bound as its mechanism"
   assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "left for the next run rather than asked about" \
     "and says the attempt is left for the next run"
   assert_eq "0" "$(grep -c 'add-label agent/needs-decision' "$GH_STUB_RECORD" || true)" \
     "no decision label is written for an item the run's own bound ended"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed on a child the run ended"
+  # The report reads the item off its result alone (issue #790): it is on the run's own bound line and not in the
+  # block tally, so no later reader needs the mechanism's vocabulary to tell work from a refusal.
+  out=$(run_report "$p")
+  assert_contains "$out" "blocked 0 · cut 1" "the report counts the item as a cut and not as a block"
+  assert_contains "$out" "cut short by the run's own bound: #21" \
+    "and names it on the line the run's own bound owns"
   return 0
 }
 
@@ -11773,7 +11793,8 @@ EOF
   assert_contains "$(cat "$report")" "LOOP-TIMEOUT: the child exceeded 2 s" \
     "with the bound off, the recorded wall clock is the one that ends the child"
   assert_not_contains "$(cat "$report")" "turn bound" "and no turn bound is named in its transcript"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" "the item is recorded blocked, as before"
+  assert_eq "cut" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "the item is recorded cut: the clock that ended it is the run's bound, not a finding about the item"
   return 0
 }
 

@@ -275,13 +275,12 @@ cmd_next() {
   require_state
   local reason
   # The streak a run stops on counts **refusals**, never cuts and never a block the run's own bound caused
-  # (issues #785, #786): a round the run's own bound ended is a phase the next run resumes, so an item recorded
-  # `cut` is no more a stop than one that closed, and a worker or gate child ended at its role's turn bound (or at
-  # the child clock) is recorded `blocked` with `stopReason: bound` — the same prediction, none of it about the
-  # next item. What the pair is read for is that a refusal predicts the next item's failure — the same gate, the
-  # same provider, the same tree — so only a refusal may sit in a pair. Measured 2026-11-05: five of six runs
-  # stopped on this streak, 758 of 3211 budgeted minutes used across them, and six of that day's eight blocks were
-  # bound cuts (issue #786).
+  # (issues #785, #786, #790): a phase the run's own bound ended is one the next run resumes, so an item recorded
+  # `cut` is no more a stop than one that closed — and the mechanism is read beside the result too, because a state
+  # a tree wrote before `cut` carried a bound still says `blocked` with `stopReason: bound` for the same fact. What
+  # the pair is read for is that a refusal predicts the next item's failure — the same gate, the same provider, the
+  # same tree — so only a refusal may sit in a pair. Measured 2026-11-05: five of six runs stopped on this streak,
+  # 758 of 3211 budgeted minutes used across them, and six of that day's eight blocks were bound cuts (issue #786).
   reason=$(jq -r '
     (.run) as $r
     | (.items | length) as $done
@@ -492,16 +491,18 @@ cmd_done() {
   # The mechanism a block stopped on is a closed vocabulary, not a second place to write prose (issue #280: a
   # refusing review round and a base that would not take the branch both reached the record as the one word
   # `blocked`, so 198.8 M of refusing rounds could only be told from one 22.9 M merge refusal by reading the note).
-  # A mechanism on anything but a block would double-count the item as two kinds of stop, so it is refused too.
-  # `bound` is the third value (issue #786): the run ended a child of the item at a bound it enforces — the child's
-  # role's turns or the child clock — which is work the next run resumes and not a finding about the item, so it is
-  # the one mechanism `next` never reads as a refusal.
+  # `bound` is the third value (issues #786, #790): the run ended a child of the item at a bound it enforces — the
+  # child's role's turns, the child clock or the run's own deadline — which is work the next run resumes and not a
+  # finding about the item. Such an item is recorded `cut`, so `bound` is the one mechanism a cut carries, and the
+  # spend a mechanism is totalled by is the same field on either result.
   case "$stop_reason" in
     ""|refused|unmergeable|bound) ;;
     *) loop_die "done: --stop-reason must be refused, unmergeable or bound" ;;
   esac
-  [ -z "$stop_reason" ] || [ "$result" = blocked ] ||
-    loop_die "done: --stop-reason belongs to a blocked item, and this one is recorded $result"
+  # A mechanism on anything but a block would double-count the item as two kinds of stop, so it is refused too —
+  # except `bound` on a `cut`, which is the same fact one result over (issue #790).
+  [ -z "$stop_reason" ] || [ "$result" = blocked ] || { [ "$result" = cut ] && [ "$stop_reason" = bound ]; } ||
+    loop_die "done: --stop-reason belongs to a blocked item, or to a cut one recorded bound, and this one is $result"
   # A landing's own commit is what attaches it to the pipeline run it caused (issue #709): the field is a commit or
   # nothing, so a value that is not one is refused here rather than stored — the score would otherwise read the
   # runs of a commit nobody landed, and the report would print that as the landing's verdict. 7 is git's shortest

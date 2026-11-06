@@ -184,10 +184,10 @@ MUTATIONS=(
   '12.8@-@tools/loop/run.sh@run#aSkipClearsTheInProgressMark@the skip exit path clearing the in-progress mark@s|^      loop_labels unpick "$issue" >&2 \|\| true   # the exit path clears the mark$|      : # the mutation keeps the mark|'
   '14.1@-@tools/loop/report.sh@report#escalatedSkipNamesTheLabelWritten@the decision list read from the label the escalation recorded, not the verdict@s|(\.escalatedLabel // "") != ""|(.verdict == $d)|'
   '14.2@-@tools/loop/run.sh@report#escalatedSkipNamesTheLabelWritten@the skip escalation recording the label it wrote@s|^          escalated_label="\$decision_label"   # the skip.s own escalation$|          : # the mutation records no escalation|'
-  '14.3@-@tools/loop/run.sh@report#failedReviewEscalationIsNamed@the blocked exit path recording the label its escalation wrote@s|^          escalated_label="\$decision_label"   # the block.s own escalation$|          : # the mutation records no escalation|'
-  '14.5@-@tools/loop/run.sh@run#blockedItemIsEscalatedWithItsReason@the blocked exit path escalating the reason the run holds@s|^        if loop_labels escalate "\$issue" --reason .*$|        if false; then|;;s|^          --evidence "\$item_dir, branch fix/issue-\$issue-\$slug" >&2; then$|          :|'
+  '14.3@-@tools/loop/run.sh@report#failedReviewEscalationIsNamed@the blocked exit path recording the label its escalation wrote@s|^        escalated_label="\$decision_label"   # the block.s own escalation$|        : # the mutation records no escalation|'
+  '14.5@-@tools/loop/run.sh@run#blockedItemIsEscalatedWithItsReason@the blocked exit path escalating the reason the run holds@s|^      if loop_labels escalate "\$issue" --reason .*$|      if false; then|;;s|^        --evidence "\$item_dir, branch fix/issue-\$issue-\$slug" >&2; then$|        :|'
   '14.4@-@tools/loop/report.sh@report#aVerdictAloneIsNoEscalation@the list naming only the items this run escalated@s|\.escalatedLabel // ""|.issue|'
-  '14.6@-@tools/loop/run.sh@run#aFailedEscalationWriteIsNamed@the blocked exit path recording the write the tracker refused@s|^          label_failures=.*$|          : # the mutation swallows the refused escalation|'
+  '14.6@-@tools/loop/run.sh@run#aFailedEscalationWriteIsNamed@the blocked exit path recording the write the tracker refused@s|^        label_failures=.*$|        : # the mutation swallows the refused escalation|'
   '14.7@-@tools/loop/run.sh@run#aFailedUnpickIsNamed@the blocked exit path recording the in-progress mark it could not clear@s|^      loop_labels unpick "\$issue" >&2 \|\| label_failures="unpick"$|      loop_labels unpick "\$issue" >&2 \|\| true|'
   '14.8@-@tools/loop/report.sh@run#aFailedEscalationWriteIsNamed@the report naming the item whose label write the tracker refused@s|^  actions\[.*="set #\$issue.*$|  : # the mutation names no unwritten label|'
   '15.1@-@tools/loop/prescreen.sh@prescreen#refusalLeavesATraceInTheTracker@the pre-screen writing its refusal to the tracker instead of only to the run@s|^  if \[ "$write" -eq 1 \] && \[ -n "$refusal_labels" \]; then$|  if false; then|'
@@ -208,7 +208,7 @@ MUTATIONS=(
   '25.2@-@tools/loop/loop-clean.sh@clean#reportsWithoutApplyAndRemovesWithIt@the age gate that keeps a scratch tree a live suite may be writing into@s|^  if \[ -z "$(find "$dir" -maxdepth 0 -mmin +"$stale_minutes" 2>/dev/null)" \]; then$|  if false; then|'
   '19.1@-@tools/loop/run.sh@run#reviewBudgetIsARecordedValue@the round budget coming from the recorded value instead of a literal@s|^    round_cap="$max_review_rounds"$|    round_cap=2|'
   '19.2@-@tools/loop/run.sh@run#aCorrectiveRefusalEarnsOneMoreRound@the extra round a corrective refusal earns@s|^        if \[ "$corrective_round_used" -eq 0 \] && \[ "$corrections_only" = "yes" \]; then$|        if false; then|'
-  '19.3@-@tools/loop/run.sh@run#escalationCarriesTheDecision@the escalation carrying the reviewer decision@s|^        if \[ -n "$decision_field" \]; then$|        if false; then|'
+  '19.3@-@tools/loop/run.sh@run#escalationCarriesTheDecision@the escalation carrying the reviewer decision@s|^      if \[ -n "$decision_field" \]; then$|      if false; then|'
   # The round a corrective refusal buys is handed the corrections, not the change again (issue #245): the diff's
   # base is that round's own, and the refusing report travels in the prompt. One mutation per half — the case
   # asserts the narrowed range first and the quoted findings second.
@@ -227,7 +227,7 @@ MUTATIONS=(
   '22.1@-@tools/loop/prescreen.sh@prescreen#harnessItemsLeadTheQueue@the category lead ranking a leading defect ahead of every other item@s#^  | ($lead + $tail) as $order$#  | (($lead + $tail) | sort_by([class_rank($worked), .issue])) as $order#'
   '20.3@-@tools/loop/run.sh@run#stopReasonIsPrintedAndReported@the run recording the reason it stopped on every exit path@s|^  loop_state stop "$1" >/dev/null 2>&1 .. true$|  : # the reason is printed and not recorded|'
   '20.4@-@tools/loop/run.sh@run#aZeroRoundBudgetIsRefused@the refusal of a review budget that never runs@s|^case "$max_review_rounds" in .*$|: # the mutation accepts a budget that never runs|'
-  '23.1@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( now - started )) -ge "\$cap" \]; then$|    if false; then|'
+  '23.1@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsCut@the wall-clock that ends a child instead of waiting for it for ever@s|^    if \[ \$(( now - started )) -ge "\$cap" \]; then$|    if false; then|'
   # 23.2 is issue #227's bound: the run's own deadline ends a child instead of the cap alone. The `stop_run` the
   # same arm writes has no record of its own: on the ordinary path `next` overwrites it with the deadline it names
   # anyway, so a mutation of that line goes unnoticed — its value is the run killed between the child and `next`,
@@ -652,14 +652,14 @@ MUTATIONS=(
   # effect), 68.2 escalates the item the deadline cut (the guard never holds), 68.3 drops the patch path
   # from the item's record so the report cannot name the work an ended child left, 68.4 stops reading the
   # reviewer's own `LOOP-DEADLINE` (the clock is then read as the turn bound written beside it), 68.5 lets the second
-  # pre-screen pass run after a deadline cut, so the report names a decision for the item the clock ended, and 68.6
-  # silences the escalation a cap-ended item still owes.
+  # pre-screen pass run after a deadline cut, so the report names a decision for the item the clock ended. 68.2 and
+  # 68.6 were retired with issue #790: both widened the guard that escalates a block, and the guard is gone — the
+  # two causes it excused (the run's own deadline, and a bound) leave a `cut` above the block arm, so the item they
+  # excused is recorded by the result the record 82.1 mutates.
   '68.1@-@tools/loop/state.sh@state#floorIsDerivedFromTheFinishedItemsWallTimes@the floor following the cheapest measured item rather than the most expensive one (issue #674)@s|^      \| (\$w \| min) as \$cheapest$|      \| ($w \| max) as $cheapest|'
-  '68.2@-@tools/loop/run.sh@run#childIsEndedAtTheRunsDeadline@the guard that leaves an item the run'"'"'s own deadline cut for the next run instead of escalating it (issue #674)@s|^      if \[ -z "\$deadline_claim" \] && \[ "\$stop_reason" != bound \]; then$|      if true; then|'
   '68.3@-@tools/loop/state.sh@run#treeOfACapEndedChildIsKeptAsAPatch@the patch path the item'"'"'s record carries, so the report can name the work an ended child left (issue #674)@s|leftover:(if \$lo == "" then null else \$lo end)|leftover:null|'
   '68.4@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the reviewer'"'"'s own `LOOP-DEADLINE` read, so the clock the run ended the round with is read as the turn bound run_child wrote beside it, and the reason names the wrong bound (issue #674)@s|^      reviewer_deadline=.*LOOP-DEADLINE.*$|      reviewer_deadline=""|'
   '68.5@-@tools/loop/run.sh@run#reviewerEndedAtTheRunsDeadlineIsNotADecision@the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674)@s|^    \[ "\$deadline_cut" -eq 0 \] && \[ "\$bound_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
-  '68.6@-@tools/loop/run.sh@run#childOutlastingTheWallClockIsBlocked@the bound a cap-ended item records as no escalation, so a child clock the item reached spends a decision slot and holds a pair a run stops on (issues #674, #786)@s|^      if \[ -z "\$deadline_claim" \] && \[ "\$stop_reason" != bound \]; then$|      if [ -z "$deadline_claim" ]; then|'
 
   # 69.x — the pre-screen asks the item's text where its fix lands, and the answer is the author's own claim: a
   # line beginning `The fix lands in the submodule` (#314). Measured 2026-10-26 on the adoption run: the path in a
@@ -781,14 +781,22 @@ MUTATIONS=(
   '80.1@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the result a round the run ended at a bound records, so it is a block its owner owes an answer to (issue #785)@s|--result cut --verdict cut|--result blocked --verdict blocked|'
   '80.2@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the cut written on the branch, so the round the run ended is read as one nobody answered and the branch as a question only a person can answer (issues #785, #262)@s|^  bash .*record-review-round .*"\$1" cut >&2.*$|  : # the mutation leaves the round announced and unanswered|'
   '80.3@-@tools/loop/run.sh@run#aReviewerEndedAtItsTurnBoundIsNotARefusal@the guard that skips the queue second pass after a bound cut an item the run just worked (issue #785)@s|^    \[ "\$deadline_cut" -eq 0 \] && \[ "\$bound_cut" -eq 0 \]; then$|    [ 0 -eq 0 ]; then|'
-  # 81.x — a block the run's own bound caused is no refusal (issue #786): the mechanism itself (81.1) and the streak
-  # `next` stops a run on (81.2). The third site — the escalation such a block no longer writes — is the guard 68.6
-  # already owns, widened from the deadline alone, and `run#childPastItsTurnBoundIsBlocked` asserts the same absence
-  # through the label stub's record. Measured 2026-11-05: five of six runs stopped on the streak with 758 of 3 211
-  # budgeted minutes used, and the first run carrying the per-role turn bounds ended after 156 of its 480 minutes
-  # with three of six items ended at exactly 110 turns.
-  '81.1@-@tools/loop/run.sh@run#childPastItsTurnBoundIsBlocked@the mechanism a block a turn bound caused records, so a bound reads as a refusal (issue #786)@s|^    if \[ "\$last_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then stop_reason="bound"; fi$|    : # the mutation records no mechanism|'
+  # 81.x — a bound the run's own bound caused is no refusal (issue #786): the mechanism itself (81.1) and the streak
+  # `next` stops a run on (81.2). The third site — the escalation such a block no longer writes — is gone with the
+  # guard 68.6 used to own: a bound-ended item leaves a `cut` and never reaches the block arm (issue #790), and
+  # `run#childPastItsTurnBoundIsCut` asserts the same absence through the label stub's record. Measured 2026-11-05:
+  # five of six runs stopped on the streak with 758 of 3 211 budgeted minutes used, and the first run carrying the
+  # per-role turn bounds ended after 156 of its 480 minutes with three of six items ended at exactly 110 turns.
+  '81.1@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the mechanism a bound-ended item records, so a bound reads as a refusal (issue #786)@s|^    if \[ "\$last_exit" -eq "\$LOOP_CHILD_TIMEOUT" \] \|\| \[ -n "\$timeout_claim" \]; then stop_reason="bound"; fi$|    : # the mutation records no mechanism|'
   '81.2@-@tools/loop/state.sh@state#aBlockAtTheRunsBoundIsNoRefusal@the streak read from refusals only, so two bound blocks stop a run whose queue and clock are untouched (issue #786)@s|select(.result == "blocked" and (.stopReason // "") != "bound")|select(.result == "blocked")|'
+
+  # 82.x — a phase the run's own bound ended is recorded `cut`, not `blocked` (issue #790): #786 recorded the
+  # mechanism and left the result a block, so the item's own child is the arm the rule did not reach while the
+  # review round was already cut (#785). The result (82.1) and the mechanism kept beside it (82.2). Measured
+  # 2026-11-05: #788, #778 and #759 each carried `result: blocked` with `stopReason: bound`, a 4–6 k-line
+  # `leftover-from-killed-run.patch`, and a note naming the turn bound the run itself had enforced.
+  '82.1@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the result a bound-ended child records, so the item is read as a refusal the run'"'"'s own bound never measured (issues #786, #790)@s|^  if \[ "\$pre_gate_cut" -eq 1 \] \|\| \[ "\$stop_reason" = bound \]; then outcome="cut"; fi$|  if [ "$pre_gate_cut" -eq 1 ]; then outcome="cut"; fi|'
+  '82.2@-@tools/loop/run.sh@run#childPastItsTurnBoundIsCut@the mechanism a cut keeps beside its result, so the spend of the bound that ended the phase is totalled under no name (issue #790)@s|^        --stop-reason "\$stop_reason" \\$|        --stop-reason "" \\|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

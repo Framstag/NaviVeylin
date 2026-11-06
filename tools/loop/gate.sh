@@ -13,6 +13,8 @@
 #   LOOP_GATE_COMPILED_CMD       the build's own gate, run only when a compiled path changed
 #   LOOP_GATE_COMPILED_PATTERNS  the globs that make a path compiled
 #   LOOP_GATE_SUITES             `<glob>|<command>` pairs, `;`-separated: the suites a path pulls in
+#   LOOP_GATE_FIRST_STEPS        the same shape, read before the build and before every suite: a step that
+#                                refuses a delta in seconds is not left to the end of the gate
 #
 # Every suite that ran contributes the numbers of its own summary line to one record, and its own wall clock
 # beside them: the summary line names each suite's seconds, and the tally carries the same number as its `time`
@@ -39,7 +41,7 @@ while [ $# -gt 0 ]; do
     --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --plan) plan=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) loop_die "gate: unknown argument $1" ;;
   esac
 done
@@ -48,6 +50,7 @@ loop_resolve
 
 compiled_cmd=$(loop_conf_value LOOP_GATE_COMPILED_CMD)
 compiled_patterns=$(loop_conf_value LOOP_GATE_COMPILED_PATTERNS)
+first_steps=$(loop_conf_value LOOP_GATE_FIRST_STEPS)
 suites=$(loop_conf_value LOOP_GATE_SUITES)
 tally_root=$(loop_conf_value LOOP_GATE_TALLY_DIR)
 
@@ -155,13 +158,11 @@ matches() { # <space-separated globs> <path>
 }
 
 owed=""
-if [ -n "$compiled_patterns" ] && [ -n "$compiled_cmd" ]; then
-  while IFS= read -r p; do
-    [ -n "$p" ] || continue
-    if matches "$compiled_patterns" "$p"; then owed="$owed${compiled_cmd//\{base\}/$base}"$'\n'; break; fi
-  done <<< "$paths"
-fi
-if [ -n "$suites" ]; then
+# A pair list is read one `<glob>|<command>` pair at a time, in the order the profile wrote it, so the order of the
+# owed steps is a value of the profile and not of this engine.
+owe_pairs() { # <";"-separated `<glob>|<command>` pairs> → every command this delta owes from them, appended in order
+  local pairs=$1 glob cmd p
+  [ -n "$pairs" ] || return 0
   while IFS='|' read -r glob cmd; do
     [ -n "${glob:-}" ] && [ -n "${cmd:-}" ] || continue
     cmd=${cmd//\{base\}/$base}
@@ -173,7 +174,23 @@ if [ -n "$suites" ]; then
   # The trailing newline is not cosmetic: `read` returns non-zero on a last line it did not delimit, so a
   # value printed without one loses its final pair — the last glob the profile names was never consulted
   # (measured 2026-10-21, issue #246: an 18-pair value iterated 17 times, a 2-pair value once).
-  done < <(printf '%s\n' "$suites" | tr ';' '\n')
+  done < <(printf '%s\n' "$pairs" | tr ';' '\n')
+}
+
+# A step that refuses a delta in seconds is owed before the steps that spend minutes: a delta that writes a case's
+# `# files:` declaration is refused by the one case that reads it, and was refused only by the full suite twelve
+# minutes into the gate (issue #792 — #790's attempt passed the 11 cases its own selection owed and died on a
+# declaration one path token short). `LOOP_GATE_FIRST_STEPS` is read before the compiled step and before every suite,
+# and it names no project fact here: which command is cheap, and which path owes it, are the profile's.
+owe_pairs "$first_steps"
+if [ -n "$compiled_patterns" ] && [ -n "$compiled_cmd" ]; then
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    if matches "$compiled_patterns" "$p"; then owed="$owed${compiled_cmd//\{base\}/$base}"$'\n'; break; fi
+  done <<< "$paths"
+fi
+if [ -n "$suites" ]; then
+  owe_pairs "$suites"
 fi
 owed=$(printf '%s' "$owed" | sed '/^$/d' | awk '!seen[$0]++')
 

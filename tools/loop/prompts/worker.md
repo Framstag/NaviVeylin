@@ -212,6 +212,14 @@ to "refresh" evidence: the re-run is what destroys it, so copy the XMLs you cite
 at the moment they are produced. Never mark a task done on a cached or partial run, and never while a
 failure is open. Tests red after three focused attempts is `blocked`, not "adjust the test".
 
+**A `# files:` line is checked by the case that reads it, and that case is cheap.** A diff that adds a case
+to `tools/loop-cases.sh`, or narrows a case's first-line declaration, is refused by exactly one case,
+`driver#everyCaseDeclaresTheFilesItCanReach` — about ten seconds, and the gate's plan owes it first for such
+a delta. Run it yourself before you run anything else:
+`bash tools/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'`. The full suite is where a
+declaration one path token short otherwise arrives, twelve minutes into the gate, and the attempt that paid it
+was recorded `blocked` with nothing archived (issue #792).
+
 {{GATE_STEP}}
 
 ## What the run reads back from your report

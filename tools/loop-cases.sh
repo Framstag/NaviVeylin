@@ -337,6 +337,7 @@ LOOP_SHELL_CASES=(
   'driver#aSecondSuiteInOneRepositoryIsRefused'
   'driver#noFixtureFifoIsOpenedWriteOnly'
   'gate#theDeltaHandsASuiteTheBaseItMeasured'
+  'gate#theDeclarationCaseIsOwedFirst'
   'gate#aGreenLogNamesNoFailingCase'
   'gate#aFailingCaseCarriesItsFactsAndItsRerun'
   'gate#twoFailuresNameTheFirstAndCountTheRest'
@@ -711,6 +712,7 @@ loop_run_shell_case() {
     'driver#aSecondSuiteInOneRepositoryIsRefused') fn=case_driver_aSecondSuiteInOneRepositoryIsRefused ;;
     'driver#noFixtureFifoIsOpenedWriteOnly') fn=case_driver_noFixtureFifoIsOpenedWriteOnly ;;
     'gate#theDeltaHandsASuiteTheBaseItMeasured') fn=case_gate_theDeltaHandsASuiteTheBaseItMeasured ;;
+    'gate#theDeclarationCaseIsOwedFirst') fn=case_gate_theDeclarationCaseIsOwedFirst ;;
     'gate#aGreenLogNamesNoFailingCase') fn=case_gate_aGreenLogNamesNoFailingCase ;;
     'gate#aFailingCaseCarriesItsFactsAndItsRerun') fn=case_gate_aFailingCaseCarriesItsFactsAndItsRerun ;;
     'gate#twoFailuresNameTheFirstAndCountTheRest') fn=case_gate_twoFailuresNameTheFirstAndCountTheRest ;;
@@ -10802,6 +10804,52 @@ case_gate_theDeltaHandsASuiteTheBaseItMeasured() {
     "the suite is handed the base the gate resolved: $plan"
   assert_not_contains "$plan" "{base}" "and no token reaches a shell: $plan"
   assert_not_contains "$plan" "notes-check" "a suite the delta does not owe is not handed it: $plan"
+  return 0
+}
+
+# A case's first-line declaration had one reader, and it was the full suite (issue #792). #790's attempt passed the
+# 11 cases its own `--case` selection owed and was refused by `driver#everyCaseDeclaresTheFilesItCanReach`, one path
+# token short, twelve minutes into its gate — and the attempt was recorded `blocked` with nothing archived. The same
+# case alone is 10 s (measured by the item on `528d8e2a`), so a delta that writes a declaration owes that case first,
+# before the suite that would refuse it at the end and before the build, and the child's own step names it: the gate's
+# order saves the gate's tail, the child's step saves the attempt.
+case_gate_theDeclarationCaseIsOwedFirst() {
+  # files: tools/loop-cases.sh tools/loop/gate.sh tools/loop/loop.conf tools/loop/prompts/worker.md tools/pi-child-events.sh tools/tooling.json
+  local d p base plan first suite build compiled prompt
+  d=$(scratch); p=$(new_project)
+  # The build's own command is the profile's, never a literal this engine owns, so the portability check has no edge
+  # to report here.
+  compiled=$(profile_value LOOP_GATE_COMPILED_CMD)
+  [ -n "$compiled" ] || fail "the profile names no compiled command, so this case would prove nothing"
+
+  # One delta that writes a case and touches a compiled file: the reach case is owed by the first path and the build
+  # and the suites by the others, which is the only shape in which "first" can be read as an order.
+  mkdir -p "$p/tools" "$p/app/src/main"
+  printf '# a case\n' > "$p/tools/loop-cases.sh"
+  printf 'class App\n' > "$p/app/src/main/App.kt"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a case and a compiled file' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$LOOP_ENGINE/loop.conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+
+  # The line a command is on, because "before" is an order and the plan is the only place it is written.
+  line_of() { printf '%s\n' "$plan" | awk -v pat="$1" 'index($0, pat) { print NR; exit }'; }
+  first=$(line_of '--case driver#everyCaseDeclaresTheFilesItCanReach')
+  [ -n "$first" ] || fail "a delta that writes a case owes the case that reads the declaration: $plan"
+  suite=$(line_of "--from-git $base")
+  [ -n "$suite" ] || fail "the suite the declaration case narrows is still owed: $plan"
+  build=$(line_of "$compiled")
+  [ -n "$build" ] || fail "the build a compiled path owes is still owed: $plan"
+  assert_eq "1" "$first" "the declaration case is owed before every suite and before the build: $plan"
+  [ "$first" -lt "$suite" ] || fail "the declaration case is owed before the suite that refuses it: $plan"
+  [ "$first" -lt "$build" ] || fail "the declaration case is owed before the build: $plan"
+
+  # And the child's own step: a worker whose diff writes a `# files:` line runs that case before it runs anything
+  # else, because a gate round is what the order above saves and the attempt is what this one saves.
+  prompt=$(cat "$LOOP_PROJECT_ROOT/tools/loop/prompts/worker.md" 2>&1) || fail "the worker prompt is not readable: $prompt"
+  assert_contains "$prompt" 'driver#everyCaseDeclaresTheFilesItCanReach' \
+    "the worker's own step names the case that reads a declaration"
+  assert_contains "$prompt" '# files:' "and says what the diff writes that makes it owed"
   return 0
 }
 

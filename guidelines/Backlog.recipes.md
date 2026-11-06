@@ -501,6 +501,17 @@ the declaration was generated once from the case bodies and is kept honest by
 `driver#everyCaseDeclaresTheFilesItCanReach`, which reads every body and refuses a declaration narrower than the
 case it describes.
 
+That case is the suite's cheapest and was, until 2026-11-06, reachable only through the suite's most expensive command
+(issue #792): a delta that wrote a declaration owed `tools/loop-selftest.sh --from-git <base>` and nothing cheaper, so
+#790's attempt passed the 11 cases its own `--case` selection owed and was refused by the one case that reads a
+declaration twelve minutes into its gate — `1 of 320 cases failed`, reported by `tools/loop-selftest.sh --from-git
+528d8e2a` (435 s) after `./gradlew test` (285 s) — over one path token missing from a comment, and the attempt was
+recorded `blocked` with nothing archived. The profile's `LOOP_GATE_FIRST_STEPS` has the suite map's `<glob>|<command>`
+shape and the gate reads it before the build and before every suite, so `tools/loop-cases.sh` owes
+`tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` first; the worker's own Phase D names the same
+command, because the order saves the gate's tail and only the child's step saves the attempt. Measured on `528d8e2a`:
+the case alone is 10 s.
+
 The suite runs its cases in a bounded pool rather than one after another (issue #260). A case owns a throwaway
 repository, a scratch tree under the suite's root and a process group of its own, and shares nothing but the
 read-only engine, so the serialization bought nothing and cost the sum of every case. Measured 2026-10-25 with

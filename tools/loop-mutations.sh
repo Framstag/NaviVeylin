@@ -802,6 +802,7 @@ MUTATIONS=(
   # backticks and the file ending on the adapter's newline, and the run read two complete refusals as answers the
   # transport had cut. Without the un-fencing, the same report is a cut answer again.
   '83.1@-@tools/loop/run.sh@run#aFencedClosingBlockIsACompleteAnswer@the fence taken off a closing line before the report is judged complete (issue #793)@s#^  report_lines "\$1" | grep -qE "\$2" 2>/dev/null$#  grep -qE "\$2" "\$1" 2>/dev/null#'
+  '84.1@-@tools/loop/gate.sh@gate#theDeclarationCaseIsOwedFirst@the cheap step the gate owes before its suites and its build, so a declaration one path token short is found at the end of the gate again (issue #792)@s|^owe_pairs "\$first_steps"$|: # the mutation leaves the cheap step to the end|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

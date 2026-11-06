@@ -11,7 +11,8 @@ that stand in the project and outside the worktree.
 
 **Root cause, in one sentence:** that reading was consulted only in the outcome block — `outside_write_decides`
 (`tools/loop/run.sh:1132`) was one arm of it, after the gate — so the item carried no step of its own for the
-reading that took it (the six items below each paid a whole item **and** its gate for one), and a child had no place
+reading that took it (the six items below each paid a whole item **and** the gate the worker runs itself, see
+`prompts/gate-own.md`), and a child had no place
 beside its change to write, so "write beside the change" was the only path it had.
 
 **The tree today.** The arm is the third of the outcome block's, `tools/loop/run.sh:2301` before this change:
@@ -28,7 +29,8 @@ no case and no sentence in `guidelines/Backlog.recipes.md`, section 7a, saying s
 
 **Measured on this loop's archive, 2026-10-20 to 2026-10-23** (the tracker entry, #198, #264, #276, #274, #285,
 #270): six items carry "the … worker wrote outside the worktree — the project's own tree changed while it ran" in
-their runs' records, and the price of each was a whole item **and** its gate. #798 is the pre-flight for the other
+their runs' records, and the price of each was a whole item **and** the gate the worker runs itself
+(`prompts/gate-own.md`). #798 is the pre-flight for the other
 half — a tree a person dirtied before the run started is refused before a run begins.
 
 **The red test, on the base commit `54373f19`** (`tools/loop-selftest.sh`, output kept in the item's directory as

@@ -12,19 +12,21 @@
 ## 2. The reading decides where it is taken
 
 - [x] `tools/loop/run.sh`: record the `outside-write` step beside `worker_write_decides`, its note saying the item
-      ends at that reading and no gate child follows; delete the outcome arm that recorded the same step only when
-      the difference did not decide. Verify: `bash -n tools/loop/run.sh`, and
-      `tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem` green (log `green-placed-write.log`,
-      carried as `evidence/green-placed-write.log`).
+      ends at that reading, no gate child follows, and which child the placed processes were tied to; delete the
+      outcome arm that recorded the same step only when the difference did not decide. Verify: `bash -n
+      tools/loop/run.sh`, and `tools/loop-selftest.sh --case run#aWriterTheRunCanPlaceBlocksTheItem` green (log
+      `green-placed-write.log`, carried as `evidence/green-placed-write.log`).
 
 ## 3. A child's one place to write
 
 - [x] `tools/loop/run.sh`: create `<item dir>/scratch` where the item's directory is made, and pass `SCRATCH_DIR` to
-      the three renders that hand a child its prompt; `prompts/worker.md`, `worker-gate.md` and `worker-tail.md`
-      name it beside the change root, with the sentence about a relative path. Verify:
+      the four render sites that hand a child its prompt (`worker.md` twice — the item's worker and the round a
+      refusal buys — `worker-gate.md`, `worker-tail.md`); `prompts/worker.md`, `worker-gate.md` and
+      `worker-tail.md` name it beside the change root, with the sentence about a relative path. Verify:
       `tools/loop-selftest.sh --case run#aChildIsGivenOneScratchDirectory` (log `green-scratch.log`, carried as
-      `evidence/green-scratch.log`) and `--case run#childUsageIsRecordedPerItem` green, which asserts the tail
-      prompt carries no unsubstituted placeholder.
+      `evidence/green-scratch.log`), `--case run#childUsageIsRecordedPerItem` green, which asserts the tail
+      prompt carries no unsubstituted placeholder, and `--case
+      run#aCorrectiveRoundIsHandedTheCorrections`, which asserts the same of the round-2 worker's prompt.
 
 ## 4. The rule stated where it lives
 

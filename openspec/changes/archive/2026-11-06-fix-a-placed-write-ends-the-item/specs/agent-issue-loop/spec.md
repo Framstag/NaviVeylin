@@ -22,8 +22,8 @@ result and the reason for that shape are the outcome block's, written from that 
 
 ### Requirement: A child is given one scratch directory
 
-Every child the run starts for an item's change SHALL be handed one directory it may write that is not the change
-root — a scratch directory inside that item's own directory, created before the child starts and named in the
+Every child the run starts to write for an item's change SHALL be handed one directory it may write that is not
+the change root — a scratch directory inside that item's own directory, created before the child starts and named in the
 prompt beside the change root — and the prompt SHALL say that a write with a relative path lands in the project's own
 tree and not in the change root. A file a child writes there SHALL NOT be a difference in the project's own tree,
 and SHALL NOT change the outcome the item's work earned.

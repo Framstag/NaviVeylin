@@ -1,0 +1,7 @@
+2026-11-06T07:03:30Z
+PASS run#aVanishedWriterEndsTheWait
+PASS run#aSlowChildIsNotMistakenForAVanishedWriter
+PASS run#aWriterTheRunCanPlaceBlocksTheItem
+loop-selftest: all 3 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case run#a*Writer*
+exit 0
+2026-11-06T07:03:44Z

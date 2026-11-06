@@ -31,9 +31,13 @@ the core or the engine. The structural check of the files it edits is the case t
   second copy, so the two cannot drift. Verification: task 2's case is the assertion; a verb added to
   `REFUSED_VERBS` without a prompt that names it fails it.
 
-- [ ] **6. The gate.** `./tools/loop/gate.sh` from the change root, run once — by the gate child this run defers it
-  to, not by the worker. Verification: its plan's first line, then the gate's own block. Ran once:
-  `tests=868 failures=0 errors=1`, the error being the compiled step's pre-existing paging flake in a class this
-  change does not touch (`SearchHistoryScreenTest#thePageRowOpensTheNextSliceOfTheHistory`), attributed in
-  `evidence/gate-attribution.md`; this change's own case is green in that run (`evidence/gate.log:623`). The box
-  stays unchecked because the gate did not pass.
+- [x] **6. The gate.** `./tools/loop/gate.sh` from the change root, run once. The run deferred the item's first gate
+  to a fresh gate child, which ran it once: `tests=868 failures=0 errors=1`, the error being the compiled step's
+  pre-existing paging flake in a class this change does not touch
+  (`SearchHistoryScreenTest#thePageRowOpensTheNextSliceOfTheHistory`), attributed in
+  `evidence/gate-attribution.md`; this change's own case is green in that run (`evidence/gate.log:623`). The
+  correction round's worker ran it again, as the run's round-2 shape asks, and it passed: `tests=868 failures=0
+  errors=0`, this change's own case green at `evidence/gate-round2.log:618` (`PASS
+  prompt#thePhasePromptNamesWhatItsShellRefuses`, inside the `tools/loop-selftest.sh --from-git` step), the aggregate
+  line transcribed in `evidence/gate-round2-summary.xml` and its 26 per-suite tallies beside it in
+  `evidence/gate-round2-tallies/`, every one of them `failures="0" errors="0"`.

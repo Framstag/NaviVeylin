@@ -21,6 +21,9 @@
 #                                                    caller passed (workflow file/name, headSha, status)
 #   gh api repos/<owner>/<name>/actions/runs/<id>/artifacts [--paginate] [--jq …]
 #                                                -> $GH_STUB_DIR/artifacts.json (the run's artifact names)
+#   gh api repos/<owner>/<name>/actions/runs/<id>/jobs [--paginate] [--jq …]
+#                                                -> $GH_STUB_DIR/jobs.json (the run's jobs and their steps,
+#                                                    each with started_at/completed_at as the real API gives them)
 #   gh run download <id> --name … --dir …         -> copies $GH_STUB_DIR/artifact/<id>/ into --dir, so a
 #                                                    scenario decides what an artifact contains
 #
@@ -159,7 +162,8 @@ case "$group" in
     if [ "${1:-}" != "user" ]; then
       path="${1:-}"; shift || true
       case "$path" in
-        repos/*/actions/runs/*/artifacts) ;;
+        repos/*/actions/runs/*/artifacts) file=artifacts.json ;;
+        repos/*/actions/runs/*/jobs) file=jobs.json ;;
         *) refuse "api $path" ;;
       esac
       jq_filter=""
@@ -170,11 +174,11 @@ case "$group" in
           *) refuse "api $path $*" ;;
         esac
       done
-      need_file artifacts.json
+      need_file "$file"
       if [ -n "$jq_filter" ]; then
-        jq -r "$jq_filter" "$(fixture_path artifacts.json)"
+        jq -r "$jq_filter" "$(fixture_path "$file")"
       else
-        cat "$(fixture_path artifacts.json)"
+        cat "$(fixture_path "$file")"
       fi
       exit 0
     fi

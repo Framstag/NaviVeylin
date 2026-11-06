@@ -30,6 +30,19 @@ concluded `success`; the rest run for any record, so **"the build is red" is exa
 `broken-main`, which reads the result record the publisher always writes — and no row reports a failure a
 person would have to read as "the build was red, the check was fine".
 
+One thing that record cannot carry is the wall time of the run that made it: a running job cannot read its own
+step durations. So the record of the pipeline's own **job and step wall times** is the checks' fetcher's
+(`tools/fetch-build-inputs.sh --jobs-record build/job-timings.json`), read from GitHub's post-run
+`actions/runs/<id>/jobs` for the run whose artifact it just restored — the run's identifier and commit travel inside
+it, so it cannot answer for another pipeline, and a fetch that did not ask for it writes none. `build-duration`
+measures that record: **the wall time of its longest job**, under an absolute ceiling (one hour,
+`comparison: greater-than`), with the claim naming that job's longest step, so an item says which step grew. An
+absolute bound and not a multiple of the previous measurement, because a multiple needs one run to be worse than the
+run before it and drift never is: the cache-off regression (#778) took `Build debug APK` from 50m10s to 1h49m while
+every Gradle step stayed flat (623 s, 419 s, 344 s), and a row measuring one Gradle invocation filed nothing for two
+days. The condition's identity is the job's own name, the bound is the row's, and a record inside it is a clear like
+any other.
+
 A pipeline the build does not own publishes its record the same way, under its own ready-ness. The scan
 (`.github/workflows/sonar.yml`) writes `scan-result.json` at the workspace root — the run's result, the step that
 broke and the command it ran — for every run, a red one included, and uploads it as the `scan-inputs` artifact;

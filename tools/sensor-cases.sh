@@ -66,6 +66,7 @@ SENSOR_CASES=(
   'run#libosmscoutLagReadsThreeOutcomes'
   'run#escalationNeverSetsEligibility'
   'sensors#buildDurationRow'
+  'sensors#buildDurationCoversThePipeline'
   'hotspot#ranksBySizeTimesChanges'
   'hotspot#theBoundIsAboveOneChangedFile'
   'sensors#packageSizeConsumesAnArtifact'
@@ -158,6 +159,7 @@ sensor_run_case() {
     'run#libosmscoutLagReadsThreeOutcomes') case_run_libosmscoutLagReadsThreeOutcomes ;;
     'run#escalationNeverSetsEligibility') case_run_escalationNeverSetsEligibility ;;
     'sensors#buildDurationRow') case_sensors_buildDurationRow ;;
+    'sensors#buildDurationCoversThePipeline') case_sensors_buildDurationCoversThePipeline ;;
     'hotspot#ranksBySizeTimesChanges') case_hotspot_ranksBySizeTimesChanges ;;
     'hotspot#theBoundIsAboveOneChangedFile') case_hotspot_theBoundIsAboveOneChangedFile ;;
     'sensors#packageSizeConsumesAnArtifact') case_sensors_packageSizeConsumesAnArtifact ;;
@@ -1091,26 +1093,26 @@ case_report_aTrendIsBetweenOneCondition() {
 }
 
 # The baseline is that same timeline (#668): after a row files, its newest marker is the filing's, in the issue's
-# body — so the next run compares against that number rather than against nothing.
+# body — so the next run compares against that number rather than against nothing. The row is a
+# `baseline-multiple` one (`package-size`): the comparison this case is about exists only there, because the
+# duration row's bound is absolute (issue #778).
 case_run_aFilingSetsTheBaseline() {
-  local dir log out status timing fp filed
+  local dir log out status package fp filed
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
-  timing="$dir/gate-timings.json"
-  jq -n '{durationMs: 542000, startedAt: "2026-10-17T03:00:00Z", finishedAt: "2026-10-17T03:09:02Z",
-          taskFailures: 0, invocation: [":app:testMobileDebugUnitTest"],
-          tasks: [{path: ":app:testMobileDebugUnitTest", outcome: "executed", durationMs: 195000}]}' > "$timing"
-  fp=$(fingerprint_of job gate)
-  filed=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- sensor: build-duration fingerprint=%s verdict=violation measurement=100000 baseline= -->' \
+  package="$dir/record.apk"
+  head -c 160000 /dev/zero | tr '\0' 'x' > "$package"
+  fp=$(fingerprint_of artifact record.apk)
+  filed=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- sensor: package-size fingerprint=%s verdict=violation measurement=100000 baseline= -->' \
     "$fp" "$fp")
   issues_fixture "$dir" "$(jq -nc \
-    --argjson issue "$(issue_record 121 OPEN "" build-duration "$filed" '[]' 2026-10-16T03:00:00Z)" \
+    --argjson issue "$(issue_record 121 OPEN "" package-size "$filed" '[]' 2026-10-16T03:00:00Z)" \
     '[$issue]')"
 
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
-    sensor_engine run.sh --only build-duration --apply --input "$timing" 2>&1)
+    sensor_engine run.sh --only package-size --apply --input "$package" 2>&1)
   status=$?
   assert_eq "0" "$status" "the run succeeds: $out"
-  assert_contains "$out" "verdict=violation" "a wall time past the filing's number is a violation"
+  assert_contains "$out" "verdict=violation" "a size past the filing's number is a violation"
   assert_contains "$(cat "$log")" "baseline=100000" "the baseline quoted is the number the filing's own marker carries"
 }
 
@@ -1855,38 +1857,102 @@ case_run_escalationNeverSetsEligibility() {
 # ----------------------------------------------------------------------------- 5. the metric rows
 
 case_sensors_buildDurationRow() {
-  local dir log out status findings timing
+  local dir log out status record fp
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
-  timing="$dir/gate-timings.json"
-  jq -n '{durationMs: 542000, startedAt: "2026-10-17T03:00:00Z", finishedAt: "2026-10-17T03:09:02Z",
-          taskFailures: 0, invocation: [":app:testMobileDebugUnitTest"],
-          tasks: [{path: ":app:testMobileDebugUnitTest", outcome: "executed", durationMs: 195000}]}' > "$timing"
+  record="$dir/job-timings.json"
 
-  # first run: no baseline on record, so no condition — and nothing written
+  # A pipeline inside the row's ceiling: the run measures the longest job's wall time and reports a clear, and a
+  # clear with no condition issue reaches the tracker on the row's record — it is not a condition issue, so
+  # nothing a person has to read as a defect is filed.
+  jq -nc '{workflow: "build.yml", commit: "abc1234", runId: 4242, jobs: [
+    {name: "Build debug APK (all ABIs)", conclusion: "success",
+     startedAt: "2026-10-17T03:00:00Z", completedAt: "2026-10-17T03:50:10Z", durationMs: 3010000,
+     steps: [{name: "Install vcpkg dependencies", conclusion: "success", durationMs: 103000},
+             {name: "Build debug APK", conclusion: "success", durationMs: 623000}]},
+    {name: "Offline gates", conclusion: "success", durationMs: 1416000, steps: []}]}' > "$record"
   issues_fixture "$dir" '[]'
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
-    sensor_engine run.sh --only build-duration --apply --input "$timing" 2>&1)
+    sensor_engine run.sh --only build-duration --apply --input "$record" 2>&1)
   status=$?
   assert_eq "0" "$status" "the first run succeeds: $out"
-  # No baseline is a clear, and a clear with no condition issue reaches the tracker on the row's record: it
-  # is not a condition issue, so nothing a person has to read as a defect is filed.
-  assert_eq "0" "$(condition_creates "$log")" "no baseline means no condition issue"
+  assert_contains "$out" "measurement=3010000" "the measurement is the longest job's wall time, not the shorter one's"
+  assert_eq "0" "$(condition_creates "$log")" "a pipeline inside the ceiling is no condition issue"
   assert_eq "1" "$(record_creates "$log")" "the clear is kept on the row's record"
 
-  # second run: the issue's own record carries 100000ms, and 542000ms is past 100000 × 1.5
+  # The same job past the ceiling, with an open condition carrying its identity: the run annotates that condition
+  # and posts the number it measured, so the bound is the row's and the posting is the row's measurement.
   log="$dir/calls2.log"; : > "$log"
-  local fp
-  fp=$(fingerprint_of job gate)
+  fp=$(fingerprint_of job "Build debug APK (all ABIs)")
   issues_fixture "$dir" "[$(issue_record 101 OPEN "" build-duration \
     "$(printf 'body\n<!-- fingerprint: %s -->' "$fp")" \
-    "[$(marker_comment 2026-10-16T03:00:00Z build-duration "$fp" violation 100000)]")]"
+    "[$(marker_comment 2026-10-16T03:00:00Z build-duration "$fp" violation 6540000)]")]"
+  jq -c '.jobs[0].durationMs = 6540000' "$record" > "$record.next" && mv "$record.next" "$record"
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
-    sensor_engine run.sh --only build-duration --apply --input "$timing" 2>&1)
+    sensor_engine run.sh --only build-duration --apply --input "$record" 2>&1)
   status=$?
   assert_eq "0" "$status" "the second run succeeds: $out"
-  assert_contains "$out" "verdict=violation" "a wall time past the bound is a violation"
-  assert_contains "$(cat "$log")" "542000" "the measurement is posted"
-  assert_contains "$(cat "$log")" "baseline=100000" "the baseline quoted is the earlier comment's number"
+  assert_contains "$out" "verdict=violation" "a job past the absolute ceiling is a violation"
+  assert_contains "$out" "action=annotated (still open)" "the open condition of that job is annotated, not filed again"
+  assert_contains "$(cat "$log")" "6540000" "the measurement is posted"
+}
+
+# The row's measurement is the pipeline's wall time, not one Gradle invocation's (issue #778): the record the
+# checks' fetcher writes (`tools/fetch-build-inputs.sh --jobs-record`, read from the build run's own
+# `actions/runs/<id>/jobs`) carries every job of the build workflow and every step's wall time. A step outside
+# Gradle that doubles then moves the job past the row's absolute ceiling while every Gradle step stays flat.
+case_sensors_buildDurationCoversThePipeline() {
+  local dir log out status record healthy healthy_out fp
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  record="$dir/job-timings.json"
+  # The item's own figures: `Build debug APK` 46m50s–50m10s healthy against 1h49m–2h06m regressed, every Gradle
+  # step flat across it (623 s / 419 s / 344 s), and `Install vcpkg dependencies` 102–109 s against 3430–4304 s.
+  healthy=$(jq -nc '{workflow: "build.yml", commit: "41820344211", runId: 41820344211, jobs: [
+    {name: "Build debug APK (all ABIs)", conclusion: "success",
+     startedAt: "2026-11-04T09:56:00Z", completedAt: "2026-11-04T10:46:10Z", durationMs: 3010000,
+     steps: [{name: "Install vcpkg dependencies", conclusion: "success",
+              startedAt: "2026-11-04T10:22:55Z", completedAt: "2026-11-04T10:24:38Z", durationMs: 103000},
+             {name: "Build debug APK", conclusion: "success", durationMs: 623000},
+             {name: "Run unit tests", conclusion: "success", durationMs: 419000},
+             {name: "Generate coverage reports", conclusion: "success", durationMs: 344000}]}]}')
+
+  # The regressed pipeline: every Gradle step is the healthy one's, and the one step outside Gradle is an hour
+  # longer. The row files, and its claim names the step that grew rather than only the job's number.
+  printf '%s\n' "$(jq -c '.jobs[0].durationMs = 6540000
+    | .jobs[0].steps |= map(if .name == "Install vcpkg dependencies" then .durationMs = 3430000 else . end)' \
+    <<< "$healthy")" > "$record"
+  issues_fixture "$dir" '[]'
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only build-duration --apply --input "$record" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_contains "$out" "verdict=violation" \
+    "a job past the row's ceiling is a violation however flat its Gradle steps are: $out"
+  assert_contains "$out" "measurement=6540000" "the measurement is the job's own wall time"
+  assert_eq "1" "$(condition_creates "$log")" "the condition is filed"
+  fp=$(fingerprint_of job "Build debug APK (all ABIs)")
+  assert_contains "$(log_text "$log")" "$fp" \
+    "the filed condition's identity is that job, so a later run annotates it rather than filing again"
+  assert_contains "$(log_text "$log")" "Install vcpkg dependencies" \
+    "the claim names the step that grew"
+
+  # The same pipeline with that one step at its measured 103 s: the row is clear, so the verdict is a measurement
+  # of the record rather than a constant — and the ceiling is the row's, read from the registry.
+  log="$dir/calls-healthy.log"; : > "$log"
+  printf '%s\n' "$healthy" > "$record"
+  issues_fixture "$dir" '[]'
+  healthy_out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only build-duration --apply --input "$record" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the healthy run succeeds: $healthy_out"
+  assert_not_contains "$healthy_out" "verdict=violation" \
+    "a job inside the ceiling is no condition, whatever the record's other fields are: $healthy_out"
+  assert_eq "0" "$(condition_creates "$log")" "nothing is filed for a pipeline inside its ceiling"
+
+  # The row declares the record as its input, so the publisher and the fetcher are paired by the registry rather
+  # than by a path a reader has to know (spec `backlog-sensors`, "A row's declared input is published").
+  assert_eq "build/job-timings.json" \
+    "$(jq -r '.rows[] | select(.id == "build-duration") | .input' "$SENSORS_ENGINE/sensors.json")" \
+    "the row declares the record the fetcher writes and the publisher lists"
 }
 
 case_hotspot_ranksBySizeTimesChanges() {

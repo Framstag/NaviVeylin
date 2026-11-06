@@ -66,6 +66,12 @@ result_record="app/build/gate-result.json"
 # The package the `package-size` row measures. The build pipeline assembles the debug APK; the shipped
 # release artifact is produced by the release pipeline only (design D4).
 package_apk="app/build/outputs/apk/mobile/debug/app-mobile-debug.apk"
+# The build pipeline's own job and step wall times. A running job cannot read its own step durations, so the
+# record comes from GitHub's post-run jobs API, and the checks' fetcher writes it for the run of the commit under
+# test (`tools/fetch-build-inputs.sh --jobs-record`, `build-duration`'s input since issue #778). It is published
+# by no step of the build, so it is foreign here exactly as the scan's record is — but it is written in the
+# checks' own pipeline, so a build neither waits for it nor carries a placeholder for it.
+#
 # The scan's own record, written by `--scan-result` in the scan pipeline and read by the `broken-scan` row:
 # the job, the step and the command that failed, and the run's result. The scan publishes it, so it is in the
 # manifest `--check` compares the registry against and in no `--write` of the build's.
@@ -77,6 +83,10 @@ package_apk="app/build/outputs/apk/mobile/debug/app-mobile-debug.apk"
 # root-level record is the path the upload root can carry, so writer, upload and row agree by construction
 # (issue #751, review round 1).
 scan_result="scan-result.json"
+# The job and step wall times the checks' fetcher writes (`--jobs-record`), read by the `build-duration` row.
+# The path sits under `build/` because the build pipeline's own outputs do, and the fetcher is handed it
+# explicitly, so the row and the producer are one string in one place.
+job_timings="build/job-timings.json"
 
 # The per-module Kover XML reports the coverage summary is derived from, and the pure-Java module's two JaCoCo
 # reports. `:koverXmlReport` merges the three Android modules, so each module is measured from its own.
@@ -110,7 +120,7 @@ produced_paths() {
 # one place the registry's inputs are paired with their producers, and they are written by nobody here: the
 # scan's workflow writes its record itself (`--scan-result`), and only while it scans.
 foreign_paths() {
-  printf '%s\n' "$scan_result"
+  printf '%s\n' "$scan_result" "$job_timings"
 }
 
 # What the build job of this pipeline must find in the tree when `--write` ends: exactly the paths this run

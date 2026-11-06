@@ -21,13 +21,13 @@
       "id": "build-duration",
       "cmd": "tools/sensors/metrics/build-duration.sh",
       "cron": "0 3 * * *",
-      "threshold": 1.5,
-      "comparison": "baseline-multiple",
+      "threshold": 3600000,
+      "comparison": "greater-than",
       "consecutive": 2,
       "class": "improvement",
       "category": "build-and-harness",
       "lifecycle": "file+close",
-      "input": "build/gate-timings.json",
+      "input": "build/job-timings.json",
       "fingerprint": { "fields": ["job"] }
     },
     {

@@ -15,8 +15,16 @@
 # auth, a broken download, an unreadable artifact list — exits 1, so "not ready" and "cannot tell" stay
 # distinguishable, and no conclusion is reported when nothing was fetched.
 #
+# One thing the artifact cannot carry is the wall time of the run that made it: a running job cannot read its own
+# step durations, so only GitHub's post-run `actions/runs/<id>/jobs` answers them. `--jobs-record <path>` writes
+# that answer for the run this fetch restored — every job and every step, with the run's identifier and the commit
+# beside them — so a row can measure the pipeline instead of one invocation inside it (issue #778). The flag is
+# opt-in: the scan's record is fetched through this same script, and a record overwritten with another pipeline's
+# jobs would measure the wrong pipeline.
+#
 # Usage: bash tools/fetch-build-inputs.sh --commit <sha> [--repo <owner/name>] [--workflow <file>]
 #                                        [--artifact <name>] [--dest <dir>] [--conclusion-file <path>]
+#                                        [--jobs-record <path>]
 # Env:   GITHUB_REPOSITORY (the default --repo), GH_TOKEN is passed through to `gh` as usual.
 # Exit:  0 fetched, 3 no completed run for that commit carries the artifact yet, 1 the fetch failed, 2 usage.
 set -uo pipefail
@@ -27,6 +35,7 @@ workflow="build.yml"
 artifact="sensor-inputs"
 dest="."
 conclusion_file=""
+jobs_record=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -36,7 +45,8 @@ while [ $# -gt 0 ]; do
     --artifact) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; artifact="${2:-}"; shift 2 ;;
     --dest) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; dest="${2:-}"; shift 2 ;;
     --conclusion-file) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; conclusion_file="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    --jobs-record) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; jobs_record="${2:-}"; shift 2 ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) printf 'fetch-build-inputs: unknown argument %s\n' "$1" >&2; exit 2 ;;
   esac
 done
@@ -78,6 +88,30 @@ fi
 mkdir -p "$dest" || die "cannot create $dest"
 gh run download "$run_id" --repo "$repo" --name "$artifact" --dir "$dest" \
   || die "downloading $artifact from $workflow run $run_id failed"
+
+# The run's own job and step wall times, when the caller asked for them. It is written after the artifact, so a
+# record in the tree always belongs to a fetch that succeeded, and it dies on an unreadable answer rather than
+# writing a partial one: a record missing a job would measure the wrong pipeline silently.
+if [ -n "$jobs_record" ]; then
+  if ! jobs_json=$(gh api "repos/$repo/actions/runs/$run_id/jobs" --paginate --jq '.jobs[]' 2>/dev/null); then
+    die "cannot read the job list of $workflow run $run_id"
+  fi
+  mkdir -p "$(dirname "$jobs_record")" || die "cannot create the directory of $jobs_record"
+  printf '%s\n' "$jobs_json" | jq -s --arg workflow "$workflow" --arg commit "$commit" --argjson run "$run_id" '
+    def instant: if . == null or . == "" then "" else sub("\\.[0-9]+Z$"; "Z") end;
+    def span($start; $end):
+      (($start | instant) as $a | ($end | instant) as $b
+       | if $a != "" and $b != "" then ((($b | fromdateiso8601) - ($a | fromdateiso8601)) * 1000) else null end);
+    {workflow: $workflow, commit: $commit, runId: $run,
+     jobs: [.[] | . as $job
+       | {name: ($job.name // ""), conclusion: ($job.conclusion // ""),
+          startedAt: ($job.started_at // null), completedAt: ($job.completed_at // null),
+          durationMs: span($job.started_at; $job.completed_at),
+          steps: [($job.steps // [])[] | {name: (.name // ""), conclusion: (.conclusion // ""),
+                     startedAt: (.started_at // null), completedAt: (.completed_at // null),
+                     durationMs: span(.started_at; .completed_at)}]}]}' > "$jobs_record" \
+    || die "cannot write $jobs_record"
+fi
 # The conclusion is reported last, so a caller that reads it knows the record it belongs to is in the tree.
 if [ -n "$conclusion_file" ]; then
   printf '%s\n' "$conclusion" > "$conclusion_file" || die "cannot write $conclusion_file"

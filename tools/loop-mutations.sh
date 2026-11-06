@@ -425,7 +425,7 @@ MUTATIONS=(
   # filter that names nothing, the duration in the gate's record.
   '49.1@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the group filter that keeps a suite from running the cases of another group (2026-10-23)@s|^  if \[ -n "\$only_group" \] && ! matches "\$case_name" "\$only_group#\*"; then continue; fi$|  : # the mutation runs every case the suite declares|'
   '49.2@-@../loop-selftest.sh@driver#aFilterThatNamesNoCaseRefuses@the count the refusal of a filter that names no case depends on (2026-10-23; anchored 2026-11-05, issue #781: an unanchored expression took the nproc fallback instead of the counter)@/^count_matching() {/,/^}/s|^  printf .%s. "\$n"$|  printf .%s. 1|'
-  '49.3@-@tools/loop/gate.sh@gate#theSummaryNamesWhatEachSuiteCost@the wall clock the gate records beside the suite that spent it (2026-10-23)@s|^  took=\$((SECONDS - t0))$|  took=0|'
+  '49.3@-@tools/loop/gate.sh@gate#theSummaryNamesWhatEachSuiteCost@the wall clock the gate records beside the suite that spent it (2026-10-23)@s|^  took=\$((st_ended\[slot\] - t0))$|  took=0|'
   '49.4@-@../loop-selftest.sh@driver#aGroupFilterRunsOnlyItsOwnCases@the summary that names the selection a filtered run made (2026-10-23, review round 1 P1)@s|^\[ -n "\$only_group" \] && selection=" --group \$only_group"$|: # the mutation names no selection|'
   # 50.x — a compiled path is read by the tree it sits in, and not by what its name ends in (issue #273). The rule
   # has two halves and either alone leaves the case it names green: 50.1 puts the basename pattern back, which makes
@@ -597,7 +597,7 @@ MUTATIONS=(
   # `tools/loop-selftest.sh` step consumed a worker's whole wall-clock and the run ended that child with its gate
   # already green and its work uncommitted. The mutation makes the guard never fire, so the case that names the
   # bound reads a gate that is still inside a suite which never returns — the state the item was filed about.
-  '63.2@-@tools/loop/gate.sh@gate#aStepIsBoundedAndTheOverrunNamesIt@the bound that answers a gate step which has not returned (issue #311)@s|^    if \[ .* -ge "\$step_max" \]; then$|    if false; then|'
+  '63.2@-@tools/loop/gate.sh@gate#aStepIsBoundedAndTheOverrunNamesIt@the bound that answers a gate step which has not returned (issue #311)@s|^      if \[ .* -ge "\$step_max" \]; then$|      if false; then|'
 
   # 64.1 — the child's bound following what one item's gate owes (issue #663). Measured 2026-10-26 on #310, a
   # `tools/loop/**` item: 957 s of red gate round, 233 s of one focused falsification suite, 972 s of green gate
@@ -802,7 +802,7 @@ MUTATIONS=(
   # backticks and the file ending on the adapter's newline, and the run read two complete refusals as answers the
   # transport had cut. Without the un-fencing, the same report is a cut answer again.
   '83.1@-@tools/loop/run.sh@run#aFencedClosingBlockIsACompleteAnswer@the fence taken off a closing line before the report is judged complete (issue #793)@s#^  report_lines "\$1" | grep -qE "\$2" 2>/dev/null$#  grep -qE "\$2" "\$1" 2>/dev/null#'
-  '84.1@-@tools/loop/gate.sh@gate#theDeclarationCaseIsOwedFirst@the cheap step the gate owes before its suites and its build, so a declaration one path token short is found at the end of the gate again (issue #792)@s|^owe_pairs "\$first_steps"$|: # the mutation leaves the cheap step to the end|'
+  '84.1@-@tools/loop/gate.sh@gate#theDeclarationCaseIsOwedFirst@the cheap step the gate owes before its suites and its build, so a declaration one path token short is found at the end of the gate again (issue #792)@s|^owe_pairs first "\$first_steps"$|: # the mutation leaves the cheap step to the end|'
 
   # 85.x — the suite states what it cost (issue #782). Measured 2026-11-06 in the change root: `tools/loop-selftest.sh
   # --list` declares 326 cases, and each addition to that set was reviewed for what it asserts and by nobody for what

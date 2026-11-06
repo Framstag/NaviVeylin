@@ -468,6 +468,23 @@ its log at two lines while `tools/loop-selftest.sh` ran past eleven minutes, and
 died at configuration in 21 s — was found only in the Gradle daemon log, because the gate had kept its output in
 a variable (#269).
 
+**The steps that share nothing run together.** The four shell suites a `tools/loop/**` delta owes share nothing but
+the read-only engine — each resolves a scratch tree of its own (`mktemp -d` per invocation) and writes a tally of its
+own — and only the build has to be alone, because it owns the build directory the suites read through the
+environment. The gate ran all five steps in one serial loop until issue #801: `run_step` held one output file, one
+status record and one clock for the whole gate, so four independent suites were added instead of overlapped. The
+engine now carries each owed step with the kind of list that owed it — `LOOP_GATE_FIRST_STEPS` and
+`LOOP_GATE_COMPILED_CMD` run alone, and the suites that follow run up to `LOOP_GATE_POOL_JOBS` at a time (default 4;
+`1` is the serial gate) — and each step keeps its own output, status, clock, tally, bound and console block, recorded
+in the profile's order once the wave has drained. Measured on this host by the change's own probe (`evidence/pool-probe.sh`
+in the change for issue #801): the same three 3 s stub suites cost **10 s** of gate wall clock with the pool at 1 —
+the serial engine, and the clock the red case read on the base — and **3 s** with the pool at 3, each step still
+writing its own tally. The shape a reader depends on is kept: a wave of one still streams its output while it runs
+(#269), a wave
+of several prints each step whole under its own `gate: <command>` … `— <n>s` block, which is what
+`tools/gate-attribute.sh` attributes a failure and its step from, and a failing step still fails the gate with its own
+numbers.
+
 **A gate step is held to a bound of its own.** The run bounds the child and the self-test bounds a case, and a
 *step* of the gate had no clock at all: measured 2026-10-25 (issue #311), one `tools/loop-selftest.sh` step held a
 worker for its whole `LOOP_CHILD_MAX_SECONDS` — the item's gate log already read `LOOP-GATE: tests=558 failures=0

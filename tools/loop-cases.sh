@@ -163,6 +163,8 @@ LOOP_SHELL_CASES=(
   'gate#aFailingSuiteWithNoSummaryInventsNoTest'
   'gate#aCompiledStepsTallyIsNotHidden'
   'gate#theSummaryNamesWhatEachSuiteCost'
+  'gate#independentStepsRunTogether'
+  'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours'
   'driver#aGroupFilterRunsOnlyItsOwnCases'
   'driver#aFilterThatNamesNoCaseRefuses'
   'driver#theListIsFilteredTheSameWayASuiteRunIs'
@@ -552,6 +554,8 @@ loop_run_shell_case() {
     'gate#aFailingSuiteWithNoSummaryInventsNoTest') fn=case_gate_aFailingSuiteWithNoSummaryInventsNoTest ;;
     'gate#aCompiledStepsTallyIsNotHidden') fn=case_gate_aCompiledStepsTallyIsNotHidden ;;
     'gate#theSummaryNamesWhatEachSuiteCost') fn=case_gate_theSummaryNamesWhatEachSuiteCost ;;
+    'gate#independentStepsRunTogether') fn=case_gate_independentStepsRunTogether ;;
+    'gate#aFailingSuitesTallyIsUnchangedByItsNeighbours') fn=case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours ;;
     'driver#aGroupFilterRunsOnlyItsOwnCases') fn=case_driver_aGroupFilterRunsOnlyItsOwnCases ;;
     'driver#aFilterThatNamesNoCaseRefuses') fn=case_driver_aFilterThatNamesNoCaseRefuses ;;
     'driver#theListIsFilteredTheSameWayASuiteRunIs') fn=case_driver_theListIsFilteredTheSameWayASuiteRunIs ;;
@@ -4531,6 +4535,118 @@ SUITE
   tally=$(cat "$d"/tally/*.xml 2>/dev/null)
   assert_contains "$tally" "time=\"$seconds\"" \
     "and the tally the run's own check reads carries the same number: $tally"
+  return 0
+}
+
+# The gate owes one step per owed command and ran them one after the other (issue #801): `run_step` owned one
+# `$stream`, one status file and one clock, so the four shell suites a `tools/loop/**` delta owes waited behind each
+# other and behind the build even though they share nothing but the read-only engine. The case names three stub
+# suites that share nothing, each with an output file of its own, and reads the gate's own wall clock out of the run:
+# nearer the longest step than the sum is the whole claim.
+case_gate_independentStepsRunTogether() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base out start took s tally
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|./suite-a;notes/*|./suite-b;notes/*|./suite-c"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_POOL_JOBS=3\n'
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=30\n'
+  } >> "$conf"
+  # Three steps that share nothing: each sleeps the same 3 s and touches an output file of its own, so a step the
+  # gate dropped is visible as the file it never wrote, and three steps run one at a time are visible in the clock.
+  # The commands are named from the project root and kept short on purpose: a tally is named after its command and
+  # only its first 80 characters survive, so three absolute paths under one scratch directory would share one file.
+  for s in a b c; do
+    cat > "$p/suite-$s" <<SUITE
+sleep 3
+: > "$d/touched-$s"
+printf 'notes: all 1 cases passed\n'
+SUITE
+    chmod +x "$p/suite-$s"
+  done
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  start=$SECONDS
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 ) \
+    || fail "the gate failed: $out"
+  took=$((SECONDS - start))
+  # The sum is 9 s and the longest step is 3 s: 7 s is nearer the longest than the sum, and loose enough that a busy
+  # host does not make a green engine red.
+  [ "$took" -lt 7 ] \
+    || fail "the gate spent ${took}s on three steps of 3 s each — nearer their sum than the longest, so they ran one at a time"
+  for s in a b c; do
+    [ -e "$d/touched-$s" ] || fail "the step of suite-$s never ran: the wave dropped a step"
+  done
+  assert_contains "$out" 'LOOP-GATE-POOL: ' "the log names the pool it ran under: $out"
+  assert_contains "$out" 'LOOP-GATE: tests=3 failures=0' "every step's own case is in the verdict: $out"
+  for s in a b c; do
+    tally=$(cat "$d/tally/suite-$s.xml" 2>/dev/null)
+    assert_contains "$tally" 'tests="1"' "suite-$s carries its own tally: $tally"
+  done
+  return 0
+}
+
+# A pooled wave must not lend one step another's numbers: a step's tally is its own summary, read from the file that
+# step wrote, and the verdict is the sum of those summaries. The failure mode this refuses is the shared `$stream`
+# the serial engine could afford (issue #801) — it is the guard the item asks for beside the timing case, and it is
+# green on the base by construction, because one step at a time shares nothing either.
+case_gate_aFailingSuitesTallyIsUnchangedByItsNeighbours() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local d p conf base out rc tally failing ok_cases
+  d=$(scratch); p=$(new_project)
+  conf="$d/gate.conf"
+  cp "$LOOP_ENGINE/loop.conf" "$conf" || fail "could not copy the loop configuration"
+  {
+    printf 'LOOP_GATE_COMPILED_CMD=""\n'
+    printf 'LOOP_GATE_COMPILED_PATTERNS=""\n'
+    printf 'LOOP_GATE_SUITES="notes/*|./suite-ok;notes/*|./suite-red;notes/*|./suite-ok2"\n'
+    printf 'LOOP_GATE_TALLY_DIR="%s/tally"\n' "$d"
+    printf 'LOOP_GATE_POOL_JOBS=3\n'
+    printf 'LOOP_GATE_STEP_MAX_SECONDS=30\n'
+  } >> "$conf"
+  cat > "$p/suite-ok" <<'SUITE'
+printf 'notes: all 1 cases passed\n'
+SUITE
+  # The failing step reports its own numbers: 3 cases, 2 of them failed. Its neighbours report one case each, so a
+  # tally that borrowed from the step beside it cannot read as its own.
+  cat > "$p/suite-red" <<'SUITE'
+sleep 1
+printf 'FAIL notes#aCaseThatFails — the reason it failed\n'
+printf 'notes: 2 of 3 cases failed\n'
+exit 1
+SUITE
+  cat > "$p/suite-ok2" <<'SUITE'
+printf 'notes: all 1 cases passed\n'
+SUITE
+  chmod +x "$p/suite-ok" "$p/suite-red" "$p/suite-ok2"
+  mkdir -p "$p/notes"
+  printf 'a note\n' > "$p/notes/a.md"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'the change' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  out=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --base "$base" 2>&1 )
+  rc=$?
+  assert_eq "1" "$rc" "a failing step still fails the gate: $out"
+  assert_contains "$out" 'LOOP-GATE: tests=5 failures=2' "the verdict is the three steps' own numbers: $out"
+  failing=$(printf '%s\n' "$out" | sed -n 's/.*— failing:\(.*\)$/\1/p' | tail -1)
+  case "$failing" in *suite-red*) : ;; *) fail "the failing step is not the failing one the verdict names: $failing" ;; esac
+  case "$failing" in *suite-ok*) fail "a passing neighbour is named among the failing steps: $failing" ;; esac
+  tally=$(cat "$d/tally/suite-red.xml" 2>/dev/null)
+  assert_contains "$tally" 'tests="3" failures="2"' "the failing step's tally is its own summary: $tally"
+  for s in ok ok2; do
+    tally=$(cat "$d/tally/suite-$s.xml" 2>/dev/null)
+    assert_contains "$tally" 'tests="1" failures="0"' "suite-$s keeps the numbers it reported beside a red step: $tally"
+  done
+  ok_cases=$(printf '%s\n' "$out" | grep -c 'notes: all 1 cases passed' || true)
+  assert_eq "2" "$ok_cases" "each passing step's own line reached the console, once each: $out"
   return 0
 }
 

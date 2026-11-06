@@ -169,7 +169,8 @@ printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.
 # (issues #785, #790). The row reads the item's own `result` and nothing else — the mechanism vocabulary is what
 # a state carries for a reader who asks *which* bound it was, not a second predicate the report needs to tell work
 # from a refusal. A state a tree wrote before `cut` carried a bound keeps its two `blocked` items in the block
-# tally, exactly as that tree counted them. Empty for a run with none, exactly as the other named lists are.
+# tally, and this row does not name them, because it reads the item's own result and nothing else. Empty for a run
+# with none, exactly as the other named lists are.
 printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | select(.result == "cut") | "#\(.issue) \(.metrics.reviewVerdict // "-")\(if .note == "" then "" else " (\(.note))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the

@@ -772,7 +772,7 @@ scratch() { mktemp -d "${LOOP_CASE_TMP:-$LOOP_TMP}/case.XXXXXX"; }
 # removal has to refuse it on its own account (`worktree#keepsSourcesNotBuildOutput`).
 # How long a case waits for a stub child to appear (issue #308): a host fact with a wide margin, not a property of
 # the loop. Measured 2026-10-25, two Gradle compiles of a second session on the same host pushed an engine's first
-# child past the 20 s that four of these waits allowed, and `run#childOutlastingTheWallClockIsBlocked` then read it as
+# child past the 20 s that four of these waits allowed, and `run#childOutlastingTheWallClockIsCut` then read it as
 # "the stub child never started" — a host's slowness reported as a defect in the engine. 60 s is three times the
 # worst reading and still ends a case that is genuinely stuck.
 STUB_READY_TICKS=600   # 60 s at 0.1 s per tick

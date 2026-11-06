@@ -63,6 +63,22 @@ extension=(-e "$here/pi-trim-result.mjs")
 # `tail -n` and a filter of another command's output alone. Its own rule is `tools/pi-shell-refusal.mjs`, and its
 # cases are `tools/loop-cases.sh`'s `policy#*` (the rule) and `adapter#theChildIsStartedWithTheShellPolicy` (this line).
 policy=(-e "$here/pi-shell-refusal.mjs")
+# …and the directory this project's agent keeps its own tools in is on the child's `PATH` (issue #796). The child
+# inherits the run's environment and nothing between the two guarantees it carries that directory: `rg` lives there,
+# and 282 of 482 `ctx_grep` calls over this run archive answered `zsh:1: command not found: rg`
+# (`evidence/ctx-grep-census.py`), so a run started from a context whose `PATH` lacks it hands every worker no `rg` —
+# the binary `ctx_grep` and the agent's own subprocesses look for, while `tools/look.sh` keeps working without it. This
+# adapter is the one place a fact about this project's agent may live (design D16, `tools/check-portability.sh`), and
+# the directory is a fact about the agent, not about the loop — so it is prepended here, only when it exists, and
+# never twice.
+for agent_bin in "${PI_CODING_AGENT_DIR:+$PI_CODING_AGENT_DIR/bin}" "${HOME:-}/.pi/agent/bin"; do
+  [ -n "$agent_bin" ] && [ -d "$agent_bin" ] || continue
+  case ":${PATH:-}:" in
+    *":$agent_bin:"*) ;;
+    *) export PATH="$agent_bin:${PATH:-/usr/local/bin:/usr/bin:/bin}" ;;
+  esac
+  break
+done
 bound=$(sed -n 's/^LOOP_TOOL_RESULT_MAX_CHARS=["]\{0,1\}\([0-9][0-9]*\)["]\{0,1\}[[:space:]]*$/\1/p' \
   "$here/loop/loop.conf" 2>/dev/null | tail -1)
 export LOOP_TOOL_RESULT_MAX_CHARS="${bound:-0}"

@@ -120,7 +120,8 @@ project would otherwise take the `AGENTS.md` it discovers there as a `project_co
 item's own stream, 25 624 of the 33 088 characters of system prompt, 77 % of it — and that section is charged on
 **every** turn: 9 151 of the 17 235 tokens a turn cost (`python3 tools/loop-spend.py`, issue #661). The routing a
 phase genuinely needs is in its own prompt instead (`tools/loop/prompts/worker.md`, `reviewer.md`): the document
-map, the recipe for a document's section list (`grep -n '^## '`), and where the rules, the capabilities and the
+map, the recipe for a document's section list (`tools/look.sh '^## ' --path guidelines/<file>.md`), and where the
+rules, the capabilities and the
 change artifacts live. For a tier-B item the package also carries the change the item was filed with, as its
 `ITEM_CHANGE` block — the name, the path the run copied it to in the worktree, and the readiness checker's verdict
 line for that copy — so the child applies a plan a person wrote instead of planning one (`agent-issue-loop`,
@@ -128,6 +129,22 @@ line for that copy — so the child applies a plan a person wrote instead of pla
 that is what resolves this project's tool policy — and the case that pins it is `run#childStartsInTheProjectRoot`,
 beside `adapter#theChildIsStartedWithoutContextFiles`, which refuses any word that moves the trust, the prompt or
 the tools.
+
+The one tool that was missing, and the call it is answered with instead (issue #796). A child's search has to be a
+call that runs: `python3 evidence/ctx-grep-census.py` over this run archive reports `CTX-GREP-CENSUS
+items=252 items_failed=125 calls=482 failed=282` — 282 of 482 `ctx_grep` calls answered `zsh:1: command not found:
+rg` — although the binary sits in the agent's own directory (`~/.pi/agent/bin`), and the recipe every phase prompt and
+every guideline header named for a document's section list, `grep -n '^## '`, is refused by the policy the same
+adapter loads. So the child was handed one call it could not make and one tool that does not run. Three things
+follow, and each has its case: the adapter prepends the agent's own tool directory to the child's `PATH`
+(`adapter#theChildIsStartedWithItsToolDirectoryOnPath`) — the inherited `PATH` is the run's, and a run started from a
+context without that directory leaves every worker without `rg`, the binary `ctx_grep` and the agent's own
+subprocesses look for, while the wrapper keeps working; `tools/look.sh --path <file>` scopes the one wrapper to one
+document, so a section list is one call (`look#aPathScopesTheWalkToIt`); and every phase prompt, `AGENTS.md` and the
+guideline headers name that call instead of the shell recipe its own policy refuses
+(`prompt#thePhasePromptsCarryTheirOwnRoute`). What this tree cannot fix is where `ctx_grep` resolves `rg`: the shell
+it spawns does not carry the caller's `PATH` — the same failure reproduces in an interactive session whose `PATH`
+holds the directory — so that half is an upstream report, and the wrapper is why no item depends on it.
 
 What it therefore re-reads of its own work, and the one bound on it. A tool result the child asks for enters its
 context at its own size and stays there, so every later turn of that session re-reads it: over the archive the

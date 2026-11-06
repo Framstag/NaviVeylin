@@ -13,16 +13,20 @@
 # like every other result. The other half — the refusal of the shell verbs where a tool does answer them — is
 # `tools/pi-shell-refusal.mjs`, which every loop child is started with (`tools/pi-child-events.sh`).
 #
-# Usage: tools/look.sh <regex> [--files] [--context N]
+# Usage: tools/look.sh <regex> [--path <path>] [--files] [--context N]
 #
 #   <regex>      an ERE, as `grep -E` reads it (not a fixed string: quote it in the shell)
+#   --path <p>   the walk is this file or this directory, named relative to the root — one document's headings
+#                (`--path guidelines/Build.md`) instead of every document's
 #   --files      the per-file counts only — "which files hold this", without the matched lines
 #   --context N  N lines around each match, in `grep -C`'s own shape
 #
 #   Looked in: `LOOK_ROOT` when it names a tree (the seam the cases drive), else this repository. The libosmscout
 #   submodule lives under the root (`app/src/main/cpp/libosmscout`), so one walk covers both and an unpopulated
 #   submodule contributes nothing. Generated and machine-local trees are not the tree a search is answered from and
-#   are skipped: `.git`, `.gradle`, `.kotlin`, `.idea`, `.cxx`, `build`, `.pi`, `node_modules`, `vcpkg`.
+#   are skipped: `.git`, `.gradle`, `.kotlin`, `.idea`, `.cxx`, `build`, `.pi`, `node_modules`, `vcpkg`. A `--path`
+#   the root does not hold, or one that carries `..`, is a refusal and not an empty answer: nothing found and
+#   nothing searched must never read alike, and a scope is one path of the tree.
 #
 #   Bound: `LOOP_TOOL_RESULT_MAX_CHARS` when the environment names it (the adapter exports the recorded value into
 #   every child), else the number `tools/loop/loop.conf` records — one home for it. `0` is no bound. Output at or
@@ -38,13 +42,17 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 pattern=""
 files_only=0
 context=""
+scope=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --files) files_only=1; shift ;;
+    --path)
+      [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf 'look: %s needs a value\n' "$1" >&2; exit 2; }
+      scope="${2:-}"; shift 2 ;;
     --context)
       [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf 'look: %s needs a value\n' "$1" >&2; exit 2; }
       context="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,37p' "$0"; exit 0 ;;
     --) shift ;;
     -*) printf 'look: unknown argument %s\n' "$1" >&2; exit 2 ;;
     *) [ -z "$pattern" ] || { printf 'look: one pattern, and %s is a second\n' "$1" >&2; exit 2; }
@@ -53,7 +61,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$pattern" ]; then
-  printf "look: usage: %s <regex> [--files] [--context N]\n" "$(basename "$0")" >&2
+  printf "look: usage: %s <regex> [--path <path>] [--files] [--context N]\n" "$(basename "$0")" >&2
   exit 2
 fi
 if [ -n "$context" ]; then
@@ -64,6 +72,23 @@ fi
 
 root=${LOOK_ROOT:-$(cd "$here/.." && pwd)}
 [ -d "$root" ] || { printf 'look: no tree at %s\n' "$root" >&2; exit 2; }
+
+# The walk's target, and the label the answer's first line carries: the whole tree, or the one path `--path` names —
+# a file is one document's own sections, a directory a subtree. A target the tree does not hold is a refusal rather
+# than an empty answer, because "nothing was searched" and "nothing matched" must not read alike.
+target=.
+where="$root"
+if [ -n "$scope" ]; then
+  case "$scope" in
+    /*) printf 'look: --path takes a path of the tree, not %s\n' "$scope" >&2; exit 2 ;;
+  esac
+  case "/$scope/" in
+    */../*) printf 'look: --path carries .., and a scope is one path of the tree\n' >&2; exit 2 ;;
+  esac
+  [ -e "$root/$scope" ] || { printf 'look: no path %s in %s\n' "$scope" "$root" >&2; exit 2; }
+  target=${scope%/}
+  where="$root/$target"
+fi
 
 # The bound: the value the environment carries, else the project's recorded one, and `0` for "no bound".
 bound=${LOOP_TOOL_RESULT_MAX_CHARS:-}
@@ -83,9 +108,10 @@ errors=$(mktemp) || { printf 'look: cannot create a temporary file\n' >&2; exit 
 body=$(mktemp) || { printf 'look: cannot create a temporary file\n' >&2; exit 2; }
 trap 'rm -f "$found" "$errors" "$body"' EXIT
 
-# One walk, from the root, so every path in the answer is relative to it and can be cited as it stands. A pattern grep
-# cannot read is a refusal and not "no match": the two must never read alike.
-( cd "$root" && grep -rnI -E ${context_args[@]+"${context_args[@]}"} "${excludes[@]}" -e "$pattern" . ) \
+# One walk, from the root, so every path in the answer is relative to it and can be cited as it stands; the target is
+# the tree itself unless `--path` scoped the walk. A pattern grep cannot read is a refusal and not "no match": the two
+# must never read alike.
+( cd "$root" && grep -rnIH -E ${context_args[@]+"${context_args[@]}"} "${excludes[@]}" -e "$pattern" "$target" ) \
   > "$found" 2> "$errors"
 rc=$?
 if [ "$rc" -gt 1 ]; then
@@ -107,7 +133,7 @@ matches=$(awk '/^[^:]+:[0-9]+:/ { n++ } END { print n + 0 }' "$found")
 files=$(printf '%s' "$file_counts" | awk 'NF { n++ } END { print n + 0 }')
 
 {
-  printf "LOOK: %s matches in %s files of %s for '%s'\n" "$matches" "$files" "$root" "$pattern"
+  printf "LOOK: %s matches in %s files of %s for '%s'\n" "$matches" "$files" "$where" "$pattern"
   [ -z "$file_counts" ] || printf '%s\n' "$file_counts"
   [ "$files_only" -eq 1 ] || sed 's|^\./||' "$found"
 } > "$body"

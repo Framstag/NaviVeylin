@@ -6,7 +6,7 @@ backlog itself — what an item is, what the tracker holds, who may write what, 
 `guidelines/Backlog.md`; the rule that keeps both documents honest is `Backlog.md` §14.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/BacklogTooling.md`; AGENTS.md's Documentation Map routes a kind of change here.
+`tools/look.sh '^## ' --path guidelines/BacklogTooling.md`; AGENTS.md's Documentation Map routes a kind of change here.
 
 ## 9. Checks
 

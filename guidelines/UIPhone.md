@@ -9,7 +9,7 @@ route-planning card, overlay sizing and layering — are `guidelines/UIPhoneMap.
 cross-variant parity rule and the car surfaces stay in `guidelines/UI.md`.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/UIPhone.md`; AGENTS.md's Documentation Map routes a kind of
+`tools/look.sh '^## ' --path guidelines/UIPhone.md`; AGENTS.md's Documentation Map routes a kind of
 change here.
 
 ---

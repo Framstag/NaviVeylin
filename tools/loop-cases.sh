@@ -281,11 +281,13 @@ LOOP_SHELL_CASES=(
   'adapter#modeFlagIsItsOwnArgument'
   'adapter#theChildIsStartedWithoutContextFiles'
   'adapter#theChildIsStartedWithTheResultBound'
+  'adapter#theChildIsStartedWithItsToolDirectoryOnPath'
   'trim#aResultAboveTheBoundIsTrimmedAndNamed'
   'trim#aResultUnderTheBoundIsHandedOverWhole'
   'trim#theTrimIsRecorded'
   'look#oneCallAnswersTheWholeTree'
   'look#aResultOverTheBoundIsCutAndNamed'
+  'look#aPathScopesTheWalkToIt'
   'policy#aShellTreeSearchIsRefusedAndARecipeIsNot'
   'adapter#theChildIsStartedWithTheShellPolicy'
   'state#inheritedStatePathOutsideTheTreeIsIgnored'
@@ -661,11 +663,13 @@ loop_run_shell_case() {
     'adapter#modeFlagIsItsOwnArgument') fn=case_adapter_modeFlagIsItsOwnArgument ;;
     'adapter#theChildIsStartedWithoutContextFiles') fn=case_adapter_theChildIsStartedWithoutContextFiles ;;
     'adapter#theChildIsStartedWithTheResultBound') fn=case_adapter_theChildIsStartedWithTheResultBound ;;
+    'adapter#theChildIsStartedWithItsToolDirectoryOnPath') fn=case_adapter_theChildIsStartedWithItsToolDirectoryOnPath ;;
     'trim#aResultAboveTheBoundIsTrimmedAndNamed') fn=case_trim_aResultAboveTheBoundIsTrimmedAndNamed ;;
     'trim#aResultUnderTheBoundIsHandedOverWhole') fn=case_trim_aResultUnderTheBoundIsHandedOverWhole ;;
     'trim#theTrimIsRecorded') fn=case_trim_theTrimIsRecorded ;;
     'look#oneCallAnswersTheWholeTree') fn=case_look_oneCallAnswersTheWholeTree ;;
     'look#aResultOverTheBoundIsCutAndNamed') fn=case_look_aResultOverTheBoundIsCutAndNamed ;;
+    'look#aPathScopesTheWalkToIt') fn=case_look_aPathScopesTheWalkToIt ;;
     'policy#aShellTreeSearchIsRefusedAndARecipeIsNot') fn=case_policy_aShellTreeSearchIsRefusedAndARecipeIsNot ;;
     'adapter#theChildIsStartedWithTheShellPolicy') fn=case_adapter_theChildIsStartedWithTheShellPolicy ;;
     'usage#bareValueFlagAtTheEndOfArgvIsAUsageError') fn=case_usage_bareValueFlagAtTheEndOfArgvIsAUsageError ;;
@@ -3291,7 +3295,7 @@ case_prompt_iterationProtocolHandsTheReviewerTheSameSkeleton() {
 # the iteration levers, never the surface of the change itself, so this case holds the rule to the two surfaces
 # it needs: the worker prompt a run renders, and the guideline that owns the text.
 case_prompt_workerNamesTheChangeSurfaceBeforeThePlan() {
-  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json tools/look.sh
   local d p prompt text
   d=$(scratch); p=$(new_project)
   run_one_item "$p" "$d" >/dev/null || fail "the run failed"
@@ -3299,7 +3303,7 @@ case_prompt_workerNamesTheChangeSurfaceBeforeThePlan() {
   [ -f "$prompt" ] || fail "the worker prompt was not rendered"
   text=$(cat "$prompt")
   assert_contains "$text" 'Count the surface before the plan is fixed' "the worker counts the surface before it plans"
-  assert_contains "$text" 'grep -l' "and is handed the command that counts it"
+  assert_contains "$text" "tools/look.sh '<the rule>'" "and is handed the call that counts it, which the policy every child is started with allows (issue #796)"
   assert_contains "$text" 'surface:' "and the record its proposal carries"
 }
 
@@ -3379,17 +3383,28 @@ case_prompt_inlineInjectionCannotReachTheInstructionPosition() {
 # repository path a skeleton names resolves: a route the prompt states and the tree does not hold is a child sent to
 # a file that is not there, and an offline case is the only thing that can see it before a run pays for the trip.
 case_prompt_thePhasePromptsCarryTheirOwnRoute() {
-  # files: tools/loop/prompts/
+  # files: tools/loop/prompts/ tools/look.sh AGENTS.md guidelines/ tools/loop/loop.conf
   local f text tok
   for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/worker-tail.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
     [ -f "$f" ] || fail "no prompt skeleton at $f"
     text=$(cat "$f")
     assert_contains "$text" 'AGENTS.md' "$(basename "$f") names the project's document map"
-    assert_contains "$text" "grep -n '^## '" "and the recipe for a document's section list"
+    assert_contains "$text" "tools/look.sh '^## '" "and the recipe for a document's section list, in a call the child's own policy allows (issue #796)"
+    assert_not_contains "$text" "grep -n '^## '" "and not the shell search that policy refuses, which left the child a recipe it could not run (issue #796)"
     assert_contains "$text" 'guidelines/' "and where the rules live"
     assert_contains "$text" 'openspec/specs/' "and where the capabilities live"
   done
   [ -f "$LOOP_PROJECT_ROOT/AGENTS.md" ] || fail "the document map the prompts name is not in the project root"
+  # …and the map the prompts send a child to must not hand it the recipe that child's own policy refuses (issue #796):
+  # the prompts route into `AGENTS.md`, so a refused call there is the same defect one document further on.
+  text=$(cat "$LOOP_PROJECT_ROOT/AGENTS.md")
+  assert_contains "$text" "tools/look.sh '^## ' --path guidelines/" "the document map names the call that answers a section list (issue #796)"
+  assert_not_contains "$text" "grep -n '^## '" "and not the shell search its own policy refuses (issue #796)"
+  for f in "$LOOP_PROJECT_ROOT"/guidelines/*.md; do
+    case "$f" in *.why.md|*.recipes.md) continue ;; esac
+    assert_not_contains "$(sed -n '1,30p' "$f")" "grep -n '^## '" \
+      "$(basename "$f")'s header names the call the policy allows, not the shell search it refuses (issue #796)"
+  done
   # every repository path a skeleton names, read the way a child would read it: relative to the project root it is
   # started in. A glob (`tools/*-cases.sh`) is a pattern and not a path, so it is skipped.
   for f in "$LOOP_ENGINE/prompts/worker.md" "$LOOP_ENGINE/prompts/worker-gate.md" "$LOOP_ENGINE/prompts/worker-tail.md" "$LOOP_ENGINE/prompts/reviewer.md"; do
@@ -8300,6 +8315,57 @@ case_adapter_modeFlagIsItsOwnArgument() {
   return 0
 }
 
+# The child inherits the run's environment and nothing between the two guarantees it carries the directory this
+# project's agent keeps its own tools in (issue #796): 36 of 36 `ctx_grep` calls a child made on 2026-11-06 answered
+# `zsh:1: command not found: rg` although the binary is in that directory (`evidence/ctx-grep-census.py`: 282 of 482
+# `ctx_grep` calls over this archive), and a run started from a context whose `PATH` lacks it hands every worker no
+# `rg` — the binary `ctx_grep` and the agent's own subprocesses look for. The adapter is the one place a fact about
+# this project's agent may live (design D16), so the directory is prepended there — idempotent, and only when it
+# exists.
+case_adapter_theChildIsStartedWithItsToolDirectoryOnPath() {
+  # files: tools/pi-child-events.sh
+  local d prompt recorder got first
+  [ -f "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" ] || return 0
+  d=$(scratch)
+  mkdir -p "$d/agent/bin"
+  prompt="$d/prompt.md"
+  printf 'Reply with OK.\n' > "$prompt"
+  recorder="$d/recorder.sh"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'printf "%s\n" "$PATH" > "$RECORD"'
+  } > "$recorder"
+  # The inherited `PATH` is the one a run started from a bare shell has: the standard directories and not this
+  # project's agent directory, which is what the child has to gain.
+  PI_CODING_AGENT_DIR="$d/agent" RECORD="$d/path.txt" PATH="/usr/bin:/bin" \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$recorder" "$prompt" </dev/null >"$d/out" 2>&1 ||
+    fail "the adapter exited non-zero: $(head -3 "$d/out")"
+  got=$(cat "$d/path.txt" 2>/dev/null || true)
+  [ -n "$got" ] || fail "the child recorded no PATH: $(head -3 "$d/out")"
+  first=${got%%:*}
+  assert_eq "$d/agent/bin" "$first" "the child's PATH begins with the agent's own tool directory (issue #796)"
+  assert_contains "$got" "/usr/bin" "and the PATH it inherited is kept behind it"
+
+  # A directory that is not there changes nothing: the two candidates are the agent's own (which this case moved) and
+  # the home directory's, so a tree with neither keeps the PATH it was given — and no child is started with a path
+  # that does not exist.
+  PI_CODING_AGENT_DIR="$d/absent" HOME="$d/nohome" RECORD="$d/path-absent.txt" PATH="/usr/bin:/bin" \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$recorder" "$prompt" </dev/null >"$d/out-absent" 2>&1 ||
+    fail "the adapter exited non-zero with no tool directory: $(head -3 "$d/out-absent")"
+  assert_eq "/usr/bin:/bin" "$(cat "$d/path-absent.txt" 2>/dev/null || true)" \
+    "a directory that does not exist is not added to the child's PATH"
+
+  # …and a PATH that already carries it gains no second copy: a run whose own environment has the directory must not
+  # hand its children a PATH that grows by one entry per hop.
+  PI_CODING_AGENT_DIR="$d/agent" RECORD="$d/path-twice.txt" PATH="$d/agent/bin:/usr/bin:/bin" \
+    bash "$LOOP_PROJECT_ROOT/tools/pi-child-events.sh" bash "$recorder" "$prompt" </dev/null >"$d/out-twice" 2>&1 ||
+    fail "the adapter exited non-zero with the directory already on PATH: $(head -3 "$d/out-twice")"
+  got=$(cat "$d/path-twice.txt" 2>/dev/null || true)
+  assert_eq "1" "$(printf '%s' "$got" | tr ':' '\n' | grep -cx -- "$d/agent/bin")" \
+    "a PATH that already carries the directory gains no second copy of it"
+  return 0
+}
+
 # The child is started in the project, so the agent would turn the `AGENTS.md` it discovers there into a
 # `project_context` section of its system prompt — 25 624 of the 33 088 characters of the system prompt on the
 # stream of one item (probe `sections-probe.py`), re-read on every turn of a child whose whole work is one
@@ -11474,6 +11540,48 @@ case_look_aResultOverTheBoundIsCutAndNamed() {
   [ "$size" -gt "$recorded" ] || fail "no bound was recorded as $recorded characters and the whole answer is $size"
   assert_contains "$(cat "$d/unbounded.txt")" 'NEEDLE-300' "with no bound the whole answer is printed"
   assert_not_contains "$(cat "$d/unbounded.txt")" 'LOOK-BOUND' "and nothing is said about a bound it never met"
+  return 0
+}
+
+# A section list is a search of **one document** (issue #796): every phase prompt names the recipe "a guideline's
+# section list is its own", and the tree-wide walk prints every other document's headings beside it. `--path` scopes
+# the same walk to one file or one directory, so the call a child needs is one call that answers the question, and it
+# is the call each prompt skeleton names — the shell `grep -n '^## '` it named before is refused by the policy the
+# child is started with (`tools/pi-shell-refusal.mjs`), which left the child with a recipe it could not run.
+case_look_aPathScopesTheWalkToIt() {
+  # files: tools/look.sh
+  local d tree look out status
+  look="$LOOP_PROJECT_ROOT/tools/look.sh"
+  [ -f "$look" ] || fail "nothing answers a tree question in one call: tools/look.sh is not in the tree (issue #687)"
+  d=$(scratch); tree="$d/tree"
+  mkdir -p "$tree/guidelines"
+  printf '# A\n\n## 1 one\n\n## 2 two\n' > "$tree/guidelines/a.md"
+  printf '## 9 elsewhere\n' > "$tree/guidelines/b.md"
+  printf '## 8 outside the tree\n' > "$d/outside.md"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" '^## ' --path guidelines/a.md 2>&1); status=$?
+  assert_eq "0" "$status" "--path walks the file it names: $out"
+  assert_contains "$out" 'guidelines/a.md:3:## 1 one' "the heading is printed with its line number: $out"
+  assert_contains "$out" "of $tree/guidelines/a.md for '^## '" "and the answer's first line names what was walked: $out"
+  assert_not_contains "$out" 'elsewhere' "and no other document is searched: $out"
+  assert_contains "$out" 'LOOK: 2 matches in 1 files' "the count is the scoped walk's: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" '^## ' --path guidelines 2>&1)
+  assert_contains "$out" 'guidelines/b.md:1:## 9 elsewhere' "a directory is a scope too: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" '^## ' --path guidelines/missing.md 2>&1); status=$?
+  assert_eq "2" "$status" "a path the tree does not hold is a refusal and not an empty answer: $out"
+  assert_contains "$out" 'no path' "and it names what it could not find: $out"
+
+  # …and a scope that walks out of the tree is refused even when it resolves: `$d/outside.md` is a real file one level
+  # above the root, and a walk that followed it would answer with a document the tree does not hold.
+  out=$(LOOK_ROOT="$tree" bash "$look" '^## ' --path ../outside.md 2>&1); status=$?
+  assert_eq "2" "$status" "a scope that carries .. is refused rather than walked out of the tree: $out"
+  assert_not_contains "$out" 'outside the tree' "and nothing outside the tree is read: $out"
+
+  out=$(LOOK_ROOT="$tree" bash "$look" '^## ' --path 2>&1); status=$?
+  assert_eq "2" "$status" "a bare --path never runs with the value it never got: $out"
+  assert_contains "$out" 'needs a value' "and it names the value it is missing: $out"
   return 0
 }
 

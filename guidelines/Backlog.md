@@ -6,7 +6,7 @@ keeps it honest — the declared checks, its portability, and where an agent run
 `guidelines/BacklogTooling.md`, which carries those sections under their own numbers.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/Backlog.md`; AGENTS.md's Documentation Map routes a kind of change here.
+`tools/look.sh '^## ' --path guidelines/Backlog.md`; AGENTS.md's Documentation Map routes a kind of change here.
 
 ## 1. Status, and what this document owns
 

@@ -40,8 +40,11 @@ the whole of it:
 
 - `AGENTS.md`, in the project root, is the project's **document map**: it routes a kind of change to the guideline
   that owns the rule. Find your change's row there, then read the section it names — never the whole file.
-- Every guideline is one document under `guidelines/`, and its section list is the document's own: `grep -n '^## '`
-  over the file prints it, so you read the section that owns the rule and never the whole document.
+- Every guideline is one document under `guidelines/`, and its section list is the document's own:
+  `tools/look.sh '^## ' --path guidelines/<file>.md` prints it, so you read the section that owns the rule and never
+  the whole document. That wrapper is what a tree question is answered with here: the shell `grep`/`cat`/`head`/`ls`/`find`
+  form of it is refused by the policy every child is started with (`tools/pi-shell-refusal.mjs`), and a tool that fails
+  on your host is not an answer about the tree either — the wrapper is a call, not a hint.
 - The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you plan lives in
   `openspec/changes/<change-name>/`, and the evidence it cites is versioned in that change's `evidence/`.
 - The rules a phase like yours breaks most often are the ones measuring them: what the gate's result means and
@@ -82,7 +85,7 @@ nothing. The same holds for a command: a measurement you have taken is quoted, n
 items of this loop (issue #246): 8 to 49 of every item's 22 to 79 file reads were a second read of a path the
 item had already read.
 
-**Independent calls belong in one turn, not in one turn each.** A read, a `grep`, a `git log` and a `jq` that do
+**Independent calls belong in one turn, not in one turn each.** A read, a search, a `git log` and a `jq` that do
 not need each other's output are one turn's work: issue them together and read the four answers once. Every turn
 re-reads the whole conversation, so the second call of a pair paid a turn costs the item its context again without
 buying a fact — measured over this loop's archive (227 items, 2026-11-03): 36 825 tool calls in 33 183 turns,
@@ -153,9 +156,9 @@ option lists, and the recorded `2` came to mean a different option).
 4. Name the owning capability and the owning guideline section. Route with `AGENTS.md`'s Documentation
    Map; never read a guideline in full.
 5. Count the surface before the plan is fixed. The rule you are about to change has more than one place that
-   asserts it, and the plan is only real once you know how many: `grep -l` the rule's text and its symbol over
-   the cases (`tools/*-cases.sh`), the engine, the prompts and the fixtures, and list the cases and fixtures
-   that assert the behaviour being changed. The proposal carries the count with the command that produced it
+   asserts it, and the plan is only real once you know how many: `tools/look.sh '<the rule>'` names the files that
+   hold the rule's text and its symbol — over the cases (`tools/*-cases.sh`), the engine, the prompts and the
+   fixtures — and lists the cases and fixtures that assert the behaviour being changed. The proposal carries the count with the command that produced it
    (`surface: 2 cases added, 2 rewritten, 4 fixtures realigned — <command>`), because the count, not the first
    file the plan names, is what the estimate is set against. An estimate made before this pass is the defect
    this step exists for: the #232 change was planned as two functions and landed as 292 insertions over six

@@ -33,7 +33,7 @@ Your system prompt carries **no project context**, so what `AGENTS.md` would hav
 - `AGENTS.md`, in the project root, is the project's **document map**: it routes a kind of change to the
   `guidelines/` document that owns the rule. Find your change's row there, then read the section it names — never the
   whole file.
-- A guideline's section list is its own: `grep -n '^## '` over the file prints it.
+- A guideline's section list is its own: `tools/look.sh '^## ' --path guidelines/<file>.md` prints it.
 - The shipped capabilities are under `openspec/specs/`, one `spec.md` per capability; the change you are finishing
   is in the change root, and the evidence it cites is versioned in that change's `evidence/`.
 

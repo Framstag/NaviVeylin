@@ -818,6 +818,19 @@ MUTATIONS=(
   # 12 h after its owner had answered the only question it had. The mutation drops the record the exclusion loop
   # writes, so the refusal is back to a line on the terminal and the item is back to a spent decision slot.
   '86.1@-@tools/loop/run.sh@run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable@the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794)@s|^    loop_state adoption-refused "\$issue" --reason "\$adoption_refusal" >/dev/null \|\|$|    true \|\||'
+  # 87.x — a child has a search tool that runs (issue #796). Measured 2026-11-06 by `evidence/ctx-grep-census.py` over
+  # this run archive: 282 of 482 `ctx_grep` calls answered `zsh:1: command not found: rg` (125 of 252 item directories),
+  # while the binary sits in the agent's own bin directory — and the recipe every phase prompt and every guideline
+  # header named for a document's section list, `grep -n '^## '`, is refused by the policy the same adapter loads, so
+  # the child was given one call it could not make and one tool that does not run. One record per invariant: the
+  # directory on the child's PATH, the scope that makes the wrapper answer one document, the first line that names what
+  # was walked, the refusal that keeps a scope inside the tree, and the two documents that name the recipe.
+  '87.1@-@../pi-child-events.sh@adapter#theChildIsStartedWithItsToolDirectoryOnPath@the agent'"'"'s own tool directory prepended to the child'"'"'s PATH, so a run started without it hands every worker no `rg` — the binary `ctx_grep` and the agent'"'"'s own subprocesses look for (issue #796)@s|^    \*) export PATH="\$agent_bin:.*$|    *) :|'
+  '87.2@-@../look.sh@look#aPathScopesTheWalkToIt@the scope that answers one document'"'"'s section list instead of every document'"'"'s headings (issue #796)@s|^  target=\${scope%/}$|  target=.|'
+  '87.3@-@tools/loop/prompts/worker.md@prompt#thePhasePromptsCarryTheirOwnRoute@the call every phase prompt names for a document'"'"'s section list, so the recipe a child is handed is the shell search its own policy refuses (issue #796)@s|tools/look.sh .\^## . --path|grep -n '"'"'^## '"'"'|'
+  '87.4@-@../../AGENTS.md@prompt#thePhasePromptsCarryTheirOwnRoute@the call the document map names for a section list, so the prompts route a child into the same refused recipe one document further on (issue #796)@s|the complete section list of any file is `tools/look.sh .\^## . --path guidelines/<file>.md`|the complete section list of any file is `grep -n '"'"'^## '"'"' guidelines/<file>.md`|'
+  '87.5@-@../look.sh@look#aPathScopesTheWalkToIt@the first line naming what the walk covered, so a scoped answer reads as a tree-wide one (issue #796)@s|^  where="\$root/\$target"$|  where="$root"|'
+  '87.6@-@../look.sh@look#aPathScopesTheWalkToIt@the refusal that keeps a scope inside the tree, so `--path ../outside.md` reads the tree'"'"'s parent (issue #796)@s|^    \*/\.\./\*) printf |    */../*) : # |'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

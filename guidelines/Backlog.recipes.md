@@ -305,7 +305,9 @@ turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past
 is a runaway and not a slower convergence: it is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT:
 the child reached the recorded turn bound of <n> turns (<KEY> for the <role> role)`, and the item is recorded
 `blocked` with that count and `bound` as its mechanism — so no decision label is written for it, and `state.sh next`
-never reads it as a refusal (issue #786).
+never reads it as a refusal (issue #786). That holds for the rework worker of a refusing round as much as for the
+item's own worker (issue #788): the arm that records it leaves the same `bound` behind, so it spends none of the
+decision ceiling either.
 
 **Where a stop bound sits** (measured 2026-11-06, issue #786): each value is the archive's own p95 or above, per
 role — worker 170 (p50 77.5, p90 138.5, p95 161.8, max 219 over 346 sessions), gate 80 (p95 69, max 71 over 11),
@@ -693,7 +695,10 @@ mid-phase, so its result stays `blocked` and its tree is kept exactly as the chi
 block a thing the next run resumes rather than a question: no decision label is written (so it spends none of the
 decision ceiling), the note says the attempt waits for the next run, and `state.sh next` never reads it as a refusal,
 because a refusal predicts the next item's failure — the same gate, the same provider, the same tree — and a bound
-predicts nothing about an item that starts a fresh worker on a fresh tree. Measured 2026-11-05: five of six runs
+predicts nothing about an item that starts a fresh worker on a fresh tree. A rework worker a bound ends is the same
+fact one round along (issue #788): the round whose rework it was is written on the branch as a cut with its
+announcement withdrawn, and the run takes no second pass over the queue, so the branch reads as an attempt the next
+run finishes instead of as a round nobody answered. Measured 2026-11-05: five of six runs
 stopped on the two-block streak with 758 of 3 211 budgeted minutes used, six of that day's eight blocks were bound
 cuts, and the first run carrying the per-role turn bounds ended after 156 of its 480 minutes with three of six items
 ended at exactly 110 turns.

@@ -2409,7 +2409,17 @@ while true; do
       if [ "$round2_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$round2_timeout" ]; then
         review_verdict="round2-ended"
         outcome="blocked"
-        blocked_reason="the run ended the rework worker of the refusing round (its wall-clock or the run's own deadline), so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
+        # …and the mechanism is `bound`, exactly as it is for the item's own worker (`:2142`, issue #786): the bound
+        # this run enforced on its own rework child says nothing about the item, so the escalation below must not
+        # turn it into a question. Without this word the arm wrote `agent/needs-decision` and `status/on-hold` for a
+        # cut the loop itself made, and the decision cap counted them until it refused to start a run at all —
+        # 2026-11-05, when 8 of 14 eligible decisions read the retry-or-abandon wording for a bound (issue #788).
+        stop_reason="bound"
+        blocked_reason="the run ended the rework worker of the refusing round (its turn bound, its wall clock or the run's own deadline), so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
+        # …and the round whose rework this was is left on the branch as a **cut**, its announcement withdrawn, so a
+        # later run reads the attempt as work it finishes rather than as a round nobody answered (#785, issue #788).
+        record_cut_round "$round"
+        bound_cut=1
         break
       fi
       bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true

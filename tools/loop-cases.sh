@@ -5541,7 +5541,7 @@ case_run_treeOfACapEndedChildIsKeptAsAPatch() {
 # Measured 2026-10-23: the shipped requirement was universal while this call site was left as it stood.
 case_run_treeOfACapEndedReworkOfARefusingRoundIsNotCommitted() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p conf status out tree report files
+  local d p conf status out tree report files state branch tree_files
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   conf="$d/loop.conf"
@@ -5573,10 +5573,39 @@ esac"
   files=$(git -C "$tree" status --porcelain)
   assert_contains "$files" "half-applied.txt" \
     "and the tree that worker left is kept as it left it, for the person who repairs it"
-  assert_eq "blocked" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+  state=$(state_file "$p")
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$state")" \
     "an item whose rework worker was ended by the cap is recorded blocked"
-  assert_contains "$(jq -r '.items[0].note' "$(state_file "$p")")" "not committed" \
+  assert_contains "$(jq -r '.items[0].note' "$state")" "not committed" \
     "and the reason says the round's tree was not committed"
+  # …and the block spends no decision slot (issue #788): the bound the run enforced on its own rework child is the
+  # same mechanism the item's own worker records (#786), so the escalation arm must read it as a bound too. Without
+  # it the run files itself the retry-or-abandon question, the cap counts it (run.sh:745 counts labels), and the
+  # loop's own bookkeeping refuses its next run.
+  assert_eq "bound" "$(jq -r '.items[0].stopReason // ""' "$state")" \
+    "the block records the run's own bound as its mechanism, as the item's own worker does"
+  assert_contains "$(jq -r '.items[0].note' "$state")" "left for the next run rather than asked about" \
+    "and says the attempt is left for the next run rather than asked about"
+  assert_eq "0" "$(grep -c 'agent/needs-decision' "$GH_STUB_RECORD" || true)" \
+    "no decision label is written for a rework worker the run's own bound ended"
+  assert_eq "0" "$(grep -c 'status/on-hold' "$GH_STUB_RECORD" || true)" \
+    "and the item is not put on hold for it"
+  assert_eq "0" "$(grep -c 'issue comment' "$GH_STUB_RECORD" || true)" \
+    "and no question is posted on the tracker"
+  assert_contains "$out" "decisions the owner owes: none" \
+    "the report asks the owner no question about it, so the cap's population does not grow"
+  assert_contains "$out" "cut short by the run's own bound: #21" \
+    "and the report names it beside the blocks the run's bound did not cause"
+  # …and the round whose rework the bound ended is written on the branch as a **cut**, its announcement withdrawn
+  # (#785, issue #788): without that, the branch reads `review-unanswered` and the next pre-screen records the item
+  # as a question only its owner can answer, which is the slot the cap then counts.
+  branch=$(git -C "$p" for-each-ref --format='%(refname:short)' 'refs/heads/fix/issue-21-*' | head -1)
+  [ -n "$branch" ] || fail "the item's branch is not there to be read"
+  tree_files=$(git -C "$p" ls-tree -r --name-only "$branch")
+  assert_contains "$tree_files" "review-round-1-cut.md" \
+    "the round whose rework the bound ended is recorded on the branch as a cut"
+  assert_not_contains "$tree_files" "review-round-1-requested.md" \
+    "and the announcement of that round is withdrawn in the same commit"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" \
     "nothing is closed on a rework worker the run ended"
 }

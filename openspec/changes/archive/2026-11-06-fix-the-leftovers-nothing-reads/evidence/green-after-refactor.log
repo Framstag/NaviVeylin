@@ -1,0 +1,55 @@
+2026-11-06T17:56:33Z
+clean#reportsAWorktreeNoRunKeeps| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+clean#reportsAWorktreeNoRunKeeps| HEAD ist jetzt bei 0fa75dc init
+PASS clean#reportsAWorktreeNoRunKeeps
+clean#reportsAWorktreeNoRunKeeps| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+clean#reportsAWorktreeNoRunKeeps| HEAD ist jetzt bei 53f3bac init
+PASS clean#sweepsOnlyWhatIsInTheBase
+PASS clean#interruptedSuiteEndsItsProcessGroup
+PASS clean#reportsAndEndsAProcessLeftInAScratchTree
+clean#reportsWithoutApplyAndRemovesWithIt| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-175638')
+clean#reportsWithoutApplyAndRemovesWithIt| HEAD ist jetzt bei 53f3bac init
+clean#reportsTheWorktreesScratchTreesToo| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-175638')
+clean#reportsTheWorktreesScratchTreesToo| HEAD ist jetzt bei 53f3bac init
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+PASS clean#worktreeDotSweepsTheOneRootOnce
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+PASS clean#endsARunWhoseTreeIsAlreadyDeleted
+clean#reportsWithoutApplyAndRemovesWithIt| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (b922c12)
+clean#reportsTheWorktreesScratchTreesToo| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (b922c12)
+clean#reportsWithoutApplyAndRemovesWithIt| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (d2f7372)
+clean#reportsTheWorktreesScratchTreesToo| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (d2f7372)
+clean#reportsWithoutApplyAndRemovesWithIt| HEAD ist jetzt bei d2f7372 review: 2026-01-01-fix-demo round 1 passed (#21)
+clean#reportsWithoutApplyAndRemovesWithIt| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d2f7372).
+clean#reportsWithoutApplyAndRemovesWithIt| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+clean#reportsTheWorktreesScratchTreesToo| HEAD ist jetzt bei d2f7372 review: 2026-01-01-fix-demo round 1 passed (#21)
+clean#reportsTheWorktreesScratchTreesToo| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war d2f7372).
+clean#reportsTheWorktreesScratchTreesToo| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS clean#suiteThatEndsNormallyEndsTheProcessItsCaseLeft
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+clean#reportsWithoutApplyAndRemovesWithIt| stub gh: recorded `gh issue edit`
+clean#reportsWithoutApplyAndRemovesWithIt| closed #21 (completed)
+PASS clean#reportsAWorktreeNoRunKeeps
+clean#reportsTheWorktreesScratchTreesToo| stub gh: recorded `gh issue edit`
+clean#reportsTheWorktreesScratchTreesToo| closed #21 (completed)
+clean#reportsWithoutApplyAndRemovesWithIt|   landing #21 d2f7372bb1f0890abe6e8f83b94e57578f3231c6: unscored — the pipeline runs of this commit could not be read
+clean#reportsTheWorktreesScratchTreesToo|   landing #21 d2f7372bb1f0890abe6e8f83b94e57578f3231c6: unscored — the pipeline runs of this commit could not be read
+PASS clean#interruptedSuiteRemovesItsScratchTree
+clean#reportsWithoutApplyAndRemovesWithIt| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+clean#reportsWithoutApplyAndRemovesWithIt|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+clean#reportsTheWorktreesScratchTreesToo| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+clean#reportsTheWorktreesScratchTreesToo|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+clean#reportsWithoutApplyAndRemovesWithIt| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+clean#reportsTheWorktreesScratchTreesToo| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS clean#aConsumedChangeIsReported
+PASS clean#aSecondRunFindsNothing
+PASS clean#reportsWithoutApplyAndRemovesWithIt
+PASS clean#reportsTheWorktreesScratchTreesToo
+loop-selftest: clean 12 cases 63.93 s
+loop-selftest: all 12 cases passed (JDK 27, offline, no token, no sandbox) — 11.03 s, selection: --case clean#*
+PASS worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved
+PASS worktree#aSetAsideBranchWhosePatchesLandedIsRemoved
+loop-selftest: worktree 2 cases 1.30 s
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — 1.73 s, selection: --case worktree#aSetAside*
+2026-11-06T17:56:50Z

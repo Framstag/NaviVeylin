@@ -1,48 +1,10 @@
-2026-11-06T08:14:59Z
-PASS gate#theMapCoversEveryPipelineStep
-PASS gate#aPipelineCheckIsOwedByItsPaths
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261106-081501')
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei ffdb9a0 an engine of its own
-PASS gate#aPathACheckReadsOwesThatStepsCommandSet
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
-PASS gate#anEnginePathOwesTheRecordCheck
-PASS gate#aStepEndsWithItsCommandNotWithItsWatchers
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (19fe3c7)
-PASS gate#aStepIsBoundedAndTheOverrunNamesIt
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (5a3854d)
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| HEAD ist jetzt bei 5a3854d review: 2026-01-01-fix-demo round 1 passed (#21)
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5a3854d).
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
-PASS gate#aFailingSuiteIsReadFromTheSameStream
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| stub gh: recorded `gh issue edit`
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| closed #21 (completed)
-gate#theChildReadsTheProfileOfTheTreeItWorksIn|   landing #21 5a3854df996ccfa06773345684c631cf7a6ddac2: unscored — the pipeline runs of this commit could not be read
-PASS gate#aFailingSuiteWithNoSummaryInventsNoTest
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
-gate#theChildReadsTheProfileOfTheTreeItWorksIn|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
-PASS gate#aCompiledStepsTallyIsNotHidden
-gate#theChildReadsTheProfileOfTheTreeItWorksIn| worktree: no published main could be fetched — the sweep compares against the base the run recorded
-PASS gate#theSummaryNamesWhatEachSuiteCost
-PASS gate#anArchivedArtefactOwesNoBuild
-PASS gate#aModuleResourceOwesTheBuild
-PASS gate#theGateNamesTheProfileItRead
-PASS gate#theChildReadsTheProfileOfTheTreeItWorksIn
-PASS gate#theDeltaSelectsTheSuitesItTouches
-PASS gate#theDeltaHandsASuiteTheBaseItMeasured
-PASS gate#theDeclarationCaseIsOwedFirst
-PASS gate#aGreenLogNamesNoFailingCase
-PASS gate#aFailingCaseCarriesItsFactsAndItsRerun
-PASS gate#theSuitesOutputReachesTheConsoleWhileItRuns
-PASS gate#twoFailuresNameTheFirstAndCountTheRest
-PASS gate#aStepThatNamesNoCaseIsAttributedByItsStep
-PASS gate#theBlockStaysInsideTheRecordedBound
-PASS gate#theStepBoundIsClampedByTheCeilingTheCallerNamed
-loop-selftest: all 24 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case gate#*
+2026-11-06T08:45:18Z
 gate-group=0
-PASS driver#everyCaseDeclaresTheFilesItCanReach
+loop-selftest: all 24 cases passed (JDK 27, offline, no token, no sandbox) — selection: --case gate#*
 driver=0
-loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.r21hQ9
-loop-mutations: all 246 cases passed — every selected record applies to the file it names
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+portability=0
+check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)
 records=0
-2026-11-06T08:15:28Z
+loop-mutations: all 246 cases passed — every selected record applies to the file it names
+2026-11-06T08:45:48Z

@@ -18,21 +18,25 @@ them small, and both are needed for the item because they save different things:
    gate before the compiled step and before the suites (`tools/loop/gate.sh:185`). The matching itself is not
    duplicated: the loop that reads a pair list was extracted as `owe_pairs` (`tools/loop/gate.sh:163`) and both lists
    are read through it, so the `{base}` substitution and the trailing-newline rule stay in one place.
-2. `tools/loop/prompts/worker.md:215` — the child is told to run that same case before anything else when its diff
-   writes or narrows a declaration. The gate's order saves the gate's tail; only this saves the attempt, because a
-   `blocked` item's branch is set aside by `tools/loop/worktree.sh` and the change is worked again from the base.
+2. `tools/loop/prompts/worker.md:215` — the child is sent to the plan's first line and runs it before anything else
+   when its diff writes or narrows a declaration; the template names neither the case nor the command, because it is
+   an engine and a project value written there arrives in another project's child. The gate's order saves the gate's
+   tail; only this saves the attempt, because a `blocked` item's branch is set aside by `tools/loop/worktree.sh` and the
+   change is worked again from the base.
 
 The reach table itself is untouched: `loop_case_helper_files()` and the driver case remain its one owner, so there is no
 second derivation to drift from the case it describes.
 
 ## Blast radius
 
-- A delta that touches `tools/loop-cases.sh` owes one command more, first in the plan (~2 s measured here: the case
-  alone ran in 2 s on this tree, `evidence/green-on-change.log`). The gate's aggregate `tests=` count gains 1 for such
-  a delta, and its tally directory gains the one file that step writes.
+- A delta that touches `tools/loop-cases.sh` owes one command more, first in the plan — the item's own measurement is
+   the case alone in 10 s on `528d8e2a`; here the same step reported `time="2"` in its tally
+   (`evidence/green-on-change.xml`, the run of `tools/loop-selftest.sh --case gate#theDeclarationCaseIsOwedFirst`). The
+   gate's tally directory gains the one file that step writes, whose own `tests` attribute is `0` (the case reports a
+   `PASS` line rather than a suite child), so the aggregate `tests=` sum does not grow.
 - Every other delta is unchanged: the key's glob names one path, and an empty key is a gate with no first step (a
-  project that has no cheap check records an empty value, and `owe_pairs` returns on it).
-- The prompt gains four lines in Phase D, for every child of every project that uses this engine.
+   project that has no cheap check records an empty value, and `owe_pairs` returns on it).
+- The prompt gains eight lines in Phase D, for every child of every project that uses this engine.
 
 ## Rollback
 

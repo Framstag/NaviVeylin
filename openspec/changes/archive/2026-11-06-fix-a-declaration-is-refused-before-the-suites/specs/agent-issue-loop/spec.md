@@ -4,14 +4,11 @@
 
 ### Requirement: A step that refuses a delta in seconds is owed before the suites
 
-The profile SHALL name the steps the gate owes before its build and before its suites, in the same
-`<glob>|<command>` shape as the suite map, and the gate SHALL read them in the order the profile writes them.
-A delta that writes a case's first-line `# files:` declaration SHALL owe the case that reads that declaration
-before the suite that would otherwise refuse it at its end and before the build. The child's own verification step
-SHALL name that case and the declaration that owes it, because a gate's order saves the gate's tail while only the
-child's step saves the attempt: an attempt refused by the gate is recorded `blocked` and worked again from the base.
-The case that reads the declaration SHALL stay the one owner of the reach table; a second, cheaper derivation of the
-same reading is not this rule.
+The profile SHALL name the steps the gate owes before its build and before its suites, in the suite map's
+`<glob>|<command>` shape, read in that order. A delta that writes a case's first-line `# files:` declaration SHALL
+owe the case that reads it before the build and before the suite that would refuse it at its end. The child's step
+SHALL send it to the plan's first line, which is what saves the attempt. The case that reads the declaration SHALL
+stay the one owner of the reach table.
 
 #### Scenario: A delta that writes a declaration owes its reader first
 
@@ -20,5 +17,6 @@ same reading is not this rule.
 - **THEN** the plan's first line is
   `tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach`, before the suite the declaration narrows
   and before the profile's compiled command
-- **AND** the worker prompt names that case and the `# files:` line that makes it owed
+- **AND** the child's own step sends it to that same plan line and names no case of this project, so a project that has
+  no such case still has a step to run
 - **Case**: `gate#theDeclarationCaseIsOwedFirst`

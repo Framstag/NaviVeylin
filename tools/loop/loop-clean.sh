@@ -31,7 +31,8 @@
 # one lives in — is named by nothing at all, and this report had no arm for it (measured 2026-11-06, issue #803:
 # `.pi/worktrees/` held ten directories and one of them was the run's). A tree is judged by what it *holds*, the
 # reading a branch gets one level down: uncommitted changes, or a HEAD the base does not carry, keep it and are named
-# as the reason; anything else is named with its size and removed with `--apply`.
+# as the reason; a base or a HEAD that cannot be read leaves the same question unanswered and keeps it too; anything
+# else is named with its size and removed with `--apply`.
 #
 # Exit: 0 nothing to do, or done; 2 usage or an unusable configuration.
 #
@@ -246,8 +247,14 @@ while IFS= read -r wt_path; do
     continue
   fi
   wt_head=$(git -C "$wt_path" rev-parse --verify --quiet HEAD 2>/dev/null || true)
-  if [ -n "$wt_base" ] && [ -n "$wt_head" ] &&
-     ! git -C "$LOOP_ROOT" merge-base --is-ancestor "$wt_head" "$wt_base" 2>/dev/null; then
+  # An unreadable base or HEAD is the unknown the branch arm one screen above keeps every branch on — deleting a
+  # tree because a reading failed is how work is thrown away on a question nobody answered (issue #803, round 1).
+  if [ -z "$wt_base" ] || [ -z "$wt_head" ]; then
+    say "  kept $wt_rel — the base $(loop_base_ref) or the tree's HEAD cannot be read"
+    kept=$((kept + 1))
+    continue
+  fi
+  if ! git -C "$LOOP_ROOT" merge-base --is-ancestor "$wt_head" "$wt_base" 2>/dev/null; then
     wt_ahead=$(git -C "$LOOP_ROOT" rev-list --count "$wt_base..$wt_head" 2>/dev/null || true)
     case "$wt_ahead" in ''|*[!0-9]*) wt_ahead=1 ;; esac
     say "  kept $wt_rel — $wt_ahead commit(s) the base does not have"

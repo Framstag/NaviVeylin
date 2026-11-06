@@ -8995,11 +8995,12 @@ case_clean_sweepsOnlyWhatIsInTheBase() {
 # marker names is named by nothing at all — the report had no arm for it, which is how the per-item trees of the
 # runs that kept one tree per item accumulated unmeasured (issue #803; measured 2026-11-06, `.pi/worktrees/` held
 # ten directories and one of them was the run's). A tree is a leftover by what it *holds*, the same reading a
-# branch gets one level down: uncommitted changes are somebody's work and keep the tree, and everything else is
-# `--apply`'s — which the report names and never removes without it.
+# branch gets one level down: uncommitted changes are somebody's work and keep the tree, a base or a HEAD that
+# cannot be read keeps it for the same reason, and everything else is `--apply`'s — which the report names and never
+# removes without it.
 case_clean_reportsAWorktreeNoRunKeeps() {
   # files: tools/loop/loop-clean.sh tools/loop/worktree.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
-  local p kept leftover dirty out
+  local p kept leftover dirty unknown out
   p=$(new_project)
   init_state "$p" 1 90
   run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
@@ -9012,6 +9013,8 @@ case_clean_reportsAWorktreeNoRunKeeps() {
 
   out=$(run_clean "$p" 2>&1) || fail "the report failed: $out"
   assert_contains "$out" "${leftover#"$p"/}" "the report names the tree no run keeps"
+  assert_matches "$out" "would remove ${leftover#"$p"/} \\([0-9]+ B\\) — no run keeps it" \
+    "the tree no run keeps is named with its size"
   assert_contains "$out" "${dirty#"$p"/}" "and the tree somebody is working in"
   [ -d "$leftover" ] || fail "the report removed a worktree without --apply"
   [ -d "$dirty" ] || fail "the report removed the tree somebody is working in"
@@ -9021,6 +9024,17 @@ case_clean_reportsAWorktreeNoRunKeeps() {
   [ -d "$dirty" ] || fail "--apply removed a tree with uncommitted work"
   assert_contains "$out" "uncommitted" "the tree it keeps is named with the reason it is kept"
   [ -d "$kept" ] || fail "--apply removed the run's own worktree"
+
+  # An unreadable base is the same unknown the branch arm one screen above keeps every branch on: a tree is not
+  # "carries nothing" because the question could not be asked, so `--apply` keeps it and names the reason.
+  unknown="$p/.pi/worktrees/781"
+  git -C "$p" worktree add -b item-781 "$unknown" main >/dev/null 2>&1 || fail "could not add the third unnamed worktree"
+  out=$(LOOP_BASE_REF=no-such-base run_clean "$p" --apply 2>&1) ||
+    fail "the cleanup failed on an unreadable base: $out"
+  assert_contains "$out" "kept ${unknown#"$p"/} — the base no-such-base or the tree's HEAD cannot be read" \
+    "a tree whose base cannot be read is kept, and the reason is named"
+  [ -d "$unknown" ] || fail "--apply removed a tree it could not judge"
+  [ -d "$kept" ] || fail "--apply removed the run's own worktree on an unreadable base"
 }
 
 # The report's branch list is a flat list of names, and a name says nothing: the reader cannot tell the

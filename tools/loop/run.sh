@@ -270,6 +270,11 @@ escalate_prescreen_decisions() {
   jq -r --arg d "$decision_agent" '
     ([.items[].issue] | unique) as $handled
     | .excluded[] | select(.verdict == $d)
+    # An adoption the run itself decided — a branch whose own evidence is admissible and whose merge the tree, the
+    # base or the replay refused — is recorded with the mechanism `unmergeable` beside the exclusion and is not a
+    # question the owner owes (#794): the verdict stays the one the pre-screen read, and the mechanism is what
+    # makes the difference between it and a decision.
+    | select((.mechanism // "") != "unmergeable")
     | select((.alreadyEscalated // false) != true)
     | select(.issue as $i | ($handled | index($i)) | not)
     | [(.issue | tostring), .reason, (.evidence // "")] | @tsv
@@ -291,9 +296,15 @@ escalate_prescreen_decisions() {
 # closure path a worker's item goes through, with the branch, its commits and the evidence it was checked for
 # recorded in the run state and named in the report. A branch that does not carry that evidence is not
 # touched: its refusal and its escalation stay exactly as they were.
+# The refusal `adopt-item` printed, kept for the caller that records it (issue #794) — empty between attempts, so a
+# caller reads the refusal of the attempt it just made and never an older one.
+adoption_refusal=""
 adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not adoptable (the reason printed)
   local issue="$1" branch="$2" out merged_branch merged_commits merged_change merged_evidence
   out=$(bash "$LOOP_DIR/worktree.sh" adopt-item "$issue" "$branch" 2>&1) || {
+    # Kept for the caller that records the refusal, exactly as `merge_refusal` is kept for the run's own merge
+    # (#794): the text `adopt-item` printed is the item's record, not a line for the terminal alone.
+    adoption_refusal="$out"
     printf '%s\n' "$out"
     return "$LOOP_REFUSE"
   }
@@ -385,14 +396,26 @@ score_landings() {
 # instead of being handed to the owner.
 adopt_finished_exclusions() {
   [ "$dry_run" -eq 0 ] || return 0
-  local issue branch
+  local issue branch attempt_state
   jq -r --arg d "$decision_agent" '
     .excluded[] | select(.verdict == $d) | select((.evidence // "") | startswith("fix/issue-"))
     | [(.issue | tostring), .evidence] | @tsv
   ' "$LOOP_STATE_FILE" 2>/dev/null |
   while IFS=$'\t' read -r issue branch; do
     [ -n "$issue" ] || continue
-    adopt_finished_attempt "$issue" "$branch" >&2 || true
+    if adopt_finished_attempt "$issue" "$branch" >&2; then
+      continue
+    fi
+    # The status the loop used to discard says which refusal this was (#794). `adoptable` is the branch's own
+    # answer that nothing on it is the owner's, so what refused the merge is the tree it lands in, the base it
+    # replays onto or the replay itself — a later run finds the first clean once the dirt is gone, so the item is
+    # work and the refusal is its own result, recorded beside the exclusion. Any other state is the evidence's
+    # refusal, and exactly as before it stays the pre-screen's decision.
+    attempt_state=$(bash "$LOOP_DIR/worktree.sh" branch-state "$issue" "$branch" 2>/dev/null | cut -f1)
+    [ "$attempt_state" = adoptable ] || continue
+    loop_state adoption-refused "$issue" --reason "$adoption_refusal" >/dev/null ||
+      printf 'run: #%s — the adoption refusal could not be recorded, so its exclusion stands as the pre-screen read it\n' \
+        "$issue" >&2
   done
 }
 

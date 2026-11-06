@@ -44,6 +44,7 @@ LOOP_SHELL_CASES=(
   'state#baseBranchIsAConfigurationKey'
   'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry'
   'state#aBlockedItemNamesTheMechanismThatStoppedIt'
+  'state#anAdoptionRefusalIsRecordedBesideTheExclusion'
   'state#defaultsComeFromLoopConf'
   'state#projectKeysAreReadFromLoopConf'
   'state#agentCommandIsTheOnlyIndirection'
@@ -218,6 +219,7 @@ LOOP_SHELL_CASES=(
   'run#branchThatAppearsWhileTheRunIsOpenIsSetAside'
   'run#mergesAFinishedAttemptAndClosesTheItem'
   'run#doesNotMergeAnAttemptWithoutAGreenVerification'
+  'run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable'
   'run#mergesItsCommittedBranchBeforeClosing'
   'run#aMergedBranchIsRemoved'
   'run#theEndSweepsTheLandedBranchesItMade'
@@ -421,6 +423,7 @@ loop_run_shell_case() {
     'state#baseBranchIsAConfigurationKey') fn=case_state_baseBranchIsAConfigurationKey ;;
     'state#setBaseRefusesACommitTheBaseBranchDoesNotCarry') fn=case_state_setBaseRefusesACommitTheBaseBranchDoesNotCarry ;;
     'state#aBlockedItemNamesTheMechanismThatStoppedIt') fn=case_state_aBlockedItemNamesTheMechanismThatStoppedIt ;;
+    'state#anAdoptionRefusalIsRecordedBesideTheExclusion') fn=case_state_anAdoptionRefusalIsRecordedBesideTheExclusion ;;
     'state#defaultsComeFromLoopConf') fn=case_state_defaultsComeFromLoopConf ;;
     'state#projectKeysAreReadFromLoopConf') fn=case_state_projectKeysAreReadFromLoopConf ;;
     'state#agentCommandIsTheOnlyIndirection') fn=case_state_agentCommandIsTheOnlyIndirection ;;
@@ -596,6 +599,7 @@ loop_run_shell_case() {
     'run#branchThatAppearsWhileTheRunIsOpenIsSetAside') fn=case_run_branchThatAppearsWhileTheRunIsOpenIsSetAside ;;
     'run#mergesAFinishedAttemptAndClosesTheItem') fn=case_run_mergesAFinishedAttemptAndClosesTheItem ;;
     'run#doesNotMergeAnAttemptWithoutAGreenVerification') fn=case_run_doesNotMergeAnAttemptWithoutAGreenVerification ;;
+    'run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable') fn=case_run_anAdoptionTheTreeRefusesIsRecordedAsUnmergeable ;;
     'run#mergesItsCommittedBranchBeforeClosing') fn=case_run_mergesItsCommittedBranchBeforeClosing ;;
     'run#aMergedBranchIsRemoved') fn=case_run_aMergedBranchIsRemoved ;;
     'run#theEndSweepsTheLandedBranchesItMade') fn=case_run_theEndSweepsTheLandedBranchesItMade ;;
@@ -1632,6 +1636,56 @@ case_state_aBlockedItemNamesTheMechanismThatStoppedIt() {
   assert_eq "" "$(jq -r '.items[] | select(.issue == 23) | .stopReason // ""' "$f")" \
     "a mechanism that arrives with the second account does not fill the first record's"
   assert_eq "3" "$(jq -r '.items | length' "$f")" "and the item keeps one record"
+}
+
+# An adoption the tree refused is recorded on the pre-screen's own entry for that item, never on a record of the
+# run's — the item was not worked, so there is no block to carry the mechanism (issue #794). The writer therefore
+# keeps the verdict, the reason and the branch the pre-screen read, adds the mechanism and the refusal beside
+# them, and refuses an item that is not one of this run's exclusions or one the run has already recorded: a
+# mechanism belongs to one record, and a second one would double-count the item as two kinds of stop.
+case_state_anAdoptionRefusalIsRecordedBesideTheExclusion() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p f out status before branch
+  p=$(new_project)
+  init_state "$p" 1 90
+  branch="fix/issue-21-an-attempt"
+  printf '[{"issue":21,"class":"bug","verdict":"needs-decision","reason":"branch %s carries a commit the base does not — a previous attempt work is on it","evidence":"%s"}]' \
+    "$branch" "$branch" | run_state "$p" queue >/dev/null || fail "the pre-screen's exclusion was refused"
+  run_state "$p" adoption-refused 21 --reason "the project tree is not clean — refusing to merge $branch onto the base" \
+    >/dev/null || fail "the adoption's refusal was refused"
+  f=$(state_file "$p")
+  assert_eq "unmergeable" "$(jq -r '.excluded[] | select(.issue == 21) | .mechanism' "$f")" \
+    "the refusal is recorded as the item's mechanism"
+  assert_contains "$(jq -r '.excluded[] | select(.issue == 21) | .adoptionRefusal' "$f")" "not clean" \
+    "with the refusal's own text beside it"
+  assert_eq "needs-decision" "$(jq -r '.excluded[] | select(.issue == 21) | .verdict' "$f")" \
+    "while the verdict stays the one the pre-screen read"
+  assert_eq "$branch" "$(jq -r '.excluded[] | select(.issue == 21) | .evidence' "$f")" \
+    "and the branch stays its evidence"
+  assert_contains "$(jq -r '.excluded[] | select(.issue == 21) | .reason' "$f")" "carries a commit" \
+    "and its reason is the pre-screen's, not replaced by the adoption's"
+  # The exclusions the run did not decide for itself are still the owner's: the report prints this one with the
+  # mechanism and names no decision, and the entry it did not touch is the opposite of both.
+  assert_contains "$(run_state "$p" report)" "excluded: #21 needs-decision (unmergeable)" \
+    "the table prints the mechanism beside the exclusion"
+  # A second pre-screen is the same branch read again: the run's own record survives the rewrite of `.excluded`,
+  # so a re-screen mid-run cannot turn into an escalation what the run already recorded as work.
+  printf '[{"issue":21,"class":"bug","verdict":"needs-decision","reason":"branch %s carries a commit the base does not","evidence":"%s"}]' \
+    "$branch" "$branch" | run_state "$p" queue >/dev/null || fail "the second pre-screen's exclusion was refused"
+  assert_eq "unmergeable" "$(jq -r '.excluded[] | select(.issue == 21) | .mechanism' "$f")" \
+    "a second pre-screen keeps the mechanism the run recorded"
+  before=$(cat "$f")
+  out=$(run_state "$p" adoption-refused 99 --reason "a tree that is not clean" 2>&1); status=$?
+  assert_eq "5" "$status" "an item that is not one of this run's exclusions is refused"
+  assert_contains "$out" "not one exclusion of this run" "and the refusal says why"
+  assert_eq "$before" "$(cat "$f")" "the state is not written by it"
+  # …and an item the run has worked keeps its one record: a second one would count it as two kinds of stop.
+  run_state "$p" done 21 --result blocked --verdict blocked >/dev/null || fail "the item's own record was refused"
+  before=$(cat "$f")
+  out=$(run_state "$p" adoption-refused 21 --reason "a tree that is not clean" 2>&1); status=$?
+  assert_eq "5" "$status" "an item the run has already recorded is refused"
+  assert_contains "$out" "already has the item record" "and the refusal names the record it would double"
+  assert_eq "$before" "$(cat "$f")" "the state is not written by that one either"
 }
 
 # A child is started with the run's identity in its environment (`run_child` exports `LOOP_STATE_FILE` and
@@ -6820,6 +6874,67 @@ case_run_doesNotMergeAnAttemptWithoutAGreenVerification() {
   assert_contains "$log" "agent/needs-decision" "the previous attempt's work is escalated, not thrown away"
   assert_contains "$log" "$branch" "and the escalation names the branch"
   assert_eq "0" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "nothing is closed"
+}
+
+# An adoption's refusal is the adoption's own result, not the owner's question (#794). A branch the pre-screen
+# excluded is decided by what it carries, and its refusal has two kinds: one about the branch's own evidence —
+# no archived change of its own, no green verification, a reviewer's refusal — which is the owner's, and one
+# about the merge's inputs — the tree it lands in, the base it replays onto, the replay itself — which is the
+# loop's, because the next run finds the first clean once the dirt is gone. `adopt_finished_exclusions` printed
+# both and discarded both (`adopt_finished_attempt "$issue" "$branch" >&2 || true`), so the tracker kept only
+# the pre-screen's reading of the same branch and the item was escalated. Measured 2026-11-06 on #760: excluded
+# at 06:28Z for a branch `branch-state` read `adoptable` the whole time, whose adoption had failed on a project
+# tree that was not clean — 12 h after the owner had answered the item's only real question, and one of the ten
+# decision slots of that run.
+case_run_anAdoptionTheTreeRefusesIsRecordedAsUnmergeable() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/report.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out status branch base log
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # a previous attempt that finished: one archived change of its own, the red-on-HEAD XML beside the green gate
+  # XML — every input `adopt-item` decides on, so only the tree can refuse this branch
+  branch="fix/issue-21-previous-attempt"
+  git -C "$p" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the previous attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md"
+  printf '<testsuite tests="2" failures="1" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted-red-on-HEAD.xml"
+  printf '<testsuite tests="2" failures="0" errors="0"></testsuite>\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-adopted/evidence/TEST-adopted.xml"
+  printf 'the previous attempt\n' > "$p/adopted-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" -c user.name=selftest -c user.email=selftest@example.invalid commit -qm "fix: the previous attempt (#21)" >/dev/null 2>&1 ||
+    fail "could not commit the previous attempt"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
+  base=$(git -C "$p" rev-parse main)
+  # the tree the merge lands in carries work nobody committed: the cheapest refusal `adopt-item` has
+  printf 'work nobody committed\n' > "$p/uncommitted.txt"
+  export GH_STUB_RECORD="$p/gh.log"; : > "$GH_STUB_RECORD"
+
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1); status=$?
+  assert_eq "0" "$status" "an adoption the tree refuses is an explicit non-error"
+  assert_contains "$out" "not clean" "the refusal is printed and names the tree the merge would land in"
+  assert_eq "$base" "$(git -C "$p" rev-parse main)" "the base did not move"
+  [ ! -f "$p/openspec/changes/archive/2026-01-01-fix-adopted/proposal.md" ] ||
+    fail "the change was merged although the tree was not clean"
+  [ -n "$(git -C "$p" branch --list "$branch")" ] || fail "the branch the adoption refused was removed"
+  # the item's record names the adoption's own refusal, beside the pre-screen's reading of the same branch
+  assert_eq "unmergeable" "$(jq -r '.excluded[] | select(.issue == 21) | .mechanism' "$(state_file "$p")")" \
+    "the refusal is recorded as the item's mechanism"
+  assert_contains "$(jq -r '.excluded[] | select(.issue == 21) | .adoptionRefusal' "$(state_file "$p")")" "not clean" \
+    "and the record quotes what refused the merge, not the pre-screen's reason"
+  assert_eq "$branch" "$(jq -r '.excluded[] | select(.issue == 21) | .evidence' "$(state_file "$p")")" \
+    "the branch stays the evidence"
+  # …and the item is work, not a question: no block, no decision slot, no close
+  assert_eq "0" "$(jq -r '.items | length' "$(state_file "$p")")" "nothing is recorded as worked"
+  log=$(cat "$GH_STUB_RECORD")
+  assert_eq "0" "$(printf '%s\n' "$log" | grep -c 'agent/needs-decision' || true)" \
+    "no decision label is written for an adoption the tree refused"
+  assert_eq "0" "$(printf '%s\n' "$log" | grep -c 'issue close' || true)" "and nothing is closed"
+  assert_contains "$out" "decisions the owner owes: none" "the report names no decision the owner owes"
+  assert_contains "$out" "excluded before any work: #21 needs-decision (unmergeable)" \
+    "while the exclusion it printed names the adoption's mechanism"
 }
 
 # The kept worktree is deliberate (the next run inherits its warm checkout) and refusing a previous run's

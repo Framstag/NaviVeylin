@@ -163,7 +163,7 @@ printf '\nskipped: %s\n' "$(jq -r '[.items[] | select(.result == "skipped") | "#
 # named apart from the closures so a run that only falsified does not read as a run that delivered (openspec
 # change `falsified-items-close-in-the-loop`).
 printf 'mis-diagnosed: %s\n' "$(jq -r '[.items[] | select(.result == "falsified") | "#\(.issue) \(.metrics.rootCause // "")"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
-printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
+printf 'excluded before any work: %s\n' "$(jq -r '[.excluded[] | "#\(.issue) \(.verdict)\(if (.mechanism // "") == "" then "" else " (\(.mechanism))" end)"] | if length == 0 then "none" else join(" · ") end' "$state_file")"
 # The items a bound cut are named apart from the blocks, in the reader's own language: a round the run ended at
 # its own bound asked nobody a question, so the line says which phase was cut and what the next run resumes
 # (issue #785). A **block** the run's own bound caused is named on the same line (issue #786): its result is
@@ -173,10 +173,12 @@ printf 'cut short by the run%ss own bound: %s\n' "'" "$(jq -r '[.items[] | selec
 # The decisions the owner owes are read from what the run *wrote*, never from the verdict a worker chose:
 # an item carries the label its own escalation recorded (`state.sh done --decision-label`), and an item the
 # pre-screen excluded is escalated by that verdict's value — the one predicate run.sh repeats. Reading the
-# verdict instead said `none` while `agent/needs-decision` had just been written (issue #177).
+# verdict instead said `none` while `agent/needs-decision` had just been written (issue #177). An exclusion that
+# carries the adoption's own mechanism is the run's own result, not the owner's question (issue #794): the
+# mechanism is what `run.sh` writes when the branch is admissible and the merge's inputs refused it.
 printf 'decisions the owner owes: %s\n' "$(jq -r --arg d "$(loop_role decisionAgent)" '
   [.items[] | select((.escalatedLabel // "") != "") | "#\(.issue)"]
-  + [.excluded[] | select(.verdict == $d) | "#\(.issue)"]
+  + [.excluded[] | select(.verdict == $d and (.mechanism // "") != "unmergeable") | "#\(.issue)"]
   | if length == 0 then "none" else join(" · ") end' "$state_file")"
 
 # The branches are read from git, not from a child's report: the run's own script created them. What each
@@ -320,7 +322,7 @@ decisions() {
   jq -r --arg d "$(loop_role decisionAgent)" '
     (.items[] | select((.escalatedLabel // "") != "")
       | ["item", (.issue | tostring), .verdict, (.note // ""), (.metrics.rootCause // "")]),
-    (.excluded[] | select($d != "" and .verdict == $d)
+    (.excluded[] | select($d != "" and .verdict == $d and (.mechanism // "") != "unmergeable")
       | ["excluded", (.issue | tostring), .verdict, (.reason // ""), (.evidence // "")])
     | @tsv' "$state_file"
 }

@@ -46,6 +46,9 @@
 #                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
 #                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
 #   state.sh score-landings             # read the pipeline run each landing's own commit caused, once per landing
+#   state.sh adoption-refused <issue> --reason TEXT
+#                         # an admissible branch the tree, the base or the replay refused: the item's mechanism
+#                         # `unmergeable` beside the pre-screen's exclusion, and no decision written for it
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -337,12 +340,21 @@ cmd_queue() {
     || loop_die "queue: the queue must be a JSON array"
   # The queue, the exclusions and the per-item records arrive together: the pre-screen that produced
   # them is the run's own output, and an exclusion reported only to a console would be lost (D6).
-  local queue excluded
+  local queue excluded kept
+  # What an exclusion of this run already carries, so a second pre-screen does not erase the run's own record.
+  kept=$(jq -c '[.excluded[] | select(has("mechanism")) | {issue, mechanism, adoptionRefusal}]' "$STATE_FILE" 2>/dev/null || printf '[]')
   queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates}]')
   # The exclusion carries the one clause of evidence that produced it (the branch a previous attempt left
   # behind, or the label that states why): the run escalates the decisions among the exclusions, and it cannot
-  # cite evidence it threw away here.
-  excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) != $queued) | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false)}]')
+  # cite evidence it threw away here. What the run itself decided about an exclusion before a re-screen arrives
+  # — the mechanism `unmergeable` and the adoption's own refusal (issue #794) — is carried over: the pre-screen
+  # reads the tracker and git again, and a branch it excluded twice is the same branch, so the run must not
+  # escalate on its second reading what it recorded as work on its first.
+  excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" --argjson kept "${kept:-[]}" '[
+    .[] | select((.verdict // $queued) != $queued)
+    | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false)}
+    | . as $e | ($kept | map(select(.issue == $e.issue)) | .[0] // {}) as $d
+    | $e + (if ($d | has("mechanism")) then {mechanism: $d.mechanism, adoptionRefusal: ($d.adoptionRefusal // "")} else {} end)]')
   # An item this run has already recorded is never queued again: the pre-screen reads the tracker, and a
   # second pass over the same tracker would hand back the item the run has just finished with.
   patch_state '
@@ -721,6 +733,36 @@ child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tok
   esac
 }
 
+# The adoption of a previous attempt's branch is a command the run takes with its own inputs — the project tree
+# it lands in, the base it replays onto, the replay itself — and its refusal is not the owner's question (issue
+# #794): the branch's own evidence was admissible, so what refused it is a tree a later run finds clean once the
+# dirt is gone, and the item is the next run's work. The refusal is recorded beside the pre-screen's exclusion,
+# which keeps its verdict, its reason and the branch as evidence; the predicates that read an exclusion as a
+# question the owner owes skip an entry that carries the mechanism, so no decision slot is spent and nothing is
+# escalated. A mechanism belongs to one record (the rule `done --stop-reason` already keeps), so an item the run
+# has worked is refused here rather than recording the same stop twice.
+cmd_adoption_refused() {
+  require_state
+  local issue="${1:-}" reason=""
+  shift || true
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --reason) need_value "$@"; reason="${2:-}"; shift 2 ;;
+      --*) loop_die "adoption-refused: unknown argument $1" ;;
+      *) loop_die "adoption-refused: usage: state.sh adoption-refused <issue> --reason TEXT" ;;
+    esac
+  done
+  case "$issue" in ''|*[!0-9]*) loop_die "adoption-refused: usage: state.sh adoption-refused <issue> --reason TEXT" ;; esac
+  [ -n "$reason" ] || loop_die "adoption-refused: --reason is required — the refusal's own text is what the record quotes"
+  jq -e --argjson i "$issue" '[(.excluded // [])[] | select(.issue == $i)] | length == 1' "$STATE_FILE" >/dev/null ||
+    loop_refuse "adoption-refused: #$issue is not one exclusion of this run — the adoption's refusal is recorded on the pre-screen's own entry for it"
+  jq -e --argjson i "$issue" '[(.items // [])[] | select(.issue == $i)] | length == 0' "$STATE_FILE" >/dev/null ||
+    loop_refuse "adoption-refused: #$issue already has the item record this run wrote for it — a mechanism belongs to one record, and that one is the block's"
+  patch_state '(.excluded = [.excluded[] | if .issue == $i then . + {mechanism:"unmergeable", adoptionRefusal:$r} else . end])' \
+    --argjson i "$issue" --arg r "$reason"
+  printf 'adoption refused: #%s recorded as unmergeable — the item stays work, and no decision is written for it\n' "$issue"
+}
+
 # The table answers the run's questions on its own (#208, #211): which items were handled and how each ended —
 # `outcome` plus the item's own recorded reason when that outcome is not a closure — what each one cost in
 # clock time (the wall time `done --wall` records) and in spend (the tools it called, the tokens it used and
@@ -793,7 +835,7 @@ cmd_report() {
       [.items[] | select((.merged.branch // "") != "")
         | "#\(.issue) \(.merged.branch) · commits \(.merged.commits) · evidence \(.merged.evidence)"]
       | if length == 0 then "none" else join(" | ") end),
-    (if (.excluded | length) == 0 then "no exclusions" else "excluded: \([.excluded[] | "#\(.issue) \(.verdict)"] | join(" · "))" end)
+    (if (.excluded | length) == 0 then "no exclusions" else "excluded: \([.excluded[] | "#\(.issue) \(.verdict)\(if (.mechanism // "") == "" then "" else " (\(.mechanism))" end)"] | join(" · "))" end)
   ' "$STATE_FILE"
 }
 
@@ -867,6 +909,7 @@ case "$cmd" in
   record-change-copy) cmd_record_change_copy "$@" ;;
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
+  adoption-refused) cmd_adoption_refused "$@" ;;
   score-landings) cmd_score_landings ;;
   set-base) cmd_set_base "$@" ;;
   stop) cmd_stop "$@" ;;

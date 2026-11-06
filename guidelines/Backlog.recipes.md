@@ -659,6 +659,20 @@ minutes later adopted the branch, merged it into `main` and closed the item — 
 answered, and one the reviewer refused, is the owner's, and one that carries no round at all was never asked to
 a review (`--review off`) and stays adoptable.
 
+The adoption the run takes by itself (`adopt_finished_exclusions`) has a result of its own, and its two refusals are
+not the same fact. A branch whose own evidence does not admit it — no archived change of its own, no green
+verification record, a reviewer's refusal, a round announced and never answered — is the owner's, and the
+pre-screen records it as the decision the run escalates. A branch that **is** admissible and still cannot be
+merged is the tree's or the base's refusal: the project tree is not clean, it is on another branch, the base
+moved, the replay conflicts — every one of them a state a later run finds whole, so the item is work. The run
+records that refusal as the item's mechanism `unmergeable` beside the pre-screen's exclusion
+(`state.sh adoption-refused`, which keeps the verdict, the reason and the branch as the evidence and refuses to
+write a second mechanism onto an item the run has already recorded), escalates nothing and spends no decision
+slot, and the report prints it: `excluded: #21 needs-decision (unmergeable)`. Measured 2026-11-06 on #760: the
+pre-screen excluded an item whose branch `branch-state` read `adoptable` the whole time, the adoption had failed
+on a project tree that was not clean, and the run escalated it 12 h after its owner had answered the only question
+it had — one of that run's ten decision slots.
+
 A number a change carries is the output of a command in its record, or it is not a claim. The worker's package
 hands it the block that reads the change's own numbers — the paths, the checks the pathspec owes, the tallies the
 tree carries, the suite's declared case count with the command that printed it, the gate's own timing, and the

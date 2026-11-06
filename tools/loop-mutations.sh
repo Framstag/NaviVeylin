@@ -811,6 +811,13 @@ MUTATIONS=(
   # callers parse.
   '85.1@-@../loop-selftest.sh@driver#theSummaryNamesWhatEachGroupCost@the group figure a finished case is charged to, so the summary states a measured time and not a constant (issue #782)@s|^  group_ms\[\$case_group\]=\$(( \${group_ms\[\$case_group\]:-0} + elapsed ))$|  group_ms[$case_group]=0|'
   '85.2@-@../loop-selftest.sh@driver#theTimesFigureIsAskedForNotAssumed@the gate that keeps the per-case figure off a `PASS` line nobody asked for it on (issue #782)@s|^      if \[ "\$times" -eq 1 \]; then$|      if [ 1 -eq 1 ]; then|'
+
+  # 86.x — an adoption the tree refuses is work, not the owner's decision (issue #794). Measured 2026-11-06 on #760:
+  # the pre-screen excluded an item whose branch `branch-state` read `adoptable` the whole time, the adoption had
+  # failed because the project tree was not clean, and the run escalated the item with the pre-screen's reason —
+  # 12 h after its owner had answered the only question it had. The mutation drops the record the exclusion loop
+  # writes, so the refusal is back to a line on the terminal and the item is back to a spent decision slot.
+  '86.1@-@tools/loop/run.sh@run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable@the adoption of an admissible branch recorded beside the exclusion, so a merge the tree refused is work and not the owner.s decision (issue #794)@s|^    loop_state adoption-refused "\$issue" --reason "\$adoption_refusal" >/dev/null \|\|$|    true \|\||'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

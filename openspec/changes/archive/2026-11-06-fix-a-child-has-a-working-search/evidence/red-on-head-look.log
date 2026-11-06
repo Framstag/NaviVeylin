@@ -1,0 +1,5 @@
+look#aPathScopesTheWalkToIt|   --path walks the file it names: look: unknown argument --path: expected '0', got '2'
+--- look#aPathScopesTheWalkToIt[0] (exit 1)
+  --path walks the file it names: look: unknown argument --path: expected '0', got '2'
+FAIL look#aPathScopesTheWalkToIt
+loop-selftest: 1 of 1 cases failed

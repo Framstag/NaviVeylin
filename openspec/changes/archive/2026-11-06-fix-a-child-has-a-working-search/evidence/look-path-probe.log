@@ -1,0 +1,12 @@
+$ bash tools/look.sh "^## " --path ../outside
+look: --path stays inside the tree, and ../outside leaves it
+exit=2
+$ bash tools/look.sh "^## " --path guidelines/../outside
+look: --path stays inside the tree, and guidelines/../outside leaves it
+exit=2
+$ bash tools/look.sh "^## " --path guidelines/../guidelines/Build.md | head -1
+look: --path stays inside the tree, and guidelines/../guidelines/Build.md leaves it
+exit=0
+$ bash tools/look.sh "^## " --path guidelines/Build.md | head -1
+LOOK: 42 matches in 1 files of /home/tim/projects/NaviVeylin/guidelines/Build.md for '^## '
+at=2026-11-06T17:19:20Z

@@ -1,50 +1,10 @@
-# evidence-check — what the pointer check reported, and what was corrected
-
-Every line is a command's own output; the command is above it.
-
-## First run, as the tail found the change
-
-    $ bash tools/loop/evidence-check.sh openspec/changes/fix-gate-independent-steps-run-together --root .
-    FAIL C1 dangling §7 in openspec/changes/fix-gate-independent-steps-run-together (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
-    FAIL C1 dangling §7 ...
-    FAIL C1 dangling §7 ...
-    FAIL C2 quoted tally (the probe's summed verdict counts) is carried by no XML under ./app/build/test-results or openspec/changes/fix-gate-independent-steps-run-together/evidence
-    FAIL C2 quoted tally (the same pair, the second probe) ...
-    ok   C2 test tallies: 5 pairs confirmed, 0 exempted (not retained), 1 unparsable, 0 drift
-    ok   C3 /tmp pointers: none cited
-    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
-    ok   C5 file:line: 346 resolved and in range, 0 unresolved or ambiguous
-    ----
-    evidence-check: FAIL (5)
-
-## What the five were
-
-    $ grep -rn '§7' openspec/changes/fix-gate-independent-steps-run-together
-    ./proposal.md:29:**Owning guideline.** `guidelines/Backlog.recipes.md` §7c "The gate and its suite" — the section that states the
-    ./proposal.md:58:4. **`guidelines/Backlog.recipes.md` §7c — the rule beside its measurement.**
-    ./tasks.md:43:- [x] 4.1 `guidelines/Backlog.recipes.md` §7c "The gate and its suite": state the pool, the two lists that run
-
-Three guideline citations, not backlog `§`-issues: the check's pattern is `§[0-9]\+`
-(`tools/loop/evidence-check.sh:68`), so it read the `§7` inside `§7c` as a citation of the migration's
-`§ → issue` numbering, where no row 7 exists — the same two namespaces the archive's
-`2026-11-06-loop-suite-cost-is-reported/evidence/evidence-check.txt` names, and the same correction: the three
-pointers now name the section by file and line, `guidelines/Backlog.recipes.md`:501 "The gate and its suite".
-No claim, figure or observation changed — only the form of the three pointers.
-
-The two C2 failures were the probe's `verdict=` lines, quoted inside a fenced block in `evidence.md`:
-`PROBE pool=<n> … verdict=LOOP-GATE: tests=3 failures=0 …`. They are a throwaway repository's summed verdict, and
-its tally directory is deleted with that repository, so no XML on disk carries that summed pair. The block now
-quotes the lines whose facts are retained (the two wall clocks and each probe's `tallies=` line) and states in
-prose that both verdicts carried the three suites with no failure; the raw verdict lines stay in
-`evidence/pool-probe.log`, which is not scanned for tallies.
-
-## Second run, after the correction
-
-    $ bash tools/loop/evidence-check.sh openspec/changes/fix-gate-independent-steps-run-together --root .
-    ok   C1 §references: 0 checked, 0 exempted as archived pointers
-    ok   C2 test tallies: 3 pairs confirmed, 0 exempted (not retained), 1 unparsable, 0 drift
-    ok   C3 /tmp pointers: none cited
-    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
-    ok   C5 file:line: 344 resolved and in range, 0 unresolved or ambiguous
-    ----
-    evidence-check: PASS
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+FAIL C2 quoted tally tests=1 failures=1 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-06-fix-gate-independent-steps-run-together/evidence/evidence
+FAIL C2 quoted tally tests=1 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-06-fix-gate-independent-steps-run-together/evidence/evidence
+FAIL C2 quoted tally tests=1 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-06-fix-gate-independent-steps-run-together/evidence/evidence
+ok   C2 test tallies: 4 pairs confirmed, 1 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 81 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: FAIL (3)

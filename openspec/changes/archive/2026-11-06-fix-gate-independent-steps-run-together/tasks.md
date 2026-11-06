@@ -7,7 +7,7 @@
       file, asserting the wall clock is nearer the longest than the sum, that all three tallies carry their own
       numbers, and that the verdict carries all three. Verify: red on the base (`4d270814`) — the serial gate spends
       9 s of wall clock; log and tally in `evidence/red-on-base-independent-steps.*`.
-- [x] 1.2 Add the declaration guard to both new cases (`# files:` naming `tools/loop/gate.sh tools/loop/loop.conf
+- [x] 1.2 Add the declaration guard to each new case (`# files:` naming `tools/loop/gate.sh tools/loop/loop.conf
       tools/pi-child-events.sh tools/tooling.json`) and run `driver#everyCaseDeclaresTheFilesItCanReach` before
       anything else — the gate's plan puts that case first for a delta that writes a case (issue #792).
 
@@ -15,8 +15,9 @@
 
 - [x] 2.1 `tools/loop/loop.conf`: record `LOOP_GATE_POOL_JOBS=4` with its rationale beside
       `LOOP_GATE_STEP_MAX_SECONDS`, and say what `1` means. Verify: `gate#independentStepsRunTogether` passes with
-      the profile's value, and the same case passes with `LOOP_GATE_POOL_JOBS=1` in the profile it copies — a pool
-      of one is the serial gate.
+      the profile's value, and the third SHALL's measurement — a pool of one is the serial gate — is
+      `evidence/pool-probe.log`'s `PROBE pool=1 wall=10s rc=0`, the same three-step profile through the real gate,
+      beside `PROBE pool=3 wall=3s rc=0`. No case pins a pool of one; the probe is what stands under that SHALL.
 - [x] 2.2 `tools/loop/gate.sh`: owed entries carry the kind of the list that owed them; `start_step`, `wave_wait`
       and `finish_step` replace `run_step`'s shared `$stream`/`$status_file`/`$step_overran`; the run loop walks
       first steps alone, the build alone, the suites in a wave of at most `LOOP_GATE_POOL_JOBS`, and a wave of one
@@ -40,8 +41,9 @@
 
 ## 4. The rule beside its measurement
 
-- [x] 4.1 `guidelines/Backlog.recipes.md`:501 "The gate and its suite": state the pool, the two lists that run
-      alone, and the measured shape the red case carries. Verify:
+- [x] 4.1 `guidelines/Backlog.recipes.md`:471 — the paragraph "The steps that share nothing run together." inside
+      §7b "What an item costs, and the bounds on it" (`:212`; the pool's own line is `:477`): state the pool, the
+      two lists that run alone, and the measured shape the red case carries. Verify:
       `tools/check-doc-routes.sh` and `tools/check-doc-routes-selftest.sh` pass.
 
 ## 5. The measurement the change owes

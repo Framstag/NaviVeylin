@@ -3,8 +3,8 @@
 ## The defect, mechanically
 
 `run_step` owns five facts whose names have no step in them: `$stream`, `$follow_stop`, `$status_file`, `$step`
-and `$step_overran` (`tools/loop/gate.sh:200-215`, `tools/loop/gate.sh:232-273`). Its blocking loop
-`while [ ! -e "$status_file" ]` is the whole gate's loop, so the engine cannot express two steps at once even when
+and `$step_overran` (`tools/loop/gate.sh:216`, `:220`, `:224` at `4d270814`, all inside `run_step`, `:232`). Its
+blocking loop `while [ ! -e "$status_file" ]` (`:252`) is the whole gate's loop, so the engine cannot express two steps at once even when
 the profile owes them and nothing connects them. The consequence is not a wrong number — the numbers are right —
 it is the wall clock: the four shell suites and the build are added instead of overlapped.
 
@@ -74,8 +74,8 @@ log's shape, its exit status, its verdict line, its per-step bound and its talli
 
 ## Verification
 
-`tools/loop-selftest.sh --case 'gate#*'` — the two new cases plus the 24 existing ones, which pin the step block
-shape, the live stream, the per-step bound, the tally derivation, the overrun line and the profile line. The
-declaration guard (`driver#everyCaseDeclaresTheFilesItCanReach`) is run first, as the gate's plan puts it first for
-a delta that writes a case. `bash tools/loop-mutations.sh --check` applies the five re-anchored records. No compiled
-file changes, so no build.
+`tools/loop-selftest.sh --case 'gate#*'` — the three new cases plus the 24 existing ones (27, each `PASS` in the
+item's gate log), which pin the step block shape, the live stream, the per-step bound, the tally derivation, the
+overrun line and the profile line. The declaration guard (`driver#everyCaseDeclaresTheFilesItCanReach`) is run first,
+as the gate's plan puts it first for a delta that writes a case. `bash tools/loop-mutations.sh --check` applies the
+three re-anchored records. No compiled file changes, so no build.

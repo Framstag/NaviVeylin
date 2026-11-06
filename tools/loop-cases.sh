@@ -10811,8 +10811,10 @@ case_gate_theDeltaHandsASuiteTheBaseItMeasured() {
 # 11 cases its own `--case` selection owed and was refused by `driver#everyCaseDeclaresTheFilesItCanReach`, one path
 # token short, twelve minutes into its gate — and the attempt was recorded `blocked` with nothing archived. The same
 # case alone is 10 s (measured by the item on `528d8e2a`), so a delta that writes a declaration owes that case first,
-# before the suite that would refuse it at the end and before the build, and the child's own step names it: the gate's
-# order saves the gate's tail, the child's step saves the attempt.
+# before the suite that would refuse it at the end and before the build, and the child's own step sends it to that
+# plan line: the gate's order saves the gate's tail, the child's step saves the attempt. The prompt is asserted for the
+# pointer, never for this case's name or command — the prompt is an engine template and a case name there would order
+# another project's child to run a case that project does not have.
 case_gate_theDeclarationCaseIsOwedFirst() {
   # files: tools/loop-cases.sh tools/loop/gate.sh tools/loop/loop.conf tools/loop/prompts/worker.md tools/pi-child-events.sh tools/tooling.json
   local d p base plan first suite build compiled prompt
@@ -10844,12 +10846,15 @@ case_gate_theDeclarationCaseIsOwedFirst() {
   [ "$first" -lt "$suite" ] || fail "the declaration case is owed before the suite that refuses it: $plan"
   [ "$first" -lt "$build" ] || fail "the declaration case is owed before the build: $plan"
 
-  # And the child's own step: a worker whose diff writes a `# files:` line runs that case before it runs anything
-  # else, because a gate round is what the order above saves and the attempt is what this one saves.
+  # And the child's own step: a worker whose diff writes a `# files:` line runs the plan's first line before
+  # anything else, because a gate round is what the order above saves and the attempt is what this one saves. The
+  # prompt is an engine template, so it is asserted for the pointer to the plan and for no project value: a case name
+  # or a command written there would arrive in a foreign project's child and name work that project does not have.
   prompt=$(cat "$LOOP_PROJECT_ROOT/tools/loop/prompts/worker.md" 2>&1) || fail "the worker prompt is not readable: $prompt"
-  assert_contains "$prompt" 'driver#everyCaseDeclaresTheFilesItCanReach' \
-    "the worker's own step names the case that reads a declaration"
-  assert_contains "$prompt" '# files:' "and says what the diff writes that makes it owed"
+  assert_contains "$prompt" "plan's first line" \
+    "the worker's own step sends the child to the plan's first line"
+  assert_not_contains "$prompt" 'driver#everyCaseDeclaresTheFilesItCanReach' \
+    "and names no case of this project, which a foreign project does not have"
   return 0
 }
 

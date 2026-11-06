@@ -508,9 +508,11 @@ declaration twelve minutes into its gate — `1 of 320 cases failed`, reported b
 528d8e2a` (435 s) after `./gradlew test` (285 s) — over one path token missing from a comment, and the attempt was
 recorded `blocked` with nothing archived. The profile's `LOOP_GATE_FIRST_STEPS` has the suite map's `<glob>|<command>`
 shape and the gate reads it before the build and before every suite, so `tools/loop-cases.sh` owes
-`tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` first; the worker's own Phase D names the same
-command, because the order saves the gate's tail and only the child's step saves the attempt. Measured on `528d8e2a`:
-the case alone is 10 s.
+`tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` first. The child's own step is written the other
+way round: `tools/loop/prompts/worker.md` is an engine template, so it sends the child to the plan's first line and
+names neither this case nor this command — a project value in the template would arrive in another project's child
+and order it to run a case that project does not have — because the order saves the gate's tail and only the child's
+step saves the attempt. Measured on `528d8e2a`: the case alone is 10 s.
 
 The suite runs its cases in a bounded pool rather than one after another (issue #260). A case owns a throwaway
 repository, a scratch tree under the suite's root and a process group of its own, and shares nothing but the

@@ -212,13 +212,13 @@ to "refresh" evidence: the re-run is what destroys it, so copy the XMLs you cite
 at the moment they are produced. Never mark a task done on a cached or partial run, and never while a
 failure is open. Tests red after three focused attempts is `blocked`, not "adjust the test".
 
-**A `# files:` line is checked by the case that reads it, and that case is cheap.** A diff that adds a case
-to `tools/loop-cases.sh`, or narrows a case's first-line declaration, is refused by exactly one case,
-`driver#everyCaseDeclaresTheFilesItCanReach` — about ten seconds, and the gate's plan owes it first for such
-a delta. Run it yourself before you run anything else:
-`bash tools/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'`. The full suite is where a
-declaration one path token short otherwise arrives, twelve minutes into the gate, and the attempt that paid it
-was recorded `blocked` with nothing archived (issue #792).
+**The plan's first line is the cheapest check a delta can owe, and it goes first.** A diff that writes a case, or
+narrows the first-line `# files:` declaration that says what a case can reach, is refused by one case in seconds
+rather than by minutes of suite, and the gate's plan already puts that step first for such a delta. Ask for the
+plan (`{{GATE_CMD}} --plan --base {{BASE}}`) and run its first line before you run anything else: the suite that
+would otherwise refuse the declaration arrives at the end of the gate, and the attempt that paid for it was
+recorded `blocked` with nothing archived (issue #792). Do not write a second reading of the declaration — the one
+case that reads it stays its only owner.
 
 {{GATE_STEP}}
 

@@ -216,6 +216,7 @@ LOOP_SHELL_CASES=(
   'run#aHostWithoutThePlacementReadingIsRefused'
   'run#childWriteOutsideTheWorktreeIsNoted'
   'run#aWriterTheRunCanPlaceBlocksTheItem'
+  'run#aChildIsGivenOneScratchDirectory'
   'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem'
   'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced'
   'run#dirtyBaseRefusesTheMergeAndNamesThePath'
@@ -608,6 +609,7 @@ loop_run_shell_case() {
     'run#aHostWithoutThePlacementReadingIsRefused') fn=case_run_aHostWithoutThePlacementReadingIsRefused ;;
     'run#childWriteOutsideTheWorktreeIsNoted') fn=case_run_childWriteOutsideTheWorktreeIsNoted ;;
     'run#aWriterTheRunCanPlaceBlocksTheItem') fn=case_run_aWriterTheRunCanPlaceBlocksTheItem ;;
+    'run#aChildIsGivenOneScratchDirectory') fn=case_run_aChildIsGivenOneScratchDirectory ;;
     'run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem') fn=case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem ;;
     'run#theWorkersOwnShellWriteIsRecordedAndNotPlaced') fn=case_run_theWorkersOwnShellWriteIsRecordedAndNotPlaced ;;
     'run#dirtyBaseRefusesTheMergeAndNamesThePath') fn=case_run_dirtyBaseRefusesTheMergeAndNamesThePath ;;
@@ -6332,7 +6334,7 @@ case_run_aHostWithoutThePlacementReadingIsRefused() {
 # exclusive, and the two strict cases pin it.
 case_run_aWriterTheRunCanPlaceBlocksTheItem() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p note
+  local d p note item
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # A child that writes the project's own tree and leaves a process of its own standing there: the file is taken
@@ -6360,6 +6362,52 @@ case_run_aWriterTheRunCanPlaceBlocksTheItem() {
   note=$(jq -r '.items[0].note' "$(state_file "$p")")
   assert_contains "$note" "outside the worktree" "the reason names the tree that changed"
   assert_contains "$note" "attributed to this child" "and says the run tied the difference to this child"
+  # …and the reading decides the item **where it is taken**, not at the outcome block after a gate (issue #800): the
+  # item's steps carry the reading under the name a later reader looks it up by, and no gate child was started for
+  # work the run cannot vouch for — the price the tracker entry names was a whole item *and* its gate.
+  item=$(find "$p/.pi/issue-loop/items" -mindepth 1 -maxdepth 1 -type d | head -1)
+  assert_eq "1" "$(jq -r '[.steps[] | select(.name == "outside-write")] | length' "$(state_file "$p")")" \
+    "the reading that ended the item is recorded as a step of its own"
+  assert_contains "$(jq -r '[.steps[] | select(.name == "outside-write") | .note] | join(" | ")' "$(state_file "$p")")" \
+    "before any gate child" "and the step says the item ended at that reading"
+  assert_eq "0" "$(jq -r '[.steps[] | select(.name == "worker-gate" or .name == "pre-gate-review")] | length' "$(state_file "$p")")" \
+    "no pre-gate round and no gate child is started for an item a placed write already ended"
+  [ ! -e "$item/worker-gate-report.md" ] || fail "a gate child ran for an item a placed write already ended"
+}
+
+# A child has one place beside its change to write (issue #800): the run starts every child in the project's own
+# tree, so a write with a project-relative path lands in the tree the landing step needs clean — and "write beside
+# the change" was the only path it had. The directory is created before the child starts and named in its prompt;
+# what a child writes there is inside the item's own directory, so it is no difference in the project's tree and the
+# item keeps the outcome its work earned.
+case_run_aChildIsGivenOneScratchDirectory() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/prompts/worker.md tools/loop/prompts/worker-gate.md tools/loop/prompts/worker-tail.md tools/pi-child-events.sh tools/tooling.json
+  local d p item scratch prompt
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The child reads its own prompt the way a real child does — the scratch path is in there and nowhere else — so a
+  # prompt that names no directory, or names one the run did not create, fails here rather than in a reader's eye.
+  cat > "$d/scratch-write.sh" <<'EOF'
+case "$1" in worker*) ;; *) exit 0 ;; esac
+prompt=$(find "$LOOP_CHILD_ROOT/.pi/issue-loop/items" -name worker-prompt.md | head -1)
+scratch=$(sed -n 's/.*scratch directory[^`]*`\([^`]*\)`.*/\1/p' "$prompt" | head -1)
+if [ -z "$scratch" ]; then printf 'the prompt names no scratch directory: %s\n' "$prompt" >&2; exit 9; fi
+if [ ! -d "$scratch" ]; then printf 'the scratch directory %s does not exist\n' "$scratch" >&2; exit 9; fi
+printf 'notes\n' > "$scratch/notes.txt"
+EOF
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
+    "case \"\$1\" in worker*) bash '$d/scratch-write.sh' \"\$1\" ;; esac"
+  run_loop "$p" --items 1 --minutes 90 --review on >/dev/null 2>&1 || fail "the run itself failed"
+  item=$(find "$p/.pi/issue-loop/items" -mindepth 1 -maxdepth 1 -type d | head -1)
+  prompt="$item/worker-prompt.md"
+  scratch=$(sed -n 's/.*scratch directory[^`]*`\([^`]*\)`.*/\1/p' "$prompt" | head -1)
+  [ -n "$scratch" ] || fail "the worker's prompt names no scratch directory"
+  assert_contains "$scratch" "$item" "the scratch directory lies inside the item's own directory"
+  assert_eq "notes" "$(cat "$scratch/notes.txt" 2>/dev/null || true)" \
+    "the directory existed while the child ran, and what it wrote there is still there"
+  assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
+    "a write into the child's own scratch is no difference in the project's tree"
+  assert_eq "closed" "$(jq -r '.items[0].verdict' "$(state_file "$p")")" "the item closes on its own work"
 }
 
 case_run_aPeerWriteWhileAChildStandsDoesNotDecideTheItem() {

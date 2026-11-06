@@ -27,6 +27,10 @@ you get: everything else you need is in the tree.
   `cd` into the change root and run every command there; the project's own tree is not yours to write.
 - prepared work package: `{{WORK_PACKAGE}}`
 - evidence directory (write your evidence here): `{{EVIDENCE_DIR}}`
+- scratch directory (the one place beside your change your writes may land): `{{SCRATCH_DIR}}` — it exists before you
+  start. A write with a **relative path** lands in the project's own tree, not in the change root, because your
+  working directory is the project: a file you meant to leave beside the change is one the project's tree is then
+  dirty with at the landing step. Write such a file here instead.
 - the run's base commit: `{{BASE}}`
 - the project's gate command: `{{GATE_CMD}}`
 - the project's measuring command: `{{MEASURE_CMD}}`

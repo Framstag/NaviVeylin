@@ -23,6 +23,9 @@ gate it ran printed, and then its closing answer, which carries the gate line be
 - the root cause it named: `{{ROOT_CAUSE}}`
 - the red test it produced: `{{RED_TEST}}`
 - evidence directory (write your copy here): `{{EVIDENCE_DIR}}`
+- scratch directory (the one place beside the change your writes may land): `{{SCRATCH_DIR}}` — it exists before you
+  start. A write with a **relative path** lands in the project's own tree, not in the change root, because your
+  working directory is the project.
 - the run's base commit: `{{BASE}}`
 - the skills this project wants you to use: `{{WORKER_SKILLS}}`
 

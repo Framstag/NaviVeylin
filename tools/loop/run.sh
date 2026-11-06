@@ -1661,6 +1661,7 @@ tail_after_gate() { # tail_after_gate <gate report> <tail prompt> <tail report> 
   } > "$output" 2>/dev/null || : > "$output"
   render_prompt "$LOOP_DIR/prompts/worker-tail.md" "$prompt" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+    "SCRATCH_DIR=${scratch_dir:-$item_dir/scratch}" \
     "BASE=$base" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" "GATE_CLAIM=$gate" "GATE_OUTPUT=$output" \
     "CHANGE_NAME=${change_name:--}" "TASKS_PATH=$tasks" "ROOT_CAUSE=$root_cause" "RED_TEST=$red_test"
   tail_started=1
@@ -1931,6 +1932,12 @@ while true; do
 
   item_dir="$stage_dir/items/$issue"
   mkdir -p "$item_dir"
+  # The one place beside its change a child may write (issue #800): `run_child` starts every child in the project's
+  # own tree, so a write with a project-relative path lands in the tree the landing step needs clean, and writing
+  # beside the change was the only path a child had. It is created before the prompt that names it is rendered, so
+  # the directory a child reads out of its prompt is one that exists.
+  scratch_dir="$item_dir/scratch"
+  mkdir -p "$scratch_dir"
   # What the run copied into the worktree, beside the item's other evidence: the source directory, the file count and
   # the bytes are the run's own record of the preparation, and `loop-clean.sh` reports the source from the state.
   if [ -n "$item_change" ] && [ -f "$LOOP_STATE_FILE" ]; then
@@ -1967,6 +1974,7 @@ while true; do
   render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \
     "GATE_STEP=$(gate_step_text "$pre_gate")" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+    "SCRATCH_DIR=$scratch_dir" \
     "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
     "CLASS=$class" "PROPOSE_CLASS=$propose_class"
 
@@ -1986,6 +1994,20 @@ while true; do
   worker_write_note="$outside_write_note"
   worker_write_decides=0
   outside_write_decides && worker_write_decides=1
+  # A write the run can place decides the item **where it is read** (issue #800): recorded here, beside the reading
+  # that took it and before the pre-gate round or a gate child is started, because an item whose change stands in a
+  # tree the run cannot vouch for is not one a gate result would be evidence about. The reading is the worker's own;
+  # the gate child's and the tail child's are recorded under names of their own further down.
+  if [ -n "$worker_write_note" ]; then
+    if [ "$worker_write_decides" -eq 1 ]; then
+      loop_state step A --name outside-write --status ok \
+        --note "the item ends at this reading, before any gate child: $worker_write_note" >/dev/null 2>&1 || true
+      progress note "the item ends at this reading, before any gate child: $worker_write_note"
+    else
+      loop_state step A --name outside-write --status ok --note "$worker_write_note" >/dev/null 2>&1 || true
+      progress note "$worker_write_note"
+    fi
+  fi
   # The child that ran the gate, and the report its result is read from: the item's change child, unless the run
   # deferred the gate to a child of its own below (issue #758).
   gate_report="$item_dir/worker-report.md"
@@ -2105,6 +2127,7 @@ while true; do
         # there are any, and it decides nothing the change child already decided.
         render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt.md" \
           "ISSUE=$issue" "CHANGE_ROOT=$worktree" "EVIDENCE_DIR=$item_dir" "BASE=$base" \
+          "SCRATCH_DIR=$scratch_dir" \
           "GATE_CMD=$LOOP_GATE_CMD" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
           "CHANGE_NAME=${change_diff_ready:--}" "CHANGE_ANSWER=$(report_field "$gate_report" LOOP-CHANGE)" \
           "ROOT_CAUSE=$(report_field "$gate_report" LOOP-ROOT-CAUSE)" \
@@ -2260,13 +2283,9 @@ while true; do
   # #286): the tree it measures is one the run's own landings fast-forward in the project and a peer session
   # writes too, so two readings of it are not evidence about the one child the run started. A write the in-time
   # reading tied to this child's own tree — or any difference at all, when the run declared the tree exclusive
-  # (`--strict-outside-write yes`) — is evidence, and decides.
-  if [ -n "$worker_write_note" ] && [ "$worker_write_decides" -eq 0 ]; then
-    loop_state step A --name outside-write --status ok --note "$worker_write_note" >/dev/null 2>&1 || true
-    progress note "$worker_write_note"
-  fi
-  # …and the gate child's reading, under a name of its own when the run deferred the gate to one (issue #758): the
-  # step a later reader looks a difference up by must name the child it belongs to.
+  # (`--strict-outside-write yes`) — is evidence, and decides. The worker's own reading was recorded where it was
+  # taken (issue #800); what is left here is the gate child's and the tail child's, each under a name of its own —
+  # the step a later reader looks a difference up by must name the child it belongs to (issue #758, #744).
   if [ "$gate_child" = "gate worker" ] && [ -n "$gate_write_note" ] && [ "$gate_write_decides" -eq 0 ]; then
     loop_state step A --name outside-write-gate --status ok --note "$gate_write_note" >/dev/null 2>&1 || true
     progress note "$gate_write_note"

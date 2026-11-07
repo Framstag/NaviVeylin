@@ -13742,6 +13742,7 @@ EOF
 # therefore gated without the dependency root and failed at configuration, in 21 s, having executed no test; the
 # red is indistinguishable from a real one and arrives faster than a working gate, which is the trap.
 case_gate_runsUnderTheWorktreeEnvironment() {
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
   local d p conf base out
   d=$(scratch); p=$(new_project)
   conf="$d/gate.conf"

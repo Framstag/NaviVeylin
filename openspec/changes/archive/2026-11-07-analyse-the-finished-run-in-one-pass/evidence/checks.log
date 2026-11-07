@@ -1,0 +1,14 @@
+== structural checks (no compiled file is touched by this change)
+2026-11-07T07:53:23Z
+-- bash tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 7 skill references resolve
+exit=0
+-- bash tools/check-todo-references.sh
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 9552 file(s) excluded by the allowlist above
+exit=0
+-- bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 24 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit=0

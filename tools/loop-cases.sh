@@ -1623,10 +1623,14 @@ exec "$LOOP_FIXTURES/pi" "\$@"
 EOF
   chmod +x "$wrapper"
   : > "$d/agent.log"
-  # the seam is a configuration key, so the case sets it where the loop reads it
+  # the seam is a configuration key, so the case sets it where the loop reads it — and blanks the per-role keys
+  # beside it, because this case is about the one command every role falls back to: a project that has put its
+  # reviewer on a model of its own (`LOOP_AGENT_CMD_REVIEWER`, say) must not turn this case red, and a fixture that
+  # inherited that key would be asserting the fallback through a child that never took it.
   local conf
   conf="$d/loop.conf"
-  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$wrapper --print\"|" "$LOOP_CONF" > "$conf"
+  sed -e "s|^LOOP_AGENT_CMD=.*|LOOP_AGENT_CMD=\"$wrapper --print\"|" \
+      -e 's|^\(LOOP_AGENT_CMD_[A-Z_]*\)=.*|\1=""|' "$LOOP_CONF" > "$conf"
   export LOOP_CONF="$conf"
   run_one_item "$p" "$d" >/dev/null || fail "the run failed with a substituted agent command"
   # every child — the worker phase's two children and the reviewer — went through the configured value

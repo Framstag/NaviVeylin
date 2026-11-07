@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The two red cases of this change, transcribed: both runners are shell suites and write no JUnit XML, so this
+     file carries what `tools/loop-selftest.sh` and `tools/issue-tooling-selftest.sh` printed on the base
+     `76fbe7eaca3e77e398fecb37b957fa798f1e161f` before any production line of the change existed
+     (2026-11-07T19:56:29Z). The runners' own transcripts are `red-close-tooling.log` and `red-labels-loop.log`. -->
+<testsuites tests="2" failures="2" errors="0" timestamp="2026-11-07T19:56:29Z">
+  <testsuite name="issue-tooling" tests="1" failures="1" errors="0">
+    <testcase name="close#refusesAClosureTheBaseDoesNotCarry" classname="issue-tooling">
+      <failure>a closure naming a commit the base does not carry is a policy refusal: close: unknown argument --landed: expected '3', got '2'</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="loop" tests="1" failures="1" errors="0">
+    <testcase name="labels#closeRefusesACommitTheBaseDoesNotCarry" classname="loop">
+      <failure>a closure whose commit the base does not carry is a policy refusal: loop: labels: unknown argument --landed: expected '3', got '2'</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

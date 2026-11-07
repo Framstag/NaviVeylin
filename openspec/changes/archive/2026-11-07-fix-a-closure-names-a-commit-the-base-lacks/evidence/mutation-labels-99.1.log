@@ -1,0 +1,5 @@
+RED    99.1  labels#closeRefusesACommitTheBaseDoesNotCarry   (the loop asking the base branch before it settles the item, so the state write lands and the closure is refused after it — the item reads settled on a fix the tree does not have, which no later run revisits (issue #715))
+       2026-11-07T20:00:06Z — a refused closure wrote to the tracker: gh issue edit 21 --add-label status/fixed-by --remove-label agent/in-progress --remove-label status/retired
+restore 99.1 labels#closeRefusesACommitTheBaseDoesNotCarry green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

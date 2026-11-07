@@ -1,0 +1,3 @@
+PASS labels#writesOnlyBetweenChildren
+loop-selftest: labels 9 cases 41.53 s
+loop-selftest: all 9 cases passed (JDK 27, offline, no token, no sandbox) — 8.71 s, selection: --group labels

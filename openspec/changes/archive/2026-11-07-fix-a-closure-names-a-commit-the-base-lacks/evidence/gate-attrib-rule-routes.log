@@ -1,0 +1,68 @@
+# tools/check-rule-routes.sh — the failing gate step's inputs, base 76fbe7eaca3e77e398fecb37b957fa798f1e161f -> HEAD c841ad9f (this change)
+# taken from git, not from a second measurement of the check
+
+## invariant 2 (rule reached by no glob) reads exactly two inputs
+# (a) the map and the five documents that carry the six failing rules:
+
+$ git diff --stat 76fbe7ea..HEAD -- tools/doc-routes.json guidelines/MapCar.md guidelines/UICar.md guidelines/UIPhone.md guidelines/UI.md
+-> no output: byte-identical between base and HEAD
+
+# tools/tooling.json carries the map path (`docRoutes`) — its whole diff:
+$ git diff 76fbe7ea..HEAD -- tools/tooling.json
+diff --git a/tools/tooling.json b/tools/tooling.json
+index 8cee41a1..9bd00e2b 100644
+--- a/tools/tooling.json
++++ b/tools/tooling.json
+@@ -2,6 +2,7 @@
+   "profile": 1,
+   "comment": "THE PROJECT PROFILE — the one file a second project adapts. Every project-specific fact the issue tooling needs lives here: the repository, who may authorise work, the label vocabulary, the source renames and the input bounds. Nothing under tools/issues/*.sh, tools/issues/import.sh or tools/issues/core/*.java names a project value; those files read this profile at run time (design D11).",
+   "repo": "Framstag/NaviVeylin",
++  "baseBranch": "main",
+   "docRoutes": "tools/doc-routes.json",
+   "checks": {
+     "comment": "THE PROJECT CHECKS — the paths of checks another tool may run, by name, so the tooling never hard-codes a path into an engine (`tools/check-portability.sh`). `changeReady` is the readiness checker a tier-B finding must pass before it is filed: `tools/check-change-readiness.sh` (capability `change-readiness`). An EMPTY value is a declaration that this project has no readiness check — and then the filing path refuses a tier-B finding with `gate-not-configured` rather than filing it unchecked. A path that is not there is refused the same way.",
+-> one added key, `baseBranch`; `docRoutes` untouched
+
+# (b) the `**Rule: <name>**` extraction over guidelines/*.md — the diff of the one guideline document this change edits:
+$ git diff 76fbe7ea..HEAD -- guidelines/Backlog.md
+diff --git a/guidelines/Backlog.md b/guidelines/Backlog.md
+index 58b621f2..62981d25 100644
+--- a/guidelines/Backlog.md
++++ b/guidelines/Backlog.md
+@@ -110,6 +110,7 @@ carry preferences.
+ | I16 | A state transition replaces the item's state: one item carries exactly one value of the state namespace | the write path reads the item and removes every displaced value in the same edit; one shared scan (`tools/issues/lib.sh`), and the case `update#statusReplacesTheOldStatus` | an item carries two `status/*` labels, or a transition leaves the old value behind — the loop's own matrix case names the displaced label, so a verdict that only adds one fails there |
+ | I17 | An unreachable tracker is not an answer: a transport failure yields no verdict about an item, its author or a decision | one seam (`tools/issues/lib.sh`, `issues_login`) every `gh` call goes through, and a status of its own — `75` — that no path reads as allow, as refuse or as cleared; the guard's identity step and `policy.sh preflight` both branch on it | an outage is recorded as `author-not-allowlisted`, as "nothing to do", or as a cleared condition |
+ | I18 | A settled state is a claim about the item's premise, and a routine write does not remove it: a hold says something about a run's capacity, and the second claim SHALL NOT erase the first | the write path reads the profile's `roles.settledStatuses` and refuses a displacement that names no transition (exit 3, `status-settled`) — `update.sh --displace-settled` names it, and the three verbs whose purpose the transition is, a closure, a reopen and the loop's own `close` verdict (`tools/loop/labels.sh`), pass it; cases `update#refusesToDisplaceASettledState`, `labels#closeNamesTheSettledTransition` | a verdict's hold or a resolver's park removes `status/fixed-by` or `status/retired`, or a call that displaces a settled state and says so is refused instead of landing |
++| I19 | A settled fix is a claim about the base branch, not about a branch: a completed closure SHALL name the commit its claim rests on and SHALL be refused unless the base branch carries it | `close.sh --landed` reads the commit against the profile's `baseBranch` (`git merge-base --is-ancestor`) before the first write, and the loop asks the same question before its own `status/fixed-by` write (`loop_landed_on_base`, `tools/loop/labels.sh`); cases `close#refusesAClosureTheBaseDoesNotCarry`, `labels#closeRefusesACommitTheBaseDoesNotCarry`; mutations `tools/close-mutations.json` A1.6, `tools/loop-mutations.sh` 99.1 | an item reads `status/fixed-by` while its commit is only on a branch the base never received, or a closure naming a commit the base carries is refused |
+ 
+ ## 5. Who may write what
+ 
+-> one added invariant-table row (I19), no `-` line, no `**Rule:` token added or removed
+$ git diff 76fbe7ea..HEAD -- guidelines/ | grep -c -F "+**Rule:"
+added **Rule: lines: 0
+
+## every one of the six failing rules is present, unchanged, in the base copy of its document
+Backlog.md   "the queue reads the whole labelled set"           -> base count:
+1
+MapCar.md    "the navigation surface's app-drawn elements"      -> base count:
+1
+UICar.md     "a failed reroute is reported on the map surface"  -> base count:
+1
+UICar.md     "while navigation is active the wait is drawn"     -> base count:
+1
+UIPhone.md   "the rows' words come from the surface's resources" -> base count:
+1
+UI.md        "the car's reroute wait is a surface strip"        -> base count:
+1
+
+## the failing step's own output, as the gate printed it (gate-full.log lines 1596-1605)
+gate: tools/check-rule-routes.sh
+::error file=tools/doc-routes.json::the rule "the queue reads the whole labelled set, and refuses one it could not cover." in Backlog.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "the navigation surface's app-drawn elements are the compass rose, the speed badge and speed-limit sign, the attribution, the map-unavailable notice and the calculation strip." in MapCar.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "a failed reroute is reported on the map surface." in UICar.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "while navigation is active the wait is drawn, never pushed." in UICar.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "the rows' words come from the surface's resources." in UIPhone.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "the car's reroute wait is a surface strip, the phone's is a card tint." in UI.md is reached by no glob — a rule no change is told to obey
+check-rule-routes: 0 glob(s) match no tracked path, 6 rule(s) are reached by no glob, 0 rule(s) state no name
+check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match
+gate: tools/check-rule-routes.sh — 2s

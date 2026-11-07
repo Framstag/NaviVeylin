@@ -1,0 +1,5 @@
+labels#closeRefusesACommitTheBaseDoesNotCarry|   a closure whose commit the base does not carry is a policy refusal: loop: labels: unknown argument --landed: expected '3', got '2'
+--- labels#closeRefusesACommitTheBaseDoesNotCarry[0] (exit 1)
+  a closure whose commit the base does not carry is a policy refusal: loop: labels: unknown argument --landed: expected '3', got '2'
+FAIL labels#closeRefusesACommitTheBaseDoesNotCarry
+loop-selftest: 1 of 1 cases failed

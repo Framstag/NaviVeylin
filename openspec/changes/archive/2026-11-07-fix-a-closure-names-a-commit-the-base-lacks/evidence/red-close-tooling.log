@@ -1,0 +1,2 @@
+  a closure naming a commit the base does not carry is a policy refusal: close: unknown argument --landed: expected '3', got '2'
+FAIL close#refusesAClosureTheBaseDoesNotCarry

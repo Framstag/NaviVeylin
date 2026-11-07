@@ -1,0 +1,4 @@
+PASS check#unrankedIsNotAViolation
+PASS check#selfCheckIsGreen
+PASS prioritise#recordsOutgrowOneArgument
+issue-tooling-selftest: all 164 cases passed (JDK 27, offline, no token, HEAD 76fbe7ea, tools d68b800a0ee3, 2026-11-07T19:58:54Z)

@@ -7335,8 +7335,9 @@ case_run_staleTestResultsAreNotThisChildsGate() {
 # The merge lands in the project's own tree, where the base branch is checked out, so a tree that is not clean at
 # the moment of the closure refuses it. A run that read that refusal as a closure would write `status/fixed-by`
 # about a fix only the branch has — the defect #229 reported, with the run's own child as the cause of the dirt.
-# Here the dirt is a person's and is there before the run starts, so no write of the run's is being blamed: the
-# tree is simply not one the merge may land in, and the item stays open with its branch named (issue #229).
+# The dirt is the child's and arrives while the run is live (a tree dirty at start is refused by the start-time
+# pre-flight, #798), so what this case measures is the landing step's refusal and that no closure is written over
+# it — the item stays open with its branch named (issue #229).
 case_run_doesNotCloseOnAMergeTheBaseCannotTake() {
   # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
   local d p base branch log

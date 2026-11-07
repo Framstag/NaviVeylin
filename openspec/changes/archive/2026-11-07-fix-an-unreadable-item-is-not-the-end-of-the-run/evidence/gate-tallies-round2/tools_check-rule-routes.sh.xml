@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-rule-routes.sh" tests="0" failures="0" errors="1" time="1">
+  <system-out>::error file=tools/doc-routes.json::the rule "the car's reroute wait is a surface strip, the phone's is a card tint." in UI.md is reached by no glob — a rule no change is told to obey check-rule-routes: 0 glob(s) match no tracked path, 6 rule(s) are reached by no glob, 0 rule(s) state no name check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob </system-out>
+</testsuite>

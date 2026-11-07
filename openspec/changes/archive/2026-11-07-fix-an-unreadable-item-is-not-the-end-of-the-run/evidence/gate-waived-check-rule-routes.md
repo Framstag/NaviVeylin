@@ -93,3 +93,47 @@ the mutation self-tests, the issue tooling, `tools/check-doc-routes.sh`
 `tools/check-openspec-hygiene.sh` (`evidence/hygiene.log`) and `tools/check-portability.sh` all green. The red case
 `run#anUnreadableItemIsNotTheEndOfTheRun` fails on HEAD (`evidence/red-on-HEAD.xml`, `tests="1" failures="1"`,
 2026-11-07T22:07:39Z) and passes on the change (`evidence/green-on-change.log`).
+
+## Round 2 — the gate this round ran
+
+The round that refused the change asked for corrections, and this round's session runs the item's one gate itself
+(`tools/loop/prompts/worker.md`'s `{{GATE_STEP}}` is the gate-own shape on a rework round: the refusal came *after* a
+gate, so there is nothing left to read before one). `./tools/loop/gate.sh` ran once, over the corrected tree:
+
+```
+LOOP-GATE: tests=951 failures=0 errors=1 (25 steps; no compiled step owed) — failing: tools/check-rule-routes.sh
+```
+
+The sum is transcribed from the 25 tallies of that run, each kept beside this file in `evidence/gate-tallies-round2/`
+and written once into `evidence/gate-sum-round2.xml` (`tests="951" failures="0" errors="1"`); the gate's own output is
+`evidence/gate-tail-output-round2.txt`.
+
+The one `errors=` is the same step and the same six rules. Its `::error` lines in this gate are **byte-identical** to
+the archived red-before log (`evidence/check-rule-routes-red-before.log`) and to the six lines quoted above —
+compared with `diff` over the sorted `::error` lines of this gate's output and that log: no difference. The step's
+inputs all predate this round's edits (`stat`):
+
+```
+2026-11-06 22:58:38 guidelines/UIPhone.md
+2026-11-07 01:35:10 tools/doc-routes.json
+2026-11-07 13:12:04 guidelines/MapCar.md
+2026-11-07 13:12:04 guidelines/UICar.md
+2026-11-07 13:12:04 guidelines/UI.md
+2026-11-07 21:31:12 guidelines/Backlog.md
+   … this round's edits: 23:48:44 guidelines/Backlog.recipes.md, 23:48:44 tools/loop-cases.sh,
+     23:48:44 tools/loop-mutations.sh, 23:49:40 tools/loop/run.sh (the restore of the mutation run) …
+   … this round's gate: the from-git step's tally written 23:57:50, the step's own tally 23:58:24 …
+```
+
+The four tracked files this round edits are the same four the first round edited — `guidelines/Backlog.recipes.md`
+(section 7d's paragraph), `tools/loop/run.sh` (the arm's comment), `tools/loop-cases.sh` (the case's comment and one
+assertion message) and `tools/loop-mutations.sh` (record 100.1) — plus this change directory. None is
+`guidelines/UI.md`, `guidelines/MapCar.md`, `guidelines/UICar.md`, `guidelines/UIPhone.md`,
+`guidelines/Backlog.md` or `tools/doc-routes.json`, so the red is this tree's, not this change's.
+
+What the same gate measured for this change in round 2: `tools/loop-selftest.sh --from-git
+a3cefa934793b341e0d9290034a39b482e4e93dc` at `tests=370 failures=0`
+(`evidence/gate-tallies-round2/tools_loop-selftest.sh_--from-git_a3cefa934793b341e0d9290034a39b482e4e93dc.xml`),
+taken over the corrected tree (every edit of this round is older than that step's tally), and the mutation record
+100.1 in the same gate's `bash tools/loop-mutations.sh --check` step
+(`evidence/gate-tallies-round2/bash_tools_loop-mutations.sh_--check.xml`, `tests=286 failures=0 errors=0`).

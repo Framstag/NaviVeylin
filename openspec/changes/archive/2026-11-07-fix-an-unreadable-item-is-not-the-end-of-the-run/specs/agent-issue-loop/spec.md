@@ -7,9 +7,11 @@
 A read of the item a run is about to work SHALL be read the way the pre-screen reads the same seam's same failure:
 as an *unknown* about that item, never as a verdict about the run. When the read fails, the run SHALL record the
 item — `blocked`, with the verdict `unreadable` and the CLI's own words — and SHALL continue with the next candidate
-in its queue, and SHALL NOT end on that read. The failure it records is the one the seam has already retried and
-already reported as `tracker-unreachable`, so a tracker that answers nothing SHALL still end the run, through the
-blocked pair the run's own `next` reads, and never through the first item's socket.
+in its queue, and SHALL NOT end on that read. The failure it records is the one the seam handed back — a refusal the
+seam passes through without retrying, or a transport failure it retried and reported as `tracker-unreachable` — and such
+a record is a refusal, so a tracker that answers nothing SHALL still end the run, through the refusal streak the run's
+own `next` reads (`LOOP_REFUSAL_STREAK_STOP`, `tools/loop/loop.conf`; 4 in this tree), and never through the first
+item's socket.
 
 #### Scenario: An unreadable item is recorded and the queue moves on
 

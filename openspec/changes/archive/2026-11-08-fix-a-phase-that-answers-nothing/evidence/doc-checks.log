@@ -1,0 +1,25 @@
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 9 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 7 skill references resolve
+
+$ tools/check-todo-references.sh
+  tools/issues/import/todo-md.sh                           the source adapter: the old record is its subject, not an instruction
+  tools/issues/core/TodoAdapter.java                       the adapter half of that grammar
+  tools/issues/core/TodoSections.java                      that grammar
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 10112 file(s) excluded by the allowlist above
+
+$ tools/check-rule-routes.sh
+::error file=tools/doc-routes.json::the rule "a failed reroute is reported on the map surface." in UICar.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "while navigation is active the wait is drawn, never pushed." in UICar.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "the rows' words come from the surface's resources." in UIPhone.md is reached by no glob — a rule no change is told to obey
+::error file=tools/doc-routes.json::the rule "the car's reroute wait is a surface strip, the phone's is a card tint." in UI.md is reached by no glob — a rule no change is told to obey
+check-rule-routes: 0 glob(s) match no tracked path, 6 rule(s) are reached by no glob, 0 rule(s) state no name
+check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match
+
+$ openspec validate fix-a-phase-that-answers-nothing --strict
+Change 'fix-a-phase-that-answers-nothing' is valid

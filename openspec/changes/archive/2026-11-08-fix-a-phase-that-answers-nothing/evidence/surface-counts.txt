@@ -1,0 +1,39 @@
+# The surface, counted before the change was applied
+
+The two `tools/look.sh` readings were taken on the base `8280d8aa`, before this change wrote a line: afterwards the
+change's own `proposal.md`, `design.md`, spec delta and this file carry the phrases the patterns name, so a re-run
+counts them too. The two counts below are readings of the tree, not of this file.
+
+```
+$ tools/look.sh 'no archived change appears'
+LOOK: 10 matches in 5 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'no archived change appears'
+LOOK-FILE: tools/loop/run.sh 2
+LOOK-FILE: tools/loop-cases.sh 4
+LOOK-FILE: tools/loop-mutations.sh 2
+LOOK-FILE: openspec/changes/archive/2026-11-02-fix-the-gate-ends-the-child-that-ran-it/proposal.md 1
+LOOK-FILE: openspec/changes/archive/2026-11-02-fix-the-gate-ends-the-child-that-ran-it/design.md 1
+```
+
+```
+$ tools/look.sh 'answer_complete'
+LOOK: 29 matches in 11 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop for 'answer_complete'
+```
+
+The same two readings over the change's tree are 18 matches in 10 files and 34 matches in 15 files — the difference is
+this change's own prose, its spec delta, its case and this file.
+
+# The counts a reviewer can re-run and get the same answer
+
+```
+$ bash tools/loop-selftest.sh --list | wc -l
+371
+```
+
+370 on the base: this change adds one case, `run#aPhaseThatAnswersNothingIsThatPhasesFailure`.
+
+```
+$ bash tools/loop-mutations.sh --check | tail -1
+loop-mutations: all 287 cases passed — every selected record applies to the file it names
+```
+
+287 with this change's record 101.1; 286 on the base.

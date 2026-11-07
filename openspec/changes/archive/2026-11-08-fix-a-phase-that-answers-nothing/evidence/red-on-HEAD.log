@@ -1,0 +1,5 @@
+run#aPhaseThatAnswersNothingIsThatPhasesFailure|   and is asked once more when its answer is not an answer: expected '1', got '0'
+--- run#aPhaseThatAnswersNothingIsThatPhasesFailure[0] (exit 1)
+  and is asked once more when its answer is not an answer: expected '1', got '0'
+FAIL run#aPhaseThatAnswersNothingIsThatPhasesFailure
+loop-selftest: 1 of 1 cases failed

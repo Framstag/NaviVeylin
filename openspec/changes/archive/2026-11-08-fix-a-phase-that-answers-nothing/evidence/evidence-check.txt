@@ -1,0 +1,53 @@
+# evidence-check — what the pointer check reported, and what was corrected
+
+Every line is a command's own output; the command is above it. Run from the change root
+`/home/tim/projects/NaviVeylin/.pi/worktrees/loop`, in phase F, before the archive.
+
+## First run, as the tail found the change
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-phase-that-answers-nothing --root .
+    FAIL C1 dangling §7 in openspec/changes/fix-a-phase-that-answers-nothing (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    (the same line twice more)
+    FAIL C2 quoted tally tests=953 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/fix-a-phase-that-answers-nothing/evidence
+    ok   C2 test tallies: 2 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    FAIL C5 openspec/changes/fix-a-phase-that-answers-nothing/proposal.md:94 points past the end of ./openspec/changes/fix-a-phase-that-answers-nothing/proposal.md (93 lines)
+    ok   C5 file:line: 354 resolved and in range, 8 unresolved or ambiguous
+    ----
+    evidence-check: FAIL (5)
+
+## What the five were
+
+Three C1s: `§7d` in `tasks.md:47`, `design.md:67` and `proposal.md:56`. Each is a **guideline section**, not a
+backlog `§`-issue: `guidelines/Backlog.recipes.md:719` "Refusals, records and the landing". The check's pattern is
+`§[0-9]\+` (`tools/loop/evidence-check.sh:68`), so it read the `§7` inside `§7d` as a citation of the migration's
+`§ → issue` numbering, where no row 7 exists — two namespaces the check does not tell apart, and the same class the
+archived changes `2026-11-06-fix-an-adoption-the-tree-refuses-is-recorded` and
+`2026-11-07-fix-a-blocked-item-records-the-gate-it-ran` corrected the same way. The three pointers were repointed at
+the same section by line, dropping the `§` the check misreads; no claim changed.
+
+The one C2: the gate's own line, quoted in `evidence/gate-waived-check-rule-routes.md`, whose tally is a shell
+suite's printed sum and has no JUnit XML carrier anywhere (no `tests="953"` XML exists under
+`app/build/test-results` or in this evidence). The gate was run once and is not re-run for a carrier: the line now
+carries "not retained as one JUnit XML" beside the numbers, which is the check's own exemption and the truth —
+`evidence/check-rule-routes-gate-step.log` carries the print itself.
+
+The one C5: the `proposal.md:94` reference was the check's own multi-file `grep -n ''` prefix (every md file's
+line-number prefix is parsed as a `path:line` reference of its own file), and `proposal.md` ended without a trailing
+newline — 94 lines to `grep`, 93 to `wc -l`. The file now ends with its newline.
+
+## The run after the correction
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-phase-that-answers-nothing --root .
+    ok   C1 §references: 0 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 1 pairs confirmed, 1 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 353 resolved and in range, 8 unresolved or ambiguous
+    ----
+    evidence-check: PASS
+
+The 8 unresolved `file:line` citations are bare basenames (`run.sh:2339` and its kin) that the tree-wide
+basename search cannot single out; each resolves against `tools/loop/<name>` and none points past the end of that
+file. The count is the check's ambiguity report, not a dangling claim.

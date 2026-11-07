@@ -1,0 +1,12 @@
+PASS run#reviewReadOnlyOffOnlyForDiagnosis
+PASS run#childUsageIsRecordedPerItem
+PASS run#reviewDiffExcludesTheEvidenceArchive
+PASS run#aRoleWithNoRecordedTurnBoundRunsUnbounded
+PASS run#childPastItsContextBoundIsCut
+PASS run#theRecordedZeroKeepsTheContextBoundOff
+PASS run#aRotatedStreamStillCountsTheTurnsItDropped
+PASS run#theRecordedZeroKeepsTheTurnBoundOff
+PASS run#eachChildIsBoundedByItsOwnRolesTurns
+PASS run#aCloseOverARedGateIsWaivedOrBlocked
+loop-selftest: run 135 cases 1841.15 s
+loop-selftest: all 135 cases passed (JDK 27, offline, no token, no sandbox) — 159.83 s, selection: --group run

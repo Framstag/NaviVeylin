@@ -41,6 +41,10 @@
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
 #   state.sh done <issue> --result done|skipped|blocked|falsified|cut [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
+#                         [--gate-waived CLAUSE] [--gate-waived-suite TEST]
+#     `--gate-waived` is the one clause a close over a red tally was waived with (issue #811): a `done` whose
+#     `--gate` carries a nonzero `failures=` or `errors=` is refused without it, because the judgement then exists
+#     only in a child's transcript and no report can count it.
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL] [--leftover PATH] [--label-failures <transition>…]
 #                         [--stop-reason refused|unmergeable|bound]
@@ -505,7 +509,7 @@ cmd_step() {
 
 cmd_done() {
   require_state
-  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict=""
+  local issue="" result="" verdict="" change="" note="" wall="" pi_exit="" rounds="" gate="" gate_waived="" gate_waived_suite="" closed="" root_cause="" red_test="" decision_label="" leftover="" label_failures="" merged_branch="" merged_commits="" merged_evidence="" merged_sha="" events="" stop_reason="" review_verdict=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --result) need_value "$@"; result="${2:-}"; shift 2 ;;
@@ -517,6 +521,8 @@ cmd_done() {
       --rounds) need_value "$@"; rounds="${2:-}"; shift 2 ;;
       --review-verdict) need_value "$@"; review_verdict="${2:-}"; shift 2 ;;
       --gate) need_value "$@"; gate="${2:-}"; shift 2 ;;
+      --gate-waived) need_value "$@"; gate_waived="${2:-}"; shift 2 ;;
+      --gate-waived-suite) need_value "$@"; gate_waived_suite="${2:-}"; shift 2 ;;
       --events) need_value "$@"; events="${2:-}"; shift 2 ;;
       --closed) need_value "$@"; closed="${2:-}"; shift 2 ;;
       --root-cause) need_value "$@"; root_cause="${2:-}"; shift 2 ;;
@@ -577,6 +583,24 @@ cmd_done() {
     ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write) ;;
     *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write" ;;
   esac
+  # A close over a red gate is a judgement, and this is where it is recorded (issue #811). Measured 2026-11-06: 3 of
+  # the 7 items that run closed carry `errors=1` / `failures=1` beside `verdict: closed`, each waived in prose inside
+  # its closing child's transcript — "file untouched by this diff", "green in the automotive run" — so the same flake
+  # was diagnosed twice in one run and counted zero times, and a waived red printed the same `closed` a green gate
+  # does. The clause is the close's own fact: it is refused on a block or a cut, whose answer is their decision, and
+  # beside a tally that passed, where there is nothing to waive. `unknown` — the shapes that measured no test — takes
+  # a waiver and does not require one, because the tally carries no count to read red out of.
+  if [ -n "$gate_waived_suite" ] && [ -z "$gate_waived" ]; then
+    loop_die "done: --gate-waived-suite names the suite a waiver's clause names; give --gate-waived beside it"
+  fi
+  if [ -n "$gate_waived" ]; then
+    [ "$result" = done ] || loop_die "done: --gate-waived belongs to an item that closed, and this one is $result"
+    [ -n "$gate" ] || loop_die "done: --gate-waived is a judgement about a tally, and no --gate was given"
+    [ "$(gate_tally_state "$gate")" != green ] ||
+      loop_die "done: --gate-waived was given for a gate that passed ($gate) — there is nothing to waive"
+  elif [ "$result" = done ] && [ "$(gate_tally_state "$gate")" = red ]; then
+    loop_die "done: the gate is red ($gate) and the close records no waiver — --gate-waived names the one clause it closed over"
+  fi
   [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; elif [ "$result" = cut ]; then printf 'cut'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading
   # the tracker; an item with no queue entry (a resumed run) falls back to the empty string.
@@ -614,6 +638,8 @@ cmd_done() {
                   metrics:{wallSeconds:$wall, piExit:$piExit, reviewRounds:$rounds,
                            reviewVerdict:(if $rv == "" then null else $rv end),
                            gate:$gate,
+                           gateWaived:(if $gw == "" then null else $gw end),
+                           gateWaivedSuite:(if $gws == "" then null else $gws end),
                            closed:$closed, rootCause:$rc, redTest:$rt,
                            tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
                            reads:$usage.reads, dupReads:$usage.dupReads, dupChars:$usage.dupChars,
@@ -637,6 +663,7 @@ cmd_done() {
     --argjson wall "$(num_or_null "$wall")" --arg piExit "$pi_exit" --argjson rounds "$(num_or_null "$rounds")" \
     --arg rv "$review_verdict" \
     --arg gate "$gate" --arg closed "$closed" --arg rc "$root_cause" --arg rt "$red_test" \
+    --arg gw "$gate_waived" --arg gws "$gate_waived_suite" \
     --argjson usage "$usage" \
     --arg mb "$merged_branch" --arg mc "$merged_commits" --arg me "$merged_evidence" \
     --arg ms "$merged_sha"

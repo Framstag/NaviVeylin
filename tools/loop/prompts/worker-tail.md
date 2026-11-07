@@ -79,10 +79,14 @@ The gate's result decides which half of this phase you run, and there is no thir
 2. **A red gate is attributed before it blocks.** A failing step the change does not touch — another change's open
    delta, a case outside the paths this change edits — is named in the change's evidence with what proves it was red
    before this work and stays red after it, and that does not block: the affected cases and the red case are what
-   the change answers for. A red on the change's own paths is `blocked`, and you archive nothing. Write
-   `LOOP-VERDICT: blocked` with the gate line and the failing output you read from `{{GATE_OUTPUT}}` as the reason,
-   state the one question a person has to answer (`LOOP-DECISION`), and stop. Do not delete the change, do not
-   unstage anything, and do not edit the tree: the next attempt reads it as this item's work.
+   the change answers for. Closing over it is a judgement, and it is recorded where the run can count it: write the
+   one clause you waived with as `LOOP-GATE-WAIVED`, and the suite it names as `LOOP-GATE-WAIVED-SUITE` when it names
+   one. A close over a red tally with neither is refused (the run blocks the item instead of closing it), because a
+   waiver only one transcript holds is a red nobody counts. A red on the change's own paths is `blocked`, and you
+   archive nothing. Write `LOOP-VERDICT: blocked` with the gate line and the failing output you read from
+   `{{GATE_OUTPUT}}` as the reason, state the one question a person has to answer (`LOOP-DECISION`), and stop. Do not
+   delete the change, do not unstage anything, and do not edit the tree: the next attempt reads it as this item's
+   work.
 3. **A gate that passed is verified against what it measured.** Confirm the archive directory you are about to write
    from, the change's `tasks.md`, and the red test the first process named — `{{RED_TEST}}` — is the one the gate's
    own tallies carry. A claim the tree does not support is `blocked`, not a verdict on the gate.
@@ -115,9 +119,11 @@ LOOP-CHANGE: {{CHANGE_NAME}}
 LOOP-ROOT-CAUSE: {{ROOT_CAUSE}}
 LOOP-RED-TEST: {{RED_TEST}}
 LOOP-GATE: {{GATE_CLAIM}}
+LOOP-GATE-WAIVED: <the one clause a close over a gate that did not pass is waived with — omit it when the gate line passed>
+LOOP-GATE-WAIVED-SUITE: <the test that clause names, when it names one — omit it otherwise>
 LOOP-DECISION: <the question in one sentence, then the options in order, then the one you recommend and why — required when the verdict is blocked>
 ```
 
 `LOOP-VERDICT: closed` means: the gate line you were handed passed — or names a failing step the change's evidence
-attributes to work it does not touch — the cited XMLs are in the change's `evidence/` directory, the change is
-archived, and `LOOP-DECISION` is absent because nothing is left to choose.
+attributes to work it does not touch, named in `LOOP-GATE-WAIVED` — the cited XMLs are in the change's `evidence/`
+directory, the change is archived, and `LOOP-DECISION` is absent because nothing is left to choose.

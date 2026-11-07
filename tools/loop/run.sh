@@ -2283,6 +2283,11 @@ while true; do
   worker_decision=$(report_field "$final_report" LOOP-DECISION 2>/dev/null || true)
   red_test=$(report_field "$final_report" LOOP-RED-TEST)
   gate_claim=$(report_field "$final_report" LOOP-GATE)
+  # A close over a red gate is a judgement the closing child records, not prose its transcript keeps (issue #811):
+  # the clause it was waived with, and the suite the clause names where it names one, travel to the record beside
+  # the tally so a report can count them.
+  gate_waived=$(report_field "$final_report" LOOP-GATE-WAIVED)
+  gate_waived_suite=$(report_field "$final_report" LOOP-GATE-WAIVED-SUITE)
   outside_write=$(report_field "$final_report" LOOP-OUTSIDE-WRITE)
   timeout_claim=$(report_field "$final_report" LOOP-TIMEOUT)
   # The run's own deadline is a different clock from the item's wall-clock cap (issue #227): the transcript says
@@ -2443,6 +2448,17 @@ while true; do
   # reports `LOOP_CHILD_TIMEOUT` and the child's own `LOOP-TIMEOUT` line for every bound it enforces — the child
   # clock, the run's deadline and the role's turns — and that arm turns all three into the one word `bound`.
   if [ "$pre_gate_cut" -eq 1 ] || [ "$stop_reason" = bound ]; then outcome="cut"; fi
+  # The silence over a red gate is refused **here** (issue #811): the outcome is decided above, and this is the last
+  # moment before the branch is merged and the item closed on the tracker. An item whose tally carries a nonzero
+  # `failures=` or `errors=` and whose child recorded no waiver takes the blocked path every other refusal takes —
+  # rather than the close, which would fail the write that records it after the tracker was already told the item
+  # closed. `state.sh done` keeps the same refusal as its own backstop for a caller that is not this script, so the
+  # clause is refused, never defaulted, in both places.
+  if [ "$outcome" = "closed" ] && [ "$(gate_tally_state "$gate_field")" = red ] && [ -z "$gate_waived" ]; then
+    outcome="blocked"
+    stop_reason="refused"
+    blocked_reason="the gate did not pass ($gate_field) and the close records no waiver — LOOP-GATE-WAIVED is the one clause the item closed over, and a close without it is a judgement nobody can read"
+  fi
 
   review_rounds=0
   review_verdict="${pre_gate_refusal_verdict:-off}"
@@ -2778,8 +2794,14 @@ $review_notes_text"
       close_args=("$issue" --reason "$close_reason" --evidence "$evidence_paths")
       if [ "$may_close" = "no" ]; then close_args+=(--no-close); fi
       if loop_labels close "${close_args[@]}"; then closure="$(if [ "$may_close" = yes ]; then printf yes; else printf skipped; fi)"; fi
+      # The waiver travels only when the child recorded one: `--gate-waived` is refused beside a gate that passed,
+      # so an arm that always passed it would refuse every green close (issue #811).
+      waived_args=()
+      [ -z "$gate_waived" ] || waived_args+=(--gate-waived "$gate_waived")
+      [ -z "$gate_waived_suite" ] || waived_args+=(--gate-waived-suite "$gate_waived_suite")
       loop_state done "$issue" --result done --verdict closed --change "$change" \
         --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" --gate "$gate_field" \
+        ${waived_args[@]+"${waived_args[@]}"} \
         --closed "$closure" --root-cause "$root_cause" --red-test "$red_test" \
         --merged-branch "$merged_branch" --merged-commits "$merged_commits" --merged-sha "$merged_sha" \
         --events "$events_file" --note "$note_field" --review-verdict "$review_verdict" >/dev/null

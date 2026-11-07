@@ -55,6 +55,8 @@ LOOP_SHELL_CASES=(
   'state#doneRecordsTheCommitItLanded'
   'state#theLandingScoreIsReadOnceAndStored'
   'state#aLandingWithNoRunIsUnscored'
+  'state#aCloseOverARedGateRecordsWhyItWasWaived'
+  'state#aCloseOverARedGateWithoutAWaiverIsRefused'
   'prescreen#ranksBugsFirstAndKeepsFeatures'
   'prescreen#oneHarnessImprovementPerFourAppItems'
   'prescreen#aRefusedClassStillStopsTheScreen'
@@ -284,6 +286,7 @@ LOOP_SHELL_CASES=(
   'run#childUsageIsRecordedPerItem'
   'run#aRedGateIsBlockedByTheTail'
   'run#aBlockedItemRecordsTheRoundThatReadIt'
+  'run#aCloseOverARedGateIsWaivedOrBlocked'
   'run#plainTextChildStillReports'
   'run#emptyQueueIsNotAFailure'
   'run#stopReasonIsPrintedAndReported'
@@ -462,6 +465,8 @@ loop_run_shell_case() {
     'state#doneRecordsTheCommitItLanded') fn=case_state_doneRecordsTheCommitItLanded ;;
     'state#theLandingScoreIsReadOnceAndStored') fn=case_state_theLandingScoreIsReadOnceAndStored ;;
     'state#aLandingWithNoRunIsUnscored') fn=case_state_aLandingWithNoRunIsUnscored ;;
+    'state#aCloseOverARedGateRecordsWhyItWasWaived') fn=case_state_aCloseOverARedGateRecordsWhyItWasWaived ;;
+    'state#aCloseOverARedGateWithoutAWaiverIsRefused') fn=case_state_aCloseOverARedGateWithoutAWaiverIsRefused ;;
     'state#inheritedStatePathOutsideTheTreeIsIgnored') fn=case_state_inheritedStatePathOutsideTheTreeIsIgnored ;;
     'prescreen#ranksBugsFirstAndKeepsFeatures') fn=case_prescreen_ranksBugsFirstAndKeepsFeatures ;;
     'prescreen#oneHarnessImprovementPerFourAppItems') fn=case_prescreen_oneHarnessImprovementPerFourAppItems ;;
@@ -694,6 +699,7 @@ loop_run_shell_case() {
     'run#childUsageIsRecordedPerItem') fn=case_run_childUsageIsRecordedPerItem ;;
     'run#aRedGateIsBlockedByTheTail') fn=case_run_aRedGateIsBlockedByTheTail ;;
     'run#aBlockedItemRecordsTheRoundThatReadIt') fn=case_run_aBlockedItemRecordsTheRoundThatReadIt ;;
+    'run#aCloseOverARedGateIsWaivedOrBlocked') fn=case_run_aCloseOverARedGateIsWaivedOrBlocked ;;
     'run#plainTextChildStillReports') fn=case_run_plainTextChildStillReports ;;
     'run#emptyQueueIsNotAFailure') fn=case_run_emptyQueueIsNotAFailure ;;
     'run#stopReasonIsPrintedAndReported') fn=case_run_stopReasonIsPrintedAndReported ;;
@@ -1978,6 +1984,81 @@ case_state_aLandingWithNoRunIsUnscored() {
   assert_contains "$out" "#21 $absent: unscored — the pipeline runs of this commit could not be read" \
     "and an unreadable tracker is unscored with its reason, not green"
   assert_eq "null" "$(jq -r '.items[] | select(.issue == 21) | .landedReddenedMain' "$sf")" "nothing was written by the failed read"
+}
+
+# A close over a gate that did not pass is a judgement, and the record keeps it (issue #811): the clause the item
+# was waived with and the suite that clause names land beside the tally, and the report counts them. Measured
+# 2026-11-06: 3 of the 7 items that run closed carry `errors=1` / `failures=1` beside `verdict: closed`, each waived
+# in the prose of its closing child's transcript, so the same flake was diagnosed twice and counted zero times.
+case_state_aCloseOverARedGateRecordsWhyItWasWaived() {
+  # files: tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p sf out clause suite
+  p=$(new_project)
+  init_state "$p" 2 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1},{"issue":22,"class":"bug","verdict":"eligible","rank":2}]' |
+    run_state "$p" queue >/dev/null
+  sf=$(state_file "$p")
+  clause='the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path'
+  suite='MapManagerSourceSwitchPlanTest#aSwitchThatKeepsTheTargetsBasemapKeepsItRegistered'
+  run_state "$p" done 21 --result done --verdict closed --change fix-demo \
+    --gate 'tests=880 failures=2 errors=0 (mobile)' \
+    --gate-waived "$clause" --gate-waived-suite "$suite" >/dev/null || fail "the waived close was refused"
+  assert_eq 'tests=880 failures=2 errors=0 (mobile)' "$(jq -r '.items[0].metrics.gate' "$sf")" \
+    "the tally stays the tally the gate printed, red counts and all"
+  assert_eq "$clause" "$(jq -r '.items[0].metrics.gateWaived' "$sf")" \
+    "and the clause the item closed over is the record's own field, not only prose in a transcript"
+  assert_eq "$suite" "$(jq -r '.items[0].metrics.gateWaivedSuite' "$sf")" \
+    "beside the suite the clause names, which is what a per-suite count is grouped by"
+  # A close over a gate that passed records no waiver: there is nothing to waive, and a `0 of N` line is a
+  # measurement rather than a field nobody filled in.
+  run_state "$p" done 22 --result done --verdict closed --change fix-green \
+    --gate 'tests=880 failures=0 errors=0 (mobile)' >/dev/null || fail "the green close was refused"
+  assert_eq "null" "$(jq -r '.items[] | select(.issue == 22) | .metrics.gateWaived' "$sf")" \
+    "a green close carries no waiver"
+  # The report's own line is the count the issue asks for: the waived closes out of the run's closed items, with
+  # each suite its count.
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "waived: 1 of 2 closed items ($suite ×1)" \
+    "the report counts the waived close and names the suite it was waived for"
+  assert_contains "$out" "· the gate did not pass" "and says what the count is a count of"
+}
+
+# The other half of the same rule: an item closed over a red tally with no waiver is refused, because the judgement
+# then exists only inside the child's transcript — the item reads `closed` with `errors=1` and no report can count
+# it. The refusal is the closed vocabulary the run's own writing keeps (issue #811).
+case_state_aCloseOverARedGateWithoutAWaiverIsRefused() {
+  # files: tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p sf out status
+  p=$(new_project)
+  init_state "$p" 1 90
+  printf '[{"issue":21,"class":"bug","verdict":"eligible","rank":1}]' | run_state "$p" queue >/dev/null
+  sf=$(state_file "$p")
+  out=$(run_state "$p" done 21 --result done --verdict closed --change fix-demo \
+    --gate 'tests=1 failures=2 errors=1 (mobile)' 2>&1); status=$?
+  assert_eq "2" "$status" "a close over a red tally that records no waiver is a usage error"
+  assert_contains "$out" "--gate-waived names the one clause" "and the refusal names the line that answers it"
+  assert_eq "0" "$(jq -r '.items | length' "$sf")" "the refused close wrote no record"
+  assert_eq "1" "$(jq -r '.queue | length' "$sf")" "and the item is still queued for the next attempt"
+  # The clause belongs to a close: a blocked or cut item is answered by its decision, not waived.
+  out=$(run_state "$p" done 21 --result blocked --verdict blocked --stop-reason refused \
+    --gate 'tests=1 failures=2 errors=0 (mobile)' --gate-waived 'a clause' 2>&1); status=$?
+  assert_eq "2" "$status" "a waiver on a block is refused"
+  assert_contains "$out" "--gate-waived belongs to an item that closed" "with the reason it is refused: a block is a question"
+  # …and a waiver is a judgement about a tally: with no `--gate` at all there is nothing it could be about.
+  out=$(run_state "$p" done 21 --result done --verdict closed --change fix-demo --gate-waived 'a clause' 2>&1); status=$?
+  assert_eq "2" "$status" "a waiver with no tally beside it is refused"
+  assert_contains "$out" "no --gate was given" "and the refusal says the tally is what it judges"
+  # …and to a tally that did not pass: a green gate leaves nothing to waive, and a waiver beside it would read as a
+  # red the report would count for an item that had none.
+  out=$(run_state "$p" done 21 --result done --verdict closed --change fix-demo \
+    --gate 'tests=4 failures=0 errors=0' --gate-waived 'a clause' 2>&1); status=$?
+  assert_eq "2" "$status" "a waiver beside a gate that passed is refused"
+  assert_contains "$out" "there is nothing to waive" "and says why"
+  # A tally that carries no count at all — the shapes a project with no gate, or a gate that never ran, writes — is
+  # neither red nor green, so it is recorded with its waiver and needs none to close.
+  run_state "$p" done 21 --result done --verdict closed --change fix-demo \
+    --gate 'skipped (no gate configured)' >/dev/null || fail "a tally that measured no test was refused a close"
+  assert_eq "1" "$(jq -r '.items | length' "$sf")" "and that close is recorded"
 }
 
 # ----------------------------------------------------------------------------- cases: prescreen
@@ -8803,6 +8884,53 @@ case_run_aRedGateIsBlockedByTheTail() {
     "the tail child is the process that reported the item's verdict"
   assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "nothing is closed"
   assert_contains "$(cat "$d/gh.log")" "agent/needs-decision" "and the item is escalated with the question"
+}
+
+# A close over a gate that did not pass is the closing child's judgement, and the run carries it into the record
+# (issue #811). Before the field existed the clause lived in the child's prose alone: the item read `result: done`
+# with `errors=1` in its tally, nothing said a red was waived, and the report counted it exactly as a green gate. The
+# two halves here are the two the fix decides — a waiver closes the item and reaches the record beside the tally, and
+# the same red tally without one is blocked **before** the branch is merged and the item closed on the tracker.
+case_run_aCloseOverARedGateIsWaivedOrBlocked() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/report.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d d2 p p2 f f2 out clause suite
+  clause='the failing class never initialises its SSL context on the mobile flavour, and this diff touches no network path'
+  suite='MapManagerSourceSwitchPlanTest#aSwitchThatKeepsTheTargetsBasemapKeepsItRegistered'
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d"
+  # The item's child closes over a red tally — the shape #806, #759 and #799 closed in — and names the clause and the
+  # suite it waived it for.
+  printf 'LOOP-VERDICT: closed\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: tests=880 failures=2 errors=0 (mobile)\nLOOP-GATE-WAIVED: %s\nLOOP-GATE-WAIVED-SUITE: %s\n' \
+    "$clause" "$suite" > "$d/worker-report.txt"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f=$(state_file "$p")
+  assert_eq "done" "$(jq -r '.items[0].result' "$f")" "the waived close is the item's own verdict"
+  assert_eq 'tests=880 failures=2 errors=0 (mobile)' "$(jq -r '.items[0].metrics.gate' "$f")" \
+    "the tally the child reported stays the tally, red counts and all"
+  assert_eq "$clause" "$(jq -r '.items[0].metrics.gateWaived' "$f")" \
+    "and the clause travels from the child's report into the record"
+  assert_eq "$suite" "$(jq -r '.items[0].metrics.gateWaivedSuite' "$f")" "beside the suite it names"
+  assert_eq "1" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "a recorded waiver closes the item"
+  out=$(run_report "$p") || fail "the report failed"
+  assert_contains "$out" "waived: 1 of 1 closed items ($suite ×1)" \
+    "and the report counts it, so a red and a green gate no longer print the same verdict alone"
+  # The same red tally with no clause: the item takes the blocked path every other refusal takes, and the tracker is
+  # never told it closed.
+  p2=$(new_project); d2=$(scratch)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  stub_success "$d2"
+  printf 'LOOP-VERDICT: closed\nLOOP-CHANGE: fix-demo\nLOOP-ROOT-CAUSE: the fixture has exactly one cause\nLOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z)\nLOOP-GATE: tests=880 failures=2 errors=0 (mobile)\n' \
+    > "$d2/worker-report.txt"
+  out=$(run_loop "$p2" --items 1 --minutes 90 --review off 2>&1) || fail "the run itself failed: $out"
+  f2=$(state_file "$p2")
+  assert_eq "blocked" "$(jq -r '.items[0].result' "$f2")" \
+    "a close over a red tally that records no waiver is not a close"
+  assert_contains "$(jq -r '.items[0].note' "$f2")" "records no waiver" \
+    "and its reason names the line that would have recorded it"
+  assert_eq 'tests=880 failures=2 errors=0 (mobile)' "$(jq -r '.items[0].metrics.gate' "$f2")" \
+    "the tally is still the record's, so the report orders no re-run of a gate that ran"
+  assert_eq "0" "$(grep -c 'issue close 21' "$GH_STUB_RECORD" || true)" "and nothing is closed on the tracker"
 }
 
 # The round that reads the diff before the gate is a round the run read and paid for, and the item's record says so

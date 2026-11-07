@@ -931,6 +931,14 @@ MUTATIONS=(
   # read beside that round's own spend. Both halves carry one case each.
   '97.1@-@tools/loop/run.sh@run#aRedGateIsBlockedByTheTail@the gate tally the four arms that do not close pass, so an item that ran the gate and then blocked records an empty field and is ordered a re-run it already paid for (issue #813)@s|^        --gate "\$gate_field" \\$|        --gate "" \\|'
   '97.2@-@tools/loop/run.sh@run#aBlockedItemRecordsTheRoundThatReadIt@the verdict and the count of the round that read the diff, so an item that read one records `off`/`0` beside the spend that round made (issue #813)@s|^  if \[ -z "\$pre_gate_refusal_verdict" \] \&& \[ -n "\$pre_gate_verdict" \]; then$|  if false; then|'
+  # 98.x — what a close over a red gate records (issue #811). Measured 2026-11-06: 3 of the 7 closed items of one run
+  # carry `errors=1` / `failures=1` beside `verdict: closed`, each waived in prose inside its closing child transcript,
+  # so the same flake was diagnosed twice in one run and counted zero times. The refusal is what makes the clause a
+  # field rather than a sentence, the write is what the report counts, and the run is what carries the child's clause
+  # into the record; one case each.
+  '98.1@-@tools/loop/state.sh@state#aCloseOverARedGateWithoutAWaiverIsRefused@the refusal of a close over a red tally that records no waiver, so the judgement lives in a transcript and the item reads `closed` with `errors=1` (issue #811)@s|^  elif \[ "\$result" = done \] && .*$|  elif false; then|'
+  '98.2@-@tools/loop/state.sh@state#aCloseOverARedGateRecordsWhyItWasWaived@the clause a close over a red gate was waived with, so a report can count the waiver instead of trusting prose (issue #811)@s|^                           gateWaived:(if \$gw == "" then null else \$gw end),$|                           gateWaived:null,|'
+  '98.3@-@tools/loop/run.sh@run#aCloseOverARedGateIsWaivedOrBlocked@the clause the closing child recorded, so the run blocks an item it was handed a waiver for and the record never says why the red was taken (issue #811)@s|^  gate_waived=\$(report_field "\$final_report" LOOP-GATE-WAIVED)$|  gate_waived=""|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

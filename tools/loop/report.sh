@@ -24,6 +24,12 @@
 # when the item's stream is read — a run that paid two thirds of its clock inside the gate and one that paid it
 # reading printed the same shapes before these lines existed.
 #
+# Since issue #811 it counts the closes that were waived: an item may close over a gate that did not pass, and the
+# state records the clause and the suite beside the tally (`state.sh done --gate-waived`). The `waived:` line prints
+# how many of the run's closed items that was and which suite each waiver named — the number that decides whether a
+# failing suite is flaky or broken. Prose is not a rate: before the field existed a waived red and a green gate both
+# printed `result: done`, and nothing accumulated the evidence that would either fix the flake or name it.
+#
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is
 # the run in place, exactly as before.
@@ -393,7 +399,22 @@ trend=$(jq -r --argjson floor "$calls_floor" '
           else "\((($a / $tot) * 100) | round) % — \($a | mtok_n) of \($tot | mtok_n) Mtok, from the first gate of \($n) session\(if $n == 1 then "" else "s" end)"
           end
       end ) as $gateline
-  | "  review: \($review)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)"
+  # What the run closed over (issue #811). A close over a red gate carries the clause it was waived with, and this
+  # is the count the issue asks for: the waived closes out of the closed items, with each suite a waiver named,
+  # because the per-suite total is what tells a flaky suite from a broken one. The absence of the field is told
+  # apart from its null, as every other line here does: a record written before the field existed has no
+  # `gateWaived` key at all, while one of this era that closed over a gate that passed has it as `null`.
+  | ([.items[] | select(.result == "done")] | length) as $closedItems
+  | ([.items[] | select(.result == "done" and (.metrics.gateWaived // "") != "")
+      | (if (.metrics.gateWaivedSuite // "") == "" then "-" else .metrics.gateWaivedSuite end)]) as $waived
+  | ( if ($waived | length) > 0 then
+        "\($waived | length) of \($closedItems) closed items (\($waived | group_by(.) | map("\(.[0]) ×\(length)") | join(", "))) · the gate did not pass"
+      elif $closedItems == 0 then "- · no item of this run closed"
+      elif ([.items[] | select(.result == "done" and ((.metrics | has("gateWaived")) | not))] | length) > 0
+        then "- · this state records no gate waiver — it was written before the report counted one"
+      else "0 of \($closedItems) closed items · no close was over a gate that did not pass"
+      end ) as $waivedline
+  | "  review: \($review)\n  waived: \($waivedline)\n  wall:   \($wall)\n  calls:  \($callline)\n  reads:  \($readsline)\n  phases: \($phaseline)\n  roles:  \($roleline)\n  after the first gate: \($gateline)"
 ' "$state_file")
 printf '\n'
 printf "trend — this run's own items; no rate is green or red in one run:\n"

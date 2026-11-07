@@ -93,6 +93,20 @@ loop_note() {
   printf '%s\n' "$*" >&2
 }
 
+# What a gate tally says about the run it measured (issue #811). The tally is free text the run writes — a child's
+# `LOOP-GATE` line, the count of test-results XMLs it found, `skipped (no gate configured)`, `not run — …` — so the
+# one predicate every reader of it needs is read out of the text and never out of a second field: `red` when it
+# carries a nonzero `failures=` or `errors=`, `green` when it carries the counts and they are zero, and `unknown`
+# when it carries neither, which are the shapes that measured no test. A reader that took `unknown` for `green`
+# would close an item over a gate nobody read, and one that took it for `red` would block a project with no gate.
+gate_tally_state() { # gate_tally_state <tally> → red | green | unknown
+  local tally="${1:-}" failures errors
+  failures=$(printf '%s' "$tally" | sed -n 's/.*failures=\([0-9][0-9]*\).*/\1/p' | tail -1)
+  errors=$(printf '%s' "$tally" | sed -n 's/.*errors=\([0-9][0-9]*\).*/\1/p' | tail -1)
+  if [ -z "$failures$errors" ]; then printf 'unknown\n'; return 0; fi
+  if [ "${failures:-0}" -gt 0 ] || [ "${errors:-0}" -gt 0 ]; then printf 'red\n'; else printf 'green\n'; fi
+}
+
 # Resolve the project once and load the configuration. Called at the top of every script, never inside
 # a command substitution: a failure inside `$( )` would exit a subshell and be swallowed.
 loop_resolve() {

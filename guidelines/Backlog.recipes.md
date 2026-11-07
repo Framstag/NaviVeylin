@@ -779,6 +779,21 @@ identity that authorises it), as that login's noreply address — never the mach
 an invented one, because a fresh container or CI runner has neither and the item would block on its own
 commit (`fix-loop-git-identity`, issue #167).
 
+A close over a gate that did not pass is a judgement, and the record keeps it as one: the item may still close when
+the red belongs to work the change does not touch, and then the clause it was waived with is `metrics.gateWaived`
+beside the tally it waived, with the suite it names in `metrics.gateWaivedSuite`. The clause is not optional and not
+prose. A tally carrying a nonzero `failures=` or `errors=` is a gate that did not pass (`gate_tally_state` in
+`tools/loop/lib.sh`), and a close over it without the clause is refused twice: `tools/loop/state.sh done` will not
+record it, and `tools/loop/run.sh` turns the outcome into `blocked` before it merges the branch or tells the tracker
+the item closed — so the judgement is never lost between the child that made it and the record. The report counts
+them: its `waived:` line prints the waived closes out of the run's closed items with each suite and its count,
+because the same flake waived twice in one run and counted zero times is evidence that fixes nothing. Measured
+2026-11-06: 3 of the 7 items one run closed carried `errors=1` or `failures=1` beside `verdict: closed`, each waived
+in the prose of its closing child's transcript — "file untouched by this diff", "green in the automotive run" —
+and the report counted all seven alike (#811). The cases are
+`state#aCloseOverARedGateWithoutAWaiverIsRefused`, `state#aCloseOverARedGateRecordsWhyItWasWaived` and
+`run#aCloseOverARedGateIsWaivedOrBlocked`; the mutations are `tools/loop-mutations.sh` 98.1–98.3.
+
 The branch is the whole of an item's fix until the base has it, so the run merges the branch it committed
 before it closes the item: the branch's commits are fast-forwarded onto the base the run recorded, the base
 advances to that merge, and the closure names the branch. A merge the run cannot take — the project tree the

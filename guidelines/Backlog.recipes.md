@@ -568,8 +568,7 @@ list, so the child is handed a scoped step rather than a third full round that r
 passed. The count is the child's and not the item's because the session id is: the stream holds every child the item
 has had, and the run's own phase split gives the gate child its first full run. The signal is produced by the run it
 counts, and not read out of the stream's own tool calls: a command that *mentions* the gate's file — the `grep` and
-`sed` a child working on the gate runs over it — cannot be told from one that runs it, and a count read that way
-refused the `gate#*` cases their first run (this change's first shape, 2026-11-06).
+`sed` a child working on the gate runs over it — cannot be told from one that runs it.
 Measured 2026-11-03 over the archive's 227 items and 558 child sessions (`.pi/issue-loop/items/*/events.jsonl`,
 durations from each `tool_execution_end`): the gate was started **910 times and spent 35.1 h** — 60 % of all tool
 wall clock — 245 sessions ran it at all, and **117 of those (48 %) ran it three or more times** (#670 44 times in

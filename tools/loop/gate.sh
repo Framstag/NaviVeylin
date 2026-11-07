@@ -98,11 +98,10 @@ case "$runs_max" in ''|*[!0-9]*) runs_max=0 ;; esac
 
 # A run leaves its own record, and the record is what the count is read from. Reading the child's event stream instead
 # was the first shape of this rule and it does not hold: that stream carries every command the child ran, and a command
-# that *mentions* this file — a `grep` over it, a `sed` of it, a read of it — cannot be told from one that runs it, so a
-# child working on the gate would be refused its first run (this change's own gate selection, its first shape,
-# 2026-11-06). What the stream is needed for is the child's identity: the adapter writes one `session` line per child,
-# and a record line that carries another session's id was another child's run — so each child of an item starts at
-# zero, which is what the run's own phase split needs.
+# that *mentions* this file — a `grep` over it, a `sed` of it, a read of it — cannot be told from one that runs it.
+# What the stream is needed for is the child's identity: the stream carries one `session` line per child, and a record
+# line that carries another session's id was another child's run — so each child of an item starts at zero, which is
+# what the run's own phase split needs.
 runs_record=""
 session_key=""
 session_key_of() { # session_key_of <events file> → the id of the last `session` line, or nothing

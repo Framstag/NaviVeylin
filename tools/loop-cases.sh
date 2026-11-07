@@ -11495,7 +11495,7 @@ case_gate_theGateNamesTheProfileItRead() {
 # (`<events>.gate-runs`) and reads the lines that carry the id of the session it is running in, because the stream
 # carries every child the item has had and the counts have to be a child's. Reading the stream's own tool calls
 # instead was the first shape of this rule and it does not hold: a command that merely *mentions* the gate's file
-# cannot be told from one that runs it, and a child working on the gate was refused its first run.
+# cannot be told from one that runs it.
 # The third full run is refused with the command the delta owes instead, because a second full round repeats the
 # suites the first one already passed.
 case_gate_aThirdFullRunInOneSessionIsRefused() {

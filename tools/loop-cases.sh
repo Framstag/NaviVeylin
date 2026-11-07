@@ -10044,7 +10044,7 @@ JSONL
 # gate and answers, a reviewer that reads once and a tail that answers — 7 500 ms of model time, 5 000 ms in the
 # gate, 300 ms in the one read, 6 + 1 + 1 Mtok by role and 5 of the worker's 6 Mtok after its first gate.
 case_report_theSpendIsSplitByPhaseRoleAndGate() {
-  # files: tools/loop/gate.sh tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  # files: tools/loop/gate.sh tools/loop/loop.conf tools/loop/report.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
   local d p f out trend phases_line roles_line gate_line
   d=$(scratch); p=$(new_project)
   cat > "$d/split.jsonl" <<'JSONL'

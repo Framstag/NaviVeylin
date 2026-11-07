@@ -1,0 +1,5 @@
+state#anItemsClassSelectsTheWorkerCommand|   the bug item's worker pass ran on the command its class records: expected '1', got '0'
+--- state#anItemsClassSelectsTheWorkerCommand[0] (exit 1)
+  the bug item's worker pass ran on the command its class records: expected '1', got '0'
+FAIL state#anItemsClassSelectsTheWorkerCommand
+loop-selftest: 1 of 1 cases failed

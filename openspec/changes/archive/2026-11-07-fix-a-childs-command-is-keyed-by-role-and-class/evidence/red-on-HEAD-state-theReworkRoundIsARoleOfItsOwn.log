@@ -1,0 +1,5 @@
+state#theReworkRoundIsARoleOfItsOwn|   the rework round was started on its own role's command: expected '1', got '0'
+--- state#theReworkRoundIsARoleOfItsOwn[0] (exit 1)
+  the rework round was started on its own role's command: expected '1', got '0'
+FAIL state#theReworkRoundIsARoleOfItsOwn
+loop-selftest: 1 of 1 cases failed

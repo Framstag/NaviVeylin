@@ -1,0 +1,69 @@
+# The gate's one red step, attributed — `tools/check-rule-routes.sh`
+
+The gate was run once and is quoted, not re-run. Its line is
+`tests=917 failures=0 errors=1 (…) — failing: tools/check-rule-routes.sh`; the step's own JUnit tally is
+`tests="0" failures="0" errors="1"` (`gate-tally-check-rule-routes.sh.xml`, beside this file). Its output is
+`gate-step-check-rule-routes.log`, beside this file:
+
+    ::error file=tools/doc-routes.json::the rule "the queue reads the whole labelled set, and refuses one it could not cover." in Backlog.md is reached by no glob — a rule no change is told to obey
+    ::error file=tools/doc-routes.json::the rule "the navigation surface's app-drawn elements are the compass rose, the speed badge and speed-limit sign, the attribution, the map-unavailable notice and the calculation strip." in MapCar.md is reached by no glob — a rule no change is told to obey
+    ::error file=tools/doc-routes.json::the rule "a failed reroute is reported on the map surface." in UICar.md is reached by no glob — a rule no change is told to obey
+    ::error file=tools/doc-routes.json::the rule "while navigation is active the wait is drawn, never pushed." in UICar.md is reached by no glob — a rule no change is told to obey
+    ::error file=tools/doc-routes.json::the rule "the rows' words come from the surface's resources." in UIPhone.md is reached by no glob — a rule no change is told to obey
+    ::error file=tools/doc-routes.json::the rule "the car's reroute wait is a surface strip, the phone's is a card tint." in UI.md is reached by no glob — a rule no change is told to obey
+    check-rule-routes: 0 glob(s) match no tracked path, 6 rule(s) are reached by no glob, 0 rule(s) state no name
+    check-rule-routes: 0 document(s) are matched by no glob, 0 guideline route(s) carry a document their glob does not match
+
+## This change does not touch it
+
+The change's commit is `1bde9d09` and its stat is six paths, none of them a document the six rules live in and none
+of them the map they are matched against:
+
+    PORTING.md                   |   3 +-
+    guidelines/BacklogTooling.md |   9 ++-
+    tools/loop-cases.sh          | 180 ++++++++++++++++++++++++++++++++++++++++++-
+    tools/loop-mutations.sh      |   5 ++
+    tools/loop/loop.conf         |  24 +++++-
+    tools/loop/run.sh            |  84 ++++++++++++++------
+
+## It was red before this work, and the inputs prove it, not a second measurement
+
+The invariant that failed (`rule(s) are reached by no glob`) reads exactly two things: the `**Rule: <name>**` lines
+of `guidelines/*.md`, extracted at `tools/check-rule-routes.sh:207`, and the `routes[].glob` /
+`routes[].{sections,rules}` entries of `tools/doc-routes.json`, which build the reach map at
+`tools/check-rule-routes.sh:205`; the walk that reports a rule name missing from it is
+`tools/check-rule-routes.sh:222`.
+
+Both sides are byte-identical between the run's base `ca7c6b6d` and the change's commit `1bde9d09`:
+
+    $ git diff --stat ca7c6b6d..HEAD -- tools/doc-routes.json tools/tooling.json \
+        guidelines/Backlog.md guidelines/MapCar.md guidelines/UICar.md guidelines/UIPhone.md guidelines/UI.md
+    (no output)
+
+and every one of the six rules is present, unchanged, in the base's copy of its document:
+
+    Backlog.md  "the queue reads the whole labelled set"          → 1 occurrence at ca7c6b6d
+    MapCar.md   "the navigation surface"                          → 1 occurrence at ca7c6b6d (the rule line)
+    UICar.md    "a failed reroute is reported on the map surface" → 1 occurrence at ca7c6b6d
+    UICar.md    "while navigation is active the wait is drawn"    → 1 occurrence at ca7c6b6d
+    UIPhone.md  "the rows"                                        → 1 occurrence at ca7c6b6d
+    UI.md       "the car"                                         → 1 occurrence at ca7c6b6d (the rule line)
+
+The rules were added by commits the base already carries, so the base's own verdict is this same six:
+
+    guidelines/Backlog.md  last touched by d2266ce7 (an ancestor of the base)
+    guidelines/MapCar.md   last touched by 17180180 (an ancestor of the base)
+    guidelines/UICar.md    last touched by e9d44ff4 (an ancestor of the base)
+    guidelines/UIPhone.md  last touched by 717fb4a9 (an ancestor of the base)
+    guidelines/UI.md       last touched by e9d44ff4 (an ancestor of the base)
+    tools/doc-routes.json  last touched by e46ace96 (an ancestor of the base)
+
+So the 6-rule shortfall is a property of the base and the gate's tally is the same shortfall after this change: red
+before, red after, on documents and a map this change never opens. The attribution form is the one
+`openspec/changes/archive/2026-11-04-fix-the-diff-is-reviewed-before-the-gate/evidence/gate-summary.txt:21` used for
+a rule reached by no glob that was already red on its base.
+
+## The waiver
+
+LOOP-GATE-WAIVED: tools/check-rule-routes.sh reports 6 guideline rules reached by no glob, in documents this change does not edit (Backlog.md, MapCar.md, UICar.md ×2, UIPhone.md, UI.md) and against a map (tools/doc-routes.json) it does not edit, so the red is the base's and stays the base's
+LOOP-GATE-WAIVED-SUITE: tools/check-rule-routes.sh

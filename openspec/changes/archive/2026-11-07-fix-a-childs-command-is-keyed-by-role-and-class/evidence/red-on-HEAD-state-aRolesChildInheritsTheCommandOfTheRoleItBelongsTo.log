@@ -1,0 +1,5 @@
+state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo|   the pre-gate round ran on the command of the role it belongs to, recording no key of its own: expected '1', got '0'
+--- state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo[0] (exit 1)
+  the pre-gate round ran on the command of the role it belongs to, recording no key of its own: expected '1', got '0'
+FAIL state#aRolesChildInheritsTheCommandOfTheRoleItBelongsTo
+loop-selftest: 1 of 1 cases failed

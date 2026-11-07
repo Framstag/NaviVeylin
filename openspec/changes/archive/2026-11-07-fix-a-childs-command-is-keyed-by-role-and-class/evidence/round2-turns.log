@@ -1,0 +1,24 @@
+The turn count of every rework (round-2) worker session in the loop archive, and its distribution.
+Taken 2026-11-07 in the change root, over /home/tim/projects/NaviVeylin/.pi/issue-loop/items/*/events.jsonl
+(725 event streams). A session is the rework round when the first user message names worker-prompt-round2.
+
+  for f in */events.jsonl; do
+    jq -r 'if .type=="session" then "S"
+           elif (.type=="message_start" and (.message.role=="user")) then
+             (if ((.message.content|tostring)|test("worker-prompt-round2")) then "R2" else "U" end)
+           elif .type=="turn_end" then "T" else empty end' "$f"
+  done > /tmp/r2.stream
+  awk '{...}' /tmp/r2.stream | sort -n | awk '{a[NR]=$1} END{ ... p95 ... }'
+
+Output (the last line is the one the change quotes):
+
+  42737   (lines of the reduced stream)
+  109     (rework sessions)
+  n=109 min=11 median=60 p95=100 max=197
+
+The p95 is the population the recorded bound LOOP_CHILD_TURNS_MAX_WORKER_REWORK=100 is derived from
+(guidelines/BacklogTooling.md section 11: "A value sits at or above the archive's p95 for its role").
+
+Archive-wide role split for the same archive (python3 tools/loop-spend.py --items .pi/issue-loop/items --json,
+2026-11-07): reviewer 284 sessions / 10 160 turns, worker 441 sessions / 30 884 turns — the rework round is
+charged to "worker" there, which is the accounting this change makes separately possible.

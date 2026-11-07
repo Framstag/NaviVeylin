@@ -1,0 +1,16 @@
+The change's two cases on the retry's base 83d8cea34fb539ae28059ecc7bcd926206ee528e, each run on its own, with the
+cases applied and the recording not (2026-11-07T02:14:38Z).
+
+$ bash tools/loop-selftest.sh --case 'report#theSpendIsSplitByPhaseRoleAndGate'
+report#theSpendIsSplitByPhaseRoleAndGate|   the model time is the sum of the children's own turn durations: expected '7500', got 'null'
+--- report#theSpendIsSplitByPhaseRoleAndGate[0] (exit 1)
+  the model time is the sum of the children's own turn durations: expected '7500', got 'null'
+FAIL report#theSpendIsSplitByPhaseRoleAndGate
+loop-selftest: 1 of 1 cases failed
+
+$ bash tools/loop-selftest.sh --case 'report#aStreamWithoutDurationsPrintsDash'
+report#aStreamWithoutDurationsPrintsDash|   the trend prints a dash and its reason, not three zeros: '- · no item recorded a phase duration' not found in:
+--- report#aStreamWithoutDurationsPrintsDash[0] (exit 1)
+  the trend prints a dash and its reason, not three zeros: '- · no item recorded a phase duration' not found in:
+FAIL report#aStreamWithoutDurationsPrintsDash
+loop-selftest: 1 of 1 cases failed

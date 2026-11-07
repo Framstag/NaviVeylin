@@ -1,0 +1,7 @@
+# the two cases green on the change, 2026-11-06T14:41:01Z
+=== green-759-a.log ===
+2026-11-06T14:41:01Z
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+=== green-759-b.log ===
+2026-11-06T14:41:01Z
+PASS report#aStreamWithoutDurationsPrintsDash

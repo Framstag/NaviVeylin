@@ -1856,8 +1856,8 @@ it.
 
 - **WHEN** the reviewer refuses the change in round `<n>` and the run starts the rework worker of that round
 - **AND** the run ends that worker at a bound it enforces
-- **THEN** the branch carries the round's announcement beside `evidence/review-round-<n>-rework-cut.md`, whose text
-  says the round was asked and answered and the rework cut, and the round reads as neither a pass nor a silence
+- **THEN** the branch carries the round's announcement beside `evidence/review-round-<n>-rework-cut.md`, and the
+  round reads as neither a pass nor a silence
 - **Case**: `run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted`
 
 #### Scenario: The round is announced before the reviewer runs, and its answer is recorded when it arrives
@@ -2434,10 +2434,9 @@ second home: `unmergeable` SHALL be written beside the pre-screen's exclusion of
 branch the project tree, the base or the replay refused to merge, with the refusal's own text, and no other mechanism
 SHALL be written on a result that is not a block. A value outside the vocabulary, and one on any other result than a
 block, that exclusion or a `cut` carrying `bound`, SHALL be refused before anything is written, so a mechanism's
-spend is totalled without the note's prose. **Every** arm that records a cut leaves `bound` beside the result when a
-bound the run enforces ended the child that arm was reading — the item's own worker, its gate child, its tail, and
-the rework worker of a refusing round — so no arm of one rule turns the run's own bound into a question its owner
-owes an answer.
+spend is totalled without the note's prose. An arm that records a cut for the item's own worker, its gate child, its
+tail or the rework worker of a refusing round SHALL leave `bound` beside the result when a bound the run enforces
+ended that child, so no arm of one rule turns the run's own bound into a question its owner owes an answer.
 
 #### Scenario: The refusing round is named
 

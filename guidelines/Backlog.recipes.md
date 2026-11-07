@@ -841,8 +841,9 @@ same landed branches together with the scratch paths. Measured 2026-10-27 on the
 branches were leftovers, 12 of them `loop-*` run branches, and the run's end removed none of them.
 
 The candidate set is the **names the loop makes**, and one of those names is a thing set aside rather than a thing
-in flight: `start-item` renames a blocked attempt's branch to `loop/leftover/issue-<n>-<slug>-<utc>` so the attempt's
-commits stay reachable while the item is worked again. That namespace was in no pattern either path enumerated
+in flight: `start-item` renames a blocked attempt's branch — an attempt whose rework the run's own bound ended
+included (§7e) — to `loop/leftover/issue-<n>-<slug>-<utc>` so the attempt's commits stay reachable while the item is
+worked again. That namespace was in no pattern either path enumerated
 (`loop_own_branches`, `git branch --list 'fix/issue-*' 'loop-*'`), so a set-aside branch was not *kept* by the rule
 that protects unreviewed work — it was invisible to it, and one whose work had landed by hand stayed for ever.
 Measured 2026-11-06 (issue #803): eight set-aside branches on this tree, one to three commits each, and neither

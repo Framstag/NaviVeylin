@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from the loop's shell runner: `tools/loop-selftest.sh` writes no JUnit XML. The one testcase and
+     its failure message are the runner's own lines from `red-on-HEAD.log`, 2026-11-07T15:12:58Z, run against the base
+     f47316cdaa51342d66610c478a34fb660a25eb95 (`git diff --stat tools/loop/state.sh tools/loop/report.sh` empty). -->
+<testsuite name="loop-selftest" tests="1" failures="1" errors="0">
+  <testcase classname="state" name="theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst">
+    <failure message="the record names the character bound its items' results were cut at: expected '8000', got 'null'">the record names the character bound its items' results were cut at: expected '8000', got 'null'</failure>
+  </testcase>
+</testsuite>

@@ -1,0 +1,2 @@
+state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.dzrkVC/cases/0/tree/case.KjPmXL/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (f761ca3e5db0c6a4 → a5bc7b202d751bfd); a field was edited outside this script
+PASS state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst

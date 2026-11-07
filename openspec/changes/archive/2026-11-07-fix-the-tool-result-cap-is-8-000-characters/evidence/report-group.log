@@ -1,0 +1,44 @@
+report#landedBranchIsNoAction| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6faFD8/cases/12/tree/case.6BEwbO/repo/.pi/issue-loop/runs/2026-11-07T15:08:05Z.json
+report#aKilledRunIsNotALiveRun| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6faFD8/cases/8/tree/case.clHLyh/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (a83687c31c567236 → 0686f5acb092bc14); a field was edited outside this script
+report#zeroUsagePrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6faFD8/cases/10/tree/case.GZLRYn/repo/.pi/issue-loop/runs/2026-11-07T15:08:05Z.json
+PASS report#emptyRunSaysNone
+PASS report#anItemOverTheTokenBoundIsFlagged
+report#headerAndTableShape| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261107-150809')
+report#headerAndTableShape| HEAD ist jetzt bei db5fd66 init
+PASS report#yieldIsCountedFromState
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+PASS report#aVerdictAloneIsNoEscalation
+report#headerAndTableShape| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (08cab5f)
+PASS report#misdiagnosedIsCountedApart
+report#headerAndTableShape| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (f6307fd)
+report#headerAndTableShape| HEAD ist jetzt bei f6307fd review: 2026-01-01-fix-demo round 1 passed (#21)
+report#headerAndTableShape| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war f6307fd).
+report#headerAndTableShape| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS report#archivedStateIsReported
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| stub gh: recorded `gh issue edit`
+report#headerAndTableShape| closed #21 (completed)
+report#headerAndTableShape|   landing #21 f6307fd50d8b304279b80a4bfa1acd54fd14d0bb: unscored — the pipeline runs of this commit could not be read
+PASS report#impossibleBudgetNamesAnotherRun
+report#headerAndTableShape| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+report#headerAndTableShape|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS report#aKilledRunIsNotALiveRun
+report#headerAndTableShape| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS report#wallTimeAndReasonInTheTable
+PASS report#zeroUsagePrintsDashNotZero
+PASS report#actionsNameDecisionAndBranch
+PASS report#landedBranchIsNoAction
+PASS report#landedBranchesAreNamedAsRemovable
+PASS report#anItemBelowTheCallsPerTurnFloorIsNamed
+PASS report#theSpendIsSplitByPhaseRoleAndGate
+report#noRoundOrWallPrintsDashNotZero| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6faFD8/cases/5/tree/case.lnebth/repo/.pi/issue-loop/runs/2026-11-07T15:08:19Z.json
+PASS report#headerAndTableShape
+report#trendFiguresFromState| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.6faFD8/cases/4/tree/case.xH00W4/repo/.pi/issue-loop/runs/2026-11-07T15:08:19Z.json
+PASS report#escalatedSkipNamesTheLabelWritten
+PASS report#failedReviewEscalationIsNamed
+PASS report#trendFiguresFromState
+PASS report#noRoundOrWallPrintsDashNotZero
+PASS report#landingsAreTheStoredNumber
+PASS report#aStreamWithoutDurationsPrintsDash
+loop-selftest: report 22 cases 161.26 s
+loop-selftest: all 22 cases passed (JDK 27, offline, no token, no sandbox) — 18.30 s, selection: --group report

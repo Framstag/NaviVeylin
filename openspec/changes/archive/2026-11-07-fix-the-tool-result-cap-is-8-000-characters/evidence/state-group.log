@@ -1,0 +1,63 @@
+state#recordsTheBaseBranchNotTheCheckout| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+state#recordsTheBaseBranchNotTheCheckout| HEAD ist jetzt bei 599410d a change landed on main
+PASS state#aDeadOwnersLockIsTakenOver
+PASS state#initKeepsTheStateItReplaces
+PASS state#initAnnouncesARunWithoutAStop
+PASS state#recordsTheBaseBranchNotTheCheckout
+PASS state#baseBranchIsAConfigurationKey
+PASS state#setBaseRefusesACommitTheBaseBranchDoesNotCarry
+PASS state#aBlockedItemNamesTheMechanismThatStoppedIt
+PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion
+state#doneRecordsTheCommitItLanded| state: the state being replaced never recorded a stop reason — its run is kept at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.LkvHvf/cases/14/tree/case.k9Piuf/repo/.pi/issue-loop/runs/2026-11-07T15:07:51Z.json
+PASS state#initAndShowRoundTrips
+state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst| state: drift — /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.LkvHvf/cases/9/tree/case.WHL2VH/repo/.pi/issue-loop/run.json no longer matches the digest state.sh wrote (eb6cc9696402c252 → 2a110d91cf7421f7); a field was edited outside this script
+state#projectKeysAreReadFromLoopConf| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261107-150752')
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei 1130121 init
+state#agentCommandIsTheOnlyIndirection| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261107-150752')
+state#agentCommandIsTheOnlyIndirection| HEAD ist jetzt bei 1130121 init
+PASS state#nextHonoursEveryStopCondition
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+state#agentCommandIsTheOnlyIndirection| stub gh: recorded `gh issue edit`
+PASS state#aBlockAtTheRunsBoundIsNoRefusal
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4f8674c)
+state#agentCommandIsTheOnlyIndirection| recorded: evidence/review-round-1-requested.md in 2026-01-01-fix-demo (4f8674c)
+PASS state#theStreakIsTheRecordedCount
+state#projectKeysAreReadFromLoopConf| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (4c1ceaa)
+state#agentCommandIsTheOnlyIndirection| recorded: evidence/review-round-1-passed.md in 2026-01-01-fix-demo (4c1ceaa)
+state#projectKeysAreReadFromLoopConf| HEAD ist jetzt bei 4c1ceaa review: 2026-01-01-fix-demo round 1 passed (#21)
+state#projectKeysAreReadFromLoopConf| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4c1ceaa).
+state#projectKeysAreReadFromLoopConf| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+state#agentCommandIsTheOnlyIndirection| HEAD ist jetzt bei 4c1ceaa review: 2026-01-01-fix-demo round 1 passed (#21)
+state#agentCommandIsTheOnlyIndirection| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 4c1ceaa).
+state#agentCommandIsTheOnlyIndirection| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+PASS state#floorIsDerivedFromTheFinishedItemsWallTimes
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+state#agentCommandIsTheOnlyIndirection| stub gh: recorded `gh issue edit`
+state#projectKeysAreReadFromLoopConf| stub gh: recorded `gh issue edit`
+state#projectKeysAreReadFromLoopConf| closed #21 (completed)
+PASS state#floorWithNoHistoryIsTheConfiguredMinimum
+state#agentCommandIsTheOnlyIndirection| stub gh: recorded `gh issue edit`
+state#agentCommandIsTheOnlyIndirection| closed #21 (completed)
+state#projectKeysAreReadFromLoopConf|   landing #21 4c1ceaaeade13306c337fcf2998432d524306759: unscored — the pipeline runs of this commit could not be read
+state#agentCommandIsTheOnlyIndirection|   landing #21 4c1ceaaeade13306c337fcf2998432d524306759: unscored — the pipeline runs of this commit could not be read
+PASS state#secondRunRefusesWithExit5
+state#projectKeysAreReadFromLoopConf| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+state#projectKeysAreReadFromLoopConf|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+state#agentCommandIsTheOnlyIndirection| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+state#agentCommandIsTheOnlyIndirection|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+state#projectKeysAreReadFromLoopConf| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+state#agentCommandIsTheOnlyIndirection| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS state#aRefusedRunLeavesTheLiveStateAlone
+PASS state#defaultsComeFromLoopConf
+PASS state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst
+PASS state#projectKeysAreReadFromLoopConf
+PASS state#agentCommandIsTheOnlyIndirection
+PASS state#agentCommandRefusesAnEmptyValue
+PASS state#aRolesOwnCommandStartsOnlyThatRolesChild
+PASS state#doneRecordsTheCommitItLanded
+PASS state#theLandingScoreIsReadOnceAndStored
+PASS state#theItemFloorIsOnlyBelowWhatOneItemsGateOwes
+PASS state#inheritedStatePathOutsideTheTreeIsIgnored
+PASS state#aLandingWithNoRunIsUnscored
+loop-selftest: state 27 cases 183.98 s
+loop-selftest: all 27 cases passed (JDK 27, offline, no token, no sandbox) — 21.02 s, selection: --group state

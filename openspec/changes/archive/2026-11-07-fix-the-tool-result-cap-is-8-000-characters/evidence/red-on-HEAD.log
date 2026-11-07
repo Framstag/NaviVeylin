@@ -1,0 +1,5 @@
+state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst|   the record names the character bound its items' results were cut at: expected '8000', got 'null'
+--- state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst[0] (exit 1)
+  the record names the character bound its items' results were cut at: expected '8000', got 'null'
+FAIL state#theRecordNamesTheBoundsItsNumbersWereMeasuredAgainst
+loop-selftest: 1 of 1 cases failed

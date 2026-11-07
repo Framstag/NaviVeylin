@@ -1,0 +1,25 @@
+PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+PASS driver#theCoreIsCompiledOncePerSuite
+PASS driver#aFileSetThatNamesNoCaseIsRefused
+PASS driver#anEmptyDeltaIsStatedWhenTheCallerAllowsIt
+PASS driver#aCoreFileOwesEveryCase
+PASS driver#aCaseThatBlocksIsEndedByItsOwnBound
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+PASS driver#aFilterThatNamesNoCaseRefuses
+PASS driver#theSummaryNamesWhatEachGroupCost
+PASS driver#theTimesFigureIsAskedForNotAssumed
+PASS driver#aCaseThatAsksForNoCoreCompilesNothing
+PASS driver#aCaseThatAsksForTheCoreGetsItOrRefuses
+PASS driver#aSuiteEndsInsideTheCeilingItsCallerNamed
+PASS driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+PASS driver#aCeilingTheSuiteFitsInsideChangesNothing
+PASS driver#aRunningCasePrintsItsOwnLines
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+PASS driver#theSuiteRunsItsCasesInAPool
+PASS driver#theCaseBoundScalesWithThePool
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+PASS driver#aCaseInsideItsBoundKeepsItsOwnVerdict
+PASS driver#noFixtureFifoIsOpenedWriteOnly
+loop-selftest: driver 23 cases 274.66 s
+loop-selftest: all 23 cases passed (JDK 27, offline, no token, no sandbox) — 25.73 s, selection: --group driver

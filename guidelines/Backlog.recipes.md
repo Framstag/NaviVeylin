@@ -734,6 +734,15 @@ into an 8 h budget — two questions nobody had asked, and two of its three deci
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
 commit, the second its branch, which is what a later pass escalates.
 
+What it does with an item the tracker does not answer for: nothing is decided about that item, so nothing ends the
+run on it. The read is the seam's own — `tools/loop/lib.sh` sources `tools/issues/lib.sh`, so the transport's failure
+is retried beside every other `gh` call and what reaches the run is a tracker that will not answer this item at all —
+and the run then records the item `blocked` with the verdict `unreadable` and the CLI's own words, and the queue moves
+to the next candidate. Two such records in a row are the blocked pair `next` ends a run on, so a tracker that answers
+nothing still ends the run, with two records naming the outage, instead of ending it on the first item's socket: that
+is what cost the 480-minute run of 2026-11-06 the 108 minutes and 69 item slots it had left (#808). The case is
+`run#anUnreadableItemIsNotTheEndOfTheRun`, and `tools/loop-mutations.sh` 100.1 the record that keeps it.
+
 A run one of the traps it installs ended records that signal as its own stop: `HUP` is trapped beside `INT` and
 `TERM` — a terminal or a harness that goes away sends it — and the trap writes `interrupted by SIG<NAME>` into the
 run's record before the in-progress mark comes off and before the lock is released. 50 of the 105 runs

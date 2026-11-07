@@ -963,6 +963,10 @@ MUTATIONS=(
   # `labels.sh` directly, which is not a path a run takes. Putting the verdict back in the list is what the new case
   # reads.
   '261.1@-@../tooling.json@run#aNeedsDiagnosisSkipCarriesTheLabelsTheProfileNames@the verdict the profile declares a shaping verdict while the run escalates it, so the list and the labels a skip leaves disagree (issue #738)@s%^    "shapingVerdicts": \["unspecifiable", "too-wide", "not-spec-shaped"\],$%    "shapingVerdicts": ["needs-diagnosis", "unspecifiable", "too-wide", "not-spec-shaped"],%'
+  # 100.1 — the record an unreadable item gets instead of the stop (issue #808). Restoring the stop is what the
+  # base did: the item is left unrecorded and the run ends on one item's socket. The `--note` line that followed the
+  # record is left as a second command and fails harmlessly (`|| true`), so the mutated file stays valid.
+  '100.1@-@tools/loop/run.sh@run#anUnreadableItemIsNotTheEndOfTheRun@the record an item the tracker did not answer for gets, so a read that fails is the whole stop again and the item is left unrecorded (issue #808)@s|^    loop_state done "\$issue" --result blocked --verdict unreadable \\$|    stop_run "gh could not read #\$issue — the tracker did not answer"|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

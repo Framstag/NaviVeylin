@@ -164,6 +164,7 @@ LOOP_SHELL_CASES=(
   'run#decisionCapCountsOnlyCandidates'
   'run#theDecisionCapRecordsItsStopReason'
   'run#aFailedPreScreenRecordsItsStopReason'
+  'run#anUnreadableItemIsNotTheEndOfTheRun'
   'run#refusesARepositoryThatIsNotAWorkTree'
   'gate#theDeltaSelectsTheSuitesItTouches'
   'gate#theMapCoversEveryPipelineStep'
@@ -585,6 +586,7 @@ loop_run_shell_case() {
     'run#decisionCapCountsOnlyCandidates') fn=case_run_decisionCapCountsOnlyCandidates ;;
     'run#theDecisionCapRecordsItsStopReason') fn=case_run_theDecisionCapRecordsItsStopReason ;;
     'run#aFailedPreScreenRecordsItsStopReason') fn=case_run_aFailedPreScreenRecordsItsStopReason ;;
+    'run#anUnreadableItemIsNotTheEndOfTheRun') fn=case_run_anUnreadableItemIsNotTheEndOfTheRun ;;
     'run#refusesARepositoryThatIsNotAWorkTree') fn=case_run_refusesARepositoryThatIsNotAWorkTree ;;
     'gate#theDeltaSelectsTheSuitesItTouches') fn=case_gate_theDeltaSelectsTheSuitesItTouches ;;
     'gate#theMapCoversEveryPipelineStep') fn=case_gate_theMapCoversEveryPipelineStep ;;
@@ -4393,6 +4395,39 @@ case_run_blockedItemAsksItsOwnQuestion() {
   assert_contains "$body" 'The decision:' "the escalation carries a decision field, not only a reason"
   assert_contains "$body" 'retry' "the question names the first option"
   assert_contains "$body" 'abandon' "and the second"
+}
+
+# One item the tracker will not answer for is *unknown*: not a verdict about that item, and not the end of the run.
+# The pre-screen has read that rule since #231 — a candidate it cannot read is recorded as unreadable and the screen
+# continues — and the run's own per-item read was the last place that turned the same unknown into a `stop_run`, so
+# one unanswered read cost a run the budget it had left (measured 2026-11-06: the 480-minute run ended at 03:31Z
+# with 108 minutes and 69 item slots unspent). The seam has already retried the transport's failure
+# (`tools/issues/lib.sh`), so what reaches the run is a tracker that will not answer this item at all.
+case_run_anUnreadableItemIsNotTheEndOfTheRun() {
+  # files: tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/loop/state.sh tools/loop/lib.sh tools/pi-child-events.sh tools/tooling.json
+  local p out reason note
+  p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario two)
+  # The run's read is the one that asks for the comments (`run.sh`, the per-item read); the pre-screen's asks for the
+  # six fields alone, so this refusal reaches the read that happens once per item and leaves the screen that built
+  # the queue answered.
+  export GH_STUB_READ_FAIL="author,state,comments"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review off 2>&1)
+  unset GH_STUB_READ_FAIL
+  assert_eq "21" "$(jq -r '.items[0].issue // "none"' "$(state_file "$p")")" \
+    "the item the tracker did not answer for is recorded rather than left unrecorded: $out"
+  assert_eq "blocked" "$(jq -r '.items[0].result // "none"' "$(state_file "$p")")" \
+    "recorded as a block, the result the blocked pair and the report's tallies read"
+  assert_eq "unreadable" "$(jq -r '.items[0].verdict // "none"' "$(state_file "$p")")" \
+    "recorded as unreadable, the word the pre-screen already writes for the same unknown"
+  assert_contains "$out" "could not be read" "the console says the item was not answered for"
+  assert_contains "$out" "Could not resolve" "and carries the CLI's own words, as the pre-screen's line does"
+  note=$(jq -r '.items[0].note // ""' "$(state_file "$p")")
+  assert_contains "$note" "Could not resolve" "and the record carries the CLI's own words"
+  reason=$(jq -r '.run.stop.reason // ""' "$(state_file "$p")")
+  assert_not_contains "$reason" "could not read" "the run does not end on that one item"
+  assert_eq "item cap reached (1/1)" "$reason" \
+    "it ends on its own bound instead, having spent the slot on the item it could not read"
 }
 
 # A falsification is the one skip whose finding is not a question: the run holds the number that settles the

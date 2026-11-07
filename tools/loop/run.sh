@@ -1875,11 +1875,27 @@ while true; do
     stop_run "$shortfall; free memory and re-run — a starved host cannot become productive by taking the next item"
     break
   fi
-  issue_json=$(loop_issue_json "$issue" --comments) || {
-    printf 'run: gh could not read #%s\n' "$issue" >&2
-    stop_run "gh could not read #$issue — the tracker did not answer"
-    break
-  }
+  # One item the tracker will not answer for is *unknown*: not a verdict about that item and not the end of the run.
+  # The pre-screen has read that rule since #231 (a candidate it cannot read is recorded and the screen continues), and
+  # this read — the one that happens once per item, asking for the comments a recorded decision arrives in — was the
+  # last place that turned the same unknown into a `stop_run`: one unanswered read cost a run the budget it had left
+  # (measured 2026-11-06, the 480-minute run that ended at 03:31Z with 108 minutes and 69 item slots unspent). The
+  # seam (`tools/issues/lib.sh`) has already retried the transport's failure and reported `tracker-unreachable`, so
+  # what reaches here is a tracker that will not answer this item at all. The item is recorded with the word the
+  # screen writes for the same unknown and the queue moves on. Two such items in a row are the blocked pair
+  # `state.sh next` ends a run on (issue #804): a tracker that answers nothing still ends it, with the records naming
+  # the outage, instead of a stop after the first item's socket.
+  read_err=$(mktemp) || read_err=""
+  if ! issue_json=$(loop_issue_json "$issue" --comments 2>"${read_err:-/dev/stderr}"); then
+    read_error=$(tr '\n' ' ' < "${read_err:-/dev/null}" | sed -e 's/  */ /g' -e 's/ *$//')
+    [ -z "$read_err" ] || rm -f "$read_err"
+    printf 'run: the tracker could not be read for #%s — %s (recorded as unreadable, the run continues)\n' \
+      "$issue" "${read_error:-the CLI gave no message}" >&2
+    loop_state done "$issue" --result blocked --verdict unreadable \
+      --note "the tracker could not be read for this item, so nothing is decided about it — ${read_error:-the CLI gave no message}" >&2 || true
+    continue
+  fi
+  [ -z "$read_err" ] || rm -f "$read_err"
   title=$(printf '%s' "$issue_json" | jq -r '.title // ""')
   # The item's class is a work input, not a label the worker guesses: a feature takes the propose-first path
   # while a bug and an improvement take the fix path (`tools/loop/prompts/worker.md`).

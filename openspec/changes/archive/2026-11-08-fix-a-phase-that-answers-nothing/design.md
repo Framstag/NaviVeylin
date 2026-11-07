@@ -29,7 +29,9 @@ Five sites in `tools/loop/run.sh`, no schema, no prompt text and no function sig
 
 1. `gate_answered` (`:1056`) — the completeness reading, on `answer_complete` (the same rule the review rounds follow,
    #224) with the gate prompt's own closing lines `LOOP-GATE` / `LOOP-VERDICT`. A report carrying `LOOP-TIMEOUT` or
-   `LOOP-DEADLINE` is excluded: the run ended that child and a retry would spend the bound again.
+   `LOOP-DEADLINE` is excluded from the reading, and the retry's own guard is the exit status: a child the run ended
+   at a bound never returns 0 (`LOOP_CHILD_TIMEOUT`, `tools/loop/lib.sh:27`), so it is never retried and the bound is
+   not spent twice.
 2. `phase_failure=""` (`:2195`) beside `empty_tree_reading`, so the guards and the outcome block read a variable that
    has a value in every shape.
 3. The phase's own block (`:2291`–`:2341`): the prompt's values are built once into `gate_prompt_values`, so the retry
@@ -51,10 +53,10 @@ Five sites in `tools/loop/run.sh`, no schema, no prompt text and no function sig
   ran, and `LOOP-GATE` is the one line a tail is started from — the false claim is exactly what the gate prompt refuses
   to print.
 - **Retrying the whole item.** Rejected: the change child's work is in the tree and committed; only the phase's answer is
-  missing, and the phase is 20–22 min of a 40–50 min item (`runs/2026-11-06T11:44:21Z.json`, the measurement #797
-  quotes) — a second item would pay for that work twice.
+  missing, and a second item would pay for that work twice.
 - **Two retries, or a retry of a phase the run ended.** Rejected on the same rule the rounds already record: one retry is
-  what #224 measured as the transport's shape, and a bound-ended child says so in its own report.
+  what #224 measured as the transport's shape, and a bound-ended child never returns 0
+  (`LOOP_CHILD_TIMEOUT`, `tools/loop/lib.sh:27`), so the retry's exit-status guard leaves it alone.
 
 ## Blast radius
 

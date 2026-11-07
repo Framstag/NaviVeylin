@@ -13,7 +13,8 @@ over a branch that carries a commit, after 11 m 49 s and 13.0 Mtok — the two f
 state record carry; no command in this change's record prints them. The work was real and kept; its record named the
 wrong cause, so a person reading it inspects the change instead of a phase whose child said nothing.
 
-**Verified in the tree today.** `tools/look.sh 'no archived change appears'` → 10 matches in 5 files, and the arm
+**Verified in the tree at plan time**, on the base `8280d8aa` and before this change's own prose carried either phrase
+(`evidence/surface-counts.txt`). `tools/look.sh 'no archived change appears'` → 10 matches in 5 files, and the arm
 that writes it is `tools/loop/run.sh:2541`. The path a 0-byte gate report takes is three sites, all of them reading
 that empty file as an answer:
 
@@ -45,7 +46,8 @@ loop-selftest: 1 of 1 cases failed
 `evidence/red-on-HEAD.log` is that run and `evidence/red-on-HEAD.xml` its tally (`tests=1 failures=1 errors=0`), kept
 beside it because the shell runner writes no JUnit XML of its own. The case's first-line declaration is accepted
 before that run: `bash tools/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'` → `PASS`
-(`evidence/green-declaration.log`).
+(`evidence/green-declaration.log`), re-run on the tree as it stands in the correction round
+(`evidence/green-declaration-round2.log`, 2026-11-07T23:40:35Z).
 
 **Owning requirement:** `openspec/specs/agent-issue-loop/spec.md`, "The run verifies rather than trusts" (`:544`), whose
 body reads the tree, the archive and the gate's evidence as artifacts the run decides from, and whose scenario "A claim
@@ -70,8 +72,9 @@ are in `evidence/surface-counts.txt`, taken on the base before this change's own
 
 1. **The phase's answer is read for completeness.** `tools/loop/run.sh`: `gate_answered` — the report, the newline the
    adapter prints after every answer, and the closing line the gate prompt asks for last (`LOOP-GATE`, or the
-   `LOOP-VERDICT` a report written against the older one-child contract carries). A child the run ended at a bound says
-   so in its report and is read as it stands, never retried.
+   `LOOP-VERDICT` a report written against the older one-child contract carries). A child the run ended at a bound never
+   returns 0 (`LOOP_CHILD_TIMEOUT`, `tools/loop/lib.sh:27`), so the retry's exit-status guard leaves it as it stands,
+   and a report carrying `LOOP-TIMEOUT` or `LOOP-DEADLINE` is excluded from the reading.
 2. **A silence is asked once more, and the retry decides the phase.** The retry is the same prompt contract, rendered
    from the one value list into `worker-gate-prompt-retry.md` and answered into `worker-gate-report-retry.md` — the
    shape the review rounds already take (#224).
@@ -87,8 +90,9 @@ are in `evidence/surface-counts.txt`, taken on the base before this change's own
 
 - It does not change the run's stop for a child that never started (`run.sh:2452`, #742): an answer of nothing beside a
   tree at the base is still the run's own fault and still no item record.
-- It does not retry a phase the run itself ended, nor one whose report carries `LOOP-TIMEOUT` or `LOOP-DEADLINE`: those
-  reports say what ended them and a retry would spend the same bound again.
+- It does not retry a phase the run itself ended, nor one whose report carries `LOOP-TIMEOUT` or `LOOP-DEADLINE`: the
+  first never returns 0 (`LOOP_CHILD_TIMEOUT`, `tools/loop/lib.sh:27`) and the second is excluded from the reading, so
+  a retry would spend the same bound again.
 - It does not touch the tail's own answer. A tail that answers nothing is still read by the arms below it, and its
   `LOOP-VERDICT` absence is a shape no case in this tree meets; naming a phase's failure there is a second delta and is
   not claimed here.

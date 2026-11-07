@@ -14,11 +14,13 @@ Requirement: "The run verifies rather than trusts", scenario "A phase that answe
       step (`fail`, note `exit 0 and no report`), the recorded block, the reason naming the phase and carrying neither
       of the two tree arms, no `worker-tail-report.md`, and nothing closed. Its list entry and its dispatch entry are
       added with it. Verify: on the base `8280d8aa` it fails (`evidence/red-on-HEAD.log`, `evidence/red-on-HEAD.xml`,
-      2026-11-07T23:06:36Z), and on the change it passes (`evidence/green-red-case.log`).
+      2026-11-07T23:06:36Z), and on the change it passes (`evidence/green-red-case.log`); re-run on the tree as it
+      stands in the correction round — `evidence/green-red-case-round2.log`, 2026-11-07T23:40:24Z.
 - [x] 1.2 The case's first line declares `tools/loop/fixtures/scenarios/ tools/loop/run.sh tools/pi-child-events.sh
       tools/tooling.json` — what `new_project`, `scenario` and `run_loop` reach. Verify:
       `bash tools/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'` → `PASS`
-      (`evidence/green-declaration.log`), and it ran first, before any other line of this change.
+      (`evidence/green-declaration.log`), and it ran first, before any other line of this change; re-run on the tree as
+      it stands in the correction round (`evidence/green-declaration-round2.log`, 2026-11-07T23:40:35Z).
 
 ## 2. The engine
 
@@ -53,6 +55,29 @@ Requirement: "The run verifies rather than trusts", scenario "A phase that answe
 
 - [x] 4.1 The declaration case first, then the red case, then the group the reading can move —
       `bash tools/loop-selftest.sh --group run` → 135 cases, all passed in 159.83 s
-      (`evidence/green-run-group.log`).
-- [x] 4.2 The gate is **not** this worker's (the run deferred it): the diff is left for the reviewer and the gate
-      child, and no `tools/loop/gate.sh` run is claimed here.
+      (`evidence/green-run-group.log`); re-run on the tree as it stands in the correction round → 135 cases, all passed
+      in 166.37 s (`evidence/green-run-group-round2.log`, 2026-11-07T23:40:24Z → 23:43:25Z).
+- [x] 4.2 The gate was the change child's in round 1 (the run deferred it there) and is this correction round's own
+      session: `./tools/loop/gate.sh` run once from the change root → `LOOP-GATE: tests=953 failures=0 errors=1` (a shell-suite sum, not retained as one JUnit XML — `evidence/gate-round2.log` carries the print), the
+      one error being `tools/check-rule-routes.sh` — red before this change and outside it
+      (`evidence/gate-waived-check-rule-routes.md`). Its suite step selected and ran all 371 cases, the change's own
+      among them (`evidence/gate-round2.log`; `evidence/gate-suite-tally.xml` — `tests="371" failures="0" errors="0"`).
+
+## 5. The correction round's answers (review round 1)
+
+The round before the gate refused this change with one blocking finding: the change's own case had never been executed
+against the tree as it stands — the gate's suite step (`tools/loop-selftest.sh --from-git a3cefa93…`) printed
+`selected 368 of 368 cases` and did not carry `run#aPhaseThatAnswersNothingIsThatPhasesFailure`
+(`.pi/issue-loop/items/810/gate-steps/step-1.out`), and the case's own last run (`evidence/green-red-case.log`,
+2026-11-07T23:07:10Z) predates the gate child's own edit to `tools/loop/run.sh` (2026-11-07T23:29:40Z). The
+correction is the two runs the finding asks for — no new claim, case or assertion:
+
+- [x] 5.1 `bash tools/loop-selftest.sh --case 'run#aPhaseThatAnswersNothingIsThatPhasesFailure'` on the tree as it
+      stands → `PASS` (`evidence/green-red-case-round2.log`, 2026-11-07T23:40:24Z).
+- [x] 5.2 `bash tools/loop-selftest.sh --group run` on the same tree → 135 cases, all passed in 166.37 s
+      (`evidence/green-run-group-round2.log`).
+- [x] 5.3 The wording the round's notes name: the exclusion of a bound-ended child is the exit status
+      (`LOOP_CHILD_TIMEOUT`, `tools/loop/lib.sh:27`), not a line in the report — `guidelines/Backlog.recipes.md` §7d,
+      `design.md` and `proposal.md` say so now; the waived step's record names the diff it reads
+      (`review-pre-gate.diff`) rather than the whole change (`evidence/gate-waived-check-rule-routes.md`); and the
+      proposal's "Verified in the tree" line names the base it was taken on.

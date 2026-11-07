@@ -51,3 +51,33 @@ newline — 94 lines to `grep`, 93 to `wc -l`. The file now ends with its newlin
 The 8 unresolved `file:line` citations are bare basenames (`run.sh:2339` and its kin) that the tree-wide
 basename search cannot single out; each resolves against `tools/loop/<name>` and none points past the end of that
 file. The count is the check's ambiguity report, not a dangling claim.
+
+## The tail's own run, over the archived change (round 2's phase F)
+
+Round 2's corrections edited `tasks.md`, `proposal.md`, `design.md` and `evidence/gate-waived-check-rule-routes.md`
+inside the archive after both runs above, so the pointer check was re-run from the change root against the archived
+directory — a pointer check, never the gate:
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-11-08-fix-a-phase-that-answers-nothing --root .
+    ok   C1 §references: 1 checked, 1 exempted as archived pointers
+    FAIL C2 quoted tally tests=953 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-08-fix-a-phase-that-answers-nothing/evidence
+    ok   C2 test tallies: 3 pairs confirmed, 1 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 401 resolved and in range, 8 unresolved or ambiguous
+    ----
+    evidence-check: FAIL (1)
+
+The one FAIL is task 4.2's own line, which quotes the gate's `tests=953 failures=0 errors=1` — the same shell-suite
+sum the waiver file already exempts with its "not retained" wording, quoted on a line that carried no such wording
+(`tools/loop/evidence-check.sh:94`). The line now says the tally is "not retained as one JUnit XML" beside the
+numbers; no claim changed. Re-run:
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/archive/2026-11-08-fix-a-phase-that-answers-nothing --root .
+    ok   C1 §references: 1 checked, 1 exempted as archived pointers
+    ok   C2 test tallies: 2 pairs confirmed, 2 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 401 resolved and in range, 8 unresolved or ambiguous
+    ----
+    evidence-check: PASS

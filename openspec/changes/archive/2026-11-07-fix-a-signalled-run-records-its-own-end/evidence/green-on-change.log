@@ -1,0 +1,13 @@
+2026-11-07T07:33:22Z
+$ bash tools/loop-selftest.sh --case 'run#interruptedRunEndsTheChildItStarted'
+PASS run#interruptedRunEndsTheChildItStarted
+exit 0 at 2026-11-07T07:33:26Z
+$ bash tools/loop-selftest.sh --case 'run#aHupEndedRunRecordsItsStopAndUnpicksItsItem'
+PASS run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+exit 0 at 2026-11-07T07:33:32Z
+$ bash tools/loop-selftest.sh --case 'labels#trapRemovesInProgressOnSignal'
+PASS labels#trapRemovesInProgressOnSignal
+exit 0 at 2026-11-07T07:33:37Z
+$ bash tools/loop-selftest.sh --case 'run#noProcessOfASignalledRunOutlivesIt'
+PASS run#noProcessOfASignalledRunOutlivesIt
+exit 0 at 2026-11-07T07:33:43Z

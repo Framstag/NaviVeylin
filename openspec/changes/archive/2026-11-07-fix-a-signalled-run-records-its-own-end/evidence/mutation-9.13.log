@@ -1,0 +1,8 @@
+loop-mutations: selected 1 of 267 records (labels: 9.13)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.GCLCGG
+RED    9.13  run#aHupEndedRunRecordsItsStopAndUnpicksItsItem   (the run recording the signal it took as its own stop (issue #755))
+       2026-11-07T07:33:50Z — the run records the signal that ended it as its own stop: 'SIGHUP' not found in: 
+restore 9.13 run#aHupEndedRunRecordsItsStopAndUnpicksItsItem green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+exit 0

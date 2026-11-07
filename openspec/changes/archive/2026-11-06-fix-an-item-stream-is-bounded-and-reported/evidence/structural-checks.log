@@ -1,0 +1,10 @@
+2026-11-06T19:10:56Z
+PASS  the portability set names the check's own self-test as its gate
+
+mutate-selftest: 36 passed, 0 failed
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 9135 file(s) excluded by the allowlist above
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 9 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+2026-11-06T19:10:58Z

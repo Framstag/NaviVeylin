@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" tests="24" skipped="0" failures="1" errors="0" timestamp="2026-11-05T10:13:16.626Z" hostname="dingens" time="9.272">
+  <properties/>
+  <testcase name="coordinatesStayLocaleStableOnACommaDecimalDevice" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="6.83"/>
+  <testcase name="streetFallsBackToSearchLabelWhenDescriptionHasNoStreet" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.127"/>
+  <testcase name="navigateToButtonVisibleAndFires" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.281"/>
+  <testcase name="anUnhandledLinkShowsTheHint" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.162"/>
+  <testcase name="phoneValueOpensTheDialer" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.103"/>
+  <testcase name="titleShowsObjectNameWhenPresent" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.078"/>
+  <testcase name="fullAddressShownWhenDescriptionHasStreetAndHouseNumber" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.075"/>
+  <testcase name="fullScreenDialogShowsNameMiniMapCoordinatesAndArea" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.071"/>
+  <testcase name="anUnmappedDescriptionKeyKeepsTheNativeKey" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.101"/>
+  <testcase name="noAreaEntryWhenHierarchyAndIsInMissing" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.065"/>
+  <testcase name="aHandledLinkShowsNoHint" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.07"/>
+  <testcase name="backGestureClosesTheDialog" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.058"/>
+  <testcase name="websiteValueStartsTheBrowser" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.072"/>
+  <testcase name="titleFallsBackToAddressWhenNoName" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.077"/>
+  <testcase name="areaFallsBackToDescriptionIsIn" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.066"/>
+  <testcase name="emptyDescriptionShowsNoSectionHeaders" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.057"/>
+  <testcase name="addressIncludesCityWhenOnlyHouseNumberPresent" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.054"/>
+  <testcase name="aNonContactEntryStaysInert" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.06"/>
+  <testcase name="streetFromReverseLookupWhenDescriptionHasNoStreet" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.064"/>
+  <testcase name="coordinateLabelTitleRendersInTheDeviceLanguage" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.155"/>
+  <testcase name="germanDeviceTranslatesDescriptionSectionsAndLabels" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.146">
+    <failure message="java.lang.AssertionError: Action performScrollTo() failed.&#10;Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + EditableText contains 'Kontakt' (ignoreCase: false))&#10;" type="java.lang.AssertionError">java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + EditableText contains 'Kontakt' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:76)
+	at com.naviveylin.ui.map.LocationDetailsDialogComposeTest.germanDeviceTranslatesDescriptionSectionsAndLabels(LocationDetailsDialogComposeTest.kt:473)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at com.naviveylin.test.ComposeSandboxRule$apply$1.evaluate(ComposeSandboxRule.kt:28)
+	at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt:272)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(AndroidComposeTestRule.android.kt:271)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.withDisposableContent(ComposeUiTest.android.kt:505)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1$1.invoke(ComposeUiTest.android.kt:333)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withComposeIdlingResource(ComposeUiTest.android.kt:385)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withComposeIdlingResource(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(ComposeUiTest.android.kt:332)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withWindowRecomposer(ComposeUiTest.android.kt:359)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withWindowRecomposer(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1.invoke(ComposeUiTest.android.kt:331)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.withTestCoroutines(ComposeUiTest.android.kt:372)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.access$withTestCoroutines(ComposeUiTest.android.kt:219)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1.invoke(ComposeUiTest.android.kt:330)
+	at androidx.compose.ui.test.IdlingStrategy.withStrategy(IdlingStrategy.android.kt:52)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(ComposeUiTest.android.kt:329)
+	at androidx.compose.ui.test.IdlingResourceRegistry.withRegistry(IdlingResourceRegistry.jvm.kt:155)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1.invoke(ComposeUiTest.android.kt:328)
+	at androidx.compose.ui.test.ComposeRootRegistry.withRegistry(ComposeRootRegistry.android.kt:146)
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:327)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:271)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="noAddressEntryWithoutHouseNumber" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.062"/>
+  <testcase name="coordinateLabelTitleShowsGenericLocation" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.052"/>
+  <testcase name="showOnMapButtonVisibleFromLongPress" classname="com.naviveylin.ui.map.LocationDetailsDialogComposeTest" time="0.066"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

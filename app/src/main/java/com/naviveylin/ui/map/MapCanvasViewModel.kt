@@ -406,11 +406,14 @@ class MapCanvasViewModel @Inject constructor(
     internal var routeFitJob: Job? = null
 
     /**
-     * The stylesheet and `daylight` flag pair the native side holds, or `null` while nothing has
-     * been applied yet. Both native calls reload the whole stylesheet set (`loadStyleSheet` and
-     * `setStyleSheetFlag`), so this pair is the dedupe key (spec: map-styles - One stylesheet
-     * load per active style and flag set; `guidelines/MapRendering.md` section 15/16). `styleName`
-     * is `null` after a flag-only push: the flag does not say which stylesheet is installed.
+     * The stylesheet and `daylight` flag pair **this view model** last applied, or `null` while nothing
+     * has been applied yet. `styleName` decides a style load; `daylight` decides whether this surface's
+     * own tiles and frame must be re-rendered (the main map's are its own, the mini map's are not).
+     *
+     * The value the **native client** carries is `MapDaylightApplier`'s record — one per client and
+     * value, shared with the mini map widget, and the dedupe key for the native call
+     * (`guidelines/MapStyling.md` §15 "Load budget and dedupe key"). `styleName` is `null` after a
+     * flag-only push: the flag does not say which stylesheet is installed.
      */
     internal var appliedMapStyle: AppliedMapStyle? = null
 
@@ -443,6 +446,18 @@ class MapCanvasViewModel @Inject constructor(
      * load then leaves it alone, for the same reason as [darkModePreferenceSetByUser].
      */
     internal var ambientSensitivitySetByUser = false
+
+    /**
+     * Set once the user chooses the navigation orientation in this session; the start-up settings load
+     * then leaves it alone, for the same reason as [darkModePreferenceSetByUser]. Without it a read
+     * that resumes after the compass long press restored the persisted follow-direction value and the
+     * next fix rotated the map back to the last heading-up angle
+     * (spec: `compass-settings` — A user orientation choice outranks an in-flight settings read).
+     */
+    internal var navNorthUpSetByUser = false
+
+    /** Set once the user chooses the free-form orientation in this session; see [navNorthUpSetByUser]. */
+    internal var freeFormNorthUpSetByUser = false
 
     /**
      * The phone places search's request lifecycle: debounce, the minimum query length, supersede

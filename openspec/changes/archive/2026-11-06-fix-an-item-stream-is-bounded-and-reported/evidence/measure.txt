@@ -1,0 +1,104 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=6ad5c485e6e3bc206a311ee7cc5fa2c70d3d59db paths=75 insertions=4715 deletions=51
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/final-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanReach.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_loop-selftest.sh_--from-git_6ad5c485e6e3bc206a311ee7cc5fa2c70d3d59db.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results-round2/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_loop-selftest.sh_--case_driver#everyCaseDeclaresTheFilesItCanReach.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_loop-selftest.sh_--from-git_6ad5c485e6e3bc206a311ee7cc5fa2c70d3d59db.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-results/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-round2.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/gate-summary-round2.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/green-after-refactor.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/green-on-change.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/green-on-change-worktree.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/mutation-88.1.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/mutation-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/readiness.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/red-on-HEAD-worktree.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/red-on-HEAD-worktree.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/review-round-2-correction.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/review-round-2-passed.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/scoped-suite-clean.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/scoped-suite-worktree.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/evidence/structural-checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-fix-the-leftovers-nothing-reads/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/lib.sh
+LOOP-MEASURE-PATH tools/loop/loop-clean.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-PATH tools/pi-child-events.sh
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 6ad5c485e6e3bc206a311ee7cc5fa2c70d3d59db
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=339 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-an-item-stream-is-bounded-and-reported scenarios=11 cases=11 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-an-item-stream-is-bounded-and-reported/evidence/red-on-HEAD.xml tests=3 failures=3
+LOOP-MEASURE-SURFACE surface: 3 cases added, 0 rewritten, 4 mutation records added, 2 guideline sections amended, 11 live files named by the rule — `tools/look.sh 'events\.jsonl|LOOP_CHILD_EVENTS|child_turns|LOOP_ITEM_ARCHIVE_DAYS|item directories'` → **153 matches in 49 files**, the live ones `tools/loop/run.sh` 13, `tools/loop-cases.sh` 46, `tools/pi-child-events.sh` 8, `tools/loop/loop-clean.sh` 7, `tools/loop/loop.conf` 7, `tools/loop/measure.sh`, `tools/loop/phase.sh`, `tools/sensor-cases.sh` 4, `tools/loop-spend.py` 2, `tools/loop-spend-selftest.sh` 3 and `tools/loop-mutations.sh`, the rest in `openspec/changes/archive/`. The plan was fixed after this pass: the turn-bound paragraph that says the wait costs "one `grep` per second" and the leftover section that lists what the report answers for are the two guideline sites.
+LOOP-MEASURE-END

@@ -6,10 +6,11 @@
 # get a prepared work package and a working directory, and nothing else — not a budget, not a queue, not
 # a tracker credential, and never a decision about whether an item closed (design D2, D3, D7, D12).
 #
-# A script cannot ask, so every budget is a flag whose default is recorded in `loop.conf`, and the run
-# stops on its own authority: the item cap, the deadline, an empty queue, two consecutive blocked items,
-# or a remaining time the next item cannot be paid for. The stop conditions are `state.sh next`'s, so the
-# run never does its own budget arithmetic (invariant 3).
+# A script cannot ask, so every budget is a flag whose default is recorded in `loop.conf`, and the run stops on
+# its own authority: the item cap, the deadline, an empty queue, the recorded streak of consecutive refusals
+# (`LOOP_REFUSAL_STREAK_STOP`, issue #804), or a remaining time the next item cannot be paid for. The stop
+# conditions are `state.sh next`'s, so the run never does its own budget arithmetic (invariant 3). A block the
+# run's own bound caused is not a refusal and holds no pair (issue #786).
 #
 # Exit: 0 the run ended (including "nothing eligible"), 2 usage/malformed input, 3 stop (unauthorised
 #       identity, or nothing eligible), 5 refuse (another run holds the lock, the decision cap is
@@ -20,7 +21,7 @@
 #
 # Usage: run.sh [--items N] [--minutes M] [--review on|off] [--may-close yes|no] [--push yes|no]
 #               [--max-decisions N] [--max-review-rounds N] [--review-read-only on|off]
-#               [--strict-outside-write yes|no] [--dry-run]
+#               [--pre-gate-review on|off] [--strict-outside-write yes|no] [--dry-run]
 #               [--clean-worktree] [--reset-worktree] [--base <sha>]
 set -uo pipefail
 
@@ -31,6 +32,7 @@ source "$here/lib.sh"
 items=""
 minutes=""
 review=""
+pre_gate=""
 may_close=""
 max_decisions=""
 max_review_rounds=""
@@ -51,12 +53,13 @@ while [ $# -gt 0 ]; do
     --max-decisions) need_value "$@"; max_decisions="${2:-}"; shift 2 ;;
     --max-review-rounds) need_value "$@"; max_review_rounds="${2:-}"; shift 2 ;;
     --review-read-only) need_value "$@"; read_only="${2:-}"; shift 2 ;;
+    --pre-gate-review) need_value "$@"; pre_gate="${2:-}"; shift 2 ;;
     --strict-outside-write) need_value "$@"; strict_outside_write="${2:-}"; shift 2 ;;
     --base) need_value "$@"; base="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     --clean-worktree) clean_worktree=1; shift ;;
     --reset-worktree) reset_worktree=1; shift ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) loop_die "run: unknown argument $1" ;;
   esac
 done
@@ -81,6 +84,7 @@ measure_cmd="${LOOP_MEASURE_CMD:-}"
 : "${items:=$(loop_conf_value LOOP_ITEMS_DEFAULT)}"
 : "${minutes:=$(loop_conf_value LOOP_MINUTES_DEFAULT)}"
 : "${review:=$(loop_conf_value LOOP_REVIEW_DEFAULT)}"
+: "${pre_gate:=$(loop_conf_value LOOP_PRE_GATE_REVIEW_DEFAULT)}"
 : "${may_close:=$(loop_conf_value LOOP_MAY_CLOSE_DEFAULT)}"
 : "${max_decisions:=$(loop_conf_value LOOP_MAX_DECISIONS_DEFAULT)}"
 : "${max_review_rounds:=$(loop_conf_value LOOP_MAX_REVIEW_ROUNDS_DEFAULT)}"
@@ -97,6 +101,12 @@ done
 # never happened, and the branch would carry a `review-failed-round-0` that refuses it for ever.
 case "$max_review_rounds" in ''|*[!0-9]*|0) loop_die "run: --max-review-rounds must be a positive integer" ;; esac
 case "$review" in on|off) ;; *) loop_die "run: --review must be on or off" ;; esac
+case "$pre_gate" in on|off) ;; *) loop_die "run: --pre-gate-review must be on or off" ;; esac
+# A run with no reviewer has nothing to read the diff before the gate, and the split exists for that reading
+# (issue #758): the diff is reviewed, its findings are applied by a fresh child, and the item's one gate is run on a
+# change a reader has already agreed with. So the shape is folded here, once, and the header, the prompt the change
+# child is handed and the round below all read the one value.
+[ "$review" = on ] || pre_gate=off
 case "$may_close" in yes|no) ;; *) loop_die "run: --may-close must be yes or no" ;; esac
 case "$push" in yes|no) ;; *) loop_die "run: --push must be yes or no" ;; esac
 case "$read_only" in on|off) ;; *) loop_die "run: --review-read-only must be on or off" ;; esac
@@ -143,17 +153,52 @@ child_cap() { # → the seconds a child may run
 # bound the child is given, so the header and the `LOOP-TIMEOUT` line that ends it cannot disagree.
 child_max=$(child_cap)
 
-# How many turns one item's children may take before the run ends the one that crosses the bound (issue #686).
-# The wall clock bounds how long a child runs and says nothing about how much it spends being slow to converge:
-# over this project's archive (`.pi/issue-loop/items`, 164 items, 2026-10-28, read by `tools/loop-spend.py`) the
-# turns run p50 144, p75 236, p90 285, max 480, and the 35 items at ≥250 turns hold 878 of 1 982 Mtok — 44 % of
-# everything the archive spent — at 25.07 Mtok each against 1.23 Mtok for the 20–50 band. `cacheRead` is 97 % of
-# that spend and a turn is what re-reads it, which is why the unit is a turn and not an edit. 250 sits just past
-# p75: it escalates 21 % of the archive's items, where 200 would escalate 37 % and 300 only 7 %. The count is
-# read from the item's own event stream (`child_turns`), not from a child's claim. `0` is no bound — the shape
-# `LOOP_MIN_FREE_MIB` and `LOOP_ITEM_TOKENS_WARN` already have — so a project with no such record owes nothing.
-item_turns_max="${LOOP_ITEM_TURNS_MAX:-250}"
-case "$item_turns_max" in ''|*[!0-9]*) item_turns_max=250 ;; esac
+# How many turns a child may take before the run ends it, **per role** (issues #686, #784). The wall clock bounds
+# how long a child runs and says nothing about how much it spends being slow to converge: `cacheRead` is 97 % of
+# the archive's spend, a turn re-reads the whole conversation, and no turn amortises two calls, so a heavy item is
+# a chain of single-call turns at 85–106 k context each. The bound used to be the **item's**, one count over the
+# event stream every child of the item appends to, so the worker, the round before the gate, the gate, the tail and
+# each review round spent from one pot and the last phase inherited the remainder: measured 2026-11-05 over the ten
+# items that ran all the phases, #780 spent 80/34/42/41 turns on its first four children and ended its round-1
+# reviewer at 53 of the same 250, and #767 gave its round-2 worker three. The bound is the **child role's own** now,
+# read through `child_role`, so a phase is bounded by what that phase costs and not by what the phases before it
+# spent. The item's total is still counted and reported — `metrics.turns`, the report's `calls:` line, the band
+# `LOOP_ITEM_TOKENS_WARN` records — and it stops nothing. The count is read from the stream the child appends to
+# (`child_turns`), never from a child's claim. `0` is no bound, and a role this project records no key for has none:
+# a project with no such record owes nothing by it, the shape `LOOP_MIN_FREE_MIB` and `LOOP_ITEM_TOKENS_WARN`
+# already have. The derivation of this project's five values is beside them in `loop.conf`.
+child_turn_bound() { # child_turn_bound <role> → the turns that role may spend; 0 = no bound
+  local role="$1" value
+  value=$(loop_conf_value "LOOP_CHILD_TURNS_MAX_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')")
+  case "$value" in ''|*[!0-9]*) value=0 ;; esac
+  printf '%s\n' "$value"
+}
+# What the header names, so a run can be repeated and audited (D2) and the header and the `LOOP-TIMEOUT` line that
+# ends a child cannot disagree about the bound they apply.
+child_turn_bounds=""
+for role in worker worker-gate worker-tail reviewer reviewer-pre-gate; do
+  child_turn_bounds="${child_turn_bounds:+$child_turn_bounds,}$role:$(child_turn_bound "$role")"
+done
+
+# A bound priced in what a turn costs, not in how many turns there are (issue #760). The turn bound above counts
+# turns, and a turn is a unit of shape rather than of cost: every turn re-reads the whole conversation, so the same
+# turn count costs 40 k or 240 k depending on how far the context has grown — over this project's archive (227 items,
+# 2026-11-03, `tools/loop-spend.py --json`) tokens per item are p50 10.4 M and p90 23.6 M against turns per item p50
+# 140 and p90 273, a 5x spend over a 2x range of turns. The reading that varies already exists
+# (`tools/loop/state.sh`'s `child_usage_json`, the largest `input + cacheRead` a turn reported), but only the report
+# reads it, after the item is over. So the run reads it too, where the wall clock and the turn count are already
+# enforced, and takes two decisions from it: a checkpoint line at `LOOP_ITEM_CONTEXT_WARN` (nothing is ended) and an
+# end at `LOOP_ITEM_CONTEXT_MAX`. Measured over the 300 item records of `.pi/issue-loop/run.json` and `runs/*.json`
+# (2026-11-05): the largest context per item is p50 107 669, p75 143 124, p90 174 984, p95 191 815, maximum 244 764.
+# The checkpoint is the p75, recorded exactly as measured, the way the token band records its own; it flags about a
+# quarter of the items and costs one line. The maximum is 200 000 — above the p95 and at the window every provider
+# this project runs sits at, where a turn costs 1.86x the archive's median turn (200 000 / 107 669) — and 10 of the
+# 300 recorded items (3.3 %) reached it. Both are `0` or absent = no bound, the shape `LOOP_MIN_FREE_MIB` and
+# `LOOP_ITEM_TOKENS_WARN` have, so a project that records neither owes nothing by them (D16).
+item_context_warn="${LOOP_ITEM_CONTEXT_WARN:-0}"
+case "$item_context_warn" in ''|*[!0-9]*) item_context_warn=0 ;; esac
+item_context_max="${LOOP_ITEM_CONTEXT_MAX:-0}"
+case "$item_context_max" in ''|*[!0-9]*) item_context_max=0 ;; esac
 
 # The host is part of a run's numbers, so the run reads it and names it beside the budget. Both values are
 # recorded (`loop.conf`, `LOOP_MIN_FREE_MIB` and `LOOP_MEMINFO_PATH`) because both are facts about the host and
@@ -185,9 +230,19 @@ free_mib=$(host_free_mib)
 # could not be merged" — the real cause never named (issue #241, measured 2026-10-21: five refused
 # fast-forwards, `git config --get core.bare` → `true`, `git rev-parse --is-inside-work-tree` → `false`, and one
 # `git config core.bare false` fixed all of it). The run refuses before it writes anything, and says what to do.
-printf 'agent-issue-loop: items=%s minutes=%s review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s item-turns-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s\n' \
-  "$items" "$minutes" "$review" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
-  "$read_only" "$strict_outside_write" "$child_max" "$item_turns_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree"
+# A role that runs on a command of its own is named in the header, because a run that spends a different model
+# on part of its work is not the same run as one that does not, and nothing else in the run's own line would say
+# so (`LOOP_AGENT_CMD_<ROLE>` in loop.conf). `-` is the ordinary case: every child through `LOOP_AGENT_CMD`.
+agent_roles="-"
+for role in WORKER WORKER_GATE WORKER_TAIL REVIEWER REVIEWER_PRE_GATE; do
+  role_value=$(loop_conf_value "LOOP_AGENT_CMD_$role")
+  [ -n "$(printf '%s' "$role_value" | tr -d '[:space:]')" ] || continue
+  if [ "$agent_roles" = "-" ]; then agent_roles=$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-');
+  else agent_roles="$agent_roles,$(printf '%s' "$role" | tr '[:upper:]_' '[:lower:]-')"; fi
+done
+printf 'agent-issue-loop: items=%s minutes=%s review=%s pre-gate-review=%s may-close=%s push=%s max-decisions=%s max-review-rounds=%s review-read-only=%s strict-outside-write=%s child-max-seconds=%s child-turns-max=%s item-context-warn=%s item-context-max=%s min-free-mib=%s free-mib=%s dry-run=%s reset-worktree=%s agent-roles=%s\n' \
+  "$items" "$minutes" "$review" "$pre_gate" "$may_close" "$push" "$max_decisions" "$max_review_rounds" \
+  "$read_only" "$strict_outside_write" "$child_max" "$child_turn_bounds" "$item_context_warn" "$item_context_max" "$min_free_mib" "${free_mib:-unknown}" "$dry_run" "$reset_worktree" "$agent_roles"
 # What follows the header, and where to watch it happen (issue #191). The pre-screen is the next step and it is
 # not instant — measured 2026-10-20: 53 s for 84 records over 188 tracker items — and a header that named only its
 # arguments left the operator to decide from silence whether the run was alive, which is how two runs of that day
@@ -215,6 +270,11 @@ escalate_prescreen_decisions() {
   jq -r --arg d "$decision_agent" '
     ([.items[].issue] | unique) as $handled
     | .excluded[] | select(.verdict == $d)
+    # An adoption the run itself decided — a branch whose own evidence is admissible and whose merge the tree, the
+    # base or the replay refused — is recorded with the mechanism `unmergeable` beside the exclusion and is not a
+    # question the owner owes (#794): the verdict stays the one the pre-screen read, and the mechanism is what
+    # makes the difference between it and a decision.
+    | select((.mechanism // "") != "unmergeable")
     | select((.alreadyEscalated // false) != true)
     | select(.issue as $i | ($handled | index($i)) | not)
     | [(.issue | tostring), .reason, (.evidence // "")] | @tsv
@@ -236,9 +296,15 @@ escalate_prescreen_decisions() {
 # closure path a worker's item goes through, with the branch, its commits and the evidence it was checked for
 # recorded in the run state and named in the report. A branch that does not carry that evidence is not
 # touched: its refusal and its escalation stay exactly as they were.
+# The refusal `adopt-item` printed, kept for the caller that records it (issue #794) — empty between attempts, so a
+# caller reads the refusal of the attempt it just made and never an older one.
+adoption_refusal=""
 adopt_finished_attempt() { # <issue> <branch> → 0 adopted and closed, 5 not adoptable (the reason printed)
   local issue="$1" branch="$2" out merged_branch merged_commits merged_change merged_evidence
   out=$(bash "$LOOP_DIR/worktree.sh" adopt-item "$issue" "$branch" 2>&1) || {
+    # Kept for the caller that records the refusal, exactly as `merge_refusal` is kept for the run's own merge
+    # (#794): the text `adopt-item` printed is the item's record, not a line for the terminal alone.
+    adoption_refusal="$out"
     printf '%s\n' "$out"
     return "$LOOP_REFUSE"
   }
@@ -330,14 +396,26 @@ score_landings() {
 # instead of being handed to the owner.
 adopt_finished_exclusions() {
   [ "$dry_run" -eq 0 ] || return 0
-  local issue branch
+  local issue branch attempt_state
   jq -r --arg d "$decision_agent" '
     .excluded[] | select(.verdict == $d) | select((.evidence // "") | startswith("fix/issue-"))
     | [(.issue | tostring), .evidence] | @tsv
   ' "$LOOP_STATE_FILE" 2>/dev/null |
   while IFS=$'\t' read -r issue branch; do
     [ -n "$issue" ] || continue
-    adopt_finished_attempt "$issue" "$branch" >&2 || true
+    if adopt_finished_attempt "$issue" "$branch" >&2; then
+      continue
+    fi
+    # The status the loop used to discard says which refusal this was (#794). `adoptable` is the branch's own
+    # answer that nothing on it is the owner's, so what refused the merge is the tree it lands in, the base it
+    # replays onto or the replay itself — a later run finds the first clean once the dirt is gone, so the item is
+    # work and the refusal is its own result, recorded beside the exclusion. Any other state is the evidence's
+    # refusal, and exactly as before it stays the pre-screen's decision.
+    attempt_state=$(bash "$LOOP_DIR/worktree.sh" branch-state "$issue" "$branch" 2>/dev/null | cut -f1)
+    [ "$attempt_state" = adoptable ] || continue
+    loop_state adoption-refused "$issue" --reason "$adoption_refusal" >/dev/null ||
+      printf 'run: #%s — the adoption refusal could not be recorded, so its exclusion stands as the pre-screen read it\n' \
+        "$issue" >&2
   done
 }
 
@@ -399,6 +477,8 @@ loop_state lock --owner "$$" || exit $?
 
 in_progress=""
 interrupted=0
+# The signal the run took, named by the trap and written into the run's own stop (issue #755). Empty until one arrives.
+signal_taken=""
 # The process group of the child that is running right now, and nothing else: `run_child` sets it under `set -m`
 # and clears it once it has waited, so the traps below can end the child (and everything the child started) when
 # the run takes a signal — the path a person's `kill`, or an operator's Ctrl-C, takes — while it is waiting for
@@ -416,6 +496,13 @@ leftover_patch=""
 # finding about the item, so the run takes no further pass over the queue: a second pre-screen after it excluded the
 # item whose branch the cut run had just made, and the report named a decision the clock — not the item — had asked.
 deadline_cut=0
+# …and whether the run's own bound ended a **review round** of an item it worked (issue #785), which has the same
+# consequence for the same reason: the round was cut rather than refused, so the item is left for the next run, and
+# the pass the emptied queue would buy would read the branch the cut child left as a decision about that item. The
+# measured shape is #780, whose tail wrote `LOOP-VERDICT: closed`, whose gate was `tests=460 failures=0` and whose
+# round 1 ended at the turn bound: the run then excluded the item and its report asked its owner a question nobody
+# had put to it.
+bound_cut=0
 # The one ignored directory `keep_leftovers` copies into that patch instead of only naming it (issue #308). Empty
 # means no ignored path is copied; the profile's key is the project fact, the engine keeps none of its own.
 record_dir="${LOOP_UNTRACKED_RECORD_DIR:-}"
@@ -491,19 +578,34 @@ on_exit() {
   # wait returns — which a signal never takes.
   loop_end_pid "$active_hb"
   active_hb=""
-  if [ "$interrupted" -eq 1 ] && [ -n "$in_progress" ]; then
-    # A killed run must leave no item looking in progress: the label comes off and the item is recorded
-    # blocked, so the next run's pre-screen can take it up again (D7).
-    loop_labels unpick "$in_progress" >&2 || true
-    loop_state done "$in_progress" --result blocked --note "interrupted by a signal" >&2 || true
+  if [ "$interrupted" -eq 1 ]; then
+    # The run's own end, written before the lock comes off (issue #755): the item's block below says what became of the
+    # item, and `run.stop` is what a report read after this process is gone prints instead of "it recorded no reason".
+    # It is outside the item test because the write does not depend on an item being in flight, and the reason names
+    # the signal rather than its status, which is `128+N` and a table a reader would have to decode.
+    loop_state stop "interrupted by SIG${signal_taken}" >&2 || true
+    if [ -n "$in_progress" ]; then
+      # A killed run must leave no item looking in progress: the label comes off and the item is recorded
+      # blocked, so the next run's pre-screen can take it up again (D7).
+      loop_labels unpick "$in_progress" >&2 || true
+      loop_state done "$in_progress" --result blocked --note "interrupted by a signal" >&2 || true
+    fi
   fi
   loop_state unlock --owner "$$" >&2 || true
   exit "$rc"
 }
-on_signal() { interrupted=1; exit "$1"; }
+# The trap keeps the signal's own name, so the record above can name it (issue #755). `HUP` is trapped beside `INT` and
+# `TERM`: a terminal or a harness that goes away sends it, and a signal the run does not trap kills the shell before any
+# trap runs — the item kept its in-progress label, the state recorded no stop, and the next pre-screen excluded the item.
+# A signal that arrives while `on_exit` is running returns instead of re-entering it: the trap writes the record last, and
+# a second `exit` would abort it before the stop, the unpick and the unlock (a terminal teardown can send `HUP`, then
+# `TERM`). `QUIT`, `USR1`, `USR2` and `ALRM` stay untrapped — each is either a run a person ends on purpose or a clock the
+# host sends, and the gap this change closes is the one a vanished terminal leaves.
+on_signal() { [ "$interrupted" -eq 1 ] && return 0; interrupted=1; signal_taken="$2"; exit "$1"; }
 trap on_exit EXIT
-trap 'on_signal 130' INT
-trap 'on_signal 143' TERM
+trap 'on_signal 129 HUP' HUP
+trap 'on_signal 130 INT' INT
+trap 'on_signal 143 TERM' TERM
 
 # 3. the state: this run's own record, written now that this run is the only one that can write it. The
 # process that writes it is named in it, so a reader can tell a run that is going from one that was killed.
@@ -648,7 +750,19 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
   if [ "$reset_worktree" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
     printf 'reset-worktree: discarding what a previous run left in %s:\n' "$worktree"
     if ! discard_kept_worktree reset-worktree "$leftovers"; then
-      loop_refuse "the kept worktree is still not clean after --reset-worktree — nothing was started; the paths above are removed by hand"
+      # The repair's refusal ends the run too, and a run whose end is not recorded is the shape of a crash once
+      # this process is gone: the report reads `run.stop`, so the refusal is written as the run's own (#787).
+      # The reason names the paths the repair printed — the status it left behind, not the one the attempt started
+      # from: a file `reset --hard` did discard is not work a reader still owes, and naming it would put back the
+      # false claim this change exists to end. The console scrolls away, and the reason is what a later report
+      # prints (`Backlog.recipes.md` §7d).
+      remaining=$(git -C "$worktree" status --porcelain)
+      remaining_reason=""
+      [ -z "$remaining" ] ||
+        remaining_reason=" — $(printf '%s' "$remaining" | tr '\n' ';' | sed 's/;$//; s/;/; /g')"
+      stop_run "the kept worktree is still not clean after --reset-worktree${remaining_reason} — nothing was started; the paths it printed are removed by hand"
+      bash "$LOOP_DIR/report.sh"
+      exit "$LOOP_REFUSE"
     fi
   elif [ "$dry_run" -eq 0 ] && submodule_only_dirt "$leftovers" && place_submodule_pin; then
     # The module on another pin is not work, so the repair above is not owed to it and no flag is needed to take
@@ -676,6 +790,14 @@ if [ -d "$worktree" ] && worktree_is_dirty; then
         --note "the kept worktree was not clean — a previous run left work behind" \
         --decision-label "$escalated_label" >/dev/null
     fi
+    # The refusal is the run's end as well as the item's: the report reads `run.stop`, and an empty one prints a
+    # killed process rather than this refusal once the run that wrote it is gone (#787). The reason names the files
+    # the refusal printed, as the cap arm names its list — the console scrolls away, and the reason is what a later
+    # report prints (`Backlog.recipes.md` §7d).
+    leftover_reason=""
+    [ -z "$leftovers" ] ||
+      leftover_reason=" — $(printf '%s' "$leftovers" | tr '\n' ';' | sed 's/;$//; s/;/; /g')"
+    stop_run "the kept worktree is not clean — a previous run left work behind${leftover_reason}${owner_item:+, and the leftovers belong to #$owner_item} (repair: --reset-worktree discards them, and names them before it does)"
     bash "$LOOP_DIR/report.sh"
     exit "$LOOP_REFUSE"
   fi
@@ -694,6 +816,39 @@ pin_out=$(bash "$LOOP_DIR/worktree.sh" check-module-pin "$base" 2>&1) || {
 }
 [ -z "$pin_out" ] || printf '%s\n' "$pin_out"
 
+# 5c. the project tree's uncommitted work, read once the arm above has had its say: a base whose gitlink names a
+#     commit no clone holds puts the module's path in this tree's status, and that is the pin arm's refusal — with the
+#     repair it names — not dirt the run may only report. The landing step merges into this tree and both of its
+#     merges refuse dirt there (`worktree.sh`'s `merge-item` and `adopt-item`), so that state had exactly one reader
+#     and it ran after the item's whole budget and its gate: measured over this loop's archive (issue #798), four items
+#     were recorded `unmergeable` for it (#668, #675, #769, #782), and #782's two files cost one run and two items
+#     before any refusal was read. It is read here, before the decision cap is counted — and therefore before the
+#     pre-screen is paid for and before any adoption the pre-screen would attempt. Nothing is repaired: the kept
+#     worktree's dirt has `--reset-worktree` because the run wrote it, while this tree's dirt may be an edit its owner
+#     made while no run was live, and no reading available here tells the two apart — the run's own leftovers are its
+#     items' patches, which git ignores. So the refusal names the paths and discards nothing.
+project_dirt=$(git -C "$LOOP_ROOT" status --porcelain 2>/dev/null)
+# …less the run's own state directory, which this process wrote seconds ago: it locked and initialised the state above,
+# so a project that does not ignore `.pi/` would have every run refuse itself. The directory is the run's, not the
+# owner's, and the two are told apart without a reading: this process created it (issue #798).
+state_rel="${LOOP_STATE_FILE#"$LOOP_ROOT"/}"
+state_dir_rel=$(dirname "$state_rel")
+project_dirt=$(printf '%s\n' "$project_dirt" | awk -v sd="$state_dir_rel" 'NF {
+  p = $0; sub(/^.../, "", p); sub(/\/$/, "", p)
+  if (p == sd || index(p, sd "/") == 1 || index(sd, p "/") == 1) next
+  print }')
+if [ -n "$project_dirt" ]; then
+  printf 'refusing to start: the project tree carries uncommitted work, and the landing step merges into it\n'
+  printf '%s\n' "$project_dirt" | sed 's/^/  /'
+  printf 'the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded here\n'
+  printf 'commit or discard these paths and run again — the list:\n'
+  printf '  git -C %s status --porcelain\n' "$LOOP_ROOT"
+  project_dirt_paths=$(printf '%s' "$project_dirt" | sed 's/^...//' | tr '\n' ' ')
+  stop_run "the project tree carries uncommitted work the landing step would merge over: ${project_dirt_paths% } — the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded; commit or discard them and re-run"
+  bash "$LOOP_DIR/report.sh"
+  exit "$LOOP_REFUSE"
+fi
+
 # 6. the decision cap: decisions pile up across runs, so a per-run count cannot see them (D9).
 #    The cap counts the *candidate* decisions — the items that carry both the decision label and the loop's
 #    opt-in — because that is the population the pre-screen offers and the only one a person can answer: an item
@@ -708,12 +863,24 @@ if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   # merely carry the label. Read here rather than above: on the path a run normally takes it costs no read.
   labelled_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
     jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
+  # The list is read once and used twice: printed for the console the caller watches, and carried in the reason,
+  # because a refusal is the run's own record and the console scrolls away (issue #787). Both counts and the list
+  # come from reads this arm already paid for.
+  decision_list=$(loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
+    jq -r --arg label "$decision_label" \
+      '.[] | select([.labels[].name] | index($label)) | "#\(.number) \(.title)"')
   printf 'refusing to start: %s of the %s item(s) that await a decision are candidates, and the cap is %s\n' \
     "$open_decisions" "${labelled_decisions:-$open_decisions}" "$max_decisions"
-  loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
-    jq -r --arg label "$decision_label" \
-      '.[] | select([.labels[].name] | index($label)) | "  #\(.number) \(.title)"'
+  [ -z "$decision_list" ] || printf '%s\n' "$decision_list" | sed 's/^/  /'
   printf 'nothing new is produced while decisions accumulate — decide these first\n'
+  # A refusal that leaves without recording itself is the shape of a crash once this process is gone: `report.sh`
+  # reads `run.stop`, and an empty one prints "it was killed and recorded no stop" — the arm #227 repaired on the
+  # pre-screen's path (#787).
+  decision_reason=""
+  [ -z "$decision_list" ] ||
+    decision_reason=" — $(printf '%s' "$decision_list" | tr '\n' ';' | sed 's/;$//; s/;/; /g')"
+  stop_run "the decision cap refuses the start: $open_decisions of the ${labelled_decisions:-$open_decisions} item(s) that await a decision are candidates, and the cap is $max_decisions$decision_reason"
+  bash "$LOOP_DIR/report.sh"
   exit "$LOOP_REFUSE"
 fi
 
@@ -804,8 +971,29 @@ push_branch() { # push_branch <branch>
     printf 'run: the push of %s failed — its commits stay in the run tree, not on the remote\n' "$1" >&2
 }
 
+# A report's own lines, with the fence a child may have put around its closing block taken off. A reviewer copies the
+# closing block out of the prompt that shows it as a code block, and writes it as inline code — `` `LOOP-BLOCKING: 3` ``
+# on one line and `` `VERDICT: FAIL` `` on the next — which is the same line, so one backtick at each end is removed
+# before any field is read. Measured 2026-11-06 on item #788: both of its pre-gate reports ended exactly that way, each
+# with the adapter's newline, and the run read a complete refusal as an answer the transport had cut (issue #793).
+report_lines() { # report_lines <file>
+  sed -e 's/^`//' -e 's/`$//' "$1" 2>/dev/null
+}
+
 report_field() { # report_field <file> <FIELD>
-  sed -n "s/^${2}: //p" "$1" 2>/dev/null | tail -1
+  report_lines "$1" | sed -n "s/^${2}: //p" | tail -1
+}
+
+# The word on the verdict line, and nothing else about it: the fence a child may have written around the line is not a
+# cut answer, so every reader of `VERDICT:` reads the line where it stands (#793). A report that states no verdict
+# prints nothing, which is the reading each caller already had for a report that never carried the line.
+report_verdict() { # report_verdict <file> → PASS, FAIL, or empty
+  local value
+  value=$(report_field "$1" VERDICT)
+  case "$value" in
+    PASS*) printf 'PASS\n' ;;
+    FAIL*) printf 'FAIL\n' ;;
+  esac
 }
 
 # The child's own last words, when it wrote no report line: a process that never got to work the item prints a
@@ -819,11 +1007,12 @@ last_line() { # last_line <file>
 # prompt asks for its closing line last (the reviewer's `VERDICT:`, after the count it licenses). An answer that
 # ends mid-word, or carries no closing line at all, was cut on its way to the file. Measured 2026-10-20: a
 # round-2 report ended `… and the post-restore gre` while its own text recorded all seven scenarios PASS, and the
-# run read the absence as a refusal, took another worker round and escalated work that had passed.
+# run read the absence as a refusal, took another worker round and escalated work that had passed. The fence a child
+# may have put around that closing line is not a fact about its arrival: the line is read where it stands (#793).
 answer_complete() { # answer_complete <report file> <closing-line regex>
   [ -s "$1" ] || return 1
   [ -z "$(tail -c 1 "$1" 2>/dev/null)" ] || return 1
-  grep -qE "$2" "$1" 2>/dev/null
+  report_lines "$1" | grep -qE "$2" 2>/dev/null
 }
 
 # The reviewer's severity count, and nothing else about its prose (#205). A report may say `VERDICT: FAIL` and
@@ -1092,12 +1281,50 @@ clear_stale_test_results() {
 # 1.05–1.16 tool calls per turn are amortised over. A stream that is absent, empty or unreadable is no count
 # rather than an error: a child whose command writes no events is bounded by its clock alone, as it was before,
 # and a count this wait cannot take never ends a child.
-child_turns() { # child_turns <events file> → the `turn_end` lines it holds
-  local n
+child_turns() { # child_turns <events file> → the `turn_end` lines it holds, plus the turns a rotation dropped
+  local n r
   [ -n "${1:-}" ] && [ -f "$1" ] || { printf '0\n'; return 0; }
   n=$(grep -cE '"type": *"turn_end"' "$1" 2>/dev/null) || true
   case "$n" in ''|*[!0-9]*) n=0 ;; esac
-  printf '%s\n' "$n"
+  # A rotated stream no longer holds the turns it dropped, and the count a bound compares against must not fall when
+  # the writer rotates (issue #802): the record the adapter writes first carries them, cumulative, so a reader adds
+  # what the stream says it dropped to what it still holds.
+  r=$(sed -n 's/.*"type": *"stream_rotation".*"dropped_turn_ends": *\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null |
+    awk '{ sum += $1 } END { printf "%d", sum + 0 }')
+  case "$r" in ''|*[!0-9]*) r=0 ;; esac
+  printf '%s\n' "$(( n + r ))"
+}
+
+# The size of the conversation the child is paying for (issue #760), read from the same stream as the turn count and
+# in the same whole second. A turn is not a unit of cost — every turn re-reads the whole context — so the reading
+# that says what a further turn will cost is the largest one the stream has reported: `input + cacheRead` of a usage
+# record (cumulative within a response, so the peak is what the window had to hold) or a `compaction_end`'s
+# `tokensBefore` (the size it had to hold before it shrank), whichever is greater. It is the number
+# `state.sh`'s `child_usage_json` takes for the report, taken while the child still runs.
+#
+# Only the complete lines appended since the last look are read: `wc -l` is the boundary, and a line still being
+# written carries no newline, so a partial record is never parsed. That is what keeps a once-a-second reading cheap
+# on a stream that runs to megabytes, where a re-parse of the whole file would spend on `jq` what the bound saves on
+# tokens. A stream that is absent, empty or unreadable is no reading rather than an error, exactly as `child_turns`
+# treats one: a child whose command writes no events stays bounded by its clock and by its turns.
+child_context() { # child_context <events file> <lines already read> → "<largest context in the new lines> <lines read>"
+  local f="${1:-}" done_lines="${2:-0}" total blob max
+  [ -n "$f" ] && [ -f "$f" ] || { printf '0 0\n'; return 0; }
+  total=$(wc -l < "$f" 2>/dev/null) || true
+  case "$total" in ''|*[!0-9]*) total=0 ;; esac
+  case "$done_lines" in ''|*[!0-9]*) done_lines=0 ;; esac
+  [ "$total" -ge "$done_lines" ] || done_lines=0
+  max=0
+  if [ "$total" -gt "$done_lines" ]; then
+    blob=$(tail -n +$((done_lines + 1)) "$f" 2>/dev/null | head -n $((total - done_lines)) | jq -s -c '
+      (([.[] | select(.type == "message_update" or .type == "turn_end") | .usage? | select(type == "object")
+          | ((.input // 0) + (.cacheRead // 0))] | max) // 0) as $turn
+      | (([.[] | select(.type == "compaction_end") | (.result?.tokensBefore? // empty) | numbers] | max) // 0) as $compacted
+      | [$turn, $compacted] | max' 2>/dev/null) || blob=""
+    case "$blob" in ''|*[!0-9]*) blob=0 ;; esac
+    max=$blob
+  fi
+  printf '%s %s\n' "$max" "$total"
 }
 
 # A child's own stream is silent by construction: the adapter the configured agent command names keeps the
@@ -1109,31 +1336,73 @@ child_turns() { # child_turns <events file> → the `turn_end` lines it holds
 # base — never from the child's own claim, which only exists once it is over. `fmt_elapsed` and the `progress`
 # line the run's own phases use live in `lib.sh`, so a phase line and a child's line agree on what an elapsed
 # time looks like (issue #191).
+
+# Which role a child plays, derived from the prompt's name — the same ones the fixture stub distinguishes
+# (`worker`, `worker-gate`, `worker-tail`, `reviewer`, `reviewer-pre-gate`) and the naming `phase` already carries.
+# The role names two configuration keys — `LOOP_AGENT_CMD_<ROLE>` and `LOOP_CHILD_TURNS_MAX_<ROLE>` — so a prompt file
+# renamed for a round or a retry cannot move a child to another command or under another bound:
+# `reviewer-prompt-2-retry.md` and `reviewer-prompt-1.md` are both `reviewer`. The order of the arms is the rule: a
+# tail and the round before the gate are named before the plain worker and reviewer shapes they also match
+# (issue #784).
+child_role() { # child_role <prompt-file> → worker | worker-gate | worker-tail | reviewer | reviewer-pre-gate
+  case "${1##*/}" in
+    *-tail*) printf 'worker-tail' ;;
+    *pre-gate*) printf 'reviewer-pre-gate' ;;
+    *gate*) printf 'worker-gate' ;;
+    reviewer-*) printf 'reviewer' ;;
+    worker-*) printf 'worker' ;;
+    *) printf '%s' "$(basename "$1" .md)" ;;
+  esac
+}
+
 run_child() { # run_child <prompt-file> <report-file> — every child goes through LOOP_AGENT_CMD (D3)
   # The child is bounded by the recorded wall-clock (`LOOP_CHILD_MAX_SECONDS`, default 2700 = 45 min) and not
   # only by the run's `--minutes`: the deadline is consulted between items, so a child that never returns
   # spends the whole budget inside one wait and nothing notices (measured 2026-10-19: an item's worker phase
   # ran 83 min that way — issue #203). A child that outlasts the cap is ended together with everything it
   # started and its transcript says so, so the run's ordinary "exited N" path records the item `blocked`.
-  # A third bound lives beside it, the item's turns (`LOOP_ITEM_TURNS_MAX`, issue #686), and it ends the child the
-  # same way: the wall clock says how long an item may run, not how much it spends failing to converge.
+  # A third bound lives beside it, the child's own turns (`LOOP_CHILD_TURNS_MAX_<ROLE>`, issues #686 and #784), and
+  # it ends the child the same way: the wall clock says how long a child may run, not how much it spends failing to
+  # converge, and each role is bounded by what that role costs rather than by what the item has already spent.
   # The working directory is the project and not the worktree on purpose: the project's own tool policy is
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns
+  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_read ctx_new
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
   before=$(project_state)
   phase=$(basename "$1" .md)
+  # Which command starts this child — the same one indirection, one step finer. A role whose key the project
+  # recorded runs its children through it (`LOOP_AGENT_CMD_REVIEWER`, say) and every other role keeps the single
+  # `LOOP_AGENT_CMD`; the key is derived from the prompt's name by `child_role`, so the mapping is mechanical and
+  # a project that wants one command for everything sets nothing (the keys are empty in this project's
+  # `loop.conf`). What it buys is the difference the transcript already measures: over 227 items (2026-11-03,
+  # `tools/loop-spend.py --json`) the reviewer's 7 522 turns carry 53.6 k tokens each against the worker's 84.5 k
+  # at 25 654 turns, and the reviewer's job is a diff against the item's own checklist. Which model a role runs on
+  # is a value this project records, not a fact the engine knows: no script under `tools/loop/` names a model.
+  child_cmd="$LOOP_AGENT_CMD"
+  role=$(child_role "$1")
+  role_key="LOOP_AGENT_CMD_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')"
+  role_cmd=$(loop_conf_value "$role_key")
+  if [ -n "$(printf '%s' "$role_cmd" | tr -d '[:space:]')" ]; then child_cmd="$role_cmd"; fi
+  # …and the turns this role may spend, read from its own key rather than from one count the whole item shares (#784).
+  turns_max=$(child_turn_bound "$role")
+  # The stream every child of the item appends to already holds what the children before this one spent, so the bound
+  # is read as a **difference**: the count standing here is the baseline and what this child is bounded by is the
+  # turns it adds. Read before the child starts, so a turn it takes between the fork and this line is its own.
+  turns_base=$(child_turns "${LOOP_CHILD_EVENTS:-}")
   # The worker is the child whose gate result the run reads out of the worktree, so it starts on a tree that
   # carries no other child's test results (issue #253). The **tail** child is the exception and is why this line is
   # not a `worker*` glob (issue #744): it is started *after* the gate wrote those results because the archive it
   # writes is read from them, so clearing them there would leave the item blocked on a gate result the run itself
-  # had deleted.
+  # had deleted. The **gate** child is the other exception (issue #758): the change child that went before it already
+  # started on a cleared tree, and what stands in the tree now is that child's own focused runs, which the gate it is
+  # about to run supersedes.
   case "$phase" in
     worker-tail*) ;;
+    worker-gate*) ;;
     worker*) clear_stale_test_results ;;
   esac
   interval="${LOOP_PROGRESS_SECONDS:-30}"
@@ -1166,7 +1435,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # closed because a member of a background group that reads a terminal is stopped, not run, and an unattended
   # child has nobody to type at it anyway.
   set -m
-  ( cd "$LOOP_ROOT" && $LOOP_AGENT_CMD "$1"; printf '%s\n' "$?" > "$2.status" ) > "$2" 2>&1 < /dev/null &
+  ( cd "$LOOP_ROOT" && $child_cmd "$1"; printf '%s\n' "$?" > "$2.status" ) > "$2" 2>&1 < /dev/null &
   child=$!
   active_child="$child"
   set +m
@@ -1247,12 +1516,12 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
       kill -KILL -"$child" 2>/dev/null || true
       break
     fi
-    # …and the bound that is not a clock (issue #686): an item that has spent its turns is a decision, and one more
-    # turn does not make it converge. It is read from the stream the child appends to and checked in the same whole
-    # second as the two clocks, so the wait costs one `grep` per second and not one per look.
-    if [ "$item_turns_max" -gt 0 ]; then
+    # …and the bound that is not a clock (issues #686, #784): a child that has spent its role's turns is a decision,
+    # and one more turn does not make it converge. It is read from the stream the child appends to and checked in the
+    # same whole second as the two clocks, so the wait costs one `grep` per second and not one per look.
+    if [ "$turns_max" -gt 0 ]; then
       turns=$(child_turns "${LOOP_CHILD_EVENTS:-}")
-      if [ "$turns" -ge "$item_turns_max" ]; then
+      if [ $(( turns - turns_base )) -ge "$turns_max" ]; then
         ended_by=turns
         timed_out=1
         kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
@@ -1260,6 +1529,47 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         kill -KILL -"$child" 2>/dev/null || true
         break
       fi
+    fi
+    # …and the bound priced in what a turn costs rather than in how many there are (issue #760), read from the same
+    # stream and in the same whole second as the turn count, so the wait pays one `wc` and one `jq` over the *new*
+    # lines per second. The checkpoint costs one line and decides nothing: it names the reading so a session that
+    # could split at its gate knows it is worth more than the turns it saves. The recorded maximum ends the child,
+    # because past it every further turn costs several times the first and that is a decision, not a slower
+    # convergence. Both are off at `0`, which is why the whole block is skipped when neither key is recorded.
+    if [ "$item_context_warn" -gt 0 ] || [ "$item_context_max" -gt 0 ]; then
+      ctx_read=$(child_context "${LOOP_CHILD_EVENTS:-}" "$ctx_lines")
+      ctx_new=${ctx_read%% *}
+      ctx_lines=${ctx_read##* }
+      case "$ctx_new" in ''|*[!0-9]*) ctx_new=0 ;; esac
+      case "$ctx_lines" in ''|*[!0-9]*) ctx_lines=0 ;; esac
+      if [ "$ctx_new" -gt "$ctx_max" ]; then ctx_max=$ctx_new; fi
+      if [ "$item_context_warn" -gt 0 ] && [ "$ctx_warned" -eq 0 ] && [ "$ctx_max" -ge "$item_context_warn" ]; then
+        ctx_warned=1
+        printf 'LOOP-CONTEXT: the child\047s context reached %s tokens (LOOP_ITEM_CONTEXT_WARN records %s) — every further turn re-reads it, so a session split at the next gate is the cheaper half of this bound\n' \
+          "$ctx_max" "$item_context_warn"
+      fi
+      if [ "$item_context_max" -gt 0 ] && [ "$ctx_max" -ge "$item_context_max" ]; then
+        ended_by=context
+        timed_out=1
+        kill -TERM -"$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null
+        sleep 1
+        kill -KILL -"$child" 2>/dev/null || true
+        break
+      fi
+    fi
+    # …and the one condition that is not a bound at all (issue #795): the record this wait ends on is written by
+    # this shell's own subshell, so a `kill -0` on that pid is the only reading that tells a child still working
+    # from a child whose writer was killed before it wrote the record. It is taken only while the record is absent,
+    # and used only to end the wait: what #227 measured was a poll that believed a child gone — a pid the shell had
+    # already reaped answers nothing, and a `wait` on it returns no status — so this reading never waits on the pid.
+    # Measured 2026-11-06: the run started at 06:27:14Z was reparented to `systemd --user` when the session that
+    # owned it died, sat in this poll 17 minutes into a 600-minute budget with its lock still held and its item still
+    # `agent/in-progress`, and the cap would have ended the wait at 45 minutes — an item blocked for a dead child,
+    # and a lock that would have refused every run after it.
+    if [ ! -e "$status_file" ] && ! kill -0 "$child" 2>/dev/null; then
+      ended_by=writer
+      timed_out=1
+      break
     fi
     sleep "$poll"
   done
@@ -1284,11 +1594,27 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
         "'" "$deadline_at" "$(( $(date +%s) - started ))" >> "$2"
       stop_run "deadline passed at $deadline_at — the child running when it passed was ended"
     elif [ "$ended_by" = turns ]; then
-      # The line the item's block is recorded from, and it says why in the item's own words: the bound, the count
-      # that reached it and the key it is recorded in, so a person reading the blocked item does not have to
-      # re-derive from a clock that had minutes left that the child was ended for what it spent (issue #686).
-      printf 'LOOP-TIMEOUT: the child reached the recorded turn bound of %s turns (LOOP_ITEM_TURNS_MAX) after %s turn(s) — the run ended it and everything it started\n' \
-        "$item_turns_max" "$(child_turns "${LOOP_CHILD_EVENTS:-}")" >> "$2"
+      # The line the item's block is recorded from, and it says why in the item's own words: the bound, the role and the
+      # key it is recorded in, and the count that reached it, so a person reading the blocked item does not have to
+      # re-derive from a clock that had minutes left that the child was ended for what it spent (issue #686), nor
+      # guess which phase had spent the item's pot (issue #784).
+      printf 'LOOP-TIMEOUT: the child reached the recorded turn bound of %s turns (%s for the %s role) after %s turn(s) — the run ended it and everything it started\n' \
+        "$turns_max" "LOOP_CHILD_TURNS_MAX_$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')" "$role" \
+        "$(( $(child_turns "${LOOP_CHILD_EVENTS:-}") - turns_base ))" >> "$2"
+    elif [ "$ended_by" = context ]; then
+      # The reading the bound took, in the transcript the item is blocked on (issue #760), for the reason the turn
+      # bound's line carries its count: a person reading the blocked item must not have to re-derive from an exit
+      # status, on a clock with minutes left, which number ended the child. `LOOP-TIMEOUT` is the line the run reads
+      # as its own timeout, so the reviewer-round and pre-gate paths that already read a cut transcript keep working.
+      printf 'LOOP-TIMEOUT: the child reached the recorded context bound of %s tokens (LOOP_ITEM_CONTEXT_MAX) at %s tokens — the run ended it and everything it started\n' \
+        "$item_context_max" "$ctx_max" >> "$2"
+    elif [ "$ended_by" = writer ]; then
+      # The event this wait ends on can only be written by a process that is running, so a writer that is gone is
+      # the reason the wait ended — and the item's note must not read as a clock that fired (issue #795). The line
+      # is the one the run reads as its own timeout, which is what records the item `blocked` with `bound` as its
+      # mechanism instead of an escalation nobody asked for.
+      printf 'LOOP-TIMEOUT: the child\047s writer (pid %s) vanished before it wrote its completion record — the run ended the wait\n' \
+        "$child" >> "$2"
     else
       printf 'LOOP-TIMEOUT: the child exceeded %s s — the run ended it and everything it started\n' "$cap" >> "$2"
     fi
@@ -1385,6 +1711,7 @@ tail_after_gate() { # tail_after_gate <gate report> <tail prompt> <tail report> 
   } > "$output" 2>/dev/null || : > "$output"
   render_prompt "$LOOP_DIR/prompts/worker-tail.md" "$prompt" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+    "SCRATCH_DIR=${scratch_dir:-$item_dir/scratch}" \
     "BASE=$base" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" "GATE_CLAIM=$gate" "GATE_OUTPUT=$output" \
     "CHANGE_NAME=${change_name:--}" "TASKS_PATH=$tasks" "ROOT_CAUSE=$root_cause" "RED_TEST=$red_test"
   tail_started=1
@@ -1396,6 +1723,20 @@ tail_after_gate() { # tail_after_gate <gate report> <tail prompt> <tail report> 
 render_prompt() { # render_prompt <template> <out> [KEY=VALUE]…
   local template="$1" out="$2"; shift 2
   loop_render "$template" "$@" > "$out"
+}
+
+# The one section of `tools/loop/prompts/worker.md` that changes with the run's review shape (`{{GATE_STEP}}`). It is
+# a section of the worker's own prompt and not a second worker prompt, because everything else about the child — the
+# route, Phases A–C, the report block — is the same in both shapes and two copies of it would be two rules.
+#
+#   gate-own.md       the change child runs the gate; one child from the diagnosis to the gate (the shape an item
+#                     worked with `--review off` keeps)
+#   gate-deferred.md  the change child's session ends at the diff, a fresh child runs the gate (issue #758)
+#
+# The run substitutes this **first**: the section names `{{GATE_CMD}}` and `{{EVIDENCE_DIR}}` itself, so a section
+# inserted after those pairs would hand the child a path called `{{GATE_CMD}}`.
+gate_step_text() { # → the `{{GATE_STEP}}` section for the shape <on|off> asks for
+  if [ "${1:-off}" = on ]; then cat "$LOOP_DIR/prompts/gate-deferred.md"; else cat "$LOOP_DIR/prompts/gate-own.md"; fi
 }
 
 # The readiness verdict line for the change the run handed an item, read again when the package is rendered: the
@@ -1423,16 +1764,27 @@ change_readiness_of() { # <change dir> → the checker's one-line verdict
 
 # The round's prompt, rendered once per attempt: the same contract and the same diff, only the file it is written
 # to differs, so a retried answer is the same question asked again rather than a second review (#224).
-# `CORRECTION_SCOPE` is substituted **first**, not last: `loop_render` replaces one pair at a time on the template it
-# has accumulated so far, and the section names `{{DIFF_PATH}}` and `{{CHANGE_ROOT}}` itself. A section inserted
-# after those pairs would survive verbatim and hand the reviewer a file called `{{DIFF_PATH}}` — the round that
-# exists to verify corrections pointing at a placeholder (item #245's round-1 review).
-render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope]
+# `CORRECTION_SCOPE` and `PRE_GATE` are substituted **first**, not last: `loop_render` replaces one pair at a time on the
+# template it has accumulated so far, and both sections name `{{DIFF_PATH}}` and `{{CHANGE_ROOT}}` themselves. A
+# section inserted after those pairs would survive verbatim and hand the reviewer a file called `{{DIFF_PATH}}` — the
+# round that exists to verify corrections pointing at a placeholder (item #245's round-1 review).
+render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-only scope] [the pre-gate section]
   render_prompt "$LOOP_DIR/prompts/reviewer.md" "$1" \
-    "CORRECTION_SCOPE=${2:-}" \
+    "CORRECTION_SCOPE=${2:-}" "PRE_GATE=${3:-}" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "DIFF_PATH=$diff_file" "DIFF_RANGE=$diff_base" "EVIDENCE_DIR=$item_dir" \
     "WORK_PACKAGE=${package:-}" \
     "REVIEW_EXCLUDE=${review_exclude_spec:-none}" "REVIEW_WALL_CLOCK=${child_max:-2700}"
+}
+
+# A review round the run's own bound ended is written on the branch as a **cut**, and the announcement of the same
+# round is withdrawn in that one commit (issue #785): the branch is what a later run reads, and a round nobody
+# answered beside a round the loop itself ended asks a person a question the loop already answered. Nothing is
+# written for an item whose tree carries no archived change (`$change` empty) — there is no change to write against.
+record_cut_round() { # <round>
+  [ -n "${change:-}" ] || return 0
+  bash "$LOOP_DIR/worktree.sh" record-review-round "$issue" "$change" "$1" cut >&2 ||
+    printf 'run: the cut of review round %s could not be recorded on the branch — a later run may read %s as a round nobody answered\n' \
+      "$1" "$change" >&2
 }
 
 # ── the item loop ───────────────────────────────────────────────────────────────────────────────
@@ -1440,10 +1792,11 @@ render_reviewer_prompt() { # render_reviewer_prompt <out file> [the corrections-
 queue_passes=1
 while true; do
   if [ "$(jq -r '.queue | length' "$LOOP_STATE_FILE")" -eq 0 ] && [ "$queue_passes" -lt 2 ] &&
-    [ "$deadline_cut" -eq 0 ]; then
+    [ "$deadline_cut" -eq 0 ] && [ "$bound_cut" -eq 0 ]; then
     # A queue that emptied mid-run gets one more pass, never a third (SKILL.md, "Pre-screen the backlog") — but not
-    # after the run's own deadline ended a child: the budget is spent, the pass can admit nothing the run could work,
-    # and its verdict on the item whose branch the cut child had just made reads as a decision about that item.
+    # after the run's own deadline ended a child, nor after its own bound ended a review round of the item it last
+    # worked (issue #785): the pass can admit nothing the run could work either way, and its verdict on the item whose
+    # branch the cut child had just made reads as a decision about that item.
     queue_passes=$((queue_passes + 1))
     bash "$LOOP_DIR/prescreen.sh" >&2 || true
     escalate_prescreen_decisions
@@ -1629,6 +1982,12 @@ while true; do
 
   item_dir="$stage_dir/items/$issue"
   mkdir -p "$item_dir"
+  # The one place beside its change a child may write (issue #800): `run_child` starts every child in the project's
+  # own tree, so a write with a project-relative path lands in the tree the landing step needs clean, and writing
+  # beside the change was the only path a child had. It is created before the prompt that names it is rendered, so
+  # the directory a child reads out of its prompt is one that exists.
+  scratch_dir="$item_dir/scratch"
+  mkdir -p "$scratch_dir"
   # What the run copied into the worktree, beside the item's other evidence: the source directory, the file count and
   # the bytes are the run's own record of the preparation, and `loop-clean.sh` reports the source from the state.
   if [ -n "$item_change" ] && [ -f "$LOOP_STATE_FILE" ]; then
@@ -1663,7 +2022,9 @@ while true; do
     loop_die "run: could not render the work package for #$issue"
 
   render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt.md" \
+    "GATE_STEP=$(gate_step_text "$pre_gate")" \
     "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+    "SCRATCH_DIR=$scratch_dir" \
     "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
     "CLASS=$class" "PROPOSE_CLASS=$propose_class"
 
@@ -1681,8 +2042,190 @@ while true; do
   # The gate child's own difference in the project's tree is read here, before the tail overwrites the reading: it
   # is a fact about that child, and a tail child that then writes nothing would otherwise erase it (#285's note).
   worker_write_note="$outside_write_note"
+  worker_write_attributed="$outside_write_attributed"
   worker_write_decides=0
   outside_write_decides && worker_write_decides=1
+  # A write the run can place decides the item **where it is read** (issue #800): recorded here, beside the reading
+  # that took it and before the pre-gate round or a gate child is started, because an item whose change stands in a
+  # tree the run cannot vouch for is not one a gate result would be evidence about. The reading is the worker's own;
+  # the gate child's and the tail child's are recorded under names of their own further down.
+  if [ -n "$worker_write_note" ]; then
+    if [ "$worker_write_decides" -eq 1 ]; then
+      write_step_note="the item ends at this reading, before any gate child: $worker_write_note"
+    else
+      write_step_note="$worker_write_note"
+    fi
+    # The step carries the attribution the outcome block's reason already carries, because the requirement this
+    # reading owes names the child the process was placed in and the step is where a reader looks it up: the pids
+    # are the reading's, taken while the child ran (issue #800, review round 1).
+    if [ -n "$worker_write_attributed" ]; then
+      write_step_note="$write_step_note (attributed to this child: $worker_write_attributed)"
+    fi
+    loop_state step A --name outside-write --status ok --note "$write_step_note" >/dev/null 2>&1 || true
+    progress note "$write_step_note"
+  fi
+  # The child that ran the gate, and the report its result is read from: the item's change child, unless the run
+  # deferred the gate to a child of its own below (issue #758).
+  gate_report="$item_dir/worker-report.md"
+  gate_child="worker"
+  gate_exit="$worker_exit"
+  gate_write_note="$worker_write_note"
+  gate_write_decides="$worker_write_decides"
+
+  # ── the diff is reviewed before the gate, and a fresh child runs the one gate (issue #758) ────────────────────
+  #
+  # The change ends the child that made it: with `--pre-gate-review on` (`worker.md`'s `{{GATE_STEP}}`) the change
+  # child stops at the diff and reports `LOOP-DIFF-READY` instead of a gate line, a fresh reviewer reads that diff,
+  # and the gate child applies its findings in one pass and then runs the item's gate **once**. Measured on this
+  # loop's archive (`python3 tools/loop-spend.py`, 2026-11-03, 227 items): 1 581 of 2 591 Mtok — 61 % — are spent
+  # after the item's first gate, 117 child sessions ran the gate three times or more, and a finding a reader could
+  # have made from the diff alone was paid for twice: the gate it did not need, and the second full pass the rework
+  # that answered it then made. The reviewer itself is cheap — 7 522 turns at 53.6 k tokens against the worker's
+  # 84.5 k at 25 654 turns — so a round before the gate does not reduce how many rounds an item takes, it reduces
+  # what a round costs.
+  #
+  # What stays where it was: the review round after the gate, because a change is judged after its verification as
+  # well, and the tail that writes the archive. The round below is **not** a round of the review budget: it refuses
+  # nothing, the item is never blocked by what it finds, and the round `--max-review-rounds` bounds is the one after
+  # the gate. Its report stays in the item's directory and is named in the item's step, which is where a reader finds
+  # what the change was asked to fix before its gate ran.
+  #
+  # A change child that ran the gate itself — one that ignored the prompt, or an item worked under the one-child
+  # contract — leaves a gate line and no `LOOP-DIFF-READY`, and the item is read exactly as it was: a gate the run did
+  # not run is not re-run, and a round before a gate that has already run has nothing to read.
+  pre_gate_refusal=""
+  pre_gate_refusal_verdict=""
+  # Whether the round that never finished was ended by a **bound** — the run's own deadline or the reviewer's role's
+  # turn bound — rather than by the transport (issue #785). A bound's round is a cut, and a cut is not the item's: it
+  # is recorded `cut`, escalated to nobody and resumed by the next run, where a report the transport cut twice is a
+  # block the owner is asked about.
+  pre_gate_cut=0
+  # Whether the change child claimed a change and left the tree at the run's base — a reading taken before the child
+  # that would run the gate, so that nothing is paid for afterwards (issue #797). Empty for every other shape.
+  empty_tree_reading=""
+  if [ "$pre_gate" = on ] && [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ]; then
+    change_diff_ready=$(report_field "$gate_report" LOOP-DIFF-READY)
+    change_gate_claim=$(report_field "$gate_report" LOOP-GATE)
+    change_verdict=$(report_field "$gate_report" LOOP-VERDICT)
+    if [ -n "$change_diff_ready" ] && [ -z "$change_gate_claim" ] && [ -z "$change_verdict" ] &&
+      [ -z "$(report_field "$gate_report" LOOP-TIMEOUT)" ] &&
+      [ -z "$(report_field "$gate_report" LOOP-DEADLINE)" ]; then
+      # The change is committed before anything reads it: the round's diff is `git diff <base>..HEAD`, and work the
+      # run has not committed is not that.
+      bash "$LOOP_DIR/worktree.sh" end-item "$issue" "$slug" >/dev/null 2>&1 || true
+      head_now=$(bash "$LOOP_DIR/worktree.sh" head 2>/dev/null)
+      progress commit "the change child stopped at the diff — HEAD ${head_now:0:12} (base ${base:0:12})"
+      # …and a child that stopped at the diff and left the tree at the run's base committed nothing (issue #797). The
+      # outcome block's own arm names that reading and keeps its place as the invariant; what must not happen is
+      # everything that arm would be paid for first — the reviewer, the gate child and the tail — on a tree there is
+      # nothing to read, run a gate on or archive. Measured 2026-11-06 (`runs/2026-11-06T11:44:21Z.json`): a gate phase
+      # is 20–22 min of a 40–50 min item, and eight items over the archive learned their tree was at the base only after
+      # one was paid. A child that answered the diff marker did read the item, so what this leaves is the item's own
+      # block and not the run's "could not start" stop that the same empty tree beside an answer with nothing in it is.
+      if [ "$head_now" = "$base" ]; then
+        empty_tree_reading="the item ends at this reading, before any gate child: the change child stopped at the diff and the tree is still at the base commit, so nothing was committed"
+        loop_state step A --name empty-tree --status ok --note "$empty_tree_reading" >/dev/null 2>&1 || true
+        progress note "$empty_tree_reading"
+      fi
+      if [ "$head_now" != "$base" ]; then
+        # The round's diff, its file and the pathspec are the post-gate round's own: one reviewer contract, one diff.
+        review_exclude_spec=$(loop_conf_value LOOP_REVIEW_EXCLUDE_PATHSPEC)
+        diff_base="$base"
+        diff_file="$item_dir/review-pre-gate.diff"
+        write_review_diff "$diff_base" "$diff_file"
+        before=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
+          { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
+        pre_gate_report="$item_dir/pre-gate-review.md"
+        render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt.md" "" \
+          "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")"
+        run_child "$item_dir/reviewer-pre-gate-prompt.md" "$pre_gate_report"
+        # An answer cut on its way to the file decides nothing, and it is the run's own transport rather than a
+        # reviewer that stayed quiet, so the round is asked once more — the rule the rounds after the gate follow
+        # (#224). A round a clock ended says so in its own report and is read as it stands.
+        pre_gate_deadline=$(report_field "$pre_gate_report" LOOP-DEADLINE 2>/dev/null || true)
+        if [ -z "$pre_gate_deadline" ] && [ -z "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ] &&
+          ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
+          printf 'run: the pre-gate answer was cut short (%s) — retrying the round once\n' \
+            "$(last_line "$pre_gate_report")" >&2
+          pre_gate_report="$item_dir/pre-gate-review-retry.md"
+          render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt-retry.md" "" \
+            "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")"
+          run_child "$item_dir/reviewer-pre-gate-prompt-retry.md" "$pre_gate_report"
+          pre_gate_deadline=$(report_field "$pre_gate_report" LOOP-DEADLINE 2>/dev/null || true)
+        fi
+        after=$( { git -C "$worktree" status --porcelain; git -C "$worktree" diff; } |
+          { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else cksum | tr -d ' '; fi; } | cut -c1-16)
+        # A reviewer that wrote cannot have been the reviewer (D3), and the two guards come first for the reason the
+        # post-gate round states: the round is discarded whatever ended the child.
+        if [ "$read_only" = on ] && [ "$before" != "$after" ]; then
+          pre_gate_refusal_verdict="reviewer-wrote"
+          pre_gate_refusal="the pre-gate review round was discarded: the working tree changed while the reviewer ran"
+        elif outside_write_decides; then
+          pre_gate_refusal_verdict="reviewer-wrote"
+          pre_gate_refusal="the pre-gate review round was discarded: the project's own tree changed while the reviewer ran — $outside_write_note${outside_write_attributed:+ (attributed to this round: $outside_write_attributed)}"
+        else
+          if [ -n "$outside_write_note" ]; then
+            loop_state step A --name outside-write-pre-gate --status ok --note "$outside_write_note" >/dev/null 2>&1 || true
+            progress note "$outside_write_note"
+          fi
+          if [ -n "$pre_gate_deadline" ]; then
+            deadline_claim="$pre_gate_deadline"
+            pre_gate_cut=1
+            pre_gate_refusal_verdict="deadline"
+            pre_gate_refusal="the run's deadline passed while the pre-gate reviewer was running — the round was cut, not refused, so the change is left for the next run"
+          elif [ -n "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ]; then
+            pre_gate_cut=1
+            pre_gate_refusal_verdict="cut-short"
+            pre_gate_refusal="the run ended the pre-gate reviewer at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run"
+          elif ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
+            pre_gate_refusal_verdict="cut-short"
+            pre_gate_refusal="the pre-gate reviewer's report was cut short twice — the round's answer never arrived, so no reviewer refused this change"
+          fi
+        fi
+      fi
+      if [ -z "$pre_gate_refusal" ] && [ "$head_now" != "$base" ]; then
+        # What the round found, in the shape the post-gate round is read in: only an explicit refusal with a count
+        # hands anything to the child that follows. A `VERDICT: FAIL` with zero blocking findings is a pass whose
+        # notes are recorded, and a report with no count line at all refuses nothing.
+        blocking=$(blocking_count "$pre_gate_report")
+        pre_gate_findings=""
+        if [ "$(report_verdict "$pre_gate_report")" = FAIL ] && [ -n "$blocking" ] && [ "$blocking" -gt 0 ]; then
+          pre_gate_findings="$pre_gate_report"
+        fi
+        loop_state step A --name pre-gate-review --status ok \
+          --note "the diff was read before the gate: $(if [ -n "$pre_gate_findings" ]; then printf '%s blocking finding(s) handed to the gate child' "$blocking"; else printf 'no blocking finding'; fi)" >/dev/null
+        # The gate child is a phase of its own: it is handed what the change child established, and the findings when
+        # there are any, and it decides nothing the change child already decided.
+        render_prompt "$LOOP_DIR/prompts/worker-gate.md" "$item_dir/worker-gate-prompt.md" \
+          "ISSUE=$issue" "CHANGE_ROOT=$worktree" "EVIDENCE_DIR=$item_dir" "BASE=$base" \
+          "SCRATCH_DIR=$scratch_dir" \
+          "GATE_CMD=$LOOP_GATE_CMD" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
+          "CHANGE_NAME=${change_diff_ready:--}" "CHANGE_ANSWER=$(report_field "$gate_report" LOOP-CHANGE)" \
+          "ROOT_CAUSE=$(report_field "$gate_report" LOOP-ROOT-CAUSE)" \
+          "RED_TEST=$(report_field "$gate_report" LOOP-RED-TEST)" \
+          "FINDINGS_PATH=${pre_gate_findings:-none — the round read before the gate found no blocking finding}"
+        # The findings are appended rather than substituted, for the reason the post-gate rework appends them: a
+        # report is arbitrary text, and a value substituted into a skeleton is a value the skeleton's own
+        # placeholders would then rewrite.
+        if [ -n "$pre_gate_findings" ]; then
+          printf '\n## The round that read this diff before the gate refused it; apply exactly these findings\n\n' \
+            >> "$item_dir/worker-gate-prompt.md"
+          cat "$pre_gate_findings" >> "$item_dir/worker-gate-prompt.md"
+        fi
+        run_child "$item_dir/worker-gate-prompt.md" "$item_dir/worker-gate-report.md"
+        gate_exit=$?
+        gate_child="gate worker"
+        gate_report="$item_dir/worker-gate-report.md"
+        gate_write_note="$outside_write_note"
+        gate_write_decides=0
+        outside_write_decides && gate_write_decides=1
+        loop_state step A --name worker-gate \
+          --status "$(if [ "$gate_exit" -eq 0 ]; then printf ok; else printf fail; fi)" \
+          --note "exit $gate_exit" >/dev/null
+      fi
+    fi
+  fi
+
   tail_started=0
   tail_exit=0
   tail_report="$item_dir/worker-tail-report.md"
@@ -1691,12 +2234,12 @@ while true; do
   # the gate it did **not** run, and reading that as "the gate ran" would start a child with an archive to write for a
   # tree the item never changed. `closed` is the one verdict that does not settle it here, because it is the shape a
   # report written against the older one-child contract carries; the tail then verifies the archive the same way.
-  first_verdict=$(report_field "$item_dir/worker-report.md" LOOP-VERDICT)
-  if [ "$worker_exit" -eq 0 ] && [ "$worker_write_decides" -eq 0 ] &&
+  first_verdict=$(report_field "$gate_report" LOOP-VERDICT)
+  if [ -z "$pre_gate_refusal" ] && [ -z "$empty_tree_reading" ] && [ "$gate_exit" -eq 0 ] && [ "$gate_write_decides" -eq 0 ] &&
     { [ -z "$first_verdict" ] || [ "$first_verdict" = closed ]; } &&
-    [ -z "$(report_field "$item_dir/worker-report.md" LOOP-TIMEOUT)" ] &&
-    [ -z "$(report_field "$item_dir/worker-report.md" LOOP-DEADLINE)" ]; then
-    tail_after_gate "$item_dir/worker-report.md" "$item_dir/worker-tail-prompt.md" "$tail_report" || true
+    [ -z "$(report_field "$gate_report" LOOP-TIMEOUT)" ] &&
+    [ -z "$(report_field "$gate_report" LOOP-DEADLINE)" ]; then
+    tail_after_gate "$gate_report" "$item_dir/worker-tail-prompt.md" "$tail_report" || true
   fi
   if [ "$tail_started" -eq 1 ]; then
     loop_state step A --name worker-tail \
@@ -1706,9 +2249,9 @@ while true; do
   # The report the item is decided from, and the child whose ending decides the commit: the tail's when one ran,
   # the gate child's otherwise. Both are recorded, so a reader of the item reads the gate's numbers in the first
   # transcript and the archive's in the second.
-  final_report="$item_dir/worker-report.md"
-  last_child="worker"
-  last_exit="$worker_exit"
+  final_report="$gate_report"
+  last_child="$gate_child"
+  last_exit="$gate_exit"
   if [ "$tail_started" -eq 1 ]; then
     final_report="$tail_report"
     last_child="tail worker"
@@ -1772,7 +2315,10 @@ while true; do
   # decision slots no reviewer and no worker asked for, and the run stopped on two consecutive blocked items 125 s
   # into a 360-minute budget. A status of 0 beside an answer that carries no verdict and a tree still at the base is
   # the same "no part of it was read", so the evidence decides this line and the status is only quoted in it.
-  if [ -z "$verdict_claim" ] && [ -z "$timeout_claim" ] && [ "$head_now" = "$base" ]; then
+  # A child that stopped at the diff is not this arm's (issue #797): it answered the item — the diff marker is its own
+  # claim that there is work — so a tree at the base beside that answer is the item's block, read at the diff and named
+  # below, not the run's stop. Only an answer with nothing of its own in it still says no part of the item was read.
+  if [ -z "$verdict_claim" ] && [ -z "$timeout_claim" ] && [ -z "$empty_tree_reading" ] && [ "$head_now" = "$base" ]; then
     child_words=$(last_line "$final_report")
     # How much answer there was, in the transcript the stop is recorded from: 0 B is the shape a refused provider
     # leaves, and it is what tells a reader of the stop reason why the run did not ask the item's owner anything.
@@ -1811,10 +2357,12 @@ while true; do
   # #286): the tree it measures is one the run's own landings fast-forward in the project and a peer session
   # writes too, so two readings of it are not evidence about the one child the run started. A write the in-time
   # reading tied to this child's own tree — or any difference at all, when the run declared the tree exclusive
-  # (`--strict-outside-write yes`) — is evidence, and decides.
-  if [ -n "$worker_write_note" ] && [ "$worker_write_decides" -eq 0 ]; then
-    loop_state step A --name outside-write --status ok --note "$worker_write_note" >/dev/null 2>&1 || true
-    progress note "$worker_write_note"
+  # (`--strict-outside-write yes`) — is evidence, and decides. The worker's own reading was recorded where it was
+  # taken (issue #800); what is left here is the gate child's and the tail child's, each under a name of its own —
+  # the step a later reader looks a difference up by must name the child it belongs to (issue #758, #744).
+  if [ "$gate_child" = "gate worker" ] && [ -n "$gate_write_note" ] && [ "$gate_write_decides" -eq 0 ]; then
+    loop_state step A --name outside-write-gate --status ok --note "$gate_write_note" >/dev/null 2>&1 || true
+    progress note "$gate_write_note"
   fi
   # …and the tail child's reading, under a name of its own when one ran: two children are two readings, and the step
   # a later reader looks a difference up by must name the child it belongs to (issue #744).
@@ -1829,11 +2377,20 @@ while true; do
   # place to keep them apart (issue #280; measured 2026-10-23: 198.8 M of refusing rounds against 22.9 M of merge
   # refusals over the archive, distinguishable then only by reading the note). Every other block leaves it empty.
   stop_reason=""
-  if [ "$last_exit" -ne 0 ]; then
+  # The pre-gate round comes first because it stopped the item before any gate ran (issue #758): its reason names the
+  # round, and an item it ended has no gate result for the arms below to read.
+  if [ -n "$pre_gate_refusal" ]; then
+    outcome="blocked"; blocked_reason="$pre_gate_refusal"
+  elif [ "$last_exit" -ne 0 ]; then
     outcome="blocked"; blocked_reason="the $last_child process exited $last_exit"
     # A child the run itself ended says so in the item's own reason. "exited 124" alone leaves the owner unable
     # to tell a run that bounded a hung child from a child that failed by itself (issue #203).
     if [ -n "$timeout_claim" ]; then blocked_reason="$blocked_reason — $timeout_claim"; fi
+    # …and the mechanism is `bound`, not a refusal (issue #786): the run ended this child at a bound it enforces, so
+    # nothing about the item was measured and the next item's failure is not predicted by this one's. That one word
+    # is what `state.sh next` reads to keep such a block out of the pair it stops a run on, and what the block's
+    # own escalation below reads to write no decision label.
+    if [ "$last_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$timeout_claim" ]; then stop_reason="bound"; fi
   elif outside_write_decides; then
     outcome="blocked"; blocked_reason="the $last_child wrote outside the worktree — the project's own tree changed while it ran: $outside_write_note${outside_write_attributed:+ (attributed to this child: $outside_write_attributed)}"
   elif [ "$verdict_claim" = "skipped" ] && [ "${skip_verdict:-}" = "falsified" ] \
@@ -1859,9 +2416,18 @@ while true; do
   elif [ "$cited_evidence" -eq 1 ] && [ "$carried" -eq 0 ]; then
     outcome="blocked"; blocked_reason="the change cites a test result but carries no evidence in its own evidence/ directory"
   fi
+  # …and a phase the run's own bound ended is not a block at all (issues #785, #790): a review round the run cut
+  # leaves an item whose work finished — its change archived, its gate answered and its branch carrying the commits
+  # — and a child the run ended at a bound leaves an item whose tree was left mid-phase. Either way what remains is
+  # a phase the next run resumes rather than a finding about the item, so the result is the fifth one and the reason
+  # the arms above recorded is kept word for word — it is what the report and the state's own table print. The bound
+  # is read off the mechanism the non-zero-exit arm wrote instead of the exit status a second time: `run_child`
+  # reports `LOOP_CHILD_TIMEOUT` and the child's own `LOOP-TIMEOUT` line for every bound it enforces — the child
+  # clock, the run's deadline and the role's turns — and that arm turns all three into the one word `bound`.
+  if [ "$pre_gate_cut" -eq 1 ] || [ "$stop_reason" = bound ]; then outcome="cut"; fi
 
   review_rounds=0
-  review_verdict="off"
+  review_verdict="${pre_gate_refusal_verdict:-off}"
   review_notes_text=""
   # The report the round is decided from: the reviewer's answer, or the retry's when the first one arrived cut.
   reviewer_report=""
@@ -1955,20 +2521,23 @@ while true; do
       if [ -n "$reviewer_deadline" ]; then
         deadline_claim="$reviewer_deadline"
         review_verdict="deadline"
-        outcome="blocked"
+        outcome="cut"
+        record_cut_round "$round"
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
         break
       fi
-      # The item's own turn bound ends a child the same way (`LOOP_ITEM_TURNS_MAX`, issue #686), and a round it ended
-      # has no answer to read: the transcript carries `LOOP-TIMEOUT` and no `VERDICT:` line. Reading that silence as
+      # The child's own turn bound ends a child the same way (`LOOP_CHILD_TURNS_MAX_<ROLE>`, issues #686 and #784), and
+      # so does the item's context bound (`LOOP_ITEM_CONTEXT_MAX`, issue #760), and a round they ended has no answer to
+      # read: the transcript carries `LOOP-TIMEOUT` and no `VERDICT:` line. Reading that silence as
       # a refusal named a reviewer that refused nothing and bought a rework worker for it — measured on item #51,
-      # whose round 1 ended at the 250-turn bound and whose record the report would otherwise count as a refusal
+      # whose round 1 ended at the turn bound (250 turns then) and whose record the report would otherwise count as a refusal
       # (issue #247, review round 2). The round is cut, as the twice-cut path below records it, so the item waits
       # for the next run and a rate counts it as undecided.
       if [ -n "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ]; then
         review_verdict="cut-short"
-        outcome="blocked"
-        blocked_reason="the run ended the reviewer of round $round at the item's turn bound — the round was cut, not refused, so the change is left for the next run"
+        outcome="cut"
+        record_cut_round "$round"
+        blocked_reason="the run ended the reviewer of round $round at one of its spend bounds (its role's turn bound or the item's context bound) — the round was cut, not refused, so the change is left for the next run"
         break
       fi
       # The word on the verdict is not what decides: the report's blocking count is (#205). `VERDICT: PASS`
@@ -1976,7 +2545,7 @@ while true; do
       # a pass whose notes are recorded — the findings are wording, pointers and naming, which cost the change
       # no round. A report with no count line keeps today's reading, so an old-shaped review never passes.
       blocking=$(blocking_count "$reviewer_report")
-      if grep -q '^VERDICT: PASS' "$reviewer_report" 2>/dev/null &&
+      if [ "$(report_verdict "$reviewer_report")" = PASS ] &&
         { [ -z "$blocking" ] || [ "$blocking" -eq 0 ]; }; then
         review_verdict="PASS"
       elif [ -n "$blocking" ] && [ "$blocking" -eq 0 ]; then
@@ -2014,10 +2583,14 @@ while true; do
           break
         fi
       fi
-      # FAIL: the same change goes back to a new worker process with the reviewer's findings.
+      # FAIL: the same change goes back to a new worker process with the reviewer's findings. Its session runs the
+      # gate itself (`gate_step_text off`): the round that refused it came *after* a gate, so there is nothing left to
+      # read before one, and the round its repair buys is the next review round.
       findings=$(cat "$reviewer_report")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
+        "GATE_STEP=$(gate_step_text off)" \
         "ISSUE=$issue" "CHANGE_ROOT=$worktree" "WORK_PACKAGE=$package" "EVIDENCE_DIR=$item_dir" \
+        "SCRATCH_DIR=$scratch_dir" \
         "BASE=$base" "GATE_CMD=$LOOP_GATE_CMD" "MEASURE_CMD=$measure_cmd" "WORKER_SKILLS=$LOOP_WORKER_SKILLS" \
         "CLASS=$class" "PROPOSE_CLASS=$propose_class"
       printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \
@@ -2093,7 +2666,12 @@ while true; do
       if [ -n "$round2_deadline" ]; then deadline_claim="$round2_deadline"; fi
       if [ "$round2_exit" -eq "$LOOP_CHILD_TIMEOUT" ] || [ -n "$round2_timeout" ]; then
         review_verdict="round2-ended"
-        outcome="blocked"
+        # …and the result is the fifth one (issue #790): a bound the run enforced on its rework worker is the same
+        # bound it enforces on the item's own, so what it leaves is a phase the next run resumes rather than a
+        # finding about the item. The mechanism rides beside it, so the spend a bound caused is one field on either
+        # result (issues #786, #790).
+        outcome="cut"
+        stop_reason="bound"
         blocked_reason="the run ended the rework worker of the refusing round (its wall-clock or the run's own deadline), so its tree is not committed — ${round2_timeout:-the child exceeded its wall clock}"
         break
       fi
@@ -2247,6 +2825,39 @@ $review_notes_text"
         --root-cause "$root_cause" --red-test "$red_test" --note "skipped by the worker" \
         --events "$events_file" --decision-label "$escalated_label" --review-verdict "$review_verdict" >/dev/null
       ;;
+    cut)
+      # The round the run's own bound ended (issue #785): the item's work finished — its change is archived, its gate
+      # answered and its branch carries the commits — and the phase that did not finish is the one the next run
+      # resumes. Nothing here writes a decision label: a person owes this item no answer, and a block recorded as one
+      # spent a decision slot and an evening on #780, #783, #767 and #763 on 2026-11-05. `state.sh done --result cut`
+      # keeps it out of the two-blocked streak `next` stops on, so a run of bound-ended rounds ends on its budget
+      # rather than on its own bounds.
+      label_failures=""
+      loop_labels unpick "$issue" >&2 || label_failures="unpick"
+      # The queue's own pass is not taken after this item: the branch it leaves carries the commits the run made, and a
+      # pre-screen asking about them would name the item the run has just recorded — with a question the run answered.
+      bound_cut=1
+      cut_note="${blocked_reason:-the run ended the phase at a bound}"
+      # A child the run ended says in the item's own note that the attempt is the next run's to resume (issues
+      # #786, #790): the tree it left was mid-phase, so nothing about the item was measured, and a reader of the
+      # state — the next run's pre-screen among them — must not have to derive that from the absence of a label.
+      if [ "$stop_reason" = bound ]; then
+        cut_note="$cut_note · the run ended this attempt at a bound it enforces, so the item is left for the next run rather than asked about"
+      fi
+      if [ -n "$leftover_patch" ]; then
+        cut_note="$cut_note · its work is kept at $leftover_patch"
+      fi
+      if [ -n "$label_failures" ]; then
+        cut_note="$cut_note · the run could not write $label_failures to the tracker, so the item's state there is this run's account only"
+      fi
+      loop_state done "$issue" --result cut --verdict cut --change "$change_claim" \
+        --wall "$wall" --pi-exit "$worker_exit" --rounds "$review_rounds" \
+        --root-cause "$root_cause" --red-test "$red_test" --note "$cut_note" \
+        --events "$events_file" --leftover "$leftover_patch" \
+        --stop-reason "$stop_reason" \
+        --label-failures "$label_failures" \
+        --review-verdict "$review_verdict" >/dev/null
+      ;;
     *)
       # A label write the tracker refuses is a fact of the run, not a swallow (issue #279): measured
       # 2026-10-23T11:38Z, a run recorded item #260 blocked with `escalatedLabel: ""` while its six neighbours
@@ -2265,35 +2876,37 @@ $review_notes_text"
       escalated_label=""
       # The block's escalation carries the decision itself, not only the news that one is needed: the reviewer
       # already answered the question when it wrote its report, so the owner reads the options and the
-      # recommendation instead of re-deriving them (#186).
-      if [ -z "$deadline_claim" ]; then
-        escalation_reason="${blocked_reason:-the item was blocked}"
-        decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
-        if [ -n "$decision_field" ]; then
-          escalation_reason="$escalation_reason
+      # recommendation instead of re-deriving them (#186). Every block that reaches this arm is escalated: the two
+      # causes that used to be excused here — the run's deadline and a bound — leave a `cut` above (issues #674,
+      # #786, #790), so a block nobody asked about was the one thing this arm could still produce.
+      escalation_reason="${blocked_reason:-the item was blocked}"
+      decision_field=$(report_field "${reviewer_report:-/dev/null}" LOOP-DECISION 2>/dev/null || true)
+      if [ -n "$decision_field" ]; then
+        escalation_reason="$escalation_reason
 
 **The decision:** $decision_field"
-        else
-          # A block that never reached a review round asked the item no question — most often because the cause is
-          # the run's own child rather than the item (a claim with no commit, a timeout, a child that could not
-          # start). Escalating the reason alone put an entry in the decision queue that nobody can answer, and the
-          # ceiling counts labels (issues #194, #225). The block leaves exactly one two-way choice, so the run
-          # states it, with the reason it holds as the ground for either answer.
-          escalation_reason="$escalation_reason
+      else
+        # A block that never reached a review round asked the item no question — most often because the cause is
+        # the run's own child rather than the item (a claim with no commit, a timeout, a child that could not
+        # start). Escalating the reason alone put an entry in the decision queue that nobody can answer, and the
+        # ceiling counts labels (issues #194, #225). The block leaves exactly one two-way choice, so the run
+        # states it, with the reason it holds as the ground for either answer.
+        escalation_reason="$escalation_reason
 
 **The decision:** retry the item, or abandon it — $blocked_reason. The reason above is the run's finding, not a
 question the item asked; a retry costs another attempt, and an abandonment removes it from the loop."
-        fi
-        if loop_labels escalate "$issue" --reason "$escalation_reason" \
-          --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
-          escalated_label="$decision_label"   # the block's own escalation
-        else
-          label_failures="${label_failures:+$label_failures }escalate"
-        fi
+      fi
+      if loop_labels escalate "$issue" --reason "$escalation_reason" \
+        --evidence "$item_dir, branch fix/issue-$issue-$slug" >&2; then
+        escalated_label="$decision_label"   # the block's own escalation
+      else
+        label_failures="${label_failures:+$label_failures }escalate"
       fi
       # The item's own reason carries the failure too, so the state's own table (`state.sh report`) names an item
       # whose decision was never written, and not only the report's action list does.
       blocked_note="${blocked_reason:-the item was blocked}"
+      # A bound-ended attempt says the same sentence on the `cut` arm above (issues #786, #790): the one block
+      # whose cause was the run's own bound is written there now, so nothing here has to tell it apart.
       # The work an ended child left is named in the item's own record, not only in its transcript: a clock-cut
       # item writes no comment on the tracker, so the state and the report are the only places a caller reads it.
       if [ -n "$leftover_patch" ]; then
@@ -2312,6 +2925,9 @@ question the item asked; a retry costs another attempt, and an abandonment remov
   esac
   detail="${change:-$blocked_reason}"
   if [ "$outcome" = skipped ]; then detail="${skip_verdict:-unspecified}"; fi
+  # A cut names the phase the run ended rather than the change it left: the change is the same one the item's branch
+  # carries either way, and what a reader of the line has to tell apart is a cut from a block (issue #785).
+  if [ "$outcome" = cut ]; then detail="${blocked_reason:-cut at a bound}"; fi
   printf 'item #%s: %s (%s) · %ss · %s review round(s)\n' "$issue" "$outcome" "$detail" "$wall" "$review_rounds"
   in_progress=""
 

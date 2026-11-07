@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/check-rule-routes-selftest.sh" tests="6" failures="0" errors="0" time="0">
+  <system-out>PASS  routes#aChangeNamingItsDerivedSectionsPasses — a change that names every derived section passes (exit 0) PASS  routes#aChangeMayAddASection — a change may add a section it names beyond the derived set (exit 0) check-rule-routes-selftest: all 6 cases passed (throwaway fixtures, no Gradle, no device, no network)</system-out>
+</testsuite>

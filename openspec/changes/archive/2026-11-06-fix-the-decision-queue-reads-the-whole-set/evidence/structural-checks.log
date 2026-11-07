@@ -1,0 +1,51 @@
+2026-11-06T19:45:16Z
+--- tools/check-portability.sh
+check-portability: the documented exception — the label that authorises work is declared read-only, once:
+  tools/loop/lib.sh:64:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)
+--- tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+--- tools/check-doc-routes-selftest.sh
+PASS  routed-read#theEntryDocumentNamesTheLoopSkillsByPath — the entry document names the two skills the iteration loop ends with by their paths, and the route check resolves both
+PASS  routes#theRepositorysAgentsFileIsUntouched — the repository's AGENTS.md and its guidelines are untouched by every case
+check-doc-routes-selftest: all 34 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+--- tools/check-todo-references.sh
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 9173 file(s) excluded by the allowlist above
+2026-11-06T19:45:26Z
+2026-11-06T19:45:27Z
+--- tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 9 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+--- tools/check-openspec-hygiene-selftest.sh
+check-openspec-hygiene-selftest: all 7 cases passed (throwaway OpenSpec trees, no Gradle)
+--- bash tools/gen-feature-list.sh --check-classification
+stale: 5
+car-only areas: 1
+highlights: 19
+--- tools/issues/check-metadata.sh
+check-metadata: 0 issue(s) checked · 0 violation(s)
+--- tools/issues/metadata-mutations.sh --list
+the-writer-skips-the-marker      no band label is written or removed without the body that leaves the pair intact (task 8.7, D1; the write gate of #671)
+settled-record-not-checked       an item whose body keeps a settled state must carry a settled label, or the displaced state is invisible (#683)
+shape-key-not-written            the shape a finding is filed in is written through the body record's one writer, so the reader that looks for the key finds it (backlog-source-of-truth, "The shape, and the change a tier-B finding names, are recorded in the body")
+--- tools/mutate.sh decision-question --list
+# tools/decision-question-mutations.json — 2 mutation(s), case command: bash tools/issue-tooling-selftest.sh --case {case}
+A1.1	decisions#theQuestionIsNotTheVerdictWord	the marker line being the question — without it the first non-empty line is the escalation's verdict word
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+--- check-change-readiness
+LOOP-CHANGE-READY: refused surface-missing=proposal.md
+--- openspec validate --strict
+Change 'fix-the-decision-queue-reads-the-whole-set' is valid
+2026-11-06T19:45:32Z
+2026-11-06T19:47:46Z
+--- tools/check-change-readiness.sh (after proposal.md existed)
+LOOP-CHANGE-READY: ok
+--- openspec validate --strict
+Change 'fix-the-decision-queue-reads-the-whole-set' is valid
+--- tools/check-openspec-hygiene.sh (10 open changes)
+OpenSpec artifacts are consistent: 10 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+--- tools/look.sh Six rules
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines/Backlog.md for 'Six rules keep the decision queue'
+2026-11-06T19:47:46Z

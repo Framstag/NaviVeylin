@@ -11,7 +11,7 @@ rule both documents follow is `UI.md` §20. The phone's own surfaces are
 `guidelines/UIPhone.md` and `guidelines/UIPhoneMap.md`.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/UICar.md`; AGENTS.md's Documentation Map routes a kind of change
+`tools/look.sh '^## ' --path guidelines/UICar.md`; AGENTS.md's Documentation Map routes a kind of change
 here.
 
 ---

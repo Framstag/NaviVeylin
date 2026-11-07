@@ -1,0 +1,70 @@
+# The reading set a guideline or tooling edit derives, on HEAD 650028bf
+# command: bash openspec/changes/fix-guideline-routes-name-their-document/evidence/derive-probe.sh tools/doc-routes.json <paths>
+guidelines/Logging.md
+  globs: guidelines/** guidelines/Logging.md 
+  entries: 270
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack Logging 
+guidelines/Logging.recipes.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/BuildGate.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/DesignStack.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/UI.md
+  globs: guidelines/** guidelines/UI*.md 
+  entries: 449
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack UI UICar UIPhone UIPhoneMap 
+tools/loop/state.sh
+  globs: tools/** tools/loop/** 
+  entries: 4
+  documents: Backlog BacklogTooling BuildGate 
+tools/issues/lib.sh
+  globs: tools/** 
+  entries: 1
+  documents: BacklogTooling 
+tools/sensors/run.sh
+  globs: tools/** tools/sensors/** 
+  entries: 1
+  documents: BacklogTooling 
+
+# the map: bash tools/check-rule-routes.sh --list | tail -1
+check-rule-routes: 27 glob(s), 576 named rule(s) reached
+# the invariants: bash tools/check-rule-routes.sh
+check-rule-routes: every glob matches the tree and all 576 named rule(s) are reached
+
+# the six documents the first round left with no glob at all, measured on base with the map's own globs
+# command: bash openspec/changes/archive/2026-11-02-fix-guideline-routes-name-their-document/evidence/derive-probe.sh
+#          <the base map> guidelines/MapCar.md guidelines/MapFollow.md guidelines/MapFrames.md
+#          guidelines/MapRoute.md guidelines/MapStyling.md guidelines/BacklogTooling.md
+guidelines/MapCar.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/MapFollow.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/MapFrames.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/MapRoute.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/MapStyling.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+guidelines/BacklogTooling.md
+  globs: guidelines/** 
+  entries: 258
+  documents: Build BuildEvidence BuildGate BuildNative BuildTests Design DesignCrossVariant DesignNative DesignStack 
+# and one document's route carrying another document's entries: `guidelines/Backlog.*` matched only
+# `Backlog.md` while carrying `BacklogTooling.md`'s nine (evidence/checks-on-HEAD.log)

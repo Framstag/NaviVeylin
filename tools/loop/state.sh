@@ -13,10 +13,14 @@
 # run is still restartable, but not silently.
 #
 # `next` exits 3 whenever the run may not start another item, and that exit code — not a caller's
-# arithmetic — is the authority on whether an item may start: the item cap, the deadline, an empty
-# queue, two consecutive blocked items, or a remaining time below the next item's floor, which is
-# derived from the cheapest wall time this run recorded for a finished item; `LOOP_ITEM_FLOOR_MINUTES`
-# is the whole floor of a run with no such measurement (design D5, invariant 3). Exit 5 is a refusal that
+# arithmetic — is the authority on whether an item may start: the item cap, the deadline, an empty queue, the
+# recorded streak of consecutive refusals (`LOOP_REFUSAL_STREAK_STOP`, two when a project records none), or a
+# remaining time below the next item's floor, which is derived from the cheapest wall time this run recorded for a
+# finished item; `LOOP_ITEM_FLOOR_MINUTES` is the whole floor of a run with no such measurement (design D5,
+# invariant 3). A block the run's own bound caused is not a refusal and holds no pair (issue #786): what the pair
+# is read for is the prediction that the
+# next item fails the same way, and a bound says nothing about the next item, which starts a fresh worker on a
+# fresh tree. Exit 5 is a refusal that
 # must not be retried inside the same reasoning: the lock is held, or the base has moved (design D12, D4).
 #
 # Exit: 0 ok, 2 usage, 3 stop, 5 refuse.
@@ -35,14 +39,17 @@
 #   state.sh record-change-copy <issue> --change <name> --source <path> --files N --bytes N
 #                         # the change the item names, copied into its worktree at its start (`worktree.sh`)
 #   state.sh step <phase> --name <name> --status running|ok|fail|skip [--note TEXT]
-#   state.sh done <issue> --result done|skipped|blocked|falsified [--verdict V] [--change C] [--note TEXT]
+#   state.sh done <issue> --result done|skipped|blocked|falsified|cut [--verdict V] [--change C] [--note TEXT]
 #                         [--wall SECONDS] [--pi-exit N] [--rounds N] [--gate TALLY]
 #                         [--events FILE] [--closed yes|no] [--root-cause TEXT] [--red-test TEXT]
 #                         [--decision-label LABEL] [--leftover PATH] [--label-failures <transition>…]
-#                         [--stop-reason refused|unmergeable]
+#                         [--stop-reason refused|unmergeable|bound]
 #                         [--merged-branch B] [--merged-commits LIST] [--merged-evidence TEXT] [--merged-sha SHA]
 #                         [--review-verdict off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write]
 #   state.sh score-landings             # read the pipeline run each landing's own commit caused, once per landing
+#   state.sh adoption-refused <issue> --reason TEXT
+#                         # an admissible branch the tree, the base or the replay refused: the item's mechanism
+#                         # `unmergeable` beside the pre-screen's exclusion, and no decision written for it
 #   state.sh report
 #   state.sh lock | unlock
 set -uo pipefail
@@ -56,6 +63,12 @@ STATE_DIR=""
 RUNS_DIR=""
 LOCK_FILE=""
 FLOOR_MINUTES=45
+# How many consecutive refusals a run stops on. The pair was the engine's own constant until issue #804: a refusal
+# predicts the next item's failure (the same gate, the same provider, the same tree), but two is a prediction made
+# from the shortest possible evidence — measured 2026-11-05/06, eight of twelve runs stopped on the pair with 55–90 %
+# of their budget unused. The value is recorded (`LOOP_REFUSAL_STREAK_STOP`) rather than fixed here, so a run against
+# a flaky provider can be told to try longer, and `2` remains the default for a project that records nothing.
+STREAK_STOP=2
 
 # `init` and `lock` resolve the project; every other command needs the state file to already exist, and
 # resolves the same way so `LOOP_STATE_FILE` from an explicit environment wins in the self-test.
@@ -68,6 +81,8 @@ state_resolve() {
   STATE_FILE="$LOOP_STATE_FILE"
   FLOOR_MINUTES=$(loop_conf_value LOOP_ITEM_FLOOR_MINUTES)
   FLOOR_MINUTES="${FLOOR_MINUTES:-45}"
+  STREAK_STOP=$(loop_conf_value LOOP_REFUSAL_STREAK_STOP)
+  case "$STREAK_STOP" in ''|*[!0-9]*|0) STREAK_STOP=2 ;; esac
   STATE_DIR=$(dirname "$STATE_FILE")
   LOCK_FILE="$STATE_DIR/lock"
   # Where `init` keeps the state it replaces. Empty means `runs/` beside the state file — derived from the
@@ -258,7 +273,7 @@ cmd_show() {
       "budget   \($r.items) items / \($r.minutes) min · \($r.items - (.items | length)) left · deadline \($r.deadlineAt) · \((($r.deadlineEpoch - now) / 60 | floor)) min left\(if $r.deadlineEpoch <= now then " · EXPIRED" else "" end)",
       "flags    review \($r.review) · review rounds \($r.maxReviewRounds // "?") · may-close \($r.mayClose) · max-decisions \($r.maxDecisions) · base \($r.base)",
       "stop     \($r.stop.reason // (if $gone != "" then $gone else "not stopped — the run is still going, or it ended without recording a reason" end))",
-      "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \($r.items)",
+      "progress closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \($r.items)",
       "queue    \(.queue | length): \([.queue[].issue] | join(" "))",
       "excluded \(.excluded | length): \([.excluded[] | "#\(.issue) \(.reason)"] | join(" · "))",
       "",
@@ -271,13 +286,23 @@ cmd_show() {
 cmd_next() {
   require_state
   local reason
-  reason=$(jq -r '
+  # The streak a run stops on counts **refusals**, never cuts and never a block the run's own bound caused
+  # (issues #785, #786, #790): a phase the run's own bound ended is one the next run resumes, so an item recorded
+  # `cut` is no more a stop than one that closed — and the mechanism is read beside the result too, because a state
+  # a tree wrote before `cut` carried a bound still says `blocked` with `stopReason: bound` for the same fact. What
+  # the streak is read for is that a refusal predicts the next item's failure — the same gate, the same provider,
+  # the same tree — so only a refusal may sit in it. Measured 2026-11-05: five of six runs stopped on this streak,
+  # 758 of 3211 budgeted minutes used across them, and six of that day's eight blocks were bound cuts (issue #786).
+  # The count is the recorded one (`LOOP_REFUSAL_STREAK_STOP`, issue #804) and not the pair this line used to
+  # hardcode, and the reason names the count it read — a stop of four must not be read as one of two.
+  reason=$(jq -r --argjson streak "$STREAK_STOP" '
     (.run) as $r
     | (.items | length) as $done
     | if $done >= $r.items then "item cap reached (\($done)/\($r.items))"
       elif now >= $r.deadlineEpoch then "deadline passed at \($r.deadlineAt)"
       elif (.queue | length) == 0 then "queue empty"
-      elif ([.items[-2:][] | select(.result == "blocked")] | length) == 2 then "two consecutive items ended blocked"
+      elif ([.items[-$streak:][] | select(.result == "blocked" and (.stopReason // "") != "bound")] | length) == $streak
+        then "\($streak) consecutive refusals ended blocked"
       else "" end
   ' "$STATE_FILE")
   if [ -z "$reason" ]; then
@@ -325,12 +350,21 @@ cmd_queue() {
     || loop_die "queue: the queue must be a JSON array"
   # The queue, the exclusions and the per-item records arrive together: the pre-screen that produced
   # them is the run's own output, and an exclusion reported only to a console would be lost (D6).
-  local queue excluded
+  local queue excluded kept
+  # What an exclusion of this run already carries, so a second pre-screen does not erase the run's own record.
+  kept=$(jq -c '[.excluded[] | select(has("mechanism")) | {issue, mechanism, adoptionRefusal}]' "$STATE_FILE" 2>/dev/null || printf '[]')
   queue=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) == $queued) | {issue, class, category, verdict, reason, rank, gates}]')
   # The exclusion carries the one clause of evidence that produced it (the branch a previous attempt left
   # behind, or the label that states why): the run escalates the decisions among the exclusions, and it cannot
-  # cite evidence it threw away here.
-  excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" '[.[] | select((.verdict // $queued) != $queued) | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false)}]')
+  # cite evidence it threw away here. What the run itself decided about an exclusion before a re-screen arrives
+  # — the mechanism `unmergeable` and the adoption's own refusal (issue #794) — is carried over: the pre-screen
+  # reads the tracker and git again, and a branch it excluded twice is the same branch, so the run must not
+  # escalate on its second reading what it recorded as work on its first.
+  excluded=$(printf '%s' "$json" | jq -c --arg queued "$(loop_role queuedVerdict)" --argjson kept "${kept:-[]}" '[
+    .[] | select((.verdict // $queued) != $queued)
+    | {issue, class, verdict, reason, evidence, alreadyEscalated: (.alreadyEscalated // false)}
+    | . as $e | ($kept | map(select(.issue == $e.issue)) | .[0] // {}) as $d
+    | $e + (if ($d | has("mechanism")) then {mechanism: $d.mechanism, adoptionRefusal: ($d.adoptionRefusal // "")} else {} end)]')
   # An item this run has already recorded is never queued again: the pre-screen reads the tracker, and a
   # second pass over the same tracker would hand back the item the run has just finished with.
   patch_state '
@@ -470,17 +504,28 @@ cmd_done() {
     esac
   done
   case "$issue" in ''|*[!0-9]*) loop_die "done: usage: state.sh done <issue> --result done|skipped|blocked|falsified" ;; esac
-  case "$result" in done|skipped|blocked|falsified) ;; *) loop_die "done: --result must be done|skipped|blocked|falsified" ;; esac
+  # `cut` is the fifth result, and it is not a shade of `blocked` (issue #785): a round the run's own bound ended
+  # — the item's wall clock, the child's role's turns, or the run's deadline — is a phase a later run resumes,
+  # not a finding about the item, so it carries no decision label, is not escalated and is not counted by the
+  # two-blocked streak a run stops on. Measured 2026-11-05: #780's tail wrote `LOOP-VERDICT: closed`, its gate was
+  # `tests=460 failures=0`, its change was archived, and review round 1 was cut at the turn bound — the item was
+  # recorded `blocked` and escalated, as #783, #767 and #763 were the same day.
+  case "$result" in done|skipped|blocked|falsified|cut) ;; *) loop_die "done: --result must be done|skipped|blocked|falsified|cut" ;; esac
   # The mechanism a block stopped on is a closed vocabulary, not a second place to write prose (issue #280: a
   # refusing review round and a base that would not take the branch both reached the record as the one word
   # `blocked`, so 198.8 M of refusing rounds could only be told from one 22.9 M merge refusal by reading the note).
-  # A mechanism on anything but a block would double-count the item as two kinds of stop, so it is refused too.
+  # `bound` is the third value (issues #786, #790): the run ended a child of the item at a bound it enforces — the
+  # child's role's turns, the child clock or the run's own deadline — which is work the next run resumes and not a
+  # finding about the item. Such an item is recorded `cut`, so `bound` is the one mechanism a cut carries, and the
+  # spend a mechanism is totalled by is the same field on either result.
   case "$stop_reason" in
-    ""|refused|unmergeable) ;;
-    *) loop_die "done: --stop-reason must be refused or unmergeable" ;;
+    ""|refused|unmergeable|bound) ;;
+    *) loop_die "done: --stop-reason must be refused, unmergeable or bound" ;;
   esac
-  [ -z "$stop_reason" ] || [ "$result" = blocked ] ||
-    loop_die "done: --stop-reason belongs to a blocked item, and this one is recorded $result"
+  # A mechanism on anything but a block would double-count the item as two kinds of stop, so it is refused too —
+  # except `bound` on a `cut`, which is the same fact one result over (issue #790).
+  [ -z "$stop_reason" ] || [ "$result" = blocked ] || { [ "$result" = cut ] && [ "$stop_reason" = bound ]; } ||
+    loop_die "done: --stop-reason belongs to a blocked item, or to a cut one recorded bound, and this one is $result"
   # A landing's own commit is what attaches it to the pipeline run it caused (issue #709): the field is a commit or
   # nothing, so a value that is not one is refused here rather than stored — the score would otherwise read the
   # runs of a commit nobody landed, and the report would print that as the landing's verdict. 7 is git's shortest
@@ -502,7 +547,7 @@ cmd_done() {
     ""|off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write) ;;
     *) loop_die "done: --review-verdict must be off|PASS|NOTES|FAIL|round2-ended|cut-short|deadline|reviewer-wrote|outside-write" ;;
   esac
-  [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; else printf 'unspecified'; fi)
+  [ -n "$verdict" ] || verdict=$(if [ "$result" = done ]; then printf 'closed'; elif [ "$result" = cut ]; then printf 'cut'; else printf 'unspecified'; fi)
   # The class travels from the pre-screen into the record, so the report can rank without re-reading
   # the tracker; an item with no queue entry (a resumed run) falls back to the empty string.
   # `--decision-label` is the label the run's escalation *wrote* on the item — not the verdict the worker
@@ -540,8 +585,10 @@ cmd_done() {
                            reviewVerdict:(if $rv == "" then null else $rv end),
                            gate:$gate,
                            closed:$closed, rootCause:$rc, redTest:$rt,
-                           tools:$usage.tools, tokens:$usage.tokens, cost:$usage.cost,
-                           context:$usage.context}}]
+                           tools:$usage.tools, calls:$usage.calls, turns:$usage.turns,
+                           tokens:$usage.tokens, cost:$usage.cost,
+                           context:$usage.context,
+                           phases:$usage.phases, roles:$usage.roles, afterGate:$usage.afterGate}}]
       else
         .items | map(if .issue == $i then
           .note = (if $note == "" then .note elif .note == "" then $note else .note + " · " + $note end)
@@ -645,26 +692,115 @@ num_or_null() {
 #   * **nothing reported is null, never zero.** A provider that streams no usage leaves zeros, and a zero
 #     printed as a figure reads as a measurement nobody made; the report prints `-` for a null.
 #
-# A stream that holds none of these records — a plain-text command, or another agent's format — yields four
-# nulls, so the engine reads a child's dialect without depending on it.
-child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,context}
-  local events="${1:-}" blob=""
+# The shape a session spent its budget in is two more counts (issue #757): the `tool_execution_end` lines are
+# the calls and the `turn_end` lines are the turns, and `report.sh` reads their ratio. It is recorded as the two
+# counts rather than as the ratio, because a ratio cannot say whether an item was slow or merely empty — and
+# because an item's calls and turns are each summed over its children, the way its tokens are. A turn is every
+# `turn_end`, not only the ones that reported a usage record: a child that reports no usage still pays a turn,
+# and a ratio read over the reporting turns alone would flatter exactly the providers that measure least.
+#
+# Where and as whom the spend happened are three more figures (issue #759), and they are read from the same lines: a
+# run that paid two thirds of its clock inside the gate command and a run that paid it reading printed the same
+# shapes in the report, so the number was printed beside nothing it could be judged against (measured over 227 items,
+# 2026-11-03: 89.6 h, model 30.1 h, the project's gate 35.1 h, the loop's own self-tests 11.6 h; 1 581 of 2 591 Mtok
+# spent after the item's first gate, reviewer 402 Mtok against the worker's 2 168).
+#
+#   * **`phases`** — the model time is the sum of the turns' own `durationMs`, the gate the sum of the
+#     `tool_execution_end` durations of the calls whose command runs the gate, and every other tool's durations are
+#     the third bucket. Which command is the gate is the project's declaration (`LOOP_GATE_CMD`), read as its
+#     program's name — never a name this engine carries (`run#engineNamesNoProjectFact`). The three are disjoint: a
+#     turn's duration is the model response, the tool's duration the execution that follows it, so they add up to
+#     the clock the item's children spent working;
+#   * **`roles`** — each `session` record opens one child's stream and its first `user` message is the prompt file
+#     the run handed it, which is the only thing in the stream that names the role. The path does: `worker-tail` is
+#     the tail, `reviewer` the reviewer, everything else a worker. Read from the prompt's *words* (the rule
+#     `tools/loop-spend.py` uses) the tail folds into the worker, because its prompt is `worker-tail-prompt.md`;
+#   * **`afterGate`** — over the sessions that ran a gate, the tokens of the turns from the first gate turn on and
+#     those sessions' own tokens, so a share has both halves in the record.
+#
+# Each is null where nothing was measured, never zero: a stream with no `session` record has no role split, one with
+# no `durationMs` no phase figure, and one that ran no gate no position to split at. A stream that holds none of the
+# records above — a plain-text command, or another agent's format — yields a null for every figure, so the engine
+# reads a child's dialect without depending on it.
+child_usage_json() { # child_usage_json <events-file> → {tools,calls,turns,tokens,cost,context,phases,roles,afterGate}
+  local events="${1:-}" blob="" gate_cmd gate_prog="" word
+  # The gate is the project's declaration, not a name this engine may carry: its program is the first word of
+  # `LOOP_GATE_CMD` that names a path, or its first word when none does — `tools/loop/gate.sh`,
+  # `bash tools/loop/gate.sh` and a bare command all reduce to the program a child's tool call names.
+  gate_cmd=$(loop_conf_value LOOP_GATE_CMD)
+  for word in $gate_cmd; do
+    case "$word" in -*) continue ;; esac
+    case "$word" in */*) gate_prog="${word##*/}"; break ;; esac
+    [ -n "$gate_prog" ] || gate_prog="$word"
+  done
   if [ -n "$events" ] && [ -f "$events" ]; then
-    blob=$(jq -s -c '
+    blob=$(jq -s -c --arg gate "$gate_prog" '
       def turns:
         reduce .[] as $e ({cur:null, done:[]};
           if $e.type == "message_update" and (($e.usage? // null) | type) == "object" then .cur = $e.usage
           elif $e.type == "turn_end" then ((if .cur != null then .done = (.done + [.cur]) else . end) | .cur = null)
           else . end)
         | if .cur != null then (.done + [.cur]) else .done end;
+      # The session is the phase, and a turn is where its spend and its clock are: the usage it ended on (the rule
+      # `turns` keeps), its own `durationMs`, and the calls it made — the last is what a tool duration is attributed
+      # by, because `tool_execution_end` names its call and carries no command of its own.
+      def tok: if . == null then 0
+               else ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0)) end;
+      def is_gate: (($gate | length) > 0)
+                   and ([((. // "") | tostring) | splits("[ \\t]+")]
+                        | any(.[]; . == $gate or endswith("/" + $gate)));
+      def calls_of: [((. // [])[] | select(.type == "toolCall")
+                      | {id: (.id // ""), gate: (((.arguments?.command? // "") | tostring) | is_gate)})];
+      def sessions:
+        reduce .[] as $e ({cur:null, done:[]};
+          if $e.type == "session" then
+            (if .cur != null then .done = (.done + [.cur]) else . end)
+            | .cur = {prompt:null, usage:null, turns:[]}
+          elif .cur == null then .
+          elif $e.type == "message_start" and (($e.message.role? // "") == "user") and (.cur.prompt == null) then
+            .cur.prompt = (($e.message.content // "")
+              | if type == "array" then (map(.text? // "") | join("")) else tostring end)
+          elif $e.type == "message_update" and (($e.usage? // null) | type) == "object" then
+            .cur.usage = $e.usage
+          elif $e.type == "turn_end" then
+            (($e.message // {}) as $m
+             | .cur.turns = (.cur.turns + [{usage: (.cur.usage // ($m.usage? // null)),
+                                            ms: ($m.durationMs? // 0),
+                                            calls: ($m.content | calls_of)}])
+             | .cur.usage = null)
+          else . end)
+        | (if .cur != null then (.done + [.cur]) else .done end);
       . as $all
       | ($all | turns) as $t
+      | ($all | sessions) as $ses
+      | ([$all[] | select(.type == "turn_end") | (.message.durationMs? // 0)] | add // 0) as $modelMs
+      | (reduce ($all[] | select(.type == "turn_end") | (.message.content // [])[]
+                 | select(.type == "toolCall" and ((((.arguments?.command? // "") | tostring) | is_gate)))
+                 | (.id // "")) as $i ({}; .[$i] = true)) as $gateIds
+      | ([$all[] | select(.type == "tool_execution_end")]) as $ends
+      | ([$ends[] | select($gateIds[(.toolCallId // "")] // false) | (.durationMs? // 0)] | add // 0) as $gateMs
+      | ([$ends[] | select(($gateIds[(.toolCallId // "")] // false) | not) | (.durationMs? // 0)] | add // 0) as $otherMs
+      | (reduce ($ses[] | {role: ((.prompt // "") | ascii_downcase
+                                  | if test("worker-tail") then "tail"
+                                    elif test("reviewer") then "reviewer"
+                                    else "worker" end),
+                           tok: ([.turns[] | .usage | tok] | add // 0)}) as $s
+           ({worker:null, reviewer:null, tail:null};
+            .[$s.role] = (if $s.tok > 0 then (((.[$s.role]) // 0) + $s.tok) else .[$s.role] end))) as $roles
+      | ([$ses[] | ([.turns[] | any(.calls[]?; .gate)] | index(true)) as $g
+           | select($g != null)
+           | {after: ([.turns[$g:][] | .usage | tok] | add // 0),
+              total: ([.turns[] | .usage | tok] | add // 0)}]) as $gated
       | ([$all[] | select(.type == "tool_execution_end") | (.toolName? // empty) | strings]
          | group_by(.) | map({key: .[0], value: length}) | from_entries) as $tools
+      | ([$all[] | select(.type == "tool_execution_end")] | length) as $calls
+      | ([$all[] | select(.type == "turn_end")] | length) as $turns
       | ([$all[] | select(.type == "compaction_end") | (.result?.tokensBefore? // empty) | numbers] | max) as $compacted
       | ([$t[] | ((.input // 0) + (.cacheRead // 0))] | max) as $turnMax
       | ([$turnMax // 0, $compacted // 0] | max) as $context
       | {tools: (if ($tools | length) > 0 then $tools else null end),
+         calls: (if $turns > 0 then $calls else null end),
+         turns: (if $turns > 0 then $turns else null end),
          tokens:
            (if ($t | length) == 0 then null
             else ([$t[] | ((.input // 0) + (.output // 0) + (.cacheRead // 0) + (.cacheWrite // 0))] | add) as $sum
@@ -680,12 +816,49 @@ child_usage_json() { # child_usage_json <events-file> → {tools,tokens,cost,con
             else ([$t[] | (.cost?.total? // 0)] | add) as $c
                  | if $c > 0 then $c else null end
             end),
-         context: (if $context > 0 then $context else null end)}' "$events" 2>/dev/null) || blob=""
+         context: (if $context > 0 then $context else null end),
+         phases: (if ($modelMs + $gateMs + $otherMs) == 0 then null
+                  else {modelMs: $modelMs, gateMs: $gateMs, otherMs: $otherMs} end),
+         roles: (if ([$roles[] | select(. != null)] | length) == 0 then null else $roles end),
+         afterGate: (if ($gated | length) == 0 then null
+                     else {tokens: ([$gated[].after] | add // 0),
+                           total: ([$gated[].total] | add // 0),
+                           sessions: ($gated | length)} end)}' "$events" 2>/dev/null) || blob=""
   fi
   case "$blob" in
     '{'*) printf '%s' "$blob" ;;
-    *) printf '%s' '{"tools":null,"tokens":null,"cost":null,"context":null}' ;;
+    *) printf '%s' '{"tools":null,"calls":null,"turns":null,"tokens":null,"cost":null,"context":null,"phases":null,"roles":null,"afterGate":null}' ;;
   esac
+}
+
+# The adoption of a previous attempt's branch is a command the run takes with its own inputs — the project tree
+# it lands in, the base it replays onto, the replay itself — and its refusal is not the owner's question (issue
+# #794): the branch's own evidence was admissible, so what refused it is a tree a later run finds clean once the
+# dirt is gone, and the item is the next run's work. The refusal is recorded beside the pre-screen's exclusion,
+# which keeps its verdict, its reason and the branch as evidence; the predicates that read an exclusion as a
+# question the owner owes skip an entry that carries the mechanism, so no decision slot is spent and nothing is
+# escalated. A mechanism belongs to one record (the rule `done --stop-reason` already keeps), so an item the run
+# has worked is refused here rather than recording the same stop twice.
+cmd_adoption_refused() {
+  require_state
+  local issue="${1:-}" reason=""
+  shift || true
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --reason) need_value "$@"; reason="${2:-}"; shift 2 ;;
+      --*) loop_die "adoption-refused: unknown argument $1" ;;
+      *) loop_die "adoption-refused: usage: state.sh adoption-refused <issue> --reason TEXT" ;;
+    esac
+  done
+  case "$issue" in ''|*[!0-9]*) loop_die "adoption-refused: usage: state.sh adoption-refused <issue> --reason TEXT" ;; esac
+  [ -n "$reason" ] || loop_die "adoption-refused: --reason is required — the refusal's own text is what the record quotes"
+  jq -e --argjson i "$issue" '[(.excluded // [])[] | select(.issue == $i)] | length == 1' "$STATE_FILE" >/dev/null ||
+    loop_refuse "adoption-refused: #$issue is not one exclusion of this run — the adoption's refusal is recorded on the pre-screen's own entry for it"
+  jq -e --argjson i "$issue" '[(.items // [])[] | select(.issue == $i)] | length == 0' "$STATE_FILE" >/dev/null ||
+    loop_refuse "adoption-refused: #$issue already has the item record this run wrote for it — a mechanism belongs to one record, and that one is the block's"
+  patch_state '(.excluded = [.excluded[] | if .issue == $i then . + {mechanism:"unmergeable", adoptionRefusal:$r} else . end])' \
+    --argjson i "$issue" --arg r "$reason"
+  printf 'adoption refused: #%s recorded as unmergeable — the item stays work, and no decision is written for it\n' "$issue"
 }
 
 # The table answers the run's questions on its own (#208, #211): which items were handled and how each ended —
@@ -709,11 +882,11 @@ cmd_report() {
   tokens_warn=$(loop_conf_value LOOP_ITEM_TOKENS_WARN)
   case "$tokens_warn" in ''|*[!0-9]*) tokens_warn=0 ;; esac
   jq -r --argjson over "$tokens_warn" '
-    "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) of \(.run.items) items · budget \(.run.minutes) min",
+    "closed \(.items | map(select(.result == "done")) | length) · mis-diagnosed \(.items | map(select(.result == "falsified")) | length) · skipped \(.items | map(select(.result == "skipped")) | length) · blocked \(.items | map(select(.result == "blocked")) | length) · cut \(.items | map(select(.result == "cut")) | length) of \(.run.items) items · budget \(.run.minutes) min",
     "",
-    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over |",
-    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — |"
+    "| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    (if (.items | length) == 0 then "| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — |"
      else (.items[]
        | ((.metrics.wallSeconds // null) as $w
           | if $w == null then "-"
@@ -744,13 +917,23 @@ cmd_report() {
              else (($tk.input // 0) + ($tk.output // 0) + ($tk.cacheRead // 0) + ($tk.cacheWrite // 0)) end) as $tot
           | if $over > 0 and $tot != null and $tot > $over
             then "\(((($tot / $over) * 10) | round) / 10)x" else "-" end) as $overcol
-       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) |") end),
+       # The shape the item spent its budget in (issue #757): its tool calls per turn, appended after the band for
+       # the reason the band was appended — every column a reader already quoted keeps its index. The two counts are
+       # recorded (`tools/loop/state.sh`) and their ratio is derived here; an item that recorded no turn prints
+       # `-`, never a zero, exactly as every other unreported figure does. Unlike the band column this one is the
+       # figure of the item itself and not a multiple of a bound, so it prints whether or not a floor is recorded —
+       # the floor is the comparison the report trend makes, and `0` means no comparison rather than no measurement.
+       | ((.metrics.calls // null) as $calls
+          | (.metrics.turns // null) as $turns
+          | if $calls == null or $turns == null or $turns == 0 then "-"
+            else "\(((($calls / $turns) * 100) | round) / 100)" end) as $callscol
+       | "| #\(.issue) | \(.class // "-") | \(.verdict) | \(.change // "-") | \(.metrics.rootCause // "-") | \(.metrics.redTest // "-") | \(.metrics.gate // "-") | \(.metrics.reviewRounds // "-") | \($wall) | \($toolcol) | \($tokencol) | \($contextcol) | \(.result) | \($reason) | \($stopcol) | \($overcol) | \($callscol) |") end),
     "",
     "merged finished attempts: " + (
       [.items[] | select((.merged.branch // "") != "")
         | "#\(.issue) \(.merged.branch) · commits \(.merged.commits) · evidence \(.merged.evidence)"]
       | if length == 0 then "none" else join(" | ") end),
-    (if (.excluded | length) == 0 then "no exclusions" else "excluded: \([.excluded[] | "#\(.issue) \(.verdict)"] | join(" · "))" end)
+    (if (.excluded | length) == 0 then "no exclusions" else "excluded: \([.excluded[] | "#\(.issue) \(.verdict)\(if (.mechanism // "") == "" then "" else " (\(.mechanism))" end)"] | join(" · "))" end)
   ' "$STATE_FILE"
 }
 
@@ -824,6 +1007,7 @@ case "$cmd" in
   record-change-copy) cmd_record_change_copy "$@" ;;
   step) cmd_step "$@" ;;
   done) cmd_done "$@" ;;
+  adoption-refused) cmd_adoption_refused "$@" ;;
   score-landings) cmd_score_landings ;;
   set-base) cmd_set_base "$@" ;;
   stop) cmd_stop "$@" ;;

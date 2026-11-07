@@ -1,0 +1,6 @@
+2026-11-06T17:53:30Z
+PASS worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved
+PASS worktree#aSetAsideBranchWhosePatchesLandedIsRemoved
+loop-selftest: worktree 2 cases 1.33 s
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — 1.73 s, selection: --case worktree#aSetAside*
+2026-11-06T17:53:33Z

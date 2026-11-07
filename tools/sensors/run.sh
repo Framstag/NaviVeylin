@@ -262,14 +262,20 @@ sensors_labels_json() { # <row> <id> [<status>]
   printf '%s\n' "$labels"
 }
 
-sensors_file() { # <row> <id> <finding> <baseline> [<body>]
+# A filing carries the writer's own flags when the caller passes them after the body: a condition that returns
+# under a settled item is filed with `--allow-duplicate`, because its fingerprint is deliberately the one the
+# settled item already carries — that the fix did not hold is the new fact (issue #780).
+sensors_file() { # <row> <id> <finding> <baseline> [<body>] [<create arg>…]
   local row="$1" id="$2" finding="$3" baseline="${4:-}" fp title file body labels code
+  # The extra writer flags are read before anything shifts, and the body is read before them.
+  body="${5:-}"
+  local extra=()
+  if [ "$#" -gt 5 ]; then shift 5; extra=("$@"); fi
   fp=$(jq -r '.fingerprint' <<< "$finding")
   title=$(jq -r '.title // empty' <<< "$finding")
   [ -n "$title" ] || title="${id}: $(jq -r '.measurement' <<< "$finding")"
   # The body is the caller's when it built one: a filing summary carries the list of what the run did not file, which
   # the generic finding shape has no room for (issue #666).
-  body="${5:-}"
   [ -n "$body" ] || body=$(sensors_issue_body "$row" "$finding" "$baseline")
   labels=$(sensors_labels_json "$row" "$id")
   file=$(mktemp) || sensors_die "run: cannot create a temporary file"
@@ -279,8 +285,10 @@ sensors_file() { # <row> <id> <finding> <baseline> [<body>]
         --arg fingerprint "$fp" --arg body "$body" --argjson labels "$labels" \
     '{title: $title, class: $class, category: $category, claim: $claim,
       fingerprint: $fingerprint, labels: $labels, body: $body}' > "$file"
+  local args=(--sensor "$id" --finding "$file")
+  [ "${#extra[@]}" -eq 0 ] || args+=("${extra[@]}")
   sensors_write "file a new issue for $id (fingerprint $fp, measurement $(jq -r '.measurement' <<< "$finding"))" \
-    bash "$SENSORS_ISSUES_DIR/create.sh" --sensor "$id" --finding "$file"
+    bash "$SENSORS_ISSUES_DIR/create.sh" "${args[@]}"
   code=$?
   rm -f "$file"
   return "$code"
@@ -439,8 +447,12 @@ sensors_reopen() { # <row> <number> <finding> <body>
   rm -f "$bodyfile" "$measurementfile"
 }
 
-sensors_escalate() { # <row> <number> <finding> <body> <occurrence>
-  local row="$1" number="$2" finding="$3" body="$4" occurrence="$5" bodyfile commentfile labels=()
+# The escalation stops reopening and hands the item to a person. The one write it makes is a routine one, so
+# the profile's settled state still refuses it: an item closed as fixed carries that state, which is exactly
+# where a returned condition lands. The writer's status is kept and returned — reporting an escalation the
+# tooling refused is what left a red main with no item at all (issue #780).
+sensors_escalate() { # <row> <number> <finding> <body> <occurrence> → the writer's status
+  local row="$1" number="$2" finding="$3" body="$4" occurrence="$5" bodyfile commentfile labels=() code
   while IFS= read -r label; do
     [ -n "$label" ] && labels+=("$label")
   done < <(sensors_escalation_labels)
@@ -453,7 +465,9 @@ sensors_escalate() { # <row> <number> <finding> <body> <occurrence>
   done
   sensors_write "escalate #$number (${labels[*]})" \
     bash "$SENSORS_ISSUES_DIR/update.sh" "${args[@]}"
+  code=$?
   rm -f "$bodyfile" "$commentfile"
+  return "$code"
 }
 
 # --------------------------------------------------------------------------- the three outcomes
@@ -467,7 +481,7 @@ sensors_fail_row() { # <row-id> <detail>
 
 sensors_outcome_violation() { # <row> <id> <finding> <issues> <baseline>
   local row="$1" id="$2" finding="$3" issues="$4" baseline="$5"
-  local fp number state state_reason body occurrence k run n
+  local fp number state state_reason body occurrence k run n status
   fp=$(jq -r '.fingerprint' <<< "$finding")
   issue=$(sensors_issue_for_fingerprint "$issues" "$fp")
   if [ -z "$issue" ]; then
@@ -512,8 +526,30 @@ sensors_outcome_violation() { # <row> <id> <finding> <issues> <baseline>
   body=$(sensors_body_set "$body" clear-run 0)
   if [ "$occurrence" -ge "$k" ]; then
     sensors_escalate "$row" "$number" "$finding" "$body" "$occurrence"
-    sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "$number" \
-      "escalated (past $k recurrences)"
+    status=$?
+    if [ "$status" -eq 0 ]; then
+      sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "$number" \
+        "escalated (past $k recurrences)"
+      return 0
+    fi
+    # The escalation did not land. The writer refused to displace the item's settled state — a routine write
+    # may not, and the state means a person's fix stands. The condition returned after a fix that did not
+    # hold, which is a new fact: it is filed under the same bound a filing spends everywhere else, and only
+    # when that bound leaves no room does the row fail, because a condition nothing records is the silence
+    # this branch used to report as an escalation (issue #780).
+    if [ "$SENSORS_FILED" -ge "$SENSORS_MAX_FILINGS" ]; then
+      sensors_fail_row "$id" \
+        "the escalation of #$number was refused (status $status) and the row's bound of $SENSORS_MAX_FILINGS new items leaves the condition unrecorded"
+      return 0
+    fi
+    SENSORS_FILED=$((SENSORS_FILED + 1))
+    if ! sensors_file "$row" "$id" "$finding" "$baseline" "" --allow-duplicate; then
+      sensors_fail_row "$id" \
+        "the escalation of #$number was refused (status $status) and the condition could not be filed"
+      return 0
+    fi
+    sensors_report "$id" "$fp" violation "$(jq -r '.measurement' <<< "$finding")" "-" \
+      "filed (the escalation of #$number was refused: its state is settled)"
     return 0
   fi
   n=$(sensors_row_field "$row" consecutive)

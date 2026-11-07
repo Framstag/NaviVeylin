@@ -1,0 +1,34 @@
+# Gate, one run, 2026-11-05, round-2 tree
+
+Change root `/home/tim/projects/NaviVeylin/.pi/worktrees/780`, base `ec58cb91177f2d1c4621b87cdd26a9c7fced5117`,
+tree `7f0089ca` + the round-2 corrections. `./tools/loop/gate.sh --base ec58cb91` was run once over the final
+tree, `2026-11-05T20:04:49Z` → `2026-11-05T20:18:49Z`, and its console stream is `gate.log` (the same run, same
+verdict; nothing here is re-derived).
+
+```
+LOOP-GATE: tests=309 failures=0 errors=0 (tools/sensor-selftest.sh 452s, tools/sensor-mutations.sh --list 0s,
+bash tools/gen-feature-list.sh --check-classification 13s, tools/check-doc-routes.sh 3s,
+tools/check-doc-routes-selftest.sh 27s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+0s, tools/check-todo-references.sh 4s, tools/check-openspec-hygiene.sh 0s,
+tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 2s,
+tools/check-portability-selftest.sh 87s, tools/mutate-selftest.sh 1s, tools/mutate.sh --mutations
+tools/portability-mutations.json --list 1s, tools/issue-tooling-selftest.sh 252s, tools/mutate.sh --mutations
+tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s,
+tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations
+tools/duplicates-mutations.json --list 1s, tools/mutate.sh --mutations tools/decision-question-mutations.json
+--list 0s)
+```
+
+- The tally of this run is the 19 JUnit-shaped files this directory carries beside `red-on-HEAD.xml`; their
+  sum is `tests=309 failures=0 errors=0`, which is the verdict above. Adding the red case's own tally
+  (`red-on-HEAD.xml`, `tests=1 failures=1`) gives 310 tests and the one failure the change answers for.
+- `tools/sensor-selftest.sh` in this run is **all 84 cases, exit 0** (`tools_sensor-selftest.sh.xml`:
+  `tests="84" failures="0" time="452"`); the pre-gate suite log of the same tree is `sensor-suite.log`
+  (`2026-11-05T19:31:34Z`–`19:37:00Z`, 84 `PASS`, 0 `FAIL`).
+- Scope: the change touches no compiled path — two shell files, one guideline, the capability spec and its
+  archive — so the profile owes the sensor suite and the shell/doc checks it ran, and `bash -n
+  tools/sensors/run.sh` stands in for a build (`guidelines/Build.md` §2, the scope block). No Gradle task, no
+  native build, no device.
+- The earlier tallies of the pre-round-2 gate (83 cases, `tests=460`) are **not** kept here: they described a
+  superseded tree and a suite two cases shorter. The red case's tally is kept, because it is the red the change
+  answers for and is unchanged by the round-2 corrections.

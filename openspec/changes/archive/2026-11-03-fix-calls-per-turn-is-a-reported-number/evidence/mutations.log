@@ -1,0 +1,16 @@
+loop-mutations: selected 4 of 231 records (labels: 78.1 78.2 78.3 78.4)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.KSZTom
+RED    78.1  report#anItemBelowTheCallsPerTurnFloorIsNamed   (the trend naming the items below the recorded calls-per-turn floor, so a chain of single-call turns is never flagged (issue #757))
+       2026-11-03T21:51:40Z — and names the item below the recorded floor, with its own ratio: 'below the recorded floor of 2 per turn: #22 0.5' not found in:   calls:  1.33 calls per turn (8 calls / 6 turns) · none below the recorded floor of 2 per turn
+restore 78.1 report#anItemBelowTheCallsPerTurnFloorIsNamed green again
+RED    78.2  report#anItemBelowTheCallsPerTurnFloorIsNamed   (the table column that prints the per-item calls per turn (issue #757))
+       2026-11-03T21:51:45Z — the row carries the item's own calls per turn: expected '3', got '-'
+restore 78.2 report#anItemBelowTheCallsPerTurnFloorIsNamed green again
+RED    78.3  report#anItemBelowTheCallsPerTurnFloorIsNamed   (the calls an item event stream records, so the ratio has nothing to be derived from (issue #757))
+       2026-11-03T21:51:51Z — the item's tool calls are counted from its event stream: expected '6', got 'null'
+restore 78.3 report#anItemBelowTheCallsPerTurnFloorIsNamed green again
+RED    78.4  report#anItemBelowTheCallsPerTurnFloorIsNamed   (the dash a state written before the two counts existed prints, replaced by a reason that names a run of items answering without a tool (issue #757))
+       2026-11-03T21:51:57Z — a state that predates the two counts says so, instead of naming a run of items that answered without a tool: 'calls:  - · this state records no calls or turns — it was written before the report read them' not found in: **agent-issue-loop — 
+restore 78.4 report#anItemBelowTheCallsPerTurnFloorIsNamed green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0

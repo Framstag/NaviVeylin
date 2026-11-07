@@ -29,7 +29,12 @@ env:
   # self-heals). The old files provider + actions/cache keyed on the
   # manifest hash restored stale archives that vcpkg rejected and never
   # re-saved on a cache hit — a full rebuild on every run.
-  VCPKG_BINARY_SOURCES: clear;nuget,https://nuget.pkg.github.com/Framstag/index.json,readwrite
+  #
+  # VCPKG_BINARY_SOURCES is set on the install step, from the probe's outcome
+  # (see "Probe the vcpkg binary cache"): the cache's client is nuget.exe under
+  # mono, whose TLS handshake failed on the ubuntu-26.04 image, and vcpkg treats
+  # a cache failure as non-fatal — so the failure used to cost 62 minutes of
+  # failed pushes instead of an error (issue #761, measured 2026-11-03).
   VCPKG_NUGET_REPOSITORY: https://nuget.pkg.github.com/Framstag/index.json
   ANDROID_HOME: ${{ github.workspace }}/android-sdk
   ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
@@ -41,7 +46,10 @@ env:
 jobs:
   build:
     name: Build debug APK (all ABIs)
-    runs-on: ubuntu-latest
+    # A released image, never `ubuntu-latest`: the cache's client is part of the
+    # image, and the 26.04 image broke it (issue #761). A pin is a value this
+    # repository bumps on purpose; the label is one GitHub bumps for it.
+    runs-on: ubuntu-24.04
     # packages: write lets the GITHUB_TOKEN push/restore vcpkg binary
     # packages to the GitHub Packages NuGet feed; actions: write is needed
     # by the actions/cache entries for the Android SDK and Gradle caches.
@@ -88,289 +96,6 @@ jobs:
             exit 1
           fi
           echo "libosmscout is Android-free outside Android/."
-
-      # ── OpenSpec artifact hygiene ─────────────────────────────
-      # Two silent-failure classes with no CLI in the runner:
-      #   1. a tasks.md that uses bare '1. [x]' items — the parser then reports
-      #      0 tasks and the change reads as 'no-tasks' without any error;
-      #   2. an operations.*.guidance list entry containing ': ' that is not
-      #      quoted — it parses as a YAML mapping, the array fails the
-      #      array-of-strings check and the CLI drops that operation's guidance
-      #      with only a warning;
-      #   3. a capability spec whose '## Purpose' is still the sentence
-      #      'openspec archive' writes for a capability it creates — `openspec
-      #      validate --type spec` only warns and exits 0, and no delta can
-      #      repair it, so nothing else would ever report it (issue §171).
-      #      The pass is a `find` over openspec/specs/ because 7 capability
-      #      specs sit one level deeper (auto/*, share/*) and a flat glob
-      #      cannot see them.
-      #      The three classes live in `tools/check-openspec-hygiene.sh` — one home, so this step and the
-      #      self-test that breaks each class in a throwaway tree run the same code (issue #45). A class
-      #      no case has ever violated is not what guards the artifacts.
-      - name: Check OpenSpec artifact hygiene
-        run: |
-          bash tools/check-openspec-hygiene.sh
-          bash tools/check-openspec-hygiene-selftest.sh
-
-      # ── capability classification ──────────────────────────────
-      # TODO.md §157 / issue #101: nothing forced a change to classify the capability spec it
-      # archives, so the mistake surfaced at the next generation instead. Three instances are on
-      # record (generate-feature-list, routing-max-speed, routing-failure-reporting). The tool owns
-      # the check, exits 1 naming the id, and reads an open change's delta specs as well as the
-      # shipped set — so it fails the pull request that introduces the delta, before the archive,
-      # rather than a later session's run. Data only: two files read, no Gradle.
-      - name: Check capability classification
-        run: |
-          set -euo pipefail
-          bash tools/gen-feature-list.sh --check-classification || {
-            echo "::error file=tools/feature-list/specs.json::a capability spec is unclassified (TODO.md §157) — add its line in the change that introduces it, before the archive"
-            exit 1
-          }
-
-      # ── feature-list tooling ───────────────────────────────────
-      # The gate above is one call of a tool whose 115 cases decide what it reads and refuses. The suite ran
-      # nowhere in CI and nowhere in the loop's gate until issue #101: a case that pins the gate's behaviour could
-      # pass in isolation and the next change to the tool would learn nothing. Offline, seconds, no Gradle.
-      - name: Check feature-list tooling
-        run: |
-          bash tools/gen-feature-list-selftest.sh
-
-      # ── documentation routes ───────────────────────────────────
-      # AGENTS.md's Documentation Map is the only route from "what I am changing" to the guideline
-      # section that owns it (the rule and its rationale: guidelines/Build.md §4/§6). A route that
-      # points at a section which no longer exists is silent — the reader lands on the wrong part of
-      # a correct document — so it is checked here instead of being discovered by whoever follows it.
-      # A skill path the documentation names is resolved the same way (`documentation-ownership`,
-      # "A document that names a skill resolves to a skill that exists", issue #13), and the check's own
-      # self-test runs here because a check nothing runs is the same silence one level down. The mutation
-      # set is listed for the same reason as the others: a set that no longer parses fails this step
-      # instead of rotting.
-      # A row that routes a lettered sub-section of a document states what those sections cost
-      # (`documentation-ownership`, "The route names the sub-section", issue #197): the check reports a row
-      # that names sub-sections and prices nothing, and its `--sizes` report prints every section of every
-      # routed document with the byte count the requirement's ruler gives it, so a restated figure can be
-      # compared with the measurement instead of with a memory.
-      # Text files only: no build, no device, seconds of run time.
-      - name: Check documentation routes
-        run: |
-          bash tools/check-doc-routes.sh
-          bash tools/check-doc-routes-selftest.sh
-          bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
-
-      # The reading set a change's paths derive (`documentation-ownership`, "The review's reading set is
-      # derived from the change's paths"): the map in `tools/doc-routes.json` derives the guideline sections
-      # and named rules for a path glob, so a review is graded against the rules its diff is governed by
-      # rather than against what the change's own artifacts name. Every glob must match a tracked path (a
-      # rename otherwise orphans the rules a reader is told to read) and every named rule under `guidelines/`
-      # must be reached by a glob (a rule has a reader before it has a violation). The self-test runs here
-      # because a check nothing runs is the same silence one level down, and the mutation set is listed for
-      # the same reason as the others: a set that no longer parses fails this step instead of rotting.
-      - name: Check the rule routes
-        run: |
-          bash tools/check-rule-routes.sh
-          bash tools/check-rule-routes-selftest.sh
-          bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list
-
-      # ── issue tooling ──────────────────────────────────────────
-      # The gate for `tools/issues/**`: the Java core's cases and the shell wrappers driven against a stub
-      # `gh` on PATH. Offline, no token, no Gradle — and it refuses below JDK 17 with a named message. The
-      # surface it protects is the one a later loop trusts (spec `issue-backlog`).
-      - name: Check issue tooling
-        run: |
-          bash tools/issue-tooling-selftest.sh
-          # A state transition replaces the item's state, so no call can leave two `status/*` labels on one
-          # item (`fix-status-label-replacement`, invariant I16 in `guidelines/Backlog.md` §4). The mutation
-          # set's list is printed, as for the other sets: one that no longer parses fails this step instead
-          # of rotting. The mutations themselves are not run here — they mutate the tree (`tools/mutate.sh`,
-          # change-time, `.pi/skills/mutation-runner`).
-          bash tools/mutate.sh --mutations tools/status-mutations.json --list
-          # The filing path refuses a merged label set that names two values of one namespace, before any
-          # `gh issue create` (`fix-issue-filing-state-namespace`, issue #179). Listed for the same reason as
-          # the set above: a mutation set that no longer parses fails this step instead of rotting.
-          bash tools/mutate.sh --mutations tools/create-mutations.json --list
-          # The closure's settled state (#181, #188): a closed item must read settled whoever closed it, so
-          # the status write, its not-planned sibling and the refusal of a rejected write each have a
-          # mutation. Listed for the same reason as the sets above.
-          bash tools/mutate.sh --mutations tools/close-mutations.json --list
-          # The tracker's mechanical hygiene (`sensors-mechanical-hygiene`): the survivor rule, the
-          # authorisation rule, the candidate filter and the dedupe marker each have a mutation. Listed for the
-          # same reason as the sets above — a set that no longer parses fails this step instead of rotting.
-          bash tools/mutate.sh --mutations tools/duplicates-mutations.json --list
-          # The question a decision answers (#243): the run's escalation comment opens with its verdict word, so
-          # the queue and the answer path read the escalation's `**The decision:**` line instead, and the work
-          # package restates that rule. Listed for the same reason as the sets above — a set that no longer
-          # parses fails this step instead of rotting.
-          bash tools/mutate.sh --mutations tools/decision-question-mutations.json --list
-
-      # ── priority metadata ──────────────────────────────────────
-      # The gate for the priority invariant (`issue-metadata-loop`, D7): the profile's bands are total, the
-      # marker grammar has one home, neither write path can name the automation opt-in, and every check can
-      # be shown red — the last part is what makes the rest a check rather than a claim. Token-free: it reads
-      # the profile and the scripts, and never the tracker. The falsification harness's mutations themselves
-      # are not run here — they mutate the tree (the run is a change-time step, `task 8`) — but its mutation
-      # list is printed, so a harness that no longer parses fails this step instead of rotting.
-      - name: Check issue metadata
-        run: |
-          bash tools/issues/check-metadata.sh
-          bash tools/issues/metadata-mutations.sh --list
-
-      # ── agent issue loop ───────────────────────────────────────
-      # The gate for `tools/loop/**`: every case drives the real wrapper, worktree, branches, commits,
-      # labels and closure in a throwaway git repository, against the stub `gh` (the step above) and a
-      # stub `pi`. Offline, no token, no model, no device and no sandbox tool — and it needs nothing
-      # the build does not already have (git, jq, JDK 17). Spec `agent-issue-loop`.
-      - name: Check agent issue loop
-        run: |
-          bash tools/loop-selftest.sh
-          # The mutation harness's own guards, on a throwaway copy of the engine. The mutations themselves
-          # are not run here: they mutate the tree (the loop's falsification run is a change-time step).
-          bash tools/loop-mutations-selftest.sh
-
-      # ── loop spend ─────────────────────────────────────────────
-      # The analyser behind the `loop-spend` skill reads the children's event streams, so a renamed event field
-      # would turn it into a calm zero rather than a failure. Its case set runs on a fixture it writes itself:
-      # two items, a worker session with a repeated read and a gate call, a reviewer session. Offline, no token.
-      - name: Check loop spend analyser
-        run: bash tools/loop-spend-selftest.sh
-
-      # ── backlog references ─────────────────────────────────────
-      # Every `§N` a live file cites must still find its entry after `TODO.md` was deleted, and no live
-      # line may name that file without citing one — that is the migration's whole justification
-      # (`migrate-todo-to-github-issues`, D11). No token here: the recorded `§ → issue` table in the
-      # migration's evidence is the record, so the step reads two kinds of text file and nothing else.
-      - name: Check backlog references
-        run: bash tools/check-todo-references.sh
-
-      # ── sensor tooling ────────────────────────────────────────
-      # The gate for `tools/sensors/**`, the three verbs the engine writes through and the sensor
-      # pipeline's YAML (spec `backlog-sensors`): every case drives the real engine against the fixture
-      # registry, the fixture sensors and the stub `gh` on PATH. Offline, no token, no Gradle, no device —
-      # this step grants nothing beyond the read-only contents the workflow already has, which is exactly
-      # why the pipeline that can write to the tracker is a separate file (D1). The mutation harness's own
-      # list is printed so a harness that no longer parses fails this step instead of rotting; the mutations
-      # themselves are not run here — they mutate the tree (the change-time `revert-check` of task 8).
-      - name: Check sensor tooling
-        run: |
-          bash tools/sensor-selftest.sh
-          bash tools/sensor-mutations.sh --list
-
-      # The gate for the files the sensor rows declare as their inputs (`tools/build-inputs.sh`,
-      # `tools/fetch-build-inputs.sh`): every case drives the real scripts against a throwaway tree with the
-      # shared stub `gh` on PATH. Offline, no token, no network, no Gradle. The `--check` line is the bound
-      # that keeps a row from declaring a path no pipeline publishes (spec `backlog-sensors`, issue #161):
-      # the producer's own manifest is compared with the registry here, before a scheduled run could report
-      # four failed checks. The mutation harness's list is printed for the same reason as above — a harness
-      # that no longer parses fails here instead of rotting; the mutations themselves are change-time.
-      - name: Check the build inputs
-        run: |
-          bash tools/build-inputs-selftest.sh
-          bash tools/build-inputs.sh --check
-          bash tools/build-inputs-mutations.sh --list
-
-      # ── portability ────────────────────────────────────────────
-      # The gate for `tooling-portability`: no engine under `tools/issues`, `tools/sensors` or `tools/loop`
-      # names a project value (the repository, an allowlisted author, a vocabulary value, a path the
-      # registry declares, the gate command), and the whole toolchain runs in a synthetic project whose
-      # repository, allowlist, vocabulary and bands all differ. Offline, no token, no network, no Gradle:
-      # it reads repository files and runs throwaway git repositories, so it needs nothing beyond the
-      # `contents: read` the workflow already has. Its check reads the value set from the project's own
-      # profile at run time, so the leak is caught on the commit that introduces it.
-      - name: Check portability
-        run: |
-          bash tools/check-portability.sh
-          bash tools/check-portability-selftest.sh
-          # The mutation runner's own four guards, proven on a toy tree, and the set's list: a mutation set
-          # that no longer parses fails this step instead of rotting. The mutations themselves are not run
-          # here — they mutate the tree (`tools/mutate.sh`, change-time, `.pi/skills/mutation-runner`).
-          bash tools/mutate-selftest.sh
-          bash tools/mutate.sh --mutations tools/portability-mutations.json --list
-
-      # ── stale citations ────────────────────────────────────────
-      # The gate for `stale-citation-resolution`: one definition of what a citation is (asked by the loop's
-      # pre-screen and by the resolver), the repair ladder, the quarantine, the bounds and the idempotence —
-      # every case offline in a throwaway repository and against a stub `gh`. The check itself reads the
-      # tracker and writes to it, which is why it runs in the sensors pipeline and never here.
-      - name: Check stale citation resolver
-        run: |
-          bash tools/resolve-stale-selftest.sh
-          bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list
-
-      # ── action runtimes ────────────────────────────────────────
-      # A workflow's `uses:` pin carries the runtime: an action major that predates Node 24 makes the
-      # runner print a deprecation notice on every step and force the action onto Node 24 anyway
-      # (`actions/upload-artifact@v5` declares `runs.using: node20`; five steps warned until issue #240
-      # moved them to v7). Nothing else in the tree reads an action version — the workflow parses and the
-      # run is green — so the pin is checked here, against the floor table in the checker itself.
-      # Text files only: no build, no device, no network.
-      - name: Check action runtimes
-        run: |
-          bash tools/check-action-runtimes.sh
-          bash tools/check-action-runtimes-selftest.sh
-
-      # ── sonar workflow ─────────────────────────────────────────
-      # The scan is a workflow of its own that runs from `main` only, and its boundary — what the analysis
-      # measures as this repository's code — is a property file rather than an inference. Nothing else reads
-      # either one: a `pull_request` trigger or a dropped exclusion parses and the run stays green, so the
-      # triggers, the runtime guard, the scanner pin and the exclusion groups are checked here
-      # (spec `sonar-analysis`, change `integrate-sonar-analysis`). Text files only: no build, no token.
-      - name: Check sonar workflow
-        run: |
-          bash tools/check-sonar-workflow.sh
-          bash tools/check-sonar-workflow-selftest.sh
-
-      # ── Compose sandbox rule ───────────────────────────────────
-      # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
-      # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has
-      # written a Compose state in the same JVM (TODO.md §195, change `fix-compose-sandbox-idle`).
-      # The invariant cannot be asserted from inside a test — the class without the rule is exactly
-      # the class that fails — so it is checked here. Text files only: no build, no device.
-      - name: Check Compose sandbox rule
-        run: |
-          bash tools/check-compose-sandbox-rule.sh
-          bash tools/check-compose-sandbox-rule-selftest.sh
-
-      # ── daemon JVM criteria ───────────────────────────────────
-      # gradle/gradle-daemon-jvm.properties is generated by updateDaemonJvm, and
-      # the generated file addresses foojay Disco *package records* by id hash.
-      # That index prunes records, a pruned id answers HTTP 400, and Gradle then
-      # cannot start its daemon at all — that is how this job died on
-      # 2026-10-06 (gradle/foojay-toolchains#196). The committed file must
-      # therefore carry the vendor's durable endpoints, keep the version, and
-      # carry no vendor criterion (so the Temurin 21 installed above satisfies
-      # it instead of being excluded). See guidelines/Build.md §2.
-      - name: Check daemon JVM criteria
-        run: |
-          set -euo pipefail
-          f=gradle/gradle-daemon-jvm.properties
-          [ -f "$f" ] || { echo "::error file=$f::missing"; exit 1; }
-          if grep -nE 'api\.foojay\.io/disco/v3\.0/ids/[0-9a-f]{16,}' "$f"; then
-            echo "::error file=$f::addresses a foojay package id — replace it with the vendor's durable endpoint for version 21 (guidelines/Build.md §2)"
-            exit 1
-          fi
-          if ! grep -q '^toolchainVersion=21$' "$f"; then
-            echo "::error file=$f::toolchainVersion=21 is missing — the daemon JVM stays pinned to 21"
-            exit 1
-          fi
-          if grep -q '^toolchainVendor=' "$f"; then
-            echo "::error file=$f::a vendor criterion excludes the JDK this job installs — drop it (guidelines/Build.md §2)"
-            exit 1
-          fi
-          if grep -nE '^[[:space:]]*org\.gradle\.java\.home[[:space:]]*=' gradle.properties; then
-            echo "::error file=gradle.properties::the versioned property source must carry no org.gradle.java.home — a machine-local absolute path selects no JVM where the criteria apply and is wrong on every other machine; delete the line (guidelines/Build.md §2, issue #91)"
-            exit 1
-          fi
-          # The build logic compiles with the daemon JVM the criteria select, so it must declare no toolchain of
-          # its own: buildSrc has no settings.gradle.kts, the foojay resolver the root settings applies never
-          # reaches its build, and a toolchain it cannot auto-detect fails the configuration of the whole build
-          # before its first task (issue #92). The `sed` strips `//` comments, so the file may explain the rule it
-          # must not violate, and the case `BuildSrcJvmRequirementTest` asserts the same absence on the host.
-          f=buildSrc/build.gradle.kts
-          [ -f "$f" ] || { echo "::error file=$f::missing"; exit 1; }
-          if sed 's|//.*||' "$f" | grep -nE 'toolchain|languageVersion|JavaLanguageVersion'; then
-            echo "::error file=$f::buildSrc must declare no JVM toolchain of its own — a toolchain it cannot provision fails the configuration on a machine without that JDK; it compiles with the daemon JVM the criteria select (guidelines/Build.md §2d, issue #92)"
-            exit 1
-          fi
-          echo "daemon JVM criteria: version 21, no vendor, no package id, no buildSrc toolchain."
 
       # ── Android SDK ──────────────────────────────────────────
       - name: Cache Android SDK
@@ -470,9 +195,24 @@ jobs:
             -ConfigFile "$HOME/.config/NuGet/NuGet.Config" \
             -Source "https://nuget.pkg.github.com/Framstag/index.json"
 
+      # The cache's client is nuget.exe under mono, whose TLS handshake to
+      # nuget.pkg.github.com failed on the ubuntu-26.04 image (issue #761). vcpkg
+      # treats a cache failure as non-fatal, so without this probe a dead
+      # transport is silent and costs ~60 minutes of failed pushes. Its outcome
+      # decides whether the install relies on the cache at all.
+      - name: Probe the vcpkg binary cache
+        id: cache
+        continue-on-error: true
+        run: bash tools/ci-vcpkg-cache.sh --probe
+
       # Installs all deps for the 3 Android triplets; compiled packages
-      # come from / are stored in the NuGet binary cache.
+      # come from / are stored in the NuGet binary cache — when the probe above
+      # reached the feed. A dead transport selects `clear`, so the ports build
+      # from source and nothing is pushed (one warning line instead of 99
+      # failing pushes).
       - name: Install vcpkg dependencies
+        env:
+          VCPKG_BINARY_SOURCES: ${{ steps.cache.outcome == 'success' && 'clear;nuget,https://nuget.pkg.github.com/Framstag/index.json,readwrite' || 'clear' }}
         run: ./setup-vcpkg.sh
 
       # setup-vcpkg.sh tolerates per-package failures (|| echo) — fail the
@@ -647,3 +387,383 @@ jobs:
           name: naviveylin-license-inventory
           path: app/build/generated/assets-licenses/mobileDebug/licenses/**
           if-no-files-found: error
+
+  # ── the offline gates ────────────────────────────────────────
+  # Every check below needs a checkout, git, jq and a JDK — nothing the build already has, and nothing the build
+  # reads: no Android SDK, no NDK, no vcpkg, no Gradle, no token. They used to run inside `build`, in front of the
+  # dependency install the build waits for, so 23 min 36 s of them was added to the build's own clock — measured
+  # 2026-11-04, run 41810844107: steps 5–24 span 09:56:24 → 10:20:00 and `Install vcpkg dependencies` starts at
+  # 10:22:55. Here they run beside the build, on a runner that is not building anything.
+  #
+  # The checks whose failure is cheap to detect stay in `build`, in front of the dependency install, so a broken
+  # artifact still fails in seconds: `Check libosmscout Android-free outside Android/` guards the tree the build
+  # compiles, and `Check the JVM-only test graph` and `Check the dex gate's producer` need the SDK.
+  gates:
+    name: Offline gates
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 60
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # ── OpenSpec artifact hygiene ─────────────────────────────
+      # Two silent-failure classes with no CLI in the runner:
+      #   1. a tasks.md that uses bare '1. [x]' items — the parser then reports
+      #      0 tasks and the change reads as 'no-tasks' without any error;
+      #   2. an operations.*.guidance list entry containing ': ' that is not
+      #      quoted — it parses as a YAML mapping, the array fails the
+      #      array-of-strings check and the CLI drops that operation's guidance
+      #      with only a warning;
+      #   3. a capability spec whose '## Purpose' is still the sentence
+      #      'openspec archive' writes for a capability it creates — `openspec
+      #      validate --type spec` only warns and exits 0, and no delta can
+      #      repair it, so nothing else would ever report it (issue §171).
+      #      The pass is a `find` over openspec/specs/ because 7 capability
+      #      specs sit one level deeper (auto/*, share/*) and a flat glob
+      #      cannot see them.
+      #      The three classes live in `tools/check-openspec-hygiene.sh` — one home, so this step and the
+      #      self-test that breaks each class in a throwaway tree run the same code (issue #45). A class
+      #      no case has ever violated is not what guards the artifacts.
+      - name: Check OpenSpec artifact hygiene
+        run: |
+          bash tools/check-openspec-hygiene.sh
+          bash tools/check-openspec-hygiene-selftest.sh
+
+      # ── capability classification ──────────────────────────────
+      # TODO.md §157 / issue #101: nothing forced a change to classify the capability spec it
+      # archives, so the mistake surfaced at the next generation instead. Three instances are on
+      # record (generate-feature-list, routing-max-speed, routing-failure-reporting). The tool owns
+      # the check, exits 1 naming the id, and reads an open change's delta specs as well as the
+      # shipped set — so it fails the pull request that introduces the delta, before the archive,
+      # rather than a later session's run. Data only: two files read, no Gradle.
+      - name: Check capability classification
+        run: |
+          set -euo pipefail
+          bash tools/gen-feature-list.sh --check-classification || {
+            echo "::error file=tools/feature-list/specs.json::a capability spec is unclassified (TODO.md §157) — add its line in the change that introduces it, before the archive"
+            exit 1
+          }
+
+      # ── feature-list tooling ───────────────────────────────────
+      # The gate above is one call of a tool whose 115 cases decide what it reads and refuses. The suite ran
+      # nowhere in CI and nowhere in the loop's gate until issue #101: a case that pins the gate's behaviour could
+      # pass in isolation and the next change to the tool would learn nothing. Offline, seconds, no Gradle.
+      - name: Check feature-list tooling
+        run: |
+          bash tools/gen-feature-list-selftest.sh
+
+      # ── documentation routes ───────────────────────────────────
+      # AGENTS.md's Documentation Map is the only route from "what I am changing" to the guideline
+      # section that owns it (the rule and its rationale: guidelines/Build.md §4/§6). A route that
+      # points at a section which no longer exists is silent — the reader lands on the wrong part of
+      # a correct document — so it is checked here instead of being discovered by whoever follows it.
+      # A skill path the documentation names is resolved the same way (`documentation-ownership`,
+      # "A document that names a skill resolves to a skill that exists", issue #13), and the check's own
+      # self-test runs here because a check nothing runs is the same silence one level down. The mutation
+      # set is listed for the same reason as the others: a set that no longer parses fails this step
+      # instead of rotting.
+      # A row that routes a lettered sub-section of a document states what those sections cost
+      # (`documentation-ownership`, "The route names the sub-section", issue #197): the check reports a row
+      # that names sub-sections and prices nothing, and its `--sizes` report prints every section of every
+      # routed document with the byte count the requirement's ruler gives it, so a restated figure can be
+      # compared with the measurement instead of with a memory.
+      # Text files only: no build, no device, seconds of run time.
+      - name: Check documentation routes
+        run: |
+          bash tools/check-doc-routes.sh
+          bash tools/check-doc-routes-selftest.sh
+          bash tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+
+      # The reading set a change's paths derive (`documentation-ownership`, "The review's reading set is
+      # derived from the change's paths"): the map in `tools/doc-routes.json` derives the guideline sections
+      # and named rules for a path glob, so a review is graded against the rules its diff is governed by
+      # rather than against what the change's own artifacts name. Every glob must match a tracked path (a
+      # rename otherwise orphans the rules a reader is told to read) and every named rule under `guidelines/`
+      # must be reached by a glob (a rule has a reader before it has a violation). The self-test runs here
+      # because a check nothing runs is the same silence one level down, and the mutation set is listed for
+      # the same reason as the others: a set that no longer parses fails this step instead of rotting.
+      - name: Check the rule routes
+        run: |
+          bash tools/check-rule-routes.sh
+          bash tools/check-rule-routes-selftest.sh
+          bash tools/mutate.sh --mutations tools/check-rule-routes-mutations.json --list
+
+      # ── issue tooling ──────────────────────────────────────────
+      # The gate for `tools/issues/**`: the Java core's cases and the shell wrappers driven against a stub
+      # `gh` on PATH. Offline, no token, no Gradle — and it refuses below JDK 17 with a named message. The
+      # surface it protects is the one a later loop trusts (spec `issue-backlog`).
+      - name: Check issue tooling
+        run: |
+          bash tools/issue-tooling-selftest.sh
+          # A state transition replaces the item's state, so no call can leave two `status/*` labels on one
+          # item (`fix-status-label-replacement`, invariant I16 in `guidelines/Backlog.md` §4). The mutation
+          # set's list is printed, as for the other sets: one that no longer parses fails this step instead
+          # of rotting. The mutations themselves are not run here — they mutate the tree (`tools/mutate.sh`,
+          # change-time, `.pi/skills/mutation-runner`).
+          bash tools/mutate.sh --mutations tools/status-mutations.json --list
+          # The filing path refuses a merged label set that names two values of one namespace, before any
+          # `gh issue create` (`fix-issue-filing-state-namespace`, issue #179). Listed for the same reason as
+          # the set above: a mutation set that no longer parses fails this step instead of rotting.
+          bash tools/mutate.sh --mutations tools/create-mutations.json --list
+          # The closure's settled state (#181, #188): a closed item must read settled whoever closed it, so
+          # the status write, its not-planned sibling and the refusal of a rejected write each have a
+          # mutation. Listed for the same reason as the sets above.
+          bash tools/mutate.sh --mutations tools/close-mutations.json --list
+          # The tracker's mechanical hygiene (`sensors-mechanical-hygiene`): the survivor rule, the
+          # authorisation rule, the candidate filter and the dedupe marker each have a mutation. Listed for the
+          # same reason as the sets above — a set that no longer parses fails this step instead of rotting.
+          bash tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+          # The question a decision answers (#243): the run's escalation comment opens with its verdict word, so
+          # the queue and the answer path read the escalation's `**The decision:**` line instead, and the work
+          # package restates that rule. Listed for the same reason as the sets above — a set that no longer
+          # parses fails this step instead of rotting.
+          bash tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+
+      # ── priority metadata ──────────────────────────────────────
+      # The gate for the priority invariant (`issue-metadata-loop`, D7): the profile's bands are total, the
+      # marker grammar has one home, neither write path can name the automation opt-in, and every check can
+      # be shown red — the last part is what makes the rest a check rather than a claim. Token-free: it reads
+      # the profile and the scripts, and never the tracker. The falsification harness's mutations themselves
+      # are not run here — they mutate the tree (the run is a change-time step, `task 8`) — but its mutation
+      # list is printed, so a harness that no longer parses fails this step instead of rotting.
+      - name: Check issue metadata
+        run: |
+          bash tools/issues/check-metadata.sh
+          bash tools/issues/metadata-mutations.sh --list
+
+      # ── loop spend ─────────────────────────────────────────────
+      # The analyser behind the `loop-spend` skill reads the children's event streams, so a renamed event field
+      # would turn it into a calm zero rather than a failure. Its case set runs on a fixture it writes itself:
+      # two items, a worker session with a repeated read and a gate call, a reviewer session. Offline, no token.
+      - name: Check loop spend analyser
+        run: bash tools/loop-spend-selftest.sh
+
+      # ── backlog references ─────────────────────────────────────
+      # Every `§N` a live file cites must still find its entry after `TODO.md` was deleted, and no live
+      # line may name that file without citing one — that is the migration's whole justification
+      # (`migrate-todo-to-github-issues`, D11). No token here: the recorded `§ → issue` table in the
+      # migration's evidence is the record, so the step reads two kinds of text file and nothing else.
+      - name: Check backlog references
+        run: bash tools/check-todo-references.sh
+
+      # ── sensor tooling ────────────────────────────────────────
+      # The gate for `tools/sensors/**`, the three verbs the engine writes through and the sensor
+      # pipeline's YAML (spec `backlog-sensors`): every case drives the real engine against the fixture
+      # registry, the fixture sensors and the stub `gh` on PATH. Offline, no token, no Gradle, no device —
+      # this step grants nothing beyond the read-only contents the workflow already has, which is exactly
+      # why the pipeline that can write to the tracker is a separate file (D1). The mutation harness's own
+      # list is printed so a harness that no longer parses fails this step instead of rotting; the mutations
+      # themselves are not run here — they mutate the tree (the change-time `revert-check` of task 8).
+      - name: Check sensor tooling
+        run: |
+          bash tools/sensor-selftest.sh
+          bash tools/sensor-mutations.sh --list
+
+      # The gate for the files the sensor rows declare as their inputs (`tools/build-inputs.sh`,
+      # `tools/fetch-build-inputs.sh`): every case drives the real scripts against a throwaway tree with the
+      # shared stub `gh` on PATH. Offline, no token, no network, no Gradle. The `--check` line is the bound
+      # that keeps a row from declaring a path no pipeline publishes (spec `backlog-sensors`, issue #161):
+      # the producer's own manifest is compared with the registry here, before a scheduled run could report
+      # four failed checks. The mutation harness's list is printed for the same reason as above — a harness
+      # that no longer parses fails here instead of rotting; the mutations themselves are change-time.
+      - name: Check the build inputs
+        run: |
+          bash tools/build-inputs-selftest.sh
+          bash tools/build-inputs.sh --check
+          bash tools/build-inputs-mutations.sh --list
+
+      # ── portability ────────────────────────────────────────────
+      # The gate for `tooling-portability`: no engine under `tools/issues`, `tools/sensors` or `tools/loop`
+      # names a project value (the repository, an allowlisted author, a vocabulary value, a path the
+      # registry declares, the gate command), and the whole toolchain runs in a synthetic project whose
+      # repository, allowlist, vocabulary and bands all differ. Offline, no token, no network, no Gradle:
+      # it reads repository files and runs throwaway git repositories, so it needs nothing beyond the
+      # `contents: read` the workflow already has. Its check reads the value set from the project's own
+      # profile at run time, so the leak is caught on the commit that introduces it.
+      - name: Check portability
+        run: |
+          bash tools/check-portability.sh
+          bash tools/check-portability-selftest.sh
+          # The mutation runner's own four guards, proven on a toy tree, and the set's list: a mutation set
+          # that no longer parses fails this step instead of rotting. The mutations themselves are not run
+          # here — they mutate the tree (`tools/mutate.sh`, change-time, `.pi/skills/mutation-runner`).
+          bash tools/mutate-selftest.sh
+          bash tools/mutate.sh --mutations tools/portability-mutations.json --list
+
+      # ── stale citations ────────────────────────────────────────
+      # The gate for `stale-citation-resolution`: one definition of what a citation is (asked by the loop's
+      # pre-screen and by the resolver), the repair ladder, the quarantine, the bounds and the idempotence —
+      # every case offline in a throwaway repository and against a stub `gh`. The check itself reads the
+      # tracker and writes to it, which is why it runs in the sensors pipeline and never here.
+      - name: Check stale citation resolver
+        run: |
+          bash tools/resolve-stale-selftest.sh
+          bash tools/mutate.sh --mutations tools/resolve-stale-mutations.json --list
+
+      # ── action runtimes ────────────────────────────────────────
+      # A workflow's `uses:` pin carries the runtime: an action major that predates Node 24 makes the
+      # runner print a deprecation notice on every step and force the action onto Node 24 anyway
+      # (`actions/upload-artifact@v5` declares `runs.using: node20`; five steps warned until issue #240
+      # moved them to v7). Nothing else in the tree reads an action version — the workflow parses and the
+      # run is green — so the pin is checked here, against the floor table in the checker itself.
+      # Text files only: no build, no device, no network.
+      - name: Check action runtimes
+        run: |
+          bash tools/check-action-runtimes.sh
+          bash tools/check-action-runtimes-selftest.sh
+
+      # ── the vcpkg binary cache's transport ─────────────────────
+      # The cache is reached through nuget.exe under mono, and vcpkg treats a cache failure as non-fatal, so a
+      # dead transport is silent and expensive (62 minutes of failed pushes on the ubuntu-26.04 image, issue
+      # #761). The probe that refuses to pay it is checked here; its two verdicts, the missing client and the
+      # absence of anything sensitive are cases. Text files and stubs only: no network, no token.
+      - name: Check the vcpkg cache probe
+        run: bash tools/ci-vcpkg-cache-selftest.sh
+
+      # ── sonar workflow ─────────────────────────────────────────
+      # The scan is a workflow of its own that runs from `main` only, and its boundary — what the analysis
+      # measures as this repository's code — is a property file rather than an inference. Nothing else reads
+      # either one: a `pull_request` trigger or a dropped exclusion parses and the run stays green, so the
+      # triggers, the runtime guard, the scanner pin and the exclusion groups are checked here
+      # (spec `sonar-analysis`, change `integrate-sonar-analysis`). Text files only: no build, no token.
+      - name: Check sonar workflow
+        run: |
+          bash tools/check-sonar-workflow.sh
+          bash tools/check-sonar-workflow-selftest.sh
+
+      # ── Compose sandbox rule ───────────────────────────────────
+      # A Compose test class that does not repair the Robolectric sandbox's Compose dispatcher before
+      # its Compose rule burns Espresso's 60 s idling budget per case once a non-Compose test has
+      # written a Compose state in the same JVM (TODO.md §195, change `fix-compose-sandbox-idle`).
+      # The invariant cannot be asserted from inside a test — the class without the rule is exactly
+      # the class that fails — so it is checked here. Text files only: no build, no device.
+      - name: Check Compose sandbox rule
+        run: |
+          bash tools/check-compose-sandbox-rule.sh
+          bash tools/check-compose-sandbox-rule-selftest.sh
+
+      # ── daemon JVM criteria ───────────────────────────────────
+      # gradle/gradle-daemon-jvm.properties is generated by updateDaemonJvm, and
+      # the generated file addresses foojay Disco *package records* by id hash.
+      # That index prunes records, a pruned id answers HTTP 400, and Gradle then
+      # cannot start its daemon at all — that is how this job died on
+      # 2026-10-06 (gradle/foojay-toolchains#196). The committed file must
+      # therefore carry the vendor's durable endpoints, keep the version, and
+      # carry no vendor criterion (so the Temurin 21 installed above satisfies
+      # it instead of being excluded). See guidelines/Build.md §2.
+      - name: Check daemon JVM criteria
+        run: |
+          set -euo pipefail
+          f=gradle/gradle-daemon-jvm.properties
+          [ -f "$f" ] || { echo "::error file=$f::missing"; exit 1; }
+          if grep -nE 'api\.foojay\.io/disco/v3\.0/ids/[0-9a-f]{16,}' "$f"; then
+            echo "::error file=$f::addresses a foojay package id — replace it with the vendor's durable endpoint for version 21 (guidelines/Build.md §2)"
+            exit 1
+          fi
+          if ! grep -q '^toolchainVersion=21$' "$f"; then
+            echo "::error file=$f::toolchainVersion=21 is missing — the daemon JVM stays pinned to 21"
+            exit 1
+          fi
+          if grep -q '^toolchainVendor=' "$f"; then
+            echo "::error file=$f::a vendor criterion excludes the JDK this job installs — drop it (guidelines/Build.md §2)"
+            exit 1
+          fi
+          if grep -nE '^[[:space:]]*org\.gradle\.java\.home[[:space:]]*=' gradle.properties; then
+            echo "::error file=gradle.properties::the versioned property source must carry no org.gradle.java.home — a machine-local absolute path selects no JVM where the criteria apply and is wrong on every other machine; delete the line (guidelines/Build.md §2, issue #91)"
+            exit 1
+          fi
+          # The build logic compiles with the daemon JVM the criteria select, so it must declare no toolchain of
+          # its own: buildSrc has no settings.gradle.kts, the foojay resolver the root settings applies never
+          # reaches its build, and a toolchain it cannot auto-detect fails the configuration of the whole build
+          # before its first task (issue #92). The `sed` strips `//` comments, so the file may explain the rule it
+          # must not violate, and the case `BuildSrcJvmRequirementTest` asserts the same absence on the host.
+          f=buildSrc/build.gradle.kts
+          [ -f "$f" ] || { echo "::error file=$f::missing"; exit 1; }
+          if sed 's|//.*||' "$f" | grep -nE 'toolchain|languageVersion|JavaLanguageVersion'; then
+            echo "::error file=$f::buildSrc must declare no JVM toolchain of its own — a toolchain it cannot provision fails the configuration on a machine without that JDK; it compiles with the daemon JVM the criteria select (guidelines/Build.md §2d, issue #92)"
+            exit 1
+          fi
+          echo "daemon JVM criteria: version 21, no vendor, no package id, no buildSrc toolchain."
+
+
+  # ── the loop's self-test, in legs ──────────────────────────────
+  # The suite's pool width is the runner's core count — `LOOP_SELFTEST_JOBS` is empty in the profile, so the driver
+  # takes `nproc`, which is 4 here — and 315 cases therefore cost the sum of their cases over four workers: 17 min
+  # 15 s measured 2026-11-04. The cases are independent (each owns a throwaway repository, a scratch root and a
+  # process group), so the width of the *run* can be several runners. `run` is 114 of the 315 cases and 56 % of the
+  # cost, which is why it gets a leg of its own.
+  #
+  # A leg is the driver invoked once per group, and each invocation's summary states the selection it ran against
+  # the declared set — so a leg that silently covered less is visible in its own log. The mutation harness's own
+  # guards stay with the leg that owns the driver, so a mutation case and the driver it mutates are read together.
+  loop-suite:
+    name: Loop self-test (${{ matrix.leg }})
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: run
+            groups: run
+          - leg: tooling
+            groups: prescreen gate state worktree report driver
+          - leg: rest
+            groups: prompt clean labels measure usage repeat adapter trim phase mutation look policy evidence
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          # The suite below is handed the delta it owes, and git cannot diff a commit it does not hold: a pull
+          # request's base and a push's `before` are both outside a depth-1 clone.
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Resolve the delta the suite owes
+        id: delta
+        env:
+          # The base the delta is read against, from the event this run answers: a pull request's base commit, else
+          # the previous head of the branch a push moved. Empty is no base at all — a schedule or a dispatch — and
+          # that delta owes the whole set.
+          EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          # An all-zeros SHA is git's "no commit": a branch's first push, or a force-push whose base git does not
+          # know. `${EVENT_BASE//0/}` is empty only then, and what that delta owes is the whole set.
+          if [ -n "${EVENT_BASE//0/}" ]; then
+            printf 'args=--allow-empty --from-git %s\n' "$EVENT_BASE" >> "$GITHUB_OUTPUT"
+          else
+            printf 'args=--allow-empty\n' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check agent issue loop (${{ matrix.leg }})
+        run: |
+          set -euo pipefail
+          rc=0
+          for g in ${{ matrix.groups }}; do
+            bash tools/loop-selftest.sh ${{ steps.delta.outputs.args }} --group "$g" || rc=1
+          done
+          exit $rc
+
+      - name: Check loop mutations harness (${{ matrix.leg }})
+        if: matrix.leg == 'tooling'
+        run: bash tools/loop-mutations-selftest.sh

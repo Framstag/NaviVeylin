@@ -1,0 +1,29 @@
+# The mutation set, checked and the four records this change adds
+date: 2026-11-04T06:17:24Z
+
+## bash tools/loop-mutations.sh --check
+
+```
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.12NExU
+loop-mutations: all 235 cases passed — every selected record applies to the file it names
+```
+
+## bash tools/loop-mutations.sh --only '79.1 79.2 79.3 79.4'
+
+```
+loop-mutations: selected 4 of 235 records (labels: 79.1 79.2 79.3 79.4)
+RED    79.1  run#thePreGateReviewRunsBeforeTheGate   (the section `worker.md` is handed, so the change child is told which end its session has (issue #758))
+       2026-11-04T06:17:46Z — the change child is told the gate is deferred: 'The gate is not yours this item' not found in: # Worker — one item, phases A–D
+restore 79.1 run#thePreGateReviewRunsBeforeTheGate green again
+RED    79.2  run#thePreGateReviewRunsBeforeTheGate   (the block that reads the diff before the gate and starts the child that runs it (issue #758))
+       2026-11-04T06:18:19Z — the round is read before the gate child is started: expected 'review gate', got ''
+restore 79.2 run#thePreGateReviewRunsBeforeTheGate green again
+RED    79.3  run#thePreGateReviewRunsBeforeTheGate   (the findings the refuting round wrote, handed to the child that runs the gate (issue #758))
+       2026-11-04T06:18:48Z — the round's findings reach the prompt of the child that runs the gate: 'BLOCKING: the tasks the change claims are done name a case the tree does not hold' not found in: # Gate child — phase E, the item's one gate
+restore 79.3 run#thePreGateReviewRunsBeforeTheGate green again
+RED    79.4  run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun   (the outcome arm a round the run cut records, so a change nobody read is left for the next run instead of closing (issue #758))
+       2026-11-04T06:19:20Z — the reason names the round that never answered, and names it as the one before the gate: 'the pre-gate reviewer's report was cut short twice' not found in: the reviewer's report was cut short twice — the round 1 answer never arrived, so no 
+restore 79.4 run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun green again
+
+red-when-mutated: 4 · not-noticed: 0 · restore-failures: 0
+```

@@ -1,0 +1,50 @@
+Phase D checks taken by the worker on 2026-11-05, on top of base 62ab008d. The gate is not run here: the run
+deferred it to a fresh child, which applies this diff and pays it once.
+
+  bash tools/loop-selftest.sh --case run#theDecisionCapRecordsItsStopReason
+    red on the pre-fix tree — FAIL at the first assertion, `run.stop.reason` empty
+    (red-on-HEAD-run-theDecisionCapRecordsItsStopReason.xml); green after the fix
+    (green-run-theDecisionCapRecordsItsStopReason.xml).
+
+  bash tools/loop-selftest.sh --case 'run#decisionCap*'
+    all 2 cases passed — decisionCapRefusesToStart, decisionCapCountsOnlyCandidates.
+
+  bash tools/loop-selftest.sh --case run#dirtyKeptWorktreeIsARecordedRefusal
+  bash tools/loop-selftest.sh --case run#resetWorktreeNamesTheDirtItCannotDiscard
+  bash tools/loop-selftest.sh --case run#resetWorktreeDiscardsWhatItNames
+  bash tools/loop-selftest.sh --case state#secondRunRefusesWithExit5
+    all passed (the first two with the new `run.stop.reason` assertion).
+
+  bash tools/loop-mutations.sh --check --files tools/loop/run.sh
+    selected 92 of 241 records — all 92 cases passed, every selected record applies to the file it names
+    (record 9.6 still anchors on the cap's comparison line, which this change keeps verbatim; 9.12 is the record
+    this change adds).
+
+  bash tools/check-change-readiness.sh openspec/changes/fix-refusal-before-the-first-item-records-its-stop
+    LOOP-CHANGE-READY: ok
+
+  bash tools/loop/evidence-check.sh openspec/changes/fix-refusal-before-the-first-item-records-its-stop
+    evidence-check: PASS
+
+  openspec validate fix-refusal-before-the-first-item-records-its-stop
+    Change 'fix-refusal-before-the-first-item-records-its-stop' is valid
+
+  bash tools/check-openspec-hygiene.sh
+    OpenSpec artifacts are consistent: 6 open change(s) carry task markers ...
+
+  bash tools/check-doc-routes.sh
+    check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+
+  ./tools/loop/measure.sh --change fix-refusal-before-the-first-item-records-its-stop
+    the block as printed is measure.txt in this directory.
+
+Phase E checks taken by the gate child on 2026-11-05, after the pre-gate review's two BLOCKING findings were applied
+(the kept-worktree stop reason names the files it printed, with its assertion widened; the mutation record 9.12):
+
+  bash tools/loop-mutations.sh --files tools/loop/run.sh
+    selected 92 of 241 records — red-when-mutated: 92 · not-noticed: 0 · restore-failures: 0
+    (revert-check-run.sh.txt, the harness's own transcript).
+    record 9.12 — `run#theDecisionCapRecordsItsStopReason` red at `run.stop.reason` once the cap's
+    `stop_run` is removed, `restore 9.12 … green again`, `2026-11-05T21:55:10Z`.
+    `grep -c 'REVERT-CHECK MUTATION' tools/loop/run.sh` → 0, `git diff tools/loop/run.sh` carries only
+    this change's lines, no marker.

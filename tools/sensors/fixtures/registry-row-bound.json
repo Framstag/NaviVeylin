@@ -1,0 +1,24 @@
+{
+  "profile": 1,
+  "comment": "A fixture registry for a row that declares its own recurrence bound (issue #769): the row's `k` is five, and the registry's number is the three every ordinary row inherits. A closed item below five is still work; one at five escalates.",
+  "namespace": "sensor",
+  "labels": { "status": "open", "source": "ci" },
+  "escalation": { "maxRecurrences": 3, "labels": ["agent/needs-decision", "status/on-hold"] },
+  "record": { "status": "on-hold" },
+  "maxFilings": 10,
+  "rows": [
+    {
+      "id": "fixture-recurrence",
+      "cmd": "tools/sensors/fixtures/sensors/emit.sh",
+      "cron": "0 3 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "k": 5,
+      "fingerprint": { "fields": ["case"] }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally `bash tools/loop-selftest.sh --case 'run#a*Writer*'` printed on this change (2026-11-06T07:03:30Z):
+     the shell runner writes no JUnit XML, so this file is the carrier of the number the change quotes (tests=3
+     failures=0), kept beside evidence/green-on-change.log. The third case is the glob's own neighbour
+     (`run#aWriterTheRunCanPlaceBlocksTheItem`), which shares the word "writer" and is not this change's. -->
+<testsuite name="bash tools/loop-selftest.sh --case run#a*Writer* (the change)" tests="3" failures="0" errors="0" time="14">
+  <testcase name="run#aVanishedWriterEndsTheWait" classname="loop-selftest"/>
+  <testcase name="run#aSlowChildIsNotMistakenForAVanishedWriter" classname="loop-selftest"/>
+  <testcase name="run#aWriterTheRunCanPlaceBlocksTheItem" classname="loop-selftest"/>
+  <system-out>2026-11-06T07:03:30Z PASS run#aVanishedWriterEndsTheWait PASS run#aSlowChildIsNotMistakenForAVanishedWriter PASS run#aWriterTheRunCanPlaceBlocksTheItem loop-selftest: all 3 cases passed exit 0</system-out>
+</testsuite>

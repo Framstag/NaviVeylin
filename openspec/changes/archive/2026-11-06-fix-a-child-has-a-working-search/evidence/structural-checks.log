@@ -1,0 +1,14 @@
+# structural checks the change owes (no compiled file is touched)
+$ bash -n tools/look.sh tools/pi-child-events.sh tools/loop-cases.sh tools/loop-mutations.sh tools/look-selftest.sh
+ok
+$ bash tools/check-portability.sh
+check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+$ bash tools/check-openspec-hygiene.sh
+OpenSpec artifacts are consistent: 24 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+$ openspec validate fix-a-child-has-a-working-search --strict
+Change 'fix-a-child-has-a-working-search' is valid
+$ bash tools/loop-selftest.sh (the gate for tools/loop/**)
+loop-selftest: all 332 cases passed (JDK 27, offline, no token, no sandbox) — 410.96 s
+at=2026-11-06T17:37:18Z

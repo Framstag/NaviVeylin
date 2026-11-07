@@ -11,7 +11,8 @@ NaviVeylin is an Android navigation app using libosmscout for map rendering and 
 This file states **facts** — what exists, where it lives, and how to run it. Rules live in the guideline
 that owns them, next to the measurement that proved them. **Read the section that owns the topic, never the
 whole document** (`openspec/config.yaml` states what a whole-document read costs). Sections are named here as
-`§<number> "<heading text>"`; the complete section list of any file is `grep -n '^## ' guidelines/<file>.md`,
+`§<number> "<heading text>"`; the complete section list of any file is `tools/look.sh '^## ' --path guidelines/<file>.md`,
+which — unlike a shell `grep` over the file — is a call the policy every loop child is started with allows.
 which also lists the sections this table does not route. A row that names a lettered sub-section (`§15a`, a
 section a split broke up) states what those sections cost — the rule is `openspec/specs/documentation-ownership/spec.md`,
 "A routing row's cost is the measurement it claims" — and `tools/check-doc-routes.sh` reports a row that names
@@ -25,20 +26,20 @@ give.
 | how the map is drawn — the pipeline, bitmaps, throttling, epochs | `MapRendering.md` §1 (the index) — §1a 6.0 kB, §1b 3.1 kB, §1c 1.3 kB, §1d 10.3 kB, §1e 2.3 kB; also §2, §4, §5 |
 | a frame's delivery — front-buffer emission, the overrun display window, the rotation-gesture handoff | `MapFrames.md` §12, §13, §14 |
 | follow mode, GPS, bearing, rotation, auto-zoom, markers, angles | `MapFollow.md` §3, §6, §7, §8, §9, §10, §11 |
-| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapStyling.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.2 kB, §16a 2.4 kB, §16b 0.8 kB (measured 2026-10-31) |
+| stylesheets, day/night, basemap, POI icons and where they come from, tile-data cache | `MapStyling.md` §15, §15a, §16, §16a, §16b, §17 — sub-sections §15a 3.5 kB, §16a 2.4 kB, §16b 0.8 kB (measured 2026-11-04) |
 | label word-wrapping — the bounds the renderer configures, and which backend wraps | `MapStyling.md` §20 "Label wrapping" |
 | the phone map — modes, overlays, layering, the route-planning card | `UIPhoneMap.md` §7, §7a, §7b, §8, §8b, §8c, §8a, §10a, §11 — sub-sections §7a 3.4 kB, §7b 8.0 kB, §8a 1.9 kB, §8b 3.3 kB, §8c 3.5 kB (measured 2026-10-31) |
 | phone surfaces — the details dialog, search, favourites | `UIPhone.md` §5, §6a, §12, §13, §14, §15, §16, §17, §18, §19 — sub-section §6a 6.1 kB (measured 2026-10-31) |
 | car screens — templates, wait notices, car search and details | `UICar.md` §2, §3, §3b, §3c, §4, §6b — sub-sections §3b 2.0 kB, §3c 4.2 kB, §6b 5.2 kB (measured 2026-11-02) |
 | parity between the two variants, or a deliberate deviation from it | `UI.md` §1, §6, §8d "Cross-variant map presentation" 6.4 kB (measured 2026-11-02) |
 | dark mode and text/localisation, on both surfaces | `UI.md` §9, §10 |
-| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 10.5 kB, §8b 3.0 kB (the car host path, the surface and the observation seam), `MapCar.md` §14, `UICar.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
+| the car Surface, renderer startup, host-thread safety, cross-variant wiring | `DesignCrossVariant.md` §8a 11.0 kB, §8b 3.0 kB (the car host path, the surface and the observation seam), `MapCar.md` §14, `UICar.md` §3a 5.4 kB (measured 2026-10-29); specs `car-host-fault-isolation`, `auto/screen-observation`, `auto-map-renderer`, `auto-smooth-follow` |
 | a surface that must live while a phone and a car session are both active | `MapCar.md` §18, `UIPhoneMap.md` §10a "Phone surface while a car session is active" 2.4 kB (measured 2026-10-29) |
 | search, favourites, settings, persistence | `DesignStack.md` §9 "Data, persistence & search", `UIPhone.md` §6a "Phone search surface" 6.1 kB (measured 2026-10-29) |
 | logging, diagnostics, or what a log line may contain | `Logging.md` §1, §2, §3; the on-device logcat recipes are `BuildNative.md` §10, the disclosure and the coordinate rule `Regulatory.md` §9 and `UI.md` (gates) |
 | route data and the numbers derived from it | `MapRoute.md` §19 |
-| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §4 is an index of its sub-sections; `BuildGate.md` §2 is an index of the gate's sub-sections. Read the one that owns the question — §2a "Agent iteration protocol" (the iteration loop), §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" (a `uses:` pin and the check that gates one); in `Build.md`: §3 "Commands reference"; in `BuildEvidence.md`: §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover", §4d "Attributing a red run", §4f "Artifacts, evidence rules and native verification" — 1.4–6.0 kB per section (bytes/1000, one decimal), against 23.2 kB and 23.4 kB for the two clusters before the split (measured 2026-10-22); §4c and §4e are reached through the §4 index — |
-| the iteration protocol, the liveness guard, the daemon JVM and the action runtimes | `BuildGate.md` §2 "Common behavior", §2a "Agent iteration protocol", §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" — 1.4–6.0 kB per section (bytes/1000, one decimal) |
+| build, run, force a rerun, read a gate result, or a workflow's action pin | `Build.md` §4 is an index of its sub-sections; `BuildGate.md` §2 is an index of the gate's sub-sections. Read the one that owns the question — §2a "Agent iteration protocol" (the iteration loop), §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" (a `uses:` pin and the check that gates one); in `Build.md`: §3 "Commands reference"; in `BuildEvidence.md`: §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover", §4d "Attributing a red run", §4f "Artifacts, evidence rules and native verification" — 1.4–6.2 kB per section (bytes/1000, one decimal), against 23.2 kB and 23.4 kB for the two clusters before the split (measured 2026-10-22); §4c and §4e are reached through the §4 index — |
+| the iteration protocol, the liveness guard, the daemon JVM and the action runtimes | `BuildGate.md` §2 "Common behavior", §2a "Agent iteration protocol", §2b "Liveness guard and shell recipes", §2c "Gate timing record and baseline", §2d "The build JVM (daemon JVM criteria)", §2e "The actions' Node runtime" — 1.4–6.2 kB per section (bytes/1000, one decimal) |
 | sonar / code-quality analysis — what leaves this repository for SonarQube Cloud | `BuildEvidence.md` §7 "Code coverage" — the rule that names the scanner consumer, the imported reports and the report-only quality gate; the boundary itself is the root `sonar-project.properties` and the workflow is `.github/workflows/sonar.yml`, whose triggers and exclusions `tools/check-sonar-workflow.sh` holds |
 | verdicts, evidence rules, coverage and phone-UI measurement | `BuildEvidence.md` §4 "Result evaluation", §4a "The verdict, the warnings and the failures", §4b "Which flavors and suites a run must cover", §4c "Native scope, pruned configurations and a restored mutation", §4d "Attributing a red run", §4e "Falsification, flakes and scheduling traps", §4f "Artifacts, evidence rules and native verification", §7 "Code coverage", §11 "Measuring a phone UI finding (do this before changing code)" — 1.7–4.8 kB per section (bytes/1000, one decimal) |
 | test constraints — the JNI stub, teardown, the Compose sandbox, geometry, fork budgets, concurrency, wall-clock waits, red-run diagnosis, the submodule suite | `BuildTests.md` §6 "Test constraints", §6a "The JNI stub and the classloader sandbox", §6b "Teardown, the Compose sandbox and geometry claims", §6c "Queue post-conditions and declared fork budgets", §6d "Declared test-JVM concurrency", §6e "Wall-clock waits and the conversion measured", §6f "Diagnosing a red run", §6g "Instrumented runs and the submodule's suite", §6h "The JNI stub for unit tests" — 0.9–3.0 kB per section (bytes/1000, one decimal) |
@@ -50,7 +51,7 @@ give.
 | legal, regulatory, Play policy, privacy, diagnostics disclosure | `Regulatory.md` §2, §3, §4, §6, §9 |
 | engineering principles, and the checklist before an apply pass | `Design.md` §12 "General engineering principles"; the apply checklist is `Design.recipes.md` "Appendix A — Quick checklist (apply phase)" |
 | why an earlier decision was reversed | `Design.why.md` — its "Superseded decisions" section and its "Appendix B — Provenance" |
-| the design document set — which of the four documents carries which section of `Design.md` | `Design.md` §1, §3, §4, §12; `DesignStack.md` §2, §9; `DesignNative.md` §5a 8.0 kB, §5b 6.5 kB; `DesignCrossVariant.md` §6, §7, §8a 10.5 kB, §8b 3.0 kB, §10, §11 |
+| the design document set — which of the four documents carries which section of `Design.md` | `Design.md` §1, §3, §4, §12; `DesignStack.md` §2, §9; `DesignNative.md` §5a 8.0 kB, §5b 6.5 kB; `DesignCrossVariant.md` §6, §7, §8a 11.0 kB, §8b 3.0 kB, §10, §11 |
 | a rendering regression to re-check, and the parameter table | `MapFrames.why.md` "Known Pitfalls" (the regression checklist), `MapRendering.recipes.md` "Parameter Overview" |
 | what is open, and what to do next | the issue tracker (`Framstag/NaviVeylin`, operated by `tools/issues/*.sh`) — `tools/issues/list.sh --status open`, plus the two saved searches (open bugs, open improvements); `--id N` resolves one migrated entry. Skills `triage-todo` (rank), `cleanup-todo` (prune), and the four tooling skills `create-issue`, `list-issues`, `update-issue`, `close-issue` |
 | whether `UI.md` is still accurate | `UI.md` §20 "Keeping this document honest" |
@@ -147,8 +148,9 @@ guarded**) — are `guidelines/Design.md` §8, `guidelines/UICar.md` §3, §3a, 
 
 ## Backlog maintenance
 
-The tracker is the live backlog, and the nine skills under `.pi/skills/*` (`create-issue`, `list-issues`,
-`update-issue`, `close-issue`, `issue-metadata`, `triage-todo`, `cleanup-todo`, `process-failure-log`) own it;
+The tracker is the live backlog, and the ten skills under `.pi/skills/*` (`create-issue`, `list-issues`,
+`update-issue`, `close-issue`, `issue-metadata`, `triage-todo`, `cleanup-todo`, `reshape-issue`,
+`answer-decision`, `process-failure-log`) own it;
 read `guidelines/Backlog.md` §1 "Status, and what this document owns", §3 "What the tracker holds", §4 "The
 invariants", §5 "Who may write what" and §9 "Checks". An item filed **before** the migration also carries `§N`
 in its title and a
@@ -172,11 +174,12 @@ whose single visual symptom needed many review rounds, rule 4 from the shared-wo
   `tools/loop/prompts/worker.md`, and the entry is `tools/loop/run.sh` (the gate for `tools/loop/**` is
   `tools/loop-selftest.sh`, offline).
 
-- two skills are the loop's ends, and they are named here by their paths: `.pi/skills/create-issue` files one
-  finding as one tracker item, and `.pi/skills/device-check` turns one on-device verification into evidence. The
-  case `routed-read#theEntryDocumentNamesTheLoopSkillsByPath` holds both names, so a dropped pointer fails the
-  suite instead of a run — an absent reference is the one failure a check that only resolves the paths still
-  written cannot report.
+- three skills are the loop's ends, and they are named here by their paths: `.pi/skills/create-issue` files one
+  finding as one tracker item, `.pi/skills/device-check` turns one on-device verification into evidence, and
+  `.pi/skills/analyse-loop-run` reads one finished run into its numbers, what it did well and badly, and the
+  changes worth paying for. The case `routed-read#theEntryDocumentNamesTheLoopSkillsByPath` holds all three names,
+  so a dropped pointer fails the suite instead of a run — an absent reference is the one failure a check that only
+  resolves the paths still written cannot report.
 
 ## OpenSpec Workflow
 

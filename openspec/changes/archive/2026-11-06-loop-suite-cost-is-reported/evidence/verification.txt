@@ -1,0 +1,58 @@
+# Verification — base 0fb7a80, change root, 2026-11-06
+
+Every line is a command's own output; the command is above it.
+
+## The two red cases, green on the change
+
+    $ bash tools/loop-selftest.sh --case 'driver#theSummaryNamesWhatEachGroupCost'
+    PASS driver#theSummaryNamesWhatEachGroupCost
+    exit=0
+
+    $ bash tools/loop-selftest.sh --case 'driver#theTimesFigureIsAskedForNotAssumed'
+    PASS driver#theTimesFigureIsAskedForNotAssumed
+    exit=0
+
+The red half — the same two cases against the driver as base `0fb7a80` carries it — is `red-on-HEAD.log`:
+`FAIL driver#theSummaryNamesWhatEachGroupCost`, `loop-selftest: 1 of 1 cases failed`, and
+`FAIL driver#theTimesFigureIsAskedForNotAssumed` because `--times` is an unknown argument
+(`loop-selftest: unknown argument --times: expected '0', got '2'`).
+
+## The assertion the report realigned (task 2.1)
+
+    $ bash tools/loop-selftest.sh --case 'driver#aGroupFilterRunsOnlyItsOwnCases'
+    PASS driver#aGroupFilterRunsOnlyItsOwnCases
+    exit=0
+
+The case read `— selection: --group alpha`; the elapsed figure now sits between the counts and the selection, so it
+reads `s, selection: --group alpha`.
+
+## One named `--case` still prints no summary (task 2.1)
+
+    $ bash tools/loop-selftest.sh --case 'driver#theListIsFilteredTheSameWayASuiteRunIs'
+    PASS driver#theListIsFilteredTheSameWayASuiteRunIs
+
+## The declaration case over the two new bodies (task 1.3)
+
+    $ bash tools/loop-selftest.sh --case 'driver#everyCaseDeclaresTheFilesItCanReach'
+    PASS driver#everyCaseDeclaresTheFilesItCanReach
+
+## The mutation set (task 1.3)
+
+    $ bash tools/loop-mutations.sh --check
+    loop-mutations: all 248 cases passed — every selected record applies to the file it names
+
+    $ bash tools/loop-mutations.sh --only '85.1 85.2'
+    RED    85.1  driver#theSummaryNamesWhatEachGroupCost   (the group figure a finished case is charged to, so the summary states a measured time and not a constant (issue #782))
+           2026-11-06T10:23:40Z — the alpha group's figure is not what its cases paid (a second or more): PASS alpha#two
+    restore 85.1 driver#theSummaryNamesWhatEachGroupCost green again
+    RED    85.2  driver#theTimesFigureIsAskedForNotAssumed   (the gate that keeps the per-case figure off a `PASS` line nobody asked for it on (issue #782))
+           2026-11-06T10:23:49Z — a passing case's line carries no figure unless one is asked for: PASS alpha#two (0.05 s)
+    restore 85.2 driver#theTimesFigureIsAskedForNotAssumed green again
+
+    red-when-mutated: 2 · not-noticed: 0 · restore-failures: 0
+
+## The `driver` group over the change
+
+    $ bash tools/loop-selftest.sh --group driver --jobs 4
+    loop-selftest: driver 22 cases 98.87 s
+    loop-selftest: all 22 cases passed (JDK 27, offline, no token, no sandbox) — 32.28 s, selection: --group driver

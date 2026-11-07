@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of structural-checks.log: the 29 checks this change owes — the three suites it edits or extends
+     (sensor, build-inputs, issue-tooling through the shared `gh` stub), the two `--list` declaration checks the
+     gate's plan names, the metadata/action-runtime/doc-route/hygiene/portability/citation/sonar/vcpkg checks,
+     `build-inputs.sh --check`, and the change-readiness verdict. One run in the change root on the run's base
+     bea00bf5da8d8c81304d9271e66715c40b13b714 plus this change, 2026-11-06T14:10Z. No compiled file is touched, so
+     no Gradle gate is owed and none was run. The shell checks write no JUnit XML; this file is the tally of their
+     exit status and printed case counts, kept beside the log so the number has a carrier. -->
+<testsuite name="tools/loop structural checks over the change (29 commands, all exit 0)" tests="29" failures="0" errors="0" time="0">
+  <system-out>sensor-selftest 85/85, build-inputs-selftest 14/14, issue-tooling-selftest 158/158, check-action-runtimes-selftest 15/15, check-doc-routes-selftest 34/34, check-portability-selftest 29/29, check-openspec-hygiene-selftest 7/7, check-sonar-workflow-selftest 11/11, ci-vcpkg-cache-selftest 7/7, build-inputs --check 5 rows, LOOP-CHANGE-READY: ok</system-out>
+</testsuite>

@@ -1,0 +1,9 @@
+# The red case on HEAD (base ec58cb91177f2d1c4621b87cdd26a9c7fced5117)
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-11-05T07:52:11Z
+$ bash tools/sensor-selftest.sh --case 'run#anEscalationOnASettledIssueFilesANewItem'
+  the returned condition is filed as a new item: status-settled: #98 carries status/fixed-by, a settled state of the project profile — pass --displace-settled to name the transition
+fixture-emit: fingerprint=48a09a835ee92d32ebcf0d2132fdfc6048aa30639ce1644360e52f3086ddbc51 verdict=violation measurement=5 issue=98 action=escalated (past 3 recurrences): expected '1', got '0'
+FAIL run#anEscalationOnASettledIssueFilesANewItem
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-11-05T07:52:12Z

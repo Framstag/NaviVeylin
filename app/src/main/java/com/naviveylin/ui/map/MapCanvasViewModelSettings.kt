@@ -207,7 +207,11 @@ internal enum class MapStyleApplyReason(
     FIRST_RENDERED_FRAME(true),
 }
 
-/** Resolved presentation the stylesheet `daylight` flag has to carry. */
+/**
+ * Resolved presentation the stylesheet `daylight` flag has to carry — `true` means the **dark**
+ * variant is wanted, so `pushDaylight` unsets the flag for it (the name is historical; the value
+ * is the dark presentation, as in `AppliedMapStyle.daylight` and `CarDaylightApplier.apply`).
+ */
 internal fun MapCanvasViewModel.resolvedDaylight(): Boolean = darkModeController.isDarkPresentation.value
 
 /**
@@ -227,8 +231,12 @@ internal suspend fun MapCanvasViewModel.ensureMapStyle(
     reason: MapStyleApplyReason,
     allowDefaultFallback: Boolean = false,
 ): Boolean {
-    if (reason.forceFlag || appliedMapStyle?.daylight != daylight) {
-        pushDaylight(daylight)
+    // The flag's record is the shared applier's, not this view model's: the mini map widget writes
+    // the same client, and a per-writer record would reload the stylesheet set for a value the
+    // client already carries (guidelines/MapStyling.md §15 — one record per client and value). The
+    // *re-render* below stays this surface's own (see pushDaylight).
+    if (reason.forceFlag || appliedMapStyle?.daylight != daylight || MapDaylightApplier.needsPush(client, daylight)) {
+        pushDaylight(daylight, force = reason.forceFlag)
     }
     if (styleName != null && (reason.forceLoad || appliedMapStyle?.styleName != styleName)) {
         return loadMapStyle(styleName, daylight, allowDefaultFallback)
@@ -237,24 +245,37 @@ internal suspend fun MapCanvasViewModel.ensureMapStyle(
 }
 
 /**
- * Pushes the `daylight` flag; the native side reloads the active stylesheet with it
- * (`guidelines/MapRendering.md` section 15). The recorded flag is updated only after the call
- * returned, so a later request re-pushes a value the native side never took.
+ * Pushes the `daylight` flag through [MapDaylightApplier]; the native side reloads the active
+ * stylesheet with it (`guidelines/MapStyling.md` §15). The applier records the value only after the
+ * call returned successfully, so a later request — from this view model or from the mini map
+ * widget — re-pushes a value the native side never took, and no writer reloads a value the client
+ * already carries.
  */
-internal fun MapCanvasViewModel.pushDaylight(daylight: Boolean) {
-    try {
-        client.setStyleSheetFlag(MapCanvasViewModel.STYLE_FLAG_DAYLIGHT, !daylight)
-        // The flag change reloads the active stylesheet; when that load is
-        // rejected the previously active style stays in effect and the
-        // failure is reported (spec: map-styles — "Style flag change fails").
-        reportStyleLoadFailure(activeStyleSheet() ?: DEFAULT_STYLE_NAME)
-    } catch (e: Exception) {
-        Log.e(MapCanvasViewModel.TAG, "setStyleSheetFlag failed", e)
-        return
+internal fun MapCanvasViewModel.pushDaylight(daylight: Boolean, force: Boolean = false) {
+    // What *this* view model last drew is its own fact: a value another writer (the mini map widget)
+    // already applied makes the applier answer UNCHANGED, and the main map's tiles and frame are
+    // still its own to invalidate — otherwise the map keeps the other variant until the next pan.
+    val changed = appliedMapStyle?.daylight != daylight
+    val outcome = MapDaylightApplier.push(client, daylight, force)
+    when (outcome) {
+        MapDaylightPush.ERROR -> return
+        MapDaylightPush.FAILED ->
+            // The flag change reloads the active stylesheet; when that load is rejected the previously
+            // active style and variant stay in effect and the failure is reported (spec: map-styles —
+            // "Style flag change fails"). Nothing was applied, so neither this surface's record nor a
+            // re-render follows: the next request retries, and it must see `changed` then.
+            rejectedVariantMessage(context, client)?.let { showSnackbar(it) }
+        MapDaylightPush.UNCHANGED, MapDaylightPush.APPLIED -> Unit
     }
+    if (outcome == MapDaylightPush.FAILED) return
     appliedMapStyle = AppliedMapStyle(appliedMapStyle?.styleName, daylight)
-    mapRenderer?.invalidateStyle()
-    invalidateRowIcons()
+    // Both halves re-render this surface: a value it had not drawn, and a *forced* re-push — the
+    // `STARTUP_DB_READY` / `FIRST_RENDERED_FRAME` reasons exist because the native side may have dropped
+    // the earlier push, so the map has to render again under it.
+    if (changed || force) {
+        mapRenderer?.invalidateStyle()
+        invalidateRowIcons()
+    }
 }
 
 /**
@@ -284,6 +305,9 @@ internal suspend fun MapCanvasViewModel.loadMapStyle(
     }
     if (ok) {
         appliedMapStyle = AppliedMapStyle(name, daylight)
+        // `loadStyleSheet` hands the load the enabled flags, so the variant this load installed is
+        // the one the applier must remember (§15).
+        MapDaylightApplier.record(client, daylight)
         mapRenderer?.invalidateStyle()
         invalidateRowIcons()
         return true
@@ -306,8 +330,10 @@ internal suspend fun MapCanvasViewModel.loadMapStyle(
  * entry plus the non-blocking message shown next to the map (spec:
  * map-styles). Called once per load attempt; a report produced while no map
  * surface is visible stays in the UI state and is shown when the map is next
- * composed.
+ * composed. The seam itself is [rejectedLoadMessage], shared with the mini map
+ * widget's load path (`guidelines/MapStyling.md` §15a — one place).
  */
+
 /** The native side's active stylesheet, or `null` when the client cannot answer. */
 internal fun MapCanvasViewModel.activeStyleSheet(): String? = try {
     client.getActiveStyleSheet()
@@ -317,22 +343,7 @@ internal fun MapCanvasViewModel.activeStyleSheet(): String? = try {
 }
 
 internal fun MapCanvasViewModel.reportStyleLoadFailure(requestedStyle: String) {
-    val succeeded = try {
-        client.wasLastStyleLoadSuccessful()
-    } catch (e: Exception) {
-        Log.e(MapCanvasViewModel.TAG, "wasLastStyleLoadSuccessful failed", e)
-        true
-    }
-    val activeStyle = activeStyleSheet()
-    val message = MapStyleLoadReporter.reportFailure(
-        resolver = context.stringResolver(),
-        requestedStyle = requestedStyle,
-        activeStyle = activeStyle,
-        loadSucceeded = succeeded
-    )
-    if (message != null) {
-        showSnackbar(message)
-    }
+    rejectedLoadMessage(context, client, requestedStyle, activeStyleSheet())?.let { showSnackbar(it) }
 }
 
 /**
@@ -459,13 +470,27 @@ internal fun MapCanvasViewModel.wirePersistedSettings() {
         } else {
             settings.preferSymbolPoiIcons
         }
+        // The orientations are a suspension-point read like the dark-mode fields above: a compass long
+        // press or a location-options change that landed while this read was in flight wins, and a field
+        // the user did not change is still restored from disk
+        // (spec: `compass-settings` — A user orientation choice outranks an in-flight settings read).
+        val navNorthUp = if (navNorthUpSetByUser) {
+            _uiState.value.navNorthUp
+        } else {
+            settings.navNorthUp
+        }
+        val freeFormNorthUp = if (freeFormNorthUpSetByUser) {
+            _uiState.value.freeFormNorthUp
+        } else {
+            settings.freeFormNorthUp
+        }
         _uiState.value = _uiState.value.copy(
             // followMode is deliberately NOT restored: the app always starts
             // in BROWSE (spec: map-modes — always browse on start); free
             // drive is per-session intent entered via the mode toggle.
             autoZoomEnabled = settings.autoZoomEnabled,
-            freeFormNorthUp = settings.freeFormNorthUp,
-            navNorthUp = settings.navNorthUp,
+            freeFormNorthUp = freeFormNorthUp,
+            navNorthUp = navNorthUp,
             keepScreenOn = settings.keepScreenOn,
             darkModePreference = darkModePreference,
             ambientLightSensitivity = ambientLightSensitivity,

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.navigation.NextTurnOverlayTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-11-06T21:40:48.318Z" hostname="dingens" time="0.647">
+  <properties/>
+  <testcase name="a motorway change's second line carries the signposted destination" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.066"/>
+  <testcase name="a step without a nested hint shows no second row" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.046"/>
+  <testcase name="a motorway change without a destination keeps the bare reference" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.052"/>
+  <testcase name="iconsAtLeast64And36dp" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.079"/>
+  <testcase name="descriptionAtLeast22sp" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.047"/>
+  <testcase name="overlayRendersInstruction" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.043"/>
+  <testcase name="distanceAtLeast32sp" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.037"/>
+  <testcase name="nextNextAtLeast20spAndSmallerThanPrimary" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.043"/>
+  <testcase name="the next-next roundabout exit shows its own number" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.041"/>
+  <testcase name="a roundabout exit icon carries the exit number" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.041"/>
+  <testcase name="the next-next hint renders from the nested step" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.054"/>
+  <testcase name="a roundabout exit without an ordinal keeps the plain leave arrow" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.045"/>
+  <testcase name="the destination clause wraps inside the existing line limit" classname="com.naviveylin.ui.navigation.NextTurnOverlayTest" time="0.045"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -402,10 +402,40 @@ loop_unlanded_commits() { # <repo> <base> <branch>
   return 0
 }
 
-# The branches the loop names: one per item it worked and one per run for its worktree. The same set the
-# report lists, so a reader and the sweep ask about the same branches.
+# The branches the loop names: one per item it worked, one per run for its worktree, and one per blocked attempt it
+# set aside. The same set the report lists, so a reader and the sweep ask about the same branches. The third
+# namespace is not work in progress — it is a previous attempt's only copy — and what protects it is the reading
+# every other branch gets (patch identity, never ancestry): the branch is swept once the base carries its patches
+# and kept, and named, while it does not. Without it a set-aside branch was enumerated by nothing at all, so one
+# whose work had landed by hand stayed for ever (issue #803; measured 2026-11-06, eight set-aside branches of one
+# to three commits each, and neither removal path named one of them).
 loop_own_branches() { # <repo> → one branch per line
-  git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
+  {
+    git -C "$1" branch --list 'fix/issue-*' 'loop-*' --format='%(refname:short)' 2>/dev/null
+    git -C "$1" branch --list 'loop/leftover/*' --format='%(refname:short)' 2>/dev/null
+  }
+}
+
+# The same set resolved on the remote, which is where a branch the loop published lives after the run merged its
+# work and released its local branch (issue #763: every sweep enumerated `loop_own_branches`, a local namespace, and
+# a landed `fix/issue-728-…` head stayed on the remote for ever). The pattern is the local one with the remote's
+# prefix, so a ref the loop never names is never a candidate for the sweep that deletes it. A branch in the
+# set-aside namespace is local by construction — a blocked attempt's branch is renamed, never published — so it is
+# no arm's remote candidate and the two patterns below stay the two.
+#
+# Resolved on the remote means read from the remote *now*, not from this clone's cache of it: `git branch -r` names
+# the tips of the last fetch, and the sweep deletes the ref the remote holds, so a head somebody advanced after that
+# fetch was judged landed at its stale tip and removed with the commits it had gained since — on a shared remote,
+# unattended, against the requirement that only a ref whose patches the base holds goes. So the two candidate
+# patterns are fetched first (the same two, so nothing else becomes a candidate) with `--prune`, which also stops a
+# ref the sweep already deleted from being named again. A fetch that cannot run — no remote, an offline clone —
+# leaves the cache as it is, and the delete's lease (in `cmd_prune_landed`) is what keeps a moved ref then.
+loop_remote_branches() { # <repo> [<remote>] → one `<remote>/<branch>` per line
+  local remote="${2:-origin}"
+  git -C "$1" fetch --quiet --prune "$remote" \
+    "+refs/heads/fix/issue-*:refs/remotes/$remote/fix/issue-*" \
+    "+refs/heads/loop-*:refs/remotes/$remote/loop-*" >/dev/null 2>&1
+  git -C "$1" branch -r --list "$remote/fix/issue-*" "$remote/loop-*" --format='%(refname:short)' 2>/dev/null
 }
 
 # The branches a worktree holds: git refuses to delete one of them, so every deletion asks this first.
@@ -440,6 +470,18 @@ loop_issue_json() {
   [ "$status" -eq 0 ] || cat "$errfile" >&2
   rm -f "$errfile"
   return "$status"
+}
+
+# The head branch of every open pull request, one per line. Read through the forge this loop already asks about the
+# tracker (`loop_issue_json` beside it), because nothing else knows whether a branch is somebody's open review — and
+# the sweep that deletes a remote ref must not delete that one (issue #763). No `--state`: `gh pr list` answers the
+# open pull requests without it, and the status namespace's own word is the project's to declare, not this engine's
+# (`tools/sensors/conditions/pr-conflicts.sh` reads it the same way). Returns 1 when the forge cannot be read: an
+# outage is not a forge with no pull requests, and the caller keeps every ref rather than deciding so.
+loop_open_pull_request_heads() {
+  local out
+  out=$(gh pr list --limit 200 --json headRefName 2>/dev/null) || return 1
+  printf '%s\n' "$out" | jq -r '.[].headRefName // empty' 2>/dev/null || return 1
 }
 
 loop_issue_tool() { # run one of the tooling's scripts

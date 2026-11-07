@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/ci-vcpkg-cache.sh" tests="0" failures="0" errors="1" time="1">
+  <system-out>ci-vcpkg-cache: no vcpkg at /home/tim/projects/NaviVeylin/.pi/worktrees/vcpkg/vcpkg/vcpkg, so its own NuGet client cannot be asked — the install must run without the cache: a dead transport cost 62 minutes of failed pushes on ubuntu-26.04 (issue #761)</system-out>
+</testsuite>

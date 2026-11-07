@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -282,6 +283,38 @@ class MapCanvasViewModelStyleTest {
             "the flag failure is reported for the stylesheet that failed to reload",
             "Map style \"winter-sports.oss\" could not be loaded",
             viewModel.uiState.value.snackbarMessage
+        )
+    }
+
+    @Test
+    fun aRejectedFlagPushLeavesTheSurfacesRecordAndTheRetryApplies() = runTest(mainDispatcherRule.dispatcher) {
+        // Consequence 3 of the round-3 review: a rejected push that still overwrote the surface's record
+        // made the accepted retry compute `changed == false` and skip its own re-render, leaving the main
+        // map drawing the other variant. The record therefore moves only on an accepted push.
+        viewModel.setScreenSize(100, 100)
+        viewModel.initMap("/data/maps/testmap")
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        val established = viewModel.appliedMapStyle?.daylight
+        assertNotNull("a style/flag pair is applied at start", established)
+
+        client.styleLoadSuccessful = false
+        viewModel.pushDaylight(!established!!)
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(
+            "a rejected push does not move this surface's record",
+            established,
+            viewModel.appliedMapStyle?.daylight
+        )
+
+        client.styleLoadSuccessful = true
+        val pushesBefore = client.styleFlags.size
+        viewModel.pushDaylight(!established)
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        assertTrue("the retry pushes the value the client never took", client.styleFlags.size > pushesBefore)
+        assertEquals(
+            "and the accepted push moves the record",
+            !established,
+            viewModel.appliedMapStyle?.daylight
         )
     }
 

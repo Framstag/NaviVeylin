@@ -1,0 +1,14 @@
+<!-- The two cases green on the change, 2026-11-06T14:41:01Z: each invocation ran one case and passed it
+     (tests=1 failures=0). The log itself is after-fix.log beside this file. -->
+<testsuite name="bash tools/loop-selftest.sh --case report#theSpendIsSplitByPhaseRoleAndGate (change)" tests="1" failures="0" errors="0" time="10">
+  <testcase name="report#theSpendIsSplitByPhaseRoleAndGate" classname="loop-selftest"/>
+  <system-out>PASS report#theSpendIsSplitByPhaseRoleAndGate (2026-11-06T14:41:01Z)</system-out>
+</testsuite>
+<testsuite name="bash tools/loop-selftest.sh --case report#aStreamWithoutDurationsPrintsDash (change)" tests="1" failures="0" errors="0" time="7">
+  <testcase name="report#aStreamWithoutDurationsPrintsDash" classname="loop-selftest"/>
+  <system-out>PASS report#aStreamWithoutDurationsPrintsDash (2026-11-06T14:41:01Z)</system-out>
+</testsuite>
+<testsuite name="bash tools/loop-selftest.sh --group report (change)" tests="22" failures="0" errors="0" time="137.81">
+  <testcase name="report (all 22 cases)" classname="loop-selftest"/>
+  <system-out>loop-selftest: report 22 cases 137.81 s — all 22 cases passed (JDK 27, offline, no token, no sandbox), 2026-11-06T14:46Z</system-out>
+</testsuite>

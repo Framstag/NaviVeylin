@@ -1,0 +1,15 @@
+PASS workflow#tickMinutesCoverTheRegistryCrons
+PASS inputs#manifestIsTheProducerSet
+PASS inputs#refusesADeclaredInputWithNoProducer
+PASS inputs#writesTheGateTimingRecord
+PASS inputs#convertsPerModuleCoverage
+PASS inputs#splitsTheJavaModulesCoverageByProvenance
+PASS inputs#resultRecordShapes
+PASS inputs#aRedBuildStillCarriesTheResultRecord
+PASS inputs#fetchRestoresTheDeclaredPaths
+PASS inputs#reportsTheRunsConclusion
+PASS inputs#refusesAnotherCommitsRecord
+PASS inputs#noRecordExitsThree
+PASS inputs#theFetcherPublishesTheJobTimings
+PASS inputs#theScanRecordIsTheScanPipelinesOwn
+14 cases, 0 failed

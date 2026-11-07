@@ -1,0 +1,30 @@
+2026-11-07T08:47:52Z — the correction round's re-record (review round 2 asked for the --strict run and the two counts)
+$ bash tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 8 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit 0 at 2026-11-07T08:47:52Z
+$ openspec validate fix-a-signalled-run-records-its-own-end --strict
+Change 'fix-a-signalled-run-records-its-own-end' is valid
+exit 0 at 2026-11-07T08:47:52Z
+$ bash tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+exit 0 at 2026-11-07T08:47:53Z
+$ bash tools/check-todo-references.sh
+  Agentisches-Coding-NaviVeylin.md                         the untracked strategy document that proposed this migration
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 9546 file(s) excluded by the allowlist above
+exit 0 at 2026-11-07T08:47:54Z
+$ bash tools/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.5wR3OT
+loop-mutations: all 267 cases passed — every selected record applies to the file it names
+exit 0 at 2026-11-07T08:47:56Z
+$ bash tools/loop-selftest.sh --list | wc -l
+349
+$ grep -c "^  'run#" tools/loop-cases.sh
+129
+$ git show fca2c857:tools/loop-cases.sh | grep -c "^  'run#"
+128
+$ git show fca2c857:tools/loop-cases.sh | grep -cE "^  '[a-zA-Z0-9_-]+#"
+348
+$ grep -cE "^  '[a-zA-Z0-9_-]+#" tools/loop-cases.sh
+349

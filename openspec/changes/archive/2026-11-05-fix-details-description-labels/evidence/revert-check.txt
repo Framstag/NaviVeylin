@@ -1,0 +1,22 @@
+Revert-check: what this change's falsification is, and what it is not
+
+No mutation was planted in a production file for this change, and none was needed. The invariant is "the three
+description render sites read the surface's resources, not the raw native key", and the case that states it —
+`LocationDetailsDialogComposeTest.germanDeviceTranslatesDescriptionSectionsAndLabels` — was run on the **base
+commit** before any production edit:
+
+    tests=24 skipped=0 failures=1 errors=0 timestamp=2026-11-05T10:13:16.626Z
+    failure: java.lang.AssertionError: Action performScrollTo() failed.
+    Reason: Expected exactly '1' node but could not find any node that satisfies:
+            (Text + EditableText contains 'Kontakt' (ignoreCase: false))
+
+`evidence/TEST-red-head-LocationDetailsDialogComposeTest.xml` carries that run. It fails for the right reason: the
+raw key `Contact` reaches `text =`, so no German word exists to find. Restoring the tree is by construction — the
+red run was taken on the base commit, not on a mutated copy of the fix — which is why no "restored" XML sits beside
+it:
+
+    grep -rniI 'LOOP-MUTATION|MUTATION MARKER|BEGIN MUTATION' app/ core/ guidelines/ \
+      openspec/changes/archive/2026-11-05-fix-details-description-labels/    → nothing (rc=1)
+
+`guidelines/BuildTests.md` §6b owns what a mutation record owes; a change whose red case is a red *base* run, and
+whose fix is the only diff between red and green, has that record in the two XMLs above.

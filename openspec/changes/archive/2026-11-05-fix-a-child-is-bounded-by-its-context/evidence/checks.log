@@ -1,0 +1,36 @@
+# The structural checks this change's roster owes, 2026-11-05T18:57:10Z, in the change root
+
+$ tools/check-doc-routes.sh
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+exit 0
+
+$ tools/check-portability.sh
+  tools/loop/lib.sh:64:LOOP_AUTHORISATION_LABEL="agent/eligible"
+check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)
+exit 0
+
+$ tools/check-todo-references.sh
+check-todo-references: 202 line(s) scanned, 66 distinct citation(s), 162 in the recorded table
+check-todo-references: 66 citation(s) resolve through the recorded table; 8561 file(s) excluded by the allowlist above
+exit 0
+
+$ tools/check-openspec-hygiene.sh
+Every capability spec states its Purpose.
+OpenSpec artifacts are consistent: 4 open change(s) carry task markers, the operation guidance is quoted, and every capability spec states its Purpose.
+exit 0
+
+$ bash tools/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.wulJeR
+loop-mutations: all 235 cases passed — every selected record applies to the file it names
+
+$ openspec validate --changes --strict
+✓ change/loop-suite-cost-is-reported
+✗ change/loop-suite-legs-across-runners
+  ⚠ [WARNING] agent-issue-loop/spec.md: ADDED "The suite runs as legs on separate runners, and a leg is its own verdict": Requirement text is very long (>500 characters). Move examples and edge cases into scenarios, or split it into separate requirements that each state one behavior.
+Totals: 3 passed, 1 failed (4 items)
+Details: openspec validate loop-suite-legs-across-runners --type change
+
+# The one red line above is not this change's: `loop-suite-legs-across-runners` is another open change, and its
+# ADDED requirement is over the validator's 500-character limit. This change was validated before it was archived
+# — `openspec validate fix-a-child-is-bounded-by-its-context --strict` → "is valid", recorded in
+# evidence/tasks-verification.md — and it is no longer in the open set the command above reads.

@@ -1,0 +1,20 @@
+2026-11-06T19:42:44Z
+HEAD 2e59e48a — tools/issues/decisions.sh at the base commit (the fix kept aside, sha a0b4c0eea982ae93), the stub's window fidelity and the two cases applied
+--- decisions#theOldestQueuedItemIsListed
+  the oldest item that awaits a decision is listed, not only the newest page of the tracker: '#1  **The decision:** merge the two rows into one' not found in: #405  **The decision:** merge the two rows into one
+     fixture item 405
+     last touched 2026-01-01T00:00:00Z
+1 item(s) await a decision — answer one with tools/issues/answer.sh <issue> --decision "<text>"
+FAIL decisions#theOldestQueuedItemIsListed
+(exit 1)
+--- decisions#aReadThatCannotCoverTheSetIsRefused
+  a set the read could not cover is a refusal: #1  **The decision:** merge the two rows into one
+     fixture item 1
+     last touched 2026-01-01T00:00:00Z
+#2  **The decision:** merge the two rows into one
+     fixture item 2
+     last touched 2026-01-01T00:00:00Z
+2 item(s) await a decision — answer one with tools/issues/answer.sh <issue> --decision "<text>": expected '3', got '0'
+FAIL decisions#aReadThatCannotCoverTheSetIsRefused
+(exit 1)
+2026-11-06T19:42:46Z

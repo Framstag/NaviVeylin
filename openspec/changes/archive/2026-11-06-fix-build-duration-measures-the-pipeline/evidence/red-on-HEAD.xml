@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of red-on-HEAD.log: the two cases the change's delta names, run in the change root on the run's base
+     commit bea00bf5da8d8c81304d9271e66715c40b13b714, 2026-11-06T14:06:45Z, with the change's two case hunks applied
+     and its seven production hunks reverted — before the fetcher published a job/step wall-time record and before
+     the build-duration row read one. The shell runners write no JUnit XML; this file is the tally they printed (one
+     case each, one failing each), kept beside the log so the number has a carrier. -->
+<testsuite name="tools/sensor-selftest.sh --case sensors#buildDurationCoversThePipeline; tools/build-inputs-selftest.sh --case inputs#theFetcherPublishesTheJobTimings (HEAD bea00bf5)" tests="2" failures="2" errors="0" time="1">
+  <testcase name="sensors#buildDurationCoversThePipeline" classname="sensor-selftest">
+    <failure message="the run succeeds">build-duration: fingerprint=- verdict=error measurement=error-the-timing-record-proves-nothing issue=- action=posted nothing, the run fails — sensors: 1 finding(s) reported an error ...: expected '0', got '8'</failure>
+  </testcase>
+  <testcase name="inputs#theFetcherPublishesTheJobTimings" classname="build-inputs-selftest">
+    <failure message="the fetch exited 2">fetch-build-inputs: unknown argument --jobs-record</failure>
+  </testcase>
+</testsuite>

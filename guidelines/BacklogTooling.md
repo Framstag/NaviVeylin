@@ -6,7 +6,7 @@ backlog itself — what an item is, what the tracker holds, who may write what, 
 `guidelines/Backlog.md`; the rule that keeps both documents honest is `Backlog.md` §14.
 
 **Read the section that owns your topic, not this whole document.** The section list is
-`grep -n '^## ' guidelines/BacklogTooling.md`; AGENTS.md's Documentation Map routes a kind of change here.
+`tools/look.sh '^## ' --path guidelines/BacklogTooling.md`; AGENTS.md's Documentation Map routes a kind of change here.
 
 ## 9. Checks
 
@@ -27,7 +27,10 @@ Three rules make a check trustworthy rather than noisy:
   fix did not hold.
 - **Rule: hysteresis in both directions.** A flapping condition churns nothing; and past a recurrence bound
   it escalates instead of reopening forever, because a condition that keeps returning is a specification
-  or design problem rather than an implementation one.
+  or design problem rather than an implementation one. An escalation the writer refuses — the item carries a
+  settled state, which is exactly where a returned condition lands — files the returned condition as a new
+  item under the row's filing bound, and is never reported as an escalation that was not written (#780); where
+  that bound leaves no room for the filing, the run fails instead, naming the condition nothing recorded.
 - **Rule: the issue is the measurement history.** Numbers live as comments; nothing is committed, because a
   check must not become a second committer (I12). The previous measurement *is* the baseline, so growth and
   level are both answerable without a store.
@@ -40,7 +43,8 @@ Three rules make a check trustworthy rather than noisy:
   and it carries no measurement marker, so it never reads as one of the row's measurements — and the first run
   that leaves nothing over closes it, while a run in which a finding failed closes nothing and a closure a person
   made is annotated instead of reopened. An annotation, a reopen and a comment spend nothing of the bound: none of
-  them makes the tracker grow.
+  them makes the tracker grow. A refused escalation whose filing the bound leaves no room for writes no summary
+  either: a failed run writes none, and it fails naming the condition nothing recorded (#780).
 
 - **Rule: a row's first exercise is reported, not spent.** A row's first exercise is the one run whose blast radius
   nobody has seen, and the state is already printed: the report calls it `stale row=<id> no measurement on record`.
@@ -73,8 +77,11 @@ what a row listing pull requests needs — a secret without it reports that row 
 identity that files an item is a **concrete allowlisted person**, because the gate's author condition is the
 only attributable one (§5, I2).
 
-The declared rows and what each measures — `broken-main`, `stale-citations`, `metadata-invariant`, `hotspot`,
-`source-size`, `routed-section-size`, `entry-document-size` and `loop-spend` — are `guidelines/BacklogTooling.recipes.md` §9.
+The declared rows and what each measures — `broken-main`, `broken-scan`, `stale-citations`, `metadata-invariant`, `hotspot`,
+`source-size`, `routed-section-size`, `entry-document-size`, `loop-spend` and `libosmscout-lag` — are
+`guidelines/BacklogTooling.recipes.md` §9. `libosmscout-lag` declares its own recurrence bound (`k: 100`) because
+its condition returns by design after every update, not because a fix failed to hold, so the registry's 3 would hand
+ordinary maintenance to a person as a design problem.
 
 ## 10. Portability
 
@@ -97,7 +104,9 @@ read-only constant for the authorisation label is asserted as the single excepti
 
 The rows' file inputs are the one thing a second project adapts beside its configuration: the *producer*
 (`tools/build-inputs.sh`) knows which paths this project's rows declare and how to derive them from its
-own build outputs, and the *fetcher* (`tools/fetch-build-inputs.sh`) knows the name of its build workflow.
+own build outputs, and the *fetcher* (`tools/fetch-build-inputs.sh`) knows the name of its build workflow —
+and, since the scan is a pipeline of its own, the name of that workflow and of the artifact it publishes too
+(issue #751).
 The checks' runner, the guards and the registry's `input` fields are unchanged — a row declares the path,
 the producer's manifest is what proves that path exists, and the artifact carries the declared tree as it is
 declared.
@@ -119,8 +128,18 @@ configuration**, not a rewrite:
 LOOP_AGENT_CMD   how a child is started          on the host  |  inside an isolated environment
 LOOP_GATE_CMD    how this project's gate runs    empty for a project with no build
 LOOP_CHILD_MAX_SECONDS   the floor under one child's run   2700 s (45 min); a longer child is ended and blocked
-LOOP_ITEM_TURNS_MAX      the turns one child may spend    250; counted from the item's event stream, and a child
-                                                       that reaches it is ended and blocked (issue #686), `0` = none
+LOOP_CHILD_TURNS_MAX_<ROLE>  the turns one child may spend    one key per role (`WORKER` 170, `WORKER_GATE` 80,
+                                                       `WORKER_TAIL` 65, `REVIEWER` 75, `REVIEWER_PRE_GATE` 75);
+                                                       counted as the turns that child added to the item's event
+                                                       stream; a child that reaches its role's bound is ended, its
+                                                       item is recorded `blocked` with mechanism `bound`, and no
+                                                       decision label is written (issues #686, #784, #786); `0` =
+                                                       none. A value sits at or above the archive's p95 for its
+                                                       role (`guidelines/Backlog.recipes.md` §7b)
+LOOP_ITEM_CONTEXT_WARN   the context a child's turn costs    143124; one `LOOP-CONTEXT:` line when the child
+                                                       crosses it, and nothing is ended (issue #760), `0` = none
+LOOP_ITEM_CONTEXT_MAX    the context that ends a child    200000; the largest `input + cacheRead` a turn reported,
+                                                       read while the child runs, `0` = none (issue #760)
 LOOP_ITEM_GATE_SECONDS   what one item's gate owes    3900 s (65 min): two gate rounds and the phases beside them
                                                        (issue #663); a child is given the larger of the two
 LOOP_WORKER_SKILLS   which of this project's skills the worker is told to use

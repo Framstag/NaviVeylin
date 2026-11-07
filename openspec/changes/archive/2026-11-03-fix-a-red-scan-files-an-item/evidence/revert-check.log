@@ -1,0 +1,31 @@
+# revert-check — one mutation, the cases that name it, the restore, the forced green
+# 2026-11-03T19:44:50Z
+# mutation: tools/build-inputs.sh scan_result="scan-result.json" -> "app/build/scan-result.json"
+#           (the defect of review round 1: a path the upload root cannot carry)
+79:scan_result="app/build/scan-result.json"
+
+# bash tools/build-inputs-selftest.sh --case inputs#theScanRecordIsTheScanPipelinesOwn
+# 2026-11-03T19:44:50Z
+  the row declares the path the scan publishes: expected 'scan-result.json', got ''
+FAIL inputs#theScanRecordIsTheScanPipelinesOwn
+exit=1
+
+# bash tools/check-sonar-workflow-selftest.sh --case sonar-workflow#theRecordPathIsTheUploadsOwn
+# 2026-11-03T19:44:50Z
+ok: sonar-workflow#theRecordPathIsTheUploadsOwn
+exit=0
+79:scan_result="scan-result.json"
+
+# bash tools/build-inputs-selftest.sh --case inputs#theScanRecordIsTheScanPipelinesOwn
+# 2026-11-03T19:44:50Z
+PASS inputs#theScanRecordIsTheScanPipelinesOwn
+exit=0
+
+# bash tools/check-sonar-workflow-selftest.sh --case sonar-workflow#theRecordPathIsTheUploadsOwn
+# 2026-11-03T19:44:50Z
+ok: sonar-workflow#theRecordPathIsTheUploadsOwn
+exit=0
+
+# the restored file is the committed one:
+ tools/build-inputs.sh | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)

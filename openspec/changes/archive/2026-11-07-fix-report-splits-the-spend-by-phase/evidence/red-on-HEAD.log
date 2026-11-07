@@ -1,0 +1,15 @@
+# the two red cases on the base 5b30ed79e61e679773f4a188622fd835aebfc24b, 2026-11-06T14:40:37Z
+=== red-759-a.log ===
+2026-11-06T14:40:37Z
+report#theSpendIsSplitByPhaseRoleAndGate|   the model time is the sum of the children's own turn durations: expected '7500', got 'null'
+--- report#theSpendIsSplitByPhaseRoleAndGate[0] (exit 1)
+  the model time is the sum of the children's own turn durations: expected '7500', got 'null'
+FAIL report#theSpendIsSplitByPhaseRoleAndGate
+loop-selftest: 1 of 1 cases failed
+=== red-759-b.log ===
+2026-11-06T14:40:37Z
+report#aStreamWithoutDurationsPrintsDash|   the trend prints a dash and its reason, not three zeros: '- · no item recorded a phase duration' not found in: 
+--- report#aStreamWithoutDurationsPrintsDash[0] (exit 1)
+  the trend prints a dash and its reason, not three zeros: '- · no item recorded a phase duration' not found in: 
+FAIL report#aStreamWithoutDurationsPrintsDash
+loop-selftest: 1 of 1 cases failed

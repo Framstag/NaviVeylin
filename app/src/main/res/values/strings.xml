@@ -387,4 +387,87 @@
          coordinate label. Owned by the surface, not by the shared :core resolver
          (spec: i18n-l10n — shared module owns no wording). -->
     <string name="location_title_generic">Location</string>
+    <!-- Shown when no installed app handles a tapped contact link (phone/website row of the
+         details dialog). Transient; the dialog stays open. -->
+    <string name="details_contact_link_unhandled">No app can open this link</string>
+
+    <!-- Description vocabulary of the native description service (libosmscout DescriptionService):
+         the section names, subsection names and label keys it publishes as English constants.
+         Keyed on the value that crosses the bridge, which is what the row carries
+         (spec: i18n-l10n — Native description labels are localized at the frontend). -->
+    <string name="description_label_access">Access</string>
+    <string name="description_label_access_restricted">AccessRestricted</string>
+    <string name="description_label_address">Address</string>
+    <string name="description_label_admin_level">AdminLevel</string>
+    <string name="description_label_bicycle">Bicycle</string>
+    <string name="description_label_bounding_box">BoundingBox</string>
+    <string name="description_label_brand">Brand</string>
+    <string name="description_label_bridge">Bridge</string>
+    <string name="description_label_capacity">Capacity</string>
+    <string name="description_label_car">Car</string>
+    <string name="description_label_carriageway_ref">CarriagewayRef</string>
+    <string name="description_label_cell_level">CellLevel</string>
+    <string name="description_label_center">Center</string>
+    <string name="description_label_charging_station">ChargingStation</string>
+    <string name="description_label_clockwise">Clockwise</string>
+    <string name="description_label_commercial">Commercial</string>
+    <string name="description_label_condition">Condition</string>
+    <string name="description_label_construction_year">ConstructionYear</string>
+    <string name="description_subsection_index">%1$s %2$d</string>
+    <string name="description_label_contact">Contact</string>
+    <string name="description_label_coordinate">Coordinate</string>
+    <string name="description_label_cycle_lane">CycleLane</string>
+    <string name="description_label_cycle_track">CycleTrack</string>
+    <string name="description_label_destination">Destination</string>
+    <string name="description_label_destination_backward">DestinationBackward</string>
+    <string name="description_label_destination_forward">DestinationForward</string>
+    <string name="description_label_distance">Distance</string>
+    <string name="description_label_embankment">Embankment</string>
+    <string name="description_label_fee">Fee</string>
+    <string name="description_label_foot">Foot</string>
+    <string name="description_label_from">From</string>
+    <string name="description_label_general">General</string>
+    <string name="description_label_geometry">Geometry</string>
+    <string name="description_label_grade">Grade</string>
+    <string name="description_label_highway_milestone">HighwayMilestone</string>
+    <string name="description_label_id">Id</string>
+    <string name="description_label_is_in">IsIn</string>
+    <string name="description_label_kind">Kind</string>
+    <string name="description_label_lanes">Lanes</string>
+    <string name="description_label_lanes_backward">LanesBackward</string>
+    <string name="description_label_lanes_forward">LanesForward</string>
+    <string name="description_label_layer">Layer</string>
+    <string name="description_label_level">Level</string>
+    <string name="description_label_location">Location</string>
+    <string name="description_label_marker">Marker</string>
+    <string name="description_label_max_speed">MaxSpeed</string>
+    <string name="description_label_max_stay">MaxStay</string>
+    <string name="description_label_name">Name</string>
+    <string name="description_label_name_alt">NameAlt</string>
+    <string name="description_label_name_ref">NameRef</string>
+    <string name="description_label_name_short">NameShort</string>
+    <string name="description_label_navigation">Navigation</string>
+    <string name="description_label_network">Network</string>
+    <string name="description_label_oneway">Oneway</string>
+    <string name="description_label_opening_hours">OpeningHours</string>
+    <string name="description_label_operator">Operator</string>
+    <string name="description_label_output">Output</string>
+    <string name="description_label_payment">Payment</string>
+    <string name="description_label_phone">Phone</string>
+    <string name="description_label_postal_code">PostalCode</string>
+    <string name="description_label_presence">Presence</string>
+    <string name="description_label_ref">Ref</string>
+    <string name="description_label_roundabout">Roundabout</string>
+    <string name="description_label_sideways">Sideways</string>
+    <string name="description_label_socket">Socket</string>
+    <string name="description_label_to">To</string>
+    <string name="description_label_tunnel">Tunnel</string>
+    <string name="description_label_turn_backward">TurnBackward</string>
+    <string name="description_label_turn_forward">TurnForward</string>
+    <string name="description_label_type">Type</string>
+    <string name="description_label_value">Value</string>
+    <string name="description_label_walk_track">WalkTrack</string>
+    <string name="description_label_way">Way</string>
+    <string name="description_label_website">Website</string>
+    <string name="description_label_width">Width</string>
 </resources>

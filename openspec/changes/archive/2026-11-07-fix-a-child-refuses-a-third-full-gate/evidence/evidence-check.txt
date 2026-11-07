@@ -1,0 +1,52 @@
+# evidence-check — what the pointer check reported, and what was corrected
+
+Every line is a command's own output; the command is above it.
+
+## First run, as the tail found the change
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-child-refuses-a-third-full-gate --root .
+    FAIL C1 dangling §7 in openspec/changes/fix-a-child-refuses-a-third-full-gate (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    FAIL C1 dangling §7 in openspec/changes/fix-a-child-refuses-a-third-full-gate (no row for §7 in ./openspec/changes/archive/2026-10-17-migrate-todo-to-github-issues/import-evidence.md; the line names no archived change)
+    FAIL C2 quoted tally tests=878 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/fix-a-child-refuses-a-third-full-gate/evidence
+    ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 215 resolved and in range, 1 unresolved or ambiguous
+    ----
+    evidence-check: FAIL (3)
+
+## What the three were
+
+**Two `§7` (C1).** `tasks.md:34` and `design.md:47` pointed at the guideline section as `guidelines/Backlog.recipes.md`
+§7c. The check reads `§[0-9]\+` (`tools/loop/evidence-check.sh:68`), so it took the `§7` inside `§7c` as a citation of
+the migration's `§ → issue` numbering, where no row 7 exists — two namespaces the check does not tell apart. The class
+is pre-existing at this base and outside this change; the correction is the one the archive already carries
+(`openspec/changes/archive/2026-11-06-loop-suite-cost-is-reported/evidence/evidence-check.txt`): repoint the two
+citations at the same section **by line**, dropping the `§` the check misreads —
+`guidelines/Backlog.recipes.md`:530 "The gate and its suite". No claim, figure or observation changed.
+
+**One quoted tally (C2).** `tasks.md:47` quotes the gate's aggregate line `LOOP-GATE: tests=878 failures=0 errors=0`.
+`gate.sh` writes one XML per step under `app/build/test-results/loop-gate` and no aggregate of its own, so no single
+XML carried `tests="878"`. Two corrections, both of them the gate's own numbers and neither of them a re-run:
+
+- `evidence/gate-tallies/` — the 26 per-step XMLs the run wrote, copied out of `app/build/test-results/loop-gate`
+  before a later run can overwrite them, and checkable: the seven steps that carry cases sum to the aggregate
+  `348 + 266 + 160 + 34 + 34 + 29 + 7 = 878`, `failures="0"`, `errors="0"`.
+- `evidence/gate-summary.xml` — the transcription of the aggregate line, the form the archive already keeps for a
+  tally `gate.sh` does not write itself
+  (`openspec/changes/archive/2026-11-07-fix-report-splits-the-spend-by-phase/evidence/gate-summary.xml`).
+
+C2's one pair is that aggregate line, and it is the only quoted `tests=`/`failures=` pair the change's markdown
+carries: the red case's own numbers reach the artifacts through `evidence/red-run.log` and the suite's own summary
+(`loop-selftest: 1 of 1 cases failed`), not through a JUnit tally, because this shell suite writes no XML.
+
+## Second run, after the correction
+
+    $ bash tools/loop/evidence-check.sh openspec/changes/fix-a-child-refuses-a-third-full-gate --root .
+    ok   C1 §references: 3 checked, 0 exempted as archived pointers
+    ok   C2 test tallies: 1 pairs confirmed, 0 exempted (not retained), 0 unparsable, 0 drift
+    ok   C3 /tmp pointers: none cited
+    ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+    ok   C5 file:line: 215 resolved and in range, 1 unresolved or ambiguous
+    ----
+    evidence-check: PASS

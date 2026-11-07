@@ -11,9 +11,10 @@ import com.framstag.libosmscout.client.TurnType
  * resolved here from `:core` resources in the device language — the same wording every other
  * surface uses: one wording set, resolved from `:core` resources.
  *
- * `short` is the manoeuvre alone ("Turn left", "Exit 3", "Keep left"); `description` adds the street
- * or motorway the manoeuvre leads onto ("Turn left into Hauptstraße"). A manoeuvre that names
- * nothing is its own description, so no row ever ends in a dangling preposition.
+ * `short` is the manoeuvre alone ("Turn left", "Exit 3", "Keep left"); `leadsOnto` is the thing the
+ * manoeuvre leads onto ("Hauptstraße", "A8 towards München"), and `description` composes the two
+ * ("Turn left into Hauptstraße"). A manoeuvre that names nothing is its own description, so no row
+ * ever ends in a dangling preposition.
  */
 object ManoeuvreLabels {
 
@@ -36,12 +37,12 @@ object ManoeuvreLabels {
     }
 
     /**
-     * Localized text for the row: the manoeuvre plus the name it leads onto, where the kind
+     * Localized text for the row: the manoeuvre plus the thing it leads onto, where the kind
      * composes one.
      */
     fun description(resolver: StringResolver, manoeuvre: Manoeuvre): String {
         val short = short(resolver, manoeuvre)
-        val name = compositionTarget(manoeuvre) ?: return short
+        val name = leadsOnto(resolver, manoeuvre) ?: return short
         return when (manoeuvre.kind) {
             // The start and the arrival carry no street in their wording, exactly as on the live path.
             RouteStep.Kind.START, RouteStep.Kind.TARGET -> short
@@ -56,6 +57,35 @@ object ManoeuvreLabels {
             RouteStep.Kind.INFORMATIVE, RouteStep.Kind.UNKNOWN -> short
         }
     }
+
+    /**
+     * The thing this manoeuvre leads onto: the street it names, or the motorway a motorway
+     * manoeuvre leads onto — plus, for a motorway enter or change that carries a signposted
+     * destination, that destination beside it ("A8 Richtung München"). The clause is a `:core`
+     * resource, so every surface words the manoeuvre alike (spec: `turn-instruction-localization` —
+     * A motorway manoeuvre names the signposted destination).
+     *
+     * `null` when the manoeuvre leads onto nothing it can name, so no surface ends in a dangling
+     * preposition.
+     */
+    fun leadsOnto(resolver: StringResolver, manoeuvre: Manoeuvre): String? {
+        val target = compositionTarget(manoeuvre) ?: return null
+        val destination = manoeuvre.destination
+        if (destination == null || !carriesDestination(manoeuvre)) return target
+        return "$target ${resolver.get(R.string.nav_towards, destination)}"
+    }
+
+    /**
+     * Whether the manoeuvre's signposted destination is a wording input for it: only a motorway
+     * enter or change that carries the record, never a plain turn whose way happens to be tagged
+     * (design D5 of `motorway-destination-hint`).
+     */
+    fun carriesDestination(manoeuvre: Manoeuvre): Boolean =
+        manoeuvre.destination != null &&
+            (
+                manoeuvre.kind == RouteStep.Kind.MOTORWAY_ENTER ||
+                    manoeuvre.kind == RouteStep.Kind.MOTORWAY_CHANGE
+                )
 
     /**
      * The name the row composes: the motorway a motorway manoeuvre leads onto, else the street the

@@ -1,0 +1,7 @@
+2026-11-06T22:46:10Z
+exit=0
+PASS prompt#thePhasePromptsCarryTheirOwnRoute
+PASS prompt#thePhasePromptNamesWhatItsShellRefuses
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — 6.68 s, selection: --case prompt#thePhase*
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+2026-11-06T22:46:28Z

@@ -93,9 +93,12 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   `tools/loop/prompts/reviewer.md`, and a session that spawns its own reviewer hands it that same text. A
   diff review is a reading task.
 - **Rule: answer a tree question with one call.** A search is `tools/look.sh` (the whole tree at once, the
-  submodule included), `ctx_grep` or `ctx_read` — never a shell `grep`/`head`/`ls`/`sed`/`cat` chain. The
-  child's own policy refuses a shell *tree search* and names the alternatives: `sed -n 'N,Mp'` and `tail -n`
-  to read a range of a known file, and a filter of another command's output (`… | grep -c`), still stand.
+  submodule included), `ctx_grep` or `ctx_read` — never a shell `grep`/`head`/`ls`/`sed`/`cat` chain. `--path <file>`
+  scopes the walk to one document, which is how that document's section list is read
+  (`tools/look.sh '^## ' --path guidelines/Build.md`); that call is the one every phase prompt names, because a tool
+  that fails on the host is not an answer about the tree (issue #796). The child's own policy refuses a shell *tree
+  search* and names the alternatives: `sed -n 'N,Mp'` and `tail -n` to read a range of a known file, and a filter of
+  another command's output (`… | grep -c`), still stand.
 
 ## 2b. Liveness guard and shell recipes
 

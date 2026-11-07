@@ -1,0 +1,22 @@
+RED    87.1  report#theSpendIsSplitByPhaseRoleAndGate   (the phase split the item.s stream records, so no phase the trend totals has a duration (issue #759))
+       2026-11-06T14:41:15Z — the model time is the sum of the children's own turn durations: expected '7500', got '0'
+restore 87.1 report#theSpendIsSplitByPhaseRoleAndGate green again
+RED    87.2  report#theSpendIsSplitByPhaseRoleAndGate   (the gate bucket the trend totals, so the phase that costs the most is printed as one that cost nothing (issue #759))
+       2026-11-06T14:41:19Z — jq: error: syntax error, unexpected INVALID_CHARACTER, expecting '|' or ',' or ')' at <top-level>, line 70, column 68:
+restore 87.2 report#theSpendIsSplitByPhaseRoleAndGate green again
+RED    87.3  report#theSpendIsSplitByPhaseRoleAndGate   (the numerator of the share spent after an item.s first gate, pinned to a constant so every run reads as fully after its gate (issue #759))
+       2026-11-06T14:41:22Z — and the share of the item's tokens spent after its first gate, with the two numbers it is a share of: '83 % — 5 of 6 Mtok, from the first gate of 1 session' not found in:   after the first gate: 100 % — 5 of 6 Mtok, from the first gate of 1
+restore 87.3 report#theSpendIsSplitByPhaseRoleAndGate green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0
+RED    87.1  report#theSpendIsSplitByPhaseRoleAndGate   (the phase split the item.s stream records, so no phase the trend totals has a duration (issue #759))
+       2026-11-06T14:41:43Z — the model time is the sum of the children's own turn durations: expected '7500', got '0'
+restore 87.1 report#theSpendIsSplitByPhaseRoleAndGate green again
+RED    87.2  report#theSpendIsSplitByPhaseRoleAndGate   (the gate bucket the trend totals, so the phase that costs the most is printed as one that cost nothing (issue #759))
+       2026-11-06T14:41:46Z — the trend splits the run's clock by the phase that spent it, and totals it: 'model 7.5 s · gate 5 s · other 0.3 s · 12.8 s over 1 item' not found in:   phases: model 7.5 s · other 0.3 s · 7.8 s over 1 item
+restore 87.2 report#theSpendIsSplitByPhaseRoleAndGate green again
+RED    87.3  report#theSpendIsSplitByPhaseRoleAndGate   (the numerator of the share spent after an item.s first gate, pinned to a constant so every run reads as fully after its gate (issue #759))
+       2026-11-06T14:41:50Z — and the share of the item's tokens spent after its first gate, with the two numbers it is a share of: '83 % — 5 of 6 Mtok, from the first gate of 1 session' not found in:   after the first gate: 100 % — 5 of 6 Mtok, from the first gate of 1
+restore 87.3 report#theSpendIsSplitByPhaseRoleAndGate green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

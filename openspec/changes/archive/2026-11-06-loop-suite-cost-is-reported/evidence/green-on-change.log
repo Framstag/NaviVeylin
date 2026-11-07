@@ -1,0 +1,18 @@
+# green on the change — the base driver plus the change's report, at 0fb7a80
+2026-11-06T10:19:43Z
+=== driver#theSummaryNamesWhatEachGroupCost ===
+PASS driver#theSummaryNamesWhatEachGroupCost
+exit=0
+=== driver#theTimesFigureIsAskedForNotAssumed ===
+PASS driver#theTimesFigureIsAskedForNotAssumed
+exit=0
+=== driver#aGroupFilterRunsOnlyItsOwnCases ===
+PASS driver#aGroupFilterRunsOnlyItsOwnCases
+exit=0
+=== --group driver --jobs 4 ===
+PASS driver#aCaseThatLeavesAProcessBehindIsSweptWithIt
+PASS driver#noFixtureFifoIsOpenedWriteOnly
+PASS driver#aSecondSuiteInOneRepositoryIsRefused
+loop-selftest: driver 22 cases 98.87 s
+loop-selftest: all 22 cases passed (JDK 27, offline, no token, no sandbox) — 32.28 s, selection: --group driver
+exit=0

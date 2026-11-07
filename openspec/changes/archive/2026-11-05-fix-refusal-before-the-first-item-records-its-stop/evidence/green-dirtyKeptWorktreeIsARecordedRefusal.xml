@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop-selftest.sh --case run#dirtyKeptWorktreeIsARecordedRefusal" tests="1" failures="0" errors="0" time="0">
+  <system-out>PASS run#dirtyKeptWorktreeIsARecordedRefusal — tools/loop-selftest.sh --case run#dirtyKeptWorktreeIsARecordedRefusal, 2026-11-05T21:49Z, after the three refusals call stop_run</system-out>
+</testsuite>

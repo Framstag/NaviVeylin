@@ -1,0 +1,23 @@
+2026-11-06T18:48:07Z
+=== clean#reportsAnAgedItemDirectory
+clean#reportsAnAgedItemDirectory|   this case could not switch the retention off in loop.conf
+--- clean#reportsAnAgedItemDirectory[0] (exit 1)
+  this case could not switch the retention off in loop.conf
+FAIL clean#reportsAnAgedItemDirectory
+loop-selftest: 1 of 1 cases failed
+exit=1
+=== adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded
+adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded|   the stream's first line records the rotation: expected 'stream_rotation', got 'turn_end'
+--- adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded[0] (exit 1)
+  the stream's first line records the rotation: expected 'stream_rotation', got 'turn_end'
+FAIL adapter#theKeptStreamIsBoundedAndItsRotationIsRecorded
+loop-selftest: 1 of 1 cases failed
+exit=1
+=== run#aRotatedStreamStillCountsTheTurnsItDropped
+run#aRotatedStreamStillCountsTheTurnsItDropped|   the run was still waiting on a child whose stream records 2 dropped turns and holds 1, past a bound of 3
+--- run#aRotatedStreamStillCountsTheTurnsItDropped[0] (exit 1)
+  the run was still waiting on a child whose stream records 2 dropped turns and holds 1, past a bound of 3
+FAIL run#aRotatedStreamStillCountsTheTurnsItDropped
+loop-selftest: 1 of 1 cases failed
+exit=1
+2026-11-06T18:49:15Z

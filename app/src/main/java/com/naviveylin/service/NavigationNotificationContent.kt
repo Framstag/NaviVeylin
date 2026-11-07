@@ -157,9 +157,22 @@ object NavigationNotificationContentFormatter {
             // No step known: the route's remaining distance is the hint's best available value.
             formatDistanceCompact(state.remainingDistance, locale)
         }
+        val manoeuvre = step?.let(::manoeuvreFromStep)
+        val secondary = resolver.get(R.string.nav_hint_distance_eta, distance, eta)
+        // The hint's primary text stays the manoeuvre alone. A motorway enter or change that carries
+        // a signposted destination joins it to the secondary text, worded by the same `:core`
+        // function the overlay and the car's instruction panel read, so the hint cannot drift from
+        // them (spec: `auto-navigation-hints` — The car hint names the signposted destination).
+        // Every other hint keeps exactly the text it shows today.
+        val target = if (manoeuvre != null && ManoeuvreLabels.carriesDestination(manoeuvre)) {
+            ManoeuvreLabels.leadsOnto(resolver, manoeuvre)
+        } else {
+            null
+        }
         return CarHintContent(
             title = stepText(step, resolver),
-            text = resolver.get(R.string.nav_hint_distance_eta, distance, eta),            turnType = step?.let(::turnTypeFor),
+            text = if (target.isNullOrBlank()) secondary else "$secondary · $target",
+            turnType = step?.let(::turnTypeFor),
             roundaboutExitNumber = step?.exitOrdinal ?: 0
         )
     }

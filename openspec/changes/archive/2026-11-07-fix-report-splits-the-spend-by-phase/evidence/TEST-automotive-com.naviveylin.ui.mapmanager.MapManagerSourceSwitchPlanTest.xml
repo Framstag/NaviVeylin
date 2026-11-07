@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" tests="9" skipped="0" failures="1" errors="0" timestamp="2026-11-07T02:24:22.804Z" hostname="dingens" time="0.464">
+  <properties/>
+  <testcase name="noDialogWhenNothingWouldBeDeleted" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.046"/>
+  <testcase name="aSwitchThatDeletesTheBasemapUnloadsItFromTheRunningClient" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.033"/>
+  <testcase name="dialogNamesCountAndSize" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.06"/>
+  <testcase name="cancelDropsThePlanAndKeepsTheActiveSource" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.051"/>
+  <testcase name="selectingTheRepositoryWithoutAUrlRevealsTheFieldInsteadOfSwitching" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.062"/>
+  <testcase name="selectSourceUsesTheUrlThatWasTypedAfterTheSelectorWasBuilt" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.048"/>
+  <testcase name="theBasemapIsCountedWhenItBelongsToTheOtherSource" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.055"/>
+  <testcase name="aBasemapOfTheTargetSourceIsNotDeleted" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.041"/>
+  <testcase name="aSwitchThatKeepsTheTargetsBasemapKeepsItRegistered" classname="com.naviveylin.ui.mapmanager.MapManagerSourceSwitchPlanTest" time="0.058">
+    <failure message="java.lang.NoClassDefFoundError: Could not initialize class sun.security.ssl.NamedGroup$SupportedGroups" type="java.lang.NoClassDefFoundError">java.lang.NoClassDefFoundError: Could not initialize class sun.security.ssl.NamedGroup$SupportedGroups
+	at java.base/sun.security.ssl.SSLConfiguration.&lt;init&gt;(SSLConfiguration.java:191)
+	at java.base/sun.security.ssl.TransportContext.&lt;init&gt;(TransportContext.java:121)
+	at java.base/sun.security.ssl.SSLSocketImpl.&lt;init&gt;(SSLSocketImpl.java:125)
+	at java.base/sun.security.ssl.SSLSocketFactoryImpl.createSocket(SSLSocketFactoryImpl.java:72)
+	at java.base/sun.net.www.protocol.https.HttpsClient.createSocket(HttpsClient.java:420)
+	at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:163)
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:539)
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:644)
+	at java.base/sun.net.www.protocol.https.HttpsClient.&lt;init&gt;(HttpsClient.java:265)
+	at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:378)
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:196)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1260)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1146)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.connect(HttpURLConnection.java:1075)
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:181)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1707)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1632)
+	at java.base/java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:531)
+	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:307)
+	at com.naviveylin.data.HttpUrlFetcher$text$2.invokeSuspend(HttpUrlFetcher.kt:65)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at com.naviveylin.core.mapsource.RepositorySource.availableRegions(RepositorySource.kt:26)
+	at com.naviveylin.ui.mapmanager.MapManagerViewModel$refreshRepositoryRegions$1.invokeSuspend(MapManagerViewModel.kt:1043)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+Caused by: java.lang.NoClassDefFoundError: Could not initialize class sun.security.ssl.NamedGroup$SupportedGroups
+	at java.base/sun.security.ssl.SSLConfiguration.&lt;init&gt;(SSLConfiguration.java:191)
+	at java.base/sun.security.ssl.TransportContext.&lt;init&gt;(TransportContext.java:121)
+	at java.base/sun.security.ssl.SSLSocketImpl.&lt;init&gt;(SSLSocketImpl.java:125)
+	at java.base/sun.security.ssl.SSLSocketFactoryImpl.createSocket(SSLSocketFactoryImpl.java:72)
+	at java.base/sun.net.www.protocol.https.HttpsClient.createSocket(HttpsClient.java:420)
+	at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:163)
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:539)
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:644)
+	at java.base/sun.net.www.protocol.https.HttpsClient.&lt;init&gt;(HttpsClient.java:265)
+	at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:378)
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:196)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1260)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1146)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.connect(HttpURLConnection.java:1075)
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:181)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1707)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1632)
+	at java.base/java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:531)
+	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:307)
+	at com.naviveylin.data.HttpUrlFetcher$text$2.invokeSuspend(HttpUrlFetcher.kt:65)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread &quot;DefaultDispatcher-worker-11 @coroutine#20129&quot;]
+	at java.base/sun.security.ssl.NamedGroup$SupportedGroups.&lt;clinit&gt;(NamedGroup.java:787)
+	... 28 more
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

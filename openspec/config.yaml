@@ -14,7 +14,7 @@ context: |
   Android Auto: implemented (Car App Library, :auto module + NaviVeylinCarAppService, AAOS support)
   Distribution: Google Play (mobile + Android Automotive OS tracks, same applicationId); sideloading also supported
   External Repo: https://github.com/Framstag/libosmscout
-  Guidelines: guidelines/Design.md, UI.md, MapRendering.md, Build.md, Regulatory.md, Logging.md — read the section that owns your topic, not the whole document. A whole-document read is expensive (Build.md ~29k tokens, MapRendering.md ~23k, UI.md ~22k, Design.md ~15k, Regulatory.md ~7k, Logging.md ~2k); AGENTS.md "Documentation Map" is the topic-to-section routing table, and `grep -n '^## ' guidelines/<file>.md` lists every section of one file.
+  Guidelines: guidelines/Design.md, UI.md, MapRendering.md, Build.md, Regulatory.md, Logging.md — read the section that owns your topic, not the whole document. A whole-document read is expensive (Build.md ~29k tokens, MapRendering.md ~23k, UI.md ~22k, Design.md ~15k, Regulatory.md ~7k, Logging.md ~2k); AGENTS.md "Documentation Map" is the topic-to-section routing table, and `tools/look.sh '^## ' --path guidelines/<file>.md` lists every section of one file.
   Native purity: libosmscout stays Android-free outside its frozen Android/ dir (CI-gated)
   Google Play Services: optional, used when available (Fused location, car MapController); no hard dependency — replaceable by design (e.g., LocationManager fallback)
   Tooling: do NOT use python3 for openspec interaction or CLI output processing — use plain shell, jq, or openspec's own --json output instead
@@ -85,7 +85,7 @@ operations:
       - Make sure that tests cover all relevant data combinations and process variants and thus cover the complete code under tests in all its variants
       - Make sure that the build has no warnings
       - Build only the targets needed for testing to minimize resource usage and compilation time
-      - Verify all new/modified code against the guideline sections that own the conventions the change touches (`AGENTS.md` "Documentation Map" routes a kind of change to them, and `grep -n '^## ' guidelines/<file>.md` lists one file's sections) — a whole-document read is not required
+      - Verify all new/modified code against the guideline sections that own the conventions the change touches (`AGENTS.md` "Documentation Map" routes a kind of change to them, and `tools/look.sh '^## ' --path guidelines/<file>.md` lists one file's sections) — a whole-document read is not required
       - Update README.md and AGENTS.md and other documentation if information stored there changed
       - Verify no regressions in unrelated areas
       - For native C++ changes, verify all target ABIs compile

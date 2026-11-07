@@ -27,6 +27,13 @@
 # tree and ended with `--apply`. A process inside a tree that is kept belongs to a live suite and is never
 # signalled.
 #
+# The loop's own trees are leftovers too. The run keeps one worktree, so a tree beside it — under the directory that
+# one lives in — is named by nothing at all, and this report had no arm for it (measured 2026-11-06, issue #803:
+# `.pi/worktrees/` held ten directories and one of them was the run's). A tree is judged by what it *holds*, the
+# reading a branch gets one level down: uncommitted changes, or a HEAD the base does not carry, keep it and are named
+# as the reason; a base or a HEAD that cannot be read leaves the same question unanswered and keeps it too; anything
+# else is named with its size and removed with `--apply`.
+#
 # Exit: 0 nothing to do, or done; 2 usage or an unusable configuration.
 #
 # Usage:
@@ -50,7 +57,7 @@ while [ $# -gt 0 ]; do
     --worktree) need_value "$@"; tree_arg="${2:-}"; shift 2 ;;
     --apply) apply=1; shift ;;
     --quiet) quiet=1; shift ;;
-    -h|--help) sed -n '2,38p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,45p' "$0"; exit 0 ;;
     *) loop_die "loop-clean: unknown argument $1" ;;
   esac
 done
@@ -212,6 +219,59 @@ else
   done <<< "$(loop_own_branches "$LOOP_ROOT")"
 fi
 
+# ── the worktrees no run keeps ─────────────────────────────────────────────────────────────────────
+# The run keeps one tree (`LOOP_WORKTREE`), so a worktree under the directory that one lives in is named by nothing
+# at all — not the configuration, not a state field, not a branch marker — and no arm reported it: the per-item trees
+# of the runs that kept one tree per item accumulated unmeasured (issue #803; measured 2026-11-06, `.pi/worktrees/`
+# held ten directories and the run's tree was one of them). A tree is a leftover by what it *holds*, the same
+# reading a branch gets one level down: uncommitted changes, or a HEAD the base does not carry, are somebody's work
+# and the tree is kept and named with that reason; anything else is what `--apply` removes. This arm runs after the
+# branches, so a branch a tree nobody keeps holds is judged by the arm above first — the tree is released here and
+# the branch is the next run's to remove, not this one's read of a tree it just deleted.
+wt_root=$(dirname "$LOOP_WORKTREE")
+say "loop-clean: worktrees under ${wt_root#"$LOOP_ROOT"/} that the run does not keep"
+wt_base=$(git -C "$LOOP_ROOT" rev-parse --verify --quiet "$(loop_base_ref)" 2>/dev/null || true)
+while IFS= read -r wt_path; do
+  [ -n "$wt_path" ] || continue
+  case "$wt_path" in
+    "$wt_root"/?*) ;;
+    *) continue ;;
+  esac
+  loop_same_dir "$wt_path" "$LOOP_WORKTREE" && continue
+  loop_same_dir "$wt_path" "$tree" && continue
+  wt_rel="${wt_path#"$LOOP_ROOT"/}"
+  wt_dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null)
+  if [ -n "$wt_dirty" ]; then
+    say "  kept $wt_rel — $(printf '%s\n' "$wt_dirty" | grep -c .) uncommitted path(s), somebody is working in it"
+    kept=$((kept + 1))
+    continue
+  fi
+  wt_head=$(git -C "$wt_path" rev-parse --verify --quiet HEAD 2>/dev/null || true)
+  # An unreadable base or HEAD is the unknown the branch arm one screen above keeps every branch on — deleting a
+  # tree because a reading failed is how work is thrown away on a question nobody answered (issue #803, round 1).
+  if [ -z "$wt_base" ] || [ -z "$wt_head" ]; then
+    say "  kept $wt_rel — the base $(loop_base_ref) or the tree's HEAD cannot be read"
+    kept=$((kept + 1))
+    continue
+  fi
+  if ! git -C "$LOOP_ROOT" merge-base --is-ancestor "$wt_head" "$wt_base" 2>/dev/null; then
+    wt_ahead=$(git -C "$LOOP_ROOT" rev-list --count "$wt_base..$wt_head" 2>/dev/null || true)
+    case "$wt_ahead" in ''|*[!0-9]*) wt_ahead=1 ;; esac
+    say "  kept $wt_rel — $wt_ahead commit(s) the base does not have"
+    kept=$((kept + 1))
+    continue
+  fi
+  wt_size=$(loop_bytes_of "$wt_path")
+  if [ "$apply" -eq 1 ]; then
+    git -C "$LOOP_ROOT" worktree remove --force "$wt_path" >/dev/null 2>&1 ||
+      { say "  could not remove $wt_rel"; continue; }
+    say "  removed $wt_rel ($wt_size B) — no run keeps it"
+  else
+    say "  would remove $wt_rel ($wt_size B) — no run keeps it"
+  fi
+  paths=$((paths + 1)); bytes=$((bytes + wt_size))
+done <<< "$(git -C "$LOOP_ROOT" worktree list --porcelain 2>/dev/null | sed -n 's|^worktree ||p')"
+
 # ── the change an item consumed, in the project's own tree ─────────────────────────────────────────
 # The run writes nothing in the project's tree, so what remains of a prepared change after its item landed is the
 # source directory its worktree copy was taken from (`worktree.sh start-item --change`). It is reported only for an
@@ -246,6 +306,62 @@ else
     | (($s.changeCopies // {}) | to_entries[])
     | select(.key as $k | $landed | index($k) != null)
     | [.key, (.value.source // "")] | @tsv' "$LOOP_STATE_FILE" 2>/dev/null)
+fi
+
+# ── the item directories the run kept ─────────────────────────────────────────────────────────────
+# The largest thing the loop keeps is the item directories beside its state: one per item, holding that item's event
+# stream, its package and its reports, and nothing reported them (issue #802; measured 2026-11-06, `.pi/issue-loop/`
+# held 3.6 GB over 264 item directories, one event file 63 MiB). They are a leftover like the others, and `--apply` is
+# still the only path that removes one — but they are also the loop's evidence, so a directory is released only when
+# two readings agree: nothing inside it has been written for `LOOP_ITEM_ARCHIVE_DAYS`, and no open issue still cites
+# it. Whether an issue is open is read from the run's own record, offline: an item whose result is `done` and whose
+# closure happened (`metrics.closed: yes`) is one the tracker closed, and anything else — no record, another result,
+# a landing the run was not allowed to close — is kept and named with that reason. A state file that cannot be read
+# keeps every directory, the same answer an unreadable base gets from the branch arm.
+items_root="$(dirname "$LOOP_STATE_FILE")/items"
+archive_days=$(loop_conf_value LOOP_ITEM_ARCHIVE_DAYS)
+case "$archive_days" in ''|*[!0-9]*) archive_days=0 ;; esac
+say "loop-clean: item directories under ${items_root#"$LOOP_ROOT"/} that no open issue cites, older than ${archive_days} days"
+if [ "$archive_days" -eq 0 ]; then
+  say "  kept every item — LOOP_ITEM_ARCHIVE_DAYS records no retention, so no item directory is released"
+  kept=$((kept + 1))
+elif [ ! -d "$items_root" ]; then
+  say "  none — no item directory at ${items_root#"$LOOP_ROOT"/}"
+else
+  while IFS= read -r item_path; do
+    [ -n "$item_path" ] || continue
+    item_n=${item_path##*/}
+    case "$item_n" in ''|*[!0-9]*) continue ;; esac
+    if [ -n "$(find "$item_path" -mmin -$(( archive_days * 1440 )) 2>/dev/null)" ]; then
+      say "  kept items/$item_n — written within ${archive_days} days, an open issue may still cite it"
+      kept=$((kept + 1))
+      continue
+    fi
+    cited=$(jq -r --arg n "$item_n" '
+      [ .items[]? | select((.issue | tostring) == $n)
+        | ((.result // "") == "done" and ((.metrics.closed // "no") == "yes")) ]
+      | if length == 0 then "unreadable" else (if any then "landed" else "cited" end) end' \
+      "$LOOP_STATE_FILE" 2>/dev/null)
+    case "$cited" in
+      landed) ;;
+      cited)
+        say "  kept items/$item_n — the issue it belongs to is not closed, so it still cites the directory"
+        kept=$((kept + 1))
+        continue ;;
+      *)
+        say "  kept items/$item_n — the run state does not record what became of its issue"
+        kept=$((kept + 1))
+        continue ;;
+    esac
+    size=$(loop_bytes_of "$item_path")
+    if [ "$apply" -eq 1 ]; then
+      rm -rf -- "$item_path" || { say "  could not remove items/$item_n"; continue; }
+      say "  removed items/$item_n ($size B) — landed and closed, and older than any open issue cites"
+    else
+      say "  would remove items/$item_n ($size B) — landed and closed, and older than any open issue cites"
+    fi
+    paths=$((paths + 1)); bytes=$((bytes + size))
+  done <<< "$(find "$items_root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)"
 fi
 
 if [ "$paths" -eq 0 ] && [ "$procs" -eq 0 ] && [ "$branches" -eq 0 ]; then

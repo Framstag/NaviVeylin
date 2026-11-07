@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The tally of build-inputs-selftest.log: one run of the whole build-inputs suite in the change root, on the
+     run's base bea00bf5da8d8c81304d9271e66715c40b13b714 plus this change, 2026-11-06T14:10Z. The shell runner
+     prints its counts and no wall clock: what the tally carries is `tests` and `failures`. -->
+<testsuite name="bash tools/build-inputs-selftest.sh" tests="14" failures="0" errors="0" time="0">
+  <system-out>14 cases, 0 failed</system-out>
+</testsuite>

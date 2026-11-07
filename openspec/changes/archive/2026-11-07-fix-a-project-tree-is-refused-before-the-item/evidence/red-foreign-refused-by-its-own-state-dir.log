@@ -1,0 +1,50 @@
+stub gh: recorded `gh issue edit`
+  the dry-run loop failed in the foreign project: agent-issue-loop: items=1 minutes=30 review=off pre-gate-review=off may-close=yes push=no max-decisions=1 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=2700 child-turns-max=worker:0,worker-gate:0,worker-tail:0,reviewer:0,reviewer-pre-gate:0 item-context-warn=0 item-context-max=0 min-free-mib=1024 free-mib=3753 dry-run=1 reset-worktree=0 agent-roles=-
+run: the pre-screen runs next and is not instant; live view: bash tools/loop/state.sh show · state directory /home/tim/projects/NaviVeylin/.pi/worktrees/798/.pi/tmp/check-portability-selftest.N4iEzg/case.icVb3h/project/.pi/issue-loop
+lock held: /home/tim/projects/NaviVeylin/.pi/worktrees/798/.pi/tmp/check-portability-selftest.N4iEzg/case.icVb3h/project/.pi/issue-loop/lock (owner 1673724)
+state: budget 1 items / 30 min · review off · may-close yes · max-decisions 1 · max-review-rounds 2 · base add20c6dac55
+state: deadline 2026-11-07T09:38:00Z
+refusing to start: the project tree carries uncommitted work, and the landing step merges into it
+  ?? .pi/
+the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded here
+commit or discard these paths and run again — the list:
+  git -C /home/tim/projects/NaviVeylin/.pi/worktrees/798/.pi/tmp/check-portability-selftest.N4iEzg/case.icVb3h/project status --porcelain
+stop: the project tree carries uncommitted work the landing step would merge over: .pi/ — the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded; commit or discard them and re-run
+**agent-issue-loop — 2026-11-07T09:08:00Z** (budget 1 items / 30 min · review off · review rounds 2 · may-close yes · max-decisions 1 · base add20c6dac55)
+
+closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 0 · budget left 1 items / 30 min · spent 0 min
+
+stop: the project tree carries uncommitted work the landing step would merge over: .pi/ — the run cannot tell its own leftover from an edit made while it was not running, so nothing is discarded; commit or discard them and re-run
+
+over the item token bound: off — LOOP_ITEM_TOKENS_WARN records 0, so no item is flagged
+closed 0 · mis-diagnosed 0 · skipped 0 · blocked 0 · cut 0 of 1 items · budget 30 min
+
+| issue | class | verdict | change | root cause | red test | gate | review | wall | tools | tokens | context | outcome | reason | stop | over | calls |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | — | — | — | — | nothing processed | — | — | — | — |
+
+merged finished attempts: none
+no exclusions
+
+skipped: none
+mis-diagnosed: none
+excluded before any work: none
+cut short by the run's own bound: none
+decisions the owner owes: none
+branches: none
+landed, removable: none
+worktree: not present at run end (/home/tim/projects/NaviVeylin/.pi/worktrees/798/.pi/tmp/check-portability-selftest.N4iEzg/case.icVb3h/project/.pi/worktrees/loop)
+state: /home/tim/projects/NaviVeylin/.pi/worktrees/798/.pi/tmp/check-portability-selftest.N4iEzg/case.icVb3h/project/.pi/issue-loop/run.json
+
+trend — this run's own items; no rate is green or red in one run:
+  review: - · no round of this run ended in a verdict · 0 undecided · 0 never reviewed
+  wall:   - · no item recorded a wall time
+  calls:  - · no item recorded a turn
+  phases: - · no item recorded a phase duration
+  roles:  - · no item recorded a session role
+  after the first gate: - · no item of this run ran a gate in its stream
+  landings: - · no item of this run landed
+
+actions the caller owes:
+  none — no decision, no branch carrying commits, no kept worktree, no gate left incomplete, no leftover patch, no label write the tracker refused
+FAIL foreign#toolchainRunsEndToEnd

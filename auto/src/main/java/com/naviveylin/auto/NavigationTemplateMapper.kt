@@ -151,7 +151,11 @@ object NavigationTemplateMapper {
         val stepBuilder = Step.Builder()
             .setManeuver(maneuver)
             .setCue(ManoeuvreLabels.short(resolver, manoeuvre))
-        manoeuvre.displayName?.takeIf { it.isNotBlank() }?.let { stepBuilder.setRoad(it) }
+        // The road is what the manoeuvre leads onto, so a motorway manoeuvre that carries a
+        // signposted destination words it here exactly as the phone overlay does, while the cue
+        // stays the manoeuvre alone (spec: `auto/navigation-view` — The target street carries the
+        // signposted destination).
+        ManoeuvreLabels.leadsOnto(resolver, manoeuvre)?.let { stepBuilder.setRoad(it) }
         lanes.forEach { stepBuilder.addLane(it) }
         if (lanes.isNotEmpty()) {
             lanesImage?.let { stepBuilder.setLanesImage(it) }

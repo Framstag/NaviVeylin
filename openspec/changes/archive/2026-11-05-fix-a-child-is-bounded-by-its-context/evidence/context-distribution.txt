@@ -1,0 +1,20 @@
+# the context distribution this change records — run at the project root, 2026-11-05
+$ { jq -r '.items[]?.metrics.context // empty' .pi/issue-loop/run.json;
+    for f in .pi/issue-loop/runs/*.json; do jq -r '.items[]?.metrics.context // empty' "$f"; done; } | sort -n | awk '...'
+
+n=300 min=22710 p50=107669 p75=143124 p90=174984 p95=191815 max=244764
+
+# items above the recorded 200000:
+203255
+205561
+208910
+215133
+219012
+219879
+222074
+223344
+240025
+244764
+
+# how many
+10

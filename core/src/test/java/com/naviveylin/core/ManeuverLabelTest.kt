@@ -29,6 +29,7 @@ class ManeuverLabelTest {
         move: TurnType? = null,
         name: String? = null,
         ref: String? = null,
+        destination: String? = null,
         exit: Int? = null,
         motorwayFrom: String? = null,
         motorwayTo: String? = null
@@ -41,6 +42,7 @@ class ManeuverLabelTest {
         motorwayTo = motorwayTo,
         name = name,
         ref = ref,
+        destination = destination,
         typeName = null,
         lat = 0.0,
         lon = 0.0,
@@ -170,6 +172,57 @@ class ManeuverLabelTest {
     }
 
     @Test
+    fun `a motorway change carries the signposted destination`() {
+        // The destination is what tells two branches of a motorway fork apart, so the target the
+        // manoeuvre leads onto carries it beside the reference (spec: `turn-instruction-localization`
+        // — A motorway manoeuvre names the signposted destination).
+        val change = manoeuvre(
+            RouteStep.Kind.MOTORWAY_CHANGE, TurnType.RIGHT,
+            destination = "München", motorwayFrom = "A3", motorwayTo = "A8"
+        )
+
+        assertEquals("A8 towards München", ManoeuvreLabels.leadsOnto(en, change))
+        assertEquals("A8 Richtung München", ManoeuvreLabels.leadsOnto(de, change))
+        assertEquals("Keep right onto A8 towards München", ManoeuvreLabels.description(en, change))
+    }
+
+    @Test
+    fun `a motorway entry carries the signposted destination`() {
+        val enter = manoeuvre(
+            RouteStep.Kind.MOTORWAY_ENTER, destination = "München", motorwayTo = "A8"
+        )
+
+        assertEquals("A8 towards München", ManoeuvreLabels.leadsOnto(en, enter))
+        assertEquals("Enter A8 towards München", ManoeuvreLabels.description(en, enter))
+    }
+
+    @Test
+    fun `a motorway manoeuvre without a destination keeps today's wording`() {
+        // No placeholder, no empty "towards" clause, no invented destination.
+        val change = manoeuvre(
+            RouteStep.Kind.MOTORWAY_CHANGE, TurnType.LEFT, motorwayFrom = "A3", motorwayTo = "A8"
+        )
+        val enter = manoeuvre(RouteStep.Kind.MOTORWAY_ENTER, motorwayTo = "A8")
+
+        assertEquals("A8", ManoeuvreLabels.leadsOnto(de, change))
+        assertEquals("Links halten auf A8", ManoeuvreLabels.description(de, change))
+        assertEquals("Auffahren auf A8", ManoeuvreLabels.description(de, enter))
+    }
+
+    @Test
+    fun `a plain turn does not show a destination record it carries`() {
+        // The tag also sits on ways a plain turn crosses; the gate is the manoeuvre kind, not the
+        // record (design D5).
+        val turn = manoeuvre(
+            RouteStep.Kind.TURN, TurnType.LEFT, name = "Hauptstraße", destination = "München"
+        )
+
+        assertEquals("Hauptstraße", ManoeuvreLabels.leadsOnto(de, turn))
+        assertEquals("Links abbiegen in Hauptstraße", ManoeuvreLabels.description(de, turn))
+        assertEquals("Links abbiegen", ManoeuvreLabels.short(de, turn))
+    }
+
+    @Test
     fun `a motorway leave is worded as a leave`() {
         assertEquals(
             "Autobahn verlassen",
@@ -269,6 +322,7 @@ class ManeuverLabelTest {
             R.string.nav_keep_onto to "%1\$s onto %2\$s",
             R.string.nav_exit_onto to "Take exit %1\$d onto %2\$s",
             R.string.nav_enter_onto to "Enter %1\$s",
+            R.string.nav_towards to "towards %1\$s",
             R.string.nav_continue_on to "Continue on %1\$s"
         )
 
@@ -297,6 +351,7 @@ class ManeuverLabelTest {
             R.string.nav_keep_onto to "%1\$s auf %2\$s",
             R.string.nav_exit_onto to "Ausfahrt %1\$d auf %2\$s",
             R.string.nav_enter_onto to "Auffahren auf %1\$s",
+            R.string.nav_towards to "Richtung %1\$s",
             R.string.nav_continue_on to "Weiter auf %1\$s"
         )
     }

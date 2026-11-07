@@ -1,0 +1,15 @@
+# ctx_grep does not resolve rg, although the binary is there (issue #796)
+# The tool call in this session, made twice on 2026-11-06:
+#   ctx_grep(pattern="LOOP_AGENT_CMD", path="tools/loop/loop.conf")
+#   -> zsh:1: command not found: rg
+# The same session's environment, read by a script (the shell allowlist forbids a nested shell on the
+# command line; inside a script it is the script's, not a wrapper):
+$ bash /tmp/lc-796-probe.sh
+PATH=/home/tim/.pi/agent/bin:/home/tim/.local/share/mise/installs/node/22/bin:/home/tim/.local/share/mise/installs/pi/latest:/home/tim/.local/share/mise/installs/npm-fission-ai-openspec/latest/bin:/home/tim/.rd/bin:/home/tim/.local/bin:/home/tim/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/tim/Android/Sdk/platform-tools:/home/tim/.pi/agent/npm/node_modules/.bin
+SHELL=/bin/zsh
+command -v rg = /home/tim/.pi/agent/bin/rg
+rg --version = ripgrep 15.2.0 (rev e89fff89ac)
+zsh -c "command -v rg" = /home/tim/.pi/agent/bin/rg
+bash -c "command -v rg" = /home/tim/.pi/agent/bin/rg
+the tree question, answered by the wrapper: LOOK: 7 matches in 1 files of /home/tim/projects/NaviVeylin/tools/loop/loop.conf for 'LOOP_AGENT_CMD'
+at=2026-11-06T16:46:36Z

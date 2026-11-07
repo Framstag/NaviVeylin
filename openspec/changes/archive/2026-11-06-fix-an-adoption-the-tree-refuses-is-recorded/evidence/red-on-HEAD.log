@@ -1,0 +1,8 @@
+2026-11-06T11:48:55Z
+$ bash tools/loop-selftest.sh --case 'run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable'
+run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable|   the refusal is recorded as the item's mechanism: expected 'unmergeable', got 'null'
+--- run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable[0] (exit 1)
+  the refusal is recorded as the item's mechanism: expected 'unmergeable', got 'null'
+FAIL run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable
+loop-selftest: 1 of 1 cases failed
+2026-11-06T11:48:59Z

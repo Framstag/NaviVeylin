@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.ui.route.RoutePanelDiagnosticsTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-06T21:41:03.795Z" hostname="dingens" time="0.058">
+  <properties/>
+  <testcase name="the census counts the motorway manoeuvres that carry a destination" classname="com.naviveylin.ui.route.RoutePanelDiagnosticsTest" time="0.039"/>
+  <testcase name="the census sums the legs' kilometres per kind" classname="com.naviveylin.ui.route.RoutePanelDiagnosticsTest" time="0.013"/>
+  <testcase name="the census reports the rows it produced next to the steps it read" classname="com.naviveylin.ui.route.RoutePanelDiagnosticsTest" time="0.002"/>
+  <testcase name="the census of a route without steps is still a line of numbers" classname="com.naviveylin.ui.route.RoutePanelDiagnosticsTest" time="0.001"/>
+  <testcase name="the census line carries counts and metres and no coordinates" classname="com.naviveylin.ui.route.RoutePanelDiagnosticsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

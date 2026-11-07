@@ -1,0 +1,8 @@
+# revert-check 3.2a — the pre-first-frame push removed (re-run on the landing sources, 2026-11-04T22:06:41Z)
+# mutation: MiniMap.kt, 'if (!hadFrame) return@LaunchedEffect' inserted before the applier push.
+# command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MiniMap*"
+# result: 3 failures — the two variant cases fail on the first-frame-variant assertion, the reject case on
+#         its missing report:
+message="java.lang.AssertionError: the first frame is rendered under the pushed dark variant expected:&lt;[false]&gt; but was:&lt;[null]&gt;"
+message="java.lang.AssertionError: every frame is rendered under the pushed light variant expected:&lt;[true]&gt; but was:&lt;[null]&gt;"
+message="java.lang.AssertionError: a rejected variant reload is reported once per attempt (spec: map-styles — &quot;Failure is reported once per attempt&quot;) expected:&lt;1&gt; but was:&lt;0&gt;"

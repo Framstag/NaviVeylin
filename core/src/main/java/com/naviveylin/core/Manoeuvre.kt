@@ -10,8 +10,8 @@ import com.framstag.libosmscout.client.TurnType
  *
  * This is the app's own projection of a [RouteStep]: it carries exactly the fields a step row
  * needs — the manoeuvre kind, its move, the roundabout and motorway records, the street name it
- * names, its position, its own leg and its node identity — and it carries nothing the app would
- * have to recover from prose.
+ * names, the signposted destination it leads to, its position, its own leg and its node identity —
+ * and it carries nothing the app would have to recover from prose.
  *
  * **An absent value stays absent.** A record the route does not carry is `null`, never a zero or an
  * empty placeholder: a plain turn has no roundabout ordinal, no circulation direction and no
@@ -34,6 +34,12 @@ data class Manoeuvre(
     val name: String?,
     /** The street's reference (for example `A40`), `null` when it has none. */
     val ref: String?,
+    /**
+     * The signposted destination of the way this manoeuvre leads onto, `null` when the step carries
+     * none. Already the first value of a multi-value record (spec: `turn-instruction-localization` —
+     * A motorway manoeuvre names the signposted destination).
+     */
+    val destination: String?,
     /** The way's type name (`highway_secondary`), `null` when absent. */
     val typeName: String?,
     /** Latitude of the manoeuvre's node in degrees. */
@@ -118,6 +124,9 @@ fun manoeuvreFromStep(step: RouteStep): Manoeuvre {
         motorwayTo = motorwayTo?.reference() ?: motorwayTo?.plain(),
         name = named.plain(),
         ref = named.reference(),
+        // A ramp sign lists several destinations; the first block is the one a row words
+        // (design D4 of `motorway-destination-hint`). A blank record is no record.
+        destination = step.destination?.substringBefore(';')?.trim()?.takeIf { it.isNotEmpty() },
         typeName = step.typeName?.trim()?.takeIf { it.isNotEmpty() },
         lat = step.lat,
         lon = step.lon,

@@ -32,6 +32,7 @@ SENSOR_CASES=(
   'run#noBaselineFileWritten'
   'run#aClearWithNoIssueReachesTheRecord'
   'lib#theRecordIsNotACondition'
+  'lib#aRowBoundIsACount'
   'report#printsACountingLinePerRow'
   'report#aGreenRowIsNotNever'
   'report#aFiledRowIsReported'
@@ -58,8 +59,14 @@ SENSOR_CASES=(
   'run#hysteresisBothDirections'
   'run#hysteresisCountersSurviveARestart'
   'run#escalatesPastKRecurrences'
+  'run#anEscalationOnASettledIssueFilesANewItem'
+  'run#aRefusedEscalationPastTheBoundFailsTheRun'
+  'run#theFiledConditionIsOpenWorkOnTheNextTick'
+  'run#aRowDeclaresItsOwnRecurrenceBound'
+  'run#libosmscoutLagReadsThreeOutcomes'
   'run#escalationNeverSetsEligibility'
   'sensors#buildDurationRow'
+  'sensors#buildDurationCoversThePipeline'
   'hotspot#ranksBySizeTimesChanges'
   'hotspot#theBoundIsAboveOneChangedFile'
   'sensors#packageSizeConsumesAnArtifact'
@@ -79,9 +86,12 @@ SENSOR_CASES=(
   'sensors#brokenMainFingerprintDistinguishesCauses'
   'sensors#prConflictsOnlyOwnPRs'
   'sensors#brokenMainGreenReportsClear'
+  'sensors#aFailedScanIsItsOwnCondition'
+  'sensors#aGreenScanClearsItsCondition'
   'sensors#aRecordedConditionParsesToItsObject'
   'sensors#prConflictsNothingReportsClear'
   'workflow#onlyTwoTriggers'
+  'workflow#theScanRecordIsFetchedBeforeItsRowRuns'
   'workflow#aRedRecordRunsNoRecordRow'
   'workflow#theTickDeclaresItsWindow'
   'sensors#engineNamesNoProjectValue'
@@ -115,6 +125,7 @@ sensor_run_case() {
     'run#noBaselineFileWritten') case_run_noBaselineFileWritten ;;
     'run#aClearWithNoIssueReachesTheRecord') case_run_aClearWithNoIssueReachesTheRecord ;;
     'lib#theRecordIsNotACondition') case_lib_theRecordIsNotACondition ;;
+    'lib#aRowBoundIsACount') case_lib_aRowBoundIsACount ;;
     'report#printsACountingLinePerRow') case_report_printsACountingLinePerRow ;;
     'report#aGreenRowIsNotNever') case_report_aGreenRowIsNotNever ;;
     'report#aFiledRowIsReported') case_report_aFiledRowIsReported ;;
@@ -141,8 +152,14 @@ sensor_run_case() {
     'run#hysteresisBothDirections') case_run_hysteresisBothDirections ;;
     'run#hysteresisCountersSurviveARestart') case_run_hysteresisCountersSurviveARestart ;;
     'run#escalatesPastKRecurrences') case_run_escalatesPastKRecurrences ;;
+    'run#anEscalationOnASettledIssueFilesANewItem') case_run_anEscalationOnASettledIssueFilesANewItem ;;
+    'run#aRefusedEscalationPastTheBoundFailsTheRun') case_run_aRefusedEscalationPastTheBoundFailsTheRun ;;
+    'run#theFiledConditionIsOpenWorkOnTheNextTick') case_run_theFiledConditionIsOpenWorkOnTheNextTick ;;
+    'run#aRowDeclaresItsOwnRecurrenceBound') case_run_aRowDeclaresItsOwnRecurrenceBound ;;
+    'run#libosmscoutLagReadsThreeOutcomes') case_run_libosmscoutLagReadsThreeOutcomes ;;
     'run#escalationNeverSetsEligibility') case_run_escalationNeverSetsEligibility ;;
     'sensors#buildDurationRow') case_sensors_buildDurationRow ;;
+    'sensors#buildDurationCoversThePipeline') case_sensors_buildDurationCoversThePipeline ;;
     'hotspot#ranksBySizeTimesChanges') case_hotspot_ranksBySizeTimesChanges ;;
     'hotspot#theBoundIsAboveOneChangedFile') case_hotspot_theBoundIsAboveOneChangedFile ;;
     'sensors#packageSizeConsumesAnArtifact') case_sensors_packageSizeConsumesAnArtifact ;;
@@ -162,9 +179,12 @@ sensor_run_case() {
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
     'sensors#prConflictsOnlyOwnPRs') case_sensors_prConflictsOnlyOwnPRs ;;
     'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
+    'sensors#aFailedScanIsItsOwnCondition') case_sensors_aFailedScanIsItsOwnCondition ;;
+    'sensors#aGreenScanClearsItsCondition') case_sensors_aGreenScanClearsItsCondition ;;
     'sensors#aRecordedConditionParsesToItsObject') case_sensors_aRecordedConditionParsesToItsObject ;;
     'sensors#prConflictsNothingReportsClear') case_sensors_prConflictsNothingReportsClear ;;
     'workflow#onlyTwoTriggers') case_workflow_onlyTwoTriggers ;;
+    'workflow#theScanRecordIsFetchedBeforeItsRowRuns') case_workflow_theScanRecordIsFetchedBeforeItsRowRuns ;;
     'workflow#aRedRecordRunsNoRecordRow') case_workflow_aRedRecordRunsNoRecordRow ;;
     'workflow#theTickDeclaresItsWindow') case_workflow_theTickDeclaresItsWindow ;;
     'sensors#engineNamesNoProjectValue') case_sensors_engineNamesNoProjectValue ;;
@@ -929,6 +949,46 @@ case_lib_theRecordIsNotACondition() {
   assert_contains "$out" '"condition":{"path":"x"}' "a condition issue is still read as one: $out"
 }
 
+# A row may declare its own recurrence bound, and that bound is a count of at least one: a value that is not a count
+# must be refused by name rather than compared as a number (issue #769, the row `libosmscout-lag` is the first to
+# declare one).
+case_lib_aRowBoundIsACount() {
+  local dir registry out status
+  dir=$(scratch)
+
+  registry="$dir/k-zero.json"
+  jq '.rows[0].k = 0' "$(fixture registry.json)" > "$registry"
+  out=$(cd "$SENSORS_REPO_ROOT" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_registry_problems' _ "$registry" 2>&1)
+  assert_contains "$out" "fixture-emit: row-k-not-a-count: 0" "a bound of zero is refused by name: $out"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$SENSORS_REPO_ROOT/tools/issues/fixtures" \
+    sensor_engine run.sh --only fixture-emit --registry "$registry" 2>&1)
+  status=$?
+  assert_eq "9" "$status" "a run of a row bound at zero refuses before it writes: $out"
+
+  registry="$dir/k-not-a-count.json"
+  jq '.rows[0].k = "many"' "$(fixture registry.json)" > "$registry"
+  out=$(cd "$SENSORS_REPO_ROOT" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_registry_problems' _ "$registry" 2>&1)
+  assert_contains "$out" "fixture-emit: row-k-not-a-count: many" "a bound that is not a count is refused by name: $out"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$SENSORS_REPO_ROOT/tools/issues/fixtures" \
+    sensor_engine run.sh --only fixture-emit --registry "$registry" 2>&1)
+  status=$?
+  assert_eq "9" "$status" "a run of a row whose bound is not a count refuses before it writes: $out"
+
+  registry="$dir/k-valid.json"
+  jq '.rows[0].k = 100' "$(fixture registry.json)" > "$registry"
+  out=$(cd "$SENSORS_REPO_ROOT" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_registry_problems' _ "$registry" 2>&1)
+  assert_empty "$out" "a row that declares a count of at least one is complete: $out"
+}
+
 case_report_printsACountingLinePerRow() {
   local dir out lines
   dir=$(scratch)
@@ -1033,26 +1093,26 @@ case_report_aTrendIsBetweenOneCondition() {
 }
 
 # The baseline is that same timeline (#668): after a row files, its newest marker is the filing's, in the issue's
-# body — so the next run compares against that number rather than against nothing.
+# body — so the next run compares against that number rather than against nothing. The row is a
+# `baseline-multiple` one (`package-size`): the comparison this case is about exists only there, because the
+# duration row's bound is absolute (issue #778).
 case_run_aFilingSetsTheBaseline() {
-  local dir log out status timing fp filed
+  local dir log out status package fp filed
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
-  timing="$dir/gate-timings.json"
-  jq -n '{durationMs: 542000, startedAt: "2026-10-17T03:00:00Z", finishedAt: "2026-10-17T03:09:02Z",
-          taskFailures: 0, invocation: [":app:testMobileDebugUnitTest"],
-          tasks: [{path: ":app:testMobileDebugUnitTest", outcome: "executed", durationMs: 195000}]}' > "$timing"
-  fp=$(fingerprint_of job gate)
-  filed=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- sensor: build-duration fingerprint=%s verdict=violation measurement=100000 baseline= -->' \
+  package="$dir/record.apk"
+  head -c 160000 /dev/zero | tr '\0' 'x' > "$package"
+  fp=$(fingerprint_of artifact record.apk)
+  filed=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- sensor: package-size fingerprint=%s verdict=violation measurement=100000 baseline= -->' \
     "$fp" "$fp")
   issues_fixture "$dir" "$(jq -nc \
-    --argjson issue "$(issue_record 121 OPEN "" build-duration "$filed" '[]' 2026-10-16T03:00:00Z)" \
+    --argjson issue "$(issue_record 121 OPEN "" package-size "$filed" '[]' 2026-10-16T03:00:00Z)" \
     '[$issue]')"
 
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
-    sensor_engine run.sh --only build-duration --apply --input "$timing" 2>&1)
+    sensor_engine run.sh --only package-size --apply --input "$package" 2>&1)
   status=$?
   assert_eq "0" "$status" "the run succeeds: $out"
-  assert_contains "$out" "verdict=violation" "a wall time past the filing's number is a violation"
+  assert_contains "$out" "verdict=violation" "a size past the filing's number is a violation"
   assert_contains "$(cat "$log")" "baseline=100000" "the baseline quoted is the number the filing's own marker carries"
 }
 
@@ -1603,6 +1663,170 @@ case_run_escalatesPastKRecurrences() {
   assert_eq "0" "$(recorded "$log" 'issue reopen')" "no fourth reopen happens"
 }
 
+# An escalation lands on the issue the condition's fingerprint identifies, and that issue is usually the one
+# whose fix did not hold: closed with the profile's settled state, which a routine write may not displace. The
+# escalation's label pair is refused there, and the condition returned after a fix that did not hold is a new
+# fact — so it is filed as a new item instead of being reported as an escalation the writer never made (issue
+# #780). The fixture is a closed `fixed-by` issue, the shape a returned condition lands on in the tracker.
+case_run_anEscalationOnASettledIssueFilesANewItem() {
+  local dir log out fp body findings
+  dir=$(throwaway_project)
+  log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of case alpha)
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->\n<!-- violation-run: 0 -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 98 CLOSED COMPLETED fixture-emit "$body" \
+    | jq -c '.labels += [{name: "status/fixed-by"}]')]"
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 5 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" 2>&1)
+  assert_eq "0" "$(recorded "$log" 'issue edit')" "the escalation does not displace a settled state"
+  assert_eq "1" "$(condition_creates "$log")" "the returned condition is filed as a new item: $out"
+  assert_eq "1" "$(recorded "$log" "$fp")" "the new item carries the condition's own fingerprint"
+  assert_contains "$out" "action=filed" \
+    "the run reports the item it filed, not an escalation the tooling refused: $out"
+  assert_eq "0" "$(grep -c 'action=escalated' <<< "$out")" \
+    "the refused escalation is not reported as written: $out"
+}
+
+# A refused escalation spends the same filing bound as any other filing, and a bound already spent leaves it
+# nowhere to write: the run fails so the tick is red, rather than filing the condition under an item the run
+# would have had to invent or reporting an escalation the writer refused (issue #780).
+case_run_aRefusedEscalationPastTheBoundFailsTheRun() {
+  local dir log out fp body findings status
+  dir=$(throwaway_project "$(fixture registry-bounded.json)")
+  log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of case alpha)
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->\n<!-- violation-run: 0 -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 98 CLOSED COMPLETED fixture-emit "$body" \
+    | jq -c '.labels += [{name: "status/fixed-by"}]')]"
+  # The registry's bound is two, and these two conditions have no issue: filing them spends it before the
+  # settled escalation is met.
+  findings=$(write_findings "$dir/findings.jsonl" \
+    "$(finding violation 5 case bravo)" \
+    "$(finding violation 4 case charlie)" \
+    "$(finding violation 5 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" 2>&1)
+  status=$?
+  assert_eq "8" "$status" "a refused escalation with no bound left fails the run: $out"
+  assert_eq "2" "$(condition_creates "$log")" "the two conditions the bound allowed are filed"
+  assert_eq "0" "$(summary_creates "$log")" "a failed run writes no summary"
+  assert_eq "0" "$(recorded "$log" 'issue edit')" "the settled item is untouched"
+  assert_contains "$out" "leaves the condition unrecorded" "the failure names the condition nothing recorded"
+  assert_eq "0" "$(grep -c 'action=escalated' <<< "$out")" "no refused escalation is reported as written"
+}
+
+# The filing is only worth the write if the next tick meets it as ordinary work: `sensors_issue_for_fingerprint`
+# takes the first item the tracker lists for the fingerprint, and `gh issue list` answers newest first, so the
+# returned condition annotates the item that was filed for it instead of filing the duplicate again — and the
+# settled item keeps its state, because nothing is written to it (issue #780).
+case_run_theFiledConditionIsOpenWorkOnTheNextTick() {
+  local dir log out fp body open findings
+  dir=$(throwaway_project)
+  log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of case alpha)
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->\n<!-- violation-run: 0 -->' "$fp")
+  open=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- violation-run: 0 -->' "$fp")
+  # The tracker as the next tick finds it: the item the refused escalation filed (#99, open, newest first) and
+  # the settled item that carries the same fingerprint (#98).
+  issues_fixture "$dir" "[
+    $(issue_record 99 OPEN "" fixture-emit "$open" | jq -c '.createdAt = "2026-11-05T08:10:00Z"'),
+    $(issue_record 98 CLOSED COMPLETED fixture-emit "$body" \
+      | jq -c '.labels += [{name: "status/fixed-by"}] | .createdAt = "2026-11-01T09:18:00Z"')
+  ]"
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 5 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" 2>&1)
+  assert_eq "0" "$(condition_creates "$log")" \
+    "the returned condition files no second duplicate while its own item is open: $out"
+  assert_eq "1" "$(recorded "$log" 'issue comment')" "the returned condition is recorded on the open item"
+  assert_eq "1" "$(recorded "$log" 'issue edit 99')" "the open item carries the record the annotation needs"
+  assert_eq "0" "$(recorded "$log" 'issue edit 98')" "the settled item is still untouched"
+  assert_contains "$out" "annotated (still open)" "the next tick reads the filed item as open work: $out"
+}
+
+# A row's own `k` is the bound that decides when reopening stops: the engine already reads it
+# (`tools/sensors/run.sh:509`), and until this case nothing exercised it. The fixture registry declares five, so an
+# item at occurrence three is still work and one at occurrence five has reached the bound and escalates.
+case_run_aRowDeclaresItsOwnRecurrenceBound() {
+  local dir log out fp findings body
+  dir=$(throwaway_project "$(fixture registry-row-bound.json)")
+  log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of case alpha)
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 5 case alpha)")
+
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 3 -->\n<!-- violation-run: 0 -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 97 CLOSED COMPLETED fixture-recurrence "$body")]"
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-recurrence --apply --input "$findings" 2>&1)
+  assert_eq "1" "$(recorded "$log" 'issue reopen')" "below the row's own bound the item is reopened: $out"
+  assert_contains "$out" "action=reopened" "the run reports the reopen"
+
+  log="$dir/calls2.log"; : > "$log"
+  body=$(printf 'body\n<!-- fingerprint: %s -->\n<!-- occurrence: 5 -->\n<!-- violation-run: 0 -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 97 CLOSED COMPLETED fixture-recurrence "$body")]"
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-recurrence --apply --input "$findings" 2>&1)
+  assert_eq "0" "$(recorded "$log" 'issue reopen')" "at the row's own bound nothing is reopened: $out"
+  assert_contains "$(cat "$log")" "--add-label agent/needs-decision" "the row's own bound decides the escalation"
+  assert_contains "$out" "action=escalated" "the run reports the escalation"
+}
+
+# The lag row's three outcomes, offline: a stub `curl` first on PATH answers the comparison request, so the
+# measurement's own reading of the pin and of upstream's answer is exercised without a network. A count is a
+# violation, zero is a clear, and an answer the server refused (403, 404, 500) is the third outcome — never a
+# clear, and never a tracker write.
+case_run_libosmscoutLagReadsThreeOutcomes() {
+  local dir log stub out status code
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"; stub="$dir/bin"
+  mkdir -p "$stub"
+  cp "$(fixture curl)" "$stub/curl"
+  chmod +x "$stub/curl"
+
+  issues_fixture "$dir" '[]'
+  out=$(cd "$SENSORS_REPO_ROOT" && PATH="$stub:$PATH" GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    CURL_STUB_STATUS=200 \
+    CURL_STUB_BODY='{"ahead_by":40,"commits":[{"sha":"9fd3a1e62aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]}' \
+    sensor_engine run.sh --only libosmscout-lag --apply 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a readable comparison answers a verdict: $out"
+  assert_contains "$out" "verdict=violation measurement=40" "a count upstream carries is the condition"
+  assert_eq "1" "$(condition_creates "$log")" "a drift files one condition"
+
+  issues_fixture "$dir" '[]'; : > "$log"
+  out=$(cd "$SENSORS_REPO_ROOT" && PATH="$stub:$PATH" GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    CURL_STUB_STATUS=200 CURL_STUB_BODY='{"ahead_by":0,"commits":[]}' \
+    sensor_engine run.sh --only libosmscout-lag --apply 2>&1)
+  status=$?
+  assert_eq "0" "$status" "a zero answer is a clear: $out"
+  assert_contains "$out" "verdict=clear measurement=0" "nothing upstream carries is the clear"
+  assert_eq "0" "$(condition_creates "$log")" "a clear files no condition"
+
+  for code in 403 404 500; do
+    issues_fixture "$dir" '[]'; : > "$log"
+    out=$(cd "$SENSORS_REPO_ROOT" && PATH="$stub:$PATH" GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+      CURL_STUB_STATUS="$code" CURL_STUB_BODY='{"message":"not this answer"}' \
+      sensor_engine run.sh --only libosmscout-lag --apply 2>&1)
+    status=$?
+    assert_eq "8" "$status" "HTTP $code is a failed check, not a clear: $out"
+    assert_contains "$out" "verdict=error measurement=error-" "HTTP $code carries the error reason as its measurement"
+    assert_eq "0" "$(condition_creates "$log")" "HTTP $code writes no condition"
+    assert_eq "0" "$(record_creates "$log")" "HTTP $code writes no record"
+  done
+
+  issues_fixture "$dir" '[]'; : > "$log"
+  out=$(cd "$SENSORS_REPO_ROOT" && PATH="$stub:$PATH" GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    CURL_STUB_EXIT=6 sensor_engine run.sh --only libosmscout-lag --apply 2>&1)
+  status=$?
+  assert_eq "8" "$status" "a request that did not complete is a failed check, not a clear: $out"
+  assert_contains "$out" "verdict=error measurement=error-upstream-unreachable" \
+    "the transport's failure carries its own reason"
+  assert_eq "0" "$(condition_creates "$log")" "a failed request writes no condition"
+}
+
 case_run_escalationNeverSetsEligibility() {
   local dir log out
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
@@ -1633,38 +1857,102 @@ case_run_escalationNeverSetsEligibility() {
 # ----------------------------------------------------------------------------- 5. the metric rows
 
 case_sensors_buildDurationRow() {
-  local dir log out status findings timing
+  local dir log out status record fp
   dir=$(scratch); log="$dir/calls.log"; : > "$log"
-  timing="$dir/gate-timings.json"
-  jq -n '{durationMs: 542000, startedAt: "2026-10-17T03:00:00Z", finishedAt: "2026-10-17T03:09:02Z",
-          taskFailures: 0, invocation: [":app:testMobileDebugUnitTest"],
-          tasks: [{path: ":app:testMobileDebugUnitTest", outcome: "executed", durationMs: 195000}]}' > "$timing"
+  record="$dir/job-timings.json"
 
-  # first run: no baseline on record, so no condition — and nothing written
+  # A pipeline inside the row's ceiling: the run measures the longest job's wall time and reports a clear, and a
+  # clear with no condition issue reaches the tracker on the row's record — it is not a condition issue, so
+  # nothing a person has to read as a defect is filed.
+  jq -nc '{workflow: "build.yml", commit: "abc1234", runId: 4242, jobs: [
+    {name: "Build debug APK (all ABIs)", conclusion: "success",
+     startedAt: "2026-10-17T03:00:00Z", completedAt: "2026-10-17T03:50:10Z", durationMs: 3010000,
+     steps: [{name: "Install vcpkg dependencies", conclusion: "success", durationMs: 103000},
+             {name: "Build debug APK", conclusion: "success", durationMs: 623000}]},
+    {name: "Offline gates", conclusion: "success", durationMs: 1416000, steps: []}]}' > "$record"
   issues_fixture "$dir" '[]'
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
-    sensor_engine run.sh --only build-duration --apply --input "$timing" 2>&1)
+    sensor_engine run.sh --only build-duration --apply --input "$record" 2>&1)
   status=$?
   assert_eq "0" "$status" "the first run succeeds: $out"
-  # No baseline is a clear, and a clear with no condition issue reaches the tracker on the row's record: it
-  # is not a condition issue, so nothing a person has to read as a defect is filed.
-  assert_eq "0" "$(condition_creates "$log")" "no baseline means no condition issue"
+  assert_contains "$out" "measurement=3010000" "the measurement is the longest job's wall time, not the shorter one's"
+  assert_eq "0" "$(condition_creates "$log")" "a pipeline inside the ceiling is no condition issue"
   assert_eq "1" "$(record_creates "$log")" "the clear is kept on the row's record"
 
-  # second run: the issue's own record carries 100000ms, and 542000ms is past 100000 × 1.5
+  # The same job past the ceiling, with an open condition carrying its identity: the run annotates that condition
+  # and posts the number it measured, so the bound is the row's and the posting is the row's measurement.
   log="$dir/calls2.log"; : > "$log"
-  local fp
-  fp=$(fingerprint_of job gate)
+  fp=$(fingerprint_of job "Build debug APK (all ABIs)")
   issues_fixture "$dir" "[$(issue_record 101 OPEN "" build-duration \
     "$(printf 'body\n<!-- fingerprint: %s -->' "$fp")" \
-    "[$(marker_comment 2026-10-16T03:00:00Z build-duration "$fp" violation 100000)]")]"
+    "[$(marker_comment 2026-10-16T03:00:00Z build-duration "$fp" violation 6540000)]")]"
+  jq -c '.jobs[0].durationMs = 6540000' "$record" > "$record.next" && mv "$record.next" "$record"
   out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
-    sensor_engine run.sh --only build-duration --apply --input "$timing" 2>&1)
+    sensor_engine run.sh --only build-duration --apply --input "$record" 2>&1)
   status=$?
   assert_eq "0" "$status" "the second run succeeds: $out"
-  assert_contains "$out" "verdict=violation" "a wall time past the bound is a violation"
-  assert_contains "$(cat "$log")" "542000" "the measurement is posted"
-  assert_contains "$(cat "$log")" "baseline=100000" "the baseline quoted is the earlier comment's number"
+  assert_contains "$out" "verdict=violation" "a job past the absolute ceiling is a violation"
+  assert_contains "$out" "action=annotated (still open)" "the open condition of that job is annotated, not filed again"
+  assert_contains "$(cat "$log")" "6540000" "the measurement is posted"
+}
+
+# The row's measurement is the pipeline's wall time, not one Gradle invocation's (issue #778): the record the
+# checks' fetcher writes (`tools/fetch-build-inputs.sh --jobs-record`, read from the build run's own
+# `actions/runs/<id>/jobs`) carries every job of the build workflow and every step's wall time. A step outside
+# Gradle that doubles then moves the job past the row's absolute ceiling while every Gradle step stays flat.
+case_sensors_buildDurationCoversThePipeline() {
+  local dir log out status record healthy healthy_out fp
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  record="$dir/job-timings.json"
+  # The item's own figures: `Build debug APK` 46m50s–50m10s healthy against 1h49m–2h06m regressed, every Gradle
+  # step flat across it (623 s / 419 s / 344 s), and `Install vcpkg dependencies` 102–109 s against 3430–4304 s.
+  healthy=$(jq -nc '{workflow: "build.yml", commit: "41820344211", runId: 41820344211, jobs: [
+    {name: "Build debug APK (all ABIs)", conclusion: "success",
+     startedAt: "2026-11-04T09:56:00Z", completedAt: "2026-11-04T10:46:10Z", durationMs: 3010000,
+     steps: [{name: "Install vcpkg dependencies", conclusion: "success",
+              startedAt: "2026-11-04T10:22:55Z", completedAt: "2026-11-04T10:24:38Z", durationMs: 103000},
+             {name: "Build debug APK", conclusion: "success", durationMs: 623000},
+             {name: "Run unit tests", conclusion: "success", durationMs: 419000},
+             {name: "Generate coverage reports", conclusion: "success", durationMs: 344000}]}]}')
+
+  # The regressed pipeline: every Gradle step is the healthy one's, and the one step outside Gradle is an hour
+  # longer. The row files, and its claim names the step that grew rather than only the job's number.
+  printf '%s\n' "$(jq -c '.jobs[0].durationMs = 6540000
+    | .jobs[0].steps |= map(if .name == "Install vcpkg dependencies" then .durationMs = 3430000 else . end)' \
+    <<< "$healthy")" > "$record"
+  issues_fixture "$dir" '[]'
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only build-duration --apply --input "$record" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_contains "$out" "verdict=violation" \
+    "a job past the row's ceiling is a violation however flat its Gradle steps are: $out"
+  assert_contains "$out" "measurement=6540000" "the measurement is the job's own wall time"
+  assert_eq "1" "$(condition_creates "$log")" "the condition is filed"
+  fp=$(fingerprint_of job "Build debug APK (all ABIs)")
+  assert_contains "$(log_text "$log")" "$fp" \
+    "the filed condition's identity is that job, so a later run annotates it rather than filing again"
+  assert_contains "$(log_text "$log")" "Install vcpkg dependencies" \
+    "the claim names the step that grew"
+
+  # The same pipeline with that one step at its measured 103 s: the row is clear, so the verdict is a measurement
+  # of the record rather than a constant — and the ceiling is the row's, read from the registry.
+  log="$dir/calls-healthy.log"; : > "$log"
+  printf '%s\n' "$healthy" > "$record"
+  issues_fixture "$dir" '[]'
+  healthy_out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only build-duration --apply --input "$record" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the healthy run succeeds: $healthy_out"
+  assert_not_contains "$healthy_out" "verdict=violation" \
+    "a job inside the ceiling is no condition, whatever the record's other fields are: $healthy_out"
+  assert_eq "0" "$(condition_creates "$log")" "nothing is filed for a pipeline inside its ceiling"
+
+  # The row declares the record as its input, so the publisher and the fetcher are paired by the registry rather
+  # than by a path a reader has to know (spec `backlog-sensors`, "A row's declared input is published").
+  assert_eq "build/job-timings.json" \
+    "$(jq -r '.rows[] | select(.id == "build-duration") | .input' "$SENSORS_ENGINE/sensors.json")" \
+    "the row declares the record the fetcher writes and the publisher lists"
 }
 
 case_hotspot_ranksBySizeTimesChanges() {
@@ -2513,6 +2801,85 @@ case_sensors_prConflictsOnlyOwnPRs() {
 
 # ----------------------------------------------------------------------------- 6. the pipeline
 
+case_sensors_aFailedScanIsItsOwnCondition() {
+  # The scan pipeline sat outside every row: `sonar.yml` published no record, no row named it, and a workflow
+  # that had never once succeeded read as healthy (issue #751). The condition is a *state* of the scan, and its
+  # identity is the failing step, so a second, unrelated failing step is a second issue rather than a
+  # reopening of the first one's record.
+  local dir log artifact out row fp
+  row=$(jq -c '.rows[] | select(.id == "broken-scan")' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$row" ] || fail "the registry declares no broken-scan row"
+  assert_eq "boolean" "$(jq -r '.comparison' <<< "$row")" "the scan's row fires on a state, not a number"
+  assert_eq "1" "$(jq -r '.threshold' <<< "$row")" "the state is red or green"
+  assert_eq "bug" "$(jq -r '.class' <<< "$row")" "a red scan files a bug"
+  assert_eq '["job","step"]' "$(jq -c '.fingerprint.fields' <<< "$row")" "the identity is the failing step"
+  assert_eq "scan-result.json" "$(jq -r '.input' <<< "$row")" "the record the scan publishes is the row's input"
+  [ -f "$SENSORS_ENGINE/conditions/broken-scan.sh" ] || fail "no condition script beside broken-main.sh"
+
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  artifact="$dir/scan-result.json"
+  jq -n '{job: "sonar", step: "Scan", command: "SonarSource/sonarqube-scan-action@v7", result: "failure"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-scan --apply --input "$artifact" --json 2>&1)
+  fp=$(fingerprint_of job sonar step Scan)
+  assert_contains "$out" '"verdict":"violation"' "a red scan is a violation: $out"
+  assert_contains "$out" '"row":"broken-scan"' "the finding is the row's own"
+  assert_contains "$out" "\"fingerprint\":\"$fp\"" "the identity is the failing job and step"
+  assert_eq "1" "$(condition_creates "$log")" "a red scan files one condition"
+
+  # …and the item says what broke, not only that something did: the record carries the failing step's command
+  # and the item carries it into the tracker (spec `backlog-sensors`, "A red scan is one condition, and its
+  # identity is the step that broke"). The filing's body travels on the write log, so the log is where the
+  # item's own text is read.
+  assert_contains "$(log_text "$log")" "the scan failed at Scan" "the item names the step that broke"
+  assert_contains "$(log_text "$log")" "SonarSource/sonarqube-scan-action@v7" "the item names the command that failed"
+
+  # A second, unrelated failing step is a second item rather than a reopening of the first one's: the identity
+  # is the step, so a different step is a different condition (design D4).
+  jq -n '{job: "sonar", step: "Run unit tests", command: "./gradlew test", result: "failure"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-scan --apply --input "$artifact" --json 2>&1)
+  fp=$(fingerprint_of job sonar step "Run unit tests")
+  assert_contains "$out" "\"fingerprint\":\"$fp\"" "a second failing step carries its own identity"
+  assert_eq "2" "$(condition_creates "$log")" "a second failing step files a second item"
+}
+
+case_sensors_aGreenScanClearsItsCondition() {
+  # The other half of the same duty, and the reason the record carries the run's result rather than only a
+  # failure: a scan that is green again clears the item its own condition opened.
+  local dir log artifact out fp body
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  fp=$(fingerprint_of job sonar step Scan)
+  body=$(printf 'the scan of main is red\n\n<!-- fingerprint: %s -->\n<!-- condition: {"job":"sonar","step":"Scan"} -->' "$fp")
+  issues_fixture "$dir" "[$(issue_record 751 OPEN null broken-scan "$body")]"
+  artifact="$dir/scan-result.json"
+  jq -n '{job: "sonar", step: "", command: "", result: "success"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-scan --apply --input "$artifact" --json 2>&1)
+  assert_contains "$out" '"verdict":"clear"' "a green scan reports a clear: $out"
+  assert_contains "$out" "\"fingerprint\":\"$fp\"" "the clear names the recorded condition's identity"
+  assert_eq "1" "$(recorded "$log" 'issue close')" \
+    "the issue the recorded condition identifies is the one a green scan closes"
+  assert_eq "0" "$(condition_creates "$log")" "a green scan files no condition"
+
+  # The other half: a green record with *nothing* recorded must still report. The runner reads a row that
+  # printed nothing as a failed check, so "the condition is absent" is a verdict the row has to print, on its
+  # own identity — it owns no issue, so it closes nothing (spec `backlog-sensors`, "A green scan clears its
+  # condition"; the counterpart is `sensors#brokenMainGreenReportsClear`).
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  artifact="$dir/scan-result.json"
+  jq -n '{job: "sonar", step: "", command: "", result: "success"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-scan --apply --input "$artifact" --json 2>&1)
+  assert_contains "$out" '"verdict":"clear"' "a green scan with nothing recorded still reports a clear: $out"
+  assert_contains "$out" '"row":"broken-scan"' "the clear is the row's own"
+  assert_eq "0" "$(recorded "$log" 'issue close')" "a clear that owns no issue closes nothing"
+  assert_eq "0" "$(condition_creates "$log")" "and files no condition"
+  assert_eq "1" "$(record_creates "$log")" "a green scan still reaches the tracker, on the row's record"
+}
+
 case_workflow_onlyTwoTriggers() {
   local file out
   file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
@@ -2606,6 +2973,63 @@ case_workflow_onlyTwoTriggers() {
     fail "CODEOWNERS does not cover the workflow directory"
 }
 
+case_workflow_theScanRecordIsFetchedBeforeItsRowRuns() {
+  # A row reads a file, so the file has to be in the tree before the row is selected — and the scan's record
+  # exists only once the scan of *this commit* has finished, which is minutes after the build's. The fetch
+  # step reports the two ready-nesses apart (`ready` for the build's record, `scan-ready` for the scan's), and
+  # the scan's row runs on the second alone: a tick that read too early selects no row and reports no failed
+  # check (spec `backlog-sensors`, "A pipeline outside the build publishes its own record").
+  local file sonar fetch_block scan_block input artifact
+  file="$SENSORS_REPO_ROOT/.github/workflows/sensors.yml"
+  sonar="$SENSORS_REPO_ROOT/.github/workflows/sonar.yml"
+  [ -f "$file" ] || fail "the sensor pipeline has no file"
+  [ -f "$sonar" ] || fail "the scan workflow has no file"
+
+  fetch_block=$(awk "/- name: Fetch this commit.s build record/ { inside = 1; next }
+                     inside && /^[[:space:]]*- name:/ { inside = 0 } inside" "$file")
+  [ -n "$fetch_block" ] || fail "no step fetches this commit's record"
+
+  # The record is fetched from the scan workflow, under the artifact name the scan publishes — one name, so a
+  # rename on either side is a red case rather than a row that silently reads nothing.
+  assert_contains "$fetch_block" "--workflow sonar.yml" "the fetch does not ask the scan workflow"
+  artifact=$(printf '%s\n' "$fetch_block" | grep -o -- '--artifact [A-Za-z0-9_.-]*' | awk '{ print $2 }')
+  assert_eq "scan-inputs" "$artifact" "the fetch asks for the artifact the scan publishes"
+  assert_contains "$fetch_block" "scan-ready" "the fetch reports whether the scan's record exists yet"
+  sonar_upload=$(awk '
+    function flush() { if (body ~ /name: scan-inputs/) printf "%s", body; body = "" }
+    /^[[:space:]]*- name:/ { flush(); body = $0 "\n"; next }
+    { if (body != "") body = body $0 "\n" }
+    END { flush() }' "$sonar")
+  [ -n "$sonar_upload" ] || fail "the scan workflow publishes no 'scan-inputs' artifact"
+  case "$(printf '%s\n' "$sonar_upload" | grep -E '^[[:space:]]*if:' | head -1)" in
+    *'always()'*) ;;
+    *) fail "the scan's artifact is not published on 'always()', so a red scan publishes nothing" ;;
+  esac
+
+  # The row is selected on its own ready-ness, and only for the record path it declares.
+  scan_block=$(awk "/- name: Run the scan.s condition row/ { inside = 1; next }
+                    inside && /^[[:space:]]*- name:/ { inside = 0 } inside" "$file")
+  [ -n "$scan_block" ] || fail "no step runs the scan's condition row"
+  assert_contains "$scan_block" "steps.record.outputs.ready == 'true'" "the row still waits for the build's record"
+  assert_contains "$scan_block" "steps.record.outputs.scan-ready == 'true'" \
+    "the row is selected only once a completed scan carries its record"
+  assert_contains "$scan_block" "--rows broken-scan" "the step runs the scan's row"
+  assert_contains "$scan_block" 'run.sh --due' "the row is selected by the tick's window"
+  assert_eq "1" "$(grep -c -- '--rows broken-scan' "$file")" "no second step runs the row without the record"
+
+  # The wait itself, not the word: the fetch tells "no completed scan of this commit carries the record yet"
+  # from "cannot tell", writes its own readiness as false in the first case, and fails the tick in the second,
+  # so an unfinished scan selects no row and reports no failed check (spec `backlog-sensors`, "An unfinished
+  # scan selects no row").
+  assert_contains "$fetch_block" '[ "$status" -eq 3 ]' "the fetch separates 'not ready' from 'cannot tell'"
+  assert_contains "$fetch_block" 'scan-ready=false' "an unfinished scan is recorded as not ready"
+  assert_contains "$fetch_block" 'exit "$status"' "a fetch that cannot tell still fails the tick"
+
+  input=$(jq -r '.rows[] | select(.id == "broken-scan") | .input' "$SENSORS_ENGINE/sensors.json")
+  [ -n "$input" ] || fail "the registry declares no broken-scan row"
+  assert_contains "$(cat "$sonar")" "$input" "the scan workflow publishes the path the row declares"
+}
+
 # The interval is not a constant the engine assumes: the pipeline declares its lower bound, the previous
 # tick's start time, so a tick GitHub skipped leaves its minutes in the next tick's interval (#256).
 case_workflow_theTickDeclaresItsWindow() {
@@ -2675,12 +3099,14 @@ case_workflow_aRedRecordRunsNoRecordRow() {
     /^ +if: / { gate = $0 }
     /run: bash tools\/sensors\/run\.sh --due .*--rows / { printf "%s\t%s\n", gate, $0 }
   ' "$file")
-  assert_eq "2" "$(printf '%s\n' "$steps" | grep -c .)" "the pipeline has one row step per family of rows"
+  assert_eq "3" "$(printf '%s\n' "$steps" | grep -c .)" "the pipeline has one row step per family of rows"
 
   record_step=$(printf '%s\n' "$steps" | grep "conclusion == 'success'" || true)
-  other_step=$(printf '%s\n' "$steps" | grep -v "conclusion == 'success'" || true)
+  scan_step=$(printf '%s\n' "$steps" | grep 'scan-ready' || true)
+  other_step=$(printf '%s\n' "$steps" | grep -v "conclusion == 'success'" | grep -v 'scan-ready' || true)
   [ -n "$record_step" ] ||
     fail "the rows that read the build's own outputs are not gated on a record a successful build published"
+  [ -n "$scan_step" ] || fail "no row step waits for the scan's own record (the scan is a pipeline of its own)"
   [ -n "$other_step" ] || fail "no row step runs for a record the build did not complete successfully"
 
   # Every row step names the rows it selects, so what runs for a red record is a decision in the file
@@ -2688,17 +3114,20 @@ case_workflow_aRedRecordRunsNoRecordRow() {
   hits=$(grep -n 'run\.sh --due' "$file" | grep -v -- '--rows' || true)
   assert_empty "$hits" "a row step selects every due row, so a red build's record reaches a row that reads it"
 
-  # The two lists are the registry's rows: one home for which check exists, and the file's two sets must
-  # cover it exactly once — a row added to the registry and left out of both steps would otherwise never run.
+  # The lists are the registry's rows: one home for which check exists, and the file's steps must cover it
+  # exactly once — a row added to the registry and left out of every step would otherwise never run.
   record_rows=$(printf '%s' "$record_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
+  scan_rows=$(printf '%s' "$scan_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
   other_rows=$(printf '%s' "$other_step" | sed -n 's/.*--rows \([^ ]*\).*/\1/p')
   [ -n "$record_rows" ] || fail "the record rows' step names no rows"
+  [ -n "$scan_rows" ] || fail "the scan's row step names no rows"
   [ -n "$other_rows" ] || fail "the other rows' step names no rows"
   declared=$(jq -r '.rows[].id' "$SENSORS_ENGINE/sensors.json" | sort)
-  selected=$(printf '%s\n%s\n' "$(printf '%s' "$record_rows" | tr ',' '\n')" \
+  selected=$(printf '%s\n%s\n%s\n' "$(printf '%s' "$record_rows" | tr ',' '\n')" \
+    "$(printf '%s' "$scan_rows" | tr ',' '\n')" \
     "$(printf '%s' "$other_rows" | tr ',' '\n')" | grep -v '^$' | sort)
-  assert_eq "$declared" "$selected" "the two steps select every declared row"
-  assert_eq "$(printf '%s\n' "$selected" | sort -u)" "$selected" "no row is selected by both steps"
+  assert_eq "$declared" "$selected" "the steps select every declared row"
+  assert_eq "$(printf '%s\n' "$selected" | sort -u)" "$selected" "no row is selected by two steps"
 
   # The pipeline's own commands, run against the record a red build publishes: the result record alone
   # (the publisher always writes that one), in a tree that has the tools the pipeline runs.

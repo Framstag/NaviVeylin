@@ -1,0 +1,6 @@
+# revert-check 3.6 — the style load's record removed (re-run on the round-4 sources, 2026-11-04T21:10:31Z)
+# mutation: MapCanvasViewModelSettings.kt, 'MapDaylightApplier.record(client, daylight)' deleted.
+# command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MapDaylightRecordTest"
+# result: 1 failure:
+message="java.lang.AssertionError: the load itself records the variant, so no writer pushes it again expected:&lt;UNCHANGED&gt; but was:&lt;APPLIED&gt;"
+# green half: restored, forced green (round-4 sources) — same command as the red half

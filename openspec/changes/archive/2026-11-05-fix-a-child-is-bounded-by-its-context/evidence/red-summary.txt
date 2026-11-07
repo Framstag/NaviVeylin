@@ -1,0 +1,32 @@
+# The red test, on the base commit — what the two runs printed
+#
+# Source: evidence/red-on-head.log — two selections, each one case, each run on the base commit 122cc2f9 with
+# nothing else changed. The transcripts are that file; this one derives the roll-up the change's report cites.
+
+## Run 1 — 2026-11-05T11:52:51Z (red-on-head.log:3, :75, :147-148)
+
+$ ./tools/loop-selftest.sh --case 'run#theRecordedZeroKeepsTheContextBoundOff'
+--- run#theRecordedZeroKeepsTheContextBoundOff[0] (exit 1)
+  the run's header says the context bound is off: 'item-context-max=0' not found in: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=2 item-turns-max=250 min-free-mib=1024 free-mib=4904 dry-run=0 reset-worktree=0 agent-roles=-
+FAIL run#theRecordedZeroKeepsTheContextBoundOff
+loop-selftest: 1 of 1 cases failed
+
+## Run 2 — 2026-11-05T11:53:03Z (red-on-head.log:150, :152, :154-155)
+
+$ ./tools/loop-selftest.sh --case 'run#childPastItsContextBoundIsBlocked'
+--- run#childPastItsContextBoundIsBlocked[0] (exit 1)
+  the run was still waiting after 60 s on a child whose context had grown to 210 000 tokens past a recorded bound of 200 000
+FAIL run#childPastItsContextBoundIsBlocked
+loop-selftest: 1 of 1 cases failed
+
+## The roll-up the report cites
+
+tests=2 failures=2
+
+Derivation: the two selections above are one case each, and each closed with `1 of 1 cases failed` — so the two
+together are 2 cases, 2 failures, 0 errors. No single command printed that pair: the runs were two separate
+`--case` invocations, and each printed `1 of 1`. It is their sum, not a third run.
+
+On the applied tree the same two selections are green: evidence/green-cases.log, and the gate's own run prints
+`PASS run#childPastItsContextBoundIsBlocked` and `PASS run#theRecordedZeroKeepsTheContextBoundOff`
+(evidence/gate.log:1128-1129).

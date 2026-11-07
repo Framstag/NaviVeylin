@@ -1,0 +1,23 @@
+# red run 2026-11-03T17:52:05Z on base 9e3ed182 (the workflows before this change, with this change's checker and its self-test)
+# command: bash tools/check-action-runtimes-selftest.sh   (in a throwaway tree holding the base workflows)
+FAIL: action-runtimes#theRepositorysOwnPinsPass — this repository's workflows pin a Node 24 major
+       ::error file=.github/workflows/build.yml,line=44::'runs-on: ubuntu-latest' is a moving label — pin a released image, because the label's contents change without this repository's knowledge (a runner-image change cost 62 minutes of a 109-minute job when the vcpkg binary cache's client stopped working on the new image)
+       ::error file=.github/workflows/metadata.yml,line=41::'runs-on: ubuntu-latest' is a moving label — pin a released image, because the label's contents change without this repository's knowledge (a runner-image change cost 62 minutes of a 109-minute job when the vcpkg binary cache's client stopped working on the new image)
+       ::error file=.github/workflows/sensors.yml,line=44::'runs-on: ubuntu-latest' is a moving label — pin a released image, because the label's contents change without this repository's knowledge (a runner-image change cost 62 minutes of a 109-minute job when the vcpkg binary cache's client stopped working on the new image)
+       ::error file=.github/workflows/sonar.yml,line=46::'runs-on: ubuntu-latest' is a moving label — pin a released image, because the label's contents change without this repository's knowledge (a runner-image change cost 62 minutes of a 109-minute job when the vcpkg binary cache's client stopped working on the new image)
+ok: pins at or above the Node 24 floor pass
+ok: a Node 20 upload-artifact pin fails
+ok: a Node 20 checkout pin fails
+ok: a subpath of a recorded action resolves to the action's floor
+ok: action-runtimes#anActionWithNoRecordedRuntimeFails — an action with no recorded runtime fails
+ok: an unverifiable ref fails
+ok: a container action and a local action are skipped
+ok: runtimes#aHostedRunnerImageIsPinned — released runner images pass
+ok: runtimes#aHostedRunnerImageIsPinned — an ubuntu-latest label is reported
+ok: runtimes#aHostedRunnerImageIsPinned — the report names the file and line
+ok: runtimes#aHostedRunnerImageIsPinned — every hosted -latest label is reported
+ok: runtimes#aHostedRunnerImageIsPinned — an expression and self-hosted are skipped
+ok: a workflow with no action pin passes
+ok: a tree with no workflow directory is a layout error
+check-action-runtimes-selftest: 1 of 15 cases failed
+# exit=1

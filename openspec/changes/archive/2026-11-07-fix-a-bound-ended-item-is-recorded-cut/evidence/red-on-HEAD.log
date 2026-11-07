@@ -1,0 +1,15 @@
+# red run on HEAD 2026-11-07T00:37:04Z — bash tools/loop-selftest.sh --case run#child*IsCut (engine unmodified, change case file)
+run#childPastItsTurnBoundIsCut|   an item whose child crossed the bound is recorded cut, not blocked (issue #790): expected 'cut', got 'blocked'
+run#childPastItsContextBoundIsCut|   an item whose child crossed the bound is recorded cut, not blocked (issue #790): expected 'cut', got 'blocked'
+--- run#childOutlastingTheWallClockIsCut[1] (exit 1)
+  an item whose child crossed the bound is recorded cut, not blocked (issue #790): expected 'cut', got 'blocked'
+FAIL run#childPastItsTurnBoundIsCut
+run#childOutlastingTheWallClockIsCut|   an item whose child was ended is recorded cut, not blocked: expected 'cut', got 'blocked'
+--- run#childOutlastingTheWallClockIsCut[2] (exit 1)
+  an item whose child crossed the bound is recorded cut, not blocked (issue #790): expected 'cut', got 'blocked'
+FAIL run#childPastItsContextBoundIsCut
+--- run#childOutlastingTheWallClockIsCut[0] (exit 1)
+  an item whose child was ended is recorded cut, not blocked: expected 'cut', got 'blocked'
+FAIL run#childOutlastingTheWallClockIsCut
+loop-selftest: run 3 cases 21.56 s
+loop-selftest: 3 of 3 cases failed — 8.48 s

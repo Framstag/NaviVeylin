@@ -30,6 +30,30 @@ concluded `success`; the rest run for any record, so **"the build is red" is exa
 `broken-main`, which reads the result record the publisher always writes — and no row reports a failure a
 person would have to read as "the build was red, the check was fine".
 
+One thing that record cannot carry is the wall time of the run that made it: a running job cannot read its own
+step durations. So the record of the pipeline's own **job and step wall times** is the checks' fetcher's
+(`tools/fetch-build-inputs.sh --jobs-record build/job-timings.json`), read from GitHub's post-run
+`actions/runs/<id>/jobs` for the run whose artifact it just restored — the run's identifier and commit travel inside
+it, so it cannot answer for another pipeline, and a fetch that did not ask for it writes none. `build-duration`
+measures that record: **the wall time of its longest job**, under an absolute ceiling (one hour,
+`comparison: greater-than`), with the claim naming that job's longest step, so an item says which step grew. An
+absolute bound and not a multiple of the previous measurement, because a multiple needs one run to be worse than the
+run before it and drift never is: the cache-off regression (#778) took `Build debug APK` from 50m10s to 1h49m while
+every Gradle step stayed flat (623 s, 419 s, 344 s), and a row measuring one Gradle invocation filed nothing for two
+days. The condition's identity is the job's own name, the bound is the row's, and a record inside it is a clear like
+any other.
+
+A pipeline the build does not own publishes its record the same way, under its own ready-ness. The scan
+(`.github/workflows/sonar.yml`) writes `scan-result.json` at the workspace root — the run's result, the step that
+broke and the command it ran — for every run, a red one included, and uploads it as the `scan-inputs` artifact;
+`tools/build-inputs.sh --scan-result` is what writes it, so the path is the publisher's and `--check` pairs it
+with the `broken-scan` row exactly as it pairs the build's own inputs. The path sits at the root because
+`actions/upload-artifact` roots an archive at the least common ancestor of its `path:` list, so a single
+explicit file is carried under its basename and restored at the workspace root: a record declared under
+`app/build/` would be unpacked somewhere the row does not read. The checks' run fetches that artifact with the
+same fetcher and reports a second ready-ness beside the build's, because a scan of the commit may still be
+running: without it a scan that had never once succeeded filed nothing at all, for three runs (#751).
+
 One row exists to watch the mechanism rather than the project: `stale-citations` reports the **count of
 citations nothing accounts for**, measured by the resolver's own dry run — the items it reports unresolved plus
 the ones a park before #281 left holding one — so a residue that grows — a repair that stopped reaching
@@ -114,6 +138,20 @@ nowhere else — it can neither file a false condition nor clear a real one — 
 read is still an `error`, so a tool whose output shape changed fails loudly instead of reporting a calm zero. What
 it cannot do is decide whether a share that rose is a regression or a week of harness work; that is the reader's
 judgement, on the comment the row leaves.
+
+One row watches **whether upstream has moved past the submodule's pin**, because nothing did: `libosmscout-lag`
+reads the gitlink with `git ls-tree HEAD` (no submodule clone) and asks GitHub's public `compare` endpoint for the
+commits upstream's branch carries that the pin does not (`ahead_by`). The measurement is that count, and the bound is
+**any drift** (`threshold: 1`, `comparison: boolean`) rather than a lag: the pin is deliberately a merge commit, so
+after an update lands it is not upstream's head, and a count of zero is the clear that says the update landed —
+where a lag bound would ration when the update happens and a days-behind bound would fire during an upstream quiet
+period when there is nothing to merge. The row declares its own recurrence bound (`k: 100`, about two years at the
+observed weekly cadence) because its condition returns as a matter of course after every update: at the registry's
+3 the fourth routine cycle would escalate ordinary maintenance to a person as a design problem. Measured when the
+row landed: the pin was `7c449bf66`, upstream `master` was `9fd3a1e62`, and the count was 40 commits the pin did not
+carry (2026-11-04). An unreadable answer — a failed request, a refusal, a server error, or a pin upstream does not
+carry — is an `error`, never a zero, and the pipeline runs the row for a red build too because drift does not
+depend on the build's verdict.
 
 
 ## §10 Portability — the engine and the project

@@ -1,0 +1,10 @@
+2026-11-06T07:03:44Z
+loop-mutations: selected 1 of 244 records (labels: 82.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.N8tORr
+RED    82.1  run#aVanishedWriterEndsTheWait   (the liveness of the subshell that writes the child record, so a writer that vanished is waited for until a clock (issue #795))
+       2026-11-06T07:04:49Z — the run was still waiting 60 s after the writer of its child's record was killed
+restore 82.1 run#aVanishedWriterEndsTheWait green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+exit 0
+2026-11-06T07:04:56Z

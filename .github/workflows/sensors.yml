@@ -41,7 +41,7 @@ concurrency:
 jobs:
   sensors:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       # The record itself is read from the build pipeline's artifact of this commit — the workflow's own
@@ -82,12 +82,19 @@ jobs:
       # from the build pipeline's artifact, with the conclusion the build's run ended with reported beside it.
       # `ready=false` (exit 3) means the build has not finished yet — a skipped run that writes nothing and
       # reports no failed check, rather than four `error` rows.
+      #
+      # `--jobs-record` adds one thing the artifact cannot carry: the wall time of the run's own jobs and steps,
+      # which only GitHub's post-run jobs API answers — a running job cannot read its own step durations. The
+      # record is written for exactly the run restored here, which is what lets `build-duration` measure the
+      # pipeline instead of one Gradle invocation inside it (issue #778). The scan's fetch below does not pass
+      # the flag: its run's jobs are not the build's.
       - name: Fetch this commit's build record
         id: record
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --jobs-record build/job-timings.json \
                --conclusion-file "$RUNNER_TEMP/build-conclusion"; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
             echo "conclusion=$(cat "$RUNNER_TEMP/build-conclusion")" >> "$GITHUB_OUTPUT"
@@ -95,6 +102,22 @@ jobs:
             status=$?
             if [ "$status" -eq 3 ]; then
               echo "ready=false" >> "$GITHUB_OUTPUT"
+            else
+              exit "$status"
+            fi
+          fi
+          # The scan's own record comes from a pipeline of its own (`.github/workflows/sonar.yml`), whose
+          # artifact is fetched the same way — with the same read-only token, so the workflow's own token is
+          # still used for exactly one thing. Its ready-ness is reported apart from the build's: the scan of
+          # this commit may still be running, and `broken-scan` is then selected by no tick rather than
+          # reported as a failed check (exit 3 = no completed scan carries the record yet).
+          if bash tools/fetch-build-inputs.sh --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --dest . \
+               --workflow sonar.yml --artifact scan-inputs; then
+            echo "scan-ready=true" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -eq 3 ]; then
+              echo "scan-ready=false" >> "$GITHUB_OUTPUT"
             else
               exit "$status"
             fi
@@ -174,7 +197,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
           SENSORS_SINCE: ${{ steps.record.outputs.since }}
-        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,routed-section-size,entry-document-size,document-size,normative-purity,stale-citations,metadata-invariant,loop-spend "$SENSORS_MODE"
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-main,pr-conflicts,hotspot,source-size,routed-section-size,entry-document-size,document-size,normative-purity,stale-citations,metadata-invariant,loop-spend,libosmscout-lag "$SENSORS_MODE"
+
+      # The scan's row, and only for a commit whose scan has finished: the scan is a pipeline of its own, so
+      # its record exists minutes after the build's, and a tick that read too early would report a failed check
+      # for a scan that is still running (spec `backlog-sensors`, "No record yet is not a failed check"). It runs
+      # for a red build as well — the scan measures the commit, not the build's verdict — and it reads only the
+      # record the scan published, so a red main is still exactly one row's verdict.
+      - name: Run the scan's condition row
+        if: steps.record.outputs.ready == 'true' && steps.record.outputs.scan-ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SENSORS_TOKEN }}
+          SENSORS_SINCE: ${{ steps.record.outputs.since }}
+        run: bash tools/sensors/run.sh --due --since "$SENSORS_SINCE" --rows broken-scan "$SENSORS_MODE"
 
       - name: Report the rows
         if: always()

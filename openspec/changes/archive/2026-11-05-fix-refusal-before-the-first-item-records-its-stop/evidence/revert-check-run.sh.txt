@@ -1,0 +1,278 @@
+RED    9.3  labels#writesOnlyBetweenChildren   (one writer per tree: the child runs while the wrapper writes state)
+       2026-11-05T21:53:46Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215343')
+restore 9.3 labels#writesOnlyBetweenChildren green again
+RED    9.4  labels#trapRemovesInProgressOnSignal   (the signal trap that removes the in-progress label)
+       2026-11-05T21:53:57Z — the interrupted item's in-progress label is removed exactly once: expected '1', got '0'
+restore 9.4 labels#trapRemovesInProgressOnSignal green again
+RED    9.5  run#childClaimWithoutCommitIsBlocked   (the run verifying instead of trusting the child)
+       2026-11-05T21:54:09Z — the reason names what was missing: 'base commit' not found in: the branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e could not be merged onto the base, so the item is not closed on a fix the tree does not have — loop: branch fix/
+restore 9.5 run#childClaimWithoutCommitIsBlocked green again
+RED    9.6  run#decisionCapRefusesToStart   (the decision cap that stops a run)
+       2026-11-05T21:54:19Z — the decision cap refuses to start: expected '5', got '0'
+restore 9.6 run#decisionCapRefusesToStart green again
+RED    9.7  run#mayCloseNoLeavesTheIssueOpen   (the closure opt-out)
+       2026-11-05T21:54:30Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215425')
+restore 9.7 run#mayCloseNoLeavesTheIssueOpen green again
+RED    9.9  state#agentCommandIsTheOnlyIndirection   (the single agent-command indirection)
+       2026-11-05T21:54:45Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215439')
+restore 9.9 state#agentCommandIsTheOnlyIndirection green again
+RED    9.10  run#reviewerWriteInvalidatesTheRound   (the reviewer read-only comparison)
+       2026-11-05T21:55:00Z — a reviewer that wrote cannot have been the reviewer: expected 'blocked', got 'done'
+restore 9.10 run#reviewerWriteInvalidatesTheRound green again
+RED    9.12  run#theDecisionCapRecordsItsStopReason   (the cap's refusal written as the run's stop reason)
+       2026-11-05T21:55:10Z — the refusal is the run's stop reason, naming both counts it compared: agent-issue-loop: items=1 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=3 max-review-rounds=2 review-read-only=on strict-outside-write=no ch
+restore 9.12 run#theDecisionCapRecordsItsStopReason green again
+RED    12.2  run#childStartsInTheProjectRoot   (the child started in the project, where the project's own policy is resolved)
+       2026-11-05T21:55:22Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215516')
+restore 12.2 run#childStartsInTheProjectRoot green again
+RED    12.3  run#childWriteOutsideTheWorktreeIsNoted   (the run recording a child write left outside the worktree)
+       2026-11-05T21:55:39Z — the child's own transcript carries it as a machine-readable line, not only the run's note: 'LOOP-OUTSIDE-WRITE:' not found in: LOOP-VERDICT: closed
+restore 12.3 run#childWriteOutsideTheWorktreeIsNoted green again
+RED    12.4  run#strictOutsideWriteDiscardsTheReviewRound   (the round discarded on a difference the run can place or was told to judge)
+       2026-11-05T21:55:59Z — the round is discarded with a reason: 'the review round was discarded' not found in: the branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e could not be merged onto the base, so the item is not closed on a fix the tree does not ha
+restore 12.4 run#strictOutsideWriteDiscardsTheReviewRound green again
+RED    12.9  run#strictOutsideWriteBlocksTheItem   (the strict run turning the difference into a verdict about the item)
+       2026-11-05T21:56:15Z — the reason names the tree that changed: 'outside the worktree' not found in: the branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e could not be merged onto the base, so the item is not closed on a fix the tree does not have — loo
+restore 12.9 run#strictOutsideWriteBlocksTheItem green again
+RED    12.10  run#aWriterTheRunCanPlaceBlocksTheItem   (the reading taken while the child runs, which is what ties a write to it)
+       2026-11-05T21:56:47Z — a write the run can place in the child's own tree decides the item: expected 'blocked', got 'done'
+restore 12.10 run#aWriterTheRunCanPlaceBlocksTheItem green again
+RED    12.11  run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem   (the child chain the run itself started in the project not being a writer)
+       2026-11-05T21:57:22Z — a difference the child's own standing shell did not make must not decide the item: expected 'done', got 'blocked'
+restore 12.11 run#aPeerWriteWhileAChildStandsDoesNotDecideTheItem green again
+RED    12.13  run#aHostWithoutThePlacementReadingIsRefused   (the run refusing a host whose placement reading cannot answer)
+       2026-11-05T21:58:03Z — a host without the placement reading is a usage refusal: agent-issue-loop: items=0 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seco
+restore 12.13 run#aHostWithoutThePlacementReadingIsRefused green again
+RED    13.2  run#leftoverBranchIsRecordedNotDropped   (the pre-screen verdicts that need a decision being escalated by the run)
+       2026-11-05T21:58:17Z — the previous attempt's work is escalated, not thrown away: 'agent/needs-decision' not found in: 
+restore 13.2 run#leftoverBranchIsRecordedNotDropped green again
+RED    13.3  run#dirtyKeptWorktreeIsARecordedRefusal   (the start-time pre-flight on a kept worktree a previous run left dirty)
+       2026-11-05T21:58:35Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215828')
+restore 13.3 run#dirtyKeptWorktreeIsARecordedRefusal green again
+RED    13.4  run#dirtyKeptWorktreeIsARecordedRefusal   (the refusal being recorded under the item its branch marker names)
+       2026-11-05T21:58:52Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215846')
+restore 13.4 run#dirtyKeptWorktreeIsARecordedRefusal green again
+RED    13.5  run#resetWorktreeDiscardsWhatItNames   (the start-time repair discarding what it named)
+       2026-11-05T21:59:09Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215903')
+restore 13.5 run#resetWorktreeDiscardsWhatItNames green again
+RED    13.8  run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard   (the repair syncing the submodule its own verbs cannot reach)
+       2026-11-05T21:59:26Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215920')
+restore 13.8 run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard green again
+RED    13.9  run#resetWorktreeNamesTheDirtItCannotDiscard   (the repair naming what it could not discard instead of announcing a clean tree)
+       2026-11-05T21:59:45Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-215938')
+restore 13.9 run#resetWorktreeNamesTheDirtItCannotDiscard green again
+RED    13.10  run#theStartAfterTheRunsOwnEndedChildIsNotRefused   (the run discarding the dirt its own ended child left, the record being in place)
+       2026-11-05T22:00:03Z — the item after the cap-ended one starts, so one item's cap no longer ends its run: agent-issue-loop: items=2 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-out
+restore 13.10 run#theStartAfterTheRunsOwnEndedChildIsNotRefused green again
+RED    13.11  run#aRetriedStartStopsWithItsOwnReason   (the retry's own refusal written down instead of the dirt it was retried over)
+       2026-11-05T22:00:25Z — the stop reason is the refusal the retry answered with: the item could not be started: the worktree is not clean — the leftovers are #21's (branch fix/issue-21-a-bug), so #22 and no item after it can start until they are dealt with:  (the w
+restore 13.11 run#aRetriedStartStopsWithItsOwnReason green again
+RED    13.15  run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin   (the module-only dirt placed and the start retried instead of the run stopped)
+       2026-11-05T22:00:43Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-220037')
+restore 13.15 run#placesTheModuleAndGoesOnWhenTheOnlyDirtIsThePin green again
+RED    13.7  worktree#keepsByDefaultAndRemovesOnRequest   (the end-of-run form honoured wherever the run ends)
+       2026-11-05T22:01:04Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-220054')
+restore 13.7 worktree#keepsByDefaultAndRemovesOnRequest green again
+RED    12.8  run#aSkipClearsTheInProgressMark   (the skip exit path clearing the in-progress mark)
+       2026-11-05T22:01:23Z — a skipped item does not keep the in-progress mark: '--remove-label agent/in-progress' not found in: gh issue edit 21 --add-label agent/in-progress
+restore 12.8 run#aSkipClearsTheInProgressMark green again
+RED    14.2  report#escalatedSkipNamesTheLabelWritten   (the skip escalation recording the label it wrote)
+       2026-11-05T22:01:36Z — the report names the item the run escalated, not the verdict it chose: expected '#21', got 'none'
+restore 14.2 report#escalatedSkipNamesTheLabelWritten green again
+RED    14.3  report#failedReviewEscalationIsNamed   (the blocked exit path recording the label its escalation wrote)
+       2026-11-05T22:01:49Z — the report names the blocked item as a decision owed: expected '#21', got 'none'
+restore 14.3 report#failedReviewEscalationIsNamed green again
+RED    14.5  run#blockedItemIsEscalatedWithItsReason   (the blocked exit path escalating the reason the run holds)
+       2026-11-05T22:02:01Z — the run itself failed
+restore 14.5 run#blockedItemIsEscalatedWithItsReason green again
+RED    14.6  run#aFailedEscalationWriteIsNamed   (the blocked exit path recording the write the tracker refused)
+       2026-11-05T22:02:14Z — the write the tracker refused is recorded with the item: expected 'escalate', got ''
+restore 14.6 run#aFailedEscalationWriteIsNamed green again
+RED    14.7  run#aFailedUnpickIsNamed   (the blocked exit path recording the in-progress mark it could not clear)
+       2026-11-05T22:02:28Z — the write the tracker refused is recorded with the item: expected 'unpick', got 'unpick2'
+restore 14.7 run#aFailedUnpickIsNamed green again
+RED    16.1  run#stopReasonIsPrintedAndReported   (the run recording the stop condition `next` named, on every path that leaves the loop)
+       2026-11-05T22:02:43Z — the state records no stop reason
+restore 16.1 run#stopReasonIsPrintedAndReported green again
+RED    16.2  run#stopReasonIsPrintedAndReported   (the run printing the stop condition it was given)
+       2026-11-05T22:02:59Z — the run never names the condition that ended it: agent-issue-loop: items=1 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds=3900
+restore 16.2 run#stopReasonIsPrintedAndReported green again
+RED    17.2  run#awaitingDecisionIsNotEscalatedAgain   (the run not re-escalating an item that already carries the escalation label)
+       2026-11-05T22:03:12Z — no second escalation comment is posted on #41: expected '0', got '1'
+restore 17.2 run#awaitingDecisionIsNotEscalatedAgain green again
+RED    18.2  run#recordsAFailedReviewOnTheBranch   (the run committing the reviewer verdict onto the item branch)
+       2026-11-05T22:03:24Z — the reviewer's verdict does not travel with the change: openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+restore 18.2 run#recordsAFailedReviewOnTheBranch green again
+RED    18.4  run#announcesAndRecordsTheReviewRound   (the run announcing the review round on the item branch before its reviewer starts)
+       2026-11-05T22:03:40Z — the round is announced on the branch before the reviewer runs: 'review-round-1-requested.md' not found in: openspec/changes/archive/2026-01-01-fix-demo/evidence/TEST-demo.xml
+restore 18.4 run#announcesAndRecordsTheReviewRound green again
+RED    19.1  run#reviewBudgetIsARecordedValue   (the round budget coming from the recorded value instead of a literal)
+       2026-11-05T22:03:56Z — the run takes the rounds it was budgeted: expected '3', got '2'
+restore 19.1 run#reviewBudgetIsARecordedValue green again
+RED    19.2  run#aCorrectiveRefusalEarnsOneMoreRound   (the extra round a corrective refusal earns)
+       2026-11-05T22:04:13Z — a corrective refusal earns the third round: expected '3', got '2'
+restore 19.2 run#aCorrectiveRefusalEarnsOneMoreRound green again
+RED    19.3  run#escalationCarriesTheDecision   (the escalation carrying the reviewer decision)
+       2026-11-05T22:04:30Z — including the reviewer's recommendation: 'recommended: apply the corrections' not found in: gh issue edit 21 --add-label agent/in-progress
+restore 19.3 run#escalationCarriesTheDecision green again
+RED    40.1  run#aCorrectiveRoundIsHandedTheCorrections   (the base the extra round_diff is built from)
+       2026-11-05T22:04:48Z — and not the line the corrections replaced, which the refusing round already graded — as context it may sit beside the hunk, as a change it may not: '+the first pass' should not appear in: diff --git a/demo-fix.txt b/demo-fix.txt
+restore 40.1 run#aCorrectiveRoundIsHandedTheCorrections green again
+RED    40.2  run#aCorrectiveRoundIsHandedTheCorrections   (the refusing report the extra round reads)
+       2026-11-05T22:05:06Z — the prompt carries the finding the round exists to decide: 'the demo scenario names no case' not found in: # Reviewer — the fixed contract
+restore 40.2 run#aCorrectiveRoundIsHandedTheCorrections green again
+RED    40.3  run#aCorrectiveRoundIsHandedTheCorrections   (the correction section substituted before the paths it names)
+       2026-11-05T22:05:24Z — every placeholder in the correction section is substituted: '{{' should not appear in: # Reviewer — the fixed contract
+restore 40.3 run#aCorrectiveRoundIsHandedTheCorrections green again
+RED    21.3  run#staleSkipAsksItsQuestion   (the escalation a stale skip owes instead of a bare hold nobody can answer)
+       2026-11-05T22:05:40Z — a stale skip leaves a decision, not a bare hold nobody can answer: '--add-label agent/needs-decision' not found in: gh issue edit 21 --add-label agent/in-progress
+restore 21.3 run#staleSkipAsksItsQuestion green again
+RED    20.3  run#stopReasonIsPrintedAndReported   (the run recording the reason it stopped on every exit path)
+       2026-11-05T22:05:55Z — the state records no stop reason
+restore 20.3 run#stopReasonIsPrintedAndReported green again
+RED    20.4  run#aZeroRoundBudgetIsRefused   (the refusal of a review budget that never runs)
+       2026-11-05T22:06:05Z — and the run itself says what it wants: 'run: --max-review-rounds must be a positive integer' not found in: agent-issue-loop: items=1 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=0 review-r
+restore 20.4 run#aZeroRoundBudgetIsRefused green again
+RED    23.1  run#childOutlastingTheWallClockIsBlocked   (the wall-clock that ends a child instead of waiting for it for ever)
+       2026-11-05T22:07:13Z — the run was still waiting after 60 s on a child that outlasted its 2 s cap
+restore 23.1 run#childOutlastingTheWallClockIsBlocked green again
+RED    23.2  run#childIsEndedAtTheRunsDeadline   (the deadline that ends a child outliving the run)
+       2026-11-05T22:08:28Z — the run was still waiting 60 s after its own recorded deadline passed
+restore 23.2 run#childIsEndedAtTheRunsDeadline green again
+RED    24.1  run#hostBelowTheFloorBlocksTheItemAndStops   (the host read that records a starved item instead of starting it (issue #209))
+       2026-11-05T22:08:43Z — no agent process is started on a host below the floor: expected '', got 'invocation
+restore 24.1 run#hostBelowTheFloorBlocksTheItemAndStops green again
+RED    27.1  run#childThatNeverStartedIsTheRunsFault   (the classification that keeps a child which never started off the item (issue #212))
+       2026-11-05T22:08:53Z — the item is not recorded as a blocked one: expected '0', got '1'
+restore 27.1 run#childThatNeverStartedIsTheRunsFault green again
+RED    27.2  run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault   (the same classification read from the answer rather than the status (issue #742))
+       2026-11-05T22:09:05Z — the item is not recorded as a blocked one: expected '0', got '1'
+restore 27.2 run#aChildThatExitsZeroWithAnEmptyAnswerIsTheRunsFault green again
+RED    28.3  run#interruptedRunEndsTheChildItStarted   (the run trap ending the child it started, not only the run)
+       2026-11-05T22:09:19Z — the run ended but the child it started (pid 3005122) is still running — an interrupted run must end its child
+restore 28.3 run#interruptedRunEndsTheChildItStarted green again
+RED    29.1  run#blockedItemAsksItsOwnQuestion   (the question a block asks when the reviewer wrote none (issue #225))
+       2026-11-05T22:09:30Z — the escalation carries a decision field, not only a reason: 'The decision:' not found in: gh issue comment 21 --body $'reported success but the tree is still at the base commit — nothing was committed\n\n:\nquestion the item asked; a retry 
+restore 29.1 run#blockedItemAsksItsOwnQuestion green again
+RED    30.1  run#falsifiedSkipClosesWithItsMeasurement   (the verdict that tells a measured falsification from an ordinary skip)
+       2026-11-05T22:09:44Z — the item is recorded apart from a fix and from a skip: [{"at":"2026-11-05T22:09:41Z","change":"","class":"bug","escalatedLabel":"agent/needs-decision","issue":21,"labelFailures":[],"leftover":null,"merged":{"branch":"","commits":"","evidenc
+restore 30.1 run#falsifiedSkipClosesWithItsMeasurement green again
+RED    30.2  run#falsificationWithAChangedTreeIsBlocked   (the second read of the tree after the review of a falsification)
+       2026-11-05T22:09:57Z — a falsification whose tree moved is blocked, not closed: expected 'blocked', got 'falsified'
+restore 30.2 run#falsificationWithAChangedTreeIsBlocked green again
+RED    31.1  run#aCutReportIsRetriedInsteadOfRefused   (the retry of a report that arrived cut on its way to the file (issue #224))
+       2026-11-05T22:10:13Z — an answer cut in transport does not block the item: expected 'done', got 'blocked'
+restore 31.1 run#aCutReportIsRetriedInsteadOfRefused green again
+RED    32.1  run#staleBaseStopsTheRunWithItsReason   (the stop that records why a stale base ended the run)
+       2026-11-05T22:10:27Z — and the reason is recorded, so the report can name why the run ended: 'the base moved' not found in: 
+restore 32.1 run#staleBaseStopsTheRunWithItsReason green again
+RED    34.1  run#prescreenAnnouncesItselfBeforeItReturns   (the stream that reaches the terminal while the pre-screen runs (issue #191))
+       2026-11-05T22:11:07Z — the phase is announced on the console: 'loop: pre-screen' not found in: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.d8ance/cases/0/tree/case.5vVuGa/tools/loop/run.sh: Zeile 1: Syntaxfehler beim unerwarteten Symbol
+restore 34.1 run#prescreenAnnouncesItselfBeforeItReturns green again
+RED    34.2  run#prescreenAnnouncesItselfBeforeItReturns   (the kept copy of the pre-screen text in the state directory (issue #191))
+       2026-11-05T22:11:50Z — the phase is announced on the console: 'loop: pre-screen' not found in: /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.d3aEOx/cases/0/tree/case.URkxOI/tools/loop/run.sh: Zeile 1: Syntaxfehler beim unerwarteten Symbol
+restore 34.2 run#prescreenAnnouncesItselfBeforeItReturns green again
+RED    34.5  run#everyPhaseBoundaryIsPrinted   (the report path on the item line, the view a person can read while the item is worked (issue #191))
+       2026-11-05T22:12:07Z — the item's line names the report a person can read while the item is worked: no line matching /^loop: item · [0-9]+(m[0-9]{2})?s · picked #[0-9]+ — its report is written to .*/worker-report\.md$/ in: agent-issue-loop: items=1 minutes=90 rev
+restore 34.5 run#everyPhaseBoundaryIsPrinted green again
+RED    36.1  run#workPackageCarriesTheRecordedDecision   (the comments the run asks the tracker for, so the recorded decision reaches the package)
+       2026-11-05T22:12:22Z — with the answer's own timestamp: 'recorded: 2026-10-21T04:52:39Z' not found in: ---- issue work package ----
+restore 36.1 run#workPackageCarriesTheRecordedDecision green again
+RED    41.1  state#aRefusedRunLeavesTheLiveStateAlone   (the lock taken before the run writes anything)
+       2026-11-05T22:12:35Z — the refusal names the lock: 'another run holds' not found in: agent-issue-loop: items=1 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max
+restore 41.1 state#aRefusedRunLeavesTheLiveStateAlone green again
+RED    43.3  mutation#everyDeclaredRecordApplies   (the anchor two records keep on the child-start line (issue #264))
+       2026-11-05T22:12:46Z — every declared record applies to the file it names — the check printed: loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.FqEskp
+restore 43.3 mutation#everyDeclaredRecordApplies green again
+RED    44.1  run#detachedProcessInTheWorktreeIsEndedByTheCap   (the cap ending the processes the child left working in the tree, and naming each one (issue #272))
+       2026-11-05T22:13:08Z — the process the ended child left in the worktree (pid 3161951) outlived the run — the cap must end what the child started, and a session of its own is not a group the cap reaches
+restore 44.1 run#detachedProcessInTheWorktreeIsEndedByTheCap green again
+RED    45.1  run#treeOfAChildTheCapEndedIsNotCommitted   (the guard that leaves the tree of a child the run ended uncommitted (issue #271))
+       2026-11-05T22:13:28Z — the run's own line says the commit was skipped — the branch is not the only record of it: 'end-item skipped' not found in: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review
+restore 45.1 run#treeOfAChildTheCapEndedIsNotCommitted green again
+RED    45.2  run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted   (the guard that leaves the tree of a rework worker the cap ended uncommitted (issue #271))
+       2026-11-05T22:13:48Z — the tree a rework worker the cap ended left behind is committed nowhere — the branch carries only what the item's own worker earned: expected '0', got '1'
+restore 45.2 run#treeOfACapEndedReworkOfARefusingRoundIsNotCommitted green again
+RED    52.1  gate#theChildReadsTheProfileOfTheTreeItWorksIn   (the run keeping its own profile out of a child that works in another tree (issue #277))
+       2026-11-05T22:14:07Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-221401')
+restore 52.1 gate#theChildReadsTheProfileOfTheTreeItWorksIn green again
+RED    53.1  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (the leftovers recorded under the item whose work the tree holds, and escalated (issue #284))
+       2026-11-05T22:14:21Z — and the leftovers join it instead of replacing it: 'leftovers' not found in: reported success but the tree is still at the base commit — nothing was committed
+restore 53.1 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+RED    53.3  run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds   (the stop reason naming the item the leftovers belong to and the files it found (issue #284))
+       2026-11-05T22:14:35Z — and names the item whose work the tree holds, not only the candidate: '#21' not found in: the item could not be started: loop: the worktree is not clean — refusing to start #22:
+restore 53.3 run#aDirtyStartNamesTheItemWhoseWorkTheTreeHolds green again
+RED    56.2  run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen   (the refusal of a run whose project tree is not on the base branch)
+       2026-11-05T22:14:46Z — a run whose checkout is not the base branch is refused: expected '5', got '0'
+restore 56.2 run#aCheckoutOffTheBaseBranchIsRefusedBeforeThePreScreen green again
+RED    58.1  run#reviewRoundsCapAtTwo   (the refusing last round named as the mechanism that stopped the item (issue #280))
+       2026-11-05T22:14:57Z — and the record names the refusing round as the mechanism that stopped it (issue #280): expected 'refused', got 'null'
+restore 58.1 run#reviewRoundsCapAtTwo green again
+RED    58.2  run#doesNotCloseOnAMergeTheBaseCannotTake   (a base that would not take the branch named as the other mechanism (issue #280))
+       2026-11-05T22:15:13Z — and the record names the base's refusal as the mechanism that stopped it (issue #280): expected 'unmergeable', got 'null'
+restore 58.2 run#doesNotCloseOnAMergeTheBaseCannotTake green again
+RED    60.1  run#theWaitEndsWhenTheChildDoes   (the wait looking for the completion record below a whole second (issue #259))
+       2026-11-05T22:15:30Z — the run took 1028 ms to notice a worker that answered in 150 ms: the wait's granularity is not below a second (issue #259; console in /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.ZiQ67k/cases/0/tree/case.57bsSh/sta
+restore 60.1 run#theWaitEndsWhenTheChildDoes green again
+RED    60.2  run#theProgressLineKeepsItsInterval   (the heartbeat's test on elapsed seconds rather than on the look it was woken by (issue #259))
+       2026-11-05T22:15:52Z — the progress line does not keep the configured 2 s interval: 70 running line(s) for a 4 s child — agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-onl
+restore 60.2 run#theProgressLineKeepsItsInterval green again
+RED    62.4  run#noProcessOfASignalledRunOutlivesIt   (the call that ends the heartbeat with a signalled run (issue #308))
+       2026-11-05T22:16:50Z — a process of the signalled run outlived it: 3327491 (run said: recorded blocked (#21 unspecified) loop: worker-prompt running 30s — log 223 B, worktree 2 changed file(s), 0 commit(s) since the base )
+restore 62.4 run#noProcessOfASignalledRunOutlivesIt green again
+RED    62.5  run#treeOfACapEndedChildIsKeptAsAPatch   (the patch a cap-ended child's tree is kept in (issue #308))
+       2026-11-05T22:17:06Z — the work a child the cap ended left was not kept as a patch (transcript: LOOP-TIMEOUT: the child exceeded 2 s — the run ended it and everything it started)
+restore 62.5 run#treeOfACapEndedChildIsKeptAsAPatch green again
+RED    62.6  run#aRefusedStartKeepsTheLeftoversItFound   (the patch a refused start keeps (issue #308))
+       2026-11-05T22:17:23Z — the leftovers of a refused start were not kept as a patch (reason: the item could not be started: the worktree is not clean — the leftovers are #21's (branch fix/issue-21-a-bug), so #22 and no item after it can start until they are dealt wi
+restore 62.6 run#aRefusedStartKeepsTheLeftoversItFound green again
+RED    64.1  run#theChildCapIsNeverBelowWhatOneItemsGateOwes   (the bound that follows what one item's gate owes (issue #663))
+       2026-11-05T22:17:34Z — the run's header names no child-max-seconds: agent-issue-loop: items=1 minutes=90 review=off pre-gate-review=off may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only=on strict-outside-write=no child-max-seconds= child
+restore 64.1 run#theChildCapIsNeverBelowWhatOneItemsGateOwes green again
+RED    68.2  run#childIsEndedAtTheRunsDeadline   (the guard that leaves an item the run's own deadline cut for the next run instead of escalating it (issue #674))
+       2026-11-05T22:17:50Z — an item the run's own deadline cut is not escalated as a decision: expected '', got 'agent/needs-decision'
+restore 68.2 run#childIsEndedAtTheRunsDeadline green again
+RED    68.4  run#reviewerEndedAtTheRunsDeadlineIsNotADecision   (the reviewer's own `LOOP-DEADLINE` read, so the clock the run ended the round with is read as the turn bound run_child wrote beside it, and the reason names the wrong bound (issue #674))
+       2026-11-05T22:18:08Z — and the reason on the item names the clock and the child it ended: 'deadline passed while the reviewer' not found in: the run ended the reviewer of round 1 at its role's turn bound — the round was cut, not refused, so the change is left for
+restore 68.4 run#reviewerEndedAtTheRunsDeadlineIsNotADecision green again
+RED    68.5  run#reviewerEndedAtTheRunsDeadlineIsNotADecision   (the guard that leaves the queue alone after a deadline cut, so the pass re-excludes the cut item and the report names a decision for it (issue #674))
+       2026-11-05T22:18:26Z — and the report asks the owner no question about the item cut at the deadline: 'decisions the owner owes: none' not found in: agent-issue-loop: items=3 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review
+restore 68.5 run#reviewerEndedAtTheRunsDeadlineIsNotADecision green again
+RED    68.6  run#childOutlastingTheWallClockIsBlocked   (the escalation a cap-ended item still owes, so a cap the item's own clock hit is silent as well (issue #674))
+       2026-11-05T22:18:45Z — and an item its own child's wall-clock cap ended is still escalated as a decision: expected 'agent/needs-decision', got ''
+restore 68.6 run#childOutlastingTheWallClockIsBlocked green again
+RED    73.1  run#aReviewerEndedAtItsTurnBoundIsNotARefusal   (the branch recording a round the item turn bound ended as cut, so the silence of a reviewer that never answered is read as a refusal and buys a rework worker (issue #247))
+       2026-11-05T22:19:07Z — the cut round was read as a refusal and bought a rework worker
+restore 73.1 run#aReviewerEndedAtItsTurnBoundIsNotARefusal green again
+RED    76.1  run#childUsageIsRecordedPerItem   (the tail child the gate line starts, and the item spend as the sum of two children (issue #744))
+       2026-11-05T22:19:22Z — Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261105-221917')
+restore 76.1 run#childUsageIsRecordedPerItem green again
+RED    76.2  run#aRedGateIsBlockedByTheTail   (the outcome arm that takes a blocked verdict as the tail reported it, with the gate line (issue #744))
+       2026-11-05T22:19:42Z — a red gate blocks the item: expected 'blocked', got 'done'
+restore 76.2 run#aRedGateIsBlockedByTheTail green again
+RED    77.1  state#aRolesOwnCommandStartsOnlyThatRolesChild   (the role-scoped agent command that lets one role run on a command of its own)
+       2026-11-05T22:19:57Z — the reviewer's child went through the role's own command: expected '1', got '0'
+restore 77.1 state#aRolesOwnCommandStartsOnlyThatRolesChild green again
+RED    79.1  run#thePreGateReviewRunsBeforeTheGate   (the section `worker.md` is handed, so the change child is told which end its session has (issue #758))
+       2026-11-05T22:20:13Z — the change child is told the gate is deferred: 'The gate is not yours this item' not found in: # Worker — one item, phases A–D
+restore 79.1 run#thePreGateReviewRunsBeforeTheGate green again
+RED    79.2  run#thePreGateReviewRunsBeforeTheGate   (the block that reads the diff before the gate and starts the child that runs it (issue #758))
+       2026-11-05T22:20:28Z — the round is read before the gate child is started: expected 'review gate', got ''
+restore 79.2 run#thePreGateReviewRunsBeforeTheGate green again
+RED    79.3  run#thePreGateReviewRunsBeforeTheGate   (the findings the refuting round wrote, handed to the child that runs the gate (issue #758))
+       2026-11-05T22:20:45Z — the round's findings reach the prompt of the child that runs the gate: 'BLOCKING: the tasks the change claims are done name a case the tree does not hold' not found in: # Gate child — phase E, the item's one gate
+restore 79.3 run#thePreGateReviewRunsBeforeTheGate green again
+RED    79.4  run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun   (the outcome arm a round the run cut records, so a change nobody read is left for the next run instead of closing (issue #758))
+       2026-11-05T22:21:01Z — the reason names the round that never answered, and names it as the one before the gate: 'the pre-gate reviewer's report was cut short twice' not found in: the reviewer's report was cut short twice — the round 1 answer never arrived, so no 
+restore 79.4 run#aPreGateReviewThatIsCutLeavesTheChangeForTheNextRun green again
+RED    80.1  run#aReviewerEndedAtItsTurnBoundIsNotARefusal   (the result a round the run ended at a bound records, so it is a block its owner owes an answer to (issue #785))
+       2026-11-05T22:21:17Z — the item is recorded cut, not blocked: its work finished and the round the run ended is nobody's question: expected 'cut', got 'blocked'
+restore 80.1 run#aReviewerEndedAtItsTurnBoundIsNotARefusal green again
+RED    80.2  run#aReviewerEndedAtItsTurnBoundIsNotARefusal   (the cut written on the branch, so the round the run ended is read as one nobody answered and the branch as a question only a person can answer (issues #785, #262))
+       2026-11-05T22:21:33Z — the round the bound ended is recorded on the branch as a cut: 'review-round-1-cut.md' not found in: .gitignore
+restore 80.2 run#aReviewerEndedAtItsTurnBoundIsNotARefusal green again
+RED    80.3  run#aReviewerEndedAtItsTurnBoundIsNotARefusal   (the guard that skips the queue second pass after a bound cut an item the run just worked (issue #785))
+       2026-11-05T22:21:49Z — and the report asks the owner no question about it: 'decisions the owner owes: none' not found in: agent-issue-loop: items=1 minutes=90 review=on pre-gate-review=on may-close=yes push=no max-decisions=10 max-review-rounds=2 review-read-only
+restore 80.3 run#aReviewerEndedAtItsTurnBoundIsNotARefusal green again
+
+red-when-mutated: 92 · not-noticed: 0 · restore-failures: 0

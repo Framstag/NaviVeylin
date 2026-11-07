@@ -53,16 +53,20 @@ One command starts a run; the run's script owns the budget, the working tree, th
 state; and each item is worked by a fresh agent process with a different process reviewing it.
 
 ```
-the run's script                          an agent process (fresh, per item)      a reviewer (fresh)
+the run's script                          the change child (fresh, per item)      a reviewer (fresh)
   preflight: is the identity allowed?       phase A  the root cause, proven by a     the fixed review
   decision cap: too many open decisions?             case that is RED before the fix    contract, must
   prepare one working tree, once            phase B  the eligibility gate             not be the writer
   per item:                                 phase C  the change, planned
-    a branch of its own, off the base       phase D  applied, with the project's gate
-    the change the item names, copied in              │ the gate line ends that child
-    select, then authorise by label         phase F  archived, with the evidence
-    hand over a prepared package                      (a second fresh child, below)
-    verify, close, record                   (E)      reviewed by a second fresh process
+    a branch of its own, off the base       phase D  applied — the session ends at
+    the change the item names, copied in              the diff, not at the gate
+    select, then authorise by label                   │ LOOP-DIFF-READY
+    hand over a prepared package                      ▼
+    verify, close, record                   (E)      the diff is read first, by the reviewer beside it
+     commit, merge, record                  phase E  the findings applied in one pass,
+                                                     then the gate — one fresh child
+                                            phase F  archived, with the evidence
+                                                     (another fresh child, below)
 ```
 
 What makes it survivable over a long run: the orchestrator is a **script**, not a session, so it reads no
@@ -72,6 +76,28 @@ outcome from what it reads itself (I10).
 
 What makes it safe: it works only authorised items (I1, I2); it never writes the authorisation itself; git
 is the script's (I8); and the tracker credential is not in the agent's environment (§5).
+
+The diff is read **before** the item's gate, and the gate is a phase of its own (issue #758). Measured on this
+loop's archive (`python3 tools/loop-spend.py --json`, 2026-11-03, 227 items, 2 591 Mtok): **1 581 Mtok — 61 % — is
+spent after the item's first gate**, and 117 child sessions ran the gate three times or more. The reviewer is not
+what costs that — 7 522 turns at 53.6 k tokens each, against the worker's 84.5 k at 25 654 turns — it is what a
+review *triggers*: a finding a reader could have made from the diff alone was paid for by the gate it did not need
+and then by the full pass the rework that answered it made, on top of a full gate of its own. So the change child's
+session ends at the diff (`LOOP-DIFF-READY`, `tools/loop/prompts/worker.md` and its `{{GATE_STEP}}` section), a fresh
+reviewer reads that diff (`prompts/reviewer.md` with the section `prompts/pre-gate-review.md`, whose item 3 — the gate
+reality — it records as not yet applicable), and the child that runs the gate (`prompts/worker-gate.md`) applies the
+findings in one pass and then runs the item's **one** gate. The round before the gate is **not** a round of
+`--max-review-rounds`: it refuses nothing, it never blocks the item, and its report stays in the item's directory; the
+round the budget bounds is the one after the gate, which is where a change is judged on its verification as well.
+`--pre-gate-review off` (`LOOP_PRE_GATE_REVIEW_DEFAULT`) keeps the older shape — one child from the diagnosis to the
+gate — and is folded to `off` by every run with `--review off`, because a run with no reviewer has none to place in
+front of the gate. A change child that runs the gate anyway is read as it always was: the run does not re-run a gate,
+and a round before a gate that has already run has nothing to read. The child **grades its own diff first**, against
+the review contract's own three predicates — a clause the case that names it does not exercise, a claim in
+`design.md`/`tasks.md`/`proposal.md` that the diff contradicts, an artifact the change cites that is not where it
+says — because the writer holds the diff before the reviewer does and the finding costs it nothing to make (issue
+#812; measured: of the 165 round-1 reports the loop's item archive holds, 103 refuse, and those three classes are
+what their 141 blocking findings say).
 
 The gate is where a gated item's **first** child ends, and the archive is written by a second one. Measured on the
 archive (`python3 tools/loop-spend.py`, 2026-11-02, 213 items / 524 sessions / 30 795 turns): of the 274 sessions
@@ -86,10 +112,12 @@ which is the trend this split is measured against. The case that pins it is `run
 fixture's second child starts at 17 056 input tokens, the item's spend is the sum of the two children, and the
 largest context recorded is still the first child's. The repair a refusal buys is split the same way
 (`worker-tail-round2-prompt.md`), because a rework round that paid the tail in-session would cost what the item did.
-The bound this does not move: the item's turn bound (`LOOP_ITEM_TURNS_MAX`) is the **item's**, read over the one event
-stream its children share, so a gate child that spends it leaves the tail none and the item is blocked at the bound
-without its commit — the same shape the reviewer's rounds already had, and the reason the split's own case asserts a
-tail of one turn rather than a long one.
+The bound this split moved: the turn bound was the **item's** (`LOOP_ITEM_TURNS_MAX`), read over the one event stream
+its children share, so a gate child that spent it left the tail none and the item was blocked at the bound without
+its commit — the shape the reviewer's rounds already had, and the reason the split's own case asserts a tail of one
+turn rather than a long one. Since issue #784 each role carries its own key
+(`LOOP_CHILD_TURNS_MAX_WORKER_GATE`, `…_WORKER_TAIL`, `…_REVIEWER`, …), so the tail is bounded by what a tail costs
+and neither the gate's work nor the worker's can spend it.
 
 What a child is started with, and what it therefore re-reads. Its system prompt carries **no project context**:
 the adapter the configured command names starts it with `--no-context-files`, because a child started in the
@@ -97,7 +125,8 @@ project would otherwise take the `AGENTS.md` it discovers there as a `project_co
 item's own stream, 25 624 of the 33 088 characters of system prompt, 77 % of it — and that section is charged on
 **every** turn: 9 151 of the 17 235 tokens a turn cost (`python3 tools/loop-spend.py`, issue #661). The routing a
 phase genuinely needs is in its own prompt instead (`tools/loop/prompts/worker.md`, `reviewer.md`): the document
-map, the recipe for a document's section list (`grep -n '^## '`), and where the rules, the capabilities and the
+map, the recipe for a document's section list (`tools/look.sh '^## ' --path guidelines/<file>.md`), and where the
+rules, the capabilities and the
 change artifacts live. For a tier-B item the package also carries the change the item was filed with, as its
 `ITEM_CHANGE` block — the name, the path the run copied it to in the worktree, and the readiness checker's verdict
 line for that copy — so the child applies a plan a person wrote instead of planning one (`agent-issue-loop`,
@@ -105,6 +134,22 @@ line for that copy — so the child applies a plan a person wrote instead of pla
 that is what resolves this project's tool policy — and the case that pins it is `run#childStartsInTheProjectRoot`,
 beside `adapter#theChildIsStartedWithoutContextFiles`, which refuses any word that moves the trust, the prompt or
 the tools.
+
+The one tool that was missing, and the call it is answered with instead (issue #796). A child's search has to be a
+call that runs: `python3 evidence/ctx-grep-census.py` over this run archive reports `CTX-GREP-CENSUS
+items=252 items_failed=125 calls=482 failed=282` — 282 of 482 `ctx_grep` calls answered `zsh:1: command not found:
+rg` — although the binary sits in the agent's own directory (`~/.pi/agent/bin`), and the recipe every phase prompt and
+every guideline header named for a document's section list, `grep -n '^## '`, is refused by the policy the same
+adapter loads. So the child was handed one call it could not make and one tool that does not run. Three things
+follow, and each has its case: the adapter prepends the agent's own tool directory to the child's `PATH`
+(`adapter#theChildIsStartedWithItsToolDirectoryOnPath`) — the inherited `PATH` is the run's, and a run started from a
+context without that directory leaves every worker without `rg`, the binary `ctx_grep` and the agent's own
+subprocesses look for, while the wrapper keeps working; `tools/look.sh --path <file>` scopes the one wrapper to one
+document, so a section list is one call (`look#aPathScopesTheWalkToIt`); and every phase prompt, `AGENTS.md` and the
+guideline headers name that call instead of the shell recipe its own policy refuses
+(`prompt#thePhasePromptsCarryTheirOwnRoute`). What this tree cannot fix is where `ctx_grep` resolves `rg`: the shell
+it spawns does not carry the caller's `PATH` — the same failure reproduces in an interactive session whose `PATH`
+holds the directory — so that half is an upstream report, and the wrapper is why no item depends on it.
 
 What it therefore re-reads of its own work, and the one bound on it. A tool result the child asks for enters its
 context at its own size and stays there, so every later turn of that session re-reads it: over the archive the
@@ -169,6 +214,20 @@ What is not relaxed is the landing rule — a base that is still not clean when 
 refuses the merge and records the status line it carries, because that guard is about what may be merged onto,
 not about who wrote it.
 
+A placement is **recorded where it is read**: the step is recorded beside the reading that took it, in the branch
+that runs before the gate, and no pre-gate reviewer, gate child or tail is started for it, because a gate result
+about a change standing in a tree the run cannot vouch for is not evidence (#800 — the six items of 2026-10-20 to
+2026-10-23 each paid a whole item *and* the gate the worker runs itself (`prompts/gate-own.md`) for that reading).
+The item's `blocked` result and the reason for
+that shape are written by the outcome block, from the same reading.
+
+And a child has one place beside its change to write. Every child is started in the project's own tree, so a write
+with a **relative path** lands in the tree the landing step needs clean and `write beside the change` was the only
+path a child had; the item's own directory therefore carries a scratch directory — `<item dir>/scratch`, created
+before the prompt that names it is rendered and named beside the change root in each of the three prompts — and a
+file written there is no difference in the project's tree, because the run's own evidence directory is not one
+either (#800).
+
 ## §7b What an item costs, and the bounds on it
 
 
@@ -190,6 +249,7 @@ gated item into the tail, the run's own deadline cuts that item, and it is left 
 item per run, because the deadline ends that child and the run stops right after it. The work it left is kept as
 the leftover patch, the item's state names that patch and the report prints the recovery, and the cut item is not
 escalated as a decision: the clock that ended it is the run's budget, not a finding about the item (issue #674).
+It is recorded `cut` there as well, for the reason the review round's own cut is (§7e, issue #785).
 That holds for every child the item starts — the worker, the rework worker of a refusing round, and the reviewer
 of a review round (the round-1 review of #674 found the reviewer's `LOOP-DEADLINE` line written by `run_child` and
 read by nobody, so a cut round bought a rework worker for a change nobody refused) — and the run takes
@@ -270,17 +330,77 @@ amended it by hand at 05:05 (#271). Measured 2026-10-19: an item's
 worker phase ran 83 minutes inside a single wait, and the deadline, read only at the top of the loop, never
 fired (#203).
 
-A second bound is **not a clock** (issue #686): `LOOP_ITEM_TURNS_MAX` (250 here, `0` or absent = no bound) ends a
-child that has spent its turns, read from the item's own event stream — one `turn_end` per turn, which the
-adapter already writes — and checked in the same whole second as the two clocks, so the wait costs one `grep` per
-second and not one per look. It exists because the clock is the wrong unit for a child that keeps re-reading:
-cache re-read is **97 %** of what a loop child is charged, so a turn and not an edit is what an item spends, and
-on 2026-10-28 the 35 items past 250 turns held **878 of 1 982 Mtok (44 %)** of the archive's spend at 25.07 Mtok
-each against 1.23 for the 20–50 band. An item that has spent its turns is a decision and not a slower
-convergence: the child is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT: the child reached the
-recorded turn bound of <n> turns`, and the item is recorded `blocked` with that count. The 250 sits just past the
-archive's p75 — turns p50 144, p75 236, p90 285, max 480 — so it escalates 21 % of items, where 200 would
-escalate 37 % and 300 only 7 %.
+…and the wait that ends on the child's own record reads **one condition that is not a bound** (issue #795): the
+record is written by the run's own subshell, so a `kill -0` on that pid is the only reading that tells a child still
+working from a child whose writer was killed before it wrote one. It is taken only while the record is absent, and used
+only to end the wait — this poll never `wait`s on the pid, which is the shape #227 measured (a poll that believed a
+child gone and then blocked for ever behind a `wait`). Measured 2026-11-06: the run started at 06:27:14Z was
+reparented to `systemd --user` when the session that owned it died, and it sat in that poll 17 minutes into a
+600-minute budget with its lock still held and item #793 still `agent/in-progress`; the cap would have ended the wait
+at 45 minutes, an item ended at a bound for a dead child and a lock that would have refused every run after it. The transcript
+names what happened (`LOOP-TIMEOUT: the child's writer (pid <n>) vanished before it wrote its completion record`), the
+item is recorded `cut` with `bound` as its mechanism (issues #786, #790), and a child that is merely slow is waited for
+exactly as it was.
+
+A second bound is **not a clock** (issues #686, #784): `LOOP_CHILD_TURNS_MAX_<ROLE>` (170 for the worker, 80 for the
+gate child, 65 for the tail, 75 for a review round and 75 for the round before the gate; `0` or absent = no bound)
+ends a child that has spent **its own role's** turns, read from the item's event stream — one `turn_end` per turn,
+which the adapter already writes — minus the count standing when that child started, and checked in the same whole
+second as the two clocks, so the wait costs one `grep` per second and not one per look. That stream is **bounded**
+now (issue #802): `LOOP_CHILD_EVENTS_MAX_BYTES` (16 MiB on this project) is the size past which `tools/pi-child-events.sh`
+drops the oldest half of the lines and writes a `stream_rotation` record first — the lines, the bytes and a cumulative
+`dropped_turn_ends` — because the file grew for the item's whole life and was re-read whole by this bound every
+second. Measured 2026-11-06 over this archive (`evidence/archive-census.py` in the change
+`fix-an-item-stream-is-bounded-and-reported`): 254 streams held **3 483 MiB**, p50 11.84 MiB, p90 29.88 MiB, one
+63.47 MiB, and a 16 MiB bound leaves 2 573 MiB — above the median item's whole history, so an ordinary item is not
+rotated at all. The count adds what the record says was dropped to what the stream still holds, so a rotation cannot
+fall a child's count back to zero; `state.sh`'s usage sum still reads the stream that remains, which is the price of a
+bounded file and not a second reading of it. It exists because the clock
+is the wrong unit for a child that keeps re-reading: cache re-read is **97 %** of what a loop child is charged, so a
+turn and not an edit is what a child spends, and on 2026-10-28 the 35 items past 250 turns held **878 of 1 982 Mtok
+(44 %)** of the archive's spend at 25.07 Mtok each against 1.23 for the 20–50 band. A child that has spent its turns
+is a runaway and not a slower convergence: it is ended the way the cap ends it, its transcript gains `LOOP-TIMEOUT:
+the child reached the recorded turn bound of <n> turns (<KEY> for the <role> role)`, and the item is recorded
+`cut` with that count and `bound` as its mechanism (issues #786, #790).
+
+**Where a stop bound sits** (measured 2026-11-06, issue #786): each value is the archive's own p95 or above, per
+role — worker 170 (p50 77.5, p90 138.5, p95 161.8, max 219 over 346 sessions), gate 80 (p95 69, max 71 over 11),
+tail 65 (p95 56.2, max 60 over 20), review round 75 (p95 57.7, p99 68 over 234), the round before the gate 75 (n=12,
+max 55, every session censored). The first values sat at the **p75 of a twelve-session sample**, and the first run
+that used them ended three of its six items' workers at exactly 110 turns after 4.5–12 min, each leaving a 4–6 k-line
+patch behind, and stopped on the streak with 324 of its 480 minutes unused; over the whole archive **77 of 346 worker
+sessions (22 %) sit at or over 110**, which is what a stop bound at p75 buys. A bound above the population costs one
+runaway child (~18 Mtok at the measured 106 k tokens a turn), and the token band is what flags that item; the cost a
+bound at p75 pays is the item that was working.
+
+The bound was the item's first (one count over the stream every child appends to), and that made it decide *which
+phase* was discarded rather than whether the item was converging: measured 2026-11-05 over the ten items that ran
+all five phases (`.pi/issue-loop/items`, per-child `turn_end` counts), #780 spent 80/34/42/41 turns on its worker,
+its round before the gate, its gate and its tail and the round-1 reviewer was ended at 53 of the same 250, and #767's
+round-2 worker got three turns before the item's pot ended it; six of that day's eight blocks were this bound, while
+the two items that closed used 192 and 241 of it. Each value is the same measurement per role, so a phase is
+bounded by its own work; the p95 rule stated above replaced the first per-role numbers, which were that
+population's p75 (worker p75 104 over the archive's 341 worker sessions, review round p75 40 over 232, the round
+before the gate p75 46, the gate child p75 50, the tail p75 39 over the ten post-#758 items). The
+**item's** total is no longer a stop: it is still counted (`metrics.turns`) and reported (the
+`calls:` line), the way the token band is.
+
+A turn is a unit of **shape**, not of cost (issue #760): every turn re-reads the whole conversation, so a count of
+turns bounds how many times the conversation is paid for and never what one payment costs, and the turn bound
+therefore fires at a price it cannot see. So a third bound is priced in what a turn costs, from the reading the
+report already takes (`tools/loop/state.sh`'s `child_usage_json`: the greatest `input + cacheRead` a usage record
+reports, or a compaction's `tokensBefore`) but which nothing read while a child ran: `LOOP_ITEM_CONTEXT_WARN`
+prints one `LOOP-CONTEXT:` line naming the reading and never ends anything, and `LOOP_ITEM_CONTEXT_MAX` ends the
+child exactly as the turn bound does, its transcript carrying `LOOP-TIMEOUT: the child reached the recorded context
+bound of <n> tokens (LOOP_ITEM_CONTEXT_MAX) at <m> tokens`. Measured over the 300 item records of
+`.pi/issue-loop/run.json` and `runs/*.json` (2026-11-05): the largest context per item is p50 107 669, p75 143 124,
+p90 174 984, p95 191 815, maximum 244 764. The checkpoint is the p75 (143 124) — one line on about a quarter of the
+items, the hardest among them — and the stop is 200 000, above the p95, where a turn costs 1.86× the archive's
+median largest context; 10 of the 300 recorded items (3.3 %) reached it, and `evidence/context-distribution.txt`
+lists them. Both are `0` or absent =
+no bound, and neither replaces another: the turn bound still ends a session that batches badly at a small context,
+and *splitting* the session at the checkpoint — a fresh child handed the change and the evidence, the shape
+`tools/loop/prompts/worker-tail.md` already has — is the cheaper half of the same idea and a change of its own.
 
 The run's own deadline bounds that child as well: the wait reads `run.deadlineEpoch` from the run's state once a
 second — the deadline is a whole-second clock, and reading it on every look would spend the finer granularity's
@@ -309,6 +429,40 @@ about one item in four, the hardest among them — which is the point, since a r
 Nothing in the run reads the key: an item above the band is worked, reviewed, gated and closed exactly as before,
 and a project that records no key (or `0`) flags nothing. *Why* an item cost what it did stays the analysis
 question, and `tools/loop-spend.py` (skill `loop-spend`) is its tool.
+
+The band bounds *what* an item cost; the shape it spent it in had no number either (issue #757). Every cost in
+this loop is turns times context — a turn re-reads the whole conversation — so a session that makes one tool call
+per turn pays the conversation again for every independent read it could have batched, and nothing in the report
+said so. Measured over `.pi/issue-loop/items` (227 items, 2026-11-03, the streams `tools/loop-spend.py` reads):
+**36 825 `tool_execution_end` lines in 33 183 `turn_end` lines — 1.11 calls per turn** — at 78 k tokens a turn and
+97 % of the spend charged as cache read; per item p10 0.99, p25 1.05, p50 1.11, p75 1.22, p90 1.32, maximum 1.61,
+so no item of the archive ever amortised two calls in a turn. The state now records the two counts the rate is
+derived from (`metrics.calls`, `metrics.turns`, summed over the item's children exactly as its tokens are), the
+table prints the item's own ratio in a column appended after the band, and the report's trend prints the run's
+ratio beside the items below the floor `LOOP_ITEM_CALLS_PER_TURN_MIN` records — 1.05, the archive's p25, which
+names the worst quarter, the band the single-call chain sits in. It is the token band's mirror in every other
+respect: a **warning, never a stop**, nothing in the run reads the key, and `0` or no key prints the floor as off
+rather than as `none`. The rule the number implies is in the worker's prompt: independent reads, greps and lookups
+belong in **one** turn, and a path already read is cited rather than opened again. The levers that raise the ratio
+are that rule, `tools/look.sh` (#687) and the session split at the first gate (#688); the **stops** it complements are
+the per-role turn bounds (`LOOP_CHILD_TURNS_MAX_<ROLE>`) and the item's context bound (`LOOP_ITEM_CONTEXT_MAX`, issue
+#760), which end a child inside one unbounded grind.
+
+The shape was one number; **where the spend went** was none (issue #759). Measured over the same archive (227
+items, 2026-11-03, the streams' own `tool_execution_end` durations): **89.6 h spent, of which model time 30.1 h,
+the loop's gate 35.1 h and the loop's own self-tests 11.6 h — and 1 581 of 2 591 Mtok, 61 %, spent after the
+item's first gate**, the reviewer holding 402 Mtok against the worker's 2 168. Not one of those splits was in a
+report the loop had written; they were readable only by summing the raw streams by hand. A run that paid two
+thirds of its clock inside the gate and a run that paid it reading printed the same shapes — the defect
+`LOOP_ITEM_TOKENS_WARN` was added to cure one level down (#662). The item's record now carries the three splits,
+read from the stream `state.sh done` already opens: `metrics.phases` (the turns' own `durationMs` as model time, the
+`tool_execution_end` durations of the calls whose command runs the project's declared gate (`LOOP_GATE_CMD`) as the
+gate, every other tool's as the third bucket — three disjoint buckets, since a turn's duration is the model response
+and a tool's the execution after it), `metrics.roles` (each session's tokens keyed by the role its prompt **path**
+names — `worker-tail` is the tail, which a role read from the word "reviewer" alone would fold into the worker), and
+`metrics.afterGate` (the tokens from a session's first gate turn on, and that session's own tokens). The report's
+trend prints the run's three sums beside each other, each `-` with its reason where nothing was measured. It is a
+figure, never a stop: nothing in the run reads it, and the keys it would bound do not exist yet.
 
 **The wait's granularity is a fraction of a second**, and that is separate from how often it reports. The poll that
 watches for the child's own completion record sleeps `LOOP_POLL_SECONDS` (default 0.05) and the heartbeat beside it
@@ -347,6 +501,23 @@ same file, so a suite that runs for a quarter of an hour shows its own lines ins
 its log at two lines while `tools/loop-selftest.sh` ran past eleven minutes, and an earlier red — a build that
 died at configuration in 21 s — was found only in the Gradle daemon log, because the gate had kept its output in
 a variable (#269).
+
+**The steps that share nothing run together.** The four shell suites a `tools/loop/**` delta owes share nothing but
+the read-only engine — each resolves a scratch tree of its own (`mktemp -d` per invocation) and writes a tally of its
+own — and only the build has to be alone, because it owns the build directory the suites read through the
+environment. The gate ran all five steps in one serial loop until issue #801: `run_step` held one output file, one
+status record and one clock for the whole gate, so four independent suites were added instead of overlapped. The
+engine now carries each owed step with the kind of list that owed it — `LOOP_GATE_FIRST_STEPS` and
+`LOOP_GATE_COMPILED_CMD` run alone, and the suites that follow run up to `LOOP_GATE_POOL_JOBS` at a time (default 4;
+`1` is the serial gate) — and each step keeps its own output, status, clock, tally, bound and console block, recorded
+in the profile's order once the wave has drained. Measured on this host by the change's own probe (`evidence/pool-probe.sh`
+in the change for issue #801): the same three 3 s stub suites cost **10 s** of gate wall clock with the pool at 1 —
+the serial engine, and the clock the red case read on the base — and **3 s** with the pool at 3, each step still
+writing its own tally. The shape a reader depends on is kept: a wave of one still streams its output while it runs
+(#269), a wave
+of several prints each step whole under its own `gate: <command>` … `— <n>s` block, which is what
+`tools/gate-attribute.sh` attributes a failure and its step from, and a failing step still fails the gate with its own
+numbers.
 
 **A gate step is held to a bound of its own.** The run bounds the child and the self-test bounds a case, and a
 *step* of the gate had no clock at all: measured 2026-10-25 (issue #311), one `tools/loop-selftest.sh` step held a
@@ -393,12 +564,36 @@ to itself, because a child works in the worktree and runs that tree's own engine
 where the tree's own profile owed five shell checks and no build, and it carried no pin at all, so the round-3
 reviewer could only refuse the round and the repair was a hand-pinned re-run.
 
+A child may pay for the full gate only the number of times the profile records: `tools/loop/gate.sh` leaves one
+**record per full run it starts** beside the stream the child's adapter keeps (`<events>.gate-runs`), under the
+`LOOP_CHILD_EVENTS` the run exports, and counts the records that carry the id of the session it is running in, so a
+run that would exceed `LOOP_GATE_RUNS_MAX` is refused with exit `3` instead of run — it names every run already
+started, names the bound, and prints `scoped: <command>` for every command the delta owes, which is `--plan`'s own
+list, so the child is handed a scoped step rather than a third full round that repeats suites the first one already
+passed. The count is the child's and not the item's because the session id is: the stream holds every child the item
+has had, and the run's own phase split gives the gate child its first full run. The signal is produced by the run it
+counts, and not read out of the stream's own tool calls: a command that *mentions* the gate's file — the `grep` and
+`sed` a child working on the gate runs over it — cannot be told from one that runs it.
+Measured 2026-11-03 over the archive's 227 items and 558 child sessions (`.pi/issue-loop/items/*/events.jsonl`,
+durations from each `tool_execution_end`): the gate was started **910 times and spent 35.1 h** — 60 % of all tool
+wall clock — 245 sessions ran it at all, and **117 of those (48 %) ran it three or more times** (#670 44 times in
+174 turns, #116 39 times in 152). A full round is 600–1 100 s, so a 480-minute run could spend its budget on gate
+rounds and never reach the review (issue #756).
+
 A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
 the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a
 directory), `tools/loop-selftest.sh --files <path> …` / `--from-git <base>` selects on that declaration, and a file
 set that names no case is refused with exit 2 rather than read as an empty suite — the rule the mutation harness
-has applied to its own records since #235. A delta to the library, the profile, the case file or the driver itself
+has applied to its own records since #235. A caller handed a real delta asks a different question — does this delta
+owe any case? — and its ordinary answer is no: most paths in this repository, application code and capability specs
+among them, are declared by no case, because a case declares the engine scripts it can be reached through. That is
+why the refusal has a third outcome beside it: `--allow-empty` is the caller saying it expects emptiness, and it is
+answered with `LOOP-SELFTEST: no case declares the delta` beside the file set it read and the declared set it
+selected against, nothing run and exit 0, so the step's log says which delta was covered by nothing rather than
+saying nothing. The flag states the intersection and nothing else: without it, a path the tree has and no case
+declares is the refusal it was, and CI's own step passes it (`--allow-empty --from-git <base>`, the pull request's
+base else the pushed branch's `before`, the whole set when that value is the all-zeros SHA). A delta to the library, the profile, the case file or the driver itself
 owes the whole set, and so does the archive: a case reaches behaviour through the scripts it starts, and only a
 hand-run of all of them covers that. Measured 2026-10-23 (issue #276): 190 cases and 723 s were owed for every
 `tools/loop/**` gate run, a delta to `tools/loop/worktree.sh` alone is declared by 31 of them, and a delta to
@@ -406,6 +601,19 @@ hand-run of all of them covers that. Measured 2026-10-23 (issue #276): 190 cases
 the declaration was generated once from the case bodies and is kept honest by
 `driver#everyCaseDeclaresTheFilesItCanReach`, which reads every body and refuses a declaration narrower than the
 case it describes.
+
+That case is the suite's cheapest and was, until 2026-11-06, reachable only through the suite's most expensive command
+(issue #792): a delta that wrote a declaration owed `tools/loop-selftest.sh --from-git <base>` and nothing cheaper, so
+#790's attempt passed the 11 cases its own `--case` selection owed and was refused by the one case that reads a
+declaration twelve minutes into its gate — `1 of 320 cases failed`, reported by `tools/loop-selftest.sh --from-git
+528d8e2a` (435 s) after `./gradlew test` (285 s) — over one path token missing from a comment, and the attempt was
+recorded `blocked` with nothing archived. The profile's `LOOP_GATE_FIRST_STEPS` has the suite map's `<glob>|<command>`
+shape and the gate reads it before the build and before every suite, so `tools/loop-cases.sh` owes
+`tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` first. The child's own step is written the other
+way round: `tools/loop/prompts/worker.md` is an engine template, so it sends the child to the plan's first line and
+names neither this case nor this command — a project value in the template would arrive in another project's child
+and order it to run a case that project does not have — because the order saves the gate's tail and only the child's
+step saves the attempt. Measured on `528d8e2a`: the case alone is 10 s.
 
 The suite runs its cases in a bounded pool rather than one after another (issue #260). A case owns a throwaway
 repository, a scratch tree under the suite's root and a process group of its own, and shares nothing but the
@@ -419,6 +627,47 @@ its process group is signalled, and the processes standing in its own root are s
 next case — which is why the exit trap's `/proc` sweep, one pass over every process and 0,83 s on a host of 664, is
 made per case and not per suite. The worker count is `--jobs` on the invocation, else `LOOP_SELFTEST_JOBS` in the
 profile, else the host's CPU count; the `PASS`/`FAIL` line per case, the counts, the summary and the exit status are unchanged.
+
+The suite's wall clock was the runner's core count and nothing the suite did could shorten it, so the pipeline runs it
+as **legs** (issue #781): `.github/workflows/build.yml`'s `loop-suite` job is a matrix of three, `fail-fast: false`,
+and a leg is the driver invoked once per group of its own selection — `run` (114 cases),
+`prescreen gate state worktree report driver` (138) and the remaining thirteen groups (62) — on its own
+`ubuntu-24.04` runner with `contents: read` and no SDK. The driver's `--group` stayed a single value: a leg loops over
+its groups in one step, so its log carries one summary per invocation and each names its own selection. A leg owes
+what any invocation of the suite owes — its summary counts its cases against the declared set, so a leg that silently
+covered less is visible in its own log, and the leg's exit status is a verdict of the run, so one red leg reddens the
+run exactly as one red case did when the suite was one step — and the whole set is still owed before a change that
+owns `tools/loop/**` is archived: a leg bounds what a push that owes the suite pays, it does not narrow what the
+archive owes. A leg needs no pair of its own in the profile's suite map: it runs the driver the map already carries,
+narrowed by a selection that runs fewer of that entry's cases, and `gate#theMapCoversEveryPipelineStep` strips the
+`--group <selection>` from both sides before it compares (`guidelines/Build.md` §3). Measured 2026-11-05 (issue
+#781): `bash tools/loop-selftest.sh --list | cut -d'#' -f1 | sort | uniq -c` counts the three selections above, and
+on 2026-11-04 the whole set at `--jobs 4` took 469 s on a 16-core host with `--group run` 261 s of them (56 %),
+against the 17 min 15 s the same set spends as one step on a four-core runner (run 41810844107); the three legs
+of the first green dispatch (2026-11-05, run 42094414229) took 361 s, 416 s and 107 s, so the suite's wall clock in
+the pipeline is the slowest leg's 6 min 56 s rather than the 17 min 15 s the one step spent.
+
+The suite states what it cost, and that figure is what a case is priced against (issue #782). Before this the summary
+named its case count, its JDK feature and its selection and nothing about time: a case's start was recorded only to
+stop its bound's watcher and was cleared when the case ended, so a group's cost existed only as the difference
+between two step durations a person read in the CI log. Now every invocation that prints a summary prints one line per
+group it executed — that group's case count and the sum of its cases' own elapsed times — and its summary line carries
+the selection's own wall clock beside the counts and the selection:
+`loop-selftest: state 24 cases 39.47 s` and `loop-selftest: all 24 cases passed (JDK 27, offline, no token, no
+sandbox) — 54.96 s, selection: --group state` (measured 2026-11-06 at base `0fb7a80`, `--group state --jobs 1`). A
+group's figure is a sum where the selection's is a wall clock, so the two differ by the pool's parallelism — `driver`
+paid 98.87 s of case time in 32.28 s of wall clock at `--jobs 4` the same day — and neither is compared with a stored
+number: a baseline's disagreement is a disagreement about the host, not a verdict on the change. `--times` adds the
+figure to a `PASS` line when it is asked for and never otherwise, because the mutation harness and the leftovers cases
+invoke the driver with one named `--case` and parse what that shape prints.
+
+**Read a group's cost before adding a case to it**, and price a trim against what a case costs and not against what its
+fixture looks like it costs: the three groups the plan blamed for paying a prepared project per case (`state` 24,
+`report` 20, `prescreen` 30 — 74 cases, 101.97 s of case time, 1.38 s a case) pay 13 ms of that for
+`new_project` — 0.8–1.2 % of a case — so a merge of all 74 into one per fixture would have saved 0.95 s of their
+101.97 s. The measurement is
+`openspec/changes/archive/2026-11-06-loop-suite-cost-is-reported/evidence/trim.txt`, and the report is what
+lets a later trim aim at the group that pays.
 
 One tree runs one suite at a time: two suites in one scratch root redden a different set of cases each run, so a
 red gate can belong to the neighbour rather than to the change under test. The driver holds a lease in the root the
@@ -452,6 +701,27 @@ recorded two items `blocked`, escalated both, and stopped on "two consecutive it
 into an 8 h budget — two questions nobody had asked, and two of its three decision slots (#212). A child the run ended
 itself, and one that left work behind, stay blocked items: the first carries its own transcript line and no
 commit, the second its branch, which is what a later pass escalates.
+
+A run one of the traps it installs ended records that signal as its own stop: `HUP` is trapped beside `INT` and
+`TERM` — a terminal or a harness that goes away sends it — and the trap writes `interrupted by SIG<NAME>` into the
+run's record before the in-progress mark comes off and before the lock is released. 50 of the 105 runs
+this repository has archived record no stop, 18 of them having worked items, so a third of the loop's own history has
+no cause, and an item a run left in progress is the one thing a person has to find by hand before the queue can take
+it again (#755). The item's own record is the one it always was — `blocked`, with "interrupted by a signal" — and the
+cases are `run#interruptedRunEndsTheChildItStarted` and `run#aHupEndedRunRecordsItsStopAndUnpicksItsItem`.
+
+What it does with a tree the child claims and did not commit: the reading that needs no child at all is the item's
+HEAD against the run's base, so it is taken where the run itself makes the commit — the child the gate is deferred to
+stops at the diff, the run commits that tree and reads the HEAD it just made, and a HEAD still at the base ends the
+item there (`tools/loop/run.sh:2075`). Nothing follows that reading: the reviewer and the gate child are already
+guarded on the same HEAD, the tail is guarded on it too, and the item is recorded `blocked` on "reported success but
+the tree is still at the base commit — nothing was committed" — the reason the outcome block's own arm writes, kept
+there as the invariant rather than written twice. It is not the never-started stop above: a child that answered the
+diff marker did read the item, and its own claim is what says so. Measured 2026-11-06 (issue #797): eight records over
+the archive carried that reason, each read after every child of its item had been paid for (1 915 s for #260, 1 422 s
+for #319, 916 s for #721), and with the gate deferred the same tree beside an answer that claims a diff left no item
+record at all — the tail's empty answer was read as "the child could not start".
+`run#anEmptyTreeIsRefusedBeforeTheGateChild` is the case, and `tools/loop-mutations.sh` 91.1 the record that keeps it.
 
 What it does with a start the worktree refuses: a tree that is not clean is the *previous* item's unfinished work
 — `start-item` refuses it, because committing over it would attribute two changes to one branch — so the run
@@ -501,6 +771,14 @@ branch, `main` does not move, the run re-reads the unchanged base and closes the
 a fix the base never had (issue #308, from #301's review, 2026-10-24). For the same reason the base the run
 records is only ever a commit the base *branch* carries: `set-base` asks the branch and refuses anything else,
 so a closure cannot be recorded against a tree the base does not have.
+The same pre-flight reads that tree's **uncommitted work**, because every merge the landing step makes lands there
+and refuses dirt: a run whose project tree carries a modified, staged or untracked path git does not ignore is
+refused at exit 5 before the pre-screen, before any item and before any adoption, with the paths printed and
+recorded in the stop reason `report.sh` prints. It is a refusal and not a cleanup: the kept worktree's
+dirt has `--reset-worktree` because the run wrote it, while this tree's dirt may be its owner's edit made while no
+run was live, and nothing the run can read tells the two apart, so the refusal discards nothing. Measured over this
+loop's archive (#798): four items were recorded `unmergeable` for a tree the landing step refused only after their
+budget and their gate (#668, #675, #769, #782), the last of them for two files that cost one run and two items.
 No item is replayed onto a tree nobody reviewed: a branch that is not the run's own work is `adopt-item`'s
 decision, taken on what a stranger to the run can check. A review round is part of that record, in both
 directions: the run commits the round onto the branch before its reviewer starts and commits the answer when
@@ -510,6 +788,22 @@ minutes later adopted the branch, merged it into `main` and closed the item — 
 (#262). A branch whose last round answered `PASS` is adoptable; one whose round was announced and never
 answered, and one the reviewer refused, is the owner's, and one that carries no round at all was never asked to
 a review (`--review off`) and stays adoptable.
+
+The adoption the run takes by itself (`adopt_finished_exclusions`) has a result of its own, and its two refusals are
+not the same fact. A branch whose own evidence does not admit it — no archived change of its own, no green
+verification record, a reviewer's refusal, a round announced and never answered — is the owner's, and the
+pre-screen records it as the decision the run escalates. A branch that **is** admissible and still cannot be
+merged is the tree's or the base's refusal: the project tree is not clean, it is on another branch, the base
+moved — each of them a state a later run finds whole, so the item is work. A branch whose replay conflicts is the
+same work retried and unresolved by the run: nothing here rebases or reworks it, so it is refused and recorded
+again on every run, with no question asked while the branch stays stale. The run records that refusal as the
+item's mechanism `unmergeable` beside the pre-screen's exclusion
+(`state.sh adoption-refused`, which keeps the verdict, the reason and the branch as the evidence and refuses to
+write a second mechanism onto an item the run has already recorded), escalates nothing and spends no decision
+slot, and the report prints it: `excluded: #21 needs-decision (unmergeable)`. Measured 2026-11-06 on #760: the
+pre-screen excluded an item whose branch `branch-state` read `adoptable` the whole time, the adoption had failed
+on a project tree that was not clean, and the run escalated it after its owner had answered the only question
+it had — one of that run's ten decision slots.
 
 A number a change carries is the output of a command in its record, or it is not a claim. The worker's package
 hands it the block that reads the change's own numbers — the paths, the checks the pathspec owes, the tallies the
@@ -537,6 +831,39 @@ rest, and without `--apply` it removes nothing at all. The manual command that a
 same landed branches together with the scratch paths. Measured 2026-10-27 on the tree that carried #239: 28
 branches were leftovers, 12 of them `loop-*` run branches, and the run's end removed none of them.
 
+The candidate set is the **names the loop makes**, and one of those names is a thing set aside rather than a thing
+in flight: `start-item` renames a blocked attempt's branch to `loop/leftover/issue-<n>-<slug>-<utc>` so the attempt's
+commits stay reachable while the item is worked again. That namespace was in no pattern either path enumerated
+(`loop_own_branches`, `git branch --list 'fix/issue-*' 'loop-*'`), so a set-aside branch was not *kept* by the rule
+that protects unreviewed work — it was invisible to it, and one whose work had landed by hand stayed for ever.
+Measured 2026-11-06 (issue #803): eight set-aside branches on this tree, one to three commits each, and neither
+`prune-landed` nor `loop-clean.sh` named one of them. It is a candidate now, judged by the same four readings as
+every other branch: patch identity removes a set-aside branch whose work the base carries, and a branch whose
+patches the base does not have is kept and named as work the base does not have. No disposition record is read
+beside it — the branch's own name carries the issue, the slug and the UTC it was set aside, and what was missing was
+a reader of that name. The remote arm's two patterns stay two: a blocked attempt's branch is renamed locally and
+never published.
+
+The sweep has **two arms**, and both read the base the remote publishes. A branch the loop published is in no local
+namespace: the run merges the work on the base and drops the branch it committed, while the push that published it
+never deletes a remote ref, so `git branch --list` cannot see it and every sweep missed it. Measured 2026-11-03:
+`gh api repos/Framstag/NaviVeylin/branches` listed 16 `fix/*` heads beside `main`, and `git merge-base --is-ancestor
+origin/<b> origin/main` held for 10 of them — and the loop's own adoption, a `merge:` commit on the base, left
+`origin/fix/issue-728-…` standing (#763). The remote arm's candidates are the names the local arm owns, resolved on
+the remote — the two patterns are fetched (with `--prune`) before they are read, so the tips judged are the published
+ones and not this clone's cache of the last fetch: read from the cache, a head somebody advanced meanwhile was judged
+landed at its stale tip and deleted with the commits it had gained since, unattended, on a shared remote. So a ref
+the loop never made is never a candidate, and a head the base does not carry stays whatever this clone last fetched;
+its base is the fetched `origin/<base branch>`,
+because `run.base` is the pin the run started on and a branch that landed while the run was open is unlanded against
+it — that reading kept a fully landed branch with `carries work the base does not have` (#727, #763). Before it
+deletes anything on a shared remote it takes the one reading nobody else can make: `gh pr list` says which heads are
+open pull requests, and a branch that is somebody's review stays. A forge that cannot be read keeps **every** remote
+ref: an outage is not a forge with no pull requests. This is the loop's first unattended destructive write to a
+shared remote, so the delete is the remote's own `git push origin --delete`, which a protected branch refuses, and it
+carries a `--force-with-lease` for the tip the ref was judged at — a ref that moved between the read and the delete
+is kept, not removed with whatever it gained.
+
 
 ## §7e Leftovers, the report and the queue
 
@@ -549,6 +876,32 @@ process evidence apply to both, so a tree a live suite is writing into stays kep
 three of the trees past the threshold and three of the runs past their budget, and the report printed its heading with
 no entry at all.
 
+The report also answers for the **trees** the loop made and stopped keeping. The run keeps one worktree —
+`LOOP_WORKTREE`, `$LOOP_ROOT/.pi/worktrees/loop` — and the trees of the runs that kept one per item are named by
+nothing: not the configuration, not a state field, not a branch marker, so no arm reported them. Measured 2026-11-06
+(issue #803): `.pi/worktrees/` held ten directories, the run's own and nine beside it, four of them still registered
+with git. The arm walks the worktrees git knows, under that directory only, skips the one the run keeps and the one
+the invocation was pointed at, and judges each of the rest by what it holds — the reading a branch gets one level
+down: uncommitted changes, or a HEAD the base does not carry, keep the tree and are named as the reason it is kept,
+and anything else is named with its size and removed with `git worktree remove --force` only under `--apply`. It
+runs after the branch arm, so a landed branch that a tree nobody keeps holds is judged as checked out first and the
+tree is released afterwards: the next run finds the branch landed and removes it, rather than this one deleting a
+branch a live tree stands on. A directory under `.pi/worktrees/` that git does not know as a worktree is not read at
+all — removing it would need the refusals `loop_scratch_remove` owns for the build paths, and that is a second rule
+for a second case.
+
+The report also answers for the **item directories**, the largest thing the loop keeps and the one no arm named: one
+directory per item holding that item's event stream, its package, its reports and its leftover patch. Measured
+2026-11-06 (issue #802): `.pi/issue-loop/` held 3.6 GB over 264 item directories, one event file 63 MB, and
+`loop-clean`'s arms were the kept worktree's build paths, the scratch trees, the branches, the worktrees and the
+change sources — none of them this. They are also the loop's evidence, so a directory is released only when two
+readings agree: nothing inside it has been written for `LOOP_ITEM_ARCHIVE_DAYS` (14 days here, which released 105
+directories and 1 411 MiB on the day it was measured and nothing younger), **and** the run's own state records the
+item `done` with `metrics.closed: yes` — the offline reading of "the tracker closed it". No record, another result,
+or a landing the run was not allowed to close is an issue still open and still citing its directory, so it is kept and
+named with that reason. `--apply` removes exactly what the report named, a state file that cannot be read keeps every
+directory, and a `0` retention is the switch that releases none.
+
 What it does with an answer that arrived cut: the report a review round is decided from is the file the child's
 answer reached, and what reaches that file can be short. On 2026-10-20 an item's round-2 report stopped
 mid-word — `… and the post-restore gre`, 6 067 bytes, ending on the newline the adapter adds — while its own
@@ -559,12 +912,53 @@ nothing was wrong with the work (#224). The **shape** of the answer decides it, 
 prints exactly one newline after every answer it hands the run, and the prompt asks for a `VERDICT: PASS|FAIL`
 line in the report's closing block, so a report that carries no `VERDICT:` line — or one whose last byte is not
 the adapter's newline — is an **incomplete child answer**. The missing line is what caught the measured
-incident; the missing newline covers a report that was never handed over whole. The run says so, asks the same
+incident; the missing newline covers a report that was never handed over whole. The line is read where it stands,
+fence or no fence: a reviewer that writes its closing block as inline code — `` `LOOP-BLOCKING: 3` `` then
+`` `VERDICT: FAIL` `` — wrote the line its prompt asked for, so one backtick at each end is taken off before the
+answer is judged, and both the completeness reading and the count are the ones inside the fence (#793; measured
+2026-11-06, both of item #788's pre-gate reports ended that way and a complete refusal was escalated as no
+reviewer having refused the change). The run says so, asks the same
 round once more (same prompt and same diff, the answer kept beside the cut attempt as
 `reviewer-report-<n>-retry.md`) and decides on the answer that arrived. A
 round the run itself ended already says so in its report (`LOOP-TIMEOUT`) and is not retried; two cut answers
 in one round block the item with *the reviewer's report was cut short twice*, and the branch carries no
 review-failure marker, because no reviewer refused that change.
+
+What a bound cut is, and what it is not: a round the run's own bound ended — the run's deadline, or the role's
+turn bound — carries `LOOP-TIMEOUT`/`LOOP-DEADLINE` and no `VERDICT:`, and reading that as a refusal named a
+reviewer that refused nothing and bought a rework worker for it (#247). The round being *cut* was recorded, but the
+**item** was recorded `blocked` and escalated, which is a different fact and was wrong: measured 2026-11-05 on
+#780 — its tail wrote `LOOP-VERDICT: closed`, its gate read `tests=460 failures=0`, `evidence-check.sh` passed, its
+change was archived and its branch held three commits — and review round 1 was ended at the turn bound after 53
+turns, after which the item was recorded `blocked`, given `agent/needs-decision` and `status/on-hold`, and counted
+towards the run's two-blocked stop; #783, #767 and #763 reached the same state the same day. An item the loop's own
+bound cut is therefore recorded **`cut`**, the fifth result beside `done`, `skipped`, `blocked` and `falsified`:
+it writes no decision label, it is named on a line of its own (`cut short by the run's own bound: …`) instead of in
+the blocks, it does not enter the two-blocked streak `state.sh next` stops on, and the run takes no second pass over
+the queue after it, because that pass would re-exclude the item whose branch the cut child had just made (#674's
+rule, one result wider). The same holds one level down, for the **item's own child** (issue #790): a worker, a gate
+child, a tail or the rework worker of a refusing round the run ended at its role's turns, at the child clock or at
+the run's deadline leaves a phase, not a finding — #788, #778 and #759 each sat in one run's state as `blocked`
+with a bound's reason and a 4–6 k-line patch beside them, so the next reader had to read the mechanism to know the
+item was work. What the branch carries is the round as a **cut** — `review-round-<n>-cut.md`, with the
+announcement of the same round withdrawn in that commit — so `branch-state` reads `adoptable` rather than
+`review-unanswered`, and the next pre-screen offers the attempt as work the loop finishes instead of as a question
+only its owner can answer. A round the *transport* cut twice is not this: no bound ended it, so it stays a block
+with its reason, because nothing about it says the item is converging.
+
+A **block** the run's own bound caused was the same fact one result over (issue #786), and is now that fact: the
+item's tree was left mid-phase, its work is kept exactly as the child left it and its patch is named in the
+record — but its result is `cut`, like every other phase the run's own bound ended (issue #790), and the mechanism
+`bound` rides beside it as the third value of the vocabulary beside `refused` and `unmergeable`. That one word is
+what a state's own table and a mechanism's spend are read from, and it is never the word a reader needs to tell
+work from a refusal: no decision label is written (so the cut spends none of the decision ceiling), the note says
+the attempt waits for the next run, and `state.sh next` never reads a cut as a refusal, because a refusal predicts
+the next item's failure — the same gate, the same provider, the same tree — and a bound predicts nothing about an
+item that starts a fresh worker on a fresh tree. A state a run wrote before issue #790 carries the same fact as
+`blocked` with `stopReason: bound`, and `next` still keeps that pair out of the streak, so a run that resumes an
+older state reads it as it always did. Measured 2026-11-05: five of six runs stopped on the two-block streak with
+758 of 3 211 budgeted minutes used, six of that day's eight blocks were bound cuts, and the first run carrying the
+per-role turn bounds ended after 156 of its 480 minutes with three of six items ended at exactly 110 turns.
 
 What the round a corrective refusal buys is handed: a refusal whose every finding is subtractive —
 `LOOP-CORRECTIONS-ONLY: yes` — at the round budget buys one more round (#187), and that round exists to decide
@@ -596,7 +990,9 @@ as `blocked`); **what each one cost** — the wall time
 their count, the tokens it used and what they cost, the largest context it reached, with `-` where nothing was
 reported rather than a zero that reads as a measurement (#211) — beside the run-level `spent`, and each item's tokens read against the band
 `LOOP_ITEM_TOKENS_WARN` records: the row of an item above it carries how far above it is in a column of its own
-and the run-level line names the items above it, which is a **warning and never a stop** (#662); and **what the
+and the run-level line names the items above it, which is a **warning and never a stop** (#662), and the row's
+last column carries the item's tool calls per turn, the shape the spend was made in, read against the floor
+`LOOP_ITEM_CALLS_PER_TURN_MIN` records and named for the items below it (#757); and **what the
 caller must now do** — a named action list
 whose lines are each read from the state or from git: an owed decision with the question the run wrote (or,
 where the state does not hold it, where it is), a branch that carries a patch the base does not have with the
@@ -606,8 +1002,11 @@ an answer, so `none` is printed only when all five sources were
 read and empty — it never hides a branch that carries work.
 
 Beside those three, and about the loop rather than about one run, the report says whether the loop is getting
-faster and more often right (#247): the review round-1 pass rate and the item wall median, minimum and maximum,
-both totalled from the state the report already reads, with `-` and its reason where nobody measured one. The
+faster and more often right (#247): the review round-1 pass rate, the item wall median, minimum and maximum, the
+run's tool calls per turn beside the items below its recorded floor (#757), and — since #759 — where the spend went,
+the clock split by phase (model, gate, every other tool), the tokens split by role (worker, reviewer, tail) and the
+share of the tokens spent after an item's first gate, all totalled from the state the report already reads, each
+with `-` and its reason where nobody measured one. The
 rate is counted from the **verdict** a round ended on (`done --review-verdict`), never from the round count: the
 count is the round the loop *attempted* — `run.sh` writes it before the reviewer runs — so a round 1 that refused
 and then blocked carries the same `1` as one that passed, and review round 1 of #247 measured exactly that on
@@ -616,7 +1015,7 @@ round nobody answered: `#51` carries count 1 as well, and its round 1 was **cut*
 transcript holds `LOOP-TIMEOUT` and no `VERDICT:` at all — which the run read as a refusal until review round 2.
 So the state records the round's verdict (`done --review-verdict`) and four things are told apart and printed: a
 round 1 that passed; a round 1 that refused and whose round 2 passed (in the rate's denominator, in no
-numerator); a round that ended without a verdict (the answer was cut, the run's clock or the item's turn bound
+numerator); a round that ended without a verdict (the answer was cut, the run's clock or its role's turn bound
 ended it, it wrote, or the state predates the field — neither a pass nor a refusal, so in no rate); and an item no
 round ran for (`reviewRounds` 0, which is `never reviewed` and not a refused round). The third figure the issue asked for,
 the landings that reddened `main`, is in neither source the report reads: `state.sh done` keeps a landing's

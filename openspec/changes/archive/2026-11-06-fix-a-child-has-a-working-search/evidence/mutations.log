@@ -1,0 +1,22 @@
+$ bash tools/loop-mutations.sh --only "87.1 87.2 87.3 87.4 87.5 87.6"
+RED    87.1  adapter#theChildIsStartedWithItsToolDirectoryOnPath   (the agent's own tool directory prepended to the child's PATH, so a run started without it hands every worker no `rg` — the binary `ctx_grep` and the agent's own subprocesses look for (issue #796))
+restore 87.1 adapter#theChildIsStartedWithItsToolDirectoryOnPath green again
+RED    87.2  look#aPathScopesTheWalkToIt   (the scope that answers one document's section list instead of every document's headings (issue #796))
+restore 87.2 look#aPathScopesTheWalkToIt green again
+RED    87.3  prompt#thePhasePromptsCarryTheirOwnRoute   (the call every phase prompt names for a document's section list, so the recipe a child is handed is the shell search its own policy refuses (issue #796))
+restore 87.3 prompt#thePhasePromptsCarryTheirOwnRoute green again
+RED    87.4  prompt#thePhasePromptsCarryTheirOwnRoute   (the call the document map names for a section list, so the prompts route a child into the same refused recipe one document further on (issue #796))
+restore 87.4 prompt#thePhasePromptsCarryTheirOwnRoute green again
+RED    87.5  look#aPathScopesTheWalkToIt   (the first line naming what the walk covered, so a scoped answer reads as a tree-wide one (issue #796))
+restore 87.5 look#aPathScopesTheWalkToIt green again
+RED    87.6  look#aPathScopesTheWalkToIt   (the refusal that keeps a scope inside the tree, so `--path ../outside.md` reads the tree's parent (issue #796))
+restore 87.6 look#aPathScopesTheWalkToIt green again
+red-when-mutated: 6 · not-noticed: 0 · restore-failures: 0
+
+$ bash tools/loop-mutations.sh --check
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.4viTVs
+loop-mutations: all 255 cases passed — every selected record applies to the file it names
+
+$ python3 openspec/changes/fix-a-child-has-a-working-search/evidence/ctx-grep-census.py
+CTX-GREP-CENSUS at=2026-11-06T17:29:34Z items=252 items_failed=125 calls=482 failed=282
+at=2026-11-06T17:29:34Z

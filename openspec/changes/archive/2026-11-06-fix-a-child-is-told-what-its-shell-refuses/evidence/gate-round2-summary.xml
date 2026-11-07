@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcription of the correction round's single gate run, its own aggregate line (evidence/gate-round2.log:1767).
+     `gate.sh` sums the per-suite summary lines and writes no aggregate tally of its own, so this file carries the sum
+     beside the 26 per-suite XMLs under gate-round2-tallies/, where it is checkable: tools/loop-selftest.sh --from-git
+     6ad5c485… 344 + bash tools/loop-mutations.sh --check 260 + tools/issue-tooling-selftest.sh 160 +
+     tools/loop-mutations-selftest.sh 34 + tools/check-doc-routes-selftest.sh 34 +
+     tools/check-portability-selftest.sh 29 + tools/check-openspec-hygiene-selftest.sh 7 = 868; every one of the 26
+     XMLs carries failures="0" errors="0". The compiled step's tally is gate-round2-tallies/
+     gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml — `BUILD SUCCESSFUL in 4m 39s` at
+     evidence/gate-round2.log:231, tests="0" because Gradle prints no case count here — so nothing in this run is
+     attributed. This change's own case is carried by the same log: `PASS
+     prompt#thePhasePromptNamesWhatItsShellRefuses` at evidence/gate-round2.log:618, inside the
+     tools/loop-selftest.sh --from-git step (344 cases, gate-round2-tallies/
+     tools_loop-selftest.sh_--from-git_6ad5c485e6e3bc206a311ee7cc5fa2c70d3d59db.xml). -->
+<testsuite name="tools/loop/gate.sh — the run's aggregate LOOP-GATE line, correction round" tests="868" failures="0" errors="0" time="1508">
+  <system-out>LOOP-GATE: tests=868 failures=0 errors=0 (tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach 11s, ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache 279s, tools/loop-selftest.sh --from-git 6ad5c485e6e3bc206a311ee7cc5fa2c70d3d59db 535s, bash tools/loop-mutations.sh --check 4s, tools/loop-mutations-selftest.sh 493s, tools/issue-tooling-selftest.sh 179s, … 26 steps, no step failing)</system-out>
+</testsuite>

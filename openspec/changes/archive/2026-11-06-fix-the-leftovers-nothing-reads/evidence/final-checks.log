@@ -1,0 +1,14 @@
+2026-11-06T17:57:59Z
+clean#reportsAWorktreeNoRunKeeps| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-test')
+clean#reportsAWorktreeNoRunKeeps| HEAD ist jetzt bei 2d0daff init
+PASS clean#reportsAWorktreeNoRunKeeps
+PASS worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved
+PASS worktree#aSetAsideBranchWhosePatchesLandedIsRemoved
+loop-selftest: worktree 2 cases 1.29 s
+loop-selftest: all 2 cases passed (JDK 27, offline, no token, no sandbox) — 1.64 s, selection: --case worktree#aSetAside*
+check-portability: OK — 56 engines and 7 templates name no project value (116 value(s) read from the project)
+loop-mutations: selected 13 of 256 records (files: tools/loop/lib.sh tools/loop/loop-clean.sh)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.ewNlxa
+loop-mutations: all 13 cases passed — every selected record applies to the file it names
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+2026-11-06T17:58:05Z

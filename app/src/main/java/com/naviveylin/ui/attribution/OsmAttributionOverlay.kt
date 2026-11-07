@@ -35,6 +35,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naviveylin.R
+import com.naviveylin.core.details.ContactLink
+import com.naviveylin.core.details.LinkKind
 import kotlinx.coroutines.delay
 
 /**
@@ -164,6 +166,32 @@ internal fun openUrl(context: Context, url: String) {
         context.startActivity(intent)
     } catch (_: Exception) {
         // No browser available
+    }
+}
+
+/**
+ * Launches one resolved contact link: the browser for a website, the dialer
+ * prefilled for a phone number (spec: enhanced-details-sheet — Contact values
+ * are actionable). Never `ACTION_CALL` — that would need the `CALL_PHONE`
+ * permission and would place a call from a row tap (design D3).
+ *
+ * Returns whether an installed app took the intent. The failure is caught
+ * rather than queried: resolving a handler first needs a `<queries>` manifest
+ * entry on API 30+ and can be stale by the time the row is tapped (design D4).
+ */
+internal fun launchContactLink(context: Context, link: ContactLink): Boolean {
+    val intent = when (link.kind) {
+        LinkKind.WEB -> Intent(Intent.ACTION_VIEW, Uri.parse(link.target))
+        LinkKind.PHONE -> Intent(Intent.ACTION_DIAL, Uri.parse(link.target))
+    }
+    // Required when the context is not an Activity (e.g. application context).
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    return try {
+        context.startActivity(intent)
+        true
+    } catch (_: Exception) {
+        // No app handles this link — the dialog shows the hint instead.
+        false
     }
 }
 

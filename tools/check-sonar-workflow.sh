@@ -18,6 +18,8 @@
 #     `continue-on-error` — a scan that could not run must fail the run rather than pass quietly;
 #   * neither file sets `qualitygate.wait`: the quality gate colours the project and does not gate the build
 #     (`guidelines/BuildEvidence.md` §7);
+#   * the scan writes and uploads a record of its own outcome on `if: always()`, as the artifact the checks'
+#     run fetches — a red scan that publishes nothing is a pipeline no row can see (issue #751);
 #   * `sonar-project.properties` declares the project, the module set, each module's own coverage report, and
 #     the six exclusion path groups with the generated-code patterns — the boundary the capability requires,
 #     spelled out rather than inferred.
@@ -32,7 +34,7 @@ root=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] && [ "${2#--}" = "$2" ] || { printf '%s: %s needs a value\n' "$(basename -- "$0" .sh)" "$1" >&2; exit 2; }; root="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,29p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,31p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "check-sonar-workflow: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -58,6 +60,14 @@ line_of() { # line_of <file> <key> -> the line number of the first `key=` line, 
   local n
   n=$(grep -n "^$2=" "$1" | head -1 | cut -d: -f1)
   printf '%s\n' "${n:-1}"
+}
+step_block() { # step_block <file> <pattern> -> the `- name:` block whose lines carry the pattern
+  awk -v pat="$2" '
+    function flush() { if (body != "" && body ~ pat) printf "%s", body; body = "" }
+    /^[[:space:]]*- name:/ { flush(); body = $0 "\n"; next }
+    { if (body != "") body = body $0 "\n" }
+    END { flush() }
+  ' "$1"
 }
 
 # ── the workflow: its triggers and the guard ─────────────────────────────────────────────────────────
@@ -201,6 +211,68 @@ else
       esac
     done
   done < <(grep -n '\./gradlew' "$wf" || true)
+fi
+
+# ── the scan publishes its own outcome ─────────────────────────────────────────────────────────────
+# A scan that publishes nothing is invisible to every row of the checks' registry: `sonar.yml` failed on every
+# push to `main` and the tracker received no item of any kind, because nothing carried the scan's outcome out
+# of the run (issue #751). The record is written and uploaded on `if: always()` — a red scan is exactly when a
+# reader needs it — and the path it is uploaded from is the path the row declares, so the two cannot drift.
+if [ -f "$wf" ]; then
+  # The row's own declaration, not a second copy of the path: the row is what reads it, so its `input` is what
+  # the artifact has to carry (issue #751, review round 1).
+  record_path=$(jq -r '.rows[]? | select(.id == "broken-scan") | .input // empty' \
+    "$root/tools/sensors/sensors.json" 2>/dev/null | head -1)
+  if [ -z "$record_path" ]; then
+    error "$wf_rel" 1 "no 'broken-scan' row declares the scan's record — the workflow would publish a record no row reads (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
+  fi
+  record_block=$(step_block "$wf" 'build-inputs.sh --scan-result')
+  if [ -z "$record_block" ]; then
+    error "$wf_rel" 1 "no step writes the scan's record (a 'tools/build-inputs.sh --scan-result' step) — a scan whose outcome nothing records reads as healthy (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
+  else
+    # The step's own `if:` line, not the string anywhere in the block: the prose above a step explains the
+    # rule in the rule's own words, and a check that grepped the block would read its own comment as the
+    # setting (measured by the case that mutates this line: the block still carried `if: always()` in prose).
+    case "$(printf '%s\n' "$record_block" | grep -E '^[[:space:]]*if:' | head -1)" in
+      *'always()'*) ;;
+      *) error "$wf_rel" "$(grep -n 'build-inputs.sh --scan-result' "$wf" | head -1 | cut -d: -f1)" "the record step's 'if:' line is not 'if: always()' — a red scan is exactly when the record is needed (spec backlog-sensors, 'A pipeline outside the build publishes its own record')" ;;
+    esac
+  fi
+
+  upload_block=$(step_block "$wf" 'name: scan-inputs')
+  if [ -z "$upload_block" ]; then
+    error "$wf_rel" 1 "no step publishes the scan's record as the 'scan-inputs' artifact — the checks' run fetches exactly that name, and a renamed artifact reads as one that does not exist yet (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
+  else
+    case "$(printf '%s\n' "$upload_block" | grep -E '^[[:space:]]*if:' | head -1)" in
+      *'always()'*) ;;
+      *) error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the upload step's 'if:' line is not 'if: always()' — a failed scan publishes no record otherwise, and its failure stays invisible (spec backlog-sensors, 'A pipeline outside the build publishes its own record')" ;;
+    esac
+    # The upload root decides where the record lands, not the string in the workflow. `upload-artifact` roots
+    # the archive at the least common ancestor of the uploaded `path:` list, so a single explicit file is
+    # carried under its basename: `app/build/scan-result.json` would arrive as `scan-result.json` and
+    # `fetch-build-inputs.sh --dest .` would unpack it at the workspace root, where the row — declaring the
+    # directory — reads nothing (issue #751, review round 1). So the declared path must name the file at the
+    # root the upload produces, and the upload must list exactly that one path.
+    upload_paths=$(printf '%s\n' "$upload_block" | awk '
+      /^[[:space:]]*path:/ { collecting = 1; line = $0; sub(/^[[:space:]]*path:[[:space:]]*/, "", line);
+                           if (line != "" && line != "|" && line != ">-" && line != ">") print line; next }
+      collecting && /^[[:space:]]*[A-Za-z_-]+:/ { collecting = 0 }
+      collecting && NF { line = $0; sub(/^[[:space:]]*/, "", line); print line }')
+    if [ -z "$upload_paths" ]; then
+      error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the upload step names no 'path:' — the artifact carries nothing (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
+    else
+      case "$record_path" in
+        */*) error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the row declares '$record_path' with a directory, but a single explicit upload path is archived under its basename and unpacked at the workspace root — declare the record at the path the upload root can carry (spec backlog-sensors, 'A pipeline outside the build publishes its own record')" ;;
+      esac
+      # Exactly the row's path, and nothing else: a second entry would move the archive's root, and this check
+      # would have to model that root rather than compare names. Listing one path makes "what the artifact
+      # carries" and "what the row declares" the same string, which is the property a red scan needs.
+      if [ "$(printf '%s\n' "$upload_paths" | grep -c .)" -ne 1 ] ||
+         [ "$(printf '%s\n' "$upload_paths")" != "$record_path" ]; then
+        error "$wf_rel" "$(grep -n 'name: scan-inputs' "$wf" | head -1 | cut -d: -f1)" "the upload lists '$(printf '%s' "$upload_paths" | tr '\n' ' ')', not the row's '$record_path' alone — the artifact would carry a different path than the row reads (spec backlog-sensors, 'A pipeline outside the build publishes its own record')"
+      fi
+    fi
+  fi
 fi
 
 # ── the quality gate is never waited for ───────────────────────────────────────────────────────────

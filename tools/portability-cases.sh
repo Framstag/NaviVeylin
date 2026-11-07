@@ -622,8 +622,14 @@ case_foreign_toolchainRunsEndToEnd() {
     fail "the metadata pass failed in the foreign project: $out"
   assert_contains "$(cat "$log")" "prio/p2" "the foreign band set decides the band"
 
-  # a dry-run loop: the phases run and nothing is created — one authorised candidate in the foreign tree
+  # a dry-run loop: the phases run and nothing is created — one authorised candidate in the foreign tree. The
+  # fixture's own writes are committed first: the run reads the project tree's uncommitted work before its pre-screen
+  # and refuses it (issue #798), and those files are this case's scaffolding — the tracker mirror, the score list, the
+  # stub's record — not a person's edit. A real project that had just run the metadata pass would commit or ignore them
+  # too, so the fixture starts the loop from the state a project has when it starts a run.
   foreign_issues "$p" "$(foreign_issue 7 OPEN "" "" '[{"name": "agent/eligible"}]')"
+  : > "$log"
+  git_commit "$p" "the fixture's own state, before the loop reads the tree"
   : > "$log"
   out=$(engine_script "$p" tools/loop/run.sh --dry-run --items 1 --minutes 30) ||
     fail "the dry-run loop failed in the foreign project: $out"
@@ -785,6 +791,10 @@ case_foreign_emptyGateCommandStillRunsThePhases() {
     > "$p/worker-report.txt"
   export PI_STUB_ACTION="$p/worker-action.sh" PI_STUB_REPORT_WORKER="$p/worker-report.txt" \
          PI_STUB_LOG="$p/pi.log" GH_STUB_RECORD="$p/gh.log"
+  : > "$PI_STUB_LOG"; : > "$GH_STUB_RECORD"
+  # The fixture's scaffolding is committed before the run reads the tree: the start's guard refuses a project tree with
+  # uncommitted work (issue #798), and these files are this case's own arrangement, not a person's edit.
+  git_commit "$p" "the fixture's own state, before the loop starts"
   : > "$PI_STUB_LOG"; : > "$GH_STUB_RECORD"
 
   out=$(engine_script "$p" tools/loop/run.sh --items 1 --minutes 30 --review off --max-decisions 1 2>&1)

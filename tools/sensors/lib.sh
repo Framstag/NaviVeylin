@@ -197,6 +197,14 @@ sensors_row_problems() { # <row-json> → one reason per line, empty when the ro
     *[!0-9]*) printf 'row-max-filings-not-a-count: %s\n' "$value" ;;
     0) printf 'row-max-filings-not-a-count: %s\n' "$value" ;;
   esac
+  # A row whose condition recurs by design declares its own recurrence bound, and that bound is a count of at least
+  # one: a value that is not a count is refused by name rather than compared as a number (issue #769).
+  value=$(sensors_row_field "$row" k)
+  case "$value" in
+    '') : ;;
+    *[!0-9]*) printf 'row-k-not-a-count: %s\n' "$value" ;;
+    0) printf 'row-k-not-a-count: %s\n' "$value" ;;
+  esac
   value=$(sensors_row_field "$row" lifecycle)
   case "$value" in
     file|file+close) : ;;
@@ -607,4 +615,21 @@ sensors_emit_error() { # <fields-json> <reason-token>
   fp=$(sensors_fingerprint "$fields" "$names")
   sensors_emit "$fp" "error-${reason}" error "$fields" "" "" \
     "the check could not determine anything: ${reason}"
+}
+
+# Every condition the row's own issues record, cleared in one call: the identity of each comes from the
+# issue's own body record rather than from the green run, so a clearing finding names the issue it owns and
+# closes nothing it did not open (design D4). `SENSORS_CLEARED` is how many it emitted — a caller that cleared
+# nothing still has to report, because the runner reads a row that printed nothing as a failed check.
+SENSORS_CLEARED=0
+sensors_clear_recorded() { # <field-names> <measurement> <title> <claim>
+  local names="$1" measurement="$2" title="$3" claim="$4" fields fp
+  SENSORS_CLEARED=0
+  while IFS= read -r fields; do
+    [ -n "$fields" ] || continue
+    fp=$(sensors_fingerprint "$fields" "$names")
+    sensors_emit "$fp" "$measurement" clear "$fields" "" "$title" "$claim"
+    SENSORS_CLEARED=$((SENSORS_CLEARED + 1))
+  done < <(jq -c '.[]? | select(.state == "OPEN") | (.condition // {}) | select(length > 0)' \
+    <<< "${SENSORS_CONDITIONS:-[]}")
 }

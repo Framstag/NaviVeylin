@@ -1,0 +1,18 @@
+gate: ./tools/loop/gate.sh (change root /home/tim/projects/NaviVeylin/.pi/worktrees/loop, HEAD 7290a9de, base 560edf23)
+findings applied: the round-1 review's 1 blocking finding and 4 notes — the project value deleted from
+  tools/loop/prompts/worker.md, the case's assertion on that value replaced by the portability rule, the requirement's
+  child-step clause reworded, and the notes corrected in proposal/design/tasks (evidence/corrections-round-2.md)
+result: passed — tests=918 failures=0 errors=0 across 26 suite tallies, 2026-11-06T08:52Z
+copies: gate.log (full console, in the item's evidence directory), gate-tallies/ (26 JUnit tallies from
+  app/build/test-results/loop-gate)
+sum check: 26 tallies sum to tests=918 failures=0 errors=0, matching the gate's own LOOP-GATE line
+executed, not cached: `tools/loop-selftest.sh --from-git b114e2d0… tests="326" failures="0"`,
+  `./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache` — `18 executed, 149 up-to-date`, `BUILD SUCCESSFUL in
+  4m 16s`; no `FROM-CACHE` line in gate.log
+the new seam ran in production: `gate: tools/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` is
+  gate.log:3–5, before the build and before every suite, `PASS … — 10s`
+tree after gate: the round-2 corrections are uncommitted in the change root (`git status --short` names them); the tail
+  commits and archives, so the gate measured the tree it will ship, not a committed one
+base/provenance note: the gate's own line names `--from-git b114e2d04b9f643949358ac4a5db606666dd4d1d`, a commit behind
+  the run's base `560edf23`, so the selection read `326 of 326 cases` instead of narrowing. The green is real and
+  broader than the delta needs; the recorded base is not the base the gate used.

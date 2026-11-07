@@ -21,13 +21,13 @@
       "id": "build-duration",
       "cmd": "tools/sensors/metrics/build-duration.sh",
       "cron": "0 3 * * *",
-      "threshold": 1.5,
-      "comparison": "baseline-multiple",
+      "threshold": 3600000,
+      "comparison": "greater-than",
       "consecutive": 2,
       "class": "improvement",
       "category": "build-and-harness",
       "lifecycle": "file+close",
-      "input": "build/gate-timings.json",
+      "input": "build/job-timings.json",
       "fingerprint": { "fields": ["job"] }
     },
     {
@@ -148,6 +148,19 @@
       "fingerprint": { "fields": ["job", "case"] }
     },
     {
+      "id": "broken-scan",
+      "cmd": "tools/sensors/conditions/broken-scan.sh",
+      "cron": "30 */2 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "bug",
+      "category": "build-and-harness",
+      "lifecycle": "file+close",
+      "input": "scan-result.json",
+      "fingerprint": { "fields": ["job", "step"] }
+    },
+    {
       "id": "pr-conflicts",
       "cmd": "tools/sensors/conditions/pr-conflicts.sh",
       "cron": "30 */4 * * *",
@@ -194,6 +207,25 @@
       "category": "specs-and-process",
       "lifecycle": "file+close",
       "fingerprint": { "fields": ["kind"] }
+    },
+    {
+      "id": "libosmscout-lag",
+      "cmd": "tools/sensors/metrics/libosmscout-lag.sh",
+      "cron": "0 13 * * *",
+      "threshold": 1,
+      "comparison": "boolean",
+      "consecutive": 1,
+      "class": "improvement",
+      "category": "native-jni",
+      "lifecycle": "file+close",
+      "k": 100,
+      "comment": "This condition returns by design after every update, so its recurrence is the cycle rather than a fix that failed to hold; the registry's 3 would escalate ordinary maintenance.",
+      "fingerprint": { "fields": ["repo", "branch"] },
+      "upstream": {
+        "repo": "Framstag/libosmscout",
+        "branch": "master",
+        "submodule": "app/src/main/cpp/libosmscout"
+      }
     }
   ]
 }

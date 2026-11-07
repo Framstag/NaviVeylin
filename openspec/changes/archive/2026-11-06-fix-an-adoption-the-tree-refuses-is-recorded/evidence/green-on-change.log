@@ -1,0 +1,12 @@
+2026-11-06T11:53:24Z
+PASS run#anAdoptionTheTreeRefusesIsRecordedAsUnmergeable
+PASS state#anAdoptionRefusalIsRecordedBesideTheExclusion
+PASS run#doesNotMergeAnAttemptWithoutAGreenVerification
+PASS run#mergesAFinishedAttemptAndClosesTheItem
+PASS run#doesNotCloseOnAMergeTheBaseCannotTake
+PASS run#awaitingDecisionIsNotEscalatedAgain
+PASS prescreen#aFinishedAttemptBranchIsADecision
+PASS prescreen#escalatedItemKeepsItsBranchAsEvidence
+PASS report#aVerdictAloneIsNoEscalation
+PASS driver#everyCaseDeclaresTheFilesItCanReach
+2026-11-06T11:54:09Z

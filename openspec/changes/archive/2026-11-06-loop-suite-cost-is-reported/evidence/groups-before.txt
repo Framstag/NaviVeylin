@@ -1,0 +1,11 @@
+# the three groups the plan blamed, one case at a time (task 3.1), at 0fb7a80
+2026-11-06T10:20:36Z
+--- --group state --jobs 1 ---
+loop-selftest: state 24 cases 39.47 s
+loop-selftest: all 24 cases passed (JDK 27, offline, no token, no sandbox) — 54.96 s, selection: --group state
+--- --group report --jobs 1 ---
+loop-selftest: report 20 cases 29.54 s
+loop-selftest: all 20 cases passed (JDK 27, offline, no token, no sandbox) — 42.32 s, selection: --group report
+--- --group prescreen --jobs 1 ---
+loop-selftest: prescreen 30 cases 32.96 s
+loop-selftest: all 30 cases passed (JDK 27, offline, no token, no sandbox) — 52.40 s, selection: --group prescreen

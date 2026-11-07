@@ -1,0 +1,9 @@
+2026-11-06T17:55:02Z
+loop-mutations: selected 1 of 256 records (labels: 88.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.QIFcwr
+RED    88.1  worktree#aSetAsideBranchWhosePatchesLandedIsRemoved   (the set-aside namespace among the branches a sweep enumerates, so a branch the run set aside is invisible to both removal paths again (issue #803))
+       2026-11-06T17:55:03Z — a set-aside branch whose patches are in the base is swept: 'would remove loop/leftover/issue-21-demo-20260101T000000Z' not found in: worktree: no published main could be fetched — the sweep compares against the base the run recorded
+restore 88.1 worktree#aSetAsideBranchWhosePatchesLandedIsRemoved green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0
+2026-11-06T17:55:05Z

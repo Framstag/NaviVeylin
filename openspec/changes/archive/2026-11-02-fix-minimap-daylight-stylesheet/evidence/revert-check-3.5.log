@@ -1,0 +1,5 @@
+# revert-check 3.5 — the re-render tied back to the push outcome (re-run on the round-4 sources, 2026-11-04T21:10:06Z)
+# mutation: MiniMap.kt, 'UNCHANGED -> Unit' restored to 'UNCHANGED -> return@LaunchedEffect'.
+# result: 1 failure — the widget keeps the other variant when another writer pushed first:
+message="kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms"
+# green half: restored, forced green (round-4 sources) — same command as the red half

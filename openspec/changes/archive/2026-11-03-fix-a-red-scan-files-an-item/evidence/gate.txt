@@ -1,0 +1,64 @@
+gate — ./tools/loop/gate.sh --base 47ec83e5, run from the change root on 2026-11-03 on the tree that lands
+(the branch after main was merged into it), base 47ec83e5 (main's head at that moment)
+------------------------------------------------------------------------------------------------------------
+
+LOOP-GATE: tests=324 failures=0 errors=0 (tools/sensor-selftest.sh 70s, tools/sensor-mutations.sh --list 0s, tools/build-inputs.sh --check 0s, tools/build-inputs-selftest.sh 0s, tools/build-inputs-mutations.sh --list 1s, tools/check-action-runtimes.sh 0s, tools/check-action-runtimes-selftest.sh 0s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-routes.sh 1s, tools/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/check-openspec-hygiene-selftest.sh 0s, tools/check-portability.sh 1s, tools/check-portability-selftest.sh 24s, tools/mutate-selftest.sh 0s, tools/mutate.sh --mutations tools/portability-mutations.json --list 0s, tools/issues/check-metadata.sh 1s, tools/issues/metadata-mutations.sh --list 1s, tools/issue-tooling-selftest.sh 93s, tools/mutate.sh --mutations tools/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/decision-question-mutations.json --list 0s, tools/check-sonar-workflow.sh 0s, tools/check-sonar-workflow-selftest.sh 1s)
+
+The tallies the gate wrote, copied here at the moment they were produced (evidence/gate/*.xml, 28 files); the
+gate's own directory is emptied by a `clean`, this copy is not. The measure block read them:
+
+LOOP-MEASURE-GATE seconds=206 suites=28
+LOOP-MEASURE-SUITE cases=309 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-CHANGE 2026-11-03-fix-a-red-scan-files-an-item scenarios=5 cases=5 unnamed=0
+LOOP-MEASURE-TALLY …/tools_sensor-selftest.sh.xml tests=78 failures=0 time=70s
+LOOP-MEASURE-TALLY …/tools_build-inputs-selftest.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY …/tools_check-sonar-workflow-selftest.sh.xml tests=11 failures=0 time=1s
+LOOP-MEASURE-TALLY …/tools_check-portability-selftest.sh.xml tests=29 failures=0 time=24s
+LOOP-MEASURE-TALLY …/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=8s
+LOOP-MEASURE-TALLY …/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY …/tools_issue-tooling-selftest.sh.xml tests=155 failures=0 time=93s
+LOOP-MEASURE-TALLY …/tools_check-action-runtimes-selftest.sh.xml tests=10 failures=0 time=0s
+
+The gate ran three times that evening, on three trees, and all three are stated rather than one hidden: after
+the code and case corrections (227 s), after the documents and evidence those corrections changed (315 s), and
+on the merged tree that lands (206 s, the run above). The last is quoted because it is the tree a reader can
+check out: the branch carries main's changes too, so an earlier number described a tree that no longer exists.
+
+**Why `--base 47ec83e5`.** The gate's default base is `git merge-base HEAD origin/main`, and `origin/main` was
+behind the local `main` by two commits that were never pushed. Against that base the diff included main's own
+commits, which selected the loop's own suite (`tools/loop-selftest.sh --from-git`, 309 cases): it timed out three
+cases at its 900 s per-case bound, and those three pass in isolation. They are not this change's files; naming
+main's head as the base is what makes the delta describe this change (`guidelines/BuildGate.md` §2a, "a delta
+owes the verification its file roster names, and no more").
+
+The two red runs this change carries:
+
+- `evidence/red-on-HEAD.log` / `.xml` — the six cases on base 55b5d658, `tests=6 failures=6`
+  (2026-11-03T19:43Z): the registry had no `broken-scan` row, the manifest named no scan record, the scan
+  workflow published nothing, and the checks' pipeline fetched no scan artifact.
+- `evidence/red-on-pre-correction.log` — the same cases on 18748b88, the revision review round 1 read
+  (2026-11-03T19:44Z): the row declared a path the artifact root cannot carry, and the green-with-nothing
+  clear produced an empty `step`, which the runner refuses as a malformed finding. Both are the corrections'
+  red case; the restored tree is green (`evidence/revert-check.log`).
+
+The build-inputs self-test's tally reports `tests="0"` while its summary says `13 cases, 0 failed`; that is that
+suite's tally writer, which this change does not touch, so the aggregate `tests=324` understates executed cases
+by 13 rather than inventing them.
+
+Not run, and why: no Gradle task, no device, no emulator — this change touches no compiled file (`tools/**`,
+`.github/**`, `guidelines/**`, `openspec/**`), so the shell suites and the structural checks are the whole
+verification its file roster names (`guidelines/BuildGate.md` §2a). `tools/gen-feature-list.sh
+--check-classification` and `tools/check-openspec-hygiene.sh` are owed by the `openspec/**` paths and both ran
+inside this gate: hygiene prints "OpenSpec artifacts are consistent", the classification check exits 0 with
+`unclassified: 0` (it reports `stale: 3` entries for spec ids this tree no longer holds — the same three on
+`main`, measured on `55b5d658`, so the residue is not this change's).
+
+The validator, checked by hand because an archived change's delta is no longer validated under its id:
+
+- `openspec validate backlog-sensors --type spec --strict` exits 1 on one warning only: `requirements[11]`,
+  "A source file's size is a declared check", is 565 characters. That requirement is unchanged by this change
+  (the same 565 characters on `main`), so the >500 bound is a pre-existing debt owed by that requirement's own
+  row, not by this delta.
+- this change's own requirement body is 464 characters on both the delta and the shipped spec — under the
+  500-character bound. The earlier gate note recorded 544 and called it this requirement's; both the number and
+  the attribution were wrong.

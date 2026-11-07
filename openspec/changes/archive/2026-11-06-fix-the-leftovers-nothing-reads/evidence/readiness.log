@@ -1,0 +1,13 @@
+2026-11-06T17:56:25Z
+LOOP-CHANGE-READY: ok
+exit=0
+Change 'fix-the-leftovers-nothing-reads' is valid
+exit=0
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+exit=0
+2026-11-06T17:56:26Z
+2026-11-06T17:57:43Z
+LOOP-CHANGE-READY: ok
+Change 'fix-the-leftovers-nothing-reads' is valid
+check-doc-routes: all 329 section references resolve, all 5 skill references resolve
+2026-11-06T17:57:44Z

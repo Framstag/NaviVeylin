@@ -1,0 +1,10 @@
+ok   C1 §references: 0 checked, 0 exempted as archived pointers
+FAIL C2 quoted tally tests=1 failures=1 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-06-fix-gate-independent-steps-run-together/evidence/evidence
+FAIL C2 quoted tally tests=1 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-06-fix-gate-independent-steps-run-together/evidence/evidence
+FAIL C2 quoted tally tests=1 failures=0 is carried by no XML under ./app/build/test-results or openspec/changes/archive/2026-11-06-fix-gate-independent-steps-run-together/evidence/evidence
+ok   C2 test tallies: 4 pairs confirmed, 1 exempted (not retained), 0 unparsable, 0 drift
+ok   C3 /tmp pointers: none cited
+ok   C4 mutations: no REVERT-CHECK MUTATION marker under 1 configured path(s): app/src
+ok   C5 file:line: 81 resolved and in range, 0 unresolved or ambiguous
+----
+evidence-check: FAIL (3)

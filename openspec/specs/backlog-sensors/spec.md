@@ -140,23 +140,53 @@ closed as a decision not to act alone, reporting the condition instead.
 ### Requirement: A repeating condition escalates instead of reopening forever
 
 A check SHALL stop reopening past a declared number of recurrences and SHALL mark the issue as awaiting a
-person's decision, because a condition that keeps returning is a specification or design problem.
+person's decision, because a condition that keeps returning is a specification or design problem. When the
+writer refuses that mark — the item carries a state the profile declares settled, which is where a returned
+condition lands — the check SHALL file the returned condition as a new item and SHALL NOT report the
+escalation as written (issue #780).
 
 #### Scenario: The recurrence bound is reached
 
 - **WHEN** a condition recurs past the declared bound
 - **THEN** the check stops reopening and marks the issue as awaiting a decision, recording why
+- **Case**: `run#escalatesPastKRecurrences`
 
 #### Scenario: Escalating does not authorise work
 
 - **WHEN** an issue is escalated
 - **THEN** it does not become eligible for automated work, so a repeating condition reaches a person
   rather than a machine
+- **Case**: `run#escalationNeverSetsEligibility`
 
 #### Scenario: A flapping condition does not churn
 
 - **WHEN** a condition alternates between present and cleared faster than the consecutive count requires
 - **THEN** neither a close nor a reopen happens until the count is met in one direction
+- **Case**: `run#hysteresisBothDirections`
+
+#### Scenario: A settled issue's escalation files the returned condition
+
+- **WHEN** a condition recurs past the bound on an issue the profile declares settled, so the writer refuses
+  the escalation's state write
+- **THEN** the check files a new item carrying the condition's own fingerprint, reports the item it filed
+  rather than an escalation, and leaves the settled issue untouched
+- **Case**: `run#anEscalationOnASettledIssueFilesANewItem`
+
+#### Scenario: A refused escalation past the row's bound fails the run
+
+- **WHEN** a condition recurs past the bound on an issue the profile declares settled, the writer refuses the
+  escalation's state write, and the row's bound on the items one run may file is already spent
+- **THEN** the check files nothing, reports the condition as unrecorded, and fails the run so the tick is red
+  instead of reporting an escalation or a filing that did not happen
+- **Case**: `run#aRefusedEscalationPastTheBoundFailsTheRun`
+
+#### Scenario: The filed condition is ordinary work on the next tick
+
+- **WHEN** a condition was filed as a new item because the escalation of its settled issue was refused, and
+  the next run meets the tracker carrying both items under the one fingerprint
+- **THEN** the run annotates the filed item, files no second item for the same condition, and leaves the
+  settled issue untouched
+- **Case**: `run#theFiledConditionIsOpenWorkOnTheNextTick`
 
 ### Requirement: A check acts only on what it owns
 
@@ -276,13 +306,18 @@ the row that lists them — and guarded so that two runs cannot act at once.
 
 ### Requirement: The issues carry the measurement history
 
-A check's measurements SHALL be recorded on the issue as comments, and no measurement SHALL be stored in the repository, so the issue's own timeline is the baseline a later measurement is compared against. A filing SHALL carry its marker in the issue's body too, and the newest marker an issue carries — a comment's, or a filing's dated by the issue's own creation — SHALL be the measurement the report prints and the one a later measurement is compared against.
+A check's measurements SHALL be recorded on the issue as comments, and no measurement SHALL be stored in the
+repository, so the issue's own timeline is the baseline a later measurement is compared against where the row's
+comparison is a multiple of the previous one; a row that bounds absolutely SHALL read its bound from its own
+declaration and quote no baseline. A filing SHALL carry its marker in the issue's body too, and the newest marker
+an issue carries — a comment's, or a filing's dated by the issue's own creation — SHALL be the measurement the
+report prints and the one a later measurement is compared against.
 
 #### Scenario: The baseline is the previous measurement
 
-- **WHEN** a check compares a measurement against its bound
+- **WHEN** a row that compares as a multiple of its previous measurement compares a measurement against its bound
 - **THEN** the earlier number it quotes is the one from the issue's own record, not a separate store
-- **Case**: `sensors#buildDurationRow`
+- **Case**: `run#aFilingSetsTheBaseline`
 
 #### Scenario: Nothing is committed by a check
 
@@ -599,3 +634,98 @@ rule is that one change is not heat.
 - **THEN** only the churned path is a condition, and the row's bound is above the largest tracked file of the tree
   it watches, so no single change of a file that tree holds can cross it
 - **Case**: `hotspot#theBoundIsAboveOneChangedFile`
+
+### Requirement: A pipeline outside the build publishes its own record, and its row waits for it
+
+A workflow the build does not run SHALL be monitored by one row and SHALL publish the record that row reads:
+every run states its result and, when red, the step that broke and the command it ran, in one artifact both
+the workflow and the checks' run name. The publisher SHALL pair that path with a producer and SHALL NOT write
+or require it. The checks' run SHALL fetch the record for the commit under test and select the row only once a
+completed run carries it.
+
+#### Scenario: A red scan is one condition, and its identity is the step that broke
+
+- **WHEN** the record of the commit under test carries a failed result and names the step that broke
+- **THEN** the row files one condition whose identity is that job and step, so a second, unrelated failing step
+  is a second item rather than a reopening of the first one's record, and the item's text names the command
+  that failed
+- **Case**: `sensors#aFailedScanIsItsOwnCondition`
+
+#### Scenario: A green scan clears the condition it recorded
+
+- **WHEN** the record of the commit under test carries a successful result and an item is open under this row's
+  own recorded condition
+- **THEN** the run closes that item, and a green record with nothing recorded still reports a row-level clear
+  rather than printing nothing
+- **Case**: `sensors#aGreenScanClearsItsCondition`
+
+#### Scenario: The record is fetched from its own pipeline, and an unfinished one selects no row
+
+- **WHEN** the checks' run starts on the main branch and the second workflow's run for that commit has not
+  completed yet
+- **THEN** the run asks that workflow for the one artifact name the workflow publishes and restores the
+  declared path, so the row's command learns nothing about where its input came from — and while no completed
+  run carries the record, the row is selected by no tick, nothing is written to the tracker for it, and the run
+  reports no failed check, because the second pipeline's readiness is reported apart from the build record's
+- **Case**: `workflow#theScanRecordIsFetchedBeforeItsRowRuns`
+
+#### Scenario: The publisher pairs the path without writing it
+
+- **WHEN** a row declares a path the second pipeline publishes
+- **THEN** the publisher's manifest and its registry check name that path, so the declaration is not refused,
+  and the build's own write neither writes the file nor fails for its absence
+- **Case**: `inputs#theScanRecordIsTheScanPipelinesOwn`
+
+#### Scenario: The workflow publishes its record for every outcome
+
+- **WHEN** the second workflow's run ends, green or red
+- **THEN** the record it writes and the artifact that carries it both run on `always()`, the artifact carries
+  the path the row declares, and a run that publishes nothing is reported by the workflow's own structural
+  check rather than passing as healthy
+- **Case**: `sonar-workflow#theRecordIsPublishedOnEveryOutcome`, `sonar-workflow#theRecordPathIsTheUploadsOwn`
+
+### Requirement: A row whose condition recurs by design declares its own recurrence bound
+
+A row MAY declare its own recurrence bound, and a row whose condition returns as a matter of course SHALL declare one rather than inherit the registry's: for that row the recurrence is the cycle, not a fix that failed to hold, so escalating it hands maintenance to a person as a design problem. A declared bound SHALL be a count of at least one, refused by name otherwise. A row that declares none keeps the registry's number.
+
+#### Scenario: A routine condition recurs past the registry's number
+
+- **WHEN** a row that declares its own bound has its condition return past the number the registry declares
+- **THEN** the item is reopened and stays a work item, and no escalation happens until the row's own bound is reached
+- **Case**: `run#aRowDeclaresItsOwnRecurrenceBound`
+
+#### Scenario: A row that declares no bound keeps the registry's
+
+- **WHEN** a row declares no bound of its own
+- **THEN** the number the registry declares decides when reopening stops
+- **Case**: `run#escalatesPastKRecurrences`
+
+#### Scenario: A declared bound is a count of at least one
+
+- **WHEN** a row declares a bound of zero, or one that is not a count
+- **THEN** the registry is refused with a reason naming that row and that field
+- **Case**: `lib#aRowBoundIsACount`
+
+### Requirement: A row that measures a pipeline reads the run's own job and step wall times
+
+A row whose subject is the build pipeline SHALL measure the wall time of the pipeline's jobs, from a record the
+checks' own fetcher publishes for the commit under test, and SHALL bound that wall time absolutely rather than as
+a multiple of the previous measurement — so a step outside the build's own invocation is inside the row's
+measurement, and a growth of it files a condition without waiting for a run to be worse than the run before.
+
+#### Scenario: A step outside the build files, while the build is flat
+
+- **WHEN** a job's steps that run the build are unchanged and a step outside that build is an hour longer, so the
+  job's own wall time crosses the bound the row declares
+- **THEN** the row measures the job's wall time, files one condition whose identity is that job, and its claim
+  names the step that grew
+- **Case**: `sensors#buildDurationCoversThePipeline`
+
+#### Scenario: The record belongs to the run the fetcher restored
+
+- **WHEN** the checks' fetcher restores the build record of the commit under test and is asked for the job
+  timings
+- **THEN** it writes every job's and every step's wall time for that run, carrying the run's identifier and the
+  commit, and a fetch that did not ask for the record writes none — so the record can never answer with another
+  pipeline's jobs
+- **Case**: `inputs#theFetcherPublishesTheJobTimings`

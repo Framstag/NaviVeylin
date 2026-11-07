@@ -1,0 +1,5 @@
+run#anEmptyTreeIsRefusedBeforeTheGateChild|   the item is recorded — the run said: stop: the child could not start — the worker exited 0 with an answer of 188 B and no verdict line, leaving the tree at the base: LOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z): expected '1', got '0'
+--- run#anEmptyTreeIsRefusedBeforeTheGateChild[0] (exit 1)
+  the item is recorded — the run said: stop: the child could not start — the worker exited 0 with an answer of 188 B and no verdict line, leaving the tree at the base: LOOP-RED-TEST: Demo#case fails on HEAD — XML tests=1 failures=1 (2026-01-01T00:00:00Z): expected '1', got '0'
+FAIL run#anEmptyTreeIsRefusedBeforeTheGateChild
+loop-selftest: 1 of 1 cases failed

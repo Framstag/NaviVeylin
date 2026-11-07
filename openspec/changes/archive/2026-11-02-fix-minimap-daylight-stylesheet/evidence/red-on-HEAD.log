@@ -1,0 +1,13 @@
+# red-on-HEAD — MiniMapComposeTest, base e190d8729eda946da6de579151552a5203055c61 + this change's test file only
+# 2026-11-02T04:56:48Z
+# command: ./gradlew :app:testMobileDebugUnitTest --tests "com.naviveylin.ui.map.MiniMapComposeTest" -PforceTests --no-build-cache
+# exit=1
+MiniMapComposeTest > darkPresentationPushesTheDarkDaylightFlag FAILED
+    java.lang.AssertionError: the mini map pushes the dark stylesheet variant before its first frame expected:<[(daylight, false)]> but was:<[]>
+MiniMapComposeTest > lightPresentationPushesTheDaylightFlag FAILED
+    java.lang.AssertionError: the mini map pushes the light stylesheet variant expected:<[(daylight, true)]> but was:<[]>
+MiniMapComposeTest > presentationChangeReRendersTheMiniMap FAILED
+    kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 10000 ms
+10 tests completed, 3 failed
+BUILD FAILED in 28s
+# XML: evidence/red-on-HEAD.xml — tests="10" skipped="0" failures="3" errors="0", timestamp="2026-11-02T04:56:48.069Z"

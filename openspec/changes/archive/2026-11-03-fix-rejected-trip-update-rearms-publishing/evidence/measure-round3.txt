@@ -1,0 +1,81 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/736/tools/loop/loop.conf
+LOOP-MEASURE base=9e3ed182a1387e56da1ca87c19b66cce2e4cdda7 paths=30 insertions=1373 deletions=18
+LOOP-MEASURE-PATH auto/src/main/java/com/naviveylin/auto/NavigationManagerController.kt
+LOOP-MEASURE-PATH auto/src/test/java/com/naviveylin/auto/NavigationManagerControllerTest.kt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-final-gradlew-test.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-gradlew-test.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-post-merge-gen-feature-list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-post-merge-gradlew-test.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-post-merge.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-round2-attribution.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-round2-gen-feature-list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-round2-gradlew-test.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-controller-cases.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-controller-trip-cases.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-reset-budget-controller-cases.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-reset-budget-controller-trip-cases.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-round2-controller-cases.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-round2-controller-trip-cases.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/revert-check-red-reset-budget.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/review-round-2-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/specs/car-host-fault-isolation/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/tasks.md
+LOOP-MEASURE-PATH openspec/specs/car-host-fault-isolation/spec.md
+LOOP-MEASURE-PATH tools/feature-list/specs.json
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git 9e3ed182a1387e56da1ca87c19b66cce2e4cdda7
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/gen-feature-list-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=309 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/bash_tools_gen-feature-list.sh_--check-classification.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml tests=0 failures=0 time=308s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes-selftest.sh.xml tests=34 failures=0 time=8s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-doc-routes.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene-selftest.sh.xml tests=7 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-openspec-hygiene.sh.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_check-todo-references.sh.xml tests=0 failures=0 time=1s
+LOOP-MEASURE-TALLY app/build/test-results/loop-gate/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml tests=0 failures=0 time=0s
+LOOP-MEASURE-GATE seconds=322 suites=8
+LOOP-MEASURE-CHANGE 2026-11-03-fix-rejected-trip-update-rearms-publishing scenarios=15 cases=15 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-final-gradlew-test.xml tests=0 failures=0 time=308s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-gradlew-test.xml tests=0 failures=0 time=298s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-post-merge-gen-feature-list.xml tests=0 failures=0 time=4s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-post-merge-gradlew-test.xml tests=0 failures=0 time=514s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-round2-gen-feature-list.xml tests=0 failures=0 time=3s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/gate-round2-gradlew-test.xml tests=0 failures=0 time=275s
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-controller-cases.xml tests=11 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-controller-trip-cases.xml tests=9 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-reset-budget-controller-cases.xml tests=12 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-reset-budget-controller-trip-cases.xml tests=9 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-round2-controller-cases.xml tests=11 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/green-round2-controller-trip-cases.xml tests=9 failures=0
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/red-on-HEAD.xml tests=11 failures=3
+LOOP-MEASURE-TALLY openspec/changes/archive/2026-11-03-fix-rejected-trip-update-rearms-publishing/evidence/revert-check-red-reset-budget.xml tests=1 failures=1
+LOOP-MEASURE-SURFACE surface: 3 cases added, 1 rewritten, 0 fixtures realigned — `git grep -n 'aRejectedTripUpdateEndsTripPublishing'
+LOOP-MEASURE-END

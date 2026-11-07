@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.i18n.GermanTranslationCompletenessTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-05T21:24:20.366Z" hostname="dingens" time="0.022">
+  <properties/>
+  <testcase name="everyEnglishPluralHasGermanTranslation" classname="com.naviveylin.i18n.GermanTranslationCompletenessTest" time="0.005"/>
+  <testcase name="everyEnglishStringHasGermanTranslation" classname="com.naviveylin.i18n.GermanTranslationCompletenessTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

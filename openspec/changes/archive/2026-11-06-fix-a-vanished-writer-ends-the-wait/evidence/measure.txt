@@ -1,0 +1,216 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=b114e2d04b9f643949358ac4a5db606666dd4d1d paths=182 insertions=10896 deletions=101
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/DescriptionLabels.kt
+LOOP-MEASURE-PATH app/src/main/java/com/naviveylin/ui/map/LocationDetailsSheet.kt
+LOOP-MEASURE-PATH app/src/main/res/values-de/strings.xml
+LOOP-MEASURE-PATH app/src/main/res/values/strings.xml
+LOOP-MEASURE-PATH app/src/test/java/com/naviveylin/ui/map/LocationDetailsDialogComposeTest.kt
+LOOP-MEASURE-PATH guidelines/Backlog.md
+LOOP-MEASURE-PATH guidelines/Backlog.recipes.md
+LOOP-MEASURE-PATH guidelines/BacklogTooling.md
+LOOP-MEASURE-PATH guidelines/UIPhone.md
+LOOP-MEASURE-PATH guidelines/UI.why.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/checks.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/context-distribution.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-attribution.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-map-covers-base-inputs.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-summary.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_build-inputs.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-action-runtimes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-action-runtimes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-sonar-workflow-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-sonar-workflow.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_ci-vcpkg-cache-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_gen-feature-list-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_issues_check-metadata.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_issues_metadata-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_122cc2f9.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_loop-selftest.sh_--from-git_aee35ca6fe60bb243fc6d4227d5a50e2675a87c3.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_sensor-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/gate-tallies/tools_sensor-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/green-cases.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/green-review-case.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/hand-merge.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/pre-gate-review.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/red-on-head.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/red-summary.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/review-corrections.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/evidence/tasks-verification.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-a-child-is-bounded-by-its-context/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/description-labels.tsv
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/gate-summary.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/revert-check.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/review-round-1-withdrawn.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/scope-run.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-applied-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-automotive-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-gate-mobile-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-green-GermanTranslationCompletenessTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/evidence/TEST-red-head-LocationDetailsDialogComposeTest.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/specs/i18n-l10n/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-details-description-labels/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/bash_tools_loop-mutations.sh_--check.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/checks.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/gate-summary.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/gradlew_test_-PforceTests_-PjvmTestsOnly_--no-build-cache.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/green-dirtyKeptWorktreeIsARecordedRefusal.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/green-resetWorktreeNamesTheDirtItCannotDiscard.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/green-theDecisionCapRecordsItsStopReason.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/red-on-HEAD-run-theDecisionCapRecordsItsStopReason.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/revert-check-run.sh.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/review-round-1-requested.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/review-round-2-cut.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/round2-correction.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-compose-sandbox-rule-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-compose-sandbox-rule.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_loop-mutations-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_loop-selftest.sh_--from-git_b114e2d04b9f643949358ac4a5db606666dd4d1d.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_sensor-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/evidence/tools_sensor-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/.openspec.yaml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-refusal-before-the-first-item-records-its-stop/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/bash_tools_gen-feature-list.sh_--check-classification.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/gate.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/gate-summary.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/measure.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/red-on-HEAD.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/revert-check.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1-cut.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1.diff
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/review-round-1.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/sensor-suite.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-doc-routes-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-doc-routes.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-openspec-hygiene-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-openspec-hygiene.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-portability-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-portability.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_check-todo-references.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_issue-tooling-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_check-doc-routes-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_close-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_create-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_decision-question-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_duplicates-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_portability-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_mutate.sh_--mutations_tools_status-mutations.json_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_sensor-mutations.sh_--list.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/evidence/tools_sensor-selftest.sh.xml
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/specs/backlog-sensors/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-05-fix-settled-escalation-files-an-item/tasks.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/design.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/bound-census.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/check-doc-routes.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/check-openspec-hygiene.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/check-portability.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/check-todo-references.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/evidence.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/gate-loop-selftest.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/mutations.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/red-on-HEAD.log
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/evidence/role-census.txt
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/proposal.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/changes/archive/2026-11-06-bound-values-and-the-refusal-streak/tasks.md
+LOOP-MEASURE-PATH openspec/specs/agent-issue-loop/spec.md
+LOOP-MEASURE-PATH openspec/specs/backlog-sensors/spec.md
+LOOP-MEASURE-PATH openspec/specs/i18n-l10n/spec.md
+LOOP-MEASURE-PATH tools/loop-cases.sh
+LOOP-MEASURE-PATH tools/loop/loop.conf
+LOOP-MEASURE-PATH tools/loop-mutations.sh
+LOOP-MEASURE-PATH tools/loop/report.sh
+LOOP-MEASURE-PATH tools/loop/run.sh
+LOOP-MEASURE-PATH tools/loop/state.sh
+LOOP-MEASURE-PATH tools/sensor-cases.sh
+LOOP-MEASURE-PATH tools/sensors/run.sh
+LOOP-MEASURE-CHECK ./gradlew test -PforceTests -PjvmTestsOnly --no-build-cache
+LOOP-MEASURE-CHECK tools/loop-selftest.sh --from-git b114e2d04b9f643949358ac4a5db606666dd4d1d
+LOOP-MEASURE-CHECK bash tools/loop-mutations.sh --check
+LOOP-MEASURE-CHECK tools/loop-mutations-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/sensor-mutations.sh --list
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule.sh
+LOOP-MEASURE-CHECK tools/check-compose-sandbox-rule-selftest.sh
+LOOP-MEASURE-CHECK bash tools/gen-feature-list.sh --check-classification
+LOOP-MEASURE-CHECK tools/check-doc-routes.sh
+LOOP-MEASURE-CHECK tools/check-doc-routes-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/check-doc-routes-mutations.json --list
+LOOP-MEASURE-CHECK tools/check-todo-references.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene.sh
+LOOP-MEASURE-CHECK tools/check-openspec-hygiene-selftest.sh
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=324 cmd=tools/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-a-vanished-writer-ends-the-wait scenarios=2 cases=2 unnamed=0
+LOOP-MEASURE-TALLY openspec/changes/fix-a-vanished-writer-ends-the-wait/evidence/green-on-change.xml tests=3 failures=0 time=14s
+LOOP-MEASURE-TALLY openspec/changes/fix-a-vanished-writer-ends-the-wait/evidence/red-on-HEAD.xml tests=1 failures=1 time=64s
+LOOP-MEASURE-SURFACE surface: 2 cases added, 1 wait condition and 1 transcript arm in `run_child`, 1 mutation record, 1 guideline paragraph,
+LOOP-MEASURE-END
